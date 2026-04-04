@@ -11,12 +11,12 @@ const withBundleAnalyzer = bundleAnalyzer({
 
 const workflowUiRoot = path.resolve(
   __dirname,
-  '../../../../packages/workflow-ui',
+  '../../packages/workflow-ui',
 );
-const helpersRoot = path.resolve(__dirname, '../../../packages/helpers');
+const helpersRoot = path.resolve(__dirname, '../../packages/helpers');
 const serializersRoot = path.resolve(
   __dirname,
-  '../../../packages/serializers',
+  '../../packages/serializers',
 );
 
 const workflowUiAliases = {
@@ -141,11 +141,34 @@ config.turbopack = {
   ...(config.turbopack ?? {}),
   resolveAlias: {
     ...(config.turbopack?.resolveAlias ?? {}),
-    '@genfeedai/serializers': '../../../packages/serializers/src/index.ts',
-    '@genfeedai/helpers': '../../../packages/helpers/src/index.ts',
-    '@serializers': '../../../packages/serializers/src',
+    '@genfeedai/serializers': '../../packages/serializers/src/index.ts',
+    '@genfeedai/helpers': '../../packages/helpers/src/index.ts',
+    // Tsconfig path aliases for Turbopack
+    '@ui/*': '../../packages/ui/*',
+    '@ui-constants/*': '../../packages/ui/constants/*',
+    '@components/*': '../../packages/ui/*',
+    '@contexts/*': '../../packages/contexts/*',
+    '@helpers/*': '../../packages/helpers/src/*',
+    '@hooks/*': '../../packages/hooks/*',
+    '@models/*': '../../packages/models/*',
+    '@pages/*': '../../packages/pages/*',
+    '@props/*': '../../packages/props/*',
+    '@providers/*': '../../packages/providers/*',
+    '@schemas/*': '../../packages/schemas/*',
+    '@serializers/*': '../../packages/serializers/src/*',
+    '@services/*': '../../packages/services/*',
+    '@styles/*': '../../packages/styles/*',
+    '@utils/*': '../../packages/utils/*',
+    '@libs/*': '../../packages/libs/*',
+    '@cloud-types/*': '../../packages/types/src/*',
+    '@api-types/*': '../../packages/api-types/src/*',
+    '@app-components/*': './packages/components/*',
+    '@app-config/*': './packages/config/*',
+    '@app-server/*': './packages/server/*',
+    '@app/*': './app/*',
+    '@/*': './src/*',
   },
-  root: path.resolve(__dirname, '../../..'),
+  root: path.resolve(__dirname, '../..'),
 };
 
 config.transpilePackages = [
@@ -180,15 +203,44 @@ config.webpack = ((webpackConfig, options) => {
       ? existingWebpack(webpackConfig, options)
       : webpackConfig;
 
+  const packagesRoot = path.resolve(__dirname, '../../packages');
+
   nextConfig.resolve.alias = {
     ...nextConfig.resolve.alias,
     '@genfeedai/serializers': path.join(serializersRoot, 'src/index.ts'),
     ...workflowUiAliases,
+    // Tsconfig path aliases → webpack aliases
+    // The @ prefix maps to packages/ directories
+    '@ui': path.join(packagesRoot, 'ui'),
+    '@ui-constants': path.join(packagesRoot, 'ui/constants'),
+    '@components': path.join(packagesRoot, 'ui'),
+    '@contexts': path.join(packagesRoot, 'contexts'),
+    '@helpers': path.join(packagesRoot, 'helpers/src'),
+    '@hooks': path.join(packagesRoot, 'hooks'),
+    '@models': path.join(packagesRoot, 'models'),
+    '@pages': path.join(packagesRoot, 'pages'),
+    '@props': path.join(packagesRoot, 'props'),
+    '@providers': path.join(packagesRoot, 'providers'),
+    '@schemas': path.join(packagesRoot, 'schemas'),
     '@serializers': path.join(serializersRoot, 'src'),
+    '@services': path.join(packagesRoot, 'services'),
+    '@styles': path.join(packagesRoot, 'styles'),
+    '@utils': path.join(packagesRoot, 'utils'),
+    '@libs': path.join(packagesRoot, 'libs'),
+    '@cloud-types': path.join(packagesRoot, 'types/src'),
   };
   nextConfig.resolve.extensions = [
     ...(nextConfig.resolve.extensions ?? []),
     '.css',
+  ];
+
+  // Add packages root to resolve.modules so @ui/*, @services/*, etc. resolve
+  // via directory structure (packages/ui/*, packages/services/*, etc.)
+  nextConfig.resolve.modules = [
+    ...(nextConfig.resolve.modules ?? []),
+    packagesRoot,
+    path.resolve(__dirname, '../../node_modules'),
+    'node_modules',
   ];
 
   return nextConfig;

@@ -71,13 +71,13 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
       '@tiptap/react',
       '@tiptap/starter-kit',
       '@tiptap/suggestion',
-      '@cloud/agent',
+      '@genfeedai/agent',
       '@genfeedai/client',
       '@genfeedai/constants',
       '@genfeedai/enums',
       '@genfeedai/helpers',
-      '@cloud/interfaces',
-      '@cloud/workflow-saas',
+      '@genfeedai/interfaces',
+      '@genfeedai/workflow-saas',
     ],
     // Skip type checking during development for faster builds
     typescript: {

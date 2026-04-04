@@ -1,0 +1,221 @@
+'use client';
+
+import type { IErrorDebugInfo } from '@genfeedai/interfaces/modals/error-debug.interface';
+import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import { cn } from '@helpers/formatting/cn/cn.util';
+import { closeModal } from '@helpers/ui/modal/modal.helper';
+import { ClipboardService } from '@services/core/clipboard.service';
+import {
+  clearErrorDebugInfo,
+  getErrorDebugInfo,
+  subscribe,
+} from '@services/core/error-debug-store';
+import Button from '@ui/buttons/base/Button';
+import ModalActions from '@ui/modals/actions/ModalActions';
+import Modal from '@ui/modals/modal/Modal';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { HiChevronDown, HiChevronRight } from 'react-icons/hi2';
+
+export default function ModalErrorDebug() {
+  const clipboardService = ClipboardService.getInstance();
+  const sectionClassName =
+    'rounded-lg border border-destructive/30 bg-destructive/10 p-4';
+  const preClassName =
+    'mt-2 max-h-48 overflow-x-auto overflow-y-auto rounded border border-destructive/20 bg-black/30 p-2 text-xs text-red-50';
+
+  const [errorInfo, setErrorInfo] = useState<IErrorDebugInfo | null>(null);
+  const [isResponseExpanded, setIsResponseExpanded] = useState(false);
+  const [isStackExpanded, setIsStackExpanded] = useState(false);
+  const [isContextExpanded, setIsContextExpanded] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    const existing = getErrorDebugInfo();
+    if (existing) {
+      setErrorInfo(existing);
+    }
+    return subscribe((info) => setErrorInfo(info));
+  }, []);
+
+  // Called when Close button is clicked - initiates the close
+  const handleCancel = () => {
+    closeModal(ModalEnum.ERROR_DEBUG);
+  };
+
+  // Called by Modal's onClose after modal is closed - cleanup state
+  const handleModalClosed = () => {
+    setErrorInfo(null);
+    clearErrorDebugInfo();
+    setIsResponseExpanded(false);
+    setIsStackExpanded(false);
+    setIsContextExpanded(false);
+  };
+
+  const handleCopy = async () =>
+    await clipboardService.copyToClipboard(errorInfo?.message || '');
+
+  return (
+    <Modal
+      id={ModalEnum.ERROR_DEBUG}
+      title="Error Debug Information (Beta)"
+      isError
+      error={errorInfo?.message}
+      onClose={handleModalClosed}
+      modalBoxClassName="rounded-lg border-destructive/50 bg-[#17080a] text-red-50 shadow-[0_24px_80px_rgba(127,29,29,0.45)]"
+    >
+      {errorInfo && (
+        <>
+          <div className="space-y-4 text-red-50">
+            <div className={cn(sectionClassName, 'space-y-2')}>
+              <h3 className="font-semibold mb-2">Request Details</h3>
+
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                {errorInfo.url && (
+                  <>
+                    <span className="text-red-200/70">URL</span>
+                    <span className="font-mono truncate" title={errorInfo.url}>
+                      {errorInfo.url}
+                    </span>
+                  </>
+                )}
+
+                {errorInfo.method && (
+                  <>
+                    <span className="text-red-200/70">Method</span>
+                    <span className="font-mono uppercase">
+                      {errorInfo.method}
+                    </span>
+                  </>
+                )}
+
+                {errorInfo.status && (
+                  <>
+                    <span className="text-red-200/70">Status</span>
+                    <span className="font-mono">
+                      {errorInfo.status} {errorInfo.statusText || ''}
+                    </span>
+                  </>
+                )}
+
+                {errorInfo.errorCode && (
+                  <>
+                    <span className="text-red-200/70">Error Code</span>
+                    <span className="font-mono">{errorInfo.errorCode}</span>
+                  </>
+                )}
+
+                <span className="text-red-200/70">Timestamp</span>
+                <span className="font-mono">{errorInfo.timestamp}</span>
+              </div>
+            </div>
+
+            {errorInfo.response?.data !== undefined ? (
+              <div className={sectionClassName}>
+                <Button
+                  withWrapper={false}
+                  variant={ButtonVariant.UNSTYLED}
+                  onClick={() => setIsResponseExpanded(!isResponseExpanded)}
+                  className="flex w-full items-center gap-2 text-left text-red-50"
+                >
+                  {isResponseExpanded ? (
+                    <HiChevronDown className="h-4 w-4 shrink-0" />
+                  ) : (
+                    <HiChevronRight className="h-4 w-4 shrink-0" />
+                  )}
+                  <h3 className="font-semibold">Response Data</h3>
+                </Button>
+
+                {isResponseExpanded && (
+                  <pre className={preClassName}>
+                    {JSON.stringify(errorInfo.response.data, null, 2)}
+                  </pre>
+                )}
+              </div>
+            ) : null}
+
+            {errorInfo.stack && (
+              <div className={sectionClassName}>
+                <Button
+                  withWrapper={false}
+                  variant={ButtonVariant.UNSTYLED}
+                  onClick={() => setIsStackExpanded(!isStackExpanded)}
+                  className="flex w-full items-center gap-2 text-left text-red-50"
+                >
+                  {isStackExpanded ? (
+                    <HiChevronDown className="h-4 w-4 shrink-0" />
+                  ) : (
+                    <HiChevronRight className="h-4 w-4 shrink-0" />
+                  )}
+                  <h3 className="font-semibold">Stack Trace</h3>
+                </Button>
+
+                {isStackExpanded && (
+                  <pre className={preClassName}>{errorInfo.stack}</pre>
+                )}
+              </div>
+            )}
+
+            {errorInfo.context && Object.keys(errorInfo.context).length > 0 && (
+              <div className={sectionClassName}>
+                <Button
+                  withWrapper={false}
+                  variant={ButtonVariant.UNSTYLED}
+                  onClick={() => setIsContextExpanded(!isContextExpanded)}
+                  className="flex w-full items-center gap-2 text-left text-red-50"
+                >
+                  {isContextExpanded ? (
+                    <HiChevronDown className="h-4 w-4 shrink-0" />
+                  ) : (
+                    <HiChevronRight className="h-4 w-4 shrink-0" />
+                  )}
+                  <h3 className="font-semibold">Additional Context</h3>
+                </Button>
+
+                {isContextExpanded && (
+                  <pre className={preClassName}>
+                    {JSON.stringify(errorInfo.context, null, 2)}
+                  </pre>
+                )}
+              </div>
+            )}
+          </div>
+
+          <ModalActions className="mt-4">
+            {errorInfo.errorCode === 'ERROR_BOUNDARY' && errorInfo.onRetry && (
+              <Button
+                label="Try Again"
+                variant={ButtonVariant.DEFAULT}
+                size={ButtonSize.LG}
+                className="md:h-9 md:px-4 md:py-2 bg-warning text-warning-foreground hover:bg-warning/90"
+                onClick={() => {
+                  errorInfo.onRetry?.();
+                  handleCancel();
+                }}
+              />
+            )}
+
+            <Button
+              label="Copy"
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.LG}
+              className="border-destructive/30 bg-destructive/10 text-red-50 hover:bg-destructive/20 md:h-9 md:px-4 md:py-2"
+              onClick={handleCopy}
+            />
+
+            <Button
+              label="Reload"
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.LG}
+              className="border-destructive/30 bg-destructive/10 text-red-50 hover:bg-destructive/20 md:h-9 md:px-4 md:py-2"
+              onClick={() => {
+                handleCancel();
+                router.refresh();
+              }}
+            />
+          </ModalActions>
+        </>
+      )}
+    </Modal>
+  );
+}

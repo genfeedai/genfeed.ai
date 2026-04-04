@@ -1,0 +1,134 @@
+import { CardVariant } from '@genfeedai/enums';
+import { cn } from '@helpers/formatting/cn/cn.util';
+import type { CardProps } from '@props/ui/ui.props';
+import CardIcon from '@ui/card/icon/CardIcon';
+import Image from 'next/image';
+import { memo } from 'react';
+
+const VARIANT_CLASSES: Record<CardVariant, string> = {
+  [CardVariant.DEFAULT]:
+    'rounded border border-white/[0.08] bg-card text-card-foreground shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)] hover:border-white/[0.14]',
+  [CardVariant.WHITE]:
+    'rounded border border-black/[0.08] bg-white text-black shadow-[0_24px_60px_-40px_rgba(0,0,0,0.25)] hover:border-black/[0.14]',
+  [CardVariant.BLACK]:
+    'rounded border border-white/[0.08] bg-black text-white shadow-[0_24px_60px_-40px_rgba(0,0,0,0.9)] hover:border-white/[0.16]',
+};
+
+const Card = memo(function Card({
+  index = 0,
+  variant = CardVariant.DEFAULT,
+  children,
+  actions,
+  headerAction,
+  figure,
+  overlay,
+  className,
+  bodyClassName,
+  icon,
+  iconWrapperClassName,
+  iconClassName,
+  label,
+  description,
+  onClick,
+}: CardProps) {
+  const cardClasses = cn(
+    'relative overflow-hidden text-left transition-[border-color,background-color,box-shadow,transform] duration-200 ease-out',
+    VARIANT_CLASSES[variant],
+    figure && 'flex flex-row',
+    onClick &&
+      'cursor-pointer hover:-translate-y-0.5 hover:shadow-[0_28px_70px_-44px_rgba(0,0,0,0.9)] active:translate-y-0',
+    className,
+  );
+
+  const cardContent = (
+    <>
+      {overlay && (
+        <figure className="absolute inset-0 z-0">
+          <Image
+            src={overlay}
+            alt="Overlay"
+            fill
+            sizes="100vw"
+            className="object-cover object-center"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+        </figure>
+      )}
+
+      <div
+        className={cn(
+          'relative z-10 flex flex-col gap-4 p-5 sm:p-6',
+          bodyClassName,
+        )}
+      >
+        {(icon || label || description) && (
+          <div className={cn('flex items-start gap-4', children && 'mb-2')}>
+            {icon && (
+              <CardIcon
+                icon={icon}
+                className={iconWrapperClassName}
+                iconClassName={iconClassName}
+              />
+            )}
+
+            {(label || description || headerAction) && (
+              <div className="min-w-0 flex-1 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  {label && (
+                    <h3 className="truncate text-base font-semibold tracking-[-0.02em]">
+                      {label}
+                    </h3>
+                  )}
+                  {description && (
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                      {description}
+                    </p>
+                  )}
+                </div>
+                {headerAction}
+              </div>
+            )}
+          </div>
+        )}
+
+        {children}
+
+        {actions && (
+          <div className="flex items-center gap-2 border-t border-white/[0.08] pt-4">
+            {actions}
+          </div>
+        )}
+      </div>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label={typeof label === 'string' ? label : undefined}
+        data-card-index={index}
+        onClick={onClick}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onClick();
+          }
+        }}
+        className={cardClasses}
+      >
+        {cardContent}
+      </div>
+    );
+  }
+
+  return (
+    <div className={cardClasses} data-card-index={index}>
+      {cardContent}
+    </div>
+  );
+});
+
+export default Card;
