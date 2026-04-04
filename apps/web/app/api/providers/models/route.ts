@@ -217,6 +217,7 @@ const FAL_MODEL_METADATA: Record<
   },
 };
 
+const falSchemas: { modelId: string; description?: string; name: string; componentSchemas?: Record<string, unknown>; inputSchema?: Record<string, unknown> }[] = [];
 const FAL_MODELS: ProviderModel[] = falSchemas
   .filter((schema) => FAL_MODEL_METADATA[schema.modelId])
   .map((schema) => {

@@ -79,9 +79,9 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
       '@genfeedai/interfaces',
       '@genfeedai/workflow-saas',
     ],
-    // Skip type checking during development for faster builds
+    // Skip type checking during build — handled by turbo typecheck separately
     typescript: {
-      ignoreBuildErrors: !isProduction,
+      ignoreBuildErrors: true,
     },
     // Suppress noisy OpenTelemetry/Sentry instrumentation warnings
     webpack: (config) => {

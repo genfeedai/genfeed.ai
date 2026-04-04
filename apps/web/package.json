@@ -1,20 +1,20 @@
 {
   "dependencies": {
-    "@genfeedai/agent": "workspace:*",
-    "@genfeedai/serializers": "workspace:*",
-    "@genfeedai/types": "workspace:*",
-    "@genfeedai/workflow": "workspace:*",
-    "@genfeedai/workflow-engine": "workspace:*",
-    "@genfeedai/workflow-saas": "workspace:*",
     "@dnd-kit/core": "6.3.1",
     "@dnd-kit/sortable": "10.0.0",
-    "@genfeedai/client": "workspace:*",
-    "@genfeedai/constants": "workspace:*",
-    "@genfeedai/enums": "workspace:*",
-    "@genfeedai/helpers": "workspace:*",
-    "@genfeedai/interfaces": "workspace:*",
-    "@genfeedai/next-config": "workspace:*",
-    "@genfeedai/workflow-ui": "workspace:*",
+    "@genfeedai/agent": "*",
+    "@genfeedai/client": "*",
+    "@genfeedai/constants": "*",
+    "@genfeedai/enums": "*",
+    "@genfeedai/helpers": "*",
+    "@genfeedai/interfaces": "*",
+    "@genfeedai/next-config": "*",
+    "@genfeedai/serializers": "*",
+    "@genfeedai/types": "*",
+    "@genfeedai/workflow": "*",
+    "@genfeedai/workflow-engine": "*",
+    "@genfeedai/workflow-saas": "*",
+    "@genfeedai/workflow-ui": "*",
     "@remotion/player": "4.0.444",
     "@stripe/react-stripe-js": "6.1.0",
     "@stripe/stripe-js": "9.0.1",
@@ -76,5 +76,10 @@
     "test:watch": "vitest --config ../vitest.config.mts",
     "type-check": "rm -rf .next && next typegen && tsc --noEmit"
   },
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "devDependencies": {
+    "@types/node": "25.5.2",
+    "@types/react": "19.2.14",
+    "typescript": "6.0.2"
+  }
 }

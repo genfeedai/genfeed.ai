@@ -9,9 +9,14 @@
       "@genfeedai/serializers/*": ["./src/*"],
       "@serializers/*": ["./src/*"]
     },
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
     "rootDir": "./src",
+    "skipLibCheck": true,
     "sourceMap": true,
-    "target": "ES2020"
+    "strict": true,
+    "target": "ES2022"
   },
   "exclude": ["dist", "node_modules", "**/*.spec.ts", "**/*.test.ts"],
   "extends": "../../tsconfig.json",

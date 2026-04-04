@@ -83,7 +83,6 @@
   "peerDependencies": {
     "react": ">=18"
   },
-  "private": true,
   "sideEffects": false,
   "types": "src/index.ts",
   "version": "1.0.0"

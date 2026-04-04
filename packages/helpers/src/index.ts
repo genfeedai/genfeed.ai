@@ -10,3 +10,4 @@ export * from './quality-routing.helper';
 export * from './serializer.helper';
 export * from './social-url.helper';
 export * from './video-duration.helper';
+export * from './auth/clerk.helper';

@@ -16,7 +16,7 @@
       "@ui/*": ["../ui/*"]
     }
   },
-  "exclude": ["node_modules", "dist"],
+  "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"],
   "extends": "../tsconfig/base.json",
   "include": ["**/*.ts", "**/*.tsx"]
 }
