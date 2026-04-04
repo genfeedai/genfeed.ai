@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json.schemastore.org/nest-cli",
+  "collection": "@nestjs/schematics",
+  "compilerOptions": {
+    "deleteOutDir": true,
+    "typeCheck": false,
+    "webpack": true
+  },
+  "monorepo": true,
+  "projects": {
+    "api": {
+      "compilerOptions": {
+        "assets": [
+          {
+            "exclude": "**/tsconfig*.json",
+            "include": "config/**/*.json",
+            "outDir": "dist/server/api/src",
+            "watchAssets": true
+          },
+          {
+            "include": "src/services/integrations/replicate/schemas/**/*.json",
+            "outDir": "dist/apps/api/services/integrations/replicate/schemas",
+            "watchAssets": true
+          }
+        ],
+        "tsConfigPath": "api/tsconfig.app.json",
+        "webpackConfigPath": "api/webpack.config.js"
+      },
+      "entryFile": "main",
+      "root": "api",
+      "sourceRoot": "api/src",
+      "type": "application"
+    },
+    "clips": {
+      "compilerOptions": {
+        "tsConfigPath": "clips/tsconfig.app.json",
+        "webpackConfigPath": "clips/webpack.config.js"
+      },
+      "entryFile": "main",
+      "root": "clips",
+      "sourceRoot": "clips/src",
+      "type": "application"
+    },
+    "discord": {
+      "compilerOptions": {
+        "tsConfigPath": "discord/tsconfig.app.json",
+        "webpackConfigPath": "discord/webpack.config.js"
+      },
+      "entryFile": "main",
+      "root": "discord",
+      "sourceRoot": "discord/src",
+      "type": "application"
+    },
+    "fanvue": {
+      "compilerOptions": {
+        "tsConfigPath": "fanvue/tsconfig.app.json",
+        "webpackConfigPath": "fanvue/webpack.config.js"
+      },
+      "entryFile": "main",
+      "root": "fanvue",
+      "sourceRoot": "fanvue/src",
+      "type": "application"
+    },
+    "files": {
+      "compilerOptions": {
+        "tsConfigPath": "files/tsconfig.app.json",
+        "webpackConfigPath": "files/webpack.config.js"
+      },
+      "entryFile": "main",
+      "root": "files",
+      "sourceRoot": "files/src",
+      "type": "application"
+    },
+    "images": {
+      "compilerOptions": {
+        "tsConfigPath": "images/tsconfig.app.json",
+        "webpackConfigPath": "images/webpack.config.js"
+      },
+      "entryFile": "main",
+      "root": "images",
+      "sourceRoot": "images/src",
+      "type": "application"
+    },
+    "llm": {
+      "compilerOptions": {
+        "tsConfigPath": "llm/tsconfig.app.json",
+        "webpackConfigPath": "llm/webpack.config.js"
+      },
+      "entryFile": "main",
+      "root": "llm",
+      "sourceRoot": "llm/src",
+      "type": "application"
+    },
+    "mcp": {
+      "compilerOptions": {
+        "assets": [
+          {
+            "exclude": "**/tsconfig*.json",
+            "include": "config/**/*.json",
+            "outDir": "dist/server/mcp/src",
+            "watchAssets": true
+          }
+        ],
+        "tsConfigPath": "mcp/tsconfig.app.json",
+        "webpackConfigPath": "mcp/webpack.config.js"
+      },
+      "entryFile": "main",
+      "root": "mcp",
+      "sourceRoot": "mcp/src",
+      "type": "application"
+    },
+    "notifications": {
+      "compilerOptions": {
+        "tsConfigPath": "notifications/tsconfig.app.json",
+        "webpackConfigPath": "notifications/webpack.config.js"
+      },
+      "entryFile": "main",
+      "root": "notifications",
+      "sourceRoot": "notifications/src",
+      "type": "application"
+    },
+    "slack": {
+      "compilerOptions": {
+        "tsConfigPath": "slack/tsconfig.app.json",
+        "webpackConfigPath": "slack/webpack.config.js"
+      },
+      "entryFile": "main",
+      "root": "slack",
+      "sourceRoot": "slack/src",
+      "type": "application"
+    },
+    "telegram": {
+      "compilerOptions": {
+        "tsConfigPath": "telegram/tsconfig.app.json",
+        "webpackConfigPath": "telegram/webpack.config.js"
+      },
+      "entryFile": "main",
+      "root": "telegram",
+      "sourceRoot": "telegram/src",
+      "type": "application"
+    },
+    "twitch": {
+      "compilerOptions": {
+        "tsConfigPath": "twitch/tsconfig.app.json",
+        "webpackConfigPath": "twitch/webpack.config.js"
+      },
+      "entryFile": "main",
+      "root": "twitch",
+      "sourceRoot": "twitch/src",
+      "type": "application"
+    },
+    "videos": {
+      "compilerOptions": {
+        "tsConfigPath": "videos/tsconfig.app.json",
+        "webpackConfigPath": "videos/webpack.config.js"
+      },
+      "entryFile": "main",
+      "root": "videos",
+      "sourceRoot": "videos/src",
+      "type": "application"
+    },
+    "voices": {
+      "compilerOptions": {
+        "tsConfigPath": "voices/tsconfig.app.json",
+        "webpackConfigPath": "voices/webpack.config.js"
+      },
+      "entryFile": "main",
+      "root": "voices",
+      "sourceRoot": "voices/src",
+      "type": "application"
+    },
+    "workers": {
+      "compilerOptions": {
+        "tsConfigPath": "workers/tsconfig.app.json",
+        "webpackConfigPath": "workers/webpack.config.js"
+      },
+      "entryFile": "main",
+      "root": "workers",
+      "sourceRoot": "workers/src",
+      "type": "application"
+    }
+  },
+  "root": ".",
+  "sourceRoot": "."
+}
