@@ -1,0 +1,60 @@
+name: IDE Extension CI
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ide-extension-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Lint, Type-check, Test, Build, Package
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.10"
+
+      - name: Cache bun modules
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint extension
+        run: bunx turbo run lint --filter=extension-ide
+
+      - name: Type-check extension
+        run: bunx turbo run type-check --filter=extension-ide
+
+      - name: Unit tests
+        run: bunx turbo run test --filter=extension-ide
+
+      - name: E2E tests
+        run: bunx turbo run test:e2e --filter=extension-ide
+
+      - name: Build extension
+        run: bunx turbo run build --filter=extension-ide
+
+      - name: Package VSIX
+        working-directory: apps/extensions/ide/app
+        run: bun run package
+
+      - name: Upload VSIX artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ide-extension-vsix
+          path: apps/extensions/ide/app/*.vsix
+          if-no-files-found: error
+          retention-days: 14

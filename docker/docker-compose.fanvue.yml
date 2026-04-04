@@ -1,0 +1,31 @@
+services:
+  fanvue:
+    image: ghcr.io/genfeedai/cloud/server:${IMAGE_TAG:-latest}
+    command: ["bun", "--filter", "@genfeedai/fanvue", "start:prod"]
+    container_name: genfeed-ai-fanvue
+    restart: unless-stopped
+    ports:
+      - '3004:3004'
+    env_file:
+      - ../.env.production
+    environment:
+      - MONGODB_URL=${MONGODB_URL}
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+      - API_URL=http://api:3001
+      - NODE_ENV=production
+      - PORT=3004
+      - SERVICE_NAME=fanvue
+      - VERSION=1.0.0
+    networks:
+      - genfeed-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3004/health']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+networks:
+  genfeed-network:
+    name: genfeed-network
+    external: true

@@ -1,0 +1,29 @@
+services:
+  telegram:
+    image: ghcr.io/genfeedai/cloud/server:${IMAGE_TAG:-latest}
+    command: ["bun", "--filter", "@genfeedai/telegram", "start:prod"]
+    container_name: genfeed-ai-telegram
+    restart: unless-stopped
+    ports:
+      - '3009:3009'
+    env_file:
+      - ../.env.production
+    environment:
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+      - GENFEEDAI_API_URL=http://api:3001
+      - GENFEEDAI_API_KEY=${GENFEEDAI_API_KEY}
+      - NODE_ENV=production
+      - PORT=3009
+    networks:
+      - genfeed-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3009/v1/health']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+networks:
+  genfeed-network:
+    name: genfeed-network
+    external: true

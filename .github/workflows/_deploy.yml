@@ -1,0 +1,388 @@
+# Reusable deployment workflow — called by deploy-staging.yml and deploy-production.yml
+# Consolidates change detection, testing, Docker build, and SSH deploy into one file.
+
+name: _Deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Deployment environment (staging or production)'
+        type: string
+        required: true
+      workers_follow_api:
+        description: 'Also redeploy workers when API changes'
+        type: boolean
+        default: false
+      force_all:
+        type: boolean
+        default: false
+      force_api:
+        type: boolean
+        default: false
+      force_bots:
+        type: boolean
+        default: false
+      force_workers:
+        type: boolean
+        default: false
+      force_redis:
+        type: boolean
+        default: false
+      skip_tests:
+        type: boolean
+        default: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ${{ github.repository_owner }}/cloud
+
+jobs:
+  # Detect what changed
+  detect-changes:
+    name: Detect Changes
+    uses: ./.github/workflows/detect-changes.yml
+
+  # Resolve environment-specific config
+  resolve-config:
+    name: Resolve Environment Config
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      tailscale_ip: ${{ steps.config.outputs.tailscale_ip }}
+      compose_file: ${{ steps.config.outputs.compose_file }}
+      deploy_script: ${{ steps.config.outputs.deploy_script }}
+    steps:
+      - name: Resolve config for environment
+        id: config
+        run: |
+          ENV="${{ inputs.environment }}"
+          if [ "$ENV" = "staging" ]; then
+            echo "tailscale_ip=${{ vars.TAILSCALE_INSTANCE_STAGING_IP }}" >> $GITHUB_OUTPUT
+          else
+            echo "tailscale_ip=${{ vars.TAILSCALE_INSTANCE_API_IP }}" >> $GITHUB_OUTPUT
+          fi
+          echo "compose_file=docker-compose.${ENV}.yml" >> $GITHUB_OUTPUT
+          echo "deploy_script=deploy-${ENV}.sh" >> $GITHUB_OUTPUT
+
+  # Quick tests for changed services only
+  test-changed:
+    name: Test Changed Services
+    needs: [detect-changes]
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 10
+    if: |
+      (inputs.skip_tests != true) && (
+        needs.detect-changes.outputs.api_changed == 'true' ||
+        needs.detect-changes.outputs.files_changed == 'true' ||
+        needs.detect-changes.outputs.mcp_changed == 'true' ||
+        needs.detect-changes.outputs.notifications_changed == 'true' ||
+        needs.detect-changes.outputs.telegram_changed == 'true' ||
+        needs.detect-changes.outputs.discord_changed == 'true' ||
+        needs.detect-changes.outputs.slack_changed == 'true' ||
+        needs.detect-changes.outputs.fanvue_changed == 'true' ||
+        needs.detect-changes.outputs.workers_changed == 'true' ||
+        needs.detect-changes.outputs.clips_changed == 'true'
+      )
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.10"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run tests for changed services
+        run: |
+          if [[ "${{ needs.detect-changes.outputs.api_changed }}" == "true" ]]; then
+            echo "Testing API service..."
+            bun run test --filter=@genfeedai/api
+          fi
+          if [[ "${{ needs.detect-changes.outputs.files_changed }}" == "true" ]]; then
+            echo "Testing Files service..."
+            bun run test --filter=@genfeedai/files
+          fi
+          if [[ "${{ needs.detect-changes.outputs.mcp_changed }}" == "true" ]]; then
+            echo "Testing MCP service..."
+            bun run test --filter=@genfeedai/mcp
+          fi
+          if [[ "${{ needs.detect-changes.outputs.notifications_changed }}" == "true" ]]; then
+            echo "Testing Notifications service..."
+            bun run test --filter=@genfeedai/notifications
+          fi
+          if [[ "${{ needs.detect-changes.outputs.telegram_changed }}" == "true" ]]; then
+            echo "Testing Telegram service..."
+            bun run test --filter=@genfeedai/telegram
+          fi
+          if [[ "${{ needs.detect-changes.outputs.discord_changed }}" == "true" ]]; then
+            echo "Testing Discord service..."
+            bun run test --filter=@genfeedai/discord
+          fi
+          if [[ "${{ needs.detect-changes.outputs.slack_changed }}" == "true" ]]; then
+            echo "Testing Slack service..."
+            bun run test --filter=@genfeedai/slack
+          fi
+          if [[ "${{ needs.detect-changes.outputs.fanvue_changed }}" == "true" ]]; then
+            echo "Testing Fanvue service..."
+            bun run test --filter=@genfeedai/fanvue
+          fi
+          if [[ "${{ needs.detect-changes.outputs.workers_changed }}" == "true" || "${{ needs.detect-changes.outputs.api_changed }}" == "true" ]]; then
+            echo "Testing Workers service..."
+            bun run test --filter=@genfeedai/workers
+          fi
+          if [[ "${{ needs.detect-changes.outputs.clips_changed }}" == "true" ]]; then
+            echo "Testing Clips service..."
+            bun run test --filter=@genfeedai/clips
+          fi
+
+  # Build single unified server image containing all 10 services
+  build-unified-image:
+    name: Build Unified Server Image
+    needs: [test-changed]
+    runs-on: blacksmith-8vcpu-ubuntu-2404
+    timeout-minutes: 30
+    if: |
+      always() &&
+      (needs.test-changed.result == 'success' || needs.test-changed.result == 'skipped')
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Build unified server image
+        uses: ./.github/actions/build-unified-image
+        with:
+          image_prefix: ${{ env.IMAGE_PREFIX }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          sentry_auth_token_api: ${{ secrets.SENTRY_AUTH_TOKEN_API }}
+          sentry_auth_token_files: ${{ secrets.SENTRY_AUTH_TOKEN_FILES }}
+          sentry_auth_token_mcp: ${{ secrets.SENTRY_AUTH_TOKEN_MCP }}
+          sentry_auth_token_notifications: ${{ secrets.SENTRY_AUTH_TOKEN_NOTIFICATIONS }}
+
+  # --- Single consolidated deploy job ---
+  # Deploys all changed services in wave order via one SSH session to EC2
+  # Wave 1: redis → Wave 2: api, mcp, notifications, files
+  # Wave 3: telegram, discord, slack → Wave 4: fanvue, clips, workers
+
+  deploy-services:
+    name: Deploy Services
+    needs: [detect-changes, resolve-config, build-unified-image]
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 60
+    if: |
+      always() &&
+      (needs.build-unified-image.result == 'success' || needs.build-unified-image.result == 'skipped') &&
+      (
+        needs.detect-changes.outputs.api_changed == 'true' ||
+        needs.detect-changes.outputs.files_changed == 'true' ||
+        needs.detect-changes.outputs.mcp_changed == 'true' ||
+        needs.detect-changes.outputs.notifications_changed == 'true' ||
+        needs.detect-changes.outputs.telegram_changed == 'true' ||
+        needs.detect-changes.outputs.discord_changed == 'true' ||
+        needs.detect-changes.outputs.slack_changed == 'true' ||
+        needs.detect-changes.outputs.fanvue_changed == 'true' ||
+        needs.detect-changes.outputs.workers_changed == 'true' ||
+        needs.detect-changes.outputs.clips_changed == 'true' ||
+        inputs.force_all == true ||
+        inputs.force_api == true ||
+        inputs.force_bots == true ||
+        inputs.force_workers == true ||
+        inputs.force_redis == true
+      )
+    outputs:
+      deploy_result: ${{ steps.deploy.outcome }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ${{ secrets.TAILSCALE_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TAILSCALE_CLIENT_SECRET }}
+          tags: tag:ci
+
+      - name: Verify Tailscale connectivity
+        run: |
+          echo "Waiting for Tailscale to connect..."
+          RETRY_COUNT=0
+          MAX_RETRIES=3
+          RETRY_DELAY=5
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            if timeout 15 bash -c 'until tailscale status >/dev/null 2>&1; do sleep 1; done'; then
+              echo "Tailscale status responsive"
+              break
+            fi
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+              echo "Tailscale status check failed (attempt $RETRY_COUNT/$MAX_RETRIES), retrying in ${RETRY_DELAY}s..."
+              sleep $RETRY_DELAY
+            else
+              echo "Tailscale failed to become ready after $MAX_RETRIES attempts"
+              exit 1
+            fi
+          done
+
+          API_IP="${{ needs.resolve-config.outputs.tailscale_ip }}"
+          if [ -z "$API_IP" ]; then
+            echo "ERROR: Tailscale IP not resolved for environment ${{ inputs.environment }}"
+            exit 1
+          fi
+          echo "Verifying server connectivity to ${API_IP}..."
+          PING_RETRY=0
+          MAX_PING_RETRIES=3
+          PING_DELAY=3
+          while [ $PING_RETRY -lt $MAX_PING_RETRIES ]; do
+            if tailscale ping -c 1 -timeout 10s ${API_IP} >/dev/null 2>&1; then
+              echo "Instance is reachable via Tailscale"
+              break
+            fi
+            PING_RETRY=$((PING_RETRY + 1))
+            if [ $PING_RETRY -lt $MAX_PING_RETRIES ]; then
+              echo "Ping failed (attempt $PING_RETRY/$MAX_PING_RETRIES), retrying in ${PING_DELAY}s..."
+              sleep $PING_DELAY
+            else
+              echo "Cannot reach instance at ${API_IP} after $MAX_PING_RETRIES attempts"
+              tailscale status
+              exit 1
+            fi
+          done
+
+      - name: Build changed services list
+        id: services
+        run: |
+          FORCE_ALL="${{ inputs.force_all }}"
+          FORCE_API="${{ inputs.force_api }}"
+          FORCE_BOTS="${{ inputs.force_bots }}"
+          FORCE_WORKERS="${{ inputs.force_workers }}"
+          FORCE_REDIS="${{ inputs.force_redis }}"
+          WORKERS_FOLLOW_API="${{ inputs.workers_follow_api }}"
+
+          CHANGED=""
+
+          # Redis: deploy if any service changed or force_redis
+          if [ "$FORCE_ALL" = "true" ] || [ "$FORCE_REDIS" = "true" ] || \
+             [ "${{ needs.detect-changes.outputs.api_changed }}" = "true" ] || \
+             [ "${{ needs.detect-changes.outputs.mcp_changed }}" = "true" ] || \
+             [ "${{ needs.detect-changes.outputs.notifications_changed }}" = "true" ] || \
+             [ "${{ needs.detect-changes.outputs.files_changed }}" = "true" ] || \
+             [ "${{ needs.detect-changes.outputs.telegram_changed }}" = "true" ] || \
+             [ "${{ needs.detect-changes.outputs.discord_changed }}" = "true" ] || \
+             [ "${{ needs.detect-changes.outputs.slack_changed }}" = "true" ] || \
+             [ "${{ needs.detect-changes.outputs.fanvue_changed }}" = "true" ] || \
+             [ "${{ needs.detect-changes.outputs.workers_changed }}" = "true" ] || \
+             [ "${{ needs.detect-changes.outputs.clips_changed }}" = "true" ]; then
+            CHANGED="$CHANGED redis"
+          fi
+
+          # API services
+          if [ "$FORCE_ALL" = "true" ] || [ "$FORCE_API" = "true" ] || [ "${{ needs.detect-changes.outputs.api_changed }}" = "true" ]; then
+            CHANGED="$CHANGED api"
+          fi
+          if [ "$FORCE_ALL" = "true" ] || [ "$FORCE_API" = "true" ] || [ "${{ needs.detect-changes.outputs.mcp_changed }}" = "true" ]; then
+            CHANGED="$CHANGED mcp"
+          fi
+          if [ "$FORCE_ALL" = "true" ] || [ "$FORCE_API" = "true" ] || [ "${{ needs.detect-changes.outputs.notifications_changed }}" = "true" ]; then
+            CHANGED="$CHANGED notifications"
+          fi
+          if [ "$FORCE_ALL" = "true" ] || [ "${{ needs.detect-changes.outputs.files_changed }}" = "true" ]; then
+            CHANGED="$CHANGED files"
+          fi
+
+          # Bot services
+          if [ "$FORCE_ALL" = "true" ] || [ "$FORCE_BOTS" = "true" ] || [ "${{ needs.detect-changes.outputs.telegram_changed }}" = "true" ]; then
+            CHANGED="$CHANGED telegram"
+          fi
+          if [ "$FORCE_ALL" = "true" ] || [ "$FORCE_BOTS" = "true" ] || [ "${{ needs.detect-changes.outputs.discord_changed }}" = "true" ]; then
+            CHANGED="$CHANGED discord"
+          fi
+          if [ "$FORCE_ALL" = "true" ] || [ "$FORCE_BOTS" = "true" ] || [ "${{ needs.detect-changes.outputs.slack_changed }}" = "true" ]; then
+            CHANGED="$CHANGED slack"
+          fi
+          if [ "$FORCE_ALL" = "true" ] || [ "$FORCE_BOTS" = "true" ] || [ "${{ needs.detect-changes.outputs.fanvue_changed }}" = "true" ]; then
+            CHANGED="$CHANGED fanvue"
+          fi
+          if [ "$FORCE_ALL" = "true" ] || [ "$FORCE_BOTS" = "true" ] || [ "${{ needs.detect-changes.outputs.clips_changed }}" = "true" ]; then
+            CHANGED="$CHANGED clips"
+          fi
+
+          # Workers
+          WORKERS_CONDITION="false"
+          if [ "$FORCE_ALL" = "true" ] || [ "$FORCE_WORKERS" = "true" ] || [ "${{ needs.detect-changes.outputs.workers_changed }}" = "true" ]; then
+            WORKERS_CONDITION="true"
+          fi
+          # Production: also redeploy workers when API changes (workers imports @api/* modules)
+          if [ "$WORKERS_FOLLOW_API" = "true" ] && [ "${{ needs.detect-changes.outputs.api_changed }}" = "true" ]; then
+            WORKERS_CONDITION="true"
+          fi
+          if [ "$WORKERS_CONDITION" = "true" ]; then
+            CHANGED="$CHANGED workers"
+          fi
+
+          # Trim leading space
+          CHANGED=$(echo "$CHANGED" | xargs)
+          echo "changed=$CHANGED" >> $GITHUB_OUTPUT
+          echo "Services to deploy: $CHANGED"
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/ec2_key
+          chmod 600 ~/.ssh/ec2_key
+
+      - name: Copy files to EC2
+        run: |
+          API_IP="${{ needs.resolve-config.outputs.tailscale_ip }}"
+          COMPOSE_FILE="${{ needs.resolve-config.outputs.compose_file }}"
+          DEPLOY_SCRIPT="${{ needs.resolve-config.outputs.deploy_script }}"
+          EC2_USER="${{ secrets.EC2_USER }}"
+          SSH_OPTS="-o StrictHostKeyChecking=accept-new -i ~/.ssh/ec2_key"
+
+          # Ensure directories exist
+          ssh $SSH_OPTS ${EC2_USER}@${API_IP} "mkdir -p ./cloud/docker"
+
+          # Copy compose file and deploy script
+          scp $SSH_OPTS docker/${COMPOSE_FILE} ${EC2_USER}@${API_IP}:./cloud/docker/${COMPOSE_FILE}
+          scp $SSH_OPTS docker/${DEPLOY_SCRIPT} ${EC2_USER}@${API_IP}:./cloud/docker/${DEPLOY_SCRIPT}
+          ssh $SSH_OPTS ${EC2_USER}@${API_IP} "chmod +x ./cloud/docker/${DEPLOY_SCRIPT}"
+
+      - name: Deploy all services
+        id: deploy
+        run: |
+          API_IP="${{ needs.resolve-config.outputs.tailscale_ip }}"
+          DEPLOY_SCRIPT="${{ needs.resolve-config.outputs.deploy_script }}"
+          EC2_USER="${{ secrets.EC2_USER }}"
+          SSH_OPTS="-o StrictHostKeyChecking=accept-new -i ~/.ssh/ec2_key"
+          CHANGED="${{ steps.services.outputs.changed }}"
+
+          ssh $SSH_OPTS ${EC2_USER}@${API_IP} << DEPLOY_EOF
+            set -euo pipefail
+            cd ./cloud
+
+            # Export env vars for deploy script
+            export GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}"
+            export GITHUB_ACTOR="${{ github.actor }}"
+            export GITHUB_SHA="${{ github.sha }}"
+            export GITHUB_STEP_SUMMARY="/dev/null"
+            export IMAGE_TAG="${{ github.sha }}"
+
+            ./docker/${DEPLOY_SCRIPT} ${CHANGED}
+          DEPLOY_EOF
+
+      - name: Generate deployment report
+        if: always()
+        run: |
+          echo "## Deployment Report (${{ inputs.environment }})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Services:** ${{ steps.services.outputs.changed }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Result:** ${{ steps.deploy.outcome }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Author:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered:** $(date -u)" >> $GITHUB_STEP_SUMMARY

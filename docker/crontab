@@ -1,0 +1,29 @@
+# GenFeed.AI Cron Jobs
+# All times in UTC
+
+# FAL.AI model sync - every 6 hours
+0 */6 * * * cd /usr/src/app && bun run fal:sync >> /usr/src/app/logs/fal-sync.log 2>&1
+
+# Content intelligence updates - every hour
+0 * * * * cd /usr/src/app && bun run scripts/content/update-intelligence.ts >> /usr/src/app/logs/content-intelligence.log 2>&1
+
+# System health checks - every 15 minutes  
+*/15 * * * * cd /usr/src/app && bun run scripts/health/check-services.ts >> /usr/src/app/logs/health-check.log 2>&1
+
+# Database cleanup - daily at 2 AM UTC
+0 2 * * * cd /usr/src/app && bun run scripts/maintenance/cleanup-database.ts >> /usr/src/app/logs/db-cleanup.log 2>&1
+
+# Usage analytics - daily at 3 AM UTC
+0 3 * * * cd /usr/src/app && bun run scripts/analytics/generate-daily-reports.ts >> /usr/src/app/logs/analytics.log 2>&1
+
+# Backup operations - daily at 4 AM UTC
+0 4 * * * cd /usr/src/app && bun run scripts/backup/create-daily-backup.ts >> /usr/src/app/logs/backup.log 2>&1
+
+# Newsletter generation - daily at 6 AM UTC (12 PM Malta time)
+0 6 * * * cd /usr/src/app && bun run scripts/content/generate-newsletters.ts >> /usr/src/app/logs/newsletters.log 2>&1
+
+# Social media updates - every 4 hours during business hours
+0 8,12,16,20 * * * cd /usr/src/app && bun run scripts/social/update-feeds.ts >> /usr/src/app/logs/social-updates.log 2>&1
+
+# Log rotation - daily at midnight
+0 0 * * * find /usr/src/app/logs -name "*.log" -size +10M -exec truncate -s 1M {} \;

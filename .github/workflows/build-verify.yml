@@ -1,0 +1,99 @@
+# Build Verification — ensures Docker image builds on PRs
+# Prevents broken images from reaching production (no push, just verify)
+name: Build Verify
+
+on:
+  pull_request:
+    branches: [staging, master]
+    paths:
+      - 'apps/server/**'
+      - 'packages/**'
+      - 'configs/**'
+      - 'docker/**'
+      - 'package.json'
+      - 'bun.lock'
+
+concurrency:
+  group: build-verify-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+env:
+  IMAGE_NAME: genfeed-server-verify
+
+jobs:
+  build-and-boot:
+    name: Build & Boot Check
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Log in to GHCR (for build cache)
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx (Blacksmith cached)
+        uses: useblacksmith/setup-docker-builder@v1
+
+      - name: Build unified server image (no push)
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/Dockerfile.server
+          push: false
+          load: true
+          tags: ${{ env.IMAGE_NAME }}:test
+          cache-from: |
+            type=registry,ref=ghcr.io/${{ github.repository }}/server:buildcache
+            type=registry,ref=ghcr.io/${{ github.repository }}/server:buildcache-verify
+          platforms: linux/amd64
+          # No Sentry secrets needed — verify-only build, sourcemaps not deployed
+
+      - name: Verify build outputs exist
+        run: |
+          echo "Checking build outputs inside image..."
+          docker run --rm ${{ env.IMAGE_NAME }}:test \
+            sh -c '
+              echo "Checking critical bundles..."
+              test -f apps/server/dist/apps/api/main.js && echo "✅ API bundle" || (echo "❌ API bundle missing" && exit 1)
+              test -f apps/server/dist/apps/workers/main.js && echo "✅ Workers bundle" || (echo "❌ Workers bundle missing" && exit 1)
+              test -f apps/server/dist/apps/files/main.js && echo "✅ Files bundle" || (echo "❌ Files bundle missing" && exit 1)
+              test -f apps/server/dist/apps/mcp/main.js && echo "✅ MCP bundle" || (echo "❌ MCP bundle missing" && exit 1)
+              test -f apps/server/dist/apps/notifications/main.js && echo "✅ Notifications bundle" || (echo "❌ Notifications bundle missing" && exit 1)
+              test -f apps/server/dist/apps/telegram/main.js && echo "✅ Telegram bundle" || (echo "❌ Telegram bundle missing" && exit 1)
+              test -f apps/server/dist/apps/discord/main.js && echo "✅ Discord bundle" || (echo "❌ Discord bundle missing" && exit 1)
+              test -f apps/server/dist/apps/slack/main.js && echo "✅ Slack bundle" || (echo "❌ Slack bundle missing" && exit 1)
+              test -f apps/server/dist/apps/fanvue/main.js && echo "✅ Fanvue bundle" || (echo "❌ Fanvue bundle missing" && exit 1)
+              test -f apps/server/dist/apps/clips/main.js && echo "✅ Clips bundle" || (echo "❌ Clips bundle missing" && exit 1)
+              test -f apps/server/dist/apps/images/main.js && echo "✅ Images bundle" || (echo "❌ Images bundle missing" && exit 1)
+              test -f apps/server/dist/apps/voices/main.js && echo "✅ Voices bundle" || (echo "❌ Voices bundle missing" && exit 1)
+              test -f apps/server/dist/apps/videos/main.js && echo "✅ Videos bundle" || (echo "❌ Videos bundle missing" && exit 1)
+              test -f apps/server/dist/apps/llm/main.js && echo "✅ LLM bundle" || (echo "❌ LLM bundle missing" && exit 1)
+              echo ""
+              echo "All 14 service bundles verified ✅"
+
+              # Check bundle sizes (catch empty/broken bundles)
+              for svc in api workers files mcp notifications telegram discord slack fanvue clips images voices videos llm; do
+                SIZE=$(stat -c%s "apps/server/dist/apps/$svc/main.js" 2>/dev/null || echo "0")
+                if [ "$SIZE" -lt 10000 ]; then
+                  echo "❌ $svc bundle suspiciously small (${SIZE} bytes)"
+                  exit 1
+                fi
+                echo "  $svc: $(( SIZE / 1024 ))KB"
+              done
+            '
+
+      - name: Build summary
+        if: success()
+        run: |
+          echo "## ✅ Build Verification Passed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Docker image built successfully. All 14 service bundles verified." >> $GITHUB_STEP_SUMMARY

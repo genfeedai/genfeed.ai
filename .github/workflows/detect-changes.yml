@@ -1,0 +1,227 @@
+# Detect Changes Workflow
+# Determines which services need rebuilding based on file changes
+
+name: Detect Changes
+
+on:
+  workflow_call:
+    outputs:
+      api_changed:
+        description: 'Whether API service changed'
+        value: ${{ jobs.detect.outputs.api_changed }}
+      files_changed:
+        description: 'Whether Files service changed' 
+        value: ${{ jobs.detect.outputs.files_changed }}
+      mcp_changed:
+        description: 'Whether MCP service changed'
+        value: ${{ jobs.detect.outputs.mcp_changed }}
+      notifications_changed:
+        description: 'Whether Notifications service changed'
+        value: ${{ jobs.detect.outputs.notifications_changed }}
+      telegram_changed:
+        description: 'Whether Telegram service changed'
+        value: ${{ jobs.detect.outputs.telegram_changed }}
+      discord_changed:
+        description: 'Whether Discord service changed'
+        value: ${{ jobs.detect.outputs.discord_changed }}
+      slack_changed:
+        description: 'Whether Slack service changed'
+        value: ${{ jobs.detect.outputs.slack_changed }}
+      fanvue_changed:
+        description: 'Whether Fanvue service changed'
+        value: ${{ jobs.detect.outputs.fanvue_changed }}
+      workers_changed:
+        description: 'Whether Workers changed'
+        value: ${{ jobs.detect.outputs.workers_changed }}
+      clips_changed:
+        description: 'Whether Clips service changed'
+        value: ${{ jobs.detect.outputs.clips_changed }}
+      llm_changed:
+        description: 'Whether LLM service changed'
+        value: ${{ jobs.detect.outputs.llm_changed }}
+      build_matrix:
+        description: 'JSON matrix of changed services for dynamic build'
+        value: ${{ jobs.detect.outputs.build_matrix }}
+
+jobs:
+  detect:
+    name: Detect Service Changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      api_changed: ${{ steps.changes.outputs.api }}
+      files_changed: ${{ steps.changes.outputs.files }}
+      mcp_changed: ${{ steps.changes.outputs.mcp }}
+      notifications_changed: ${{ steps.changes.outputs.notifications }}
+      telegram_changed: ${{ steps.changes.outputs.telegram }}
+      discord_changed: ${{ steps.changes.outputs.discord }}
+      slack_changed: ${{ steps.changes.outputs.slack }}
+      fanvue_changed: ${{ steps.changes.outputs.fanvue }}
+      workers_changed: ${{ steps.changes.outputs.workers }}
+      clips_changed: ${{ steps.changes.outputs.clips }}
+      llm_changed: ${{ steps.changes.outputs.llm }}
+      build_matrix: ${{ steps.build-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Detect changes
+        uses: dorny/paths-filter@v4
+        id: changes
+        with:
+          filters: |
+            # API service changes
+            api:
+              - 'apps/server/api/**'
+              - 'packages/**'
+              - 'docker/Dockerfile.server'
+              - 'docker/docker-compose.api.yml'
+              - 'package.json'
+              - 'bun.lock'
+            
+            # Files service changes
+            files:
+              - 'apps/server/files/**'
+              - 'packages/**'
+              - 'docker/Dockerfile.server'
+              - 'docker/docker-compose.files.yml'
+              - 'package.json'
+              - 'bun.lock'
+            
+            # MCP service changes
+            mcp:
+              - 'apps/server/mcp/**'
+              - 'packages/**'
+              - 'docker/Dockerfile.server'
+              - 'docker/docker-compose.mcp.yml'
+              - 'package.json'
+              - 'bun.lock'
+            
+            # Notifications service changes
+            notifications:
+              - 'apps/server/notifications/**'
+              - 'packages/**'
+              - 'docker/Dockerfile.server'
+              - 'docker/docker-compose.notifications.yml'
+              - 'package.json'
+              - 'bun.lock'
+            
+            # Telegram service changes
+            telegram:
+              - 'apps/server/telegram/**'
+              - 'packages/**'
+              - 'docker/Dockerfile.server'
+              - 'docker/docker-compose.telegram.yml'
+              - 'package.json'
+              - 'bun.lock'
+            
+            # Discord service changes
+            discord:
+              - 'apps/server/discord/**'
+              - 'packages/**'
+              - 'docker/Dockerfile.server'
+              - 'docker/docker-compose.discord.yml'
+              - 'package.json'
+              - 'bun.lock'
+            
+            # Slack service changes
+            slack:
+              - 'apps/server/slack/**'
+              - 'packages/**'
+              - 'docker/Dockerfile.server'
+              - 'docker/docker-compose.slack.yml'
+              - 'package.json'
+              - 'bun.lock'
+            
+            # Fanvue service changes
+            fanvue:
+              - 'apps/server/fanvue/**'
+              - 'packages/**'
+              - 'docker/Dockerfile.server'
+              - 'docker/docker-compose.fanvue.yml'
+              - 'package.json'
+              - 'bun.lock'
+
+            # Workers/cron changes
+            workers:
+              - 'apps/server/workers/**'
+              - 'apps/server/api/src/**'
+              - 'packages/**'
+              - 'docker/Dockerfile.server'
+              - 'docker/docker-compose.workers.yml'
+              - 'scripts/**'
+              - 'package.json'
+              - 'bun.lock'
+
+            # Clips service changes
+            clips:
+              - 'apps/server/clips/**'
+              - 'packages/**'
+              - 'docker/Dockerfile.server'
+              - 'docker/docker-compose.clips.yml'
+              - 'package.json'
+              - 'bun.lock'
+
+            # LLM service changes
+            llm:
+              - 'apps/server/llm/**'
+              - 'packages/**'
+              - 'docker/Dockerfile.server'
+              - 'docker/docker-compose.llm.yml'
+              - 'package.json'
+              - 'bun.lock'
+
+      - name: Build dynamic matrix
+        id: build-matrix
+        run: |
+          MATRIX='{"include":['
+          FIRST=true
+          for service in api files mcp notifications telegram discord slack fanvue workers clips llm; do
+            # Map service name to changes output
+            CHANGED="${{ steps.changes.outputs.api }}"
+            case "$service" in
+              files) CHANGED="${{ steps.changes.outputs.files }}" ;;
+              mcp) CHANGED="${{ steps.changes.outputs.mcp }}" ;;
+              notifications) CHANGED="${{ steps.changes.outputs.notifications }}" ;;
+              telegram) CHANGED="${{ steps.changes.outputs.telegram }}" ;;
+              discord) CHANGED="${{ steps.changes.outputs.discord }}" ;;
+              slack) CHANGED="${{ steps.changes.outputs.slack }}" ;;
+              fanvue) CHANGED="${{ steps.changes.outputs.fanvue }}" ;;
+              workers) CHANGED="${{ steps.changes.outputs.workers }}" ;;
+              clips) CHANGED="${{ steps.changes.outputs.clips }}" ;;
+              llm) CHANGED="${{ steps.changes.outputs.llm }}" ;;
+            esac
+            if [ "$CHANGED" == "true" ]; then
+              if [ "$FIRST" == "true" ]; then
+                FIRST=false
+              else
+                MATRIX+=','
+              fi
+              MATRIX+="{\"service\":\"${service}\"}"
+            fi
+          done
+          MATRIX+=']}'
+          echo "matrix=${MATRIX}" >> $GITHUB_OUTPUT
+          echo "Generated matrix: ${MATRIX}"
+
+      - name: Changes summary
+        run: |
+          echo "## Change Detection Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Service | Changed | Will Build |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|---------|------------|" >> $GITHUB_STEP_SUMMARY
+          echo "| API | ${{ steps.changes.outputs.api }} | ${{ steps.changes.outputs.api == 'true' && 'Yes' || 'Skip' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Files | ${{ steps.changes.outputs.files }} | ${{ steps.changes.outputs.files == 'true' && 'Yes' || 'Skip' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| MCP | ${{ steps.changes.outputs.mcp }} | ${{ steps.changes.outputs.mcp == 'true' && 'Yes' || 'Skip' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Notifications | ${{ steps.changes.outputs.notifications }} | ${{ steps.changes.outputs.notifications == 'true' && 'Yes' || 'Skip' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Telegram | ${{ steps.changes.outputs.telegram }} | ${{ steps.changes.outputs.telegram == 'true' && 'Yes' || 'Skip' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Discord | ${{ steps.changes.outputs.discord }} | ${{ steps.changes.outputs.discord == 'true' && 'Yes' || 'Skip' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Slack | ${{ steps.changes.outputs.slack }} | ${{ steps.changes.outputs.slack == 'true' && 'Yes' || 'Skip' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Fanvue | ${{ steps.changes.outputs.fanvue }} | ${{ steps.changes.outputs.fanvue == 'true' && 'Yes' || 'Skip' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Workers | ${{ steps.changes.outputs.workers }} | ${{ steps.changes.outputs.workers == 'true' && 'Yes' || 'Skip' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Clips | ${{ steps.changes.outputs.clips }} | ${{ steps.changes.outputs.clips == 'true' && 'Yes' || 'Skip' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| LLM | ${{ steps.changes.outputs.llm }} | ${{ steps.changes.outputs.llm == 'true' && 'Yes' || 'Skip' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Build matrix:** \`${{ steps.build-matrix.outputs.matrix }}\`" >> $GITHUB_STEP_SUMMARY

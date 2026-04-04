@@ -1,0 +1,43 @@
+# Docker Compose for the LLM GPU instance
+# Runs: vLLM OpenAI-compatible server on a g6e.xlarge (L40S 48GB)
+# Models: Qwen 2.5 32B Instruct GPTQ Int8 (~34GB) + Mistral Small 3.1 24B (~13GB)
+# On-demand: EC2 instance is started/stopped by LlmInstanceService + LlmIdleShutdown cron
+
+services:
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: llm-vllm
+    runtime: nvidia
+    ports:
+      - '8000:8000'
+    command: >
+      --model Qwen/Qwen2.5-32B-Instruct-GPTQ-Int8
+      --served-model-name local/qwen-32b
+      --max-model-len 32768
+      --tensor-parallel-size 1
+      --enable-prefix-caching
+      --port 8000
+    environment:
+      - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
+    volumes:
+      - /opt/models:/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - llm-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:8000/health']
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+
+networks:
+  llm-network:
+    driver: bridge

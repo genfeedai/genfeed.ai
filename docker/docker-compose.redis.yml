@@ -1,0 +1,40 @@
+# Docker Compose v2 Configuration
+# Redis Service (Shared by all services)
+# Instance IP: Set via INSTANCE_API_IP env var (default: 10.0.8.53)
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: genfeed-ai-redis
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    ports:
+      - '${INSTANCE_API_IP:-10.0.8.53}:6379:6379' # Bind to VPC private IP only (accessible by files instance, not public)
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - genfeed-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+    healthcheck:
+      test: ['CMD', 'sh', '-c', 'redis-cli -a $$REDIS_PASSWORD ping || exit 1']
+      interval: 30s
+      timeout: 3s
+      retries: 5
+    environment:
+      - TZ=America/Los_Angeles
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+    sysctls:
+      - net.core.somaxconn=511
+
+volumes:
+  redis-data:
+    driver: local
+
+networks:
+  genfeed-network:
+    name: genfeed-network
+    driver: bridge

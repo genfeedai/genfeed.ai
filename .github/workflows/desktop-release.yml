@@ -1,0 +1,65 @@
+name: Desktop Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  desktop-macos:
+    runs-on: macos-latest
+    env:
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      GENFEED_DESKTOP_RELEASE: ${{ github.sha }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Apple signing certificate
+        if: ${{ secrets.APPLE_SIGNING_CERTIFICATE_BASE64 != '' }}
+        env:
+          APPLE_SIGNING_CERTIFICATE_BASE64: ${{ secrets.APPLE_SIGNING_CERTIFICATE_BASE64 }}
+          APPLE_SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_SIGNING_CERTIFICATE_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH="$RUNNER_TEMP/genfeed-desktop.keychain-db"
+          CERT_PATH="$RUNNER_TEMP/genfeed-desktop-signing.p12"
+          echo "$APPLE_SIGNING_CERTIFICATE_BASE64" | base64 --decode > "$CERT_PATH"
+          security create-keychain -p "${APPLE_SIGNING_CERTIFICATE_PASSWORD}" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "${APPLE_SIGNING_CERTIFICATE_PASSWORD}" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "${APPLE_SIGNING_CERTIFICATE_PASSWORD}" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -s -k "${APPLE_SIGNING_CERTIFICATE_PASSWORD}" "$KEYCHAIN_PATH"
+
+      - name: Desktop lint
+        run: bun run --filter=@genfeedai/desktop lint
+
+      - name: Desktop type-check
+        run: bun run --filter=@genfeedai/desktop type-check
+
+      - name: Desktop tests
+        run: bun run --filter=@genfeedai/desktop test
+
+      - name: Desktop build
+        run: bun run --filter=@genfeedai/desktop build
+
+      - name: Desktop smoke test
+        run: bun run --filter=@genfeedai/desktop smoke
+
+      - name: Build macOS release artifact
+        run: bun run --filter=@genfeedai/desktop release:mac
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: genfeed-desktop-macos
+          path: apps/desktop/app/release/*
+          if-no-files-found: error

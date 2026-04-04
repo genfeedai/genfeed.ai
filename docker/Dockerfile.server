@@ -1,0 +1,247 @@
+# ==================================================
+# Unified Server Dockerfile
+# Builds all 14 NestJS services in a single image
+# Services: api, files, workers, mcp, notifications,
+#           telegram, discord, slack, fanvue, clips,
+#           images, voices, videos, llm
+# ==================================================
+
+# ==================================================
+# Stage 1: Base - Install dependencies
+# ==================================================
+FROM node:25.8.2-slim AS base
+
+# Install bun and build dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    unzip \
+    ffmpeg \
+    && curl -fsSL https://bun.sh/install | bash -s "bun-v1.3.10" \
+    && cp /root/.bun/bin/bun /usr/local/bin/bun \
+    && chmod +x /usr/local/bin/bun \
+    && apt-get purge -y unzip \
+    && rm -rf /var/lib/apt/lists/*
+ENV PATH="/usr/local/bin:${PATH}"
+
+# Mandatory for production build — give each parallel build enough memory
+ENV NODE_OPTIONS=--max-old-space-size=4096
+
+WORKDIR /usr/src/app
+
+# Copy the root manifest. The server image installs against a reduced
+# server-only workspace graph, so the repo-wide lockfile is not valid here.
+COPY package.json ./
+
+# Narrow the workspace graph to the packages needed for the unified server
+# image so Bun does not try to resolve unrelated web/mobile/extension apps.
+RUN node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.workspaces=['apps/server/*','configs','packages/*']; if (p.dependencies?.resend==='^6.9.3') p.dependencies.resend='6.9.3'; fs.writeFileSync('package.json', JSON.stringify(p, null, 2)+'\n');"
+
+# Copy all 14 service package.json files for bun workspace resolution
+COPY apps/server/api/package.json ./apps/server/api/
+COPY apps/server/files/package.json ./apps/server/files/
+COPY apps/server/workers/package.json ./apps/server/workers/
+COPY apps/server/mcp/package.json ./apps/server/mcp/
+COPY apps/server/notifications/package.json ./apps/server/notifications/
+COPY apps/server/telegram/package.json ./apps/server/telegram/
+COPY apps/server/discord/package.json ./apps/server/discord/
+COPY apps/server/slack/package.json ./apps/server/slack/
+COPY apps/server/fanvue/package.json ./apps/server/fanvue/
+COPY apps/server/clips/package.json ./apps/server/clips/
+COPY apps/server/images/package.json ./apps/server/images/
+COPY apps/server/voices/package.json ./apps/server/voices/
+COPY apps/server/videos/package.json ./apps/server/videos/
+COPY apps/server/llm/package.json ./apps/server/llm/
+
+# Copy remaining workspace package.json files for Bun workspace resolution.
+# Match the reduced server-only workspace globs exactly.
+RUN --mount=type=bind,source=.,target=/ctx \
+    for f in \
+      /ctx/configs/package.json \
+      /ctx/packages/*/package.json \
+      /ctx/apps/server/*/package.json; do \
+      [ -f "$f" ] || continue; \
+      dir=$(echo "$f" | sed 's|^/ctx/||; s|/package.json$||'); \
+      mkdir -p "$dir" && cp "$f" "$dir/package.json"; \
+    done
+
+# Install dependencies (mount cache for bun's global cache to speed up repeat builds)
+RUN --mount=type=cache,id=bun-cache,target=/root/.bun/install/cache \
+    HUSKY=0 bun install
+
+# ==================================================
+# Stage 2: Builder - Build all services
+# ==================================================
+FROM base AS builder
+
+# --- Layer 1: Root configs + shared packages (cached when only services change) ---
+COPY tsconfig.json tsconfig.build.json tsconfig.server.decorators.json webpack.base.config.js ./
+COPY configs/ configs/
+COPY packages/ packages/
+
+# Copy server-level configs needed before service source
+COPY apps/server/nest-cli.json apps/server/nest-cli.json
+COPY apps/server/tsconfig.json apps/server/tsconfig.json
+
+# Build shared workspace packages in dependency order (must run before service builds)
+# This layer is cached when only apps/server/* source changes
+# Only workspace packages can be targeted with `bun --filter` here.
+# Published/dist-only @genfeedai packages like enums/constants/interfaces/client
+# are already installed via node_modules during `bun install`.
+RUN set -e && \
+    bun --filter @genfeedai/cloud-types build & pid1=$! && \
+    bun --filter @genfeedai/config build & pid2=$! && \
+    bun --filter @genfeedai/workflow-engine build & pid3=$! && \
+    wait $pid1 $pid2 $pid3 && \
+    bun --filter @genfeedai/helpers build && \
+    bun --filter @genfeedai/integration-common build && \
+    bun --filter @genfeedai/cloud-serializers build && \
+    bun --filter @genfeedai/workflow-saas build
+
+# --- Layer 2: Service source code (changes most frequently) ---
+COPY apps/server/ apps/server/
+
+# Patch nest-cli.json AFTER copying source (the COPY above would overwrite any earlier patch)
+# Disable deleteOutDir so parallel builds don't wipe each other's outputs from apps/server/dist/
+RUN sed -i 's/"deleteOutDir": true/"deleteOutDir": false/' apps/server/nest-cli.json
+
+# Build all services in parallel batches
+# Batch 0: API alone (largest service, needs full resources)
+RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN_API \
+    SENTRY_AUTH_TOKEN=$(cat /run/secrets/SENTRY_AUTH_TOKEN_API 2>/dev/null || echo "") \
+    bun --filter @genfeedai/api build:prod
+
+# Workers alone: large dependency footprint (imports @api/shared), needs dedicated resources
+RUN bun --filter @genfeedai/workers build:prod
+
+# Batch 1: Other Sentry services (3 builds in parallel)
+RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN_FILES \
+    --mount=type=secret,id=SENTRY_AUTH_TOKEN_MCP \
+    --mount=type=secret,id=SENTRY_AUTH_TOKEN_NOTIFICATIONS \
+    set -e && \
+    (SENTRY_AUTH_TOKEN=$(cat /run/secrets/SENTRY_AUTH_TOKEN_FILES 2>/dev/null || echo "") bun --filter @genfeedai/files build:prod) & pid1=$! && \
+    (SENTRY_AUTH_TOKEN=$(cat /run/secrets/SENTRY_AUTH_TOKEN_MCP 2>/dev/null || echo "") bun --filter @genfeedai/mcp build:prod) & pid2=$! && \
+    (SENTRY_AUTH_TOKEN=$(cat /run/secrets/SENTRY_AUTH_TOKEN_NOTIFICATIONS 2>/dev/null || echo "") bun --filter @genfeedai/notifications build:prod) & pid3=$! && \
+    wait $pid1 $pid2 $pid3
+
+# Batch 2: Non-Sentry services (5 builds)
+RUN set -e && \
+    bun --filter @genfeedai/telegram build:prod & pid1=$! && \
+    bun --filter @genfeedai/discord build & pid2=$! && \
+    bun --filter @genfeedai/slack build:prod & pid3=$! && \
+    bun --filter @genfeedai/fanvue build:prod & pid4=$! && \
+    bun --filter @genfeedai/clips build:prod & pid5=$! && \
+    wait $pid1 $pid2 $pid3 $pid4 $pid5
+
+# Batch 3: GPU fleet services (4 builds)
+RUN set -e && \
+    bun --filter @genfeedai/images build:prod & pid1=$! && \
+    bun --filter @genfeedai/voices build:prod & pid2=$! && \
+    bun --filter @genfeedai/videos build:prod & pid3=$! && \
+    bun --filter @genfeedai/llm build:prod & pid4=$! && \
+    wait $pid1 $pid2 $pid3 $pid4
+
+# ==================================================
+# Stage 2.5: Validate build outputs exist
+# ==================================================
+# Webpack bundles each service into a single main.js file.
+# Verify the critical bundles exist before proceeding.
+RUN echo "Checking build outputs..." && \
+    ls -la apps/server/dist/apps/ 2>/dev/null || echo "dist/apps/ directory missing!" && \
+    for svc in api workers files mcp notifications telegram discord slack fanvue clips images voices videos llm; do \
+      if test -f "apps/server/dist/apps/$svc/main.js"; then \
+        SIZE=$(stat -c%s "apps/server/dist/apps/$svc/main.js"); \
+        echo "✅ $svc bundle ($(( SIZE / 1024 ))KB)"; \
+      else \
+        echo "❌ $svc bundle MISSING" && exit 1; \
+      fi; \
+    done
+
+# ==================================================
+# Stage 3: Production - Runtime image
+# ==================================================
+FROM node:25.8.2-slim AS production
+
+# Install system dependencies (curl, bash, unzip for bun; ffmpeg for api & files)
+RUN apt-get update && apt-get install -y \
+    curl \
+    bash \
+    unzip \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install bun for running production scripts
+RUN curl -fsSL https://bun.sh/install | bash && \
+    cp /root/.bun/bin/bun /usr/local/bin/bun && \
+    chmod +x /usr/local/bin/bun
+ENV PATH="/usr/local/bin:${PATH}"
+
+WORKDIR /usr/src/app
+
+# Create workspace directory structure for bun workspace resolution
+RUN mkdir -p apps/server/api \
+             apps/server/files \
+             apps/server/workers \
+             apps/server/mcp \
+             apps/server/notifications \
+             apps/server/telegram \
+             apps/server/discord \
+             apps/server/slack \
+             apps/server/fanvue \
+             apps/server/clips \
+             apps/server/images \
+             apps/server/voices \
+             apps/server/videos \
+             apps/server/llm
+
+# Copy built artifacts and production dependencies from builder
+COPY --from=builder /usr/src/app/apps/server/dist ./apps/server/dist
+COPY --from=builder /usr/src/app/node_modules ./node_modules
+COPY --from=builder /usr/src/app/package.json ./package.json
+
+# Copy all 14 service package.json files for bun workspace resolution
+COPY --from=builder /usr/src/app/apps/server/api/package.json ./apps/server/api/package.json
+COPY --from=builder /usr/src/app/apps/server/files/package.json ./apps/server/files/package.json
+COPY --from=builder /usr/src/app/apps/server/workers/package.json ./apps/server/workers/package.json
+COPY --from=builder /usr/src/app/apps/server/mcp/package.json ./apps/server/mcp/package.json
+COPY --from=builder /usr/src/app/apps/server/notifications/package.json ./apps/server/notifications/package.json
+COPY --from=builder /usr/src/app/apps/server/telegram/package.json ./apps/server/telegram/package.json
+COPY --from=builder /usr/src/app/apps/server/discord/package.json ./apps/server/discord/package.json
+COPY --from=builder /usr/src/app/apps/server/slack/package.json ./apps/server/slack/package.json
+COPY --from=builder /usr/src/app/apps/server/fanvue/package.json ./apps/server/fanvue/package.json
+COPY --from=builder /usr/src/app/apps/server/clips/package.json ./apps/server/clips/package.json
+COPY --from=builder /usr/src/app/apps/server/images/package.json ./apps/server/images/package.json
+COPY --from=builder /usr/src/app/apps/server/voices/package.json ./apps/server/voices/package.json
+COPY --from=builder /usr/src/app/apps/server/videos/package.json ./apps/server/videos/package.json
+COPY --from=builder /usr/src/app/apps/server/llm/package.json ./apps/server/llm/package.json
+
+# Create non-root user for security
+RUN groupadd -r appuser && useradd -r -g appuser -u 1001 appuser
+
+# Set ownership for appuser (skip chown -R on node_modules — 100k+ files, very slow)
+# Service dirs only contain package.json — chown is instant and lets app create logs/ at runtime
+RUN mkdir -p /usr/src/app/public/tmp && \
+    chown appuser:appuser /usr/src/app && \
+    chown -R appuser:appuser \
+        /usr/src/app/apps/server/dist \
+        /usr/src/app/apps/server/api \
+        /usr/src/app/apps/server/clips \
+        /usr/src/app/apps/server/discord \
+        /usr/src/app/apps/server/fanvue \
+        /usr/src/app/apps/server/files \
+        /usr/src/app/apps/server/images \
+        /usr/src/app/apps/server/llm \
+        /usr/src/app/apps/server/mcp \
+        /usr/src/app/apps/server/notifications \
+        /usr/src/app/apps/server/slack \
+        /usr/src/app/apps/server/telegram \
+        /usr/src/app/apps/server/videos \
+        /usr/src/app/apps/server/voices \
+        /usr/src/app/apps/server/workers \
+        /usr/src/app/public
+
+# Switch to non-root user
+USER appuser
+
+# No EXPOSE or HEALTHCHECK — each compose service defines its own
+# Default CMD prints usage — each compose service overrides with command:
+CMD ["echo", "ERROR: No service specified. Use command: [\"bun\", \"--filter\", \"@genfeedai/<service>\", \"start:prod\"]"]

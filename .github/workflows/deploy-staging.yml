@@ -1,0 +1,67 @@
+# Staging Deployment — thin caller for the reusable _deploy.yml workflow
+
+name: Deploy Staging
+
+on:
+  push:
+    branches: [staging]
+    paths:
+      - 'apps/server/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'bun.lock'
+      - 'docker/**'
+      - 'scripts/**'
+      - '.github/workflows/deploy-staging.yml'
+      - '.github/workflows/_deploy.yml'
+      - '.github/actions/**'
+  workflow_dispatch:
+    inputs:
+      force_all:
+        description: 'Force deploy all services'
+        required: false
+        default: false
+        type: boolean
+      force_api:
+        description: 'Force deploy API services (API + MCP + Notifications)'
+        required: false
+        default: false
+        type: boolean
+      force_bots:
+        description: 'Force deploy bot services (Telegram, Discord, Slack, Fanvue, Clips)'
+        required: false
+        default: false
+        type: boolean
+      force_workers:
+        description: 'Force deploy workers'
+        required: false
+        default: false
+        type: boolean
+      force_redis:
+        description: 'Force Redis deployment even if already healthy'
+        required: false
+        default: false
+        type: boolean
+      skip_tests:
+        description: 'Skip pre-deployment tests'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: staging-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/_deploy.yml
+    with:
+      environment: staging
+      workers_follow_api: false
+      force_all: ${{ inputs.force_all || false }}
+      force_api: ${{ inputs.force_api || false }}
+      force_bots: ${{ inputs.force_bots || false }}
+      force_workers: ${{ inputs.force_workers || false }}
+      force_redis: ${{ inputs.force_redis || false }}
+      skip_tests: ${{ inputs.skip_tests || false }}
+    secrets: inherit

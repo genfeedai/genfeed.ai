@@ -1,0 +1,67 @@
+# Production Deployment — thin caller for the reusable _deploy.yml workflow
+
+name: Deploy Production
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'apps/server/**'
+      - 'packages/**'
+      - 'package.json'
+      - 'bun.lock'
+      - 'docker/**'
+      - 'scripts/**'
+      - '.github/workflows/deploy-production.yml'
+      - '.github/workflows/_deploy.yml'
+      - '.github/actions/**'
+  workflow_dispatch:
+    inputs:
+      force_all:
+        description: 'Force deploy all services'
+        required: false
+        default: false
+        type: boolean
+      force_api:
+        description: 'Force deploy API services (API + MCP + Notifications)'
+        required: false
+        default: false
+        type: boolean
+      force_bots:
+        description: 'Force deploy bot services (Telegram, Discord, Slack, Fanvue, Clips)'
+        required: false
+        default: false
+        type: boolean
+      force_workers:
+        description: 'Force deploy workers'
+        required: false
+        default: false
+        type: boolean
+      force_redis:
+        description: 'Force Redis deployment even if already healthy'
+        required: false
+        default: false
+        type: boolean
+      skip_tests:
+        description: 'Skip pre-deployment tests'
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/_deploy.yml
+    with:
+      environment: production
+      workers_follow_api: true
+      force_all: ${{ inputs.force_all || false }}
+      force_api: ${{ inputs.force_api || false }}
+      force_bots: ${{ inputs.force_bots || false }}
+      force_workers: ${{ inputs.force_workers || false }}
+      force_redis: ${{ inputs.force_redis || false }}
+      skip_tests: ${{ inputs.skip_tests || false }}
+    secrets: inherit

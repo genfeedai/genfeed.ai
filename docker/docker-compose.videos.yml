@@ -1,0 +1,76 @@
+# Docker Compose for videos.genfeed.ai GPU instance
+# Runs: NestJS API + ComfyUI (video nodes) + Redis on a g6e.xlarge (L40S 48GB)
+
+services:
+  api:
+    image: ghcr.io/genfeedai/cloud/server:${IMAGE_TAG:-latest}
+    command: ["bun", "--filter", "@genfeedai/videos", "start:prod"]
+    container_name: videos-api
+    ports:
+      - '8189:3014'
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - COMFYUI_URL=http://comfyui:8188
+      - NODE_ENV=production
+      - PORT=3014
+      - SERVICE_NAME=videos
+      - VERSION=1.0.0
+    env_file:
+      - .env.videos
+    depends_on:
+      redis:
+        condition: service_healthy
+      comfyui:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - fleet-network
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:3014/health']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+
+  comfyui:
+    image: ghcr.io/genfeedai/comfyui-video:${COMFYUI_VIDEO_TAG:-latest}
+    container_name: videos-comfyui
+    ports:
+      - '8188:8188'
+    volumes:
+      - comfyui-models:/opt/ComfyUI/models
+      - comfyui-output:/opt/ComfyUI/output
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    restart: unless-stopped
+    networks:
+      - fleet-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: videos-redis
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+    networks:
+      - fleet-network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 30s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  comfyui-models:
+  comfyui-output:
+  redis-data:
+
+networks:
+  fleet-network:
+    driver: bridge

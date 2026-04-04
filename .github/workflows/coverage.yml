@@ -1,0 +1,114 @@
+name: Coverage
+
+on:
+  workflow_dispatch:
+  # Removed push trigger — run manually or via weekly cron to save Actions minutes
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly Monday 6am UTC
+
+concurrency:
+  group: coverage-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  coverage-helpers:
+    name: Coverage — packages/helpers
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          node-version: '22.x'
+
+      - name: Run coverage
+        run: cd packages/helpers && npx vitest run --coverage
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: coverage-helpers
+          path: packages/helpers/coverage/
+          retention-days: 1
+
+      - name: Report coverage to Codecov
+        uses: codecov/codecov-action@v6
+        if: always()
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: packages/helpers/coverage
+          flags: helpers
+          fail_ci_if_error: false
+
+  coverage-hooks:
+    name: Coverage — packages/hooks
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          node-version: '22.x'
+
+      - name: Build dependent packages
+        run: bunx turbo build --filter="@genfeedai/client" --filter="@genfeedai/serializers" --filter="@genfeedai/helpers"
+
+      - name: Run coverage
+        run: cd packages/hooks && npx vitest run --coverage --config vitest.config.mts
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: coverage-hooks
+          path: packages/hooks/coverage/
+          retention-days: 1
+
+      - name: Report coverage to Codecov
+        uses: codecov/codecov-action@v6
+        if: always()
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: packages/hooks/coverage
+          flags: hooks
+          fail_ci_if_error: false
+
+  coverage-api:
+    name: Coverage — apps/server/api
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Bun environment
+        uses: ./.github/actions/setup-bun-env
+        with:
+          node-version: '22.x'
+
+      - name: Run coverage
+        run: cd apps/server/api && npx vitest run --coverage
+        env:
+          NODE_ENV: test
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: coverage-api
+          path: apps/server/api/coverage/
+          retention-days: 1
+
+      - name: Report coverage to Codecov
+        uses: codecov/codecov-action@v6
+        if: always()
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: apps/server/api/coverage
+          flags: api
+          fail_ci_if_error: false
