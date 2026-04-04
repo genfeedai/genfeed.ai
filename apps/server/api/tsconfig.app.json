@@ -1,7 +1,9 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     "outDir": "../dist/apps/api",
+    "rootDir": "./src",
     "paths": {
       "@api/*": ["./src/*"],
       "@files/*": ["../files/src/*"],

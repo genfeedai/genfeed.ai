@@ -5,7 +5,7 @@
 const config = {
   plugins: {
     '@tailwindcss/postcss': {
-      base: '../../../',
+      base: '../../',
     },
   },
 };
