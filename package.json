@@ -14,7 +14,7 @@
     "packages/integrations/*",
     "ee/packages/*"
   ],
-  "packageManager": "bun@1.2.12",
+  "packageManager": "bun@1.3.11",
   "scripts": {
     "build": "bunx turbo build --filter='./packages/*'",
     "build:app": "bunx turbo build --filter",
@@ -69,7 +69,7 @@
     "@sentry/nextjs": "^10.47.0",
     "ts-loader": "^9.5.7",
     "tsconfig-paths-webpack-plugin": "^4.2.0",
-    "turbo": "^2.5.0",
+    "turbo": "^2.9.3",
     "webpack": "^5.105.4",
     "webpack-node-externals": "^3.0.0"
   },

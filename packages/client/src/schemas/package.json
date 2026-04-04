@@ -1,7 +1,7 @@
 {
   "dependencies": {
-    "@genfeedai/constants": "2.2.8",
-    "@genfeedai/enums": "2.3.1"
+    "@genfeedai/constants": "2.2.9",
+    "@genfeedai/enums": "2.3.2"
   },
   "devDependencies": {
     "typescript": "5.9.3"
