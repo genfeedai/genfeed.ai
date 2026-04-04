@@ -1,5 +1,5 @@
 import type { ModelCapability, ModelUseCase, ProviderModel, ProviderType } from '@genfeedai/types';
-import falSchemas from '../../../../../../../packages/types/src/fal/schemas.json';
+import falSchemas from '../../../../../../packages/types/src/fal/schemas.json';
 import replicateSchemas from '@genfeedai/types/replicate/schemas.json';
 import { type NextRequest, NextResponse } from 'next/server';
 

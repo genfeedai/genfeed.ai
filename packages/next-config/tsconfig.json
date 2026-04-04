@@ -8,9 +8,12 @@
     "moduleResolution": "bundler",
     "outDir": "./dist",
     "rootDir": "./",
-    "sourceMap": true
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "target": "ES2022",
+    "lib": ["ES2022"]
   },
   "exclude": ["node_modules", "dist"],
-  "extends": "../tsconfig.json",
+  "extends": "../../tsconfig.json",
   "include": ["*.ts"]
 }

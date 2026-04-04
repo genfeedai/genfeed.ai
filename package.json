@@ -25,6 +25,8 @@
   },
   "devDependencies": {
     "@nestjs/cli": "11.0.17",
+    "@next/bundle-analyzer": "^16.2.2",
+    "@sentry/nextjs": "^10.47.0",
     "ts-loader": "^9.5.7",
     "tsconfig-paths-webpack-plugin": "^4.2.0",
     "turbo": "^2.5.0",
