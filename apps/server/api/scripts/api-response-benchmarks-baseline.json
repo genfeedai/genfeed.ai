@@ -1,0 +1,24 @@
+{
+  "endpoints": {
+    "organization-brands-list": {
+      "iterations": 40,
+      "label": "Organization Brands List",
+      "method": "GET",
+      "p50Ms": 23.22,
+      "p95Ms": 25.55,
+      "route": "/v1/organizations/65f000000000000000000003/brands?page=1&limit=25",
+      "warmup": 10
+    },
+    "organization-posts-list": {
+      "iterations": 40,
+      "label": "Organization Posts List",
+      "method": "GET",
+      "p50Ms": 8.3,
+      "p95Ms": 10.46,
+      "route": "/v1/organizations/65f000000000000000000003/posts?page=1&limit=25",
+      "warmup": 10
+    }
+  },
+  "generatedAt": "2026-04-02T02:11:12.614Z",
+  "regressionThresholdPct": 20
+}

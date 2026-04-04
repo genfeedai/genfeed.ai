@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Official Replicate API schema for openai/sora-2",
+  "properties": {
+    "aspect_ratio": {
+      "description": "An enumeration.",
+      "enum": ["portrait", "landscape"],
+      "title": "aspect_ratio",
+      "type": "string"
+    },
+    "input_reference": {
+      "description": "An optional image to use as the first frame of the video. The image must be the same aspect ratio as the video.",
+      "format": "uri",
+      "nullable": true,
+      "title": "Input Reference",
+      "type": "string"
+    },
+    "openai_api_key": {
+      "description": "Optional: Your OpenAI API key. If you use your own OpenAI API key, you will be charged directly by OpenAI.",
+      "format": "password",
+      "nullable": true,
+      "title": "Openai Api Key",
+      "type": "string",
+      "writeOnly": true,
+      "x-cog-secret": true
+    },
+    "prompt": {
+      "description": "A text description of the video to generate",
+      "title": "Prompt",
+      "type": "string"
+    },
+    "seconds": {
+      "description": "An enumeration.",
+      "enum": [4, 8, 12],
+      "title": "seconds",
+      "type": "integer"
+    }
+  },
+  "required": ["prompt"],
+  "title": "sora-2 Input Schema",
+  "type": "object"
+}

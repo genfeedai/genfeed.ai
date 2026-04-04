@@ -1,0 +1,23 @@
+### Medium OAuth - Connect
+POST {{baseUrl}}/services/medium/connect
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+
+{
+  "brand": "{{brandId}}"
+}
+
+### Medium OAuth - Verify
+POST {{baseUrl}}/services/medium/verify
+Content-Type: application/json
+
+{
+  "code": "{{authCode}}",
+  "state": "{{state}}"
+}
+
+### Medium - Publish Article
+POST {{baseUrl}}/services/medium/publish/{{articleId}}?brandId={{brandId}}&publishStatus=public
+Content-Type: application/json
+Authorization: Bearer {{accessToken}}
+

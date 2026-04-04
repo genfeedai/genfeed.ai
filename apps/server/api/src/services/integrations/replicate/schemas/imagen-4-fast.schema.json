@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Official Replicate API schema for google/imagen-4-fast",
+  "properties": {
+    "aspect_ratio": {
+      "description": "An enumeration.",
+      "enum": ["1:1", "9:16", "16:9", "3:4", "4:3"],
+      "title": "aspect_ratio",
+      "type": "string"
+    },
+    "output_format": {
+      "description": "An enumeration.",
+      "enum": ["jpg", "png"],
+      "title": "output_format",
+      "type": "string"
+    },
+    "prompt": {
+      "description": "Text prompt for image generation",
+      "title": "Prompt",
+      "type": "string",
+      "x-order": 0
+    },
+    "safety_filter_level": {
+      "description": "An enumeration.",
+      "enum": [
+        "block_low_and_above",
+        "block_medium_and_above",
+        "block_only_high"
+      ],
+      "title": "safety_filter_level",
+      "type": "string"
+    }
+  },
+  "required": ["prompt"],
+  "title": "imagen-4-fast Input Schema",
+  "type": "object"
+}

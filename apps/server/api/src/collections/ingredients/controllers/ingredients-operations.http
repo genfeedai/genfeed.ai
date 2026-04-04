@@ -1,0 +1,113 @@
+### Genfeed API - Ingredients Operations Endpoints
+### Ingredient analytics, cloning, metadata management, tags, and bulk delete
+### Protected by ClerkGuard + RolesGuard + AssetAccessGuard
+
+########################################
+# Analytics
+########################################
+
+### Get Ingredient Analytics
+GET {{apiBaseUrl}}/ingredients/analytics
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Ingredient Analytics by Category
+GET {{apiBaseUrl}}/ingredients/analytics?category=image
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Clone
+########################################
+
+### Clone Ingredient
+# Creates a copy with PROCESSING status; async S3 upload runs in background
+POST {{apiBaseUrl}}/ingredients/{{testIngredientId}}/clone
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Metadata
+########################################
+
+### Refresh Metadata
+# Re-extracts file metadata (dimensions, duration, size) without re-uploading
+POST {{apiBaseUrl}}/ingredients/{{testIngredientId}}/metadata
+Authorization: Bearer {{bearerToken}}
+
+
+### Update Metadata
+PATCH {{apiBaseUrl}}/ingredients/{{testIngredientId}}/metadata
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "width": 1920,
+  "height": 1080,
+  "duration": 30.5,
+  "hasAudio": true
+}
+
+
+########################################
+# Tags
+########################################
+
+### Update Ingredient Tags
+PATCH {{apiBaseUrl}}/ingredients/{{testIngredientId}}/tags
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "tags": ["{{testTagId1}}", "{{testTagId2}}"]
+}
+
+
+########################################
+# Bulk Delete
+########################################
+
+### Bulk Delete Ingredients (Soft Delete)
+DELETE {{apiBaseUrl}}/ingredients
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "ids": ["{{testIngredientId}}", "{{testIngredientId2}}"]
+}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Clone Non-Existent Ingredient
+POST {{apiBaseUrl}}/ingredients/507f1f77bcf86cd799439011/clone
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Refresh Metadata for Non-Existent Ingredient
+POST {{apiBaseUrl}}/ingredients/507f1f77bcf86cd799439011/metadata
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Update Metadata Without Body
+PATCH {{apiBaseUrl}}/ingredients/{{testIngredientId}}/metadata
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{}
+
+
+### Test: Bulk Delete Empty Array
+DELETE {{apiBaseUrl}}/ingredients
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "ids": []
+}
+
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/ingredients/analytics

@@ -1,0 +1,290 @@
+### Genfeed API - Ingredients Collection Endpoints
+### Universal ingredient management (images, videos, music, etc.)
+### Handles: cloning, bulk operations, metadata, publications
+
+########################################
+# Get Ingredient Children
+########################################
+
+### Get All Children for Ingredient
+# Get all derivative ingredients (edited, upscaled, transformed versions)
+GET {{apiBaseUrl}}/ingredients/{{testIngredientId}}/children?page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Children with Sort
+GET {{apiBaseUrl}}/ingredients/{{testIngredientId}}/children?sort=-createdAt
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Favorite Children Only
+GET {{apiBaseUrl}}/ingredients/{{testIngredientId}}/children?isFavorite=true
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Ingredient Metadata
+########################################
+
+### Get Metadata for Ingredient
+# Returns detailed metadata (dimensions, size, duration, etc.)
+GET {{apiBaseUrl}}/ingredients/{{testIngredientId}}/metadata
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Clone Ingredient
+########################################
+
+### Clone Ingredient
+# Create a duplicate of an existing ingredient
+# Copies all metadata and creates new S3 object
+POST {{apiBaseUrl}}/ingredients/{{testIngredientId}}/clone
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Bulk Operations
+########################################
+
+### Bulk Delete Ingredients
+# Soft delete multiple ingredients at once
+# Maximum 100 ingredients per request
+POST {{apiBaseUrl}}/ingredients/bulk/delete
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "ids": [
+    "{{testIngredientId1}}",
+    "{{testIngredientId2}}",
+    "{{testIngredientId3}}"
+  ]
+}
+
+
+### Bulk Update Ingredients
+# Update multiple ingredients simultaneously
+# Can update: status, scope, folder, tags
+POST {{apiBaseUrl}}/ingredients/bulk/update
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "ids": [
+    "{{testIngredientId1}}",
+    "{{testIngredientId2}}"
+  ],
+  "update": {
+    "scope": "public",
+    "folder": "{{testFolderId}}"
+  }
+}
+
+
+### Bulk Move to Folder
+POST {{apiBaseUrl}}/ingredients/bulk/update
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "ids": [
+    "{{testIngredientId1}}",
+    "{{testIngredientId2}}",
+    "{{testIngredientId3}}"
+  ],
+  "update": {
+    "folder": "{{testFolderId}}"
+  }
+}
+
+
+### Bulk Add Tags
+POST {{apiBaseUrl}}/ingredients/bulk/update
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "ids": [
+    "{{testIngredientId1}}",
+    "{{testIngredientId2}}"
+  ],
+  "update": {
+    "tags": ["{{testTagId1}}", "{{testTagId2}}"]
+  }
+}
+
+
+########################################
+# Update Ingredient
+########################################
+
+### Update Ingredient
+# Update ingredient properties
+PATCH {{apiBaseUrl}}/ingredients/{{testIngredientId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "status": "completed",
+  "scope": "public"
+}
+
+
+### Update Ingredient Label
+PATCH {{apiBaseUrl}}/ingredients/{{testIngredientId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Updated Ingredient Title"
+}
+
+
+### Mark Ingredient as Favorite
+PATCH {{apiBaseUrl}}/ingredients/{{testIngredientId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "isFavorite": true
+}
+
+
+### Move Ingredient to Folder
+PATCH {{apiBaseUrl}}/ingredients/{{testIngredientId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "folder": "{{testFolderId}}"
+}
+
+
+########################################
+# Update Metadata
+########################################
+
+### Update Ingredient Metadata
+# Update metadata properties
+PATCH {{apiBaseUrl}}/ingredients/{{testIngredientId}}/metadata
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Updated Label",
+  "description": "Updated description"
+}
+
+
+### Update Metadata Dimensions
+PATCH {{apiBaseUrl}}/ingredients/{{testIngredientId}}/metadata
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "width": 1920,
+  "height": 1080
+}
+
+
+########################################
+# Delete Ingredient
+########################################
+
+### Delete Single Ingredient
+# Soft delete - marks as deleted but keeps in database
+DELETE {{apiBaseUrl}}/ingredients/{{testIngredientId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Publications
+########################################
+
+### Get Ingredient Publications
+# Get all social media publications for this ingredient
+GET {{apiBaseUrl}}/ingredients/{{testIngredientId}}/publications?page=1&limit=10
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Ingredient ID Format
+GET {{apiBaseUrl}}/ingredients/invalid-id-format/children
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Ingredient Not Found
+GET {{apiBaseUrl}}/ingredients/507f1f77bcf86cd799439011/metadata
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Clone Non-Existent Ingredient
+POST {{apiBaseUrl}}/ingredients/507f1f77bcf86cd799439011/clone
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Bulk Delete Empty Array
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/ingredients/bulk/delete
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "ids": []
+}
+
+
+### Test: Bulk Delete Too Many IDs
+# Should return 400 if exceeding limit (>100)
+POST {{apiBaseUrl}}/ingredients/bulk/delete
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "ids": [
+    "{{testIngredientId1}}",
+    "... 101 IDs total ..."
+  ]
+}
+
+
+### Test: Bulk Update Invalid IDs
+POST {{apiBaseUrl}}/ingredients/bulk/update
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "ids": ["invalid-id"],
+  "update": {
+    "scope": "public"
+  }
+}
+
+
+### Test: Update Metadata for Non-Existent Ingredient
+PATCH {{apiBaseUrl}}/ingredients/507f1f77bcf86cd799439011/metadata
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Test"
+}
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/ingredients/{{testIngredientId}}/children
+
+
+### Test: Update with Invalid Status
+PATCH {{apiBaseUrl}}/ingredients/{{testIngredientId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "status": "invalid_status"
+}

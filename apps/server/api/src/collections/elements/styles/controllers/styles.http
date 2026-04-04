@@ -1,0 +1,188 @@
+### Genfeed API - Styles Collection Endpoints
+### Manage visual styles for content generation
+### Handles: style CRUD, style presets, custom styles
+
+########################################
+# List & Filter Styles
+########################################
+
+### Get All Styles (Paginated)
+GET {{apiBaseUrl}}/elements/styles
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Styles with Pagination
+GET {{apiBaseUrl}}/elements/styles?page=1&limit=50
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Default Styles Only
+GET {{apiBaseUrl}}/elements/styles?isDefault=true
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Custom User Styles
+GET {{apiBaseUrl}}/elements/styles?isCustom=true
+Authorization: Bearer {{bearerToken}}
+
+
+### Search Styles by Name
+GET {{apiBaseUrl}}/elements/styles?search=cinematic
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Styles by Popularity
+GET {{apiBaseUrl}}/elements/styles?sort=-usageCount
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Styles Alphabetically
+GET {{apiBaseUrl}}/elements/styles?sort=name
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Style
+########################################
+
+### Get Style by ID
+GET {{apiBaseUrl}}/elements/styles/{{testStyleId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Style by Slug
+GET {{apiBaseUrl}}/elements/styles/slug/{{testStyleSlug}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Content with Style
+########################################
+
+### Get Ingredients Using Style
+# Get all content created with this style
+GET {{apiBaseUrl}}/elements/styles/{{testStyleId}}/ingredients?page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Style
+########################################
+
+### Create Custom Style
+POST {{apiBaseUrl}}/elements/styles
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Cyberpunk Neon",
+  "description": "Futuristic cyberpunk aesthetic with neon colors",
+  "keywords": ["cyberpunk", "neon", "futuristic", "dark"],
+  "referenceImage": "{{testImageId}}"
+}
+
+
+### Create Style from Preset
+POST {{apiBaseUrl}}/elements/styles
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Custom Cinematic",
+  "basePreset": "cinematic",
+  "modifications": {
+    "saturation": "high",
+    "contrast": "medium"
+  }
+}
+
+
+########################################
+# Update Style
+########################################
+
+### Update Style Details
+PATCH {{apiBaseUrl}}/elements/styles/{{testStyleId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Updated Style Name",
+  "description": "Updated description",
+  "keywords": ["updated", "keywords"]
+}
+
+
+### Update Style Reference Image
+PATCH {{apiBaseUrl}}/elements/styles/{{testStyleId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "referenceImage": "{{newReferenceImageId}}"
+}
+
+
+########################################
+# Clone Style
+########################################
+
+### Clone Existing Style
+POST {{apiBaseUrl}}/elements/styles/{{testStyleId}}/clone
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "My Cloned Style"
+}
+
+
+########################################
+# Delete Style
+########################################
+
+### Delete Custom Style
+# Can only delete user-created styles, not defaults
+DELETE {{apiBaseUrl}}/elements/styles/{{testStyleId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Style ID Format
+GET {{apiBaseUrl}}/elements/styles/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Style Not Found
+GET {{apiBaseUrl}}/elements/styles/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Create Style Without Name
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/elements/styles
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "description": "Test style"
+}
+
+
+### Test: Get Style by Invalid Slug
+GET {{apiBaseUrl}}/elements/styles/slug/non-existent-slug
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Delete Default Style
+# Should return 403 Forbidden
+DELETE {{apiBaseUrl}}/elements/styles/{{defaultStyleId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/elements/styles

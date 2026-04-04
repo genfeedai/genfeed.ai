@@ -1,0 +1,102 @@
+### Genfeed API - Watchlists Endpoints
+### Manage creator watchlist: add, quick-add, update, delete
+### Protected by authentication
+
+########################################
+# List & Get Watchlist Items
+########################################
+
+### Get All Watchlist Items
+GET {{apiBaseUrl}}/watchlist?brand={{testBrandId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Single Watchlist Item
+GET {{apiBaseUrl}}/watchlist/{{testWatchlistId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Watchlist Items
+########################################
+
+### Create Watchlist Item
+POST {{apiBaseUrl}}/watchlist
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "brand": "{{testBrandId}}",
+  "platform": "twitter",
+  "handle": "naval",
+  "label": "@naval"
+}
+
+
+### Quick Add from Extension
+# Simplified creation with auto-detection; returns existing item if duplicate
+POST {{apiBaseUrl}}/watchlist/quick-add?brand={{testBrandId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "platform": "instagram",
+  "handle": "garyvee"
+}
+
+
+########################################
+# Update & Delete
+########################################
+
+### Update Watchlist Item
+POST {{apiBaseUrl}}/watchlist/{{testWatchlistId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Updated Creator Label",
+  "handle": "new_handle"
+}
+
+
+### Delete Watchlist Item (Soft Delete)
+POST {{apiBaseUrl}}/watchlist/{{testWatchlistId}}/delete
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Watchlist Item Not Found
+GET {{apiBaseUrl}}/watchlist/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Create Duplicate Watchlist Item
+POST {{apiBaseUrl}}/watchlist
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "brand": "{{testBrandId}}",
+  "platform": "twitter",
+  "handle": "naval",
+  "label": "@naval"
+}
+
+
+### Test: Quick Add Without Brand
+POST {{apiBaseUrl}}/watchlist/quick-add
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "platform": "twitter",
+  "handle": "test_handle"
+}
+
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/watchlist

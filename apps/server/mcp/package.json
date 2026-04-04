@@ -1,0 +1,32 @@
+{
+  "dependencies": {
+    "@genfeedai/config": "workspace:*",
+    "@genfeedai/tools": "workspace:*"
+  },
+  "description": "Genfeed MCP Server",
+  "devDependencies": {
+    "ts-loader": "9.5.7"
+  },
+  "main": "../dist/apps/mcp/main.js",
+  "name": "@genfeedai/mcp",
+  "scripts": {
+    "build": "cd .. && nest build mcp",
+    "build:prod": "cd .. && nest build mcp && cd mcp && (bun run sentry:sourcemaps || true)",
+    "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
+    "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start mcp --watch",
+    "dev:webpack": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start mcp --watch",
+    "lint": "biome lint --write src",
+    "sentry:inject": "sentry-cli sourcemaps inject --org genfeedai --project mcp-genfeed-ai ../dist",
+    "sentry:sourcemaps": "bun run sentry:inject && bun run sentry:upload",
+    "sentry:upload": "sentry-cli sourcemaps upload --org genfeedai --project mcp-genfeed-ai ../dist",
+    "start": "cd .. && nest start mcp",
+    "start:debug": "cd .. && nest start mcp --debug --watch",
+    "start:dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start mcp --watch",
+    "start:prod": "node -r tsconfig-paths/register --max-old-space-size=8192 --expose-gc ../dist/apps/mcp/main",
+    "test": "vitest run --config vitest.config.ts",
+    "test:cov": "vitest run --coverage --config vitest.config.ts",
+    "test:e2e": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest watch --config vitest.config.ts"
+  },
+  "version": "1.0.0"
+}

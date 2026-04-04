@@ -1,0 +1,82 @@
+### Genfeed API - Public Brands Endpoints
+### Public brand profiles, media, and links (no authentication required)
+### All endpoints are @Public() - no Authorization header needed
+
+########################################
+# Public Brand Discovery
+########################################
+
+### Get Public Brands
+GET {{apiBaseUrl}}/public/brands
+
+
+### Get Highlighted Brands
+GET {{apiBaseUrl}}/public/brands?isHighlighted=true&limit=10
+
+
+### Get Public Brands with Custom Limit
+GET {{apiBaseUrl}}/public/brands?limit=50
+
+
+### Get Brand by Handle
+GET {{apiBaseUrl}}/public/brands/handle?handle={{testBrandHandle}}
+
+
+########################################
+# Single Brand
+########################################
+
+### Get Brand by ID
+GET {{apiBaseUrl}}/public/brands/{{testBrandId}}
+
+
+########################################
+# Brand Content
+########################################
+
+### Get Brand Links
+GET {{apiBaseUrl}}/public/brands/{{testBrandId}}/links
+
+
+### Get Brand Videos
+GET {{apiBaseUrl}}/public/brands/{{testBrandId}}/videos
+
+
+### Get Brand Videos with Pagination
+GET {{apiBaseUrl}}/public/brands/{{testBrandId}}/videos?page=1&limit=20&sort=-createdAt
+
+
+### Get Brand Images
+GET {{apiBaseUrl}}/public/brands/{{testBrandId}}/images
+
+
+### Get Brand Images with Pagination
+GET {{apiBaseUrl}}/public/brands/{{testBrandId}}/images?page=1&limit=20&sort=-createdAt
+
+
+### Get Brand Articles
+GET {{apiBaseUrl}}/public/brands/{{testBrandId}}/articles
+
+
+### Get Brand Articles with Pagination
+GET {{apiBaseUrl}}/public/brands/{{testBrandId}}/articles?page=1&limit=20&sort=-createdAt
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Brand Not Found
+GET {{apiBaseUrl}}/public/brands/507f1f77bcf86cd799439011
+
+
+### Test: Invalid Brand ID Format
+GET {{apiBaseUrl}}/public/brands/invalid-id
+
+
+### Test: Handle Not Found
+GET {{apiBaseUrl}}/public/brands/handle?handle=nonexistent-brand
+
+
+### Test: Handle Not Provided
+GET {{apiBaseUrl}}/public/brands/handle

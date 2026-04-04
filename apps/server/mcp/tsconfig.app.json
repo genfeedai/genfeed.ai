@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "module": "Node16",
+    "moduleResolution": "node16",
+    "outDir": "../dist/apps/mcp",
+    "paths": {
+      "@libs/*": ["../../../packages/libs/*"],
+      "@mcp/*": ["./src/*"]
+    },
+    "resolveJsonModule": true
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/*.e2e-spec.ts"
+  ],
+  "extends": "../tsconfig.json",
+  "include": ["src/**/*"]
+}

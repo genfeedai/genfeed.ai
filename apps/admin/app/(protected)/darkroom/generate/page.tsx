@@ -1,0 +1,14 @@
+import GeneratePage from '@admin/(protected)/darkroom/generate/generate-page';
+import LazyLoadingFallback from '@components/loading/fallback/LazyLoadingFallback';
+import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
+import { Suspense } from 'react';
+
+export const generateMetadata = createPageMetadata('Darkroom Generate');
+
+export default function DarkroomGeneratePage() {
+  return (
+    <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
+      <GeneratePage />
+    </Suspense>
+  );
+}

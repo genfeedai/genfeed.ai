@@ -1,0 +1,62 @@
+### Genfeed API - LinkedIn Integration Endpoints
+### These endpoints handle LinkedIn OAuth
+
+@import ../../../../../http/_environment.http
+
+########################################
+# LinkedIn OAuth Flow
+########################################
+
+### Step 1: Connect LinkedIn Account
+# Initiates OAuth flow and returns authorization URL
+# Requires: brandId in body
+POST {{baseUrl}}/services/linkedin/connect
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "brand": "{{testBrandId}}"
+}
+
+
+### Step 2: Verify LinkedIn OAuth
+# Completes OAuth flow after user authorizes
+# Requires: brandId, code from OAuth callback
+POST {{baseUrl}}/services/linkedin/verify
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "brand": "{{testBrandId}}",
+  "code": "REPLACE_WITH_CODE_FROM_CALLBACK"
+}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Connect Without Account ID
+POST {{baseUrl}}/services/linkedin/connect
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "brand": ""
+}
+
+
+### Test: Verify Without Code
+POST {{baseUrl}}/services/linkedin/verify
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "brand": "{{testBrandId}}"
+}
+
+
+### Test: Unauthorized Request (No Token)
+POST {{baseUrl}}/services/linkedin/connect
+
+

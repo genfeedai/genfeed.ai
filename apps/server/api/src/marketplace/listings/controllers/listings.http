@@ -1,0 +1,141 @@
+### Genfeed API - Marketplace Listings Endpoints
+### Browse and manage marketplace listings
+### ListingsController routes are @Public() (no auth required unless noted)
+### SellerListingsController routes require authentication
+
+########################################
+# Public Marketplace (No Auth Required)
+########################################
+
+### Browse Public Listings
+GET {{apiBaseUrl}}/marketplace/listings
+
+
+### Browse Listings with Filters
+GET {{apiBaseUrl}}/marketplace/listings?page=1&limit=20&category=prompt&sort=-createdAt
+
+
+### Get Featured Listings
+GET {{apiBaseUrl}}/marketplace/listings/featured
+
+
+### Get Category Counts
+GET {{apiBaseUrl}}/marketplace/listings/categories
+
+
+### Get Listing by Seller/Listing Slug
+GET {{apiBaseUrl}}/marketplace/listings/{{testSellerSlug}}/{{testListingSlug}}
+
+
+### Get Listing Preview
+GET {{apiBaseUrl}}/marketplace/listings/{{testSellerSlug}}/{{testListingSlug}}/preview
+
+
+########################################
+# Authenticated Marketplace Routes
+########################################
+
+### Check Listing Ownership (Requires Auth)
+GET {{apiBaseUrl}}/marketplace/listings/{{testListingId}}/owned
+Authorization: Bearer {{bearerToken}}
+
+
+### Get User Library (Claimed/Purchased Items)
+GET {{apiBaseUrl}}/marketplace/listings/library
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Library with Filters
+GET {{apiBaseUrl}}/marketplace/listings/library?page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Claim Free Listing to Library
+POST {{apiBaseUrl}}/marketplace/listings/library/{{testListingId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Seller Listings Management
+########################################
+
+### Get My Listings (Seller)
+GET {{apiBaseUrl}}/seller/listings
+Authorization: Bearer {{bearerToken}}
+
+
+### Get My Listings with Pagination
+GET {{apiBaseUrl}}/seller/listings?page=1&limit=10
+Authorization: Bearer {{bearerToken}}
+
+
+### Create New Listing
+POST {{apiBaseUrl}}/seller/listings
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "title": "Ultimate AI Prompt Pack",
+  "description": "50+ curated prompts for content creation",
+  "type": "prompt",
+  "price": 0,
+  "category": "prompt",
+  "tags": ["ai", "content", "prompts"],
+  "previewData": {
+    "thumbnail": "https://example.com/thumbnail.jpg"
+  }
+}
+
+
+### Get Specific Seller Listing
+GET {{apiBaseUrl}}/seller/listings/{{testListingId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Update Listing
+PUT {{apiBaseUrl}}/seller/listings/{{testListingId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "title": "Ultimate AI Prompt Pack v2",
+  "description": "Updated with 75+ curated prompts",
+  "price": 0
+}
+
+
+### Archive Listing
+DELETE {{apiBaseUrl}}/seller/listings/{{testListingId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Submit Listing for Review
+POST {{apiBaseUrl}}/seller/listings/{{testListingId}}/submit
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Listing Not Found (Public)
+GET {{apiBaseUrl}}/marketplace/listings/nonexistent-seller/nonexistent-listing
+
+
+### Test: Invalid Listing ID for Ownership Check
+GET {{apiBaseUrl}}/marketplace/listings/invalid-id/owned
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Create Listing Without Required Fields
+POST {{apiBaseUrl}}/seller/listings
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "title": ""
+}
+
+
+### Test: Unauthorized Seller Access
+GET {{apiBaseUrl}}/seller/listings

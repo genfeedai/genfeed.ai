@@ -1,0 +1,36 @@
+### Genfeed API - Hedra Integration Endpoints
+### Manage Hedra AI video generation
+### Handles: avatar videos, talking heads
+
+########################################
+# Video Generation
+########################################
+
+### Generate Talking Head Video
+POST {{apiBaseUrl}}/integrations/hedra/generate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "imageId": "{{testImageId}}",
+  "audioId": "{{testAudioId}}",
+  "text": "Hello, this is a talking head video"
+}
+
+
+### Check Generation Status
+GET {{apiBaseUrl}}/integrations/hedra/status/{{generationId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Generation ID
+GET {{apiBaseUrl}}/integrations/hedra/status/invalid-id
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+POST {{apiBaseUrl}}/integrations/hedra/generate

@@ -1,0 +1,67 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Official Replicate API schema for luma/reframe-image",
+  "properties": {
+    "aspect_ratio": {
+      "description": "An enumeration.",
+      "enum": ["1:1", "3:4", "4:3", "9:16", "16:9", "9:21", "21:9"],
+      "title": "aspect_ratio",
+      "type": "string"
+    },
+    "grid_position_x": {
+      "description": "The x position of the input in the grid, in pixels. Controls horizontal positioning of the source within the target output dimensions.",
+      "title": "Grid Position X",
+      "type": "integer"
+    },
+    "grid_position_y": {
+      "description": "The y position of the input in the grid, in pixels. Controls vertical positioning of the source within the target output dimensions.",
+      "title": "Grid Position Y",
+      "type": "integer"
+    },
+    "image": {
+      "description": "The image to reframe",
+      "format": "uri",
+      "title": "Image",
+      "type": "string"
+    },
+    "image_url": {
+      "deprecated": true,
+      "description": "URL of the image to reframe",
+      "title": "Image Url",
+      "type": "string"
+    },
+    "model": {
+      "description": "An enumeration.",
+      "enum": ["photon-flash-1", "photon-1"],
+      "title": "model",
+      "type": "string"
+    },
+    "prompt": {
+      "description": "A prompt to guide the reframing generation",
+      "title": "Prompt",
+      "type": "string"
+    },
+    "x_end": {
+      "description": "The x end of the crop bounds, in pixels. Defines the right boundary where your source will be placed in the output frame. The distance between x_start and x_end determines the resized width of your content.",
+      "title": "X End",
+      "type": "integer"
+    },
+    "x_start": {
+      "description": "The x start of the crop bounds, in pixels. Defines the left boundary where your source will be placed in the output frame. The distance between x_start and x_end determines the resized width of your content.",
+      "title": "X Start",
+      "type": "integer"
+    },
+    "y_end": {
+      "description": "The y end of the crop bounds, in pixels. Defines the bottom boundary where your source will be placed in the output frame. The distance between y_start and y_end determines the resized height of your content.",
+      "title": "Y End",
+      "type": "integer"
+    },
+    "y_start": {
+      "description": "The y start of the crop bounds, in pixels. Defines the top boundary where your source will be placed in the output frame. The distance between y_start and y_end determines the resized height of your content.",
+      "title": "Y Start",
+      "type": "integer"
+    }
+  },
+  "title": "reframe-image Input Schema",
+  "type": "object"
+}

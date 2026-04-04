@@ -1,0 +1,119 @@
+### Genfeed API - Batch Generation Endpoints
+### Manage batch generation jobs: create, list, process, approve/reject, cancel
+### Protected by RolesGuard + SubscriptionGuard
+
+########################################
+# Create & List Batches
+########################################
+
+### Create Batch Generation Job
+POST {{apiBaseUrl}}/batches
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "type": "image_generation",
+  "items": [
+    {
+      "prompt": "Professional product photo on white background",
+      "model": "flux-1.1-pro",
+      "width": 1024,
+      "height": 1024
+    },
+    {
+      "prompt": "Lifestyle product shot in a modern kitchen",
+      "model": "flux-1.1-pro",
+      "width": 1024,
+      "height": 1024
+    }
+  ],
+  "config": {
+    "autoProcess": false
+  }
+}
+
+
+### List All Batches
+GET {{apiBaseUrl}}/batches
+Authorization: Bearer {{bearerToken}}
+
+
+### List Batches with Filters
+GET {{apiBaseUrl}}/batches?status=pending&limit=20&offset=0
+Authorization: Bearer {{bearerToken}}
+
+
+### List Completed Batches
+GET {{apiBaseUrl}}/batches?status=completed
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Single Batch Operations
+########################################
+
+### Get Batch by ID
+GET {{apiBaseUrl}}/batches/{{testBatchId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Process Batch
+# Triggers processing of all pending items in the batch
+POST {{apiBaseUrl}}/batches/{{testBatchId}}/process
+Authorization: Bearer {{bearerToken}}
+
+
+### Approve/Reject Batch Items
+POST {{apiBaseUrl}}/batches/{{testBatchId}}/items/action
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "action": "approve",
+  "itemIds": ["{{testBatchItemId1}}", "{{testBatchItemId2}}"]
+}
+
+
+### Reject Batch Items
+POST {{apiBaseUrl}}/batches/{{testBatchId}}/items/action
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "action": "reject",
+  "itemIds": ["{{testBatchItemId1}}"]
+}
+
+
+### Cancel Batch
+POST {{apiBaseUrl}}/batches/{{testBatchId}}/cancel
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Batch Not Found
+GET {{apiBaseUrl}}/batches/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Create Batch Without Items
+POST {{apiBaseUrl}}/batches
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "type": "image_generation",
+  "items": []
+}
+
+
+### Test: Process Non-Existent Batch
+POST {{apiBaseUrl}}/batches/507f1f77bcf86cd799439011/process
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/batches

@@ -1,0 +1,27 @@
+{
+  "dependencies": {
+    "@genfeedai/config": "workspace:*"
+  },
+  "description": "Genfeed Clips Service",
+  "devDependencies": {},
+  "main": "../dist/apps/clips/main.js",
+  "name": "@genfeedai/clips",
+  "private": true,
+  "scripts": {
+    "build": "cd .. && nest build clips",
+    "build:prod": "cd .. && nest build clips && cd clips && if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps || true; fi",
+    "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
+    "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start clips --watch",
+    "lint": "biome lint --write src",
+    "sentry:inject": "sentry-cli sourcemaps inject --org genfeedai --project clips-genfeed-ai ../dist",
+    "sentry:sourcemaps": "bun run sentry:inject && bun run sentry:upload",
+    "sentry:upload": "sentry-cli sourcemaps upload --org genfeedai --project clips-genfeed-ai ../dist",
+    "start": "cd .. && nest start clips",
+    "start:debug": "cd .. && nest start clips --debug --watch",
+    "start:dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start clips --watch",
+    "start:prod": "node -r tsconfig-paths/register --max-old-space-size=8192 --expose-gc ../dist/apps/clips/main",
+    "test": "echo 'No tests yet'",
+    "test:cov": "echo 'No tests yet'"
+  },
+  "version": "1.0.0"
+}

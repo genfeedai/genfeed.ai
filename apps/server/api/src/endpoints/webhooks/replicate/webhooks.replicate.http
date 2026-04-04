@@ -1,0 +1,259 @@
+### Genfeed API - Replicate Webhook Endpoint
+### This endpoint is PUBLIC but validates webhook signatures in production
+
+@import ../../../../../http/_environment.http
+
+########################################
+# Replicate Webhooks - Image Generation
+########################################
+
+### Replicate Image Generation Success (Single Output)
+# Validates webhook signature with headers
+POST {{baseUrl}}/webhooks/replicate/callback
+Content-Type: application/json
+webhook-id: whsec_test123
+webhook-timestamp: 1234567890
+webhook-signature: v1,test_signature_here
+
+{
+  "id": "{{testExternalId}}",
+  "model": "google-imagen-3",
+  "version": "v1",
+  "status": "succeeded",
+  "output": "https://example.com/images/output.jpg",
+  "error": null
+}
+
+
+### Replicate Image Generation Success (Multiple Outputs)
+# For models that support multiple outputs
+POST {{baseUrl}}/webhooks/replicate/callback
+Content-Type: application/json
+webhook-id: whsec_test124
+webhook-timestamp: 1234567890
+webhook-signature: v1,test_signature_here
+
+{
+  "id": "{{testExternalId}}",
+  "model": "google-imagen-4",
+  "version": "v1",
+  "status": "succeeded",
+  "output": [
+    "https://example.com/images/output1.jpg",
+    "https://example.com/images/output2.jpg",
+    "https://example.com/images/output3.jpg"
+  ],
+  "error": null
+}
+
+
+########################################
+# Replicate Webhooks - Video Generation
+########################################
+
+### Replicate Video Generation Success
+POST {{baseUrl}}/webhooks/replicate/callback
+Content-Type: application/json
+webhook-id: whsec_test125
+webhook-timestamp: 1234567891
+webhook-signature: v1,test_signature_here
+
+{
+  "id": "{{testExternalId}}",
+  "model": "google-veo-2",
+  "version": "v1",
+  "status": "succeeded",
+  "output": "https://example.com/videos/output.mp4",
+  "error": null
+}
+
+
+### Replicate Video Upscale Success
+POST {{baseUrl}}/webhooks/replicate/callback
+Content-Type: application/json
+webhook-id: whsec_test126
+webhook-timestamp: 1234567892
+webhook-signature: v1,test_signature_here
+
+{
+  "id": "{{testExternalId}}",
+  "model": "topaz-video-upscale",
+  "version": "v1",
+  "status": "completed",
+  "output": "https://example.com/videos/upscaled.mp4",
+  "error": null
+}
+
+
+########################################
+# Replicate Webhooks - Music Generation
+########################################
+
+### Replicate Music Generation Success
+POST {{baseUrl}}/webhooks/replicate/callback
+Content-Type: application/json
+webhook-id: whsec_test127
+webhook-timestamp: 1234567893
+webhook-signature: v1,test_signature_here
+
+{
+  "id": "{{testExternalId}}",
+  "model": "meta-musicgen",
+  "version": "v1",
+  "status": "succeeded",
+  "output": "https://example.com/music/output.mp3",
+  "error": null
+}
+
+
+########################################
+# Replicate Webhooks - Training
+########################################
+
+### Replicate Training Success
+# Training completed successfully
+POST {{baseUrl}}/webhooks/replicate/callback
+Content-Type: application/json
+webhook-id: whsec_test128
+webhook-timestamp: 1234567894
+webhook-signature: v1,test_signature_here
+
+{
+  "id": "{{testExternalId}}",
+  "status": "succeeded",
+  "version": "model_version_abc123",
+  "output": {
+    "version": "owner/model:abc123def456"
+  },
+  "error": null
+}
+
+
+### Replicate Training Failed
+POST {{baseUrl}}/webhooks/replicate/callback
+Content-Type: application/json
+webhook-id: whsec_test129
+webhook-timestamp: 1234567895
+webhook-signature: v1,test_signature_here
+
+{
+  "id": "{{testExternalId}}",
+  "status": "failed",
+  "error": "Training failed: Insufficient training data",
+  "input": {
+    "input_images": "https://example.com/training-data.zip"
+  }
+}
+
+
+########################################
+# Replicate Webhooks - With Metadata
+########################################
+
+### Replicate with Webhook Metadata
+# Processes metadata-based webhook
+POST {{baseUrl}}/webhooks/replicate/callback
+Content-Type: application/json
+webhook-id: whsec_test130
+webhook-timestamp: 1234567896
+webhook-signature: v1,test_signature_here
+
+{
+  "id": "pred_abc123",
+  "model": "google-imagen-3",
+  "status": "succeeded",
+  "output": "https://example.com/images/metadata-output.jpg",
+  "webhook_metadata": {
+    "metadataId": "metadata_{{testExternalId}}",
+    "userId": "user_123"
+  }
+}
+
+
+########################################
+# Replicate Webhooks - Failed Cases
+########################################
+
+### Replicate Generation Failed
+POST {{baseUrl}}/webhooks/replicate/callback
+Content-Type: application/json
+webhook-id: whsec_test131
+webhook-timestamp: 1234567897
+webhook-signature: v1,test_signature_here
+
+{
+  "id": "{{testExternalId}}",
+  "model": "google-veo-2",
+  "status": "failed",
+  "error": "Content policy violation detected",
+  "output": null
+}
+
+
+### Replicate Error Status
+POST {{baseUrl}}/webhooks/replicate/callback
+Content-Type: application/json
+webhook-id: whsec_test132
+webhook-timestamp: 1234567898
+webhook-signature: v1,test_signature_here
+
+{
+  "id": "{{testExternalId}}",
+  "model": "google-imagen-3",
+  "status": "error",
+  "error": "System error occurred",
+  "output": null
+}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Missing Webhook Headers (Development)
+# In development without secret, should process
+POST {{baseUrl}}/webhooks/replicate/callback
+Content-Type: application/json
+
+{
+  "id": "test_no_headers",
+  "model": "google-imagen-3",
+  "status": "succeeded",
+  "output": "https://example.com/test.jpg"
+}
+
+
+### Test: Invalid Signature (Production)
+# In production with secret, should fail with 401
+POST {{baseUrl}}/webhooks/replicate/callback
+Content-Type: application/json
+webhook-id: invalid
+webhook-timestamp: 1234567890
+webhook-signature: v1,invalid_signature
+
+{
+  "id": "test_invalid",
+  "model": "google-imagen-3",
+  "status": "succeeded",
+  "output": "https://example.com/test.jpg"
+}
+
+
+### Test: Malformed Training URL
+# Training with double https:// prefix
+POST {{baseUrl}}/webhooks/replicate/callback
+Content-Type: application/json
+webhook-id: whsec_test133
+webhook-timestamp: 1234567899
+webhook-signature: v1,test_signature_here
+
+{
+  "id": "test_malformed",
+  "status": "failed",
+  "error": "Invalid input URL",
+  "input": {
+    "input_images": "https://https://example.com/data.zip"
+  }
+}
+
+

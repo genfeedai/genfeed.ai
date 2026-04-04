@@ -1,0 +1,127 @@
+### Genfeed API - Personas Content Endpoints
+### AI persona content generation: photos, videos, voice, captions, content plans
+### Protected by RolesGuard
+
+########################################
+# Content Generation
+########################################
+
+### Generate Persona Photo
+POST {{apiBaseUrl}}/personas/{{testPersonaId}}/generate/photo
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "Professional headshot in a modern office setting"
+}
+
+
+### Generate Persona Video
+POST {{apiBaseUrl}}/personas/{{testPersonaId}}/generate/video
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "script": "Hi everyone! Today I want to share three tips for growing your audience using AI-generated content.",
+  "aspectRatio": "9:16"
+}
+
+
+### Generate Persona Voice
+POST {{apiBaseUrl}}/personas/{{testPersonaId}}/generate/voice
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "Welcome to our weekly content strategy breakdown. Let me walk you through the key insights.",
+  "ingredientId": "{{testIngredientId}}"
+}
+
+
+### Generate Persona Caption
+POST {{apiBaseUrl}}/personas/{{testPersonaId}}/generate/caption
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "topic": "AI content creation trends",
+  "platform": "instagram"
+}
+
+
+########################################
+# Content Planning & Publishing
+########################################
+
+### Generate Content Plan
+POST {{apiBaseUrl}}/personas/{{testPersonaId}}/content-plan
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "days": 7,
+  "credentialId": "{{testCredentialId}}"
+}
+
+
+### Generate Content Plan (Preview Only)
+POST {{apiBaseUrl}}/personas/{{testPersonaId}}/content-plan
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "days": 14
+}
+
+
+### Publish Persona Content
+POST {{apiBaseUrl}}/personas/{{testPersonaId}}/publish
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "description": "The future of AI in content creation is here. Three things every marketer needs to know...",
+  "ingredientIds": ["{{testIngredientId}}"],
+  "category": "image",
+  "scheduledDate": "2026-02-20T10:00:00.000Z"
+}
+
+
+########################################
+# Persona Posts
+########################################
+
+### Get Persona Posts
+GET {{apiBaseUrl}}/personas/{{testPersonaId}}/posts
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Persona Posts with Pagination
+GET {{apiBaseUrl}}/personas/{{testPersonaId}}/posts?page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Generate Photo for Non-Existent Persona
+POST {{apiBaseUrl}}/personas/507f1f77bcf86cd799439011/generate/photo
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "test photo"
+}
+
+
+### Test: Generate Video Without Script
+POST {{apiBaseUrl}}/personas/{{testPersonaId}}/generate/video
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{}
+
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/personas/{{testPersonaId}}/posts

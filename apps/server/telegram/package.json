@@ -1,0 +1,31 @@
+{
+  "dependencies": {
+    "@genfeedai/config": "workspace:*",
+    "@genfeedai/integrations": "workspace:*",
+    "grammy": "1.42.0"
+  },
+  "description": "Genfeed Telegram Service",
+  "devDependencies": {},
+  "main": "../dist/apps/telegram/main.js",
+  "name": "@genfeedai/telegram",
+  "private": true,
+  "scripts": {
+    "build": "cd .. && nest build telegram",
+    "build:prod": "cd .. && nest build telegram && cd telegram && if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps || true; fi",
+    "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
+    "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start telegram --watch",
+    "lint": "biome lint --write src",
+    "sentry:inject": "sentry-cli sourcemaps inject --org genfeedai --project telegram-genfeed-ai ../dist",
+    "sentry:sourcemaps": "bun run sentry:inject && bun run sentry:upload",
+    "sentry:upload": "sentry-cli sourcemaps upload --org genfeedai --project telegram-genfeed-ai ../dist",
+    "start": "cd .. && nest start telegram",
+    "start:debug": "cd .. && nest start telegram --debug --watch",
+    "start:dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start telegram --watch",
+    "start:prod": "node -r tsconfig-paths/register --max-old-space-size=8192 --expose-gc ../dist/apps/telegram/main",
+    "test": "vitest run --config vitest.config.ts",
+    "test:cov": "vitest run --coverage --config vitest.config.ts",
+    "test:e2e": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest watch --config vitest.config.ts"
+  },
+  "version": "1.0.0"
+}

@@ -1,0 +1,99 @@
+### Genfeed API - MCP (Model Context Protocol) Endpoints
+### These endpoints require AUTHENTICATION
+
+@import ../../../../http/_environment.http
+
+########################################
+# MCP - Video Generation
+########################################
+
+### Create Video (requires auth + credits)
+# Rate limit: 5 videos per 5 minutes
+# Requires: CreditsGuard, ModelsGuard
+# Deducts credits for video generation
+POST {{baseUrl}}/mcp/videos
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "A cinematic shot of a sunset over the ocean",
+  "model": "openai-sora",
+  "duration": 5,
+  "aspectRatio": "16:9"
+}
+
+
+### Create Video - Example with More Parameters
+POST {{baseUrl}}/mcp/videos
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "A time-lapse of a bustling city street at night",
+  "model": "google-veo-2",
+  "duration": 10,
+  "aspectRatio": "16:9",
+  "quality": "high",
+  "seed": 42
+}
+
+
+########################################
+# MCP - Analytics
+########################################
+
+### Get Analytics (requires auth)
+# Get analytics for the authenticated user
+GET {{baseUrl}}/mcp/analytics
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Analytics with Pagination
+GET {{baseUrl}}/mcp/analytics?page={{page}}&limit={{limit}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Analytics with Date Range
+GET {{baseUrl}}/mcp/analytics?startDate=2025-01-01&endDate=2025-12-31
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Missing Authorization
+# Should fail with 401 Unauthorized
+POST {{baseUrl}}/mcp/videos
+Content-Type: application/json
+
+{
+  "prompt": "Test video",
+  "model": "openai-sora"
+}
+
+
+### Test: Invalid Model
+POST {{baseUrl}}/mcp/videos
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "Test video",
+  "model": "invalid-model-name"
+}
+
+
+### Test: Rate Limit
+# Try creating 6 videos in quick succession to test rate limit
+# Should fail on 6th request within 5 minutes
+POST {{baseUrl}}/mcp/videos
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "Rate limit test",
+  "model": "openai-sora"
+}
+
+

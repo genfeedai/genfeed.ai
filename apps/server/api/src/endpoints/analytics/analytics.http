@@ -1,0 +1,162 @@
+### Genfeed API - Analytics Endpoints
+### Platform analytics, trends, leaderboards, and data export
+### Protected by ClerkGuard + RolesGuard; some endpoints require superadmin
+
+########################################
+# Super Admin Analytics
+########################################
+
+### Get All Analytics (Superadmin Only)
+# Returns total counts: users, posts, brands, videos, images, organizations, etc.
+# Cached for 5 minutes
+GET {{apiBaseUrl}}/analytics
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Organizations Leaderboard (Superadmin Only)
+GET {{apiBaseUrl}}/analytics/organizations/leaderboard?sort=engagement&limit=10
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Organizations Leaderboard with Date Range
+GET {{apiBaseUrl}}/analytics/organizations/leaderboard?startDate=2026-01-01&endDate=2026-02-15&sort=engagement&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Organizations with Stats (Superadmin Only)
+GET {{apiBaseUrl}}/analytics/organizations?page=1&limit=20&sort=engagement
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Brands Leaderboard (Superadmin Only)
+GET {{apiBaseUrl}}/analytics/brands/leaderboard?sort=engagement&limit=10
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Brands with Stats (Superadmin Only)
+GET {{apiBaseUrl}}/analytics/brands?page=1&limit=20&sort=engagement
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Time Series Data (Superadmin Only)
+# Defaults to 7-day window ending yesterday
+GET {{apiBaseUrl}}/analytics/timeseries
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Time Series with Date Range
+GET {{apiBaseUrl}}/analytics/timeseries?startDate=2026-01-01&endDate=2026-02-15
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Organization Analytics
+########################################
+
+### Get Analytics Overview
+# Cached for 5 minutes
+GET {{apiBaseUrl}}/analytics/overview
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Overview with Date Range and Brand Filter
+GET {{apiBaseUrl}}/analytics/overview?startDate=2026-01-01&endDate=2026-02-15&brand={{testBrandId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Top Content
+GET {{apiBaseUrl}}/analytics/top?metric=views&limit=10
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Top Content with Filters
+GET {{apiBaseUrl}}/analytics/top?metric=likes&limit=20&brand={{testBrandId}}&platform=twitter&startDate=2026-01-01&endDate=2026-02-15
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Platform Comparison
+GET {{apiBaseUrl}}/analytics/platforms
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Platform Comparison with Filters
+GET {{apiBaseUrl}}/analytics/platforms?startDate=2026-01-01&endDate=2026-02-15&brand={{testBrandId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Growth Trends
+GET {{apiBaseUrl}}/analytics/growth?metric=views
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Growth Trends with Filters
+GET {{apiBaseUrl}}/analytics/growth?metric=likes&startDate=2026-01-01&endDate=2026-02-15&brand={{testBrandId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Engagement Breakdown
+GET {{apiBaseUrl}}/analytics/engagement
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Engagement with Filters
+GET {{apiBaseUrl}}/analytics/engagement?startDate=2026-01-01&endDate=2026-02-15&brand={{testBrandId}}&platform=instagram
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Viral Hooks
+GET {{apiBaseUrl}}/analytics/hooks
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Viral Hooks with Filters
+GET {{apiBaseUrl}}/analytics/hooks?startDate=2026-01-01&endDate=2026-02-15&brand={{testBrandId}}&organization={{testOrganizationId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Trends
+########################################
+
+### Get Cross-Platform Trends
+# Cached for 10 minutes
+GET {{apiBaseUrl}}/analytics/trends
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Export
+########################################
+
+### Export Analytics as CSV
+GET {{apiBaseUrl}}/analytics/export?format=csv&fields=videoLabel,views,comments,likes,platform
+Authorization: Bearer {{bearerToken}}
+
+
+### Export Analytics as XLSX
+GET {{apiBaseUrl}}/analytics/export?format=xlsx&fields=videoLabel,views,comments,likes,platform
+Authorization: Bearer {{bearerToken}}
+
+
+### Export for Specific Organization (Superadmin)
+GET {{apiBaseUrl}}/analytics/export?format=csv&organization={{testOrganizationId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Non-Superadmin Accessing Superadmin Endpoint
+# Should return 403 if user is not superadmin
+GET {{apiBaseUrl}}/analytics/organizations/leaderboard
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Invalid Date Range
+GET {{apiBaseUrl}}/analytics/overview?startDate=invalid-date&endDate=2026-02-15
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/analytics

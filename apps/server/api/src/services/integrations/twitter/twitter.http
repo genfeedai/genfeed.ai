@@ -1,0 +1,105 @@
+### Genfeed API - Twitter Integration Endpoints
+### These endpoints handle Twitter/X OAuth and posting
+
+@import ../../../../../http/_environment.http
+
+########################################
+# Twitter OAuth Flow
+########################################
+
+### Step 1: Connect Twitter Account
+# Initiates OAuth flow and returns authorization URL
+# Requires: brandId in body
+POST {{baseUrl}}/services/twitter/connect
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "brand": "{{testBrandId}}"
+}
+
+
+### Step 2: Verify Twitter OAuth
+# Completes OAuth flow after user authorizes
+# Requires: brandId, oauth_token, oauth_verifier
+POST {{baseUrl}}/services/twitter/verify
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "brand": "{{testBrandId}}",
+  "oauth_token": "REPLACE_WITH_TOKEN_FROM_CALLBACK",
+  "oauth_verifier": "REPLACE_WITH_VERIFIER_FROM_CALLBACK"
+}
+
+
+########################################
+# Twitter Posting
+########################################
+
+### Post a Thread to Twitter
+# Creates a threaded tweet post
+# Requires: brandId, messages array
+POST {{baseUrl}}/services/twitter/thread
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "brand": "{{testBrandId}}",
+  "messages": [
+    "First tweet in the thread 🧵",
+    "Second tweet with more details",
+    "Final tweet with conclusion"
+  ]
+}
+
+
+########################################
+# Twitter Data
+########################################
+
+### Get Trending Topics
+# Fetches current Twitter trends
+GET {{baseUrl}}/services/twitter/trends
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Connect Without Account ID
+POST {{baseUrl}}/services/twitter/connect
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "brand": ""
+}
+
+
+### Test: Verify Without OAuth Token
+POST {{baseUrl}}/services/twitter/verify
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "brand": "{{testBrandId}}"
+}
+
+
+### Test: Post Thread Without Messages
+POST {{baseUrl}}/services/twitter/thread
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "brand": "{{testBrandId}}",
+  "messages": []
+}
+
+
+### Test: Unauthorized Request (No Token)
+GET {{baseUrl}}/services/twitter/trends
+
+

@@ -1,0 +1,121 @@
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
+import type { DesktopDatabaseService } from './database.service';
+import './test-support/electron.mock';
+
+const { DesktopSessionService } = await import('./session.service');
+
+const createDatabaseMock = () => {
+  const values = new Map<string, string>();
+
+  return {
+    deleteValue: (key: string) => {
+      values.delete(key);
+    },
+    getValue: (key: string) => values.get(key) ?? null,
+    setValue: (key: string, value: string) => {
+      values.set(key, value);
+    },
+    values,
+  } as unknown as DesktopDatabaseService & { values: Map<string, string> };
+};
+
+describe('DesktopSessionService', () => {
+  const originalFetch = globalThis.fetch;
+  let database: ReturnType<typeof createDatabaseMock>;
+
+  beforeEach(() => {
+    database = createDatabaseMock();
+    globalThis.fetch = originalFetch;
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('builds a desktop-specific OAuth URL', () => {
+    const service = new DesktopSessionService(database, {
+      apiEndpoint: 'https://api.genfeed.ai/v1',
+      appEndpoint: 'https://app.genfeed.ai',
+      appName: 'desktop',
+      authEndpoint: 'https://app.genfeed.ai/oauth/cli',
+      cdnUrl: 'https://cdn.genfeed.ai',
+      wsEndpoint: 'https://notifications.genfeed.ai',
+    });
+
+    const loginUrl = new URL(service.getLoginUrl());
+
+    expect(loginUrl.origin).toBe('https://app.genfeed.ai');
+    expect(loginUrl.pathname).toBe('/oauth/cli');
+    expect(loginUrl.searchParams.get('desktop')).toBe('1');
+    expect(loginUrl.searchParams.get('return_to')).toBe(
+      'genfeedai-desktop://auth',
+    );
+  });
+
+  it('hydrates a session from the server-minted key', async () => {
+    const service = new DesktopSessionService(database, {
+      apiEndpoint: 'https://api.genfeed.ai/v1',
+      appEndpoint: 'https://app.genfeed.ai',
+      appName: 'desktop',
+      authEndpoint: 'https://app.genfeed.ai/oauth/cli',
+      cdnUrl: 'https://cdn.genfeed.ai',
+      wsEndpoint: 'https://notifications.genfeed.ai',
+    });
+
+    globalThis.fetch = (async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => {
+      expect(String(input)).toBe('https://api.genfeed.ai/v1/auth/whoami');
+      expect(init?.headers).toMatchObject({
+        Authorization: 'Bearer gf_desktop_key',
+      });
+
+      return new Response(
+        JSON.stringify({
+          data: {
+            user: {
+              email: 'desktop@example.com',
+              id: 'user-123',
+              name: 'Desktop User',
+            },
+          },
+        }),
+        {
+          headers: {
+            'content-type': 'application/json',
+          },
+          status: 200,
+        },
+      );
+    }) as typeof fetch;
+
+    const session = await service.handleCallback(
+      'genfeedai-desktop://auth?key=gf_desktop_key',
+    );
+
+    expect(session).toEqual({
+      issuedAt: expect.any(String),
+      token: 'gf_desktop_key',
+      userEmail: 'desktop@example.com',
+      userId: 'user-123',
+      userName: 'Desktop User',
+    });
+    expect(database.getValue('desktop.session')).toContain('gf_desktop_key');
+  });
+
+  it('rejects callbacks without a key', async () => {
+    const service = new DesktopSessionService(database, {
+      apiEndpoint: 'https://api.genfeed.ai/v1',
+      appEndpoint: 'https://app.genfeed.ai',
+      appName: 'desktop',
+      authEndpoint: 'https://app.genfeed.ai/oauth/cli',
+      cdnUrl: 'https://cdn.genfeed.ai',
+      wsEndpoint: 'https://notifications.genfeed.ai',
+    });
+
+    await expect(
+      service.handleCallback('genfeedai-desktop://auth?token=missing'),
+    ).resolves.toBeNull();
+  });
+});

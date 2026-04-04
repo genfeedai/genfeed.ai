@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "outDir": "../dist/apps/workers",
+    "paths": {
+      "@api/*": ["../api/src/*"],
+      "@genfeedai/workflow-saas": ["../../../packages/workflow-saas/src"],
+      "@genfeedai/workflow-saas/*": ["../../../packages/workflow-saas/src/*"],
+      "@files/*": ["../files/src/*"],
+      "@libs/*": ["../../../packages/libs/*"],
+      "@workers/*": ["./src/*"]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "test",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/*.e2e-spec.ts"
+  ],
+  "extends": "../tsconfig.json",
+  "include": ["src/**/*"]
+}

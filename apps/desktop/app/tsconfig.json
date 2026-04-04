@@ -1,0 +1,47 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "lib": ["dom", "es2022"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "paths": {
+      "@api-types/*": ["../../../../packages/api-types/src/*"],
+      "@genfeedai/agent": ["../../../packages/agent/src/index.ts"],
+      "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
+      "@genfeedai/desktop-contracts": [
+        "../../../packages/desktop-contracts/src/index.ts"
+      ],
+      "@genfeedai/desktop-core": ["../../../packages/desktop-core/src/index.ts"],
+      "@genfeedai/interfaces": ["../../../packages/interfaces/src/index.ts"],
+      "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
+      "@configs/*": ["../../../configs/*"],
+      "@contexts/*": ["../../../packages/contexts/*"],
+      "@hooks/*": ["../../../packages/hooks/*"],
+      "@models/*": ["../../../packages/models/*"],
+      "@pages/*": ["../../../packages/pages/*"],
+      "@props/*": ["../../../packages/props/*"],
+      "@providers/*": ["../../../packages/providers/*"],
+      "@renderer/*": ["./src/renderer/*"],
+      "@schemas/*": ["../../../packages/schemas/*"],
+      "@services/*": ["../../../packages/services/*"],
+      "@styles/*": ["../../../packages/styles/*"],
+      "@ui-constants/*": ["../../../packages/ui/constants/*"],
+      "@ui/*": ["../../../packages/ui/*"],
+      "@utils/*": ["../../../packages/utils/*"]
+    },
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2022",
+    "typeRoots": [
+      "../../../../packages/node_modules/.bun/@types+node@25.2.3/node_modules/@types",
+      "../../../../packages/node_modules/.bun/@types+react@19.2.4/node_modules/@types",
+      "../../../../packages/node_modules/.bun/@types+react-dom@19.2.3+878e0db68a4d0502/node_modules/@types"
+    ]
+  },
+  "exclude": ["src/**/*.test.ts"],
+  "include": ["src/**/*.d.ts", "src/**/*.ts", "src/**/*.tsx"]
+}

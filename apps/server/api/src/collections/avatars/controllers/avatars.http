@@ -1,0 +1,51 @@
+### Genfeed API - Avatars Collection Endpoints
+### Read-only endpoints: list avatars, fetch provider voices/avatars
+### Avatar video generation -> POST /videos/avatar
+### Lip-sync generation   -> POST /videos/lip-sync
+
+########################################
+# List & Filter Avatars
+########################################
+
+### Get All Avatars (Paginated)
+GET {{apiBaseUrl}}/avatars
+Authorization: Bearer {{bearerToken}}
+
+### Get User Avatars
+GET {{apiBaseUrl}}/avatars?user={{testUserId}}
+Authorization: Bearer {{bearerToken}}
+
+########################################
+# Provider Voices
+########################################
+
+### Get HeyGen Voices
+GET {{apiBaseUrl}}/avatars/heygen/voices
+Authorization: Bearer {{bearerToken}}
+
+### Get Hedra Voices
+GET {{apiBaseUrl}}/avatars/hedra/voices
+Authorization: Bearer {{bearerToken}}
+
+### Get ElevenLabs Voices
+GET {{apiBaseUrl}}/avatars/elevenlabs/voices
+Authorization: Bearer {{bearerToken}}
+
+########################################
+# Provider Avatars
+########################################
+
+### Get HeyGen Avatars
+GET {{apiBaseUrl}}/avatars/heygen/avatars
+Authorization: Bearer {{bearerToken}}
+
+### Get Hedra Avatars
+GET {{apiBaseUrl}}/avatars/hedra/avatars
+Authorization: Bearer {{bearerToken}}
+
+########################################
+# Test Cases
+########################################
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/avatars

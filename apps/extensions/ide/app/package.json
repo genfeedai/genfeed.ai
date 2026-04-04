@@ -1,0 +1,363 @@
+{
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "categories": [
+    "Other",
+    "Visualization"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "genfeed.openPanel",
+        "icon": "$(genfeed-icon)",
+        "title": "GenFeed: Open Panel"
+      },
+      {
+        "command": "genfeed.explainAndPost",
+        "icon": "$(comment-discussion)",
+        "title": "GenFeed: Explain & Post"
+      },
+      {
+        "command": "genfeed.commitToPost",
+        "icon": "$(git-commit)",
+        "title": "GenFeed: Turn Commit into Post"
+      },
+      {
+        "command": "genfeed.generateContent",
+        "icon": "$(rocket)",
+        "title": "Genfeed: Generate Content"
+      },
+      {
+        "command": "genfeed.postContent",
+        "icon": "$(megaphone)",
+        "title": "Genfeed: Post Content"
+      },
+      {
+        "command": "genfeed.showAnalytics",
+        "icon": "$(graph)",
+        "title": "Genfeed: Show Analytics"
+      },
+      {
+        "command": "genfeed.runFullLoop",
+        "icon": "$(run-all)",
+        "title": "Genfeed: Run Full Loop"
+      },
+      {
+        "command": "genfeed.runComposite",
+        "icon": "$(run-all)",
+        "title": "Genfeed: Run Composite Workflow (Alias)"
+      },
+      {
+        "command": "genfeed.runStatus",
+        "icon": "$(pulse)",
+        "title": "Genfeed: Run Status"
+      },
+      {
+        "command": "genfeed.generateContentFromTemplate",
+        "icon": "$(library)",
+        "title": "Genfeed: Generate From Template"
+      },
+      {
+        "command": "genfeed.createCampaign",
+        "icon": "$(edit)",
+        "title": "Genfeed: Configure Workspace Campaign"
+      },
+      {
+        "command": "genfeed.exportRunArtifacts",
+        "icon": "$(save)",
+        "title": "Genfeed: Save Run Artifacts"
+      },
+      {
+        "command": "genfeed.toggleAgentMode",
+        "icon": "$(hubot)",
+        "title": "Genfeed: Toggle Agent Mode"
+      },
+      {
+        "command": "genfeed.openRunQueue",
+        "title": "Genfeed: Open Run Queue"
+      },
+      {
+        "command": "genfeed.openTemplates",
+        "title": "Genfeed: Open Templates"
+      },
+      {
+        "command": "genfeed.openAnalyticsView",
+        "title": "Genfeed: Open Analytics View"
+      },
+      {
+        "command": "genfeed.toggleSidebar",
+        "icon": "$(layout-sidebar-left)",
+        "title": "Genfeed: Toggle Sidebar"
+      },
+      {
+        "command": "genfeed.refreshRunQueue",
+        "icon": "$(refresh)",
+        "title": "Genfeed: Refresh Run Queue"
+      },
+      {
+        "command": "genfeed.refreshTemplates",
+        "icon": "$(refresh)",
+        "title": "Genfeed: Refresh Templates"
+      },
+      {
+        "command": "genfeed.refreshAnalyticsView",
+        "icon": "$(refresh)",
+        "title": "Genfeed: Refresh Analytics View"
+      },
+      {
+        "command": "genfeed.authenticate",
+        "title": "Genfeed: Sign In (Device Flow)"
+      },
+      {
+        "command": "genfeed.signOut",
+        "title": "Genfeed: Sign Out"
+      },
+      {
+        "command": "genfeed.setApiKey",
+        "title": "Genfeed: Set API Key"
+      },
+      {
+        "command": "genfeed.generateImage",
+        "icon": "$(sparkle)",
+        "title": "Genfeed: Generate Image (Legacy)"
+      },
+      {
+        "command": "genfeed.publishContent",
+        "icon": "$(megaphone)",
+        "title": "Genfeed: Run Publish Content (Alias)"
+      },
+      {
+        "command": "genfeed.viewAnalytics",
+        "icon": "$(graph)",
+        "title": "Genfeed: Run Analytics (Alias)"
+      },
+      {
+        "command": "genfeed.openPresets",
+        "title": "Genfeed: Open Presets Panel (Legacy)"
+      },
+      {
+        "command": "genfeed.refreshPresets",
+        "icon": "$(refresh)",
+        "title": "Genfeed: Refresh Presets (Legacy)"
+      },
+      {
+        "command": "genfeed.openGallery",
+        "icon": "$(files)",
+        "title": "Genfeed: Open Gallery (Legacy)"
+      },
+      {
+        "command": "genfeed.refreshGallery",
+        "icon": "$(refresh)",
+        "title": "Genfeed: Refresh Gallery (Legacy)"
+      }
+    ],
+    "configuration": {
+      "properties": {
+        "genfeed.agentMode": {
+          "default": true,
+          "description": "Use agent mode by default for full-loop runs",
+          "type": "boolean"
+        },
+        "genfeed.apiEndpoint": {
+          "default": "https://api.genfeed.ai",
+          "description": "Genfeed.ai API endpoint",
+          "type": "string"
+        },
+        "genfeed.apiUrl": {
+          "default": "https://api.genfeed.ai",
+          "description": "Genfeed API base URL (alias for genfeed.apiEndpoint)",
+          "type": "string"
+        },
+        "genfeed.authEndpoint": {
+          "default": "https://accounts.genfeed.ai",
+          "description": "Authentication endpoint used for Clerk device flow",
+          "type": "string"
+        },
+        "genfeed.defaultFormat": {
+          "default": "landscape",
+          "description": "Default image format",
+          "enum": [
+            "landscape",
+            "portrait",
+            "square"
+          ],
+          "type": "string"
+        },
+        "genfeed.defaultModel": {
+          "default": "flux-1.1-pro",
+          "description": "Default AI model for image generation",
+          "enum": [
+            "flux-1.1-pro",
+            "flux-2-pro",
+            "imagen-3",
+            "imagen-4",
+            "ideogram-v3",
+            "seedream-3.1"
+          ],
+          "type": "string"
+        },
+        "genfeed.draftsPollIntervalMs": {
+          "default": 300000,
+          "description": "How often (ms) the status bar polls for pending draft count",
+          "minimum": 30000,
+          "type": "number"
+        },
+        "genfeed.outputDirectory": {
+          "default": "",
+          "description": "Directory to save generated media (leave empty for workspace root)",
+          "type": "string"
+        },
+        "genfeed.writeArtifactsByDefault": {
+          "default": false,
+          "description": "Persist structured run artifacts to workspace by default",
+          "type": "boolean"
+        }
+      },
+      "title": "Genfeed.ai"
+    },
+    "keybindings": [
+      {
+        "command": "genfeed.openPanel",
+        "key": "ctrl+shift+g",
+        "mac": "cmd+shift+g",
+        "when": "!terminalFocus"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "genfeed.explainAndPost",
+          "group": "genfeed@1",
+          "when": "editorHasSelection"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "genfeed.refreshRunQueue",
+          "group": "navigation",
+          "when": "view == genfeed.runQueueView"
+        },
+        {
+          "command": "genfeed.refreshTemplates",
+          "group": "navigation",
+          "when": "view == genfeed.templatesView"
+        },
+        {
+          "command": "genfeed.refreshAnalyticsView",
+          "group": "navigation",
+          "when": "view == genfeed.analyticsView"
+        },
+        {
+          "command": "genfeed.refreshPresets",
+          "group": "navigation",
+          "when": "view == genfeed.presetsView"
+        },
+        {
+          "command": "genfeed.refreshGallery",
+          "group": "navigation",
+          "when": "view == genfeed.galleryView"
+        }
+      ]
+    },
+    "views": {
+      "genfeed-sidebar": [
+        {
+          "id": "genfeed.runQueueView",
+          "name": "Run Queue",
+          "type": "webview"
+        },
+        {
+          "id": "genfeed.templatesView",
+          "name": "Templates",
+          "type": "webview"
+        },
+        {
+          "id": "genfeed.analyticsView",
+          "name": "Analytics",
+          "type": "webview"
+        },
+        {
+          "id": "genfeed.presetsView",
+          "name": "Image Presets",
+          "type": "webview"
+        },
+        {
+          "id": "genfeed.galleryView",
+          "name": "Image Gallery",
+          "type": "webview"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "icon": "assets/icon.svg",
+          "id": "genfeed-sidebar",
+          "title": "Genfeed.ai"
+        }
+      ]
+    }
+  },
+  "dependencies": {
+    "@clerk/clerk-js": "6.4.0",
+    "@genfeedai/ui": "workspace:*",
+    "@sentry/node": "10.47.0"
+  },
+  "description": "Content copilot for Genfeed.ai campaigns in VS Code/Cursor",
+  "devDependencies": {
+    "@biomejs/biome": "2.4.10",
+    "@types/node": "25.5.2",
+    "@types/vscode": "1.110.0",
+    "@vscode/vsce": "3.7.1",
+    "bun-types": "latest",
+    "esbuild": "0.28.0",
+    "typescript": "5.9.3"
+  },
+  "displayName": "Genfeed.ai - Content Engine IDE",
+  "engines": {
+    "vscode": "^1.105.0"
+  },
+  "files": [
+    "dist/**",
+    "assets/**",
+    "package.json"
+  ],
+  "keywords": [
+    "ai",
+    "content engine",
+    "genfeed",
+    "campaigns",
+    "analytics",
+    "vscode",
+    "cursor"
+  ],
+  "main": "./dist/extension.js",
+  "name": "extension-ide",
+  "overrides": {
+    "typescript": "5.9.3"
+  },
+  "publisher": "genfeedai",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/genfeedai/cursor.genfeed.ai"
+  },
+  "scripts": {
+    "build": "bun run build:extension",
+    "build:extension": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --minify",
+    "check": "biome check ./src",
+    "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
+    "format": "biome format --write ./src",
+    "lint": "biome check ./src",
+    "lint:fix": "biome check --apply ./src",
+    "package": "bun run build && bash ./scripts/package-vsix.sh",
+    "publish": "vsce publish",
+    "test": "find ./src -name '*.test.ts' -print0 | xargs -0 bun test",
+    "test:e2e": "find ./src -name '*.e2e.test.ts' -print0 | xargs -0 bun test",
+    "type-check": "tsc --noEmit",
+    "vscode:prepublish": "bun run build",
+    "watch": "bun run watch:extension",
+    "watch:extension": "esbuild ./src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --watch"
+  },
+  "version": "0.1.0"
+}

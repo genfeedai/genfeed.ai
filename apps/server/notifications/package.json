@@ -1,0 +1,32 @@
+{
+  "dependencies": {
+    "@genfeedai/config": "workspace:*",
+    "@slack/web-api": "7.15.0"
+  },
+  "description": "Genfeed Notifications Service",
+  "devDependencies": {},
+  "main": "../dist/apps/notifications/main.js",
+  "name": "@genfeedai/notifications",
+  "private": true,
+  "scripts": {
+    "build": "cd .. && nest build notifications",
+    "build:prod": "cd .. && nest build notifications && cd notifications && (bun run sentry:sourcemaps || true)",
+    "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
+    "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start notifications --watch",
+    "dev:bun": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start notifications --watch",
+    "dev:nest": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start notifications --watch",
+    "lint": "biome lint --write src",
+    "sentry:inject": "sentry-cli sourcemaps inject --org genfeedai --project notifications-genfeed-ai ../dist",
+    "sentry:sourcemaps": "bun run sentry:inject && bun run sentry:upload",
+    "sentry:upload": "sentry-cli sourcemaps upload --org genfeedai --project notifications-genfeed-ai ../dist",
+    "start": "cd .. && nest start notifications",
+    "start:debug": "cd .. && nest start notifications --debug --watch",
+    "start:dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start notifications --watch",
+    "start:prod": "node -r tsconfig-paths/register --max-old-space-size=8192 --expose-gc ../dist/apps/notifications/main",
+    "test": "vitest run --config vitest.config.ts",
+    "test:cov": "vitest run --coverage --config vitest.config.ts",
+    "test:e2e": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest watch --config vitest.config.ts"
+  },
+  "version": "1.0.0"
+}

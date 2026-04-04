@@ -1,0 +1,81 @@
+{
+  "author": "vincent@genfeed.ai",
+  "dependencies": {
+    "@clerk/chrome-extension": "3.1.6",
+    "@genfeedai/client": "workspace:*",
+    "@genfeedai/constants": "workspace:*",
+    "@genfeedai/enums": "workspace:*",
+    "@genfeedai/helpers": "workspace:*",
+    "@genfeedai/interfaces": "workspace:*",
+    "@genfeedai/next-config": "workspace:*",
+    "@genfeedai/ui": "workspace:*",
+    "@plasmohq/storage": "1.15.0",
+    "@sentry/browser": "10.47.0",
+    "axios": "1.14.0",
+    "plasmo": "0.90.5",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "zustand": "5.0.12"
+  },
+  "description": "Genfeed.ai - Generate (good) AI content for your business",
+  "devDependencies": {
+    "@ianvs/prettier-plugin-sort-imports": "4.7.1",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.2",
+    "@types/chrome": "0.1.39",
+    "@types/node": "25.5.2",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitest/coverage-v8": "4.1.2",
+    "autoprefixer": "10.4.27",
+    "jsdom": "29.0.1",
+    "postcss": "8.5.8",
+    "prettier": "3.8.1",
+    "tailwindcss": "4.2.2",
+    "typescript": "5.9.3",
+    "vitest": "4.1.2"
+  },
+  "displayName": "Extension genfeed ai",
+  "manifest": {
+    "host_permissions": [
+      "https://*.twitter.com/*",
+      "https://*.x.com/*",
+      "https://*.youtube.com/*",
+      "https://*.instagram.com/*",
+      "https://*.reddit.com/*",
+      "https://*.facebook.com/*",
+      "https://*.tiktok.com/*",
+      "https://*.linkedin.com/*",
+      "https://api.genfeed.ai/*"
+    ],
+    "permissions": [
+      "cookies",
+      "storage",
+      "tabs",
+      "scripting",
+      "activeTab",
+      "sidePanel"
+    ],
+    "side_panel": {
+      "default_path": "sidepanel.html"
+    }
+  },
+  "name": "@genfeedai/extension-browser",
+  "packageManager": "bun@1.3.11",
+  "scripts": {
+    "build": "npm exec plasmo build",
+    "cache:clear": "./scripts/bash/cache-clear.sh",
+    "deps:update": "bunx npm-check-updates -u --reject typescript,tailwindcss && bun install",
+    "dev": "npm exec plasmo dev",
+    "dev:debug": "PLASMO_PUBLIC_ENV=development npm exec plasmo dev",
+    "format:check": "prettier --check .",
+    "format:fix": "prettier --write .",
+    "package": "npm exec plasmo package",
+    "prepare:deploy": "bun run format:fix && bun run build",
+    "start:dev": "npm exec plasmo dev",
+    "test": "npx vitest run",
+    "test:cov": "vitest run --coverage",
+    "test:watch": "vitest"
+  },
+  "version": "1.0.0"
+}

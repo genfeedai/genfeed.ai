@@ -1,0 +1,45 @@
+### Genfeed API - Pinterest Integration Endpoints
+### Manage Pinterest publishing and boards
+### Handles: OAuth, pinning, boards
+
+########################################
+# Authentication
+########################################
+
+### Pinterest OAuth Callback
+GET {{apiBaseUrl}}/integrations/pinterest/callback?code={{authCode}}
+
+
+########################################
+# Boards
+########################################
+
+### Get Pinterest Boards
+GET {{apiBaseUrl}}/integrations/pinterest/boards
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Pins
+########################################
+
+### Create Pin
+POST {{apiBaseUrl}}/integrations/pinterest/pins
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "boardId": "{{pinterestBoardId}}",
+  "title": "Amazing Content",
+  "description": "Check this out!",
+  "imageUrl": "{{testImageUrl}}",
+  "link": "https://example.com"
+}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/integrations/pinterest/boards

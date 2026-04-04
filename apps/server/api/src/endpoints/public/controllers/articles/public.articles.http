@@ -1,0 +1,80 @@
+### Genfeed API - Public Articles Endpoints
+### These endpoints are PUBLIC (no authentication required)
+
+@import ../../../../../../http/_environment.http
+
+########################################
+# Public Articles
+########################################
+
+### Get All Public Articles (with pagination)
+# Get paginated list of all published articles
+# Query params: page, limit, sort, search, category, tag
+GET {{baseUrl}}/public/articles?page={{page}}&limit={{limit}}
+
+
+### Get All Public Articles (default params)
+GET {{baseUrl}}/public/articles
+
+
+### Search Articles
+# Search articles by title, summary, or content
+GET {{baseUrl}}/public/articles?search=tutorial
+
+
+### Filter Articles by Category
+# Get articles by category
+GET {{baseUrl}}/public/articles?category=technology
+
+
+### Filter Articles by Tag
+# Get articles with a specific tag (MongoDB ObjectId)
+GET {{baseUrl}}/public/articles?tag={{testArticleId}}
+
+
+### Combined Filters
+# Search with category and tag filters
+GET {{baseUrl}}/public/articles?search=guide&category=tech&page=1&limit=10
+
+
+### Custom Sort
+# Sort by different fields (publishedAt, createdAt, etc.)
+# sortBy: publishedAt (default), createdAt, updatedAt
+# sortOrder: desc (default), asc
+GET {{baseUrl}}/public/articles?sortBy=publishedAt&sortOrder=desc
+
+
+### Get Article by Slug
+# Get a specific article by its slug
+GET {{baseUrl}}/public/articles/slug/getting-started
+
+
+### Get Article by ID
+# Get a specific article by its MongoDB ObjectId
+GET {{baseUrl}}/public/articles/{{testArticleId}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Article ID
+GET {{baseUrl}}/public/articles/invalid-id
+
+
+### Test: Article Not Found
+GET {{baseUrl}}/public/articles/507f1f77bcf86cd799439999
+
+
+### Test: Slug Not Found
+GET {{baseUrl}}/public/articles/slug/non-existent-article
+
+
+### Test: Search with Empty Results
+GET {{baseUrl}}/public/articles?search=xyzabcnonexistent
+
+
+### Test: Pagination with All Filters
+GET {{baseUrl}}/public/articles?search=api&category=tutorial&sortBy=createdAt&sortOrder=asc&page=1&limit=5
+
+

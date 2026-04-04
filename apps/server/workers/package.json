@@ -1,0 +1,34 @@
+{
+  "dependencies": {
+    "@aws-sdk/client-ec2": "3.1024.0",
+    "@genfeedai/config": "workspace:*",
+    "@genfeedai/enums": "workspace:*"
+  },
+  "description": "Genfeed Workers Service (Cron Jobs)",
+  "devDependencies": {},
+  "main": "../dist/apps/workers/main.js",
+  "name": "@genfeedai/workers",
+  "private": true,
+  "scripts": {
+    "build": "cd .. && nest build workers",
+    "build:prod": "cd .. && nest build workers && cd workers && if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps || true; fi",
+    "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
+    "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start workers --watch",
+    "dev:webpack": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start workers --watch",
+    "lint": "biome lint --write src",
+    "sentry:inject": "sentry-cli sourcemaps inject --org genfeedai --project workers-genfeed-ai ../dist",
+    "sentry:sourcemaps": "bun run sentry:inject && bun run sentry:upload",
+    "sentry:upload": "sentry-cli sourcemaps upload --org genfeedai --project workers-genfeed-ai ../dist",
+    "start": "cd .. && nest start workers",
+    "start:debug": "cd .. && nest start workers --debug --watch",
+    "start:dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start workers --watch",
+    "start:prod": "node -r tsconfig-paths/register --max-old-space-size=8192 --expose-gc ../dist/apps/workers/main",
+    "test": "vitest run --config vitest.config.ts",
+    "test:cov": "vitest run --config vitest.config.ts --coverage",
+    "test:cron": "vitest run --config vitest.cron.config.ts",
+    "test:cron:watch": "vitest --config vitest.cron.config.ts",
+    "test:e2e": "echo 'No e2e tests yet'",
+    "test:watch": "vitest --config vitest.config.ts"
+  },
+  "version": "1.0.0"
+}

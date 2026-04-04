@@ -1,0 +1,153 @@
+### Genfeed API - Organizations Relationships Endpoints
+### Get organization brands, analytics, ingredients, videos, tags, posts, activities, tasks
+### Protected by RolesGuard
+
+########################################
+# Organization Brands
+########################################
+
+### Get Organization Brands
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/brands
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Organization Brands with Pagination
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/brands?page=1&limit=10&sort=-createdAt
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Organization Analytics
+########################################
+
+### Get Organization Analytics
+# Requires: superadmin, owner, admin, creator, or analytics role
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/analytics
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Organization Analytics with Date Range
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/analytics?startDate=2026-01-01&endDate=2026-02-15&brandId={{testBrandId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Analytics Time Series
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/analytics/timeseries
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Analytics Time Series with Filters
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/analytics/timeseries?startDate=2026-01-01&endDate=2026-02-15&groupBy=day&brandId={{testBrandId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Analytics Platforms
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/analytics/platforms
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Analytics Platforms with Date Range
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/analytics/platforms?startDate=2026-01-01&endDate=2026-02-15&brandId={{testBrandId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Platform-Specific Analytics
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/platforms/twitter/analytics
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Platform-Specific Analytics with Filters
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/platforms/instagram/analytics?startDate=2026-01-01&endDate=2026-02-15&brandId={{testBrandId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Top Content Analytics
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/analytics/top-content?metric=views&limit=10
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Top Content with Full Filters
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/analytics/top-content?metric=likes&limit=20&startDate=2026-01-01&endDate=2026-02-15&brandId={{testBrandId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Organization Collections
+########################################
+
+### Get Organization Ingredients
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/ingredients
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Organization Ingredients with Filters
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/ingredients?category=image&brand={{testBrandId}}&search=sunset&page=1&limit=20&sort=-createdAt
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Organization Videos
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/videos
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Organization Videos with Pagination
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/videos?page=1&limit=20&sort=-createdAt
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Organization Tags
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/tags
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Organization Tags with Pagination
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/tags?page=1&limit=50&sort=label
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Organization Posts
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/posts
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Organization Posts with Filters
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/posts?platform=twitter&status=scheduled&page=1&limit=20&sort=-scheduledDate
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Organization Activities
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/activities
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Organization Activities with Pagination
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/activities?page=1&limit=20&sort=-createdAt
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Organization Tasks
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/tasks
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Organization Tasks with Pagination
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/tasks?page=1&limit=20&sort=-createdAt
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Organization ID
+GET {{apiBaseUrl}}/organizations/invalid-id/brands
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Organization Not Found
+GET {{apiBaseUrl}}/organizations/507f1f77bcf86cd799439011/brands
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/brands

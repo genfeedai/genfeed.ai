@@ -1,0 +1,192 @@
+### Genfeed API - Moods Collection Endpoints
+### Manage mood presets for content generation
+### Handles: mood CRUD, mood combinations, emotional tones
+
+########################################
+# List & Filter Moods
+########################################
+
+### Get All Moods (Paginated)
+GET {{apiBaseUrl}}/elements/moods
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Moods with Pagination
+GET {{apiBaseUrl}}/elements/moods?page=1&limit=50
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Default Moods Only
+GET {{apiBaseUrl}}/elements/moods?isDefault=true
+Authorization: Bearer {{bearerToken}}
+
+
+### Search Moods by Name
+GET {{apiBaseUrl}}/elements/moods?search=happy
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Moods by Popularity
+GET {{apiBaseUrl}}/elements/moods?sort=-usageCount
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Moods Alphabetically
+GET {{apiBaseUrl}}/elements/moods?sort=name
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Mood
+########################################
+
+### Get Mood by ID
+GET {{apiBaseUrl}}/elements/moods/{{testMoodId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Mood by Slug
+GET {{apiBaseUrl}}/elements/moods/slug/{{testMoodSlug}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Content with Mood
+########################################
+
+### Get Ingredients Using Mood
+# Get all content created with this mood
+GET {{apiBaseUrl}}/elements/moods/{{testMoodId}}/ingredients?page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Mood
+########################################
+
+### Create Custom Mood
+POST {{apiBaseUrl}}/elements/moods
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Energetic",
+  "description": "High energy and uplifting tone",
+  "keywords": ["energetic", "uplifting", "dynamic", "vibrant"],
+  "intensity": "high"
+}
+
+
+### Create Mood with Color Palette
+POST {{apiBaseUrl}}/elements/moods
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Serene",
+  "description": "Calm and peaceful atmosphere",
+  "keywords": ["calm", "peaceful", "tranquil"],
+  "colorPalette": ["#A7C4E5", "#E8F4F8", "#D0E8F2"],
+  "intensity": "low"
+}
+
+
+########################################
+# Update Mood
+########################################
+
+### Update Mood Details
+PATCH {{apiBaseUrl}}/elements/moods/{{testMoodId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Updated Mood Name",
+  "description": "Updated description",
+  "keywords": ["updated", "keywords"]
+}
+
+
+### Update Mood Intensity
+PATCH {{apiBaseUrl}}/elements/moods/{{testMoodId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "intensity": "medium"
+}
+
+
+########################################
+# Clone Mood
+########################################
+
+### Clone Existing Mood
+POST {{apiBaseUrl}}/elements/moods/{{testMoodId}}/clone
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "My Cloned Mood"
+}
+
+
+########################################
+# Mood Combinations
+########################################
+
+### Get Recommended Mood Combinations
+# Get moods that work well together
+GET {{apiBaseUrl}}/elements/moods/{{testMoodId}}/recommendations
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Delete Mood
+########################################
+
+### Delete Custom Mood
+# Can only delete user-created moods, not defaults
+DELETE {{apiBaseUrl}}/elements/moods/{{testMoodId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Mood ID Format
+GET {{apiBaseUrl}}/elements/moods/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Mood Not Found
+GET {{apiBaseUrl}}/elements/moods/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Create Mood Without Name
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/elements/moods
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "description": "Test mood"
+}
+
+
+### Test: Get Mood by Invalid Slug
+GET {{apiBaseUrl}}/elements/moods/slug/non-existent-slug
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Delete Default Mood
+# Should return 403 Forbidden
+DELETE {{apiBaseUrl}}/elements/moods/{{defaultMoodId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/elements/moods

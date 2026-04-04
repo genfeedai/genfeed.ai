@@ -1,0 +1,238 @@
+### Genfeed API - Users Collection Endpoints
+### Manage user accounts and settings
+### Handles: user profile, settings, preferences, accounts
+
+########################################
+# List & Filter Users (Superadmin Only)
+########################################
+
+### Get All Users (Paginated)
+# Requires superadmin role
+# Default: page=1, limit=20
+GET {{apiBaseUrl}}/users
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Users with Pagination
+GET {{apiBaseUrl}}/users?page=2&limit=10
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Users
+GET {{apiBaseUrl}}/users?sort=-createdAt
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single User
+########################################
+
+### Get User by ID
+# Returns user profile with settings
+GET {{apiBaseUrl}}/users/{{testUserId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Current User (Me)
+# Get authenticated user's profile
+GET {{apiBaseUrl}}/users/me
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# User Settings
+########################################
+
+### Get User Settings
+# Get user preferences and configuration
+GET {{apiBaseUrl}}/users/{{testUserId}}/settings
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Current User Settings
+GET {{apiBaseUrl}}/users/me/settings
+Authorization: Bearer {{bearerToken}}
+
+
+### Update User Settings
+PATCH {{apiBaseUrl}}/users/{{testUserId}}/settings
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "theme": "dark",
+  "language": "en",
+  "notifications": {
+    "email": true,
+    "push": false,
+    "sms": false
+  }
+}
+
+
+### Update Notification Preferences
+PATCH {{apiBaseUrl}}/users/me/settings
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "notifications": {
+    "email": true,
+    "push": true,
+    "generationComplete": true,
+    "weeklyDigest": true
+  }
+}
+
+
+### Update Display Preferences
+PATCH {{apiBaseUrl}}/users/me/settings
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "theme": "dark",
+  "language": "en",
+  "timezone": "America/New_York",
+  "dateFormat": "MM/DD/YYYY"
+}
+
+
+########################################
+# User Accounts
+########################################
+
+### Get User Accounts
+# Get all accounts belonging to this user
+GET {{apiBaseUrl}}/users/{{testUserId}}/accounts?page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Current User Accounts
+GET {{apiBaseUrl}}/users/me/accounts
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# User Organization
+########################################
+
+### Get User Organization
+# Get organization details for this user
+GET {{apiBaseUrl}}/users/{{testUserId}}/organization
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Current User Organization
+GET {{apiBaseUrl}}/users/me/organization
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# User Stats
+########################################
+
+### Get User Statistics
+# Get usage stats, credits, generation count, etc.
+GET {{apiBaseUrl}}/users/{{testUserId}}/stats
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Current User Stats
+GET {{apiBaseUrl}}/users/me/stats
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Update User
+########################################
+
+### Update User Profile
+PATCH {{apiBaseUrl}}/users/{{testUserId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "bio": "Content creator and AI enthusiast"
+}
+
+
+### Update Current User Profile
+PATCH {{apiBaseUrl}}/users/me
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "firstName": "Jane",
+  "lastName": "Smith",
+  "bio": "Updated bio"
+}
+
+
+### Update User Avatar
+PATCH {{apiBaseUrl}}/users/me
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "avatar": "https://example.com/avatar.jpg"
+}
+
+
+########################################
+# Delete User
+########################################
+
+### Delete User Account (Superadmin Only)
+# Soft delete - marks as deleted but keeps data for audit
+DELETE {{apiBaseUrl}}/users/{{testUserId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Delete Current User Account (Self-Delete)
+# User can delete their own account
+DELETE {{apiBaseUrl}}/users/me
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid User ID Format
+GET {{apiBaseUrl}}/users/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: User Not Found
+GET {{apiBaseUrl}}/users/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Non-Superadmin List All Users
+# Should return 403 Forbidden
+GET {{apiBaseUrl}}/users
+Authorization: Bearer {{nonSuperadminToken}}
+
+
+### Test: Access Another User's Settings Without Permission
+# Should return 403 Forbidden
+GET {{apiBaseUrl}}/users/{{otherUserId}}/settings
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Update User Without Required Fields
+PATCH {{apiBaseUrl}}/users/me
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "invalidField": "value"
+}
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/users/me

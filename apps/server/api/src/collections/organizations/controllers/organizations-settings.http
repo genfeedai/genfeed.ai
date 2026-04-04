@@ -1,0 +1,131 @@
+### Genfeed API - Organizations Settings Endpoints
+### Organization configuration, subscription info, and BYOK key management
+### Protected by RolesGuard
+
+########################################
+# Organization Settings
+########################################
+
+### Get Organization Settings
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/settings
+Authorization: Bearer {{bearerToken}}
+
+
+### Update Organization Settings
+# Requires: superadmin, owner, or admin role
+PATCH {{apiBaseUrl}}/organizations/{{testOrganizationId}}/settings
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "defaultTimezone": "America/New_York",
+  "defaultLanguage": "en",
+  "features": {
+    "enableAIEvaluation": true,
+    "enableBatchGeneration": true
+  }
+}
+
+
+########################################
+# Subscription
+########################################
+
+### Get Organization Subscription
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/subscription
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# BYOK (Bring Your Own Key)
+########################################
+
+### Get All BYOK Provider Statuses
+# Requires: superadmin, owner, or admin role
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/settings/byok
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Specific Provider Status
+# Provider values: openai, anthropic, replicate, elevenlabs, google
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/settings/byok/openai
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Anthropic BYOK Status
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/settings/byok/anthropic
+Authorization: Bearer {{bearerToken}}
+
+
+### Validate BYOK API Key
+POST {{apiBaseUrl}}/organizations/{{testOrganizationId}}/settings/byok/openai/validate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "apiKey": "sk-test-key-here"
+}
+
+
+### Validate Anthropic Key
+POST {{apiBaseUrl}}/organizations/{{testOrganizationId}}/settings/byok/anthropic/validate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "apiKey": "sk-ant-test-key-here"
+}
+
+
+### Save BYOK API Key
+PUT {{apiBaseUrl}}/organizations/{{testOrganizationId}}/settings/byok/openai
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "apiKey": "sk-your-openai-key-here"
+}
+
+
+### Save BYOK Key with Secret
+PUT {{apiBaseUrl}}/organizations/{{testOrganizationId}}/settings/byok/replicate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "apiKey": "r8_your-replicate-key",
+  "apiSecret": "optional-secret"
+}
+
+
+### Remove BYOK API Key
+DELETE {{apiBaseUrl}}/organizations/{{testOrganizationId}}/settings/byok/openai
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Settings Not Found
+GET {{apiBaseUrl}}/organizations/507f1f77bcf86cd799439011/settings
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Validate Empty API Key
+POST {{apiBaseUrl}}/organizations/{{testOrganizationId}}/settings/byok/openai/validate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "apiKey": ""
+}
+
+
+### Test: Invalid BYOK Provider
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/settings/byok/invalid-provider
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/organizations/{{testOrganizationId}}/settings

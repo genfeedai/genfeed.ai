@@ -1,0 +1,139 @@
+### Genfeed API - Models Collection Endpoints
+### Manage AI models and custom trained models
+### Handles: model listing, model details, training status
+
+########################################
+# List & Filter Models
+########################################
+
+### Get All Models (Paginated)
+GET {{apiBaseUrl}}/models
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Models with Pagination
+GET {{apiBaseUrl}}/models?page=1&limit=50
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Models by Category
+# Category values: image, video, music, text
+GET {{apiBaseUrl}}/models?category=image
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Models by Provider
+# Provider values: openai, replicate, leonardoai, klingai, google
+GET {{apiBaseUrl}}/models?provider=openai
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Custom Trained Models Only
+GET {{apiBaseUrl}}/models?isCustom=true
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Available Models Only
+GET {{apiBaseUrl}}/models?isAvailable=true
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Models by Cost
+GET {{apiBaseUrl}}/models?sort=cost
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Models by Popularity
+GET {{apiBaseUrl}}/models?sort=-usageCount
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Model
+########################################
+
+### Get Model by ID
+# Returns full model details with capabilities
+GET {{apiBaseUrl}}/models/{{testModelId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Model by Key
+GET {{apiBaseUrl}}/models/key/{{testModelKey}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Model Capabilities
+########################################
+
+### Get Model Supported Features
+# Returns supported dimensions, formats, etc.
+GET {{apiBaseUrl}}/models/{{testModelId}}/capabilities
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Model Pricing
+GET {{apiBaseUrl}}/models/{{testModelId}}/pricing
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Model Usage
+########################################
+
+### Get Model Usage Statistics
+GET {{apiBaseUrl}}/models/{{testModelId}}/usage
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Model Usage by Date Range
+GET {{apiBaseUrl}}/models/{{testModelId}}/usage?startDate=2025-10-01&endDate=2025-10-14
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Compare Models
+########################################
+
+### Compare Multiple Models
+POST {{apiBaseUrl}}/models/compare
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "modelIds": [
+    "{{testModelId1}}",
+    "{{testModelId2}}",
+    "{{testModelId3}}"
+  ]
+}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Model ID Format
+GET {{apiBaseUrl}}/models/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Model Not Found
+GET {{apiBaseUrl}}/models/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Get Model by Invalid Key
+GET {{apiBaseUrl}}/models/key/non-existent-key
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Invalid Category Filter
+GET {{apiBaseUrl}}/models?category=invalid_category
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/models

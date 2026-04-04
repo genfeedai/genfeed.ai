@@ -1,0 +1,376 @@
+### Genfeed API - Prompts Collection Endpoints
+### Manage AI prompts, enhancement, parsing, and Twitter replies
+### Supports: Prompt creation, enhancement, parsing, audio transcription
+
+########################################
+# List & Filter Prompts
+########################################
+
+### Get All Prompts (Paginated)
+# Default: page=1, limit=20
+GET {{apiBaseUrl}}/prompts
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Prompts with Pagination
+GET {{apiBaseUrl}}/prompts?page=2&limit=10
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Prompts by Category
+# Category values: generate_image, generate_video, generate_music, generate_article, etc.
+GET {{apiBaseUrl}}/prompts?category=generate_image&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Prompts by Status
+# Status values: processing, completed, failed
+GET {{apiBaseUrl}}/prompts?status=completed&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Search Prompts
+GET {{apiBaseUrl}}/prompts?search=sunset&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Prompts
+# Sort options: -createdAt (newest), createdAt (oldest)
+GET {{apiBaseUrl}}/prompts?sort=-createdAt&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Prompt
+########################################
+
+### Get Prompt by ID
+# Returns full prompt details with metadata
+GET {{apiBaseUrl}}/prompts/{{testPromptId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Prompts
+########################################
+
+### Create Basic Prompt
+POST {{apiBaseUrl}}/prompts
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "original": "A serene mountain landscape at sunset",
+  "category": "generate_image",
+  "brand": "{{testBrandId}}"
+}
+
+
+### Create Prompt with Style & Mood
+POST {{apiBaseUrl}}/prompts
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "original": "A futuristic city",
+  "category": "generate_video",
+  "style": "{{testStyleId}}",
+  "mood": "{{testMoodId}}",
+  "camera": "{{testCameraId}}",
+  "scene": "{{testSceneId}}"
+}
+
+
+### Create Prompt with Speech (Audio)
+POST {{apiBaseUrl}}/prompts
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "original": "Create a video about...",
+  "category": "generate_video",
+  "speech": "https://example.com/audio.mp3"
+}
+
+
+########################################
+# Parse Prompts
+########################################
+
+### Parse Prompt Text (PUBLIC)
+# Extract structured data from prompt
+# No authentication required
+POST {{apiBaseUrl}}/prompts/parse
+Content-Type: application/json
+
+{
+  "prompt": "Generate a landscape image with mountains and sunset in cinematic style"
+}
+
+
+### Parse Prompt with Category
+POST {{apiBaseUrl}}/prompts/parse
+Content-Type: application/json
+
+{
+  "prompt": "Create a 10-second video of ocean waves",
+  "category": "generate_video"
+}
+
+
+########################################
+# Enhance Prompts
+########################################
+
+### Enhance Prompt with AI
+# Use AI to improve and expand the prompt
+POST {{apiBaseUrl}}/prompts/enhance
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "mountain sunset",
+  "category": "generate_image"
+}
+
+
+### Enhance Prompt for Video
+POST {{apiBaseUrl}}/prompts/enhance
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "city at night",
+  "category": "generate_video",
+  "style": "cinematic"
+}
+
+
+########################################
+# Twitter Reply Generation
+########################################
+
+### Generate Twitter Reply
+# Create AI-powered reply to a tweet
+POST {{apiBaseUrl}}/prompts/replies/twitter
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "tweet": "What's the best way to learn programming?",
+  "tone": "helpful",
+  "length": "short",
+  "context": "Tech education discussion"
+}
+
+
+### Generate Twitter Reply (Funny Tone)
+POST {{apiBaseUrl}}/prompts/replies/twitter
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "tweet": "I just finished my first coding project!",
+  "tone": "funny",
+  "length": "medium"
+}
+
+
+### Generate Twitter Reply (Professional Tone)
+POST {{apiBaseUrl}}/prompts/replies/twitter
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "tweet": "Looking for best practices in API design",
+  "tone": "professional",
+  "length": "long",
+  "context": "Software architecture"
+}
+
+
+########################################
+# Audio Transcription
+########################################
+
+### Transcribe Audio to Prompt
+# Upload audio file and convert to text prompt
+POST {{apiBaseUrl}}/prompts/transcribe
+Authorization: Bearer {{bearerToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="audio.mp3"
+Content-Type: audio/mpeg
+
+< /path/to/audio.mp3
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+### Transcribe Audio with Category
+POST {{apiBaseUrl}}/prompts/transcribe
+Authorization: Bearer {{bearerToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="video-prompt.mp3"
+Content-Type: audio/mpeg
+
+< /path/to/audio.mp3
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="category"
+
+generate_video
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+########################################
+# Update Prompts
+########################################
+
+### Update Prompt
+PATCH {{apiBaseUrl}}/prompts/{{testPromptId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "enhanced": "An enhanced version of the original prompt with more details",
+  "status": "completed"
+}
+
+
+### Add Tags to Prompt
+PATCH {{apiBaseUrl}}/prompts/{{testPromptId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "tags": ["{{testTagId1}}", "{{testTagId2}}"]
+}
+
+
+########################################
+# Delete Prompts
+########################################
+
+### Delete Prompt
+# Soft delete - marks as deleted but keeps in database
+DELETE {{apiBaseUrl}}/prompts/{{testPromptId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Prompt ID Format
+GET {{apiBaseUrl}}/prompts/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Prompt Not Found
+GET {{apiBaseUrl}}/prompts/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Missing Original Text
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/prompts
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "category": "generate_image"
+}
+
+
+### Test: Invalid Category
+POST {{apiBaseUrl}}/prompts
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "original": "test prompt",
+  "category": "invalid_category"
+}
+
+
+### Test: Parse Empty Prompt
+POST {{apiBaseUrl}}/prompts/parse
+Content-Type: application/json
+
+{
+  "prompt": ""
+}
+
+
+### Test: Enhance Without Category
+POST {{apiBaseUrl}}/prompts/enhance
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "test prompt"
+}
+
+
+### Test: Twitter Reply Without Tweet
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/prompts/replies/twitter
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "tone": "helpful"
+}
+
+
+### Test: Twitter Reply Invalid Tone
+POST {{apiBaseUrl}}/prompts/replies/twitter
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "tweet": "Test tweet",
+  "tone": "invalid_tone"
+}
+
+
+### Test: Twitter Reply Invalid Length
+POST {{apiBaseUrl}}/prompts/replies/twitter
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "tweet": "Test tweet",
+  "tone": "helpful",
+  "length": "invalid_length"
+}
+
+
+### Test: Transcribe Invalid Audio Format
+POST {{apiBaseUrl}}/prompts/transcribe
+Authorization: Bearer {{bearerToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="document.pdf"
+Content-Type: application/pdf
+
+< /path/to/document.pdf
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token (except /parse which is public)
+GET {{apiBaseUrl}}/prompts
+
+
+### Test: Public Parse Endpoint (No Auth)
+# Should succeed without authentication
+POST {{apiBaseUrl}}/prompts/parse
+Content-Type: application/json
+
+{
+  "prompt": "Generate a sunset landscape"
+}

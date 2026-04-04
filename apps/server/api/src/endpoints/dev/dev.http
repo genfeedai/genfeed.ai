@@ -1,0 +1,14 @@
+### Dev Discord Card Testing (Development Only)
+### Debug different Discord card formats via the testing webhook
+
+### ============================================
+### INGREDIENT CARDS (Image/Video Generated)
+### ============================================
+
+### Test VIDEO ingredient card (with thumbnail)
+POST {{API_URL}}/v1/dev/discord
+Content-Type: application/json
+
+{
+  "ingredientId": "69015fc5de6c7dac73490b96",
+}

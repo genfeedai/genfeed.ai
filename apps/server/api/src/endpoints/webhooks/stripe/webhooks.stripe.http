@@ -1,0 +1,111 @@
+### Genfeed API - Stripe Webhook Endpoint
+### This endpoint is PUBLIC but validates webhook signatures
+
+@import ../../../../../http/_environment.http
+
+########################################
+# Stripe Webhooks
+########################################
+
+### Stripe Webhook Callback
+# Receives webhook events from Stripe for payment processing
+# Validates Stripe signature header
+# Events: checkout.session.completed, payment_intent.succeeded, etc.
+POST {{baseUrl}}/webhooks/stripe/callback
+Content-Type: application/json
+stripe-signature: t=1234567890,v1=test_signature_here
+
+{
+  "id": "evt_test123",
+  "type": "checkout.session.completed",
+  "data": {
+    "object": {
+      "id": "cs_test123",
+      "amount_total": 1000,
+      "currency": "usd",
+      "customer": "cus_test123",
+      "payment_status": "paid",
+      "metadata": {
+        "userId": "user_test123",
+        "credits": "100"
+      }
+    }
+  }
+}
+
+
+### Stripe Payment Intent Succeeded
+POST {{baseUrl}}/webhooks/stripe/callback
+Content-Type: application/json
+stripe-signature: t=1234567890,v1=test_signature_here
+
+{
+  "id": "evt_test124",
+  "type": "payment_intent.succeeded",
+  "data": {
+    "object": {
+      "id": "pi_test123",
+      "amount": 2000,
+      "currency": "usd",
+      "customer": "cus_test123",
+      "status": "succeeded"
+    }
+  }
+}
+
+
+### Stripe Subscription Created
+POST {{baseUrl}}/webhooks/stripe/callback
+Content-Type: application/json
+stripe-signature: t=1234567890,v1=test_signature_here
+
+{
+  "id": "evt_test125",
+  "type": "customer.subscription.created",
+  "data": {
+    "object": {
+      "id": "sub_test123",
+      "customer": "cus_test123",
+      "status": "active",
+      "items": {
+        "data": [
+          {
+            "price": {
+              "id": "price_test123",
+              "unit_amount": 1000
+            }
+          }
+        ]
+      }
+    }
+  }
+}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Missing Stripe Signature
+# Should fail with 400 Bad Request
+POST {{baseUrl}}/webhooks/stripe/callback
+Content-Type: application/json
+
+{
+  "id": "evt_test",
+  "type": "checkout.session.completed"
+}
+
+
+### Test: Invalid Signature
+# Should fail with 400 Bad Request
+POST {{baseUrl}}/webhooks/stripe/callback
+Content-Type: application/json
+stripe-signature: t=1234567890,v1=invalid_signature
+
+{
+  "id": "evt_test",
+  "type": "checkout.session.completed"
+}
+
+

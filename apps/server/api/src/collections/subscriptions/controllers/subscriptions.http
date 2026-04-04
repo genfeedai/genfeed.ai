@@ -1,0 +1,239 @@
+### Genfeed API - Subscriptions Collection Endpoints
+### Manage subscription plans and billing
+### Handles: plan selection, upgrades, downgrades, billing
+
+########################################
+# List & Filter Subscriptions
+########################################
+
+### Get All Subscriptions (Current Organization)
+GET {{apiBaseUrl}}/subscriptions
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Active Subscription
+GET {{apiBaseUrl}}/subscriptions?status=active
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Subscription History
+GET {{apiBaseUrl}}/subscriptions?sort=-createdAt
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Subscription
+########################################
+
+### Get Subscription by ID
+GET {{apiBaseUrl}}/subscriptions/{{testSubscriptionId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Current Active Subscription
+GET {{apiBaseUrl}}/subscriptions/current
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Available Plans
+########################################
+
+### Get All Available Plans
+# Returns pricing and features for all plans
+GET {{apiBaseUrl}}/subscriptions/plans
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Plan Details
+GET {{apiBaseUrl}}/subscriptions/plans/{{testPlanId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Subscription
+########################################
+
+### Subscribe to Plan
+POST {{apiBaseUrl}}/subscriptions
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "planId": "{{testPlanId}}",
+  "billingCycle": "monthly"
+}
+
+
+### Subscribe to Annual Plan
+POST {{apiBaseUrl}}/subscriptions
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "planId": "pro",
+  "billingCycle": "annual"
+}
+
+
+########################################
+# Update Subscription
+########################################
+
+### Upgrade Subscription
+POST {{apiBaseUrl}}/subscriptions/{{testSubscriptionId}}/upgrade
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "newPlanId": "enterprise"
+}
+
+
+### Downgrade Subscription
+POST {{apiBaseUrl}}/subscriptions/{{testSubscriptionId}}/downgrade
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "newPlanId": "starter"
+}
+
+
+### Change Billing Cycle
+PATCH {{apiBaseUrl}}/subscriptions/{{testSubscriptionId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "billingCycle": "annual"
+}
+
+
+########################################
+# Billing & Payment
+########################################
+
+### Get Subscription Invoices
+GET {{apiBaseUrl}}/subscriptions/{{testSubscriptionId}}/invoices
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Upcoming Invoice
+GET {{apiBaseUrl}}/subscriptions/{{testSubscriptionId}}/upcoming-invoice
+Authorization: Bearer {{bearerToken}}
+
+
+### Update Payment Method
+POST {{apiBaseUrl}}/subscriptions/{{testSubscriptionId}}/payment-method
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "paymentMethodId": "{{stripePaymentMethodId}}"
+}
+
+
+########################################
+# Cancel Subscription
+########################################
+
+### Cancel Subscription (At Period End)
+POST {{apiBaseUrl}}/subscriptions/{{testSubscriptionId}}/cancel
+Authorization: Bearer {{bearerToken}}
+
+
+### Cancel Subscription (Immediate)
+POST {{apiBaseUrl}}/subscriptions/{{testSubscriptionId}}/cancel
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "immediate": true
+}
+
+
+### Reactivate Cancelled Subscription
+POST {{apiBaseUrl}}/subscriptions/{{testSubscriptionId}}/reactivate
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Usage & Credits
+########################################
+
+### Get Subscription Usage
+GET {{apiBaseUrl}}/subscriptions/{{testSubscriptionId}}/usage
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Credit Balance
+GET {{apiBaseUrl}}/subscriptions/current/credits
+Authorization: Bearer {{bearerToken}}
+
+
+### Purchase Additional Credits
+POST {{apiBaseUrl}}/subscriptions/{{testSubscriptionId}}/credits/purchase
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "amount": 1000,
+  "paymentMethodId": "{{stripePaymentMethodId}}"
+}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Subscription ID Format
+GET {{apiBaseUrl}}/subscriptions/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Subscription Not Found
+GET {{apiBaseUrl}}/subscriptions/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Subscribe Without Plan ID
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/subscriptions
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "billingCycle": "monthly"
+}
+
+
+### Test: Subscribe to Non-Existent Plan
+POST {{apiBaseUrl}}/subscriptions
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "planId": "non-existent-plan",
+  "billingCycle": "monthly"
+}
+
+
+### Test: Downgrade to Same Plan
+POST {{apiBaseUrl}}/subscriptions/{{testSubscriptionId}}/downgrade
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "newPlanId": "{{currentPlanId}}"
+}
+
+
+### Test: Cancel Already Cancelled Subscription
+POST {{apiBaseUrl}}/subscriptions/{{cancelledSubscriptionId}}/cancel
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/subscriptions

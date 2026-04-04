@@ -1,0 +1,90 @@
+### Genfeed API - Clerk Webhook Endpoint
+### This endpoint is PUBLIC but validates webhook signatures
+
+@import ../../../../../http/_environment.http
+
+########################################
+# Clerk Webhooks
+########################################
+
+### Clerk Webhook Callback
+# Receives webhook events from Clerk for user management
+# Validates Svix signature headers
+# Events: user.created, user.updated, user.deleted, session.created, etc.
+POST {{baseUrl}}/webhooks/clerk/callback
+Content-Type: application/json
+svix-id: msg_test123
+svix-timestamp: 1234567890
+svix-signature: v1,test_signature_here
+
+{
+  "type": "user.created",
+  "data": {
+    "id": "user_2abcdefg",
+    "email_addresses": [
+      {
+        "email_address": "test@example.com",
+        "id": "idn_test123"
+      }
+    ],
+    "first_name": "Test",
+    "last_name": "User",
+    "created_at": 1234567890,
+    "updated_at": 1234567890
+  }
+}
+
+
+### Clerk User Updated Event
+POST {{baseUrl}}/webhooks/clerk/callback
+Content-Type: application/json
+svix-id: msg_test124
+svix-timestamp: 1234567891
+svix-signature: v1,test_signature_here
+
+{
+  "type": "user.updated",
+  "data": {
+    "id": "user_2abcdefg",
+    "email_addresses": [
+      {
+        "email_address": "updated@example.com",
+        "id": "idn_test123"
+      }
+    ],
+    "first_name": "Updated",
+    "last_name": "User",
+    "updated_at": 1234567891
+  }
+}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Missing Svix Headers
+# Should fail with 400 Bad Request
+POST {{baseUrl}}/webhooks/clerk/callback
+Content-Type: application/json
+
+{
+  "type": "user.created",
+  "data": {}
+}
+
+
+### Test: Invalid Signature
+# Should fail with 400 Bad Request
+POST {{baseUrl}}/webhooks/clerk/callback
+Content-Type: application/json
+svix-id: msg_invalid
+svix-timestamp: 1234567890
+svix-signature: v1,invalid_signature
+
+{
+  "type": "user.created",
+  "data": {}
+}
+
+

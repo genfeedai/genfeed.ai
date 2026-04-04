@@ -1,0 +1,69 @@
+'use client';
+
+import OnboardingProgress from '@app/(onboarding)/onboarding/components/onboarding-progress';
+import OnboardingProvider, {
+  useOnboarding,
+} from '@contexts/onboarding/onboarding-context';
+import { ONBOARDING_STEPS } from '@genfeedai/constants';
+import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
+import type { LayoutProps } from '@props/layout/layout.props';
+import { EnvironmentService } from '@services/core/environment.service';
+import Image from 'next/image';
+import { usePathname } from 'next/navigation';
+
+function OnboardingLayoutInner({ children }: LayoutProps) {
+  const { currentStepIndex, stepLabels } = useOnboarding();
+  const logoUrl = useThemeLogo();
+  const pathname = usePathname();
+
+  // Hide progress bar on success page (not a counted step)
+  const segment = pathname.split('/').pop();
+  const isCountedStep =
+    !!segment && (ONBOARDING_STEPS as readonly string[]).includes(segment);
+
+  return (
+    <div className="min-h-screen bg-black">
+      <div className="container mx-auto px-6 py-8">
+        {/* Logo */}
+        <div className="flex items-center gap-3 mb-12">
+          {logoUrl && (
+            <Image
+              src={logoUrl}
+              alt={EnvironmentService.LOGO_ALT}
+              className="h-8 w-8 object-contain invert"
+              width={32}
+              height={32}
+              sizes="32px"
+              priority
+            />
+          )}
+          <span className="text-white/80 font-semibold text-lg tracking-tight">
+            Genfeed
+          </span>
+        </div>
+
+        {/* Progress — only on counted steps (brand, plan) */}
+        <div className="max-w-4xl mx-auto">
+          {isCountedStep && (
+            <OnboardingProgress
+              currentStep={currentStepIndex}
+              totalSteps={stepLabels.length}
+              stepLabels={stepLabels}
+            />
+          )}
+
+          {/* Step content */}
+          <div className="mt-12">{children}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function OnboardingLayout({ children }: LayoutProps) {
+  return (
+    <OnboardingProvider>
+      <OnboardingLayoutInner>{children}</OnboardingLayoutInner>
+    </OnboardingProvider>
+  );
+}

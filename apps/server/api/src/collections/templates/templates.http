@@ -1,0 +1,79 @@
+### Templates API Test Suite
+### Base URL: http://localhost:3000/templates
+### Auth: Bearer token required (Clerk JWT)
+
+### Variables
+@baseUrl = http://localhost:3000
+@token = your_clerk_jwt_token_here
+@templateId = replace_with_actual_template_id
+
+### 1. Create template
+POST {{baseUrl}}/templates
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "purpose": "content",
+  "label": "Product Launch Template",
+  "description": "Template for announcing new product releases",
+  "content": "Introducing {{product_name}}! 🚀\n\n{{benefits}}\n\n{{cta}}",
+  "category": "caption",
+  "variables": ["product_name", "benefits", "cta"],
+  "categories": ["marketing", "announcements"],
+  "industries": ["technology", "saas"],
+  "platforms": ["instagram", "twitter", "linkedin"]
+}
+
+### 2. List templates (with filters)
+GET {{baseUrl}}/templates?category=caption&limit=10
+Authorization: Bearer {{token}}
+
+### 3. Get template by ID
+GET {{baseUrl}}/templates/{{templateId}}
+Authorization: Bearer {{token}}
+
+### 4. Update template
+PATCH {{baseUrl}}/templates/{{templateId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "purpose": "content",
+  "label": "Product Launch Template v2",
+  "description": "Updated template with better CTAs"
+}
+
+### 5. Delete template
+DELETE {{baseUrl}}/templates/{{templateId}}
+Authorization: Bearer {{token}}
+
+### 6. Use template (fill variables)
+POST {{baseUrl}}/templates/{{templateId}}/use
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "variables": {
+    "product_name": "Amazing Widget Pro",
+    "benefits": "Save 10 hours per week with automation",
+    "cta": "Order now and get 20% off! Link in bio 👆"
+  }
+}
+
+### 7. Get AI template suggestions
+POST {{baseUrl}}/templates/suggest
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "goal": "increase engagement",
+  "category": "caption",
+  "platform": "instagram",
+  "industry": "technology"
+}
+
+### 8. Get popular templates
+GET {{baseUrl}}/templates/popular?limit=5&category=caption
+Authorization: Bearer {{token}}
+
+

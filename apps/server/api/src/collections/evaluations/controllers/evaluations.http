@@ -1,0 +1,132 @@
+### Genfeed API - Evaluations Endpoints
+### AI-powered content evaluation for posts, articles, images, videos
+### Protected by ClerkGuard + RolesGuard
+
+########################################
+# Evaluate Content (POST)
+########################################
+
+### Evaluate a Post
+# Cost: 1 credit
+POST {{apiBaseUrl}}/evaluations/posts/{{testPostId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "evaluationType": "pre_publication"
+}
+
+
+### Evaluate an Article
+POST {{apiBaseUrl}}/evaluations/articles/{{testArticleId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "evaluationType": "pre_publication"
+}
+
+
+### Evaluate an Image
+POST {{apiBaseUrl}}/evaluations/images/{{testImageId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "evaluationType": "pre_publication"
+}
+
+
+### Evaluate a Video
+POST {{apiBaseUrl}}/evaluations/videos/{{testVideoId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "evaluationType": "pre_publication"
+}
+
+
+########################################
+# Get Evaluations (GET)
+########################################
+
+### Get Post Evaluations
+GET {{apiBaseUrl}}/evaluations/posts/{{testPostId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Article Evaluations
+GET {{apiBaseUrl}}/evaluations/articles/{{testArticleId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Image Evaluations
+GET {{apiBaseUrl}}/evaluations/images/{{testImageId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Video Evaluations
+GET {{apiBaseUrl}}/evaluations/videos/{{testVideoId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# External Evaluation
+########################################
+
+### Evaluate External Content from URL
+POST {{apiBaseUrl}}/evaluations/external
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "url": "https://x.com/user/status/1234567890",
+  "platform": "twitter"
+}
+
+
+########################################
+# Analytics
+########################################
+
+### Get Evaluation Trends and Analytics
+GET {{apiBaseUrl}}/evaluations/analytics/trends
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Evaluation Analytics with Filters
+GET {{apiBaseUrl}}/evaluations/analytics/trends?contentType=post&startDate=2026-01-01&endDate=2026-02-15
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Delete
+########################################
+
+### Delete Evaluation (Soft Delete)
+DELETE {{apiBaseUrl}}/evaluations/{{testEvaluationId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Evaluate Non-Existent Post
+POST {{apiBaseUrl}}/evaluations/posts/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "evaluationType": "pre_publication"
+}
+
+
+### Test: Invalid Evaluation ID
+DELETE {{apiBaseUrl}}/evaluations/invalid-id
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/evaluations/posts/{{testPostId}}

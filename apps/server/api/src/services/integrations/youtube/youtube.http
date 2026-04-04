@@ -1,0 +1,72 @@
+### Genfeed API - YouTube Integration Endpoints
+### These endpoints handle YouTube OAuth and data
+
+@import ../../../../../http/_environment.http
+
+########################################
+# YouTube OAuth Flow
+########################################
+
+### Step 1: Connect YouTube Account
+# Initiates OAuth flow and returns authorization URL
+# Requires: brandId in body
+POST {{baseUrl}}/services/youtube/connect
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "brand": "{{testBrandId}}"
+}
+
+
+### Step 2: Verify YouTube OAuth
+# Completes OAuth flow after user authorizes
+# Requires: brandId, code from OAuth callback
+POST {{baseUrl}}/services/youtube/verify
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "brand": "{{testBrandId}}",
+  "code": "REPLACE_WITH_CODE_FROM_CALLBACK"
+}
+
+
+########################################
+# YouTube Data
+########################################
+
+### Get YouTube Trends
+# Fetches current YouTube trends
+GET {{baseUrl}}/services/youtube/trends
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Connect Without Account ID
+POST {{baseUrl}}/services/youtube/connect
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "brand": ""
+}
+
+
+### Test: Verify Without Code
+POST {{baseUrl}}/services/youtube/verify
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "brand": "{{testBrandId}}"
+}
+
+
+### Test: Unauthorized Request (No Token)
+GET {{baseUrl}}/services/youtube/trends
+
+

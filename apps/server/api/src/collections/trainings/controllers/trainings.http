@@ -1,0 +1,237 @@
+### Genfeed API - Trainings Collection Endpoints
+### Manage custom AI model training
+### Handles: model training creation, status tracking, deployment
+
+########################################
+# List & Filter Trainings
+########################################
+
+### Get All Trainings (Paginated)
+# Default: page=1, limit=20
+GET {{apiBaseUrl}}/trainings
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Trainings with Pagination
+GET {{apiBaseUrl}}/trainings?page=2&limit=10
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Trainings by Status
+# Status values: pending, training, completed, failed, deployed
+GET {{apiBaseUrl}}/trainings?status=completed&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Trainings by Account
+GET {{apiBaseUrl}}/trainings?brand={{testBrandId}}&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Trainings
+# Sort options: -createdAt (newest), createdAt (oldest), -updatedAt
+GET {{apiBaseUrl}}/trainings?sort=-createdAt&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Training
+########################################
+
+### Get Training by ID
+# Returns full training details with status and model info
+GET {{apiBaseUrl}}/trainings/{{testTrainingId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Training
+########################################
+
+### Create New Training
+# Train a custom AI model using uploaded images
+# Minimum 5-10 training images recommended
+# Requires credits (varies by provider)
+POST {{apiBaseUrl}}/trainings
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "My Custom Style Model",
+  "description": "Training a model on my artwork style",
+  "trainingImages": [
+    "{{testImageId1}}",
+    "{{testImageId2}}",
+    "{{testImageId3}}",
+    "{{testImageId4}}",
+    "{{testImageId5}}"
+  ],
+  "provider": "replicate",
+  "brand": "{{testBrandId}}"
+}
+
+
+### Create Training with More Images
+POST {{apiBaseUrl}}/trainings
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Product Photography Model",
+  "description": "Model trained on product photos",
+  "trainingImages": [
+    "{{testImageId1}}",
+    "{{testImageId2}}",
+    "{{testImageId3}}",
+    "{{testImageId4}}",
+    "{{testImageId5}}",
+    "{{testImageId6}}",
+    "{{testImageId7}}",
+    "{{testImageId8}}",
+    "{{testImageId9}}",
+    "{{testImageId10}}"
+  ],
+  "provider": "replicate"
+}
+
+
+########################################
+# Update Training
+########################################
+
+### Update Training Metadata
+PATCH {{apiBaseUrl}}/trainings/{{testTrainingId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Updated Training Name",
+  "description": "Updated description"
+}
+
+
+### Mark Training as Deployed
+PATCH {{apiBaseUrl}}/trainings/{{testTrainingId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "status": "deployed",
+  "isDeployed": true
+}
+
+
+########################################
+# Delete Training
+########################################
+
+### Delete Training
+# Soft delete - marks as deleted but keeps in database
+# Model remains available if already deployed
+DELETE {{apiBaseUrl}}/trainings/{{testTrainingId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Training Images
+########################################
+
+### Get Training Images
+# Get all images used for this training
+GET {{apiBaseUrl}}/trainings/{{testTrainingId}}/images?page=1&limit=50
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Training ID Format
+GET {{apiBaseUrl}}/trainings/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Training Not Found
+GET {{apiBaseUrl}}/trainings/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Create Training Without Images
+# Should return 400 Bad Request (minimum images required)
+POST {{apiBaseUrl}}/trainings
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Test Training",
+  "trainingImages": []
+}
+
+
+### Test: Create Training With Too Few Images
+# Should return 400 if less than minimum (usually 5)
+POST {{apiBaseUrl}}/trainings
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Test Training",
+  "trainingImages": ["{{testImageId1}}", "{{testImageId2}}"]
+}
+
+
+### Test: Create Training With Invalid Image IDs
+POST {{apiBaseUrl}}/trainings
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Test Training",
+  "trainingImages": ["invalid-id-1", "invalid-id-2"]
+}
+
+
+### Test: Missing Label
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/trainings
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "trainingImages": ["{{testImageId1}}", "{{testImageId2}}"]
+}
+
+
+### Test: Invalid Provider
+POST {{apiBaseUrl}}/trainings
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Test Training",
+  "trainingImages": ["{{testImageId1}}"],
+  "provider": "invalid_provider"
+}
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/trainings
+
+
+### Test: Create Training Without Credits
+# Should fail with insufficient credits error
+POST {{apiBaseUrl}}/trainings
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Test Training",
+  "trainingImages": [
+    "{{testImageId1}}",
+    "{{testImageId2}}",
+    "{{testImageId3}}",
+    "{{testImageId4}}",
+    "{{testImageId5}}"
+  ]
+}

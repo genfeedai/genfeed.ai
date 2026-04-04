@@ -1,0 +1,199 @@
+### Genfeed API - Campaigns Endpoints
+### Manage reply campaigns: create, target, execute, analyze
+### Extends BaseCRUDController (findAll, findOne, create, update, delete)
+### Protected by ClerkGuard
+
+########################################
+# CRUD Operations (via BaseCRUDController)
+########################################
+
+### Get All Campaigns (Paginated)
+GET {{apiBaseUrl}}/outreach-campaigns
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Campaigns with Filters
+GET {{apiBaseUrl}}/outreach-campaigns?platform=twitter&campaignType=reply&status=active&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Campaign by ID
+GET {{apiBaseUrl}}/outreach-campaigns/{{testCampaignId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Create Campaign
+POST {{apiBaseUrl}}/outreach-campaigns
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Tech Community Engagement",
+  "description": "Engage with tech community tweets about AI tools",
+  "platform": "twitter",
+  "campaignType": "reply",
+  "credential": "{{testCredentialId}}",
+  "brand": "{{testBrandId}}",
+  "replyConfig": {
+    "tone": "helpful",
+    "maxRepliesPerDay": 25,
+    "minDelayBetweenReplies": 60
+  }
+}
+
+
+### Update Campaign
+PATCH {{apiBaseUrl}}/outreach-campaigns/{{testCampaignId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Tech Community Engagement v2",
+  "replyConfig": {
+    "maxRepliesPerDay": 50
+  }
+}
+
+
+### Delete Campaign (Soft Delete)
+DELETE {{apiBaseUrl}}/outreach-campaigns/{{testCampaignId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Campaign Lifecycle
+########################################
+
+### Start Campaign
+POST {{apiBaseUrl}}/outreach-campaigns/{{testCampaignId}}/start
+Authorization: Bearer {{bearerToken}}
+
+
+### Pause Campaign
+POST {{apiBaseUrl}}/outreach-campaigns/{{testCampaignId}}/pause
+Authorization: Bearer {{bearerToken}}
+
+
+### Complete Campaign
+POST {{apiBaseUrl}}/outreach-campaigns/{{testCampaignId}}/complete
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Campaign Targets
+########################################
+
+### Add Targets by URL
+POST {{apiBaseUrl}}/outreach-campaigns/{{testCampaignId}}/targets
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "urls": [
+    "https://x.com/user/status/1234567890123456789",
+    "https://x.com/another_user/status/9876543210987654321"
+  ]
+}
+
+
+### Get Campaign Targets
+GET {{apiBaseUrl}}/outreach-campaigns/{{testCampaignId}}/targets
+Authorization: Bearer {{bearerToken}}
+
+
+### Discover Targets with AI
+POST {{apiBaseUrl}}/outreach-campaigns/{{testCampaignId}}/targets/discover
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "limit": 50,
+  "addToCampaign": true
+}
+
+
+### Discover Targets (Preview Only)
+POST {{apiBaseUrl}}/outreach-campaigns/{{testCampaignId}}/targets/discover
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "limit": 20,
+  "addToCampaign": false
+}
+
+
+### Preview Reply for Target
+POST {{apiBaseUrl}}/outreach-campaigns/{{testCampaignId}}/targets/{{testTargetId}}/preview
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# DM Recipients
+########################################
+
+### Add DM Recipients
+POST {{apiBaseUrl}}/outreach-campaigns/{{testCampaignId}}/dm-recipients
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "usernames": ["@tech_creator", "ai_enthusiast", "@startup_founder"]
+}
+
+
+########################################
+# Parse & Analytics
+########################################
+
+### Parse URL
+POST {{apiBaseUrl}}/outreach-campaigns/parse-url
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "url": "https://x.com/user/status/1234567890123456789"
+}
+
+
+### Parse Reddit URL
+POST {{apiBaseUrl}}/outreach-campaigns/parse-url
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "url": "https://www.reddit.com/r/artificial/comments/abc123/ai_tools_discussion"
+}
+
+
+### Get Campaign Analytics
+GET {{apiBaseUrl}}/outreach-campaigns/{{testCampaignId}}/analytics
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Campaign Not Found
+GET {{apiBaseUrl}}/outreach-campaigns/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Start Non-Existent Campaign
+POST {{apiBaseUrl}}/outreach-campaigns/507f1f77bcf86cd799439011/start
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Parse Invalid URL
+POST {{apiBaseUrl}}/outreach-campaigns/parse-url
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "url": "https://invalid-url.com/not-a-tweet"
+}
+
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/outreach-campaigns

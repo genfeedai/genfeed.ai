@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Official Replicate API schema for google/veo-2",
+  "properties": {
+    "aspect_ratio": {
+      "description": "An enumeration.",
+      "enum": ["16:9", "9:16"],
+      "title": "aspect_ratio",
+      "type": "string"
+    },
+    "duration": {
+      "description": "An enumeration.",
+      "enum": [5, 6, 7, 8],
+      "title": "duration",
+      "type": "integer"
+    },
+    "image": {
+      "description": "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose.",
+      "format": "uri",
+      "nullable": true,
+      "title": "Image",
+      "type": "string",
+      "x-order": 1
+    },
+    "prompt": {
+      "description": "Text prompt for video generation",
+      "nullable": true,
+      "title": "Prompt",
+      "type": "string",
+      "x-order": 0
+    },
+    "seed": {
+      "description": "Random seed. Omit for random generations",
+      "nullable": true,
+      "title": "Seed",
+      "type": "integer",
+      "x-order": 4
+    }
+  },
+  "title": "veo-2 Input Schema",
+  "type": "object"
+}

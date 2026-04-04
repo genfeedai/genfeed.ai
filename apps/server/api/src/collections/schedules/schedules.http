@@ -1,0 +1,235 @@
+### Schedules API Test Suite
+### Base URL: http://localhost:3000/schedules
+### Auth: Bearer token required (Clerk JWT)
+
+### Variables
+@baseUrl = http://localhost:3000
+@token = your_clerk_jwt_token_here
+@repurposingJobId = replace_with_actual_job_id
+
+### 1. Get optimal posting time (AI-powered)
+POST {{baseUrl}}/schedules/optimal
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "contentId": "video_123",
+  "contentType": "video",
+  "platform": "instagram",
+  "goal": "engagement",
+  "timezone": "America/New_York"
+}
+
+### Example Response:
+### {
+###   "recommendedTime": "2025-10-09T14:00:00Z",
+###   "alternativeTimes": [
+###     "2025-10-09T18:00:00Z",
+###     "2025-10-10T09:00:00Z"
+###   ],
+###   "confidence": 85,
+###   "expectedPerformance": {
+###     "estimatedEngagement": 250,
+###     "estimatedReach": 5000
+###   },
+###   "reasoning": [
+###     "Peak engagement hours for your target audience",
+###     "Lower competition during this time slot",
+###     "Historical data shows 2x higher reach"
+###   ]
+### }
+
+### 2. Bulk schedule content
+POST {{baseUrl}}/schedules/bulk
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "contentIds": ["video_1", "video_2", "video_3", "video_4"],
+  "platforms": ["instagram", "tiktok"],
+  "brandIds": ["account_insta_1", "account_tiktok_1"],
+  "schedulingStrategy": "ai-optimal",
+  "staggerMinutes": 60
+}
+
+### Example Response:
+### {
+###   "scheduled": [
+###     {
+###       "_id": "schedule_1",
+###       "contentId": "video_1",
+###       "platform": "instagram",
+###       "scheduledAt": "2025-10-09T14:00:00Z",
+###       "expectedEngagement": 85
+###     }
+###   ],
+###   "failed": []
+### }
+
+### Bulk schedule with custom times
+POST {{baseUrl}}/schedules/bulk
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "contentIds": ["video_1", "video_2"],
+  "platforms": ["instagram"],
+  "brandIds": ["account_1"],
+  "schedulingStrategy": "custom",
+  "customTimes": {
+    "video_1": "2025-10-09T14:00:00Z",
+    "video_2": "2025-10-09T18:00:00Z"
+  }
+}
+
+### Bulk schedule with even distribution
+POST {{baseUrl}}/schedules/bulk
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "contentIds": ["post_1", "post_2", "post_3"],
+  "platforms": ["instagram"],
+  "brandIds": ["account_1"],
+  "schedulingStrategy": "evenly-distributed",
+  "staggerMinutes": 120
+}
+
+### 3. Get schedule calendar
+GET {{baseUrl}}/schedules/calendar?start=2025-10-08T00:00:00Z&end=2025-11-08T23:59:59Z
+Authorization: Bearer {{token}}
+
+### Example Response:
+### [
+###   {
+###     "_id": "schedule_1",
+###     "contentId": "video_123",
+###     "contentType": "video",
+###     "platform": "instagram",
+###     "scheduledAt": "2025-10-09T14:00:00Z",
+###     "status": "pending",
+###     "expectedEngagement": 85
+###   }
+### ]
+
+### 4. Repurpose content (THE MAGIC!)
+POST {{baseUrl}}/schedules/repurpose
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "contentId": "long_video_123",
+  "targetFormats": ["short-video", "story", "carousel", "gif"],
+  "settings": {
+    "preserveBranding": true,
+    "qualityLevel": "high",
+    "targetDuration": 30
+  }
+}
+
+### Example Response:
+### {
+###   "_id": "repurpose_job_123",
+###   "status": "pending",
+###   "sourceContentId": "long_video_123",
+###   "targetFormats": ["short-video", "story", "carousel", "gif"],
+###   "results": [
+###     { "format": "short-video", "status": "pending" },
+###     { "format": "story", "status": "pending" },
+###     { "format": "carousel", "status": "pending" },
+###     { "format": "gif", "status": "pending" }
+###   ],
+###   "progress": 0
+### }
+
+### Repurpose with minimal settings
+POST {{baseUrl}}/schedules/repurpose
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "contentId": "video_456",
+  "targetFormats": ["short-video", "gif"]
+}
+
+### 5. Get repurposing status
+GET {{baseUrl}}/schedules/repurpose/{{repurposingJobId}}
+Authorization: Bearer {{token}}
+
+### Example Response:
+### {
+###   "_id": "repurpose_job_123",
+###   "status": "completed",
+###   "progress": 100,
+###   "results": [
+###     {
+###       "format": "short-video",
+###       "status": "completed",
+###       "url": "https://s3.amazonaws.com/..."
+###     },
+###     {
+###       "format": "story",
+###       "status": "completed",
+###       "url": "https://s3.amazonaws.com/..."
+###     },
+###     {
+###       "format": "carousel",
+###       "status": "failed",
+###       "error": "Image extraction failed"
+###     },
+###     {
+###       "format": "gif",
+###       "status": "completed",
+###       "url": "https://s3.amazonaws.com/..."
+###     }
+###   ],
+###   "completedAt": "2025-10-08T15:30:00Z"
+### }
+
+### Full workflow example
+### Step 1: Get optimal time
+# @name getOptimalTime
+POST {{baseUrl}}/schedules/optimal
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "contentId": "my_video",
+  "contentType": "video",
+  "platform": "tiktok",
+  "goal": "engagement"
+}
+
+### Step 2: Bulk schedule based on optimal times
+@recommendedTime = {{getOptimalTime.response.body.recommendedTime}}
+
+POST {{baseUrl}}/schedules/bulk
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "contentIds": ["my_video"],
+  "platforms": ["tiktok"],
+  "brandIds": ["my_tiktok"],
+  "schedulingStrategy": "ai-optimal"
+}
+
+### Step 3: Repurpose for other platforms
+POST {{baseUrl}}/schedules/repurpose
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "contentId": "my_video",
+  "targetFormats": ["story", "short-video"],
+  "settings": {
+    "preserveBranding": true,
+    "qualityLevel": "high"
+  }
+}
+
+### Step 4: Check calendar
+GET {{baseUrl}}/schedules/calendar?start=2025-10-08T00:00:00Z&end=2025-10-15T23:59:59Z
+Authorization: Bearer {{token}}
+
+

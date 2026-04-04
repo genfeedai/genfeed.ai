@@ -1,0 +1,85 @@
+### Genfeed API - HeyGen Webhook Endpoint
+### This endpoint is PUBLIC (no signature validation)
+
+@import ../../../../../http/_environment.http
+
+########################################
+# HeyGen Webhooks
+########################################
+
+### HeyGen Avatar Video Success
+# Receives notification when HeyGen avatar video generation succeeds
+POST {{baseUrl}}/webhooks/heygen/callback
+Content-Type: application/json
+
+{
+  "event_type": "avatar_video.success",
+  "event_data": {
+    "callback_id": "{{testExternalId}}",
+    "url": "https://example.com/videos/avatar-video.mp4",
+    "duration": 30,
+    "video_id": "heygen_video_123"
+  }
+}
+
+
+### HeyGen Avatar Video with Callback ID
+# Processes metadata-based webhook with callback_id
+POST {{baseUrl}}/webhooks/heygen/callback
+Content-Type: application/json
+
+{
+  "callback_id": "metadata_{{testExternalId}}",
+  "event_type": "avatar_video.success",
+  "event_data": {
+    "callback_id": "metadata_{{testExternalId}}",
+    "url": "https://example.com/videos/avatar-video-2.mp4",
+    "duration": 45,
+    "status": "completed"
+  }
+}
+
+
+### HeyGen Avatar Video Failed
+POST {{baseUrl}}/webhooks/heygen/callback
+Content-Type: application/json
+
+{
+  "event_type": "avatar_video.failed",
+  "event_data": {
+    "callback_id": "{{testExternalId}}",
+    "error": "Generation failed due to timeout",
+    "error_code": "TIMEOUT"
+  }
+}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Missing Event Type
+# Should fail gracefully
+POST {{baseUrl}}/webhooks/heygen/callback
+Content-Type: application/json
+
+{
+  "event_data": {
+    "url": "https://example.com/video.mp4"
+  }
+}
+
+
+### Test: Invalid URL
+POST {{baseUrl}}/webhooks/heygen/callback
+Content-Type: application/json
+
+{
+  "event_type": "avatar_video.success",
+  "event_data": {
+    "callback_id": "test_123",
+    "url": "invalid-url"
+  }
+}
+
+

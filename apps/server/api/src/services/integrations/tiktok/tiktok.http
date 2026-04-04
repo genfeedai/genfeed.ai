@@ -1,0 +1,72 @@
+### Genfeed API - TikTok Integration Endpoints
+### These endpoints handle TikTok OAuth and data
+
+@import ../../../../../http/_environment.http
+
+########################################
+# TikTok OAuth Flow
+########################################
+
+### Step 1: Connect TikTok Account
+# Initiates OAuth flow and returns authorization URL
+# Requires: brandId in body
+POST {{baseUrl}}/services/tiktok/connect
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "brand": "{{testBrandId}}"
+}
+
+
+### Step 2: Verify TikTok OAuth
+# Completes OAuth flow after user authorizes
+# Requires: brandId, code from OAuth callback
+POST {{baseUrl}}/services/tiktok/verify
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "brand": "{{testBrandId}}",
+  "code": "REPLACE_WITH_CODE_FROM_CALLBACK"
+}
+
+
+########################################
+# TikTok Data
+########################################
+
+### Get TikTok Trends
+# Fetches current TikTok trends
+GET {{baseUrl}}/services/tiktok/trends
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Connect Without Account ID
+POST {{baseUrl}}/services/tiktok/connect
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "brand": ""
+}
+
+
+### Test: Verify Without Code
+POST {{baseUrl}}/services/tiktok/verify
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "brand": "{{testBrandId}}"
+}
+
+
+### Test: Unauthorized Request (No Token)
+GET {{baseUrl}}/services/tiktok/trends
+
+

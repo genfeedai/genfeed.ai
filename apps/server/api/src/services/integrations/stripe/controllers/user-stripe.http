@@ -1,0 +1,125 @@
+### Genfeed API - User Stripe Endpoints
+### User-level Stripe payment integration for consumer apps (getshareable.app)
+### Requires authentication (Bearer token)
+
+########################################
+# User Checkout
+########################################
+
+### Create Checkout Session (Credit Pack)
+# Creates a Stripe checkout session for purchasing credits
+# This is the main payment flow for getshareable.app users
+POST {{apiBaseUrl}}/users/stripe/checkout
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+Origin: https://getshareable.app
+
+{
+  "stripePriceId": "price_xxx",
+  "quantity": 10,
+  "mode": "payment"
+}
+
+
+### Create Checkout Session (Subscription)
+# Creates a Stripe checkout session for monthly subscription
+POST {{apiBaseUrl}}/users/stripe/checkout
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+Origin: https://getshareable.app
+
+{
+  "stripePriceId": "price_subscription_monthly",
+  "mode": "subscription"
+}
+
+
+### Create Checkout Session (Default quantity)
+# Creates checkout with default quantity (1)
+POST {{apiBaseUrl}}/users/stripe/checkout
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+Origin: https://getshareable.app
+
+{
+  "stripePriceId": "price_xxx"
+}
+
+
+########################################
+# User Billing Portal
+########################################
+
+### Get Billing Portal URL
+# Returns Stripe customer portal URL for managing subscription
+# User can update payment method, view invoices, cancel subscription
+GET {{apiBaseUrl}}/users/stripe/portal
+Authorization: Bearer {{bearerToken}}
+Origin: https://getshareable.app
+
+
+########################################
+# User Subscription
+########################################
+
+### Get User Subscription Status
+# Returns current subscription status and credit balance
+GET {{apiBaseUrl}}/users/stripe/subscription
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Checkout Without Origin Header
+# Should return 400 Bad Request (origin is required)
+POST {{apiBaseUrl}}/users/stripe/checkout
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "stripePriceId": "price_xxx"
+}
+
+
+### Test: Checkout Without Auth Token
+# Should return 401 Unauthorized
+POST {{apiBaseUrl}}/users/stripe/checkout
+Content-Type: application/json
+Origin: https://getshareable.app
+
+{
+  "stripePriceId": "price_xxx"
+}
+
+
+### Test: Portal Without Origin Header
+# Should return 400 Bad Request (origin is required)
+GET {{apiBaseUrl}}/users/stripe/portal
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Portal Before First Payment
+# Should return 404 Not Found (no Stripe customer yet)
+GET {{apiBaseUrl}}/users/stripe/portal
+Authorization: Bearer {{bearerToken}}
+Origin: https://getshareable.app
+
+
+### Test: Invalid Price ID
+# Should return 400 Bad Request from Stripe
+POST {{apiBaseUrl}}/users/stripe/checkout
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+Origin: https://getshareable.app
+
+{
+  "stripePriceId": "invalid_price_id"
+}
+
+
+### Test: Subscription Status (New User)
+# Returns subscription: null, credits: { balance: 10 } for new users
+GET {{apiBaseUrl}}/users/stripe/subscription
+Authorization: Bearer {{bearerToken}}

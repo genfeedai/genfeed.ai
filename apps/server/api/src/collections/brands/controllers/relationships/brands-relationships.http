@@ -1,0 +1,156 @@
+### Genfeed API - Brands Relationships Endpoints
+### Get brand videos, images, articles, musics, credentials, links, posts, activities, tasks, analytics
+### Protected by RolesGuard
+
+########################################
+# Brand Media Assets
+########################################
+
+### Get Brand Videos
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/videos
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Brand Videos with Pagination
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/videos?page=1&limit=20&sort=-createdAt
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Brand Images
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/images
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Brand Images with Pagination
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/images?page=1&limit=20&sort=-createdAt
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Brand Articles
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/articles
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Brand Articles with Filters
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/articles?page=1&limit=20&sort=-publishedAt
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Brand Musics
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/musics
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Brand Musics with Pagination
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/musics?page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Brand Credentials & Links
+########################################
+
+### Get Brand Credentials
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/credentials
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Brand Links
+# Cached for 30 minutes
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/links
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Brand Links with Pagination
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/links?page=1&limit=50
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Brand Posts
+########################################
+
+### Get Brand Posts
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/posts
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Brand Posts with Filters
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/posts?platform=twitter&status=scheduled&page=1&limit=20&sort=-scheduledDate
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Brand Activities & Tasks
+########################################
+
+### Get Brand Activities
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/activities
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Brand Activities with Pagination
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/activities?page=1&limit=20&sort=-createdAt
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Brand Tasks
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/tasks
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Brand Tasks with Pagination
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/tasks?page=1&limit=20&sort=-createdAt
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Brand Analytics
+########################################
+
+### Get Brand Analytics
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/analytics
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Brand Analytics with Date Range
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/analytics?startDate=2026-01-01&endDate=2026-02-15
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Brand Platform-Specific Analytics
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/platforms/twitter/analytics
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Brand Platform Analytics with Date Range
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/platforms/instagram/analytics?startDate=2026-01-01&endDate=2026-02-15
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Brand Analytics Time Series
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/analytics/timeseries
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Brand Analytics Time Series with Filters
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/analytics/timeseries?startDate=2026-01-01&endDate=2026-02-15&groupBy=day
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Brand ID
+GET {{apiBaseUrl}}/brands/invalid-id/videos
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Brand Not Found
+GET {{apiBaseUrl}}/brands/507f1f77bcf86cd799439011/videos
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/brands/{{testBrandId}}/videos

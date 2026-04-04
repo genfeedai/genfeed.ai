@@ -1,0 +1,8 @@
+
+
+# clerk configuration (can include secrets)
+/.clerk/
+
+# Generated at build time
+public/llms.txt
+public/llms-full.txt

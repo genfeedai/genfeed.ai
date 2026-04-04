@@ -1,0 +1,307 @@
+import {
+  Setting,
+  type SettingDocument,
+} from '@api/collections/settings/schemas/setting.schema';
+import { TrendsService } from '@api/collections/trends/services/trends.service';
+import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { CacheService } from '@api/services/cache/services/cache.service';
+import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { ParseMode } from '@genfeedai/enums';
+import { LoggerService } from '@libs/logger/logger.service';
+import { getModelToken } from '@nestjs/mongoose';
+import { Test, TestingModule } from '@nestjs/testing';
+import { CronTrendSummaryNotificationsService } from '@workers/crons/trends/cron.trend-summary-notifications.service';
+
+vi.mock('@nestjs/schedule', () => ({
+  Cron: () => () => undefined,
+  CronExpression: {
+    EVERY_HOUR: '0 * * * *',
+    EVERY_YEAR: '0 0 1 1 *',
+  },
+  ScheduleModule: { forRoot: vi.fn() },
+}));
+
+describe('CronTrendSummaryNotificationsService', () => {
+  let service: CronTrendSummaryNotificationsService;
+  let trendsService: {
+    getTrendingHashtags: ReturnType<typeof vi.fn>;
+    getTrendingSounds: ReturnType<typeof vi.fn>;
+    getViralVideos: ReturnType<typeof vi.fn>;
+  };
+  let cacheService: {
+    withLock: ReturnType<typeof vi.fn>;
+  };
+  let notificationsService: {
+    sendEmail: ReturnType<typeof vi.fn>;
+    sendNotification: ReturnType<typeof vi.fn>;
+    sendTelegramMessage: ReturnType<typeof vi.fn>;
+  };
+  let settingModel: {
+    find: ReturnType<typeof vi.fn>;
+  };
+  let loggerService: {
+    debug: ReturnType<typeof vi.fn>;
+    error: ReturnType<typeof vi.fn>;
+    log: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
+  };
+
+  const mockViralVideos = [
+    {
+      description: 'Funny cat video',
+      platform: 'tiktok',
+      playCount: 1000000,
+      url: 'https://tiktok.com/video1',
+      viralScore: 90,
+    },
+  ];
+
+  const mockHashtags = [
+    {
+      hashtag: 'trending',
+      platform: 'tiktok',
+      postCount: 500000,
+      viralityScore: 85,
+    },
+  ];
+
+  const mockSounds = [
+    {
+      playUrl: 'https://tiktok.com/sound1',
+      soundName: 'Viral Beat',
+      usageCount: 50000,
+      viralityScore: 80,
+    },
+  ];
+
+  const mockSettings: Partial<SettingDocument>[] = [
+    {
+      isDeleted: false,
+      isTrendNotificationsEmail: true,
+      isTrendNotificationsInApp: false,
+      isTrendNotificationsTelegram: true,
+      trendNotificationsEmailAddress: 'user@example.com',
+      trendNotificationsFrequency: 'hourly',
+      trendNotificationsMinViralScore: 70,
+      trendNotificationsTelegramChatId: '123456789',
+      user: 'user-1' as unknown as SettingDocument['user'],
+    },
+  ];
+
+  beforeEach(async () => {
+    settingModel = {
+      find: vi.fn().mockReturnValue({
+        exec: vi.fn().mockResolvedValue(mockSettings),
+        lean: vi.fn().mockReturnThis(),
+        populate: vi.fn().mockReturnThis(),
+      }),
+    };
+
+    trendsService = {
+      getTrendingHashtags: vi.fn().mockResolvedValue(mockHashtags),
+      getTrendingSounds: vi.fn().mockResolvedValue(mockSounds),
+      getViralVideos: vi.fn().mockResolvedValue(mockViralVideos),
+    };
+
+    cacheService = {
+      withLock: vi
+        .fn()
+        .mockImplementation(
+          async (_key: string, fn: () => Promise<unknown>, _ttl: number) =>
+            fn(),
+        ),
+    };
+
+    notificationsService = {
+      sendEmail: vi.fn().mockResolvedValue(undefined),
+      sendNotification: vi.fn().mockResolvedValue(undefined),
+      sendTelegramMessage: vi.fn().mockResolvedValue(undefined),
+    };
+
+    loggerService = {
+      debug: vi.fn(),
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        CronTrendSummaryNotificationsService,
+        {
+          provide: getModelToken(Setting.name, DB_CONNECTIONS.AUTH),
+          useValue: settingModel,
+        },
+        { provide: TrendsService, useValue: trendsService },
+        { provide: CacheService, useValue: cacheService },
+        { provide: NotificationsService, useValue: notificationsService },
+        { provide: LoggerService, useValue: loggerService },
+      ],
+    }).compile();
+
+    service = module.get<CronTrendSummaryNotificationsService>(
+      CronTrendSummaryNotificationsService,
+    );
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
+  describe('sendHourlyTrendSummaries', () => {
+    it('should call sendTrendSummariesByFrequency with hourly frequency', async () => {
+      await service.sendHourlyTrendSummaries();
+
+      expect(settingModel.find).toHaveBeenCalledWith(
+        expect.objectContaining({ trendNotificationsFrequency: 'hourly' }),
+      );
+    });
+
+    it('should acquire a distributed lock before processing', async () => {
+      await service.sendHourlyTrendSummaries();
+
+      expect(cacheService.withLock).toHaveBeenCalledWith(
+        expect.stringContaining('trend-summary'),
+        expect.any(Function),
+        expect.any(Number),
+      );
+    });
+  });
+
+  describe('sendDailyTrendSummaries', () => {
+    it('should call sendTrendSummariesByFrequency with daily frequency', async () => {
+      await service.sendDailyTrendSummaries();
+
+      expect(settingModel.find).toHaveBeenCalledWith(
+        expect.objectContaining({ trendNotificationsFrequency: 'daily' }),
+      );
+    });
+  });
+
+  describe('sendWeeklyTrendSummaries', () => {
+    it('should call sendTrendSummariesByFrequency with weekly frequency', async () => {
+      await service.sendWeeklyTrendSummaries();
+
+      expect(settingModel.find).toHaveBeenCalledWith(
+        expect.objectContaining({ trendNotificationsFrequency: 'weekly' }),
+      );
+    });
+  });
+
+  describe('notification delivery', () => {
+    it('should send telegram message when telegram notifications are enabled', async () => {
+      await service.sendHourlyTrendSummaries();
+
+      expect(notificationsService.sendTelegramMessage).toHaveBeenCalledWith(
+        '123456789',
+        expect.stringContaining('Trend Summary'),
+        { parse_mode: ParseMode.MARKDOWN },
+      );
+    });
+
+    it('should send email when email notifications are enabled', async () => {
+      await service.sendHourlyTrendSummaries();
+
+      expect(notificationsService.sendEmail).toHaveBeenCalledWith(
+        'user@example.com',
+        expect.stringContaining('Trend Summary'),
+        expect.stringContaining('<!DOCTYPE html>'),
+      );
+    });
+
+    it('should not send email if email notifications are disabled', async () => {
+      settingModel.find.mockReturnValue({
+        exec: vi.fn().mockResolvedValue([
+          {
+            ...mockSettings[0],
+            isTrendNotificationsEmail: false,
+            trendNotificationsEmailAddress: undefined,
+          },
+        ]),
+        lean: vi.fn().mockReturnThis(),
+        populate: vi.fn().mockReturnThis(),
+      });
+
+      await service.sendHourlyTrendSummaries();
+
+      expect(notificationsService.sendEmail).not.toHaveBeenCalled();
+    });
+
+    it('should send in-app notification when in-app notifications are enabled', async () => {
+      settingModel.find.mockReturnValue({
+        exec: vi
+          .fn()
+          .mockResolvedValue([
+            { ...mockSettings[0], isTrendNotificationsInApp: true },
+          ]),
+        lean: vi.fn().mockReturnThis(),
+        populate: vi.fn().mockReturnThis(),
+      });
+
+      await service.sendHourlyTrendSummaries();
+
+      expect(notificationsService.sendNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'trend_summary',
+          type: 'discord',
+          userId: 'user-1',
+        }),
+      );
+    });
+  });
+
+  describe('lock contention', () => {
+    it('should log skip message when lock is already held', async () => {
+      cacheService.withLock.mockResolvedValue(null);
+
+      await service.sendHourlyTrendSummaries();
+
+      expect(loggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining('skipped'),
+      );
+    });
+  });
+
+  describe('error handling', () => {
+    it('should continue processing other users when one user fails', async () => {
+      const secondSetting: Partial<SettingDocument> = {
+        isDeleted: false,
+        isTrendNotificationsEmail: true,
+        trendNotificationsEmailAddress: 'second@example.com',
+        trendNotificationsFrequency: 'hourly',
+        trendNotificationsMinViralScore: 70,
+        user: 'user-2' as unknown as SettingDocument['user'],
+      };
+
+      settingModel.find.mockReturnValue({
+        exec: vi.fn().mockResolvedValue([mockSettings[0], secondSetting]),
+        lean: vi.fn().mockReturnThis(),
+        populate: vi.fn().mockReturnThis(),
+      });
+
+      notificationsService.sendEmail
+        .mockRejectedValueOnce(new Error('First user failed'))
+        .mockResolvedValueOnce(undefined);
+
+      // Should not throw, should process both
+      await expect(service.sendHourlyTrendSummaries()).resolves.not.toThrow();
+      expect(loggerService.error).toHaveBeenCalledTimes(1);
+    });
+
+    it('should return success: false when settingModel query throws', async () => {
+      settingModel.find.mockReturnValue({
+        exec: vi.fn().mockRejectedValue(new Error('DB error')),
+        lean: vi.fn().mockReturnThis(),
+        populate: vi.fn().mockReturnThis(),
+      });
+
+      // Should not throw (error handled internally)
+      await expect(service.sendHourlyTrendSummaries()).resolves.not.toThrow();
+      expect(loggerService.error).toHaveBeenCalled();
+    });
+  });
+});

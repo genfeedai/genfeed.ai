@@ -1,0 +1,112 @@
+### Genfeed API - Cameras Collection Endpoints
+### Manage camera angle presets for video generation
+### Handles: camera CRUD, camera movements
+
+########################################
+# List & Filter Cameras
+########################################
+
+### Get All Cameras (Paginated)
+GET {{apiBaseUrl}}/elements/cameras
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Cameras with Pagination
+GET {{apiBaseUrl}}/elements/cameras?page=1&limit=50
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Default Cameras Only
+GET {{apiBaseUrl}}/elements/cameras?isDefault=true
+Authorization: Bearer {{bearerToken}}
+
+
+### Search Cameras by Name
+GET {{apiBaseUrl}}/elements/cameras?search=aerial
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Cameras by Popularity
+GET {{apiBaseUrl}}/elements/cameras?sort=-usageCount
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Camera
+########################################
+
+### Get Camera by ID
+GET {{apiBaseUrl}}/elements/cameras/{{testCameraId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Camera by Slug
+GET {{apiBaseUrl}}/elements/cameras/slug/{{testCameraSlug}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Content with Camera
+########################################
+
+### Get Videos Using Camera
+GET {{apiBaseUrl}}/elements/cameras/{{testCameraId}}/videos?page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Camera
+########################################
+
+### Create Custom Camera
+POST {{apiBaseUrl}}/elements/cameras
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Low Angle",
+  "description": "Camera positioned below subject looking up",
+  "keywords": ["low", "angle", "dramatic"]
+}
+
+
+########################################
+# Update Camera
+########################################
+
+### Update Camera Details
+PATCH {{apiBaseUrl}}/elements/cameras/{{testCameraId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Updated Camera Name",
+  "description": "Updated description"
+}
+
+
+########################################
+# Delete Camera
+########################################
+
+### Delete Custom Camera
+DELETE {{apiBaseUrl}}/elements/cameras/{{testCameraId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Camera ID Format
+GET {{apiBaseUrl}}/elements/cameras/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Camera Not Found
+GET {{apiBaseUrl}}/elements/cameras/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/elements/cameras

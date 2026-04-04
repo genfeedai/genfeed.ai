@@ -1,0 +1,165 @@
+### Contexts API Test Suite (RAG System)
+### Base URL: http://localhost:3000/contexts
+### Auth: Bearer token required (Clerk JWT)
+
+### Variables
+@baseUrl = http://localhost:3000
+@token = your_clerk_jwt_token_here
+@contextId = replace_with_actual_context_id
+@entryId = replace_with_actual_entry_id
+
+### 1. Create context base
+POST {{baseUrl}}/contexts
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Brand Voice - Tech Startup",
+  "description": "Our brand guidelines, voice, and successful content patterns",
+  "type": "brand_voice",
+  "settings": {
+    "autoIndexNewContent": true,
+    "maxEntries": 1000,
+    "similarityThreshold": 0.7
+  }
+}
+
+### 2. List context bases (with filters)
+GET {{baseUrl}}/contexts?type=brand_voice&isActive=true&search=tech
+Authorization: Bearer {{token}}
+
+### 3. Get context base by ID
+GET {{baseUrl}}/contexts/{{contextId}}
+Authorization: Bearer {{token}}
+
+### 4. Update context base
+PATCH {{baseUrl}}/contexts/{{contextId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "description": "Updated brand voice with new guidelines",
+  "settings": {
+    "maxEntries": 2000
+  }
+}
+
+### 5. Delete context base
+DELETE {{baseUrl}}/contexts/{{contextId}}
+Authorization: Bearer {{token}}
+
+### 6. Add entry to context base
+POST {{baseUrl}}/contexts/{{contextId}}/entries
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "content": "We use bold, modern language. We're enthusiastic about technology but never overly technical. Our target audience is 25-40 year old professionals who value efficiency and innovation.",
+  "metadata": {
+    "source": "brand-guidelines",
+    "category": "tone",
+    "dateAdded": "2025-10-08"
+  }
+}
+
+### 7. Remove entry from context base
+DELETE {{baseUrl}}/contexts/{{contextId}}/entries/{{entryId}}
+Authorization: Bearer {{token}}
+
+### 8. Auto-create from social account (THE MAGIC!)
+POST {{baseUrl}}/contexts/autocreate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "platform": "instagram",
+  "brandId": "your_instagram_account_id",
+  "analysisDepth": "full",
+  "includeEngagementMetrics": true
+}
+
+### 9. Enhance prompt with RAG (THE REAL MAGIC! 🔥)
+POST {{baseUrl}}/contexts/enhance
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "prompt": "Create a product launch video",
+  "contentType": "video",
+  "contextBaseIds": ["{{contextId}}"],
+  "useBrandVoice": true,
+  "useContentLibrary": true,
+  "useAudience": true,
+  "maxContextEntries": 5
+}
+
+### 10. Query context base (semantic search)
+POST {{baseUrl}}/contexts/query
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "contextBaseIds": ["{{contextId}}"],
+  "query": "What's our brand's tone of voice?",
+  "limit": 3
+}
+
+### 11. Get context base stats
+GET {{baseUrl}}/contexts/{{contextId}}/stats
+Authorization: Bearer {{token}}
+
+### Example: Full RAG workflow
+### Step 1: Create brand voice context
+# @name createBrandContext
+POST {{baseUrl}}/contexts
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "My Brand Voice",
+  "description": "Company brand guidelines and successful content",
+  "type": "brand_voice"
+}
+
+### Step 2: Add brand guidelines
+@brandContextId = {{createBrandContext.response.body._id}}
+
+POST {{baseUrl}}/contexts/{{brandContextId}}/entries
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "content": "Brand Guidelines: We're a modern tech company. Use conversational tone. Target audience: 25-40 professionals. Colors: Blue (#0066FF) and Cyan (#00CCFF). Always be enthusiastic but professional.",
+  "metadata": {
+    "source": "brand-guidelines",
+    "category": "identity"
+  }
+}
+
+### Step 3: Use RAG to enhance prompt
+POST {{baseUrl}}/contexts/enhance
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "prompt": "Create a video about our new feature",
+  "contentType": "video",
+  "contextBaseIds": ["{{brandContextId}}"],
+  "useBrandVoice": true
+}
+
+### Response will be:
+### {
+###   "originalPrompt": "Create a video about our new feature",
+###   "enhancedPrompt": "Create a modern, professional video about our new feature targeting 25-40 year old professionals. Use conversational but enthusiastic tone. Include our brand colors blue (#0066FF) and cyan (#00CCFF). Keep it engaging and showcase innovation.",
+###   "context": [
+###     {
+###       "content": "Brand Guidelines: We're a modern tech company...",
+###       "source": "My Brand Voice",
+###       "relevance": 0.92
+###     }
+###   ],
+###   "estimatedQualityBoost": 46
+### }
+
+

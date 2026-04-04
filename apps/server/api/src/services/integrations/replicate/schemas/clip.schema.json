@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Official Replicate API schema for openai/clip",
+  "properties": {
+    "image": {
+      "description": "Input image to encode",
+      "format": "uri",
+      "nullable": true,
+      "title": "Image",
+      "type": "string",
+      "x-order": 1
+    },
+    "text": {
+      "description": "Input text to encode",
+      "nullable": true,
+      "title": "Text",
+      "type": "string",
+      "x-order": 0
+    }
+  },
+  "title": "clip Input Schema",
+  "type": "object"
+}

@@ -1,0 +1,65 @@
+### Genfeed API - Public Images Endpoints
+### These endpoints are PUBLIC (no authentication required)
+
+@import ../../../../../../http/_environment.http
+
+########################################
+# Public Images
+########################################
+
+### Get All Public Images (with pagination)
+# Get paginated list of all public images
+# Query params: page, limit, sort, tag, account
+GET {{baseUrl}}/public/images?page={{page}}&limit={{limit}}&sort={{sort}}
+
+
+### Get All Public Images (default params)
+GET {{baseUrl}}/public/images
+
+
+### Filter Images by Account
+# Get images from a specific account
+GET {{baseUrl}}/public/images?brand={{testBrandId}}
+
+
+### Filter Images by Tag
+# Get images with a specific tag
+GET {{baseUrl}}/public/images?tag=landscape
+
+
+### Filter Images by Account and Tag
+GET {{baseUrl}}/public/images?brand={{testBrandId}}&tag=portrait&page=1&limit=10
+
+
+### Get Image by ID (Metadata)
+# Get image metadata/information
+# Includes account and metadata population
+GET {{baseUrl}}/public/images/{{testImageId}}
+
+
+### Get Image File
+# Get the actual image file (JPEG)
+# This returns the image content
+GET {{baseUrl}}/public/images/{{testImageId}}/image.jpg
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Image ID Format
+GET {{baseUrl}}/public/images/invalid-id
+
+
+### Test: Image Not Found
+GET {{baseUrl}}/public/images/507f1f77bcf86cd799439999
+
+
+### Test: Pagination with Custom Parameters
+GET {{baseUrl}}/public/images?page=2&limit=10&sort=createdAt
+
+
+### Test: Search by Tag with Regex
+GET {{baseUrl}}/public/images?tag=art
+
+

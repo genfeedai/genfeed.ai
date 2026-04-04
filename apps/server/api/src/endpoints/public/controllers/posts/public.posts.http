@@ -1,0 +1,58 @@
+### Genfeed API - Public Publications Endpoints
+### These endpoints are PUBLIC (no authentication required)
+
+@import ../../../../../../http/_environment.http
+
+########################################
+# Public Publications
+########################################
+
+### Get All Public Publications (with pagination)
+# Get paginated list of all published publications
+# Query params: page, limit, sort, tag, account
+GET {{baseUrl}}/public/publications?page={{page}}&limit={{limit}}&sort={{sort}}
+
+
+### Get All Public Publications (default params)
+GET {{baseUrl}}/public/publications
+
+
+### Filter Publications by Account
+# Get publications from a specific account
+GET {{baseUrl}}/public/publications?brand={{testBrandId}}
+
+
+### Filter Publications by Tag
+# Get publications with a specific tag
+GET {{baseUrl}}/public/publications?tag=featured
+
+
+### Filter Publications by Account and Tag
+GET {{baseUrl}}/public/publications?brand={{testBrandId}}&tag=trending&page=1&limit=10
+
+
+### Get Publication by ID (Metadata)
+# Get publication metadata/information
+GET {{baseUrl}}/public/publications/{{testPublicationId}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Publication ID Format
+GET {{baseUrl}}/public/publications/invalid-id
+
+
+### Test: Publication Not Found
+GET {{baseUrl}}/public/publications/507f1f77bcf86cd799439999
+
+
+### Test: Pagination with Custom Sort
+GET {{baseUrl}}/public/publications?page=2&limit=15&sort=createdAt
+
+
+### Test: Multiple Filters
+GET {{baseUrl}}/public/publications?page=1&limit=20&tag=news&brand={{testBrandId}}
+
+

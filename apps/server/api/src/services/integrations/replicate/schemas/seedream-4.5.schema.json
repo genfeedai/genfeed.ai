@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Official Replicate API schema for bytedance/seedream-4.5",
+  "properties": {
+    "aspect_ratio": {
+      "description": "An enumeration.",
+      "enum": [
+        "match_input_image",
+        "1:1",
+        "4:3",
+        "3:4",
+        "16:9",
+        "9:16",
+        "3:2",
+        "2:3",
+        "21:9"
+      ],
+      "title": "aspect_ratio",
+      "type": "string"
+    },
+    "height": {
+      "default": 2048,
+      "description": "Custom image height (only used when size='custom'). Range: 1024-4096 pixels.",
+      "maximum": 4096,
+      "minimum": 1024,
+      "title": "Height",
+      "type": "integer",
+      "x-order": 5
+    },
+    "image_input": {
+      "default": [],
+      "description": "Input image(s) for image-to-image generation. List of 1-14 images for single or multi-reference generation.",
+      "items": {
+        "format": "uri",
+        "type": "string"
+      },
+      "title": "Image Input",
+      "type": "array",
+      "x-order": 1
+    },
+    "max_images": {
+      "default": 1,
+      "description": "Maximum number of images to generate when sequential_image_generation='auto'. Range: 1-15. Total images (input + generated) cannot exceed 15.",
+      "maximum": 15,
+      "minimum": 1,
+      "title": "Max Images",
+      "type": "integer",
+      "x-order": 7
+    },
+    "prompt": {
+      "description": "Text prompt for image generation",
+      "title": "Prompt",
+      "type": "string",
+      "x-order": 0
+    },
+    "sequential_image_generation": {
+      "description": "An enumeration.",
+      "enum": ["disabled", "auto"],
+      "title": "sequential_image_generation",
+      "type": "string"
+    },
+    "size": {
+      "description": "An enumeration.",
+      "enum": ["2K", "4K", "custom"],
+      "title": "size",
+      "type": "string"
+    },
+    "width": {
+      "default": 2048,
+      "description": "Custom image width (only used when size='custom'). Range: 1024-4096 pixels.",
+      "maximum": 4096,
+      "minimum": 1024,
+      "title": "Width",
+      "type": "integer",
+      "x-order": 4
+    }
+  },
+  "required": ["prompt"],
+  "title": "seedream-4.5 Input Schema",
+  "type": "object"
+}

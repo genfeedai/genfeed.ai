@@ -1,0 +1,27 @@
+{
+  "dependencies": {
+    "@genfeedai/config": "workspace:*"
+  },
+  "description": "Genfeed Videos Service",
+  "devDependencies": {},
+  "main": "../dist/apps/videos/main.js",
+  "name": "@genfeedai/videos",
+  "private": true,
+  "scripts": {
+    "build": "cd .. && nest build videos",
+    "build:prod": "cd .. && nest build videos && cd videos && if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps || true; fi",
+    "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
+    "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start videos --watch",
+    "lint": "biome lint --write src",
+    "sentry:inject": "sentry-cli sourcemaps inject --org genfeedai --project videos-genfeed-ai ../dist",
+    "sentry:sourcemaps": "bun run sentry:inject && bun run sentry:upload",
+    "sentry:upload": "sentry-cli sourcemaps upload --org genfeedai --project videos-genfeed-ai ../dist",
+    "start": "cd .. && nest start videos",
+    "start:debug": "cd .. && nest start videos --debug --watch",
+    "start:dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start videos --watch",
+    "start:prod": "node -r tsconfig-paths/register --max-old-space-size=8192 --expose-gc ../dist/apps/videos/main",
+    "test": "echo 'No tests yet'",
+    "test:cov": "echo 'No tests yet'"
+  },
+  "version": "1.0.0"
+}

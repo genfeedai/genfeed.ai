@@ -1,0 +1,100 @@
+### Genfeed API - Voices Collection Endpoints
+### Manage voice presets for text-to-speech
+### Handles: voice CRUD, voice sampling
+
+########################################
+# List & Filter Voices
+########################################
+
+### Get All Voices (Paginated)
+GET {{apiBaseUrl}}/voices
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Voices with Pagination
+GET {{apiBaseUrl}}/voices?page=1&limit=50
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Voices by Language
+GET {{apiBaseUrl}}/voices?language=en
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Voices by Gender
+GET {{apiBaseUrl}}/voices?gender=male
+Authorization: Bearer {{bearerToken}}
+
+
+### Search Voices
+GET {{apiBaseUrl}}/voices?search=professional
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Voices by Popularity
+GET {{apiBaseUrl}}/voices?sort=-usageCount
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Voice
+########################################
+
+### Get Voice by ID
+GET {{apiBaseUrl}}/voices/{{testVoiceId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Voice
+########################################
+
+### Create Custom Voice
+POST {{apiBaseUrl}}/voices
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Professional Male",
+  "language": "en",
+  "gender": "male",
+  "provider": "elevenlabs",
+  "voiceId": "external_voice_id"
+}
+
+
+########################################
+# Update Voice
+########################################
+
+### Update Voice Details
+PATCH {{apiBaseUrl}}/voices/{{testVoiceId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Updated Voice Name",
+  "description": "Updated description"
+}
+
+
+########################################
+# Delete Voice
+########################################
+
+### Delete Voice
+DELETE {{apiBaseUrl}}/voices/{{testVoiceId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Voice ID
+GET {{apiBaseUrl}}/voices/invalid-id
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/voices

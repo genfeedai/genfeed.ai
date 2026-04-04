@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Official Replicate API schema for luma/reframe-video",
+  "properties": {
+    "aspect_ratio": {
+      "description": "An enumeration.",
+      "enum": ["1:1", "3:4", "4:3", "9:16", "16:9", "9:21", "21:9"],
+      "title": "aspect_ratio",
+      "type": "string"
+    },
+    "grid_position_x": {
+      "description": "The x position of the input in the grid, in pixels. Controls horizontal positioning of the source within the target output dimensions.",
+      "title": "Grid Position X",
+      "type": "integer"
+    },
+    "grid_position_y": {
+      "description": "The y position of the input in the grid, in pixels. Controls vertical positioning of the source within the target output dimensions.",
+      "title": "Grid Position Y",
+      "type": "integer"
+    },
+    "prompt": {
+      "description": "A prompt to guide the reframing generation",
+      "title": "Prompt",
+      "type": "string"
+    },
+    "video": {
+      "description": "The video to reframe. Maximum video duration is 10 seconds.",
+      "format": "uri",
+      "title": "Video",
+      "type": "string"
+    },
+    "video_url": {
+      "deprecated": true,
+      "description": "URL of the video to reframe. Maximum video duration is 10 seconds.",
+      "title": "Video Url",
+      "type": "string"
+    },
+    "x_end": {
+      "description": "The x end of the crop bounds, in pixels. Defines the right boundary where your source will be placed in the output frame. The distance between x_start and x_end determines the resized width of your content.",
+      "title": "X End",
+      "type": "integer"
+    },
+    "x_start": {
+      "description": "The x start of the crop bounds, in pixels. Defines the left boundary where your source will be placed in the output frame. The distance between x_start and x_end determines the resized width of your content.",
+      "title": "X Start",
+      "type": "integer"
+    },
+    "y_end": {
+      "description": "The y end of the crop bounds, in pixels. Defines the bottom boundary where your source will be placed in the output frame. The distance between y_start and y_end determines the resized height of your content.",
+      "title": "Y End",
+      "type": "integer"
+    },
+    "y_start": {
+      "description": "The y start of the crop bounds, in pixels. Defines the top boundary where your source will be placed in the output frame. The distance between y_start and y_end determines the resized height of your content.",
+      "title": "Y Start",
+      "type": "integer"
+    }
+  },
+  "title": "reframe-video Input Schema",
+  "type": "object"
+}

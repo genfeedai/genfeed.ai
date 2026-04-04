@@ -1,0 +1,112 @@
+### Genfeed API - Scenes Collection Endpoints
+### Manage scene presets for video generation
+### Handles: scene CRUD, scene combinations
+
+########################################
+# List & Filter Scenes
+########################################
+
+### Get All Scenes (Paginated)
+GET {{apiBaseUrl}}/elements/scenes
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Scenes with Pagination
+GET {{apiBaseUrl}}/elements/scenes?page=1&limit=50
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Default Scenes Only
+GET {{apiBaseUrl}}/elements/scenes?isDefault=true
+Authorization: Bearer {{bearerToken}}
+
+
+### Search Scenes by Name
+GET {{apiBaseUrl}}/elements/scenes?search=urban
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Scenes by Popularity
+GET {{apiBaseUrl}}/elements/scenes?sort=-usageCount
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Scene
+########################################
+
+### Get Scene by ID
+GET {{apiBaseUrl}}/elements/scenes/{{testSceneId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Scene by Slug
+GET {{apiBaseUrl}}/elements/scenes/slug/{{testSceneSlug}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Content with Scene
+########################################
+
+### Get Videos Using Scene
+GET {{apiBaseUrl}}/elements/scenes/{{testSceneId}}/videos?page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Scene
+########################################
+
+### Create Custom Scene
+POST {{apiBaseUrl}}/elements/scenes
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Cyberpunk City",
+  "description": "Futuristic urban environment with neon lights",
+  "keywords": ["cyberpunk", "urban", "futuristic", "neon"]
+}
+
+
+########################################
+# Update Scene
+########################################
+
+### Update Scene Details
+PATCH {{apiBaseUrl}}/elements/scenes/{{testSceneId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Updated Scene Name",
+  "description": "Updated description"
+}
+
+
+########################################
+# Delete Scene
+########################################
+
+### Delete Custom Scene
+DELETE {{apiBaseUrl}}/elements/scenes/{{testSceneId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Scene ID Format
+GET {{apiBaseUrl}}/elements/scenes/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Scene Not Found
+GET {{apiBaseUrl}}/elements/scenes/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/elements/scenes

@@ -1,0 +1,82 @@
+### Genfeed API - Opus Pro Integration Endpoints
+### Manage Opus Pro template-based video generation
+### Handles: video generation, templates, account info
+
+########################################
+# Service Status
+########################################
+
+### Check Connection Status
+GET {{apiBaseUrl}}/integrations/opuspro/status
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Templates
+########################################
+
+### Get Available Templates
+GET {{apiBaseUrl}}/integrations/opuspro/templates
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Video Generation
+########################################
+
+### Generate Video from Template
+POST {{apiBaseUrl}}/integrations/opuspro/generate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "templateId": "{{opusProTemplateId}}",
+  "params": {
+    "title": "My Video Title",
+    "text": "Content for the video"
+  }
+}
+
+
+### Check Video Generation Status
+GET {{apiBaseUrl}}/integrations/opuspro/status/{{opusProVideoId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Webhook (Public)
+########################################
+
+### Simulate Webhook Callback (completed)
+POST {{apiBaseUrl}}/v1/webhooks/opuspro/callback
+Content-Type: application/json
+
+{
+  "callback_id": "{{metadataId}}",
+  "status": "completed",
+  "videoUrl": "https://cdn.opus.pro/example-video.mp4"
+}
+
+
+### Simulate Webhook Callback (failed)
+POST {{apiBaseUrl}}/v1/webhooks/opuspro/callback
+Content-Type: application/json
+
+{
+  "callback_id": "{{metadataId}}",
+  "status": "failed",
+  "error": "Template rendering failed"
+}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Video ID
+GET {{apiBaseUrl}}/integrations/opuspro/status/invalid-id
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+POST {{apiBaseUrl}}/integrations/opuspro/generate

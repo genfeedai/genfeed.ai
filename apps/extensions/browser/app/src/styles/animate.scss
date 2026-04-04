@@ -1,0 +1,11 @@
+@use '../../../../../packages/styles/animate-base';
+
+.animate {
+  &-fade-in {
+    opacity: 0;
+  }
+
+  &-fade-out {
+    opacity: 1;
+  }
+}

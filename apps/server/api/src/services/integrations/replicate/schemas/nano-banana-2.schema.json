@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Official Replicate API schema for google/nano-banana-2",
+  "properties": {
+    "aspect_ratio": {
+      "description": "An enumeration.",
+      "enum": [
+        "match_input_image",
+        "1:1",
+        "1:4",
+        "1:8",
+        "2:3",
+        "3:2",
+        "3:4",
+        "4:1",
+        "4:3",
+        "4:5",
+        "5:4",
+        "8:1",
+        "9:16",
+        "16:9",
+        "21:9"
+      ],
+      "title": "aspect_ratio",
+      "type": "string"
+    },
+    "google_search": {
+      "default": false,
+      "description": "Use Google Web Search grounding to generate images based on real-time information",
+      "title": "Google Search",
+      "type": "boolean",
+      "x-order": 4
+    },
+    "image_input": {
+      "default": [],
+      "description": "Input images to transform or use as reference (supports up to 14 images)",
+      "items": {
+        "format": "uri",
+        "type": "string"
+      },
+      "title": "Image Input",
+      "type": "array",
+      "x-order": 1
+    },
+    "image_search": {
+      "default": false,
+      "description": "Use Google Image Search grounding to use web images as visual context for generation",
+      "title": "Image Search",
+      "type": "boolean",
+      "x-order": 5
+    },
+    "output_format": {
+      "description": "An enumeration.",
+      "enum": ["jpg", "png"],
+      "title": "output_format",
+      "type": "string"
+    },
+    "prompt": {
+      "description": "A text description of the image you want to generate",
+      "title": "Prompt",
+      "type": "string",
+      "x-order": 0
+    },
+    "resolution": {
+      "description": "An enumeration.",
+      "enum": ["1K", "2K", "4K"],
+      "title": "resolution",
+      "type": "string"
+    }
+  },
+  "required": ["prompt"],
+  "title": "nano-banana-2 Input Schema",
+  "type": "object"
+}

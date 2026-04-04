@@ -1,0 +1,232 @@
+### Genfeed API - Posts Collection Endpoints
+### Manage social media posts and threads
+### Handles: post creation, scheduling, analytics, threads/replies
+
+########################################
+# List & Filter Posts
+########################################
+
+### Get All Posts (Paginated)
+GET {{apiBaseUrl}}/posts
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Posts with Pagination
+GET {{apiBaseUrl}}/posts?page=2&limit=10
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Posts by Date Range
+GET {{apiBaseUrl}}/posts?startDate=2025-10-01&endDate=2025-10-14
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Posts
+GET {{apiBaseUrl}}/posts?sort=-scheduledDate
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Post
+########################################
+
+### Get Post by ID
+# Returns full post details with ingredient, credential, children, and analytics
+GET {{apiBaseUrl}}/posts/{{testPostId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Post
+########################################
+
+### Create Single Post
+POST {{apiBaseUrl}}/posts
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "ingredient": "{{testIngredientId}}",
+  "credential": "{{testCredentialId}}",
+  "label": "My awesome post",
+  "description": "Check out this amazing content! #AI #ContentCreation",
+  "status": "scheduled",
+  "scheduledDate": "2025-12-01T10:00:00Z",
+  "timezone": "America/New_York"
+}
+
+
+########################################
+# Update Post
+########################################
+
+### Update Post (PATCH)
+# Editable fields: label, description, scheduledDate, status, tags
+PATCH {{apiBaseUrl}}/posts/{{testPostId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Updated post title",
+  "description": "Updated post content",
+  "scheduledDate": "2025-12-02T14:00:00Z",
+  "status": "scheduled"
+}
+
+
+### Update Post Description Only
+PATCH {{apiBaseUrl}}/posts/{{testPostId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "description": "New description for the post"
+}
+
+
+### Update Post Schedule Only
+PATCH {{apiBaseUrl}}/posts/{{testPostId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "scheduledDate": "2025-12-03T16:00:00Z",
+  "timezone": "America/Los_Angeles"
+}
+
+
+### Update Post Status Only
+PATCH {{apiBaseUrl}}/posts/{{testPostId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "status": "public"
+}
+
+
+########################################
+# Thread Operations
+########################################
+
+### Create Thread (Batch)
+# Creates multiple posts with parent-child relationships
+POST {{apiBaseUrl}}/posts/thread
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "posts": [
+    {
+      "ingredient": "{{testIngredientId1}}",
+      "credential": "{{testCredentialId}}",
+      "label": "Thread post 1",
+      "description": "This is the first post in the thread",
+      "status": "scheduled",
+      "scheduledDate": "2025-12-01T10:00:00Z"
+    },
+    {
+      "ingredient": "{{testIngredientId2}}",
+      "credential": "{{testCredentialId}}",
+      "label": "Thread post 2",
+      "description": "This is the second post in the thread",
+      "status": "scheduled",
+      "scheduledDate": "2025-12-01T10:00:00Z"
+    },
+    {
+      "ingredient": "{{testIngredientId3}}",
+      "credential": "{{testCredentialId}}",
+      "label": "Thread post 3",
+      "description": "This is the third post in the thread",
+      "status": "scheduled",
+      "scheduledDate": "2025-12-01T10:00:00Z"
+    }
+  ]
+}
+
+
+### Add Reply to Existing Post
+# Creates a new post as a child of the specified parent post
+POST {{apiBaseUrl}}/posts/{{testPostId}}/replies
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "ingredient": "{{testIngredientId}}",
+  "credential": "{{testCredentialId}}",
+  "label": "Reply post",
+  "description": "This is a reply to the parent post",
+  "status": "scheduled",
+  "scheduledDate": "2025-12-01T10:00:00Z"
+}
+
+
+########################################
+# Post Analytics
+########################################
+
+### Get Post Analytics
+# Returns engagement metrics (views, likes, comments, shares, engagement rate)
+GET {{apiBaseUrl}}/posts/{{testPostId}}/analytics
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Post Analytics with Date Range
+GET {{apiBaseUrl}}/posts/{{testPostId}}/analytics?startDate=2025-10-01&endDate=2025-10-14
+Authorization: Bearer {{bearerToken}}
+
+
+### Refresh Post Analytics
+# Fetches latest analytics from platform (rate limited to 1/hour)
+POST {{apiBaseUrl}}/posts/{{testPostId}}/refresh-analytics
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Delete Post
+########################################
+
+### Delete Post
+# Soft delete - marks as deleted but keeps data
+DELETE {{apiBaseUrl}}/posts/{{testPostId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Post ID Format
+GET {{apiBaseUrl}}/posts/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Post Not Found
+GET {{apiBaseUrl}}/posts/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Create Post Without Required Fields
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/posts
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Test post"
+}
+
+
+### Test: Update Non-Existent Post
+PATCH {{apiBaseUrl}}/posts/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "description": "This should fail"
+}
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/posts

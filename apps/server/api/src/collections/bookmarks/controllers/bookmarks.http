@@ -1,0 +1,243 @@
+### Genfeed API - Bookmarks Collection Endpoints
+### Manage saved content bookmarks
+### Handles: bookmark CRUD, folders, tags, filtering
+
+########################################
+# List & Filter Bookmarks
+########################################
+
+### Get All Bookmarks (Paginated)
+GET {{apiBaseUrl}}/bookmarks
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Bookmarks with Pagination
+GET {{apiBaseUrl}}/bookmarks?page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Bookmarks by Category
+# Category values: tweet, youtube, url, instagram, tiktok
+GET {{apiBaseUrl}}/bookmarks?category=tweet
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Bookmarks by Platform
+# Platform values: twitter, youtube, medium, etc.
+GET {{apiBaseUrl}}/bookmarks?platform=twitter
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Bookmarks by Folder
+GET {{apiBaseUrl}}/bookmarks?folder={{testFolderId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Bookmarks by Tag
+GET {{apiBaseUrl}}/bookmarks?tags={{testTagId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Search Bookmarks
+GET {{apiBaseUrl}}/bookmarks?search=react tutorial
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Bookmarks
+GET {{apiBaseUrl}}/bookmarks?sort=-savedAt
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Bookmark
+########################################
+
+### Get Bookmark by ID
+GET {{apiBaseUrl}}/bookmarks/{{testBookmarkId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Bookmark
+########################################
+
+### Create Bookmark from URL
+POST {{apiBaseUrl}}/bookmarks
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "url": "https://example.com/article",
+  "category": "url",
+  "title": "Interesting Article",
+  "description": "Article about AI"
+}
+
+
+### Create Bookmark with Folder
+POST {{apiBaseUrl}}/bookmarks
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "url": "https://youtube.com/watch?v=abc123",
+  "category": "youtube",
+  "platform": "youtube",
+  "title": "Tutorial Video",
+  "folder": "{{testFolderId}}"
+}
+
+
+### Create Bookmark with Tags
+POST {{apiBaseUrl}}/bookmarks
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "url": "https://twitter.com/user/status/123",
+  "category": "tweet",
+  "platform": "twitter",
+  "title": "Interesting Tweet",
+  "tags": ["{{testTagId1}}", "{{testTagId2}}"]
+}
+
+
+### Create Bookmark with Notes
+POST {{apiBaseUrl}}/bookmarks
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "url": "https://example.com/resource",
+  "category": "url",
+  "title": "Useful Resource",
+  "notes": "Remember to check this later for the project"
+}
+
+
+########################################
+# Update Bookmark
+########################################
+
+### Update Bookmark Title
+PATCH {{apiBaseUrl}}/bookmarks/{{testBookmarkId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "title": "Updated Bookmark Title",
+  "description": "Updated description"
+}
+
+
+### Move Bookmark to Folder
+PATCH {{apiBaseUrl}}/bookmarks/{{testBookmarkId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "folder": "{{newFolderId}}"
+}
+
+
+### Add Tags to Bookmark
+PATCH {{apiBaseUrl}}/bookmarks/{{testBookmarkId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "tags": ["{{testTagId1}}", "{{testTagId2}}", "{{testTagId3}}"]
+}
+
+
+### Update Bookmark Notes
+PATCH {{apiBaseUrl}}/bookmarks/{{testBookmarkId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "notes": "Updated notes about this bookmark"
+}
+
+
+########################################
+# Delete Bookmark
+########################################
+
+### Delete Bookmark
+# Soft delete - marks as deleted but keeps data
+DELETE {{apiBaseUrl}}/bookmarks/{{testBookmarkId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Bulk Operations
+########################################
+
+### Bulk Delete Bookmarks
+POST {{apiBaseUrl}}/bookmarks/bulk/delete
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "bookmarkIds": [
+    "{{testBookmarkId1}}",
+    "{{testBookmarkId2}}"
+  ]
+}
+
+
+### Bulk Move Bookmarks to Folder
+POST {{apiBaseUrl}}/bookmarks/bulk/move
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "bookmarkIds": [
+    "{{testBookmarkId1}}",
+    "{{testBookmarkId2}}"
+  ],
+  "folderId": "{{testFolderId}}"
+}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Bookmark ID Format
+GET {{apiBaseUrl}}/bookmarks/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Bookmark Not Found
+GET {{apiBaseUrl}}/bookmarks/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Create Bookmark Without URL
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/bookmarks
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "category": "url",
+  "title": "Test Bookmark"
+}
+
+
+### Test: Create Bookmark with Invalid URL
+POST {{apiBaseUrl}}/bookmarks
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "url": "not-a-valid-url",
+  "category": "url"
+}
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/bookmarks

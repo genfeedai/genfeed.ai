@@ -1,0 +1,70 @@
+### Genfeed API - Blacklists Collection Endpoints
+### Manage blocked content and users
+### Handles: blacklist CRUD, content filtering
+
+########################################
+# List & Filter Blacklists
+########################################
+
+### Get All Blacklisted Items
+GET {{apiBaseUrl}}/elements/blacklists
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter by Type
+GET {{apiBaseUrl}}/elements/blacklists?type=user
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Blacklist Entry
+########################################
+
+### Get Blacklist Entry by ID
+GET {{apiBaseUrl}}/elements/blacklists/{{testBlacklistId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Blacklist Entry
+########################################
+
+### Blacklist User
+POST {{apiBaseUrl}}/elements/blacklists
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "type": "user",
+  "identifier": "user@example.com",
+  "reason": "Spam"
+}
+
+
+### Blacklist Domain
+POST {{apiBaseUrl}}/elements/blacklists
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "type": "domain",
+  "identifier": "spam-domain.com",
+  "reason": "Malicious content"
+}
+
+
+########################################
+# Delete Blacklist Entry
+########################################
+
+### Remove from Blacklist
+DELETE {{apiBaseUrl}}/elements/blacklists/{{testBlacklistId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/elements/blacklists

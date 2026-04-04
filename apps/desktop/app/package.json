@@ -1,0 +1,89 @@
+{
+  "author": "Genfeed.ai",
+  "build": {
+    "afterSign": "scripts/notarize.cjs",
+    "appId": "ai.genfeed.desktop",
+    "artifactName": "Genfeed-Desktop-${version}-${arch}.${ext}",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "extraMetadata": {
+      "main": "dist/main.js"
+    },
+    "files": [
+      "dist/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity",
+      "darkModeSupport": true,
+      "gatekeeperAssess": false,
+      "hardenedRuntime": true,
+      "icon": "build/icon.icns",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "type": "distribution"
+    },
+    "protocols": [
+      {
+        "name": "Genfeed Desktop",
+        "schemes": [
+          "genfeedai-desktop"
+        ]
+      }
+    ]
+  },
+  "dependencies": {
+    "@genfeedai/desktop-shell": "workspace:*",
+    "@sentry/browser": "10.47.0",
+    "better-sqlite3": "12.8.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
+  },
+  "description": "GenFeed Desktop — Electron native app for content creation",
+  "devDependencies": {
+    "@biomejs/biome": "2.4.10",
+    "@electron/notarize": "3.1.1",
+    "@types/node": "25.5.2",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "electron": "41.1.1",
+    "electron-builder": "26.8.1",
+    "esbuild": "0.28.0",
+    "typescript": "5.9.3"
+  },
+  "main": "dist/main.js",
+  "name": "@genfeedai/desktop",
+  "overrides": {
+    "typescript": "5.9.3"
+  },
+  "private": true,
+  "productName": "GenfeedDesktop",
+  "scripts": {
+    "build": "bun run clean && bun run build:main && bun run build:preload && bun run build:renderer && bun run copy:html && bun run copy:assets",
+    "build:main": "bunx esbuild src/main.ts --bundle --platform=node --target=node20 --outfile=dist/main.js --external:electron --external:better-sqlite3 --tsconfig=tsconfig.json",
+    "build:preload": "bunx esbuild src/preload.ts --bundle --platform=node --target=node20 --outfile=dist/preload.js --external:electron --tsconfig=tsconfig.json",
+    "build:release": "bun run build && bun run prepare:release",
+    "build:renderer": "bunx esbuild src/renderer/index.tsx --bundle --platform=browser --target=chrome126 --format=iife --outfile=dist/renderer/renderer.js --loader:.css=css --tsconfig=tsconfig.json --alias:react=../../../node_modules/.bun/react@19.2.4/node_modules/react/index.js --alias:react-dom=../../../node_modules/.bun/react-dom@19.2.4+b1ab299f0a400331/node_modules/react-dom/index.js --alias:react-dom/client=../../../node_modules/.bun/react-dom@19.2.4+b1ab299f0a400331/node_modules/react-dom/client.js --alias:react/jsx-runtime=../../../node_modules/.bun/react@19.2.4/node_modules/react/jsx-runtime.js",
+    "clean": "rm -rf dist",
+    "copy:assets": "mkdir -p dist/assets && cp -r assets/* dist/assets/",
+    "copy:html": "mkdir -p dist/renderer && cp src/renderer/index.html dist/renderer/index.html",
+    "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
+    "dev": "bun run electron:install-binary && bun run native:rebuild && bun run build && electron dist/main.js",
+    "electron:install-binary": "node -e \"require('electron/install.js')\"",
+    "icon:mac": "bash ./scripts/generate-macos-icon.sh",
+    "lint": "biome check ./src",
+    "native:rebuild": "electron-builder install-app-deps",
+    "pack:mac": "bun run electron:install-binary && bun run native:rebuild && bun run build:release && electron-builder --mac --dir --publish never",
+    "prepare:release": "bun run icon:mac",
+    "release:mac": "bun run electron:install-binary && bun run native:rebuild && bun run build:release && electron-builder --mac dmg zip --publish never",
+    "smoke": "bun run electron:install-binary && bun run native:rebuild && bun run build && electron dist/main.js --smoke-test",
+    "start": "bun run electron:install-binary && bun run native:rebuild && electron dist/main.js",
+    "test": "bun test ./src/**/*.test.ts",
+    "type-check": "bunx tsc --noEmit"
+  },
+  "version": "0.1.0"
+}

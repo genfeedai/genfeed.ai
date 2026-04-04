@@ -1,0 +1,146 @@
+### Genfeed API - Votes Collection Endpoints
+### Manage votes and likes on content
+### Handles: voting, unvoting, vote counts
+
+########################################
+# List & Filter Votes
+########################################
+
+### Get All Votes (Paginated)
+GET {{apiBaseUrl}}/votes
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Votes with Pagination
+GET {{apiBaseUrl}}/votes?page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Votes by Entity
+GET {{apiBaseUrl}}/votes?entity={{testIngredientId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Votes by Entity Model
+# Entity models: Ingredient, Post, Comment
+GET {{apiBaseUrl}}/votes?entityModel=Ingredient
+Authorization: Bearer {{bearerToken}}
+
+
+### Get User's Votes
+GET {{apiBaseUrl}}/votes?user={{testUserId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Votes
+GET {{apiBaseUrl}}/votes?sort=-createdAt
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Vote
+########################################
+
+### Get Vote by ID
+GET {{apiBaseUrl}}/votes/{{testVoteId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Vote (Like)
+########################################
+
+### Vote on Ingredient
+POST {{apiBaseUrl}}/votes
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "entity": "{{testIngredientId}}",
+  "entityModel": "Ingredient"
+}
+
+
+### Vote on Post
+POST {{apiBaseUrl}}/votes
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "entity": "{{testPublicationId}}",
+  "entityModel": "Post"
+}
+
+
+########################################
+# Check Vote Status
+########################################
+
+### Check if User Voted
+GET {{apiBaseUrl}}/votes/check?entity={{testIngredientId}}&entityModel=Ingredient
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Vote Count
+########################################
+
+### Get Entity Vote Count
+GET {{apiBaseUrl}}/votes/count?entity={{testIngredientId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Delete Vote (Unlike)
+########################################
+
+### Remove Vote
+DELETE {{apiBaseUrl}}/votes/{{testVoteId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Remove Vote by Entity
+DELETE {{apiBaseUrl}}/votes/entity/{{testIngredientId}}?entityModel=Ingredient
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Vote ID Format
+GET {{apiBaseUrl}}/votes/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Vote Not Found
+GET {{apiBaseUrl}}/votes/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Vote Without Entity
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/votes
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "entityModel": "Ingredient"
+}
+
+
+### Test: Duplicate Vote
+# Should return 400 or handle gracefully
+POST {{apiBaseUrl}}/votes
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "entity": "{{testIngredientId}}",
+  "entityModel": "Ingredient"
+}
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/votes

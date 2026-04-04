@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "outDir": "../dist/apps/api",
+    "paths": {
+      "@api/*": ["./src/*"],
+      "@files/*": ["../files/src/*"],
+      "@libs/*": ["../../../packages/libs/*"]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "test",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/*.e2e-spec.ts"
+  ],
+  "extends": "../tsconfig.json",
+  "include": ["src/**/*", "src/**/*.d.ts"]
+}

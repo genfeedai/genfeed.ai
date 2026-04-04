@@ -1,0 +1,299 @@
+### Genfeed API - Assets Collection Endpoints
+### Manage assets (logos, references, watermarks, avatars)
+### Handles: uploads, AI generation, CRUD operations
+
+########################################
+# List & Filter Assets
+########################################
+
+### Get All Assets (Paginated)
+# Default: page=1, limit=20
+GET {{apiBaseUrl}}/assets
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Assets with Pagination
+GET {{apiBaseUrl}}/assets?page=2&limit=10
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Assets by Category
+# Category values: logo, reference, watermark, avatar, background
+GET {{apiBaseUrl}}/assets?category=logo&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Assets by Parent
+# Get assets associated with a specific parent (brand, ingredient, etc.)
+GET {{apiBaseUrl}}/assets?parent={{testBrandId}}&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Assets by Parent Model
+# ParentModel values: Brand, Ingredient, Organization
+GET {{apiBaseUrl}}/assets?parentModel=Brand&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Assets
+# Sort options: -createdAt (newest), createdAt (oldest)
+GET {{apiBaseUrl}}/assets?sort=-createdAt&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Asset
+########################################
+
+### Get Asset by ID
+# Returns full asset details
+GET {{apiBaseUrl}}/assets/{{testAssetId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Upload Asset
+########################################
+
+### Upload Logo Image
+# Upload a logo for an band
+# Supported formats: jpg, jpeg, png, gif, webp
+POST {{apiBaseUrl}}/assets/upload
+Authorization: Bearer {{bearerToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="logo.png"
+Content-Type: image/png
+
+< /path/to/logo.png
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="category"
+
+logo
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="parent"
+
+{{testBrandId}}
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="parentModel"
+
+Brand
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+### Upload Reference Image
+POST {{apiBaseUrl}}/assets/upload
+Authorization: Bearer {{bearerToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="reference.jpg"
+Content-Type: image/jpeg
+
+< /path/to/reference.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="category"
+
+reference
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="parent"
+
+{{testIngredientId}}
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="parentModel"
+
+Ingredient
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+### Upload Watermark
+POST {{apiBaseUrl}}/assets/upload
+Authorization: Bearer {{bearerToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="watermark.png"
+Content-Type: image/png
+
+< /path/to/watermark.png
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="category"
+
+watermark
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="parent"
+
+{{testBrandId}}
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+########################################
+# Generate Asset with AI
+########################################
+
+### Generate Logo with AI
+# Create a logo using OpenAI DALL-E
+# Requires credits
+POST {{apiBaseUrl}}/assets/generate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "A modern minimalist logo for a tech startup",
+  "category": "logo",
+  "parent": "{{testBrandId}}",
+  "parentModel": "Brand"
+}
+
+
+### Generate Avatar with AI
+POST {{apiBaseUrl}}/assets/generate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "A professional avatar for a business profile",
+  "category": "avatar",
+  "brand": "{{testBrandId}}",
+  "parentModel": "Brand"
+}
+
+
+### Generate Background Image
+POST {{apiBaseUrl}}/assets/generate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "An abstract gradient background in blue and purple",
+  "category": "background",
+  "parent": "{{testBrandId}}",
+  "parentModel": "Brand"
+}
+
+
+########################################
+# Update Asset
+########################################
+
+### Update Asset Metadata
+PATCH {{apiBaseUrl}}/assets/{{testAssetId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Updated Asset Name",
+  "description": "Updated description"
+}
+
+
+### Update Asset Category
+PATCH {{apiBaseUrl}}/assets/{{testAssetId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "category": "watermark"
+}
+
+
+########################################
+# Delete Asset
+########################################
+
+### Delete Asset
+# Soft delete - marks as deleted but keeps in database
+DELETE {{apiBaseUrl}}/assets/{{testAssetId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Asset ID Format
+GET {{apiBaseUrl}}/assets/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Asset Not Found
+GET {{apiBaseUrl}}/assets/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Upload Without File
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/assets/upload
+Authorization: Bearer {{bearerToken}}
+Content-Type: multipart/form-data
+
+
+### Test: Upload Invalid File Type
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/assets/upload
+Authorization: Bearer {{bearerToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="document.pdf"
+Content-Type: application/pdf
+
+< /path/to/document.pdf
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+### Test: Generate Asset Without Prompt
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/assets/generate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "category": "logo"
+}
+
+
+### Test: Invalid Category
+POST {{apiBaseUrl}}/assets/generate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "Test asset",
+  "category": "invalid_category"
+}
+
+
+### Test: Invalid Parent ID
+POST {{apiBaseUrl}}/assets/upload
+Authorization: Bearer {{bearerToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="logo.png"
+Content-Type: image/png
+
+< /path/to/logo.png
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="parent"
+
+invalid-parent-id
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/assets
+
+
+### Test: Generate Asset Without Credits
+# Should fail with insufficient credits error
+POST {{apiBaseUrl}}/assets/generate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "Test logo generation",
+  "category": "logo"
+}

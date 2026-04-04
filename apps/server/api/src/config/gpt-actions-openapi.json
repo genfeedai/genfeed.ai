@@ -1,0 +1,498 @@
+{
+  "components": {
+    "schemas": {
+      "Article": {
+        "properties": {
+          "_id": {
+            "description": "Unique article ID",
+            "type": "string"
+          },
+          "category": {
+            "description": "Article category",
+            "type": "string"
+          },
+          "content": {
+            "description": "Full article content in markdown",
+            "type": "string"
+          },
+          "label": {
+            "description": "Article title",
+            "type": "string"
+          },
+          "publishedAt": {
+            "description": "Publication date",
+            "format": "date-time",
+            "type": "string"
+          },
+          "slug": {
+            "description": "URL-friendly slug",
+            "type": "string"
+          },
+          "status": {
+            "enum": ["DRAFT", "PUBLISHED", "ARCHIVED"],
+            "type": "string"
+          },
+          "summary": {
+            "description": "Brief summary",
+            "type": "string"
+          },
+          "tags": {
+            "description": "Associated tags",
+            "items": {
+              "$ref": "#/components/schemas/Tag"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "Image": {
+        "properties": {
+          "_id": {
+            "description": "Unique image ID",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "height": {
+            "description": "Image height in pixels",
+            "type": "integer"
+          },
+          "label": {
+            "description": "Image title",
+            "type": "string"
+          },
+          "url": {
+            "description": "Image URL",
+            "type": "string"
+          },
+          "width": {
+            "description": "Image width in pixels",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "Pagination": {
+        "properties": {
+          "limit": {
+            "description": "Items per page",
+            "type": "integer"
+          },
+          "page": {
+            "description": "Current page number",
+            "type": "integer"
+          },
+          "pages": {
+            "description": "Total number of pages",
+            "type": "integer"
+          },
+          "total": {
+            "description": "Total number of items",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "Publication": {
+        "properties": {
+          "_id": {
+            "description": "Unique publication ID",
+            "type": "string"
+          },
+          "platform": {
+            "description": "Social media platform",
+            "enum": ["twitter", "linkedin", "instagram", "tiktok", "youtube"],
+            "type": "string"
+          },
+          "publishedAt": {
+            "description": "When the content was published",
+            "format": "date-time",
+            "type": "string"
+          },
+          "status": {
+            "description": "Publication status",
+            "enum": ["DRAFT", "SCHEDULED", "PUBLISHED", "FAILED"],
+            "type": "string"
+          },
+          "url": {
+            "description": "URL to the published content",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "Tag": {
+        "properties": {
+          "_id": {
+            "type": "string"
+          },
+          "backgroundColor": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "textColor": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "Video": {
+        "properties": {
+          "_id": {
+            "description": "Unique video ID",
+            "type": "string"
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "duration": {
+            "description": "Video duration in seconds",
+            "type": "number"
+          },
+          "label": {
+            "description": "Video title",
+            "type": "string"
+          },
+          "thumbnail": {
+            "description": "Thumbnail URL",
+            "type": "string"
+          },
+          "url": {
+            "description": "Video URL",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "bearerFormat": "JWT",
+        "description": "Enter your Genfeed API key. Get one at https://genfeed.ai/settings/organization/api-keys",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "description": "AI-powered content creation platform. Generate viral articles, videos, images, and music. Publish to multiple social media platforms.",
+    "title": "Genfeed AI",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/public/articles": {
+      "get": {
+        "description": "Get a list of published AI-generated articles. Supports search, filtering by tags/categories, and pagination.",
+        "operationId": "listArticles",
+        "parameters": [
+          {
+            "description": "Search term to filter articles by title, summary, or content",
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by tag ID",
+            "in": "query",
+            "name": "tag",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by category",
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Page number (default: 1)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "default": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Items per page (default: 10, max: 100)",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 10,
+              "maximum": 100,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "$ref": "#/components/schemas/Article"
+                      },
+                      "type": "array"
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "List of articles"
+          }
+        },
+        "summary": "List AI-generated articles",
+        "tags": ["Articles"]
+      }
+    },
+    "/public/articles/{id}": {
+      "get": {
+        "description": "Retrieve a specific AI-generated article by its unique identifier",
+        "operationId": "getArticleById",
+        "parameters": [
+          {
+            "description": "Article ID",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Article"
+                }
+              }
+            },
+            "description": "Article details"
+          },
+          "404": {
+            "description": "Article not found"
+          }
+        },
+        "summary": "Get article by ID",
+        "tags": ["Articles"]
+      }
+    },
+    "/public/articles/slug/{slug}": {
+      "get": {
+        "description": "Retrieve an article using its SEO-friendly URL slug",
+        "operationId": "getArticleBySlug",
+        "parameters": [
+          {
+            "description": "Article URL slug",
+            "in": "path",
+            "name": "slug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Article"
+                }
+              }
+            },
+            "description": "Article details"
+          },
+          "404": {
+            "description": "Article not found"
+          }
+        },
+        "summary": "Get article by URL slug",
+        "tags": ["Articles"]
+      }
+    },
+    "/public/images": {
+      "get": {
+        "description": "Get a list of published AI-generated images. Supports pagination and filtering.",
+        "operationId": "listImages",
+        "parameters": [
+          {
+            "description": "Page number (default: 1)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "default": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Items per page (default: 10, max: 100)",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 10,
+              "maximum": 100,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "$ref": "#/components/schemas/Image"
+                      },
+                      "type": "array"
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "List of images"
+          }
+        },
+        "summary": "List AI-generated images",
+        "tags": ["Images"]
+      }
+    },
+    "/public/publications": {
+      "get": {
+        "description": "Get a list of content publications across different platforms (Twitter, LinkedIn, etc.)",
+        "operationId": "listPublications",
+        "parameters": [
+          {
+            "description": "Page number (default: 1)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "default": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Items per page (default: 10, max: 100)",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 10,
+              "maximum": 100,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "$ref": "#/components/schemas/Publication"
+                      },
+                      "type": "array"
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "List of publications"
+          }
+        },
+        "summary": "List publications",
+        "tags": ["Publications"]
+      }
+    },
+    "/public/videos": {
+      "get": {
+        "description": "Get a list of published AI-generated videos. Supports pagination and filtering.",
+        "operationId": "listVideos",
+        "parameters": [
+          {
+            "description": "Page number (default: 1)",
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "default": 1,
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Items per page (default: 10, max: 100)",
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "default": 10,
+              "maximum": 100,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "items": {
+                        "$ref": "#/components/schemas/Video"
+                      },
+                      "type": "array"
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "List of videos"
+          }
+        },
+        "summary": "List AI-generated videos",
+        "tags": ["Videos"]
+      }
+    }
+  },
+  "security": [],
+  "servers": [
+    {
+      "description": "Genfeed Production API",
+      "url": "https://api.genfeed.ai/v1"
+    }
+  ]
+}

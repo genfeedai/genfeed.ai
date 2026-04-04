@@ -1,0 +1,259 @@
+### Genfeed API - Folders Collection Endpoints
+### Manage folder organization for ingredients
+### Handles: folder CRUD, nested folders, moving ingredients
+
+########################################
+# List & Filter Folders
+########################################
+
+### Get All Folders (Paginated)
+GET {{apiBaseUrl}}/folders
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Folders with Pagination
+GET {{apiBaseUrl}}/folders?page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Root Folders Only (No Parent)
+GET {{apiBaseUrl}}/folders?parent=null
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Subfolders of a Parent Folder
+GET {{apiBaseUrl}}/folders?parent={{testFolderId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Folders
+GET {{apiBaseUrl}}/folders?sort=name
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Folder
+########################################
+
+### Get Folder by ID
+GET {{apiBaseUrl}}/folders/{{testFolderId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Folder Contents
+########################################
+
+### Get Folder Ingredients
+# Get all ingredients (images, videos, etc.) in this folder
+GET {{apiBaseUrl}}/folders/{{testFolderId}}/ingredients?page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Folder Ingredients by Category
+GET {{apiBaseUrl}}/folders/{{testFolderId}}/ingredients?category=video
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Folder
+########################################
+
+### Create Root Folder
+POST {{apiBaseUrl}}/folders
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "My Projects",
+  "description": "Main project folder",
+  "color": "#3B82F6"
+}
+
+
+### Create Subfolder
+POST {{apiBaseUrl}}/folders
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Marketing Videos",
+  "description": "Videos for marketing campaigns",
+  "parent": "{{testFolderId}}",
+  "color": "#10B981"
+}
+
+
+### Create Folder with Icon
+POST {{apiBaseUrl}}/folders
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Social Media",
+  "icon": "share",
+  "color": "#8B5CF6"
+}
+
+
+########################################
+# Update Folder
+########################################
+
+### Update Folder Name
+PATCH {{apiBaseUrl}}/folders/{{testFolderId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Updated Folder Name",
+  "description": "Updated description"
+}
+
+
+### Change Folder Color
+PATCH {{apiBaseUrl}}/folders/{{testFolderId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "color": "#EF4444"
+}
+
+
+### Move Folder to Different Parent
+PATCH {{apiBaseUrl}}/folders/{{testFolderId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "parent": "{{newParentFolderId}}"
+}
+
+
+### Make Folder a Root Folder
+PATCH {{apiBaseUrl}}/folders/{{testFolderId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "parent": null
+}
+
+
+########################################
+# Move Ingredients to Folder
+########################################
+
+### Move Single Ingredient to Folder
+POST {{apiBaseUrl}}/folders/{{testFolderId}}/move
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "ingredientId": "{{testIngredientId}}"
+}
+
+
+### Move Multiple Ingredients to Folder
+POST {{apiBaseUrl}}/folders/{{testFolderId}}/move-batch
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "ingredientIds": [
+    "{{testIngredientId1}}",
+    "{{testIngredientId2}}",
+    "{{testIngredientId3}}"
+  ]
+}
+
+
+########################################
+# Delete Folder
+########################################
+
+### Delete Empty Folder
+# Soft delete - only works if folder is empty
+DELETE {{apiBaseUrl}}/folders/{{testFolderId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Delete Folder and Move Contents
+# Move all contents to another folder before deleting
+DELETE {{apiBaseUrl}}/folders/{{testFolderId}}?moveTo={{targetFolderId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Delete Folder and All Contents (Force)
+# WARNING: Deletes folder and all nested contents
+DELETE {{apiBaseUrl}}/folders/{{testFolderId}}?force=true
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Folder ID Format
+GET {{apiBaseUrl}}/folders/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Folder Not Found
+GET {{apiBaseUrl}}/folders/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Create Folder Without Name
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/folders
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "description": "Test folder"
+}
+
+
+### Test: Create Folder with Invalid Parent
+POST {{apiBaseUrl}}/folders
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Test Folder",
+  "parent": "invalid-parent-id"
+}
+
+
+### Test: Create Circular Folder Reference
+# Attempt to make folder its own parent
+PATCH {{apiBaseUrl}}/folders/{{testFolderId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "parent": "{{testFolderId}}"
+}
+
+
+### Test: Delete Non-Empty Folder Without Force
+# Should return 400 or require confirmation
+DELETE {{apiBaseUrl}}/folders/{{nonEmptyFolderId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Move Ingredient to Non-Existent Folder
+POST {{apiBaseUrl}}/folders/507f1f77bcf86cd799439011/move
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "ingredientId": "{{testIngredientId}}"
+}
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/folders

@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "outDir": "../../dist/apps/notifications",
+    "paths": {
+      "@libs/*": ["../../../packages/libs/*"],
+      "@notifications/*": ["./src/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist"],
+  "extends": "../tsconfig.json",
+  "include": ["src/**/*"]
+}

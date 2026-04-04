@@ -1,0 +1,313 @@
+### Genfeed API - Tags Collection Endpoints
+### Manage tags for content organization and search
+### Handles: tag CRUD, tag merging, usage statistics
+
+########################################
+# List & Filter Tags
+########################################
+
+### Get All Tags (Paginated)
+GET {{apiBaseUrl}}/tags
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Tags with Pagination
+GET {{apiBaseUrl}}/tags?page=1&limit=50
+Authorization: Bearer {{bearerToken}}
+
+
+### Search Tags by Name
+GET {{apiBaseUrl}}/tags?search=nature&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Popular Tags
+# Sort by usage count
+GET {{apiBaseUrl}}/tags?sort=-usageCount&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Tags Alphabetically
+GET {{apiBaseUrl}}/tags?sort=name
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Tag
+########################################
+
+### Get Tag by ID
+# Returns tag with usage statistics
+GET {{apiBaseUrl}}/tags/{{testTagId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Tag by Slug
+GET {{apiBaseUrl}}/tags/slug/{{testTagSlug}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Tagged Content
+########################################
+
+### Get Ingredients with Tag
+# Get all ingredients tagged with this tag
+GET {{apiBaseUrl}}/tags/{{testTagId}}/ingredients?page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Videos with Tag
+GET {{apiBaseUrl}}/tags/{{testTagId}}/ingredients?category=video&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Images with Tag
+GET {{apiBaseUrl}}/tags/{{testTagId}}/ingredients?category=image&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Tag
+########################################
+
+### Create New Tag
+POST {{apiBaseUrl}}/tags
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Product Photography",
+  "description": "Images for product showcases",
+  "color": "#3B82F6"
+}
+
+
+### Create Tag with Custom Slug
+POST {{apiBaseUrl}}/tags
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "AI Generated",
+  "slug": "ai-generated",
+  "description": "Content created with AI",
+  "color": "#8B5CF6"
+}
+
+
+### Create Tag Category
+POST {{apiBaseUrl}}/tags
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Marketing",
+  "isCategory": true,
+  "color": "#EF4444"
+}
+
+
+########################################
+# Update Tag
+########################################
+
+### Update Tag Name
+PATCH {{apiBaseUrl}}/tags/{{testTagId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Updated Tag Name",
+  "description": "Updated description"
+}
+
+
+### Change Tag Color
+PATCH {{apiBaseUrl}}/tags/{{testTagId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "color": "#10B981"
+}
+
+
+### Update Tag Slug
+PATCH {{apiBaseUrl}}/tags/{{testTagId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "slug": "new-slug"
+}
+
+
+########################################
+# Tag Operations
+########################################
+
+### Merge Tags
+# Merge source tag into target tag (combines usage)
+POST {{apiBaseUrl}}/tags/merge
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "sourceTagId": "{{testTagId1}}",
+  "targetTagId": "{{testTagId2}}"
+}
+
+
+### Bulk Tag Ingredients
+# Add tag to multiple ingredients at once
+POST {{apiBaseUrl}}/tags/{{testTagId}}/bulk-tag
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "ingredientIds": [
+    "{{testIngredientId1}}",
+    "{{testIngredientId2}}",
+    "{{testIngredientId3}}"
+  ]
+}
+
+
+### Bulk Untag Ingredients
+# Remove tag from multiple ingredients
+POST {{apiBaseUrl}}/tags/{{testTagId}}/bulk-untag
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "ingredientIds": [
+    "{{testIngredientId1}}",
+    "{{testIngredientId2}}"
+  ]
+}
+
+
+########################################
+# Tag Statistics
+########################################
+
+### Get Tag Usage Statistics
+# Returns usage count by category, over time, etc.
+GET {{apiBaseUrl}}/tags/{{testTagId}}/stats
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Tag Usage by Date Range
+GET {{apiBaseUrl}}/tags/{{testTagId}}/stats?startDate=2025-10-01&endDate=2025-10-14
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Tag Suggestions
+########################################
+
+### Get Tag Suggestions for Content
+# AI-powered tag suggestions based on content
+POST {{apiBaseUrl}}/tags/suggest
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "ingredientId": "{{testIngredientId}}"
+}
+
+
+### Get Tag Suggestions from Text
+POST {{apiBaseUrl}}/tags/suggest
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "A beautiful sunset over the mountains with vibrant colors"
+}
+
+
+########################################
+# Delete Tag
+########################################
+
+### Delete Tag
+# Soft delete - removes tag but keeps usage history
+DELETE {{apiBaseUrl}}/tags/{{testTagId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Delete Tag and Remove from All Ingredients
+# Also removes tag associations
+DELETE {{apiBaseUrl}}/tags/{{testTagId}}?removeAssociations=true
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Tag ID Format
+GET {{apiBaseUrl}}/tags/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Tag Not Found
+GET {{apiBaseUrl}}/tags/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Create Tag Without Name
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/tags
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "description": "Test tag"
+}
+
+
+### Test: Create Duplicate Tag
+# Should return 400 if tag with same slug exists
+POST {{apiBaseUrl}}/tags
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Existing Tag Name",
+  "slug": "existing-slug"
+}
+
+
+### Test: Merge Tag Into Itself
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/tags/merge
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "sourceTagId": "{{testTagId}}",
+  "targetTagId": "{{testTagId}}"
+}
+
+
+### Test: Bulk Tag with Empty Array
+POST {{apiBaseUrl}}/tags/{{testTagId}}/bulk-tag
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "ingredientIds": []
+}
+
+
+### Test: Get Tag by Invalid Slug
+GET {{apiBaseUrl}}/tags/slug/non-existent-slug
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/tags

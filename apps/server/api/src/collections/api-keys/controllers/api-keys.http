@@ -1,0 +1,305 @@
+### Genfeed API - API Keys Management
+### Endpoints for creating and managing API keys for external integrations
+### API keys start with 'gf_' prefix and enable external apps to access Genfeed API
+### Requires Clerk JWT authentication
+
+@import ../../../../../../../http/_environment.http
+
+########################################
+# List & Filter API Keys
+########################################
+
+### Get All API Keys
+# Get API keys for current user
+GET {{apiBaseUrl}}/api-keys
+Authorization: Bearer {{bearerToken}}
+
+
+### Get API Keys with Pagination
+GET {{apiBaseUrl}}/api-keys?page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter API Keys by Label
+GET {{apiBaseUrl}}/api-keys?label=Production
+Authorization: Bearer {{bearerToken}}
+
+
+### Get MCP-specific API Keys
+GET {{apiBaseUrl}}/api-keys/mcp
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single API Key
+########################################
+
+### Get API Key by ID
+GET {{apiBaseUrl}}/api-keys/{{apiKeyId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create API Keys with Scopes
+########################################
+
+### Create Full Access API Key
+# All integration scopes enabled
+POST {{apiBaseUrl}}/api-keys
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Production Integration Key",
+  "category": "genfeedai",
+  "description": "Full access key for production integration",
+  "scopes": [
+    "videos:create",
+    "videos:read",
+    "images:create",
+    "images:read",
+    "prompts:create",
+    "prompts:read",
+    "credits:read",
+    "analytics:read"
+  ],
+  "rateLimit": 100
+}
+
+
+### Create Read-Only API Key
+POST {{apiBaseUrl}}/api-keys
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Read-Only Analytics Key",
+  "category": "genfeedai",
+  "description": "Read-only access for monitoring and analytics",
+  "scopes": [
+    "videos:read",
+    "images:read",
+    "credits:read",
+    "analytics:read"
+  ],
+  "rateLimit": 200
+}
+
+
+### Create Video-Only API Key
+POST {{apiBaseUrl}}/api-keys
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Video Generation Key",
+  "category": "genfeedai",
+  "description": "Limited to video generation only",
+  "scopes": [
+    "videos:create",
+    "videos:read"
+  ],
+  "rateLimit": 50
+}
+
+
+### Create Image-Only API Key
+POST {{apiBaseUrl}}/api-keys
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Image Generation Key",
+  "category": "genfeedai",
+  "description": "Limited to image generation only",
+  "scopes": [
+    "images:create",
+    "images:read"
+  ],
+  "rateLimit": 100
+}
+
+
+### Create IP-Restricted API Key
+POST {{apiBaseUrl}}/api-keys
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Office Network Key",
+  "category": "genfeedai",
+  "description": "Restricted to office network IPs",
+  "scopes": [
+    "videos:create",
+    "videos:read"
+  ],
+  "allowedIps": [
+    "192.168.1.0/24",
+    "10.0.0.1"
+  ],
+  "rateLimit": 100
+}
+
+
+### Create MCP Server API Key
+POST {{apiBaseUrl}}/api-keys
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "MCP Server Key",
+  "category": "genfeedai",
+  "description": "Used for Claude MCP server integration",
+  "scopes": [
+    "videos:create",
+    "videos:read",
+    "images:create",
+    "images:read",
+    "analytics:read"
+  ],
+  "rateLimit": 60
+}
+
+
+########################################
+# Update API Key
+########################################
+
+### Update API Key Label
+PATCH {{apiBaseUrl}}/api-keys/{{apiKeyId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Updated Key Label",
+  "description": "Updated description"
+}
+
+
+### Update API Key Scopes
+PATCH {{apiBaseUrl}}/api-keys/{{apiKeyId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "scopes": [
+    "videos:read",
+    "images:read"
+  ]
+}
+
+
+### Update API Key Rate Limit
+PATCH {{apiBaseUrl}}/api-keys/{{apiKeyId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "rateLimit": 200
+}
+
+
+########################################
+# Revoke API Key
+########################################
+
+### Revoke API Key
+# Soft delete - marks key as revoked
+DELETE {{apiBaseUrl}}/api-keys/{{apiKeyId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Validate API Key
+########################################
+
+### Validate API Key
+# Check if an API key is valid and get its metadata
+POST {{apiBaseUrl}}/api-keys/validate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "key": "gf_your_api_key_here"
+}
+
+
+### Validate Invalid Key
+POST {{apiBaseUrl}}/api-keys/validate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "key": "gf_invalid_key"
+}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid API Key ID Format
+GET {{apiBaseUrl}}/api-keys/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: API Key Not Found
+GET {{apiBaseUrl}}/api-keys/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Create API Key Without Label
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/api-keys
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "category": "genfeedai",
+  "scopes": ["videos:read"]
+}
+
+
+### Test: Use Revoked API Key on Integration Endpoint
+# Should return 401 Unauthorized
+GET {{apiBaseUrl}}/integrations/videos
+Authorization: Bearer gf_revoked_key_here
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/api-keys
+
+
+########################################
+# Available Scopes Reference
+########################################
+#
+# Video Operations:
+#   - videos:read    - List and view videos
+#   - videos:create  - Generate new videos
+#   - videos:update  - Update video metadata
+#   - videos:delete  - Delete videos
+#
+# Image Operations:
+#   - images:read    - List and view images
+#   - images:create  - Generate new images
+#   - images:update  - Update image metadata
+#   - images:delete  - Delete images
+#
+# Prompt Operations:
+#   - prompts:read   - List and view prompts
+#   - prompts:create - Create new prompts
+#   - prompts:update - Update prompts
+#   - prompts:delete - Delete prompts
+#
+# Article Operations:
+#   - articles:read   - List and view articles
+#   - articles:create - Create new articles
+#
+# Other:
+#   - brands:read    - View brand information
+#   - credits:read   - View credit balance
+#   - analytics:read - View analytics data
+#   - admin          - Full admin access (all operations)
+########################################

@@ -1,0 +1,52 @@
+
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.bun-debug.log*
+
+# local env files
+.env*.local
+
+out/
+build/
+dist/
+
+# plasmo
+.plasmo
+
+# typescript
+.tsbuildinfo
+
+.env
+
+# IDE - VSCode
+.vscode/*
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.example
+# Note: .vscode/settings.json is personal, use .vscode/settings.json.example as template
+
+# IDE - Cursor
+.cursor/settings.json
+# Note: .cursor/commands/* are team-shared slash commands (committed)
+
+# IDE - Other
+.idea/
+*.swp
+*.swo

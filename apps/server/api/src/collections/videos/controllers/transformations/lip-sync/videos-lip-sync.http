@@ -1,0 +1,55 @@
+@import ../../../../../http/_environment.http
+
+### Create Lip-Sync Video
+# Generates a video where the photo is animated to lip-sync with the audio
+# Frontend page: /lip-sync in Studio app
+POST {{baseUrl}}/videos/lip-sync
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "parent": "{{imageIngredientId}}",
+  "voice": "{{audioIngredientId}}"
+}
+
+### Create Lip-Sync Video - Invalid Image ID
+# Should return 404 Not Found
+POST {{baseUrl}}/videos/lip-sync
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "parent": "000000000000000000000000",
+  "voice": "{{audioIngredientId}}"
+}
+
+### Create Lip-Sync Video - Invalid Audio ID
+# Should return 404 Not Found
+POST {{baseUrl}}/videos/lip-sync
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "parent": "{{imageIngredientId}}",
+  "voice": "000000000000000000000000"
+}
+
+### Create Lip-Sync Video - Missing Fields
+# Should return 400 Bad Request (validation error)
+POST {{baseUrl}}/videos/lip-sync
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "parent": "{{imageIngredientId}}"
+}
+
+### Create Lip-Sync Video - No Auth
+# Should return 401 Unauthorized
+POST {{baseUrl}}/videos/lip-sync
+Content-Type: application/json
+
+{
+  "parent": "{{imageIngredientId}}",
+  "voice": "{{audioIngredientId}}"
+}

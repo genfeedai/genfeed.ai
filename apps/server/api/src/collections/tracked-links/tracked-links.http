@@ -1,0 +1,40 @@
+### Generate Tracking Link
+POST http://localhost:3000/tracking/links
+Content-Type: application/json
+
+{
+  "destinationUrl": "https://genfeed.ai/pricing",
+  "contentId": "{{testVideoId}}",
+  "contentType": "video",
+  "platform": "instagram",
+  "campaignName": "Product Launch",
+  "utm": {
+    "source": "instagram",
+    "medium": "social",
+    "campaign": "product_launch"
+  }
+}
+
+### Get Tracking Link Stats
+GET http://localhost:3000/tracking/links/{{testLinkId}}/stats
+
+### Get All Tracking Links
+GET http://localhost:3000/tracking/links?page=1&limit=20
+
+### Track Click
+POST http://localhost:3000/tracking/track
+Content-Type: application/json
+
+{
+  "linkId": "{{testLinkId}}",
+  "userAgent": "Mozilla/5.0...",
+  "ipAddress": "192.168.1.1",
+  "referrer": "https://instagram.com"
+}
+
+### Get Link Clicks
+GET http://localhost:3000/tracking/links/{{testLinkId}}/clicks?page=1&limit=20
+
+### Delete Tracking Link
+DELETE http://localhost:3000/tracking/links/{{testLinkId}}
+

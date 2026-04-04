@@ -1,0 +1,67 @@
+### Genfeed API - Presets Collection Endpoints
+### Manage generation presets
+### Handles: preset CRUD, preset templates
+
+########################################
+# List & Filter Presets
+########################################
+
+### Get All Presets (Paginated)
+GET {{apiBaseUrl}}/presets
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Presets by Type
+GET {{apiBaseUrl}}/presets?type=video
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Default Presets
+GET {{apiBaseUrl}}/presets?isDefault=true
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Preset
+########################################
+
+### Get Preset by ID
+GET {{apiBaseUrl}}/presets/{{testPresetId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Preset
+########################################
+
+### Create Custom Preset
+POST {{apiBaseUrl}}/presets
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "My Video Preset",
+  "type": "video",
+  "config": {
+    "width": 1920,
+    "height": 1080,
+    "duration": 5
+  }
+}
+
+
+########################################
+# Delete Preset
+########################################
+
+### Delete Preset
+DELETE {{apiBaseUrl}}/presets/{{testPresetId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/presets

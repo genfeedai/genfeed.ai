@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Official Replicate API schema for topazlabs/video-upscale",
+  "properties": {
+    "target_fps": {
+      "default": 60,
+      "description": "Target FPS (choose from 15fps to 120fps)",
+      "maximum": 120,
+      "minimum": 15,
+      "title": "Target Fps",
+      "type": "integer",
+      "x-order": 2
+    },
+    "target_resolution": {
+      "description": "An enumeration.",
+      "enum": ["720p", "1080p", "4k"],
+      "title": "target_resolution",
+      "type": "string"
+    },
+    "video": {
+      "description": "Video file to upscale",
+      "format": "uri",
+      "title": "Video",
+      "type": "string",
+      "x-order": 0
+    }
+  },
+  "required": ["video"],
+  "title": "video-upscale Input Schema",
+  "type": "object"
+}

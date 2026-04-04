@@ -1,0 +1,17 @@
+import { runPageModuleTests } from '@shared/pages/pageTestUtils';
+import { render, screen } from '@testing-library/react';
+import LibraryVoicesRoute, * as PageModule from './page';
+
+vi.mock('@pages/library/voices/library-voices-page', () => ({
+  default: () => <div data-testid="library-voices-page" />,
+}));
+
+runPageModuleTests('apps/app/app/(protected)/library/voices/page', PageModule);
+
+describe('LibraryVoicesRoute', () => {
+  it('renders the shared library voices page', () => {
+    render(<LibraryVoicesRoute />);
+
+    expect(screen.getByTestId('library-voices-page')).toBeInTheDocument();
+  });
+});

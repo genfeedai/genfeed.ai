@@ -1,0 +1,57 @@
+### Genfeed API - Reddit Integration Endpoints
+### Manage Reddit posting and subreddits
+### Handles: OAuth, posting, subreddits
+
+########################################
+# Authentication
+########################################
+
+### Reddit OAuth Callback
+GET {{apiBaseUrl}}/integrations/reddit/callback?code={{authCode}}
+
+
+########################################
+# Subreddits
+########################################
+
+### Get User Subreddits
+GET {{apiBaseUrl}}/integrations/reddit/subreddits
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Posts
+########################################
+
+### Submit Post to Reddit
+POST {{apiBaseUrl}}/integrations/reddit/submit
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "subreddit": "programming",
+  "title": "Interesting Article",
+  "url": "https://example.com/article",
+  "kind": "link"
+}
+
+
+### Submit Text Post
+POST {{apiBaseUrl}}/integrations/reddit/submit
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "subreddit": "AskReddit",
+  "title": "What's your favorite programming language?",
+  "text": "I'm curious to know what everyone prefers and why.",
+  "kind": "self"
+}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/integrations/reddit/subreddits

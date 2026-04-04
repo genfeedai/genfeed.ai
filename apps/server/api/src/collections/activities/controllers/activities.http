@@ -1,0 +1,109 @@
+### Genfeed API - Activities Collection Endpoints
+### Manage activity logs and audit trail
+### Handles: activity tracking, filtering, analytics
+
+########################################
+# List & Filter Activities
+########################################
+
+### Get All Activities (Paginated)
+GET {{apiBaseUrl}}/activities
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Activities with Pagination
+GET {{apiBaseUrl}}/activities?page=1&limit=50
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Activities by Key
+# Key values: image_generated, video_generated, user_login, etc.
+GET {{apiBaseUrl}}/activities?key=image_generated
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Activities by Source
+# Source values: web, api, mobile, script
+GET {{apiBaseUrl}}/activities?source=web
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Activities by User
+GET {{apiBaseUrl}}/activities?user={{testUserId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Activities by Date Range
+GET {{apiBaseUrl}}/activities?startDate=2025-10-01&endDate=2025-10-14
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Activities
+GET {{apiBaseUrl}}/activities?sort=-createdAt
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Activity
+########################################
+
+### Get Activity by ID
+GET {{apiBaseUrl}}/activities/{{testActivityId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Activity (Manual Log)
+########################################
+
+### Create Activity Log
+POST {{apiBaseUrl}}/activities
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "key": "custom_event",
+  "source": "api",
+  "value": "event_data",
+  "metadata": {
+    "details": "Additional event information"
+  }
+}
+
+
+########################################
+# Activity Statistics
+########################################
+
+### Get Activity Stats
+GET {{apiBaseUrl}}/activities/stats
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Activity Stats by Date Range
+GET {{apiBaseUrl}}/activities/stats?startDate=2025-10-01&endDate=2025-10-14
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Activity Stats by Key
+GET {{apiBaseUrl}}/activities/stats?groupBy=key
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Activity ID Format
+GET {{apiBaseUrl}}/activities/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Activity Not Found
+GET {{apiBaseUrl}}/activities/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/activities

@@ -1,0 +1,49 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "lib": ["ES2022"],
+    "outDir": "../../dist/apps/api",
+    "paths": {
+      "@api-root/*": ["./*"],
+      "@api-scripts/*": ["./scripts/*"],
+      "@api-test/*": ["./test/*"],
+      "@api-types/*": ["../../../../packages/api-types/src/*"],
+      "@api/*": ["./src/*"],
+      "@cloud-types/*": ["../../../packages/types/src/*"],
+      "@genfeedai/agent": ["../../../packages/agent/src/index.ts"],
+      "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
+      "@genfeedai/config": ["../../../packages/config/src/index.ts"],
+      "@genfeedai/integrations": [
+        "../../../packages/integration-common/src/index.ts"
+      ],
+      "@genfeedai/interfaces": [
+        "../../../../packages/interfaces/src/index.ts.d.ts"
+      ],
+      "@genfeedai/interfaces/*": ["../../../../packages/interfaces/src/*"],
+      "@genfeedai/serializers": ["../../../packages/serializers/src/index.ts"],
+      "@genfeedai/serializers/*": ["../../../packages/serializers/src/*"],
+      "@genfeedai/types": ["../../../packages/types/src/index.ts"],
+      "@genfeedai/types/*": ["../../../packages/types/src/*"],
+      "@genfeedai/workflow-engine": [
+        "../../../packages/workflow-engine/src/index.ts"
+      ],
+      "@genfeedai/workflow-saas": ["../../../packages/workflow-saas/src/index.ts"],
+      "@config/*": ["../../../packages/config/src/*"],
+      "@files/*": ["../files/src/*"],
+      "@genfeedai/constants": ["../../../packages/constants/dist/index"],
+      "@genfeedai/constants/*": ["../../../packages/constants/dist/*"],
+      "@genfeedai/enums": ["../../../packages/enums/dist/index"],
+      "@genfeedai/enums/*": ["../../../packages/enums/dist/*"],
+      "@helpers/*": ["../../../packages/helpers/src/*"],
+      "@libs/*": ["../../../packages/libs/*"],
+      "@serializers/*": ["../../../packages/serializers/src/*"],
+      "@workflow-cloud/*": ["../../../packages/workflow-cloud/src/*"],
+      "@workflow-engine/*": ["../../../packages/workflow-engine/src/*"],
+      "@workflow-saas/*": ["../../../packages/workflow-saas/src/*"]
+    },
+    "types": ["node", "vitest/globals"]
+  },
+  "exclude": ["node_modules", "dist"],
+  "extends": "../tsconfig.json",
+  "include": ["src/**/*"]
+}

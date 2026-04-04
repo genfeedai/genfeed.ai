@@ -1,0 +1,360 @@
+### Genfeed API - Bots Collection Endpoints
+### Manage automated bots and AI agents
+### Handles: bot configuration, triggers, execution, monitoring
+
+########################################
+# List & Filter Bots
+########################################
+
+### Get All Bots (Paginated)
+# Default: page=1, limit=20
+GET {{apiBaseUrl}}/bots
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Bots with Pagination
+GET {{apiBaseUrl}}/bots?page=2&limit=10
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Bots by Status
+# Status values: draft, active, paused, failed
+GET {{apiBaseUrl}}/bots?status=active&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Bots by Type
+# Type values: content-generator, auto-responder, scheduler, monitor
+GET {{apiBaseUrl}}/bots?type=content-generator&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Bots
+# Sort options: -createdAt (newest), createdAt (oldest), -lastRunAt
+GET {{apiBaseUrl}}/bots?sort=-createdAt&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Bot
+########################################
+
+### Get Bot by ID
+# Returns full bot configuration and statistics
+GET {{apiBaseUrl}}/bots/{{testBotId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Bots
+########################################
+
+### Create Content Generator Bot
+POST {{apiBaseUrl}}/bots
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Daily Quote Bot",
+  "description": "Generates daily motivational quotes",
+  "type": "content-generator",
+  "triggers": [
+    {
+      "type": "schedule",
+      "config": {
+        "frequency": "daily",
+        "time": "09:00"
+      }
+    }
+  ],
+  "actions": [
+    {
+      "type": "generate_image",
+      "params": {
+        "prompt": "Motivational quote with inspiring background",
+        "model": "gpt-image-1"
+      }
+    },
+    {
+      "type": "publish",
+      "params": {
+        "platforms": ["twitter", "instagram"]
+      }
+    }
+  ]
+}
+
+
+### Create Auto-Responder Bot
+POST {{apiBaseUrl}}/bots
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Twitter Reply Bot",
+  "description": "Automatically responds to mentions",
+  "type": "auto-responder",
+  "triggers": [
+    {
+      "type": "mention",
+      "config": {
+        "platform": "twitter",
+        "keywords": ["help", "support", "question"]
+      }
+    }
+  ],
+  "actions": [
+    {
+      "type": "generate_reply",
+      "params": {
+        "tone": "helpful",
+        "maxLength": 280
+      }
+    }
+  ]
+}
+
+
+### Create Scheduler Bot
+POST {{apiBaseUrl}}/bots
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Content Scheduler Bot",
+  "description": "Schedules and publishes content",
+  "type": "scheduler",
+  "triggers": [
+    {
+      "type": "schedule",
+      "config": {
+        "frequency": "hourly",
+        "interval": 3
+      }
+    }
+  ],
+  "actions": [
+    {
+      "type": "publish_queue",
+      "params": {
+        "queueId": "{{testQueueId}}"
+      }
+    }
+  ]
+}
+
+
+### Create Monitor Bot
+POST {{apiBaseUrl}}/bots
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Engagement Monitor Bot",
+  "description": "Monitors social media engagement",
+  "type": "monitor",
+  "triggers": [
+    {
+      "type": "webhook",
+      "config": {
+        "url": "https://api.example.com/webhook",
+        "events": ["new_comment", "new_mention"]
+      }
+    }
+  ],
+  "actions": [
+    {
+      "type": "notify",
+      "params": {
+        "channel": "email",
+        "recipients": ["user@example.com"]
+      }
+    }
+  ]
+}
+
+
+########################################
+# Update Bots
+########################################
+
+### Update Bot Configuration
+PATCH {{apiBaseUrl}}/bots/{{testBotId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Updated Bot Name",
+  "description": "Updated description"
+}
+
+
+### Activate Bot
+PATCH {{apiBaseUrl}}/bots/{{testBotId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "status": "active"
+}
+
+
+### Pause Bot
+PATCH {{apiBaseUrl}}/bots/{{testBotId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "status": "paused"
+}
+
+
+### Update Bot Triggers
+PATCH {{apiBaseUrl}}/bots/{{testBotId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "triggers": [
+    {
+      "type": "schedule",
+      "config": {
+        "frequency": "weekly",
+        "dayOfWeek": "monday"
+      }
+    }
+  ]
+}
+
+
+########################################
+# Execute Bots
+########################################
+
+### Manually Execute Bot
+# Run bot immediately (ignores triggers)
+POST {{apiBaseUrl}}/bots/{{testBotId}}/execute
+Authorization: Bearer {{bearerToken}}
+
+
+### Execute Bot with Test Mode
+# Run in test mode without publishing
+POST {{apiBaseUrl}}/bots/{{testBotId}}/execute
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "testMode": true
+}
+
+
+########################################
+# Bot Statistics
+########################################
+
+### Get Bot Execution Stats
+# View execution history and performance metrics
+GET {{apiBaseUrl}}/bots/{{testBotId}}/stats
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Bot Execution Logs
+# View detailed logs of bot executions
+GET {{apiBaseUrl}}/bots/{{testBotId}}/logs?page=1&limit=50
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Delete Bot
+########################################
+
+### Delete Bot
+# Soft delete - marks as deleted but keeps execution history
+DELETE {{apiBaseUrl}}/bots/{{testBotId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Bot ID Format
+GET {{apiBaseUrl}}/bots/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Bot Not Found
+GET {{apiBaseUrl}}/bots/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Create Bot Without Triggers
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/bots
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Test Bot",
+  "type": "content-generator",
+  "triggers": []
+}
+
+
+### Test: Create Bot Without Actions
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/bots
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Test Bot",
+  "type": "content-generator",
+  "actions": []
+}
+
+
+### Test: Invalid Bot Type
+POST {{apiBaseUrl}}/bots
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Test Bot",
+  "type": "invalid_type",
+  "triggers": [],
+  "actions": []
+}
+
+
+### Test: Invalid Trigger Type
+POST {{apiBaseUrl}}/bots
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Test Bot",
+  "type": "content-generator",
+  "triggers": [
+    {
+      "type": "invalid_trigger"
+    }
+  ],
+  "actions": []
+}
+
+
+### Test: Execute Non-Existent Bot
+POST {{apiBaseUrl}}/bots/507f1f77bcf86cd799439011/execute
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Execute Paused Bot
+# Should return 400 or warning
+POST {{apiBaseUrl}}/bots/{{testPausedBotId}}/execute
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/bots

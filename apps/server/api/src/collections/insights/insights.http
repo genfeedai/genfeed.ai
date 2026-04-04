@@ -1,0 +1,194 @@
+### Insights API Test Suite
+### Base URL: http://localhost:3000/insights
+### Auth: Bearer token required (Clerk JWT)
+
+### Variables
+@baseUrl = http://localhost:3000
+@token = your_clerk_jwt_token_here
+
+### 1. Get trend forecasts (30/60/90 days)
+POST {{baseUrl}}/insights/forecast
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "metrics": ["engagement", "followers", "clicks"],
+  "period": "30d"
+}
+
+### Example Response:
+### [
+###   {
+###     "metric": "engagement",
+###     "currentValue": 1000,
+###     "trend": "increasing",
+###     "predictions": [
+###       {
+###         "date": "2025-11-08",
+###         "value": 1200,
+###         "confidence": 85,
+###         "range": { "min": 1100, "max": 1300 }
+###       }
+###     ],
+###     "confidence": 80,
+###     "factors": ["Consistent posting schedule", "High engagement rate"]
+###   }
+### ]
+
+### 2. Get AI-generated insights
+GET {{baseUrl}}/insights?limit=5
+Authorization: Bearer {{token}}
+
+### Example Response:
+### [
+###   {
+###     "type": "opportunity",
+###     "title": "Leverage trending audio",
+###     "description": "Your niche has 3 trending audio tracks with 10M+ uses",
+###     "impact": "high",
+###     "confidence": 85,
+###     "actionableSteps": [
+###       "Create content using trending audio #1",
+###       "Post within next 48 hours while trending"
+###     ],
+###     "relatedMetrics": ["engagement", "reach"]
+###   }
+### ]
+
+### 3. Predict viral potential
+POST {{baseUrl}}/insights/viral
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "content": "Behind the scenes of how we built our product! Watch till the end for a surprise 👀",
+  "contentType": "video",
+  "platform": "tiktok"
+}
+
+### Example Response:
+### {
+###   "score": 82,
+###   "probability": 15,
+###   "estimatedReach": { "min": 50000, "max": 200000 },
+###   "factors": [
+###     {
+###       "factor": "Strong hook in first 3 seconds",
+###       "impact": 30,
+###       "description": "Grabs attention immediately"
+###     },
+###     {
+###       "factor": "Behind-the-scenes content",
+###       "impact": 25,
+###       "description": "High engagement in your niche"
+###     }
+###   ],
+###   "recommendations": [
+###     "Post during peak hours (6-9 PM)",
+###     "Use trending audio for 2x boost",
+###     "Add text overlay for accessibility"
+###   ]
+### }
+
+### 4. Get content gap analysis
+GET {{baseUrl}}/insights/gaps
+Authorization: Bearer {{token}}
+
+### Example Response:
+### {
+###   "missingTopics": [
+###     "Behind-the-scenes content",
+###     "Product tutorials",
+###     "Customer success stories"
+###   ],
+###   "opportunityAreas": [
+###     {
+###       "area": "Educational content",
+###       "potential": 85,
+###       "competition": "medium",
+###       "recommendations": [
+###         "Create how-to guides",
+###         "Share expert tips",
+###         "Answer common questions"
+###       ]
+###     }
+###   ],
+###   "underservedAudiences": [
+###     "Beginners in your niche",
+###     "Advanced users looking for tips"
+###   ]
+### }
+
+### 5. Get optimal posting times
+GET {{baseUrl}}/insights/times?platform=instagram&timezone=America/New_York
+Authorization: Bearer {{token}}
+
+### Example Response:
+### {
+###   "recommendedTimes": [
+###     {
+###       "day": "Monday",
+###       "time": "09:00 AM",
+###       "confidence": 85,
+###       "reason": "Peak morning engagement for professionals"
+###     },
+###     {
+###       "day": "Wednesday",
+###       "time": "02:00 PM",
+###       "confidence": 80,
+###       "reason": "Afternoon break time, high scroll activity"
+###     }
+###   ],
+###   "timezone": "America/New_York"
+### }
+
+### 6. Get audience growth prediction
+GET {{baseUrl}}/insights/growth?platform=instagram
+Authorization: Bearer {{token}}
+
+### Example Response:
+### {
+###   "currentFollowers": 1000,
+###   "predictedGrowth": {
+###     "30d": 1200,
+###     "60d": 1500,
+###     "90d": 2000
+###   },
+###   "growthRate": 20,
+###   "trend": "steady",
+###   "recommendations": [
+###     "Post 3-5x per week for consistent growth",
+###     "Engage with comments within first hour",
+###     "Use trending hashtags in your niche",
+###     "Collaborate with similar accounts"
+###   ]
+### }
+
+### Full workflow example
+### Step 1: Get forecasts
+# @name getForecasts
+POST {{baseUrl}}/insights/forecast
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "metrics": ["engagement", "followers"],
+  "period": "30d"
+}
+
+### Step 2: Check viral potential before posting
+POST {{baseUrl}}/insights/viral
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "content": "Your amazing content here",
+  "contentType": "video",
+  "platform": "tiktok"
+}
+
+### Step 3: Get best posting time
+GET {{baseUrl}}/insights/times?platform=tiktok&timezone=UTC
+Authorization: Bearer {{token}}
+
+

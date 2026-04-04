@@ -1,0 +1,175 @@
+### Genfeed API - Members Collection Endpoints
+### Manage organization members and team collaboration
+### Handles: member list, member details, roles
+
+########################################
+# List & Filter Members
+########################################
+
+### Get All Members (Paginated)
+# Get members for current user's organization
+# Default: page=1, limit=20
+GET {{apiBaseUrl}}/members
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Members with Pagination
+GET {{apiBaseUrl}}/members?page=2&limit=10
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Members
+# Sort options: -createdAt (newest), createdAt (oldest), name
+GET {{apiBaseUrl}}/members?sort=-createdAt
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Members by Role
+GET {{apiBaseUrl}}/members?role=admin
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Member
+########################################
+
+### Get Member by ID
+# Returns full member details
+GET {{apiBaseUrl}}/members/{{testMemberId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Member (Invite)
+########################################
+
+### Invite New Member to Organization
+POST {{apiBaseUrl}}/members
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "email": "newmember@example.com",
+  "role": "member",
+  "permissions": ["read", "write"]
+}
+
+
+### Invite Member as Admin
+POST {{apiBaseUrl}}/members
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "email": "admin@example.com",
+  "role": "admin",
+  "permissions": ["read", "write", "delete", "manage_members"]
+}
+
+
+########################################
+# Update Member
+########################################
+
+### Update Member Role
+PATCH {{apiBaseUrl}}/members/{{testMemberId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "role": "admin"
+}
+
+
+### Update Member Permissions
+PATCH {{apiBaseUrl}}/members/{{testMemberId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "permissions": ["read", "write", "publish"]
+}
+
+
+### Deactivate Member
+PATCH {{apiBaseUrl}}/members/{{testMemberId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "status": "inactive"
+}
+
+
+########################################
+# Delete Member (Remove from Organization)
+########################################
+
+### Remove Member from Organization
+# Soft delete - removes member but keeps audit trail
+DELETE {{apiBaseUrl}}/members/{{testMemberId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Member ID Format
+GET {{apiBaseUrl}}/members/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Member Not Found
+GET {{apiBaseUrl}}/members/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Invite Member Without Email
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/members
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "role": "member"
+}
+
+
+### Test: Invite Member with Invalid Email
+POST {{apiBaseUrl}}/members
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "email": "invalid-email",
+  "role": "member"
+}
+
+
+### Test: Duplicate Member Invitation
+# Should return 400 if member already exists
+POST {{apiBaseUrl}}/members
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "email": "existing@example.com",
+  "role": "member"
+}
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/members
+
+
+### Test: Update Member Without Permission
+# Should return 403 if user doesn't have manage_members permission
+PATCH {{apiBaseUrl}}/members/{{testMemberId}}
+Authorization: Bearer {{limitedPermissionsToken}}
+Content-Type: application/json
+
+{
+  "role": "admin"
+}

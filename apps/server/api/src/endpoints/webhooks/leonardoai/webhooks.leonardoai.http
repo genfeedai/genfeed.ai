@@ -1,0 +1,156 @@
+### Genfeed API - LeonardoAI Webhook Endpoint
+### This endpoint is PUBLIC but validates IP address
+
+@import ../../../../../http/_environment.http
+
+########################################
+# LeonardoAI Webhooks
+########################################
+
+### LeonardoAI Image Generation Complete
+# Receives notification when LeonardoAI image generation completes
+# IP whitelist: 35.173.108.170, 34.239.69.60, 52.73.75.186, 3.229.99.26, 44.218.0.197, 174.129.230.221
+POST {{baseUrl}}/webhooks/leonardoai/callback
+Content-Type: application/json
+x-forwarded-for: 35.173.108.170
+
+{
+  "type": "image-generation.complete",
+  "data": {
+    "object": {
+      "id": "gen_abc123",
+      "images": [
+        {
+          "generationId": "gen_abc123",
+          "url": "https://example.com/images/leonardo1.jpg",
+          "id": "img_abc123"
+        },
+        {
+          "generationId": "gen_abc123",
+          "url": "https://example.com/images/leonardo2.jpg",
+          "id": "img_abc124"
+        }
+      ],
+      "status": "COMPLETE"
+    }
+  }
+}
+
+
+### LeonardoAI with Custom ID (Metadata)
+# Processes metadata-based webhook with customId
+POST {{baseUrl}}/webhooks/leonardoai/callback
+Content-Type: application/json
+x-forwarded-for: 34.239.69.60
+
+{
+  "customId": "metadata_{{testExternalId}}",
+  "type": "image-generation.complete",
+  "data": {
+    "object": {
+      "id": "gen_custom123",
+      "images": [
+        {
+          "generationId": "gen_custom123",
+          "url": "https://example.com/images/custom.jpg",
+          "id": "img_custom123"
+        }
+      ],
+      "status": "COMPLETE"
+    }
+  }
+}
+
+
+### LeonardoAI Multiple Images
+POST {{baseUrl}}/webhooks/leonardoai/callback
+Content-Type: application/json
+x-forwarded-for: 52.73.75.186
+
+{
+  "type": "image-generation.complete",
+  "data": {
+    "object": {
+      "id": "gen_multi123",
+      "images": [
+        {
+          "generationId": "gen_multi123",
+          "url": "https://example.com/images/leonardo-1.jpg",
+          "id": "img_1"
+        },
+        {
+          "generationId": "gen_multi123",
+          "url": "https://example.com/images/leonardo-2.jpg",
+          "id": "img_2"
+        },
+        {
+          "generationId": "gen_multi123",
+          "url": "https://example.com/images/leonardo-3.jpg",
+          "id": "img_3"
+        },
+        {
+          "generationId": "gen_multi123",
+          "url": "https://example.com/images/leonardo-4.jpg",
+          "id": "img_4"
+        }
+      ],
+      "status": "COMPLETE"
+    }
+  }
+}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Unauthorized IP Address
+# Should fail with error (not in whitelist)
+POST {{baseUrl}}/webhooks/leonardoai/callback
+Content-Type: application/json
+x-forwarded-for: 192.168.1.1
+
+{
+  "type": "image-generation.complete",
+  "data": {
+    "object": {
+      "id": "gen_test",
+      "images": []
+    }
+  }
+}
+
+
+### Test: Missing Images
+POST {{baseUrl}}/webhooks/leonardoai/callback
+Content-Type: application/json
+x-forwarded-for: 35.173.108.170
+
+{
+  "type": "image-generation.complete",
+  "data": {
+    "object": {
+      "id": "gen_test",
+      "images": [],
+      "status": "COMPLETE"
+    }
+  }
+}
+
+
+### Test: Different Event Type
+POST {{baseUrl}}/webhooks/leonardoai/callback
+Content-Type: application/json
+x-forwarded-for: 35.173.108.170
+
+{
+  "type": "image-generation.failed",
+  "data": {
+    "object": {
+      "id": "gen_failed",
+      "error": "Generation failed"
+    }
+  }
+}
+
+

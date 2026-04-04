@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Official Replicate API schema for kwaivgi/kling-v2.1",
+  "properties": {
+    "duration": {
+      "description": "An enumeration.",
+      "enum": [5, 10],
+      "title": "duration",
+      "type": "integer"
+    },
+    "end_image": {
+      "description": "Last frame of the video (pro mode is required when this parameter is set)",
+      "format": "uri",
+      "nullable": true,
+      "title": "End Image",
+      "type": "string"
+    },
+    "mode": {
+      "description": "An enumeration.",
+      "enum": ["standard", "pro"],
+      "title": "mode",
+      "type": "string"
+    },
+    "negative_prompt": {
+      "default": "",
+      "description": "Things you do not want to see in the video",
+      "title": "Negative Prompt",
+      "type": "string"
+    },
+    "prompt": {
+      "description": "Text prompt for video generation",
+      "title": "Prompt",
+      "type": "string"
+    },
+    "start_image": {
+      "description": "First frame of the video. You must use a start image with kling-v2.1.",
+      "format": "uri",
+      "title": "Start Image",
+      "type": "string"
+    }
+  },
+  "required": ["prompt", "start_image"],
+  "title": "kling-v2.1 Input Schema",
+  "type": "object"
+}

@@ -1,0 +1,27 @@
+{
+  "dependencies": {
+    "@genfeedai/config": "workspace:*"
+  },
+  "description": "Genfeed Images Service",
+  "devDependencies": {},
+  "main": "../dist/apps/images/main.js",
+  "name": "@genfeedai/images",
+  "private": true,
+  "scripts": {
+    "build": "cd .. && nest build images",
+    "build:prod": "cd .. && nest build images && cd images && if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps || true; fi",
+    "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
+    "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start images --watch",
+    "lint": "biome lint --write src",
+    "sentry:inject": "sentry-cli sourcemaps inject --org genfeedai --project images-genfeed-ai ../dist",
+    "sentry:sourcemaps": "bun run sentry:inject && bun run sentry:upload",
+    "sentry:upload": "sentry-cli sourcemaps upload --org genfeedai --project images-genfeed-ai ../dist",
+    "start": "cd .. && nest start images",
+    "start:debug": "cd .. && nest start images --debug --watch",
+    "start:dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start images --watch",
+    "start:prod": "node -r tsconfig-paths/register --max-old-space-size=8192 --expose-gc ../dist/apps/images/main",
+    "test": "echo 'No tests yet'",
+    "test:cov": "echo 'No tests yet'"
+  },
+  "version": "1.0.0"
+}

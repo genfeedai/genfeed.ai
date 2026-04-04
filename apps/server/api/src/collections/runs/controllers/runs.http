@@ -1,0 +1,149 @@
+### Genfeed API - Runs Endpoints
+### Manage workflow/task runs: create, execute, cancel, track events
+### Protected by authentication with scope requirements
+
+########################################
+# Create & List Runs
+########################################
+
+### Create a New Run
+POST {{apiBaseUrl}}/runs
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "type": "video_generation",
+  "input": {
+    "prompt": "A serene mountain landscape at sunset",
+    "model": "klingai-v2",
+    "width": 1920,
+    "height": 1080
+  },
+  "traceId": "custom-trace-id-123"
+}
+
+
+### Create Run with Correlation ID
+POST {{apiBaseUrl}}/runs
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+X-Trace-ID: external-trace-abc-123
+
+{
+  "type": "image_generation",
+  "input": {
+    "prompt": "Professional product photo on white background",
+    "model": "flux-1.1-pro"
+  },
+  "correlationId": "batch-job-456"
+}
+
+
+### List All Runs
+GET {{apiBaseUrl}}/runs
+Authorization: Bearer {{bearerToken}}
+
+
+### List Runs with Filters
+GET {{apiBaseUrl}}/runs?status=running&type=video_generation&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Single Run Operations
+########################################
+
+### Get Run by ID
+GET {{apiBaseUrl}}/runs/{{testRunId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Update Run Status/Output
+PATCH {{apiBaseUrl}}/runs/{{testRunId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "status": "completed",
+  "progress": 100,
+  "output": {
+    "videoUrl": "https://cdn.genfeed.ai/videos/abc123.mp4",
+    "thumbnailUrl": "https://cdn.genfeed.ai/thumbnails/abc123.jpg"
+  }
+}
+
+
+### Execute Run (Start Processing)
+POST {{apiBaseUrl}}/runs/{{testRunId}}/execute
+Authorization: Bearer {{bearerToken}}
+
+
+### Cancel Run
+POST {{apiBaseUrl}}/runs/{{testRunId}}/cancel
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Run Events
+########################################
+
+### Get Run Events
+GET {{apiBaseUrl}}/runs/{{testRunId}}/events
+Authorization: Bearer {{bearerToken}}
+
+
+### Append Event to Run
+POST {{apiBaseUrl}}/runs/{{testRunId}}/events
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "type": "progress",
+  "data": {
+    "step": "rendering",
+    "progress": 45,
+    "message": "Rendering frame 450/1000"
+  }
+}
+
+
+### Append Error Event
+POST {{apiBaseUrl}}/runs/{{testRunId}}/events
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "type": "error",
+  "data": {
+    "code": "RENDER_FAILED",
+    "message": "GPU memory exceeded during rendering"
+  }
+}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Run Not Found
+GET {{apiBaseUrl}}/runs/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Create Run Without Required Fields
+POST {{apiBaseUrl}}/runs
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "input": {}
+}
+
+
+### Test: Cancel Already Completed Run
+POST {{apiBaseUrl}}/runs/{{testRunId}}/cancel
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/runs

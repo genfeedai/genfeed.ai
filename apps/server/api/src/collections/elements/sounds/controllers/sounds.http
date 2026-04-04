@@ -1,0 +1,78 @@
+### Genfeed API - Sounds Collection Endpoints
+### Manage sound effects and audio clips
+### Handles: sound CRUD, sound library
+
+########################################
+# List & Filter Sounds
+########################################
+
+### Get All Sounds (Paginated)
+GET {{apiBaseUrl}}/elements/sounds
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Sounds with Pagination
+GET {{apiBaseUrl}}/elements/sounds?page=1&limit=50
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Sounds by Category
+GET {{apiBaseUrl}}/elements/sounds?category=ambient
+Authorization: Bearer {{bearerToken}}
+
+
+### Search Sounds
+GET {{apiBaseUrl}}/elements/sounds?search=rain
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Sounds
+GET {{apiBaseUrl}}/elements/sounds?sort=-usageCount
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Sound
+########################################
+
+### Get Sound by ID
+GET {{apiBaseUrl}}/elements/sounds/{{testSoundId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Sound
+########################################
+
+### Upload Sound
+POST {{apiBaseUrl}}/elements/sounds
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Rain Sound",
+  "category": "ambient",
+  "duration": 30
+}
+
+
+########################################
+# Delete Sound
+########################################
+
+### Delete Sound
+DELETE {{apiBaseUrl}}/elements/sounds/{{testSoundId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Sound ID
+GET {{apiBaseUrl}}/elements/sounds/invalid-id
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/elements/sounds

@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "module": "Node16",
+    "moduleResolution": "node16",
+    "outDir": "../../dist/apps/mcp",
+    "paths": {
+      "@libs/*": ["../../../packages/libs/*"],
+      "@mcp/*": ["./src/*"]
+    },
+    "resolveJsonModule": true,
+    "types": ["node", "vitest/globals"]
+  },
+  "exclude": ["node_modules", "dist"],
+  "extends": "../tsconfig.json",
+  "include": ["src/**/*"]
+}

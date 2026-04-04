@@ -1,0 +1,119 @@
+### Genfeed API - Content Intelligence Creators Endpoints
+### Manage tracked content creators: add, import, analyze, rescrape
+### Protected by authentication
+
+########################################
+# List & Get Creators
+########################################
+
+### Get All Creators
+GET {{apiBaseUrl}}/content-intelligence/creators
+Authorization: Bearer {{bearerToken}}
+
+
+### Get All Creators with Filters
+GET {{apiBaseUrl}}/content-intelligence/creators?platform=twitter&niche=marketing&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Creator by ID
+GET {{apiBaseUrl}}/content-intelligence/creators/{{testCreatorId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create & Import
+########################################
+
+### Add Creator
+POST {{apiBaseUrl}}/content-intelligence/creators
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "handle": "elonmusk",
+  "platform": "twitter",
+  "niche": "tech",
+  "tags": ["influencer", "tech-leader"]
+}
+
+
+### Import Multiple Creators
+POST {{apiBaseUrl}}/content-intelligence/creators/import
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "creators": [
+    {
+      "handle": "naval",
+      "platform": "twitter",
+      "niche": "startups"
+    },
+    {
+      "handle": "garyvee",
+      "platform": "instagram",
+      "niche": "marketing"
+    },
+    {
+      "handle": "maboroshi_ai",
+      "platform": "tiktok",
+      "niche": "ai-content"
+    }
+  ]
+}
+
+
+########################################
+# Analyze & Rescrape
+########################################
+
+### Analyze Creator
+# Triggers pattern extraction and content analysis
+POST {{apiBaseUrl}}/content-intelligence/creators/{{testCreatorId}}/analyze
+Authorization: Bearer {{bearerToken}}
+
+
+### Rescrape Creator
+# Re-fetches creator data and re-runs analysis
+POST {{apiBaseUrl}}/content-intelligence/creators/{{testCreatorId}}/rescrape
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Delete
+########################################
+
+### Delete Creator (Soft Delete)
+# Also deletes associated patterns
+DELETE {{apiBaseUrl}}/content-intelligence/creators/{{testCreatorId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Creator Not Found
+GET {{apiBaseUrl}}/content-intelligence/creators/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Invalid Creator ID
+GET {{apiBaseUrl}}/content-intelligence/creators/invalid-id
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Add Duplicate Creator
+POST {{apiBaseUrl}}/content-intelligence/creators
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "handle": "elonmusk",
+  "platform": "twitter"
+}
+
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/content-intelligence/creators

@@ -1,0 +1,546 @@
+### Genfeed API - Articles Endpoints
+### Test authenticated articles generation, editing, and management
+
+########################################
+# Variables from .vscode/settings.json
+########################################
+# {{bearerToken}} - Your JWT token
+# {{apiBaseUrl}} - API base URL (http://local.genfeed.ai:3001/v1)
+# {{testArticleId}} - Test article ID from settings
+#
+# To switch environments, use REST Client extension:
+# - Click "No Environment" in status bar
+# - Select: local, staging, or production
+########################################
+
+# Local overrides (optional - update as needed)
+@articleId = {{testArticleId}}
+@promptId =
+@prompt = "AI in healthcare and patient care"
+@count = 1
+
+########################################
+# 🎯 Article Generation (NEW!)
+########################################
+
+### Generate 1 Article
+# @name generate1Article
+POST {{apiBaseUrl}}/articles/generate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": {{prompt}},
+  "count": {{count}}
+}
+
+# Expected Response:
+# [
+#   {
+#     "id": "...",
+#     "label": "AI in Healthcare: Transforming Patient Care",
+#     "slug": "ai-in-healthcare-transforming-patient-care",
+#     "summary": "Discover how AI is revolutionizing...",
+#     "content": "<h2>Introduction</h2><p>AI is changing healthcare.</p><br>...",
+#     "tags": [...],
+#     "status": "DRAFT"
+#   }
+# ]
+
+###
+
+### Generate 2 Articles (Bulk)
+POST {{apiBaseUrl}}/articles/generate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "Future of remote work",
+  "count": 2
+}
+
+###
+
+### Generate 4 Articles (Maximum)
+POST {{apiBaseUrl}}/articles/generate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "Climate change solutions",
+  "count": 4,
+  "keywords": ["climate", "renewable", "sustainability"]
+}
+
+###
+
+### Generate 2 Articles with Category
+POST {{apiBaseUrl}}/articles/generate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "I want to create an article about vibe coding and why it's useless.",
+  "count": 2,
+  "category": "POST"
+}
+
+###
+
+########################################
+# 📝 Article Management (CRUD)
+########################################
+
+### Get All Articles (Paginated)
+GET {{apiBaseUrl}}/articles?page=1&limit=10&sortBy=createdAt&sortOrder=desc
+Authorization: Bearer {{bearerToken}}
+
+###
+
+### Get Article by ID
+GET {{apiBaseUrl}}/articles/{{articleId}}
+Authorization: Bearer {{bearerToken}}
+
+###
+
+### Get Article by Slug
+GET {{apiBaseUrl}}/articles/slug/ai-in-healthcare-transforming-patient-care
+Authorization: Bearer {{bearerToken}}
+
+###
+
+### Create Article Manually (Without AI)
+POST {{apiBaseUrl}}/articles
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Manual Article Test",
+  "slug": "manual-article-test-123",
+  "summary": "This is a test article created manually",
+  "content": "<h2>Introduction</h2><p>This is test content.</p><br><p>Second paragraph with another idea.</p><br>",
+  "category": "POST",
+  "status": "DRAFT"
+}
+
+###
+
+### Update Article
+PATCH {{apiBaseUrl}}/articles/{{articleId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Updated Article Title",
+  "summary": "Updated summary here",
+  "status": "PUBLISHED",
+  "scope": "PUBLIC"
+}
+
+###
+
+### Delete Article (Soft Delete)
+DELETE {{apiBaseUrl}}/articles/{{articleId}}
+Authorization: Bearer {{bearerToken}}
+
+###
+
+########################################
+# 🤖 AI-Powered Editing (NEW!)
+########################################
+
+### Edit: Rephrase Paragraph
+POST {{apiBaseUrl}}/articles/{{articleId}}/enhance
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "generate an article about vibe coding"
+}
+
+# Expected: Returns ONLY changed fields (e.g., just "content")
+
+###
+
+### Edit: Add Content
+POST {{apiBaseUrl}}/articles/{{articleId}}/enhance
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "add a section about recent AI breakthroughs in medical imaging"
+}
+
+###
+
+### Edit: Make Shorter
+POST {{apiBaseUrl}}/articles/{{articleId}}/enhance
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "make it 30% shorter while keeping key points"
+}
+
+###
+
+### Edit: Change Tone
+POST {{apiBaseUrl}}/articles/{{articleId}}/enhance
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "rewrite in a more professional tone for C-level executives"
+}
+
+###
+
+### Edit: Improve SEO (general prompt)
+POST {{apiBaseUrl}}/articles/{{articleId}}/enhance
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "optimize for SEO with focus on 'AI healthcare solutions' keyword"
+}
+
+###
+
+########################################
+# 🔍 SEO Enhancement (enhanceType: 'seo')
+########################################
+
+### Enhance for SEO - Full Optimization
+# Uses ARTICLE_SEO template for comprehensive SEO rewriting
+POST {{apiBaseUrl}}/articles/{{articleId}}/enhance
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "Focus on keywords: AI, healthcare, medical imaging",
+  "enhanceType": "seo"
+}
+
+###
+
+### Enhance for SEO - Target Specific Keyword
+POST {{apiBaseUrl}}/articles/{{articleId}}/enhance
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "Optimize for ranking on 'AI medical diagnosis' keyword",
+  "enhanceType": "seo"
+}
+
+###
+
+########################################
+# 📜 Version History (NEW!)
+########################################
+
+### Get All Versions (Prompts)
+# @name getVersions
+GET {{apiBaseUrl}}/articles/{{articleId}}/versions
+Authorization: Bearer {{bearerToken}}
+
+# Response shows all prompts used to edit this article
+# {
+#   "articleId": "...",
+#   "prompts": [
+#     {
+#       "id": "prompt123",
+#       "version": 1,
+#       "prompt": "rephrase first paragraph",
+#       "result": "{\"content\":\"...\"}",
+#       "createdAt": "2025-10-08T10:00:00Z"
+#     }
+#   ],
+#   "totalVersions": 3
+# }
+
+###
+
+### Restore to Specific Version
+# Replace {{promptId}} with actual ID from getVersions
+POST {{apiBaseUrl}}/articles/{{articleId}}/versions/{{promptId}}/restore
+Authorization: Bearer {{bearerToken}}
+
+###
+
+########################################
+# 🧵 Twitter Thread Conversion (NEW!)
+########################################
+
+### Convert Article to Twitter Thread
+# @name convertThread
+POST {{apiBaseUrl}}/articles/{{articleId}}/thread
+Authorization: Bearer {{bearerToken}}
+
+# Response:
+# {
+#   "tweets": [
+#     {
+#       "order": 1,
+#       "content": "Article Title\n\nSummary...",
+#       "characterCount": 180
+#     },
+#     {
+#       "order": 2,
+#       "content": "First paragraph content",
+#       "characterCount": 245
+#     }
+#   ],
+#   "totalTweets": 5
+# }
+
+###
+
+########################################
+# 📊 Virality Analysis (NEW!)
+########################################
+
+### Analyze Article Virality
+# @name analyzeVirality
+POST {{apiBaseUrl}}/articles/{{articleId}}/analyze-virality
+Authorization: Bearer {{bearerToken}}
+
+# Response:
+# {
+#   "articleId": "...",
+#   "analysis": {
+#     "score": 75,
+#     "factors": {
+#       "emotionalAppeal": 80,
+#       "shareability": 70,
+#       "readability": 85,
+#       "seoScore": 65,
+#       "trendAlignment": 75
+#     },
+#     "predictions": {
+#       "estimatedReach": 50000,
+#       "estimatedShares": 1500,
+#       "estimatedEngagement": 2500
+#     },
+#     "suggestions": [
+#       "Add more emotional hooks in the introduction",
+#       "Include statistics or data points for credibility"
+#     ],
+#     "analyzedAt": "2025-10-08T12:00:00Z"
+#   }
+# }
+
+###
+
+########################################
+# 🎨 Prompt Templates (Admin - NEW!)
+########################################
+
+### Get All Prompt Templates
+GET {{apiBaseUrl}}/prompt-templates
+Authorization: Bearer {{bearerToken}}
+
+###
+
+### Get Template by Key
+GET {{apiBaseUrl}}/prompt-templates/key/article.generate.default
+Authorization: Bearer {{bearerToken}}
+
+###
+
+### Create New Template
+POST {{apiBaseUrl}}/prompt-templates
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "key": "article.generate.viral-optimized",
+  "type": "article-generation",
+  "template": "Generate {{count}} viral-optimized article(s) about {{prompt}}...",
+  "description": "Virality-focused article generation",
+  "variables": ["count", "prompt"],
+  "isActive": false
+}
+
+###
+
+### Update Template
+PATCH {{apiBaseUrl}}/prompt-templates/{templateId}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "template": "Updated template with better instructions...",
+  "isActive": true
+}
+
+###
+
+### Duplicate Template (for A/B testing)
+POST {{apiBaseUrl}}/prompt-templates/{templateId}/duplicate
+Authorization: Bearer {{bearerToken}}
+
+###
+
+########################################
+# 🚀 Complete Workflow Example
+########################################
+
+### STEP 1: Generate Article
+POST {{apiBaseUrl}}/articles/generate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "The impact of AI on modern education",
+  "count": 1
+}
+
+# 📝 Copy the article ID from response and update @articleId variable above
+
+###
+
+### STEP 2: Edit with AI (Add Content)
+POST {{apiBaseUrl}}/articles/{{articleId}}/enhance
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "add a section about online learning platforms with examples"
+}
+
+###
+
+### STEP 3: Edit with AI (Improve Engagement)
+POST {{apiBaseUrl}}/articles/{{articleId}}/enhance
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "make the introduction more engaging with a compelling hook"
+}
+
+###
+
+### STEP 4: Check Version History
+GET {{apiBaseUrl}}/articles/{{articleId}}/versions
+Authorization: Bearer {{bearerToken}}
+
+# You'll see 2 prompts (from step 2 and 3)
+
+###
+
+### STEP 5: Analyze Virality
+POST {{apiBaseUrl}}/articles/{{articleId}}/analyze-virality
+Authorization: Bearer {{bearerToken}}
+
+# Check the score and suggestions
+
+###
+
+### STEP 6: Apply Virality Suggestions
+POST {{apiBaseUrl}}/articles/{{articleId}}/enhance
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "apply the virality suggestions to improve emotional appeal"
+}
+
+###
+
+### STEP 7: Re-Analyze (Should Show Improvement)
+POST {{apiBaseUrl}}/articles/{{articleId}}/analyze-virality
+Authorization: Bearer {{bearerToken}}
+
+###
+
+### STEP 8: Convert to Twitter Thread
+POST {{apiBaseUrl}}/articles/{{articleId}}/to-thread
+Authorization: Bearer {{bearerToken}}
+
+###
+
+### STEP 9: Publish Article
+PATCH {{apiBaseUrl}}/articles/{{articleId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "status": "PUBLISHED",
+  "scope": "PUBLIC"
+}
+
+###
+
+########################################
+# ❌ Error Cases (Testing)
+########################################
+
+### No Auth (Should Fail with 401)
+POST {{apiBaseUrl}}/articles/generate
+Content-Type: application/json
+
+{
+  "prompt": "test without auth"
+}
+
+###
+
+### Invalid Count (Should Fail - max is 4)
+POST {{apiBaseUrl}}/articles/generate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "test",
+  "count": 10
+}
+
+###
+
+### Edit Non-Existent Article
+POST {{apiBaseUrl}}/articles/507f1f77bcf86cd799439999/enhance
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "edit this"
+}
+
+###
+
+### Invalid Article ID Format
+GET {{apiBaseUrl}}/articles/invalid-id
+Authorization: Bearer {{bearerToken}}
+
+###
+
+########################################
+# 📖 Quick Reference
+########################################
+
+# Get your auth token:
+# 1. Open browser DevTools (F12)
+# 2. Go to Application tab → Local Storage
+# 3. Find your auth token or:
+# 4. Network tab → Any API request → Copy Authorization header
+
+# Test flow:
+# 1. Generate article (get ID from response)
+# 2. Update @articleId variable above
+# 3. Edit with AI
+# 4. Check versions
+# 5. Analyze virality
+# 6. Convert to thread
+# 7. Publish
+
+# Prompt examples:
+# - "rephrase the first paragraph"
+# - "add more examples to the second section"
+# - "make it more engaging"
+# - "optimize for SEO"
+# - "add statistics to support claims"
+# - "make the conclusion more actionable"
+
+###

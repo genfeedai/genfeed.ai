@@ -1,0 +1,177 @@
+### Genfeed API - Posts Operations Endpoints
+### AI-powered post generation, thread creation, batch scheduling, and enhancement
+### Protected by RolesGuard + SubscriptionGuard + CreditsGuard
+
+########################################
+# Generate Posts
+########################################
+
+### Generate Tweets
+# Creates placeholder posts with PROCESSING status, then generates content async
+POST {{apiBaseUrl}}/posts/generate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "credential": "{{testCredentialId}}",
+  "topic": "AI-driven content creation tips for social media marketers",
+  "count": 3,
+  "tone": "professional"
+}
+
+
+### Generate Thread
+# Creates linked thread posts with PROCESSING status, generates content async
+POST {{apiBaseUrl}}/posts/generate/thread
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "credential": "{{testCredentialId}}",
+  "topic": "The future of AI in content marketing — a deep dive",
+  "count": 5,
+  "tone": "casual"
+}
+
+
+########################################
+# Thread Expansion
+########################################
+
+### Expand Post to Thread
+# Takes an existing post and generates additional thread tweets
+# Costs 3 credits (text model)
+POST {{apiBaseUrl}}/posts/{{testPostId}}/expand-to-thread
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "count": 4,
+  "tone": "professional"
+}
+
+
+########################################
+# Batch Scheduling
+########################################
+
+### Batch Schedule Tweets
+# Updates existing posts to SCHEDULED status with scheduled dates
+POST {{apiBaseUrl}}/posts/batch
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "credential": "{{testCredentialId}}",
+  "tweets": [
+    {
+      "postId": "{{testPostId}}",
+      "text": "Excited to share our latest AI content creation insights!",
+      "scheduledDate": "2026-02-20T09:00:00.000Z",
+      "timezone": "America/New_York"
+    },
+    {
+      "postId": "{{testPostId2}}",
+      "text": "Thread: How we use AI to 10x content output...",
+      "scheduledDate": "2026-02-20T14:00:00.000Z",
+      "timezone": "America/New_York",
+      "ingredientId": "{{testIngredientId}}"
+    }
+  ]
+}
+
+
+########################################
+# Thread Replies
+########################################
+
+### Add Thread Reply
+POST {{apiBaseUrl}}/posts/{{testPostId}}/replies
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "credential": "{{testCredentialId}}",
+  "description": "This is a follow-up reply in the thread",
+  "label": "Thread reply",
+  "status": "draft",
+  "ingredients": []
+}
+
+
+########################################
+# Remix & Enhance
+########################################
+
+### Create Remix Post
+# A/B test variant of an existing post with new description
+POST {{apiBaseUrl}}/posts/{{testPostId}}/remix
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "description": "Remix version: AI is transforming how brands create content at scale",
+  "label": "A/B test variant"
+}
+
+
+### Enhance Post with AI
+# Costs 3 credits (text model)
+POST {{apiBaseUrl}}/posts/{{testPostId}}/enhance
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "Make this more engaging and add a call to action",
+  "tone": "professional"
+}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Generate Without Credential
+POST {{apiBaseUrl}}/posts/generate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "topic": "test topic",
+  "count": 1
+}
+
+
+### Test: Expand Non-Existent Post
+POST {{apiBaseUrl}}/posts/507f1f77bcf86cd799439011/expand-to-thread
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "count": 3,
+  "tone": "professional"
+}
+
+
+### Test: Remix Non-Existent Post
+POST {{apiBaseUrl}}/posts/507f1f77bcf86cd799439011/remix
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "description": "Remix content"
+}
+
+
+### Test: Enhance Non-Existent Post
+POST {{apiBaseUrl}}/posts/507f1f77bcf86cd799439011/enhance
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "Improve this post"
+}
+
+
+### Test: Unauthorized Access
+POST {{apiBaseUrl}}/posts/generate

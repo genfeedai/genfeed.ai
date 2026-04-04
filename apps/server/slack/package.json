@@ -1,0 +1,31 @@
+{
+  "dependencies": {
+    "@genfeedai/config": "workspace:*",
+    "@genfeedai/integrations": "workspace:*",
+    "@slack/bolt": "4.6.0"
+  },
+  "description": "Genfeed Slack Service",
+  "devDependencies": {},
+  "main": "../dist/apps/slack/main.js",
+  "name": "@genfeedai/slack",
+  "private": true,
+  "scripts": {
+    "build": "cd .. && nest build slack",
+    "build:prod": "cd .. && nest build slack && cd slack && if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps || true; fi",
+    "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
+    "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start slack --watch",
+    "lint": "biome lint --write src",
+    "sentry:inject": "sentry-cli sourcemaps inject --org genfeedai --project slack-genfeed-ai ../dist",
+    "sentry:sourcemaps": "bun run sentry:inject && bun run sentry:upload",
+    "sentry:upload": "sentry-cli sourcemaps upload --org genfeedai --project slack-genfeed-ai ../dist",
+    "start": "cd .. && nest start slack",
+    "start:debug": "cd .. && nest start slack --debug --watch",
+    "start:dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start slack --watch",
+    "start:prod": "node -r tsconfig-paths/register --max-old-space-size=8192 --expose-gc ../dist/apps/slack/main",
+    "test": "vitest run --config vitest.config.ts",
+    "test:cov": "vitest run --coverage --config vitest.config.ts",
+    "test:e2e": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest watch --config vitest.config.ts"
+  },
+  "version": "1.0.0"
+}

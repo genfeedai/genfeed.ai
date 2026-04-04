@@ -1,0 +1,303 @@
+### Genfeed API - Workflows Collection Endpoints
+### Manage automated content workflows
+### Handles: workflow creation, execution, scheduling, templates
+
+########################################
+# List & Filter Workflows
+########################################
+
+### Get All Workflows (Paginated)
+# Default: page=1, limit=20
+GET {{apiBaseUrl}}/workflows
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Workflows with Pagination
+GET {{apiBaseUrl}}/workflows?page=2&limit=10
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Workflows by Status
+# Status values: draft, active, paused, completed, failed
+GET {{apiBaseUrl}}/workflows?status=active&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Workflows by Type
+# Type values: image-series, video-series, content-batch, social-campaign
+GET {{apiBaseUrl}}/workflows?type=video-series&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Workflows
+# Sort options: -createdAt (newest), createdAt (oldest), -executedAt
+GET {{apiBaseUrl}}/workflows?sort=-createdAt&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Workflow
+########################################
+
+### Get Workflow by ID
+# Returns full workflow details with steps and execution history
+GET {{apiBaseUrl}}/workflows/{{testWorkflowId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Workflows
+########################################
+
+### Create Basic Workflow
+POST {{apiBaseUrl}}/workflows
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Daily Content Workflow",
+  "description": "Generate daily content automatically",
+  "type": "content-batch",
+  "steps": [
+    {
+      "action": "generate_image",
+      "params": {
+        "prompt": "Daily motivational quote background",
+        "model": "gpt-image-1"
+      }
+    },
+    {
+      "action": "add_text",
+      "params": {
+        "text": "{{dailyQuote}}",
+        "position": "center"
+      }
+    },
+    {
+      "action": "publish",
+      "params": {
+        "platforms": ["twitter", "instagram"]
+      }
+    }
+  ]
+}
+
+
+### Create Image Series Workflow
+POST {{apiBaseUrl}}/workflows
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Product Image Series",
+  "description": "Generate multiple product variations",
+  "type": "image-series",
+  "steps": [
+    {
+      "action": "generate_image",
+      "params": {
+        "prompt": "Product photo on {{background}}",
+        "model": "gpt-image-1",
+        "outputs": 4
+      }
+    }
+  ],
+  "variables": {
+    "background": ["white", "lifestyle", "nature", "urban"]
+  }
+}
+
+
+### Create Scheduled Workflow
+POST {{apiBaseUrl}}/workflows
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Weekly Video Series",
+  "description": "Generate weekly content videos",
+  "type": "video-series",
+  "schedule": {
+    "frequency": "weekly",
+    "dayOfWeek": "monday",
+    "time": "09:00"
+  },
+  "steps": [
+    {
+      "action": "generate_video",
+      "params": {
+        "prompt": "Weekly tips video",
+        "model": "klingai-v2"
+      }
+    }
+  ]
+}
+
+
+########################################
+# Execute Workflows
+########################################
+
+### Create Workflow Execution
+# Run workflow immediately through the execution resource
+POST {{apiBaseUrl}}/workflow-executions
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "workflow": "{{testWorkflowId}}",
+  "inputValues": {
+    "background": "sunset",
+    "style": "cinematic"
+  }
+}
+
+
+########################################
+# Update Workflows
+########################################
+
+### Update Workflow
+PATCH {{apiBaseUrl}}/workflows/{{testWorkflowId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Updated Workflow Name",
+  "description": "Updated description",
+  "status": "active"
+}
+
+
+### Pause Workflow
+PATCH {{apiBaseUrl}}/workflows/{{testWorkflowId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "status": "paused"
+}
+
+
+### Resume Workflow
+PATCH {{apiBaseUrl}}/workflows/{{testWorkflowId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "status": "active"
+}
+
+
+### Update Workflow Steps
+PATCH {{apiBaseUrl}}/workflows/{{testWorkflowId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "steps": [
+    {
+      "action": "generate_image",
+      "params": {
+        "prompt": "Updated prompt",
+        "model": "google-imagen-4"
+      }
+    }
+  ]
+}
+
+
+########################################
+# Delete Workflow
+########################################
+
+### Delete Workflow
+# Soft delete - marks as deleted but keeps execution history
+DELETE {{apiBaseUrl}}/workflows/{{testWorkflowId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Workflow Executions
+########################################
+
+### Get Workflow Execution History
+# View past executions with results
+GET {{apiBaseUrl}}/workflows/{{testWorkflowId}}/executions?page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Single Execution Details
+GET {{apiBaseUrl}}/workflows/{{testWorkflowId}}/executions/{{testExecutionId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Workflow ID Format
+GET {{apiBaseUrl}}/workflows/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Workflow Not Found
+GET {{apiBaseUrl}}/workflows/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Create Workflow Without Steps
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/workflows
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Test Workflow",
+  "steps": []
+}
+
+
+### Test: Create Workflow With Invalid Action
+POST {{apiBaseUrl}}/workflows
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Test Workflow",
+  "steps": [
+    {
+      "action": "invalid_action"
+    }
+  ]
+}
+
+
+### Test: Execute Non-Existent Workflow
+POST {{apiBaseUrl}}/workflows/507f1f77bcf86cd799439011/execute
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Execute Paused Workflow
+# Should return 400 or execute with warning
+POST {{apiBaseUrl}}/workflows/{{testPausedWorkflowId}}/execute
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Invalid Schedule Format
+POST {{apiBaseUrl}}/workflows
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Test Workflow",
+  "schedule": {
+    "frequency": "invalid_frequency"
+  },
+  "steps": []
+}
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/workflows

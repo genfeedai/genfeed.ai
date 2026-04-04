@@ -1,0 +1,190 @@
+### Genfeed API - Onboarding Endpoints
+### User onboarding flow: brand setup, account type, preview generation
+### Protected by RolesGuard
+
+########################################
+# Onboarding Status
+########################################
+
+### Get Onboarding Status
+# Returns hasCompletedOnboarding and isFirstLogin flags
+GET {{apiBaseUrl}}/onboarding/status
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Brand Setup
+########################################
+
+### Setup Brand from Website URL
+# Scrapes website, analyzes with AI, populates brand + knowledge base
+POST {{apiBaseUrl}}/onboarding/brand-setup
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "url": "https://example.com",
+  "brandName": "Example Brand"
+}
+
+
+### Update Brand Name Only
+# Updates brand and organization name without website scan
+PATCH {{apiBaseUrl}}/onboarding/brand-name
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "My Brand Name"
+}
+
+
+### Confirm Extracted Brand Data
+# Review and optionally override AI-extracted brand data
+PATCH {{apiBaseUrl}}/onboarding/brand/{{testBrandId}}/confirm
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "companyName": "Example Brand",
+  "description": "A modern AI-powered content platform",
+  "primaryColor": "#6366F1",
+  "secondaryColor": "#EC4899",
+  "tagline": "Create smarter content"
+}
+
+
+########################################
+# Account Configuration
+########################################
+
+### Set Account Type
+# Options: creator, business, agency
+POST {{apiBaseUrl}}/onboarding/account-type
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "category": "creator"
+}
+
+
+### Set Account Type (Business)
+POST {{apiBaseUrl}}/onboarding/account-type
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "category": "business"
+}
+
+
+### Set Account Type (Agency)
+POST {{apiBaseUrl}}/onboarding/account-type
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "category": "agency"
+}
+
+
+########################################
+# Completion
+########################################
+
+### Skip Onboarding
+# User can set up brand later from settings
+POST {{apiBaseUrl}}/onboarding/skip
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{}
+
+
+### Complete Onboarding Funnel
+# Called after successful Stripe payment
+POST {{apiBaseUrl}}/onboarding/complete-funnel
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# AI Preview
+########################################
+
+### Generate AI Preview Image
+# Deducts onboarding credits
+POST {{apiBaseUrl}}/onboarding/generate-preview
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "brandId": "{{testBrandId}}",
+  "contentType": "social_post",
+  "topic": "AI content creation tools"
+}
+
+
+########################################
+# Reference Images
+########################################
+
+### Add Reference Images to Brand
+POST {{apiBaseUrl}}/onboarding/brand/{{testBrandId}}/reference-images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "images": [
+    {
+      "url": "https://example.com/logo.png",
+      "type": "logo"
+    },
+    {
+      "url": "https://example.com/product.jpg",
+      "type": "product"
+    },
+    {
+      "url": "https://example.com/face.jpg",
+      "type": "face"
+    }
+  ]
+}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Brand Setup with Invalid URL
+POST {{apiBaseUrl}}/onboarding/brand-setup
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "url": "not-a-valid-url"
+}
+
+
+### Test: Invalid Account Type
+POST {{apiBaseUrl}}/onboarding/account-type
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "category": "invalid-type"
+}
+
+
+### Test: Confirm Non-Existent Brand
+PATCH {{apiBaseUrl}}/onboarding/brand/507f1f77bcf86cd799439011/confirm
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "companyName": "Test"
+}
+
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/onboarding/status

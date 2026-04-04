@@ -1,0 +1,82 @@
+### Genfeed API - Skills Endpoints
+### Catalog and customization controls for skill-driven content routing
+
+########################################
+# Catalog
+########################################
+
+### List Skills
+GET {{apiBaseUrl}}/skills
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Skill By Slug Or ID
+GET {{apiBaseUrl}}/skills/{{testSkillId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Skill Creation
+########################################
+
+### Create Org-Owned Skill
+POST {{apiBaseUrl}}/skills
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "slug": "launch-caption-reviewer",
+  "name": "Launch Caption Reviewer",
+  "description": "Reviews short-form launch captions before publishing.",
+  "category": "copywriting",
+  "modalities": ["text"],
+  "channels": ["linkedin", "x"],
+  "workflowStage": "review",
+  "requiredProviders": ["openai"],
+  "defaultInstructions": "Favor concise launch positioning and a clear CTA.",
+  "reviewDefaults": {
+    "requiresApproval": true
+  }
+}
+
+
+### Import Skill
+POST {{apiBaseUrl}}/skills/import
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "slug": "youtube-script-setup",
+  "name": "YouTube Script Setup",
+  "description": "Imported base skill for long-form creator scripts.",
+  "category": "copywriting",
+  "modalities": ["text"],
+  "channels": ["youtube"],
+  "workflowStage": "creation"
+}
+
+
+### Customize Built-In Skill Into Variant
+POST {{apiBaseUrl}}/skills/{{testSkillId}}/customize
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "YouTube Script Setup Custom",
+  "description": "Brand-tuned version for stronger creator-style hooks."
+}
+
+
+########################################
+# Skill Updates
+########################################
+
+### Update Org-Owned Variant
+PATCH {{apiBaseUrl}}/skills/{{testSkillId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "description": "Brand-tuned variant for creator launch scripts.",
+  "defaultInstructions": "Bias toward a direct hook, pacing, and a stronger CTA."
+}

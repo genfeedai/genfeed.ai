@@ -1,0 +1,103 @@
+### Optimizers API Test Suite
+### Base URL: http://localhost:3000/optimizers
+### Auth: Bearer token required (Clerk JWT)
+
+### Variables
+@baseUrl = http://localhost:3000
+@token = your_clerk_jwt_token_here
+
+### 1. Analyze content
+POST {{baseUrl}}/optimizers/analyze
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "content": "Check out our new product! 🚀 It's going to change everything.",
+  "contentType": "caption",
+  "platform": "instagram",
+  "goals": ["engagement", "viralPotential"]
+}
+
+### 2. Optimize content
+POST {{baseUrl}}/optimizers/optimize
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "content": "Check out our new product! 🚀 It's going to change everything.",
+  "contentType": "caption",
+  "platform": "instagram",
+  "currentScore": 65,
+  "goals": ["engagement"]
+}
+
+### 3. Get hashtag suggestions
+POST {{baseUrl}}/optimizers/hashtags
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "content": "Behind the scenes of our product development process",
+  "platform": "instagram",
+  "count": 10,
+  "includeNiche": true
+}
+
+### 4. Generate A/B variants
+POST {{baseUrl}}/optimizers/variants
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "content": "Check out our new product! 🚀",
+  "contentType": "caption",
+  "platform": "instagram",
+  "variantCount": 3,
+  "aspects": ["hook", "cta"]
+}
+
+### 5. Get best posting times
+GET {{baseUrl}}/optimizers/times?platform=instagram&timezone=America/New_York
+Authorization: Bearer {{token}}
+
+### 6. Get optimization history
+GET {{baseUrl}}/optimizers/history?limit=10&contentType=caption
+Authorization: Bearer {{token}}
+
+### 7. Generate creative prompts from idea (Idea Mode)
+POST {{baseUrl}}/optimizers/prompts
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "input": "sunset beach yoga meditation",
+  "mode": "idea",
+  "targetMedia": "image",
+  "count": 5
+}
+
+### 8. Generate creative prompts from idea (Video Mode)
+POST {{baseUrl}}/optimizers/prompts
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "input": "futuristic city at night with neon lights",
+  "mode": "idea",
+  "targetMedia": "video",
+  "count": 5,
+  "styleHint": "cyberpunk aesthetic"
+}
+
+### 9. Generate prompt variations (Variation Mode)
+POST {{baseUrl}}/optimizers/prompts
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "input": "A majestic eagle soaring through dramatic clouds at golden hour, cinematic lighting, photorealistic, 8K detail",
+  "mode": "variation",
+  "targetMedia": "image",
+  "count": 3
+}
+

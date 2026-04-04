@@ -1,0 +1,38 @@
+{
+  "tasks": [
+    {
+      "args": ["run", "build"],
+      "command": "bun",
+      "label": "build",
+      "problemMatcher": [],
+      "type": "shell"
+    },
+    {
+      "args": ["run", "watch:extension"],
+      "command": "bun",
+      "isBackground": true,
+      "label": "watch",
+      "problemMatcher": {
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": ".*extension\\.js.*"
+        },
+        "pattern": {
+          "regexp": "."
+        }
+      },
+      "type": "shell"
+    },
+    {
+      "args": ["Build complete, watch mode will start"],
+      "command": "echo",
+      "dependsOn": ["build"],
+      "dependsOrder": "sequence",
+      "label": "build-and-watch",
+      "problemMatcher": [],
+      "type": "shell"
+    }
+  ],
+  "version": "2.0.0"
+}

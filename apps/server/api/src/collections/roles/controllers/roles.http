@@ -1,0 +1,164 @@
+### Genfeed API - Roles Collection Endpoints
+### Manage user roles and permissions
+### Handles: role CRUD, permission assignment
+
+########################################
+# List & Filter Roles
+########################################
+
+### Get All Roles (Paginated)
+GET {{apiBaseUrl}}/roles
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Roles with Pagination
+GET {{apiBaseUrl}}/roles?page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter System Roles Only
+GET {{apiBaseUrl}}/roles?isSystem=true
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Custom Roles Only
+GET {{apiBaseUrl}}/roles?isCustom=true
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Roles
+GET {{apiBaseUrl}}/roles?sort=name
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Role
+########################################
+
+### Get Role by ID
+GET {{apiBaseUrl}}/roles/{{testRoleId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Role by Key
+GET {{apiBaseUrl}}/roles/key/{{testRoleKey}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Role
+########################################
+
+### Create Custom Role
+POST {{apiBaseUrl}}/roles
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Content Manager",
+  "description": "Can create and publish content",
+  "permissions": [
+    "content.create",
+    "content.edit",
+    "content.publish",
+    "content.delete"
+  ]
+}
+
+
+### Create Role with Limited Permissions
+POST {{apiBaseUrl}}/roles
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Viewer",
+  "description": "Read-only access",
+  "permissions": [
+    "content.view"
+  ]
+}
+
+
+########################################
+# Update Role
+########################################
+
+### Update Role Name
+PATCH {{apiBaseUrl}}/roles/{{testRoleId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Updated Role Name",
+  "description": "Updated description"
+}
+
+
+### Update Role Permissions
+PATCH {{apiBaseUrl}}/roles/{{testRoleId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "permissions": [
+    "content.view",
+    "content.create",
+    "content.edit"
+  ]
+}
+
+
+########################################
+# Get Role Users
+########################################
+
+### Get Users with Role
+GET {{apiBaseUrl}}/roles/{{testRoleId}}/users
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Delete Role
+########################################
+
+### Delete Custom Role
+# Cannot delete system roles
+DELETE {{apiBaseUrl}}/roles/{{testRoleId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Role ID Format
+GET {{apiBaseUrl}}/roles/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Role Not Found
+GET {{apiBaseUrl}}/roles/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Create Role Without Name
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/roles
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "permissions": ["content.view"]
+}
+
+
+### Test: Delete System Role
+# Should return 403 Forbidden
+DELETE {{apiBaseUrl}}/roles/{{systemRoleId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/roles

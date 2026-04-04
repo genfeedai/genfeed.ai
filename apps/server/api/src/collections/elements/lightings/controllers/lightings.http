@@ -1,0 +1,71 @@
+### Genfeed API - Lightings Collection Endpoints
+### Manage lighting presets for video generation
+
+########################################
+# List & Filter Lightings
+########################################
+
+### Get All Lightings (Paginated)
+GET {{apiBaseUrl}}/elements/lightings
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Lightings with Pagination
+GET {{apiBaseUrl}}/elements/lightings?page=1&limit=50
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Active Lightings Only
+GET {{apiBaseUrl}}/elements/lightings?isActive=true
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Default Lightings Only
+GET {{apiBaseUrl}}/elements/lightings?isDefault=true
+Authorization: Bearer {{bearerToken}}
+
+
+### Search Lightings by Name
+GET {{apiBaseUrl}}/elements/lightings?search=natural
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Lightings
+GET {{apiBaseUrl}}/elements/lightings?sort=label
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create, Update, Delete Lightings
+########################################
+
+### Create Lighting
+POST {{apiBaseUrl}}/elements/lightings
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "key": "natural-sunlight",
+  "label": "Natural Sunlight",
+  "description": "Soft natural sunlight from windows",
+  "category": "video",
+  "isActive": true,
+  "isDefault": false
+}
+
+
+### Update Lighting
+PATCH {{apiBaseUrl}}/elements/lightings/{{lightingId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Natural Daylight",
+  "description": "Soft daylight from windows"
+}
+
+
+### Delete Lighting
+DELETE {{apiBaseUrl}}/elements/lightings/{{lightingId}}
+Authorization: Bearer {{bearerToken}}
+

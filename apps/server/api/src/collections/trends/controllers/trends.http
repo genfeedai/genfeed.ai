@@ -1,0 +1,147 @@
+### Genfeed API - Trends Endpoints
+### Discover trending topics, videos, hashtags, sounds across platforms
+### All endpoints require authentication
+
+########################################
+# Trends Discovery
+########################################
+
+### Get Trends
+GET {{apiBaseUrl}}/trends
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Trends by Platform
+GET {{apiBaseUrl}}/trends?platform=tiktok
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Trends (Force Refresh)
+GET {{apiBaseUrl}}/trends?refresh=true
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Trend by ID
+GET {{apiBaseUrl}}/trends/{{testTrendId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Refresh Trends
+POST {{apiBaseUrl}}/trends/refresh
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Content Ideas
+########################################
+
+### Get Trend-Based Content Ideas
+GET {{apiBaseUrl}}/trends/ideas
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Ideas with Filters
+GET {{apiBaseUrl}}/trends/ideas?platform=twitter&limit=10
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Trend Analysis
+########################################
+
+### Analyze Trend Patterns
+GET {{apiBaseUrl}}/trends/analyze?topic=artificial+intelligence&platform=twitter
+Authorization: Bearer {{bearerToken}}
+
+
+### Analyze with Custom Lookback Period
+GET {{apiBaseUrl}}/trends/analyze?topic=web3&platform=tiktok&daysBack=14
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Preferences
+########################################
+
+### Get Trend Preferences
+GET {{apiBaseUrl}}/trends/preferences
+Authorization: Bearer {{bearerToken}}
+
+
+### Save Trend Preferences
+POST {{apiBaseUrl}}/trends/preferences
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "platforms": ["twitter", "tiktok", "instagram"],
+  "categories": ["technology", "design", "marketing"],
+  "keywords": ["AI", "automation", "content creation"],
+  "hashtags": ["#AIcontent", "#socialmedia"]
+}
+
+
+########################################
+# Viral Videos
+########################################
+
+### Get Viral Videos
+GET {{apiBaseUrl}}/trends/videos
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Viral Videos with Filters
+GET {{apiBaseUrl}}/trends/videos?platform=tiktok&timeframe=24h&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Viral Video Leaderboard
+GET {{apiBaseUrl}}/trends/leaderboard
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Leaderboard with Filters
+GET {{apiBaseUrl}}/trends/leaderboard?timeframe=72h&limit=50
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Trending Hashtags & Sounds
+########################################
+
+### Get Trending Hashtags
+GET {{apiBaseUrl}}/trends/hashtags
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Trending Hashtags by Platform
+GET {{apiBaseUrl}}/trends/hashtags?platform=instagram&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Trending Sounds
+GET {{apiBaseUrl}}/trends/sounds
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Trending Sounds with Limit
+GET {{apiBaseUrl}}/trends/sounds?limit=30
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Trend Not Found
+GET {{apiBaseUrl}}/trends/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Analyze Without Required Params
+GET {{apiBaseUrl}}/trends/analyze
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/trends

@@ -1,0 +1,91 @@
+### Genfeed API - Content Intelligence Patterns Endpoints
+### Browse extracted content patterns: hooks, templates, and all patterns
+### Protected by authentication
+
+########################################
+# List All Patterns
+########################################
+
+### Get All Patterns
+GET {{apiBaseUrl}}/content-intelligence/patterns
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Patterns with Filters
+GET {{apiBaseUrl}}/content-intelligence/patterns?platform=twitter&patternType=hook&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Patterns by Source Creator
+GET {{apiBaseUrl}}/content-intelligence/patterns?sourceCreator={{testCreatorId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get High-Engagement Patterns
+GET {{apiBaseUrl}}/content-intelligence/patterns?minEngagementRate=5.0&sortBy=sourceMetrics.engagementRate&sortOrder=desc
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Specialized Pattern Types
+########################################
+
+### Get Hook Patterns
+GET {{apiBaseUrl}}/content-intelligence/patterns/hooks
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Hook Patterns by Platform
+GET {{apiBaseUrl}}/content-intelligence/patterns/hooks?platform=tiktok&limit=25
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Template Patterns
+GET {{apiBaseUrl}}/content-intelligence/patterns/templates
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Template Patterns with Filters
+GET {{apiBaseUrl}}/content-intelligence/patterns/templates?platform=twitter&templateCategory=thread&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Single Pattern
+########################################
+
+### Get Pattern by ID
+GET {{apiBaseUrl}}/content-intelligence/patterns/{{testPatternId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Delete
+########################################
+
+### Delete Pattern (Soft Delete)
+DELETE {{apiBaseUrl}}/content-intelligence/patterns/{{testPatternId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Pattern Not Found
+GET {{apiBaseUrl}}/content-intelligence/patterns/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Invalid Pattern ID
+GET {{apiBaseUrl}}/content-intelligence/patterns/invalid-id
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Delete Non-Existent Pattern
+DELETE {{apiBaseUrl}}/content-intelligence/patterns/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/content-intelligence/patterns

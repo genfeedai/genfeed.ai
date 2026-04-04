@@ -1,0 +1,65 @@
+### Genfeed API - Public Musics Endpoints
+### These endpoints are PUBLIC (no authentication required)
+
+@import ../../../../../../http/_environment.http
+
+########################################
+# Public Musics
+########################################
+
+### Get All Public Musics (with pagination)
+# Get paginated list of all public music tracks
+# Query params: page, limit, sort, tag, account
+GET {{baseUrl}}/public/musics?page={{page}}&limit={{limit}}&sort={{sort}}
+
+
+### Get All Public Musics (default params)
+GET {{baseUrl}}/public/musics
+
+
+### Filter Musics by Account
+# Get music tracks from a specific account
+GET {{baseUrl}}/public/musics?brand={{testBrandId}}
+
+
+### Filter Musics by Tag
+# Get music tracks with a specific tag
+GET {{baseUrl}}/public/musics?tag=ambient
+
+
+### Filter Musics by Account and Tag
+GET {{baseUrl}}/public/musics?brand={{testBrandId}}&tag=electronic&page=1&limit=10
+
+
+### Get Music by ID (Metadata)
+# Get music metadata/information
+# Includes account and metadata population
+GET {{baseUrl}}/public/musics/{{testMusicId}}
+
+
+### Stream Music File
+# Get the actual audio file (MP3)
+# This streams the audio content
+GET {{baseUrl}}/public/musics/{{testMusicId}}/audio.mp3
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Music ID Format
+GET {{baseUrl}}/public/musics/invalid-id
+
+
+### Test: Music Not Found
+GET {{baseUrl}}/public/musics/507f1f77bcf86cd799439999
+
+
+### Test: Pagination with Custom Sort
+GET {{baseUrl}}/public/musics?page=2&limit=5&sort=createdAt
+
+
+### Test: Filter by Multiple Parameters
+GET {{baseUrl}}/public/musics?page=1&limit=20&tag=jazz&brand={{testBrandId}}
+
+

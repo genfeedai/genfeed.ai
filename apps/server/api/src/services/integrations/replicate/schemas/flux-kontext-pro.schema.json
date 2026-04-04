@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Official Replicate API schema for black-forest-labs/flux-kontext-pro",
+  "properties": {
+    "aspect_ratio": {
+      "description": "An enumeration.",
+      "enum": [
+        "match_input_image",
+        "1:1",
+        "16:9",
+        "9:16",
+        "4:3",
+        "3:4",
+        "3:2",
+        "2:3",
+        "4:5",
+        "5:4",
+        "21:9",
+        "9:21",
+        "2:1",
+        "1:2"
+      ],
+      "title": "aspect_ratio",
+      "type": "string"
+    },
+    "input_image": {
+      "description": "Image to use as reference. Must be jpeg, png, gif, or webp.",
+      "format": "uri",
+      "nullable": true,
+      "title": "Input Image",
+      "type": "string"
+    },
+    "output_format": {
+      "description": "An enumeration.",
+      "enum": ["jpg", "png"],
+      "title": "output_format",
+      "type": "string"
+    },
+    "prompt": {
+      "description": "Text description of what you want to generate, or the instruction on how to edit the given image.",
+      "title": "Prompt",
+      "type": "string"
+    },
+    "prompt_upsampling": {
+      "default": false,
+      "description": "Automatic prompt improvement",
+      "title": "Prompt Upsampling",
+      "type": "boolean"
+    },
+    "safety_tolerance": {
+      "default": 2,
+      "description": "Safety tolerance, 0 is most strict and 6 is most permissive. 2 is currently the maximum allowed when input images are used.",
+      "maximum": 6,
+      "minimum": 0,
+      "title": "Safety Tolerance",
+      "type": "integer"
+    },
+    "seed": {
+      "description": "Random seed. Set for reproducible generation",
+      "nullable": true,
+      "title": "Seed",
+      "type": "integer"
+    }
+  },
+  "required": ["prompt"],
+  "title": "flux-kontext-pro Input Schema",
+  "type": "object"
+}

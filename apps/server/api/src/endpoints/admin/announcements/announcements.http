@@ -1,0 +1,45 @@
+### Genfeed API - Admin Announcements Endpoints
+### Broadcast changelog, BIP posts, and AI news to Discord and/or Twitter
+### All endpoints require IP whitelist (IpWhitelistGuard)
+
+
+### Broadcast to Both Discord and Twitter
+POST {{apiBaseUrl}}/admin/announcements/broadcast
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "body": "We just shipped a major update to the GenFeed AI workflow engine. Check it out!",
+  "tweetText": "We just shipped a major update to the GenFeed AI workflow engine. Check it out! 🚀 #genfeedai",
+  "channels": ["discord", "twitter"],
+  "discordChannelId": "1234567890123456789"
+}
+
+
+### Broadcast to Discord Only
+POST {{apiBaseUrl}}/admin/announcements/broadcast
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "body": "New changelog: v2.5.0 — improved image generation pipeline and faster rendering.",
+  "channels": ["discord"],
+  "discordChannelId": "1234567890123456789"
+}
+
+
+### Broadcast to Twitter Only
+POST {{apiBaseUrl}}/admin/announcements/broadcast
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "body": "AI news: Our new pattern-context engine is now live in production.",
+  "tweetText": "AI news: Our new pattern-context engine is now live. #ai #genfeedai",
+  "channels": ["twitter"]
+}
+
+
+### Get Announcement History
+GET {{apiBaseUrl}}/admin/announcements
+Authorization: Bearer {{bearerToken}}

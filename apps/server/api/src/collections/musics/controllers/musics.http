@@ -1,0 +1,202 @@
+### Genfeed API - Musics Collection Endpoints
+### Manage music/audio generation and uploads
+### Supports: AI music generation, audio uploads, audio transformations
+
+########################################
+# List & Filter Musics
+########################################
+
+### Get All Musics (Paginated)
+# Default: page=1, limit=20
+GET {{apiBaseUrl}}/musics
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Musics with Pagination
+GET {{apiBaseUrl}}/musics?page=2&limit=10
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Musics by Status
+# Status values: processing, completed, failed, uploaded
+GET {{apiBaseUrl}}/musics?status=completed&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Musics by Account
+GET {{apiBaseUrl}}/musics?brand={{testBrandId}}&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Search Musics
+GET {{apiBaseUrl}}/musics?search=ambient&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Musics
+# Sort options: -createdAt (newest), createdAt (oldest)
+GET {{apiBaseUrl}}/musics?sort=-createdAt&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Music
+########################################
+
+### Get Music by ID
+# Returns full music details with populated metadata
+GET {{apiBaseUrl}}/musics/{{testMusicId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Upload Music
+########################################
+
+### Upload Audio File
+# Upload an audio file directly (max file size varies by config)
+# Supported formats: mp3, wav, ogg, m4a, flac
+POST {{apiBaseUrl}}/musics/upload
+Authorization: Bearer {{bearerToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="sample.mp3"
+Content-Type: audio/mpeg
+
+< /path/to/your/audio.mp3
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+########################################
+# Generate Music (AI)
+########################################
+
+### Generate Music with AI
+# Generate music using text prompt
+# Requires credits
+POST {{apiBaseUrl}}/musics
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "A calm ambient soundtrack with piano and strings",
+  "model": "suno-v4",
+  "duration": 30
+}
+
+
+### Generate Music with Style
+POST {{apiBaseUrl}}/musics
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "An upbeat electronic dance track",
+  "model": "suno-v4",
+  "style": "electronic",
+  "tempo": "fast",
+  "duration": 60
+}
+
+
+### Generate Music from Prompt ID
+POST {{apiBaseUrl}}/musics
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "{{testPromptId}}",
+  "model": "suno-v4"
+}
+
+
+########################################
+# Update Music
+########################################
+
+### Update Music Metadata
+PATCH {{apiBaseUrl}}/musics/{{testMusicId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Updated Music Title",
+  "description": "Updated description"
+}
+
+
+### Mark Music as Public
+PATCH {{apiBaseUrl}}/musics/{{testMusicId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "scope": "public"
+}
+
+
+########################################
+# Delete Music
+########################################
+
+### Delete Music
+# Soft delete - marks as deleted but keeps in database
+DELETE {{apiBaseUrl}}/musics/{{testMusicId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Music ID Format
+GET {{apiBaseUrl}}/musics/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Music Not Found
+GET {{apiBaseUrl}}/musics/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Missing Prompt for Generation
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/musics
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "model": "suno-v4"
+}
+
+
+### Test: Upload Invalid File Type
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/musics/upload
+Authorization: Bearer {{bearerToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="document.pdf"
+Content-Type: application/pdf
+
+< /path/to/document.pdf
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/musics
+
+
+### Test: Generate Music Without Credits
+# Should fail with insufficient credits error
+POST {{apiBaseUrl}}/musics
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "Test music generation",
+  "model": "suno-v4"
+}

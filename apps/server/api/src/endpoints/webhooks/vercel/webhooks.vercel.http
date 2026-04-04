@@ -1,0 +1,140 @@
+### Genfeed API - Vercel Webhook Endpoint
+### This endpoint is PUBLIC (no signature validation)
+
+@import ../../../../../http/_environment.http
+
+########################################
+# Vercel Webhooks
+########################################
+
+### Vercel Deployment Success
+# Receives notification when Vercel deployment succeeds
+POST {{baseUrl}}/webhooks/vercel/callback
+Content-Type: application/json
+
+{
+  "type": "deployment",
+  "payload": {
+    "id": "dpl_abc123",
+    "url": "https://my-app-abc123.vercel.app",
+    "name": "my-app",
+    "state": "READY",
+    "createdAt": 1234567890,
+    "target": "production",
+    "alias": ["my-app.com"]
+  }
+}
+
+
+### Vercel Deployment Error
+POST {{baseUrl}}/webhooks/vercel/callback
+Content-Type: application/json
+
+{
+  "type": "deployment",
+  "payload": {
+    "id": "dpl_error123",
+    "url": "https://my-app-error123.vercel.app",
+    "name": "my-app",
+    "state": "ERROR",
+    "createdAt": 1234567891,
+    "target": "production",
+    "errorCode": "BUILD_FAILED",
+    "errorMessage": "Build failed due to syntax error"
+  }
+}
+
+
+### Vercel Deployment Canceled
+POST {{baseUrl}}/webhooks/vercel/callback
+Content-Type: application/json
+
+{
+  "type": "deployment",
+  "payload": {
+    "id": "dpl_canceled123",
+    "url": "https://my-app-canceled123.vercel.app",
+    "name": "my-app",
+    "state": "CANCELED",
+    "createdAt": 1234567892,
+    "target": "preview"
+  }
+}
+
+
+### Vercel Project Created
+POST {{baseUrl}}/webhooks/vercel/callback
+Content-Type: application/json
+
+{
+  "type": "project.created",
+  "payload": {
+    "project": {
+      "id": "prj_abc123",
+      "name": "new-project",
+      "framework": "nextjs",
+      "createdAt": 1234567893
+    }
+  }
+}
+
+
+### Vercel Domain Added
+POST {{baseUrl}}/webhooks/vercel/callback
+Content-Type: application/json
+
+{
+  "type": "domain.created",
+  "payload": {
+    "domain": {
+      "name": "example.com",
+      "verified": true,
+      "createdAt": 1234567894
+    },
+    "project": {
+      "id": "prj_abc123",
+      "name": "my-project"
+    }
+  }
+}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: any Event Type
+# Should process without error
+POST {{baseUrl}}/webhooks/vercel/callback
+Content-Type: application/json
+
+{
+  "type": "unknown.event",
+  "payload": {
+    "data": "test"
+  }
+}
+
+
+### Test: Missing Payload
+POST {{baseUrl}}/webhooks/vercel/callback
+Content-Type: application/json
+
+{
+  "type": "deployment"
+}
+
+
+### Test: Minimal Deployment Event
+POST {{baseUrl}}/webhooks/vercel/callback
+Content-Type: application/json
+
+{
+  "type": "deployment",
+  "payload": {
+    "id": "dpl_minimal",
+    "state": "READY"
+  }
+}
+
+

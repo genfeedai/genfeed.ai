@@ -1,0 +1,54 @@
+### Genfeed API - HeyGen Integration Endpoints
+### Manage HeyGen AI avatar videos
+### Handles: avatar videos, voice cloning
+
+########################################
+# Video Generation
+########################################
+
+### Generate Avatar Video
+POST {{apiBaseUrl}}/integrations/heygen/generate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "avatarId": "{{heygenAvatarId}}",
+  "voiceId": "{{heygenVoiceId}}",
+  "text": "Welcome to our presentation"
+}
+
+
+### Check Generation Status
+GET {{apiBaseUrl}}/integrations/heygen/status/{{generationId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Avatars
+########################################
+
+### Get Available Avatars
+GET {{apiBaseUrl}}/integrations/heygen/avatars
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Voices
+########################################
+
+### Get Available Voices
+GET {{apiBaseUrl}}/integrations/heygen/voices
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Generation ID
+GET {{apiBaseUrl}}/integrations/heygen/status/invalid-id
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+POST {{apiBaseUrl}}/integrations/heygen/generate

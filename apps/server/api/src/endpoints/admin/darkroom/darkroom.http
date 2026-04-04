@@ -1,0 +1,248 @@
+### Genfeed API - Admin Darkroom Endpoints
+### Manage AI influencer pipeline: characters, assets, training, generation, infrastructure
+### All endpoints require IP whitelist (IpWhitelistGuard)
+
+########################################
+# Characters
+########################################
+
+### List All Characters
+GET {{apiBaseUrl}}/admin/darkroom/characters
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Character by Slug
+GET {{apiBaseUrl}}/admin/darkroom/characters/{{testCharacterSlug}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Create Character
+POST {{apiBaseUrl}}/admin/darkroom/characters
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Luna",
+  "slug": "luna",
+  "description": "AI fashion influencer with edgy streetwear aesthetic",
+  "style": "streetwear",
+  "ethnicity": "asian",
+  "gender": "female",
+  "age": 24
+}
+
+
+### Update Character
+PATCH {{apiBaseUrl}}/admin/darkroom/characters/{{testCharacterSlug}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "description": "Updated description for Luna character",
+  "style": "minimalist"
+}
+
+
+### Delete Character (Soft Delete)
+DELETE {{apiBaseUrl}}/admin/darkroom/characters/{{testCharacterSlug}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Assets
+########################################
+
+### List Assets
+# Supports query filters via QueryAssetsDto
+GET {{apiBaseUrl}}/admin/darkroom/assets
+Authorization: Bearer {{bearerToken}}
+
+
+### List Assets with Filters
+GET {{apiBaseUrl}}/admin/darkroom/assets?characterSlug=luna&status=pending&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Review Asset (Approve)
+PATCH {{apiBaseUrl}}/admin/darkroom/assets/{{testAssetId}}/review
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "reviewStatus": "approved"
+}
+
+
+### Review Asset (Reject)
+PATCH {{apiBaseUrl}}/admin/darkroom/assets/{{testAssetId}}/review
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "reviewStatus": "rejected"
+}
+
+
+### Publish Asset to Platforms
+POST {{apiBaseUrl}}/admin/darkroom/assets/{{testAssetId}}/publish
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "platforms": ["instagram", "tiktok"]
+}
+
+
+########################################
+# Generation
+########################################
+
+### Generate Image for Character
+POST {{apiBaseUrl}}/admin/darkroom/generate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "personaSlug": "luna",
+  "prompt": "Professional headshot in modern studio lighting",
+  "style": "photorealistic",
+  "width": 1024,
+  "height": 1024
+}
+
+
+########################################
+# Training
+########################################
+
+### List Trainings
+GET {{apiBaseUrl}}/admin/darkroom/trainings
+Authorization: Bearer {{bearerToken}}
+
+
+### List Trainings by Persona
+GET {{apiBaseUrl}}/admin/darkroom/trainings?personaSlug=luna
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Training Details
+GET {{apiBaseUrl}}/admin/darkroom/trainings/{{testTrainingId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Start LoRA Training
+POST {{apiBaseUrl}}/admin/darkroom/trainings
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "personaSlug": "luna",
+  "modelVersion": "sdxl",
+  "trainingSteps": 1500,
+  "learningRate": 0.0001,
+  "resolution": 1024
+}
+
+
+########################################
+# Pipeline
+########################################
+
+### List Campaigns with Stats
+GET {{apiBaseUrl}}/admin/darkroom/pipeline/campaigns
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Pipeline Statistics
+GET {{apiBaseUrl}}/admin/darkroom/pipeline/stats
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Infrastructure
+########################################
+
+### Get GPU Instance Status
+GET {{apiBaseUrl}}/admin/darkroom/infrastructure/gpu
+Authorization: Bearer {{bearerToken}}
+
+
+### Get EC2 Instance Status
+GET {{apiBaseUrl}}/admin/darkroom/infrastructure/ec2/status
+Authorization: Bearer {{bearerToken}}
+
+
+### EC2 Action (Start Instance)
+POST {{apiBaseUrl}}/admin/darkroom/infrastructure/ec2/action
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "instanceId": "i-0abc123def456789",
+  "action": "start"
+}
+
+
+### EC2 Action (Stop Instance)
+POST {{apiBaseUrl}}/admin/darkroom/infrastructure/ec2/action
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "instanceId": "i-0abc123def456789",
+  "action": "stop"
+}
+
+
+### Invalidate CloudFront Cache
+POST {{apiBaseUrl}}/admin/darkroom/infrastructure/cloudfront/invalidate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "distributionId": "E1A2B3C4D5E6F7",
+  "paths": ["/*"]
+}
+
+
+### Check Service Health (ComfyUI + Ollama)
+GET {{apiBaseUrl}}/admin/darkroom/infrastructure/services
+Authorization: Bearer {{bearerToken}}
+
+
+### Get GPU Fleet Health
+GET {{apiBaseUrl}}/admin/darkroom/infrastructure/fleet/health
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Character Slug
+GET {{apiBaseUrl}}/admin/darkroom/characters/nonexistent-slug
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Create Character Without Required Fields
+POST {{apiBaseUrl}}/admin/darkroom/characters
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": ""
+}
+
+
+### Test: Review Asset with Invalid Status
+PATCH {{apiBaseUrl}}/admin/darkroom/assets/507f1f77bcf86cd799439011/review
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "reviewStatus": "invalid-status"
+}
+
+
+### Test: Unauthorized Access (No Token)
+GET {{apiBaseUrl}}/admin/darkroom/characters

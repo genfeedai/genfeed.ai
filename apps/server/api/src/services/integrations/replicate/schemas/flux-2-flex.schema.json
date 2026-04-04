@@ -1,0 +1,123 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Official Replicate API schema for black-forest-labs/flux-2-flex",
+  "properties": {
+    "aspect_ratio": {
+      "description": "An enumeration.",
+      "enum": [
+        "match_input_image",
+        "custom",
+        "1:1",
+        "16:9",
+        "3:2",
+        "2:3",
+        "4:5",
+        "5:4",
+        "9:16",
+        "3:4",
+        "4:3"
+      ],
+      "title": "aspect_ratio",
+      "type": "string"
+    },
+    "guidance": {
+      "default": 4.5,
+      "description": "Guidance scale for generation. Controls how closely the output follows the prompt",
+      "maximum": 10,
+      "minimum": 1.5,
+      "title": "Guidance",
+      "type": "number",
+      "x-order": 10
+    },
+    "height": {
+      "description": "Height of the generated image. Only used when aspect_ratio=custom. Must be a multiple of 32 (if it's not, it will be rounded to nearest multiple of 32).",
+      "maximum": 2048,
+      "minimum": 256,
+      "nullable": true,
+      "title": "Height",
+      "type": "integer",
+      "x-order": 5
+    },
+    "input_images": {
+      "default": [],
+      "description": "List of input images for image-to-image generation. Maximum 10 images. Must be jpeg, png, gif, or webp.",
+      "items": {
+        "format": "uri",
+        "type": "string"
+      },
+      "title": "Input Images",
+      "type": "array",
+      "x-order": 1
+    },
+    "output_format": {
+      "description": "An enumeration.",
+      "enum": ["webp", "jpg", "png"],
+      "title": "output_format",
+      "type": "string"
+    },
+    "output_quality": {
+      "default": 80,
+      "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs",
+      "maximum": 100,
+      "minimum": 0,
+      "title": "Output Quality",
+      "type": "integer",
+      "x-order": 12
+    },
+    "prompt": {
+      "description": "Text prompt for image generation",
+      "title": "Prompt",
+      "type": "string",
+      "x-order": 0
+    },
+    "prompt_upsampling": {
+      "default": true,
+      "description": "Automatically modify the prompt for more creative generation",
+      "title": "Prompt Upsampling",
+      "type": "boolean",
+      "x-order": 8
+    },
+    "resolution": {
+      "description": "An enumeration.",
+      "enum": ["match_input_image", "0.5 MP", "1 MP", "2 MP", "4 MP"],
+      "title": "resolution",
+      "type": "string"
+    },
+    "safety_tolerance": {
+      "default": 2,
+      "description": "Safety tolerance, 1 is most strict and 5 is most permissive",
+      "maximum": 5,
+      "minimum": 1,
+      "title": "Safety Tolerance",
+      "type": "integer",
+      "x-order": 6
+    },
+    "seed": {
+      "description": "Random seed. Set for reproducible generation",
+      "title": "Seed",
+      "type": "integer",
+      "x-order": 7
+    },
+    "steps": {
+      "default": 30,
+      "description": "Number of inference steps",
+      "maximum": 50,
+      "minimum": 1,
+      "title": "Steps",
+      "type": "integer",
+      "x-order": 9
+    },
+    "width": {
+      "description": "Width of the generated image. Only used when aspect_ratio=custom. Must be a multiple of 32 (if it's not, it will be rounded to nearest multiple of 32).",
+      "maximum": 2048,
+      "minimum": 256,
+      "nullable": true,
+      "title": "Width",
+      "type": "integer",
+      "x-order": 4
+    }
+  },
+  "required": ["prompt"],
+  "title": "flux-2-flex Input Schema",
+  "type": "object"
+}

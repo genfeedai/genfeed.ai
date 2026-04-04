@@ -1,0 +1,43 @@
+### Genfeed API - Facebook Integration Endpoints
+### Manage Facebook publishing and authentication
+### Handles: OAuth, posting, pages
+
+########################################
+# Authentication
+########################################
+
+### Facebook OAuth Callback
+GET {{apiBaseUrl}}/integrations/facebook/callback?code={{authCode}}
+
+
+########################################
+# Pages
+########################################
+
+### Get Facebook Pages
+GET {{apiBaseUrl}}/integrations/facebook/pages
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Publishing
+########################################
+
+### Post to Facebook
+POST {{apiBaseUrl}}/integrations/facebook/post
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "pageId": "{{facebookPageId}}",
+  "message": "Check out our new content!",
+  "mediaUrl": "{{testImageUrl}}"
+}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/integrations/facebook/pages

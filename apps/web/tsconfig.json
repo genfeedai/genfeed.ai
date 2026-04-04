@@ -1,0 +1,63 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@api-types/*": ["../../../packages/api-types/src/*"],
+      "@app-components/*": ["./packages/components/*"],
+      "@app-config/*": ["./packages/config/*"],
+      "@app-server/*": ["./packages/server/*"],
+      "@app/*": ["./app/*"],
+      "@cloud-types/*": ["../../../packages/types/src/*"],
+      "@genfeedai/agent": ["../../../packages/agent/src/index.ts"],
+      "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
+      "@genfeedai/interfaces": ["../../../packages/interfaces/src/index.ts"],
+      "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
+      "@genfeedai/serializers": ["../../../packages/serializers/src/index.ts"],
+      "@genfeedai/serializers/*": ["../../../packages/serializers/src/*"],
+      "@genfeedai/types": ["../../../packages/types/src/index.ts"],
+      "@genfeedai/types/*": ["../../../packages/types/src/*"],
+      "@genfeedai/workflow": ["../../../packages/workflow-cloud/src/index.ts"],
+      "@genfeedai/workflow-saas": ["../../../packages/workflow-saas/src/index.ts"],
+      "@genfeedai/workflow/*": ["../../../packages/workflow-cloud/src/*"],
+      "@configs/*": ["../../../configs/*"],
+      "@contexts/*": ["../../../packages/contexts/*"],
+      "@genfeedai/client": ["../../../packages/client/dist/index"],
+      "@genfeedai/client/*": ["../../../packages/client/dist/*"],
+      "@genfeedai/client/schemas": ["../../../packages/client/dist/schemas"],
+      "@genfeedai/client/schemas/*": [
+        "../../../packages/client/dist/schemas/*/index",
+        "../../../packages/client/dist/schemas/*"
+      ],
+      "@genfeedai/enums": ["../../../packages/enums/dist/index"],
+      "@genfeedai/enums/*": ["../../../packages/enums/dist/*"],
+      "@genfeedai/helpers": ["../../../packages/helpers/src/index.ts"],
+      "@genfeedai/helpers/*": ["../../../packages/helpers/src/*"],
+      "@helpers/*": ["../../../packages/helpers/src/*"],
+      "@hooks/*": ["../../../packages/hooks/*"],
+      "@models/*": ["../../../packages/models/*"],
+      "@pages/*": ["../../../packages/pages/*"],
+      "@props/*": ["../../../packages/props/*"],
+      "@providers/*": ["../../../packages/providers/*"],
+      "@schemas/*": ["../../../packages/schemas/*"],
+      "@serializers/*": ["../../../packages/serializers/src/*"],
+      "@services/*": ["../../../packages/services/*"],
+      "@shared/*": ["../../../packages/*", "../../../tests/*"],
+      "@styles/*": ["../../../packages/styles/*"],
+      "@ui-constants/*": ["../../../packages/ui/constants/*"],
+      "@ui/*": ["../../../packages/ui/*"],
+      "@utils/*": ["../../../packages/utils/*"],
+      "@workflow-cloud/*": ["../../../packages/workflow-cloud/src/*"],
+      "@workflow-engine/*": ["../../../packages/workflow-engine/src/*"],
+      "@workflow-saas/*": ["../../../packages/workflow-saas/src/*"]
+    }
+  },
+  "exclude": ["**/*.spec.ts", "**/*.spec.tsx", "**/*.test.ts", "**/*.test.tsx"],
+  "extends": "../../../packages/tsconfig/nextjs.json",
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/types/**/*.d.ts"
+  ]
+}

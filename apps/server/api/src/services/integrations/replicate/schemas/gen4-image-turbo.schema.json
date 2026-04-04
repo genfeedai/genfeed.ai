@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Official Replicate API schema for runwayml/gen4-image-turbo",
+  "properties": {
+    "aspect_ratio": {
+      "description": "An enumeration.",
+      "enum": ["16:9", "9:16", "4:3", "3:4", "1:1", "21:9"],
+      "title": "aspect_ratio",
+      "type": "string"
+    },
+    "prompt": {
+      "description": "Text prompt for image generation",
+      "title": "Prompt",
+      "type": "string"
+    },
+    "reference_images": {
+      "default": [],
+      "description": "You must give at least one reference image. Up to 3 reference images are supported. Images must be between 0.5 and 2 aspect ratio.",
+      "items": {
+        "format": "uri",
+        "type": "string"
+      },
+      "title": "Reference Images",
+      "type": "array"
+    },
+    "reference_tags": {
+      "default": [],
+      "description": "An optional tag for each of your reference images. Tags must be alphanumeric and start with a letter. You can reference them in your prompt using @tag_name. Tags must be between 3 and 15 characters.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Reference Tags",
+      "type": "array"
+    },
+    "resolution": {
+      "description": "An enumeration.",
+      "enum": ["720p", "1080p"],
+      "title": "resolution",
+      "type": "string"
+    },
+    "seed": {
+      "description": "Random seed. Set for reproducible generation",
+      "nullable": true,
+      "title": "Seed",
+      "type": "integer"
+    }
+  },
+  "required": ["prompt"],
+  "title": "gen4-image-turbo Input Schema",
+  "type": "object"
+}

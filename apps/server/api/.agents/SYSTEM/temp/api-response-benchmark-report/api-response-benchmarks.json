@@ -1,0 +1,54 @@
+{
+  "baselineGeneratedAt": "2026-04-02T02:06:50.875Z",
+  "endpoints": [
+    {
+      "id": "auth-guarded-tags-list",
+      "label": "Auth-Guarded Tags List",
+      "method": "GET",
+      "route": "/v1/organizations/65f000000000000000000003/tags?page=1&limit=25",
+      "summary": {
+        "iterations": 25,
+        "maxMs": 3.3,
+        "meanMs": 2.12,
+        "minMs": 1.72,
+        "p50Ms": 2,
+        "p95Ms": 2.8,
+        "warmup": 5
+      }
+    },
+    {
+      "id": "organization-brands-list",
+      "label": "Organization Brands List",
+      "method": "GET",
+      "route": "/v1/organizations/65f000000000000000000003/brands?page=1&limit=25",
+      "summary": {
+        "iterations": 25,
+        "maxMs": 33.97,
+        "meanMs": 23.83,
+        "minMs": 22.41,
+        "p50Ms": 23.09,
+        "p95Ms": 27.04,
+        "warmup": 5
+      }
+    },
+    {
+      "id": "organization-posts-list",
+      "label": "Organization Posts List",
+      "method": "GET",
+      "route": "/v1/organizations/65f000000000000000000003/posts?page=1&limit=25",
+      "summary": {
+        "iterations": 25,
+        "maxMs": 9.83,
+        "meanMs": 8.45,
+        "minMs": 8.14,
+        "p50Ms": 8.4,
+        "p95Ms": 8.69,
+        "warmup": 5
+      }
+    }
+  ],
+  "generatedAt": "2026-04-02T02:07:00.471Z",
+  "missingBaselineEndpointIds": [],
+  "regressions": [],
+  "regressionThresholdPct": 20
+}

@@ -1,0 +1,117 @@
+### Profiles API Test Suite
+### Base URL: http://localhost:3000/profiles
+### Auth: Bearer token required (Clerk JWT)
+
+### Variables
+@baseUrl = http://localhost:3000
+@token = your_clerk_jwt_token_here
+@profileId = replace_with_actual_profile_id
+
+### 1. Create tone/style profile
+POST {{baseUrl}}/profiles
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Brand Voice - Bold & Modern",
+  "description": "Our signature style for all content",
+  "isDefault": true,
+  "image": {
+    "style": "modern",
+    "mood": ["professional", "energetic", "innovative"],
+    "colorPalette": {
+      "primary": ["#0066FF", "#00CCFF"],
+      "secondary": ["#FF00FF", "#FFFF00"]
+    },
+    "lighting": "dramatic",
+    "composition": "rule-of-thirds"
+  },
+  "video": {
+    "pacing": "fast",
+    "energy": "high",
+    "transitions": ["cut", "zoom", "swipe"],
+    "musicStyle": ["electronic", "upbeat"],
+    "colorGrading": "vibrant"
+  },
+  "voice": {
+    "pace": "moderate",
+    "emotion": "enthusiastic",
+    "personality": "confident",
+    "pitch": "medium",
+    "accent": "neutral"
+  },
+  "article": {
+    "writingStyle": "conversational",
+    "formality": "informal",
+    "vocabulary": "moderate",
+    "sentenceLength": "medium",
+    "readingLevel": "8th-grade"
+  }
+}
+
+### 2. List profiles
+GET {{baseUrl}}/profiles?contentType=image&isActive=true
+Authorization: Bearer {{token}}
+
+### 3. Get profile by ID
+GET {{baseUrl}}/profiles/{{profileId}}
+Authorization: Bearer {{token}}
+
+### 4. Update profile
+PATCH {{baseUrl}}/profiles/{{profileId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "description": "Updated brand voice with more energy",
+  "video": {
+    "pacing": "very-fast",
+    "energy": "very-high"
+  }
+}
+
+### 5. Delete profile
+DELETE {{baseUrl}}/profiles/{{profileId}}
+Authorization: Bearer {{token}}
+
+### 6. Apply profile to prompt (THE MAGIC!)
+POST {{baseUrl}}/profiles/{{profileId}}/apply
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "prompt": "Create a product launch video",
+  "contentType": "video"
+}
+
+### 7. Analyze tone compliance
+POST {{baseUrl}}/profiles/{{profileId}}/analyze
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "content": "Hey everyone! Check out our AMAZING new product! It's literally going to blow your mind! 🤯",
+  "contentType": "caption"
+}
+
+### 8. Get default profile
+GET {{baseUrl}}/profiles/default?contentType=video
+Authorization: Bearer {{token}}
+
+### 9. Generate profile from examples
+POST {{baseUrl}}/profiles/generate
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "name": "Auto-Generated Brand Voice",
+  "description": "Generated from past successful content",
+  "examples": [
+    "Behind the scenes of our product development! 🚀",
+    "Here's how we build innovative solutions that save you time.",
+    "Pro tip: Always test before you ship! Quality matters."
+  ],
+  "contentType": "caption"
+}
+
+

@@ -1,0 +1,267 @@
+### Genfeed API - Captions Collection Endpoints
+### Manage video captions and subtitles
+### Handles: caption generation, editing, formatting
+
+########################################
+# List & Filter Captions
+########################################
+
+### Get All Captions (Paginated)
+GET {{apiBaseUrl}}/captions
+Authorization: Bearer {{bearerToken}}
+
+### Get Captions with Pagination
+GET {{apiBaseUrl}}/captions?page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Captions by Video
+GET {{apiBaseUrl}}/captions?video={{testVideoId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Captions by Language
+GET {{apiBaseUrl}}/captions?language=en
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Captions
+GET {{apiBaseUrl}}/captions?sort=-createdAt
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Caption
+########################################
+
+### Get Caption by ID
+GET {{apiBaseUrl}}/captions/{{testCaptionId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Caption
+########################################
+
+### Generate Caption from Video (Auto-Transcribe)
+POST {{apiBaseUrl}}/captions
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "video": "{{testVideoId}}",
+  "language": "en",
+  "autoGenerate": true
+}
+
+
+### Create Manual Caption
+POST {{apiBaseUrl}}/captions
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "video": "{{testVideoId}}",
+  "language": "en",
+  "segments": [
+    {
+      "start": 0.0,
+      "end": 2.5,
+      "text": "Welcome to our video"
+    },
+    {
+      "start": 2.5,
+      "end": 5.0,
+      "text": "Today we'll explore AI"
+    }
+  ]
+}
+
+
+### Upload Caption File (SRT/VTT)
+POST {{apiBaseUrl}}/captions/upload
+Authorization: Bearer {{bearerToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="captions.srt"
+Content-Type: text/plain
+
+< /path/to/captions.srt
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="video"
+
+{{testVideoId}}
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+########################################
+# Update Caption
+########################################
+
+### Update Caption Text
+PATCH {{apiBaseUrl}}/captions/{{testCaptionId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "segments": [
+    {
+      "start": 0.0,
+      "end": 2.5,
+      "text": "Updated caption text"
+    }
+  ]
+}
+
+
+### Update Caption Language
+PATCH {{apiBaseUrl}}/captions/{{testCaptionId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "language": "es"
+}
+
+
+### Update Caption Styling
+PATCH {{apiBaseUrl}}/captions/{{testCaptionId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "style": {
+    "fontSize": 24,
+    "fontFamily": "Arial",
+    "color": "#FFFFFF",
+    "backgroundColor": "#000000",
+    "position": "bottom"
+  }
+}
+
+
+########################################
+# Translate Captions
+########################################
+
+### Translate Caption to Another Language
+POST {{apiBaseUrl}}/captions/{{testCaptionId}}/translate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "targetLanguage": "es"
+}
+
+
+### Translate to Multiple Languages
+POST {{apiBaseUrl}}/captions/{{testCaptionId}}/translate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "targetLanguages": ["es", "fr", "de", "it"]
+}
+
+
+########################################
+# Export Captions
+########################################
+
+### Export Caption as SRT
+GET {{apiBaseUrl}}/captions/{{testCaptionId}}/export?format=srt
+Authorization: Bearer {{bearerToken}}
+
+
+### Export Caption as VTT
+GET {{apiBaseUrl}}/captions/{{testCaptionId}}/export?format=vtt
+Authorization: Bearer {{bearerToken}}
+
+
+### Export Caption as JSON
+GET {{apiBaseUrl}}/captions/{{testCaptionId}}/export?format=json
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Burn Captions to Video
+########################################
+
+### Burn Captions into Video
+# Creates new video with hardcoded captions
+POST {{apiBaseUrl}}/captions/{{testCaptionId}}/burn
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Delete Caption
+########################################
+
+### Delete Caption
+# Soft delete - marks as deleted but keeps data
+DELETE {{apiBaseUrl}}/captions/{{testCaptionId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Caption ID Format
+GET {{apiBaseUrl}}/captions/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Caption Not Found
+GET {{apiBaseUrl}}/captions/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Create Caption Without Video
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/captions
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "language": "en",
+  "autoGenerate": true
+}
+
+
+### Test: Create Caption with Invalid Segments
+POST {{apiBaseUrl}}/captions
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "video": "{{testVideoId}}",
+  "segments": [
+    {
+      "start": 5.0,
+      "end": 2.0,
+      "text": "Invalid time range"
+    }
+  ]
+}
+
+
+### Test: Translate to Invalid Language Code
+POST {{apiBaseUrl}}/captions/{{testCaptionId}}/translate
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "targetLanguage": "invalid_lang"
+}
+
+
+### Test: Export with Invalid Format
+GET {{apiBaseUrl}}/captions/{{testCaptionId}}/export?format=invalid
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/captions

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "alias": ["admin.genfeed.ai"],
+  "buildCommand": "cd ../../../configs && sh ../scripts/sh/vercel-bun.sh run build && cd ../apps/web/admin && sh ../../../scripts/sh/vercel-bun.sh run build",
+  "git": {
+    "deploymentEnabled": {
+      "*": false,
+      "master": true,
+      "staging": true
+    }
+  },
+  "installCommand": "cd ../../../ && sh scripts/sh/vercel-bun.sh install",
+  "outputDirectory": ".next"
+}

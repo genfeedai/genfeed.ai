@@ -1,0 +1,177 @@
+### Genfeed API - Links Collection Endpoints
+### Manage tracked links and short URLs
+### Handles: link creation, tracking, analytics
+
+########################################
+# List & Filter Links
+########################################
+
+### Get All Links (Paginated)
+GET {{apiBaseUrl}}/links
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Links with Pagination
+GET {{apiBaseUrl}}/links?page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Links by Status
+# Status values: active, inactive, expired
+GET {{apiBaseUrl}}/links?status=active
+Authorization: Bearer {{bearerToken}}
+
+
+### Search Links
+GET {{apiBaseUrl}}/links?search=campaign
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Links by Clicks
+GET {{apiBaseUrl}}/links?sort=-clickCount
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Link
+########################################
+
+### Get Link by ID
+GET {{apiBaseUrl}}/links/{{testLinkId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Link by Slug
+GET {{apiBaseUrl}}/links/slug/{{testSlug}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Link
+########################################
+
+### Create Tracked Link
+POST {{apiBaseUrl}}/links
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "url": "https://example.com/long-url",
+  "slug": "my-link",
+  "title": "My Campaign Link"
+}
+
+
+### Create Link with UTM Parameters
+POST {{apiBaseUrl}}/links
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "url": "https://example.com/product",
+  "title": "Product Link",
+  "utmSource": "twitter",
+  "utmMedium": "social",
+  "utmCampaign": "launch"
+}
+
+
+### Create Link with Expiration
+POST {{apiBaseUrl}}/links
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "url": "https://example.com/promo",
+  "title": "Limited Time Offer",
+  "expiresAt": "2025-12-31T23:59:59Z"
+}
+
+
+########################################
+# Update Link
+########################################
+
+### Update Link Details
+PATCH {{apiBaseUrl}}/links/{{testLinkId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "title": "Updated Link Title",
+  "description": "Updated description"
+}
+
+
+### Update Link Status
+PATCH {{apiBaseUrl}}/links/{{testLinkId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "status": "inactive"
+}
+
+
+########################################
+# Link Analytics
+########################################
+
+### Get Link Click Analytics
+GET {{apiBaseUrl}}/links/{{testLinkId}}/analytics
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Link Analytics by Date Range
+GET {{apiBaseUrl}}/links/{{testLinkId}}/analytics?startDate=2025-10-01&endDate=2025-10-14
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Delete Link
+########################################
+
+### Delete Link
+DELETE {{apiBaseUrl}}/links/{{testLinkId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Link ID Format
+GET {{apiBaseUrl}}/links/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Link Not Found
+GET {{apiBaseUrl}}/links/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Create Link Without URL
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/links
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "title": "Test Link"
+}
+
+
+### Test: Create Link with Duplicate Slug
+POST {{apiBaseUrl}}/links
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "url": "https://example.com",
+  "slug": "existing-slug"
+}
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/links

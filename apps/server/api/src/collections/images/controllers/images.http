@@ -1,0 +1,491 @@
+### Genfeed API - Images Collection Endpoints
+### Manage AI image generation and CRUD operations
+### Supports: OpenAI DALL-E, LeonardoAI, KlingAI, SDXL, Google Imagen, Replicate models
+
+########################################
+# Latest Images
+########################################
+
+### Get Latest Images
+# Get the most recent images for the current user (up to 50)
+# Includes both user images and default images
+# Cached for 5 minutes
+GET {{apiBaseUrl}}/images/latest?limit=10
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Latest Images (Max Limit)
+GET {{apiBaseUrl}}/images/latest?limit=50
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# List & Filter Images
+########################################
+
+### Get All Images (Paginated)
+# Default: page=1, limit=20
+# Includes user images and default images
+GET {{apiBaseUrl}}/images
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Images with Pagination
+GET {{apiBaseUrl}}/images?page=2&limit=10
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Images by Status
+# Status values: processing, completed, failed, uploaded
+# Can use comma-separated values: status=completed,uploaded
+GET {{apiBaseUrl}}/images?status=completed&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Images by Format
+# Format values: square, landscape, portrait
+GET {{apiBaseUrl}}/images?format=square&page=1&limit=10
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Images by Folder
+# Get images in a specific folder
+GET {{apiBaseUrl}}/images?folder={{testFolderId}}&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Root Images Only (No Parent)
+GET {{apiBaseUrl}}/images?parent=null
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Images by Training
+# Get images associated with a specific training
+GET {{apiBaseUrl}}/images?training={{testTrainingId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Search Images by Label/Description
+GET {{apiBaseUrl}}/images?search=landscape&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Images
+# Sort options: -createdAt (newest), createdAt (oldest), -updatedAt, updatedAt
+GET {{apiBaseUrl}}/images?sort=-createdAt&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Image
+########################################
+
+### Get Image by ID
+# Returns full image details with populated metadata, prompt, account
+GET {{apiBaseUrl}}/images/{{testImageId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Image Children & Related
+########################################
+
+### Get Image Children
+# Get all derivative images (upscaled, edited, etc.)
+GET {{apiBaseUrl}}/images/{{testImageId}}/children?page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Generate Images (AI)
+########################################
+
+### Generate Image with OpenAI DALL-E (Default)
+# Default model: gpt-image-1 (DALL-E 3)
+# Rate limit: 30 requests per minute
+# Requires credits
+POST {{apiBaseUrl}}/images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "A serene mountain landscape at sunset with vibrant colors",
+  "model": "gpt-image-1",
+  "width": 1920,
+  "height": 1080,
+  "style": "realistic"
+}
+
+
+### Generate Image with Style Reference
+# Use reference images to guide generation
+POST {{apiBaseUrl}}/images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "A modern living room in the same style",
+  "model": "gpt-image-1",
+  "references": ["{{testImageId}}", "{{testImageId2}}"],
+  "width": 1920,
+  "height": 1080,
+  "style": "realistic"
+}
+
+
+### Generate Image with KlingAI
+POST {{apiBaseUrl}}/images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "A futuristic cityscape with neon lights",
+  "model": "klingai-v2",
+  "width": 1024,
+  "height": 1024,
+  "style": "realistic",
+  "reference": "{{testImageId}}"
+}
+
+
+### Generate Image with LeonardoAI
+POST {{apiBaseUrl}}/images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "A magical forest with glowing mushrooms",
+  "model": "leonardoai",
+  "width": 1024,
+  "height": 1024,
+  "style": "fantasy"
+}
+
+
+### Generate Image with Google Imagen 4
+POST {{apiBaseUrl}}/images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "A photorealistic portrait of a wise elder",
+  "model": "google-imagen-4",
+  "width": 1024,
+  "height": 1024
+}
+
+
+### Generate Image with Google Imagen 4 Fast
+POST {{apiBaseUrl}}/images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "A quick sketch of a cat sitting on a windowsill",
+  "model": "google-imagen-4-fast",
+  "width": 1024,
+  "height": 1024
+}
+
+
+### Generate Image with Google Imagen 4 Ultra
+POST {{apiBaseUrl}}/images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "An ultra-detailed macro photograph of a butterfly wing",
+  "model": "google-imagen-4-ultra",
+  "width": 2048,
+  "height": 2048
+}
+
+
+### Generate Image with SDXL (Stable Diffusion XL)
+POST {{apiBaseUrl}}/images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "A steampunk airship floating in cloudy skies",
+  "model": "sdxl",
+  "width": 1024,
+  "height": 1024
+}
+
+
+### Generate Image with Custom Replicate Model
+# Use any Replicate model by ID (format: owner/model:version)
+POST {{apiBaseUrl}}/images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "A cyberpunk street scene at night",
+  "model": "stability-ai/sdxl:39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
+  "width": 1024,
+  "height": 1024
+}
+
+
+### Generate Multiple Image Outputs (Trained Models)
+# For trained models: generates multiple outputs in one API call
+POST {{apiBaseUrl}}/images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "A colorful abstract pattern",
+  "model": "{{trainedModelId}}",
+  "outputs": 4,
+  "width": 1024,
+  "height": 1024
+}
+
+
+### Generate Multiple Image Outputs (Standard Models)
+# For standard models: makes separate API calls for each output
+POST {{apiBaseUrl}}/images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "A minimalist logo design",
+  "model": "gpt-image-1",
+  "outputs": 3,
+  "width": 1024,
+  "height": 1024
+}
+
+
+### Generate with Parent Reference
+# Create a child image based on a parent
+POST {{apiBaseUrl}}/images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "A variation of the original with autumn colors",
+  "model": "gpt-image-1",
+  "parent": "{{testImageId}}",
+  "width": 1024,
+  "height": 1024
+}
+
+
+### Generate with Account Branding
+POST {{apiBaseUrl}}/images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "A professional business card design",
+  "model": "gpt-image-1",
+  "brand": "{{testBrandId}}",
+  "width": 1024,
+  "height": 1024
+}
+
+
+### Generate with Tags
+POST {{apiBaseUrl}}/images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "A tropical beach at sunset",
+  "model": "gpt-image-1",
+  "tags": ["{{testTagId1}}", "{{testTagId2}}"],
+  "width": 1920,
+  "height": 1080
+}
+
+
+### Generate with Seed (Reproducible)
+POST {{apiBaseUrl}}/images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "A consistent design pattern",
+  "model": "google-imagen-4",
+  "seed": 42,
+  "width": 1024,
+  "height": 1024
+}
+
+
+########################################
+# Delete Image
+########################################
+
+### Delete Image
+# Soft delete - marks as deleted but keeps in database
+DELETE {{apiBaseUrl}}/images/{{testImageId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Image ID Format
+GET {{apiBaseUrl}}/images/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Image Not Found
+GET {{apiBaseUrl}}/images/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Missing Prompt
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "width": 1024,
+  "height": 1024
+}
+
+
+### Test: Invalid Model
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "A test image",
+  "model": "invalid-model-name"
+}
+
+
+### Test: Invalid Format Filter
+GET {{apiBaseUrl}}/images?format=invalid-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Large Limit (Pagination Cap)
+# API caps at 50 results per page
+GET {{apiBaseUrl}}/images/latest?limit=1000
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Multiple Status Filters
+GET {{apiBaseUrl}}/images?status=completed,uploaded&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Invalid Training ID
+GET {{apiBaseUrl}}/images?training=invalid-training-id
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/images
+
+
+### Test: Generate Image Without Credits
+# Should fail with insufficient credits error
+POST {{apiBaseUrl}}/images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "Test image generation",
+  "model": "gpt-image-1"
+}
+
+
+### Test: Rate Limit Exceeded
+# Make 31+ requests within 1 minute to test rate limiting
+# Should return 429 Too Many Requests
+POST {{apiBaseUrl}}/images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "Rate limit test",
+  "model": "gpt-image-1"
+}
+
+
+### Test: Invalid Reference Image ID
+POST {{apiBaseUrl}}/images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "Test with invalid reference",
+  "model": "gpt-image-1",
+  "references": ["invalid-id"]
+}
+
+
+########################################
+# Contact Sheet Splitter
+########################################
+
+### Split Contact Sheet into Frames (2x3 grid)
+# Splits a contact sheet image into individual frames
+# Each frame is saved as a new ingredient in the library
+# Supports grid sizes: 2x2, 2x3, 3x3, and up to 4x4
+POST {{apiBaseUrl}}/images/{{testImageId}}/split
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "gridRows": 2,
+  "gridCols": 3,
+  "borderInset": 10
+}
+
+
+### Split Contact Sheet (3x3 grid)
+POST {{apiBaseUrl}}/images/{{testImageId}}/split
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "gridRows": 3,
+  "gridCols": 3,
+  "borderInset": 15
+}
+
+
+### Split Contact Sheet (2x2 grid)
+POST {{apiBaseUrl}}/images/{{testImageId}}/split
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "gridRows": 2,
+  "gridCols": 2,
+  "borderInset": 5
+}
+
+
+### Test: Split with Invalid Image ID
+POST {{apiBaseUrl}}/images/invalid-id/split
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "gridRows": 2,
+  "gridCols": 3
+}
+
+
+### Test: Split with Invalid Grid Size
+POST {{apiBaseUrl}}/images/{{testImageId}}/split
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "gridRows": 10,
+  "gridCols": 10
+}

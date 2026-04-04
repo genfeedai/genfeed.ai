@@ -1,0 +1,371 @@
+### Genfeed API - Videos Collection Endpoints
+### Manage video generation, transformations, and CRUD operations
+### Video controller supports: AI generation, upscaling, captions, GIF conversion, resizing, and more
+
+########################################
+# Latest Videos
+########################################
+
+### Get Latest Videos
+# Get the most recent videos for the current user (up to 50)
+# Cached for 5 minutes
+GET {{apiBaseUrl}}/videos/latest?limit=10
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Latest Videos (Max Limit)
+GET {{apiBaseUrl}}/videos/latest?limit=50
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# List & Filter Videos
+########################################
+
+### Get All Videos (Paginated)
+# Default: page=1, limit=20
+GET {{apiBaseUrl}}/videos
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Videos with Pagination
+GET {{apiBaseUrl}}/videos?page=2&limit=10
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Videos by Status
+# Status values: processing, completed, failed, uploaded
+# Can use comma-separated values: status=completed,uploaded
+GET {{apiBaseUrl}}/videos?status=completed&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Videos by Format
+# Format values: square, landscape, portrait
+GET {{apiBaseUrl}}/videos?format=portrait&page=1&limit=10
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Videos by Folder
+# Get videos in a specific folder
+GET {{apiBaseUrl}}/videos?folder={{testFolderId}}&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Root Videos Only (No Parent)
+GET {{apiBaseUrl}}/videos?parent=null
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter Videos by Training
+# Get videos associated with a specific training
+GET {{apiBaseUrl}}/videos?training={{testTrainingId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Search Videos by Label/Description
+GET {{apiBaseUrl}}/videos?search=sunset&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Videos
+# Sort options: -createdAt (newest), createdAt (oldest), -updatedAt, updatedAt
+GET {{apiBaseUrl}}/videos?sort=-createdAt&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Video
+########################################
+
+### Get Video by ID
+# Returns full video details with populated metadata, prompt, account
+# Cached for 15 minutes
+GET {{apiBaseUrl}}/videos/{{testVideoId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Video Children & Related
+########################################
+
+### Get Video Children
+# Get all derivative videos (upscaled, resized, etc.)
+GET {{apiBaseUrl}}/videos/{{testVideoId}}/children?page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Video Captions
+# Get all caption/subtitle files for a video
+# Cached for 5 minutes
+GET {{apiBaseUrl}}/videos/{{testVideoId}}/captions
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Video Publications
+# Get all social media publications for this video
+GET {{apiBaseUrl}}/videos/{{testVideoId}}/publications?page=1&limit=10
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Upload Video
+########################################
+
+### Upload Video File
+# Upload a video file directly (max 100MB)
+# Supports: mp4, mov, avi, mkv, webm
+# Rate limit: 5 videos per 5 minutes
+POST {{apiBaseUrl}}/videos/upload
+Authorization: Bearer {{bearerToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="file"; filename="sample.mp4"
+Content-Type: video/mp4
+
+< /path/to/your/video.mp4
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+
+########################################
+# Generate Video (AI)
+########################################
+
+### Generate Video with KlingAI (Default)
+# Generate a video using text-to-video AI
+# Default model: klingai-v2
+# Rate limit: 5 videos per 5 minutes
+# Requires credits
+POST {{apiBaseUrl}}/videos
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "A serene mountain landscape at sunset with flowing rivers",
+  "model": "klingai-v2",
+  "width": 1920,
+  "height": 1080,
+  "duration": 5,
+  "outputs": 1
+}
+
+
+### Generate Video with OpenAI Sora
+POST {{apiBaseUrl}}/videos
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "A futuristic city with flying cars and neon lights",
+  "model": "openai-sora-2",
+  "width": 1920,
+  "height": 1080,
+  "duration": 5,
+  "outputs": 1
+}
+
+
+### Generate Video with Google VEO
+POST {{apiBaseUrl}}/videos
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "Ocean waves crashing on a beach at golden hour",
+  "model": "google-veo-2",
+  "width": 1280,
+  "height": 720,
+  "duration": 4
+}
+
+
+### Generate Video with Reference Image
+# Use an existing image as a reference for video generation
+POST {{apiBaseUrl}}/videos
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "Animate this landscape with moving clouds and birds",
+  "model": "klingai-v2",
+  "references": ["{{testImageId}}"],
+  "width": 1920,
+  "height": 1080,
+  "duration": 5
+}
+
+
+### Generate Multiple Video Outputs
+# Generate multiple variations in one request
+POST {{apiBaseUrl}}/videos
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "A magical forest with glowing fireflies",
+  "model": "klingai-v2",
+  "outputs": 3,
+  "width": 1920,
+  "height": 1080
+}
+
+
+### Generate Video with Style & Mood
+POST {{apiBaseUrl}}/videos
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "A cyberpunk city at night",
+  "model": "klingai-v2",
+  "style": "{{testStyleId}}",
+  "mood": "{{testMoodId}}",
+  "camera": "{{testCameraId}}",
+  "scene": "{{testSceneId}}",
+  "width": 1920,
+  "height": 1080
+}
+
+
+########################################
+# Video Transformations
+########################################
+
+### Add Captions to Video
+# Burn captions/subtitles into video
+# Uses existing caption document
+POST {{apiBaseUrl}}/videos/{{testVideoId}}/captions
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "caption": "{{testCaptionId}}"
+}
+
+
+### Convert Video to GIF
+# Create an animated GIF from video
+# Default: width=480, fps=10
+POST {{apiBaseUrl}}/videos/{{testVideoId}}/gif
+Authorization: Bearer {{bearerToken}}
+
+
+### Upscale Video
+# Upscale video to 4K with higher FPS
+# Requires credits
+# Model: topaz-video-upscale
+POST {{apiBaseUrl}}/videos/{{testVideoId}}/upscale
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "model": "topaz-video-upscale",
+  "targetFps": 60,
+  "targetResolution": "4k"
+}
+
+
+### Resize Video
+# Resize video to specific dimensions
+POST {{apiBaseUrl}}/videos/{{testVideoId}}/resize
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "width": 1080,
+  "height": 1920
+}
+
+
+### Convert to Portrait (9:16)
+# Convert landscape/square video to portrait format
+# Output: 1080x1920
+POST {{apiBaseUrl}}/videos/{{testVideoId}}/portrait
+Authorization: Bearer {{bearerToken}}
+
+
+### Reverse Video
+# Play video in reverse
+POST {{apiBaseUrl}}/videos/{{testVideoId}}/reverse
+Authorization: Bearer {{bearerToken}}
+
+
+### Extract Reference Frames
+# Extract first and last frames for reference (TEMPORARILY UNAVAILABLE)
+POST {{apiBaseUrl}}/videos/{{testVideoId}}/reference
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Delete Video
+########################################
+
+### Delete Video
+# Soft delete - marks as deleted but keeps in database
+DELETE {{apiBaseUrl}}/videos/{{testVideoId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Video ID Format
+GET {{apiBaseUrl}}/videos/invalid-id-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Video Not Found
+GET {{apiBaseUrl}}/videos/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Missing Prompt
+# Should return 400 Bad Request
+POST {{apiBaseUrl}}/videos
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "width": 1920,
+  "height": 1080
+}
+
+
+### Test: Invalid Format Filter
+GET {{apiBaseUrl}}/videos?format=invalid-format
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Large Limit (Pagination Cap)
+# API caps at 50 results per page
+GET {{apiBaseUrl}}/videos/latest?limit=1000
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Multiple Status Filters
+GET {{apiBaseUrl}}/videos?status=completed,uploaded&page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Invalid Training ID
+GET {{apiBaseUrl}}/videos?training=invalid-training-id
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+# Should return 401 without auth token
+GET {{apiBaseUrl}}/videos
+
+
+### Test: Generate Video Without Credits
+# Should fail with insufficient credits error
+POST {{apiBaseUrl}}/videos
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "text": "Test video generation",
+  "model": "klingai-v2"
+}

@@ -1,0 +1,192 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Shadcn CSS Variables */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+    --radius: 0.5rem;
+    --info: 199 89% 48%;
+    --info-foreground: 210 40% 98%;
+    --success: 142 76% 36%;
+    --success-foreground: 210 40% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 210 40% 98%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+    --info: 199 89% 48%;
+    --info-foreground: 210 40% 98%;
+    --success: 142 76% 36%;
+    --success-foreground: 210 40% 98%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 222.2 47.4% 11.2%;
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Genfeed Twitter/X Integration Styles */
+.genfeed-buttons {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 8px;
+}
+
+.genfeed-save-btn,
+.genfeed-ai-btn,
+.genfeed-video-btn,
+.genfeed-image-btn,
+.genfeed-auto-btn {
+  @apply inline-flex items-center justify-center;
+  @apply size-8 rounded-full;
+  @apply text-sm font-medium;
+  @apply transition-all duration-200;
+  @apply cursor-pointer;
+
+  background-color: rgba(29, 155, 240, 0.1);
+  color: rgb(29, 155, 240);
+  border: 1px solid transparent;
+}
+
+.genfeed-save-btn:hover,
+.genfeed-ai-btn:hover,
+.genfeed-video-btn:hover,
+.genfeed-image-btn:hover,
+.genfeed-auto-btn:hover {
+  background-color: rgba(29, 155, 240, 0.2);
+  border-color: rgba(29, 155, 240, 0.3);
+}
+
+.genfeed-save-btn:disabled,
+.genfeed-ai-btn:disabled,
+.genfeed-video-btn:disabled,
+.genfeed-image-btn:disabled,
+.genfeed-auto-btn:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .genfeed-save-btn,
+  .genfeed-ai-btn,
+  .genfeed-video-btn,
+  .genfeed-image-btn,
+  .genfeed-auto-btn {
+    background-color: rgba(29, 155, 240, 0.15);
+  }
+
+  .genfeed-save-btn:hover,
+  .genfeed-ai-btn:hover,
+  .genfeed-video-btn:hover,
+  .genfeed-image-btn:hover,
+  .genfeed-auto-btn:hover {
+    background-color: rgba(29, 155, 240, 0.25);
+  }
+}
+
+.genfeed-composer-root {
+  margin-top: 8px;
+}
+
+.genfeed-composer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.genfeed-composer-btn {
+  @apply inline-flex items-center justify-center;
+  @apply px-3 py-1.5 rounded-full text-sm font-medium;
+  @apply transition-all duration-200 cursor-pointer;
+  background-color: rgba(29, 155, 240, 0.12);
+  color: rgb(29, 155, 240);
+  border: 1px solid transparent;
+}
+
+.genfeed-composer-btn:hover {
+  background-color: rgba(29, 155, 240, 0.2);
+  border-color: rgba(29, 155, 240, 0.3);
+}
+
+.genfeed-composer-btn:disabled {
+  @apply opacity-60 cursor-not-allowed;
+}
+
+.genfeed-composer-status {
+  font-size: 12px;
+  color: rgb(83, 100, 113);
+}
+
+.genfeed-composer-error {
+  font-size: 12px;
+  color: rgb(244, 33, 46);
+}
+
+.genfeed-composer-image-link {
+  font-size: 12px;
+  color: rgb(29, 155, 240);
+  text-decoration: underline;
+}
+
+@media (prefers-color-scheme: dark) {
+  .genfeed-composer-btn {
+    background-color: rgba(29, 155, 240, 0.18);
+  }
+
+  .genfeed-composer-btn:hover {
+    background-color: rgba(29, 155, 240, 0.26);
+  }
+
+  .genfeed-composer-status {
+    color: rgb(139, 152, 165);
+  }
+
+  .genfeed-composer-image-link {
+    color: rgb(138, 180, 248);
+  }
+}

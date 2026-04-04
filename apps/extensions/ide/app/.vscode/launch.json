@@ -1,0 +1,32 @@
+{
+  "configurations": [
+    {
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
+      "name": "Run Extension",
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+      "preLaunchTask": "build",
+      "request": "launch",
+      "type": "extensionHost"
+    },
+    {
+      "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
+      "name": "Run Extension (Watch Mode)",
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+      "preLaunchTask": "watch",
+      "request": "launch",
+      "type": "extensionHost"
+    },
+    {
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "--extensionTestsPath=${workspaceFolder}/dist/test/suite/index"
+      ],
+      "name": "Extension Tests",
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+      "preLaunchTask": "build",
+      "request": "launch",
+      "type": "extensionHost"
+    }
+  ],
+  "version": "0.2.0"
+}

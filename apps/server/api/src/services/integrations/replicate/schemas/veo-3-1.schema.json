@@ -1,0 +1,81 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Official Replicate API schema for google/veo-3.1",
+  "properties": {
+    "aspect_ratio": {
+      "description": "An enumeration.",
+      "enum": ["16:9", "9:16"],
+      "title": "aspect_ratio",
+      "type": "string"
+    },
+    "duration": {
+      "description": "An enumeration.",
+      "enum": [4, 6, 8],
+      "title": "duration",
+      "type": "integer"
+    },
+    "generate_audio": {
+      "default": true,
+      "description": "Generate audio with the video",
+      "title": "Generate Audio",
+      "type": "boolean",
+      "x-order": 8
+    },
+    "image": {
+      "description": "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose.",
+      "format": "uri",
+      "nullable": true,
+      "title": "Image",
+      "type": "string",
+      "x-order": 3
+    },
+    "last_frame": {
+      "description": "Ending image for interpolation. When provided with an input image, creates a transition between the two images.",
+      "format": "uri",
+      "nullable": true,
+      "title": "Last Frame",
+      "type": "string",
+      "x-order": 4
+    },
+    "negative_prompt": {
+      "description": "Description of what to exclude from the generated video",
+      "nullable": true,
+      "title": "Negative Prompt",
+      "type": "string",
+      "x-order": 6
+    },
+    "prompt": {
+      "description": "Text prompt for video generation",
+      "title": "Prompt",
+      "type": "string",
+      "x-order": 0
+    },
+    "reference_images": {
+      "default": [],
+      "description": "1 to 3 reference images for subject-consistent generation (reference-to-video, or R2V). Reference images only work with 16:9 aspect ratio and 8-second duration. Last frame is ignored if reference images are provided.",
+      "items": {
+        "format": "uri",
+        "type": "string"
+      },
+      "title": "Reference Images",
+      "type": "array",
+      "x-order": 5
+    },
+    "resolution": {
+      "description": "An enumeration.",
+      "enum": ["720p", "1080p"],
+      "title": "resolution",
+      "type": "string"
+    },
+    "seed": {
+      "description": "Random seed. Omit for random generations",
+      "nullable": true,
+      "title": "Seed",
+      "type": "integer",
+      "x-order": 9
+    }
+  },
+  "required": ["prompt"],
+  "title": "veo-3.1 Input Schema",
+  "type": "object"
+}

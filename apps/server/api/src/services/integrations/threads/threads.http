@@ -1,0 +1,27 @@
+### Threads Integration Test Requests
+### Base URL: http://localhost:3001
+
+@baseUrl = http://localhost:3001
+@token = Bearer YOUR_JWT_TOKEN
+
+### Connect Threads Account (Step 1 - Get OAuth URL)
+POST {{baseUrl}}/services/threads/connect
+Authorization: {{token}}
+Content-Type: application/json
+
+{
+  "brand": "YOUR_BRAND_ID"
+}
+
+### Verify Threads OAuth (Step 2 - After redirect)
+POST {{baseUrl}}/services/threads/verify
+Content-Type: application/json
+
+{
+  "code": "AUTH_CODE_FROM_REDIRECT",
+  "state": "{\"organizationId\":\"ORG_ID\",\"userId\":\"USER_ID\",\"brandId\":\"BRAND_ID\"}"
+}
+
+### Get Threads Trends
+GET {{baseUrl}}/services/threads/trends
+Authorization: {{token}}

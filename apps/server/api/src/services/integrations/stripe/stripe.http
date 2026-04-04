@@ -1,0 +1,58 @@
+### Genfeed API - Stripe Integration Endpoints
+### Manage Stripe payments and subscriptions
+### Handles: webhooks, payment methods, invoices
+
+########################################
+# Webhooks
+########################################
+
+### Stripe Webhook Handler
+POST {{apiBaseUrl}}/integrations/stripe/webhook
+Content-Type: application/json
+Stripe-Signature: {{stripeSignature}}
+
+{
+  "type": "payment_intent.succeeded",
+  "data": {}
+}
+
+
+########################################
+# Payment Methods
+########################################
+
+### Get Payment Methods
+GET {{apiBaseUrl}}/integrations/stripe/payment-methods
+Authorization: Bearer {{bearerToken}}
+
+
+### Add Payment Method
+POST {{apiBaseUrl}}/integrations/stripe/payment-methods
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "paymentMethodId": "pm_test_123"
+}
+
+
+########################################
+# Invoices
+########################################
+
+### Get Invoices
+GET {{apiBaseUrl}}/integrations/stripe/invoices
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Upcoming Invoice
+GET {{apiBaseUrl}}/integrations/stripe/invoices/upcoming
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/integrations/stripe/payment-methods

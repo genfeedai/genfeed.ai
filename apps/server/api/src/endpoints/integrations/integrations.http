@@ -1,0 +1,194 @@
+### Genfeed API - Integration Endpoints
+### External API integration endpoints (supports both Clerk JWT and API keys)
+### API keys must start with 'gf_' prefix
+
+@import ../../../../../../http/_environment.http
+
+########################################
+# Authentication Options
+########################################
+
+# Option 1: Use Clerk JWT (for logged-in users)
+# Authorization: Bearer {{bearerToken}}
+
+# Option 2: Use API Key (for external integrations)
+# Authorization: Bearer gf_your_api_key_here
+
+########################################
+# VIDEO ENDPOINTS
+########################################
+
+### Generate Video (API Key Auth)
+# Requires scope: videos:create
+# Creates a new AI-generated video
+POST {{apiBaseUrl}}/integrations/videos
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "A serene mountain landscape at sunset with birds flying",
+  "model": "wan_t2v",
+  "format": "portrait",
+  "duration": 5
+}
+
+
+### Generate Video with Reference Image
+# Requires scope: videos:create
+POST {{apiBaseUrl}}/integrations/videos
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "Animated version of this scene with camera movement",
+  "model": "kling_i2v",
+  "format": "landscape",
+  "duration": 5,
+  "reference": "your_image_id_here"
+}
+
+
+### List Videos
+# Requires scope: videos:read
+GET {{apiBaseUrl}}/integrations/videos?page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### List Videos (Filtered by Status)
+# Requires scope: videos:read
+GET {{apiBaseUrl}}/integrations/videos?page=1&limit=10&status=generated
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Video by ID
+# Requires scope: videos:read
+GET {{apiBaseUrl}}/integrations/videos/{{videoId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# IMAGE ENDPOINTS
+########################################
+
+### Generate Image (API Key Auth)
+# Requires scope: images:create
+POST {{apiBaseUrl}}/integrations/images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "A futuristic cityscape with flying cars and neon lights",
+  "model": "gpt_image_1",
+  "format": "landscape",
+  "style": "realistic"
+}
+
+
+### Generate Image with Custom Dimensions
+# Requires scope: images:create
+POST {{apiBaseUrl}}/integrations/images
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "prompt": "Product photography of a sleek smartphone on marble",
+  "model": "gpt_image_1",
+  "width": 1920,
+  "height": 1080,
+  "outputs": 2
+}
+
+
+### List Images
+# Requires scope: images:read
+GET {{apiBaseUrl}}/integrations/images?page=1&limit=20
+Authorization: Bearer {{bearerToken}}
+
+
+### List Images (Filtered by Status)
+# Requires scope: images:read
+GET {{apiBaseUrl}}/integrations/images?page=1&limit=10&status=generated
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Image by ID
+# Requires scope: images:read
+GET {{apiBaseUrl}}/integrations/images/{{imageId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# CREDITS ENDPOINT
+########################################
+
+### Get Credit Balance
+# Requires scope: credits:read
+GET {{apiBaseUrl}}/integrations/credits
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# API KEY AUTHENTICATION TESTS
+########################################
+
+### Test: API Key Authentication
+# Use an actual API key (starts with gf_)
+GET {{apiBaseUrl}}/integrations/videos?limit=5
+Authorization: Bearer gf_test_api_key_here
+
+
+### Test: Missing Authorization
+# Should return 401 Unauthorized
+GET {{apiBaseUrl}}/integrations/videos
+
+
+### Test: Invalid API Key
+# Should return 401 Unauthorized
+GET {{apiBaseUrl}}/integrations/videos
+Authorization: Bearer gf_invalid_key
+
+
+### Test: API Key with Insufficient Scope
+# If API key doesn't have videos:create scope
+POST {{apiBaseUrl}}/integrations/videos
+Authorization: Bearer gf_read_only_key
+Content-Type: application/json
+
+{
+  "prompt": "Test prompt"
+}
+
+
+### Test: Rate Limit
+# Make multiple rapid requests to test rate limiting
+GET {{apiBaseUrl}}/integrations/videos?page=1
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# ERROR CASES
+########################################
+
+### Test: Invalid Video ID
+GET {{apiBaseUrl}}/integrations/videos/invalid_id
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Non-existent Video ID
+GET {{apiBaseUrl}}/integrations/videos/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Invalid Image ID
+GET {{apiBaseUrl}}/integrations/images/invalid_id
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Missing Required Fields
+POST {{apiBaseUrl}}/integrations/videos
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "model": "wan_t2v"
+}

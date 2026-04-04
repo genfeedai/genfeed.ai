@@ -1,0 +1,61 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Official Replicate API schema for kwaivgi/kling-v1.6-pro",
+  "properties": {
+    "aspect_ratio": {
+      "description": "An enumeration.",
+      "enum": ["16:9", "9:16", "1:1"],
+      "title": "aspect_ratio",
+      "type": "string"
+    },
+    "cfg_scale": {
+      "default": 0.5,
+      "description": "Flexibility in video generation; The higher the value, the lower the model's degree of flexibility, and the stronger the relevance to the user's prompt.",
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Cfg Scale",
+      "type": "number"
+    },
+    "duration": {
+      "description": "An enumeration.",
+      "enum": [5, 10],
+      "title": "duration",
+      "type": "integer"
+    },
+    "end_image": {
+      "description": "Last frame of the video. A start or end image is required.",
+      "format": "uri",
+      "title": "End Image",
+      "type": "string"
+    },
+    "negative_prompt": {
+      "default": "",
+      "description": "Things you do not want to see in the video",
+      "title": "Negative Prompt",
+      "type": "string"
+    },
+    "prompt": {
+      "description": "Text prompt for video generation",
+      "title": "Prompt",
+      "type": "string"
+    },
+    "reference_images": {
+      "description": "Reference images to use in video generation (up to 4 images). Also known as scene elements.",
+      "items": {
+        "format": "uri",
+        "type": "string"
+      },
+      "title": "Reference Images",
+      "type": "array"
+    },
+    "start_image": {
+      "description": "First frame of the video. A start or end image is required.",
+      "format": "uri",
+      "title": "Start Image",
+      "type": "string"
+    }
+  },
+  "required": ["prompt"],
+  "title": "kling-v1.6-pro Input Schema",
+  "type": "object"
+}

@@ -1,0 +1,88 @@
+### Genfeed API - Content Intelligence Playbooks Endpoints
+### Manage pattern playbooks: CRUD, build insights from extracted patterns
+### Protected by authentication
+
+########################################
+# List & Get Playbooks
+########################################
+
+### Get All Playbooks
+GET {{apiBaseUrl}}/content-intelligence/playbooks
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Playbook by ID
+GET {{apiBaseUrl}}/content-intelligence/playbooks/{{testPlaybookId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create & Update
+########################################
+
+### Create Playbook
+POST {{apiBaseUrl}}/content-intelligence/playbooks
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Twitter Growth Playbook",
+  "description": "Content patterns and strategies for growing a Twitter audience",
+  "platform": "twitter",
+  "niche": "marketing",
+  "sourceCreators": ["{{testCreatorId}}", "{{testCreatorId2}}"]
+}
+
+
+### Update Playbook
+PATCH {{apiBaseUrl}}/content-intelligence/playbooks/{{testPlaybookId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Updated Twitter Growth Playbook",
+  "description": "Refined content patterns based on latest creator analysis",
+  "isActive": true
+}
+
+
+########################################
+# Build Insights
+########################################
+
+### Build Playbook Insights
+# Analyzes associated patterns and generates actionable insights
+POST {{apiBaseUrl}}/content-intelligence/playbooks/{{testPlaybookId}}/build
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Delete
+########################################
+
+### Delete Playbook (Soft Delete)
+DELETE {{apiBaseUrl}}/content-intelligence/playbooks/{{testPlaybookId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Playbook Not Found
+GET {{apiBaseUrl}}/content-intelligence/playbooks/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Invalid Playbook ID
+GET {{apiBaseUrl}}/content-intelligence/playbooks/invalid-id
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Build Insights for Non-Existent Playbook
+POST {{apiBaseUrl}}/content-intelligence/playbooks/507f1f77bcf86cd799439011/build
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/content-intelligence/playbooks

@@ -1,0 +1,106 @@
+import type {
+  BatchPipelineConfig,
+  PipelineConfig,
+} from '@api/services/content-orchestration/content-orchestration.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Injectable } from '@nestjs/common';
+import { Queue } from 'bullmq';
+
+export interface ContentPipelineJobData {
+  type: 'generate-and-publish' | 'batch-generate';
+  config: PipelineConfig | BatchPipelineConfig;
+  personaId: string;
+  organizationId: string;
+}
+
+@Injectable()
+export class ContentPipelineQueueService {
+  constructor(
+    @InjectQueue('content-pipeline')
+    private readonly contentPipelineQueue: Queue,
+    private readonly logger: LoggerService,
+  ) {}
+
+  async queueGenerateAndPublish(config: PipelineConfig): Promise<string> {
+    const jobOptions: Record<string, unknown> = {};
+
+    // Use idempotencyKey as BullMQ jobId to prevent duplicates on retry
+    if (config.idempotencyKey) {
+      jobOptions['jobId'] = config.idempotencyKey;
+    }
+
+    const job = await this.contentPipelineQueue.add(
+      'generate-and-publish',
+      {
+        config,
+        organizationId: config.organizationId,
+        personaId: config.personaId,
+        type: 'generate-and-publish',
+      } satisfies ContentPipelineJobData,
+      jobOptions,
+    );
+
+    this.logger.log('Queued generate-and-publish job', {
+      idempotencyKey: config.idempotencyKey,
+      jobId: job.id,
+      personaId: config.personaId,
+      stepCount: config.steps.length,
+    });
+
+    return job.id!;
+  }
+
+  async queueBatchGenerate(config: BatchPipelineConfig): Promise<string> {
+    const job = await this.contentPipelineQueue.add('batch-generate', {
+      config,
+      organizationId: config.organizationId,
+      personaId: config.personaId,
+      type: 'batch-generate',
+    } satisfies ContentPipelineJobData);
+
+    this.logger.log('Queued batch-generate job', {
+      count: config.count,
+      jobId: job.id,
+      personaId: config.personaId,
+    });
+
+    return job.id!;
+  }
+
+  async getJobsByPersona(
+    personaId: string,
+    organizationId: string,
+  ): Promise<
+    Array<{
+      id: string;
+      status: string;
+      type: string;
+      createdAt: string;
+    }>
+  > {
+    const jobs = await this.contentPipelineQueue.getJobs([
+      'active',
+      'waiting',
+      'delayed',
+      'completed',
+      'failed',
+    ]);
+
+    return jobs
+      .filter((job) => {
+        const data = job.data as ContentPipelineJobData;
+        return (
+          data.personaId === personaId && data.organizationId === organizationId
+        );
+      })
+      .slice(0, 50)
+      .map((job) => ({
+        createdAt: new Date(job.timestamp).toISOString(),
+        id: job.id!,
+        status:
+          job.returnvalue?.status ?? (job.failedReason ? 'failed' : 'pending'),
+        type: (job.data as ContentPipelineJobData).type,
+      }));
+  }
+}

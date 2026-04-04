@@ -1,0 +1,92 @@
+### Genfeed API - Workflow Executions Endpoints
+### Track and manage workflow execution runs
+### Protected by ClerkGuard
+
+########################################
+# List Executions
+########################################
+
+### List All Executions
+GET {{apiBaseUrl}}/workflow-executions
+Authorization: Bearer {{bearerToken}}
+
+
+### List Executions with Filters
+GET {{apiBaseUrl}}/workflow-executions?status=running&limit=20&offset=0
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Executions for Specific Workflow
+GET {{apiBaseUrl}}/workflow-executions/workflow/{{testWorkflowId}}
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Executions for Workflow with Pagination
+GET {{apiBaseUrl}}/workflow-executions/workflow/{{testWorkflowId}}?limit=10&offset=0
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Execution Statistics for Workflow
+GET {{apiBaseUrl}}/workflow-executions/workflow/{{testWorkflowId}}/stats
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Single Execution
+########################################
+
+### Get Execution by ID
+GET {{apiBaseUrl}}/workflow-executions/{{testExecutionId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create & Cancel
+########################################
+
+### Create and Start Execution
+POST {{apiBaseUrl}}/workflow-executions
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "workflowId": "{{testWorkflowId}}",
+  "input": {
+    "topic": "AI content marketing strategies",
+    "platform": "twitter",
+    "count": 5
+  }
+}
+
+
+### Cancel Running Execution
+POST {{apiBaseUrl}}/workflow-executions/{{testExecutionId}}/cancel
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Execution Not Found
+GET {{apiBaseUrl}}/workflow-executions/507f1f77bcf86cd799439011
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Cancel Non-Existent Execution
+POST {{apiBaseUrl}}/workflow-executions/507f1f77bcf86cd799439011/cancel
+Authorization: Bearer {{bearerToken}}
+
+
+### Test: Create Without Workflow ID
+POST {{apiBaseUrl}}/workflow-executions
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "input": {}
+}
+
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/workflow-executions

@@ -1,0 +1,66 @@
+### Genfeed API - Public Videos Endpoints
+### These endpoints are PUBLIC (no authentication required)
+
+# Environment variables
+@baseUrl = http://localhost:3001
+
+########################################
+# Public Videos
+########################################
+
+### Get All Public Videos (with pagination)
+# Get paginated list of all public videos
+# Query params: page, limit, sort, tag, account
+GET {{baseUrl}}/v1/public/videos?page=1&limit=20&sort=-createdAt
+
+
+### Get All Public Videos (default params)
+GET {{baseUrl}}/v1/public/videos
+
+
+### Filter Videos by Account
+# Get videos from a specific account
+GET {{baseUrl}}/public/videos?brand={{testBrandId}}
+
+
+### Filter Videos by Tag
+# Get videos with a specific tag
+GET {{baseUrl}}/public/videos?tag=tutorial
+
+
+### Filter Videos by Account and Tag
+GET {{baseUrl}}/public/videos?brand={{testBrandId}}&tag=tutorial&page=1&limit=10
+
+
+### Get Video by ID (Metadata)
+# Get video metadata/information
+GET {{baseUrl}}/public/videos/{{testVideoId}}
+
+
+### Stream Video File
+# Get the actual video file (MP4)
+# This streams the video content
+# Note: Required for Topaz Video Upscale Model and Discord notifications
+GET {{baseUrl}}/public/videos/{{testVideoId}}/video.mp4
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Invalid Video ID Format
+GET {{baseUrl}}/public/videos/invalid-id
+
+
+### Test: Video Not Found
+GET {{baseUrl}}/public/videos/507f1f77bcf86cd799439999
+
+
+### Test: Pagination with Custom Sort
+GET {{baseUrl}}/public/videos?page=2&limit=5&sort=createdAt
+
+
+### Test: Large Limit (should cap at 50)
+GET {{baseUrl}}/public/videos?limit=100
+
+

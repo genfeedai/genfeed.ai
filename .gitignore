@@ -11,3 +11,6 @@ coverage/
 .vercel
 out/
 *.log
+apps/desktop/app/release/
+*.dmg
+*.zip

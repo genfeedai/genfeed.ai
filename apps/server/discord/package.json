@@ -1,0 +1,17 @@
+{
+  "dependencies": {
+    "@genfeedai/config": "workspace:*",
+    "@genfeedai/integrations": "workspace:*",
+    "discord.js": "14.26.2"
+  },
+  "description": "Genfeed Discord Service",
+  "main": "../dist/apps/discord/main.js",
+  "name": "@genfeedai/discord",
+  "private": true,
+  "scripts": {
+    "build": "cd .. && nest build discord",
+    "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start discord --watch",
+    "start:prod": "node -r tsconfig-paths/register --max-old-space-size=8192 --expose-gc ../dist/apps/discord/main"
+  },
+  "version": "1.0.0"
+}

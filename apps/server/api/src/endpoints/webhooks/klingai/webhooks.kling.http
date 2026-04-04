@@ -1,0 +1,147 @@
+### Genfeed API - KlingAI Webhook Endpoint
+### This endpoint is PUBLIC (no signature validation)
+
+@import ../../../../../http/_environment.http
+
+########################################
+# KlingAI Webhooks
+########################################
+
+### KlingAI Image Generation Success
+# Receives notification when KlingAI image generation succeeds
+POST {{baseUrl}}/webhooks/klingai/callback
+Content-Type: application/json
+
+{
+  "task_id": "{{testExternalId}}",
+  "task_status": "succeed",
+  "task_result": {
+    "images": [
+      {
+        "url": "https://example.com/images/image1.jpg",
+        "index": 0
+      },
+      {
+        "url": "https://example.com/images/image2.jpg",
+        "index": 1
+      }
+    ],
+    "videos": []
+  }
+}
+
+
+### KlingAI Video Generation Success
+POST {{baseUrl}}/webhooks/klingai/callback
+Content-Type: application/json
+
+{
+  "task_id": "{{testExternalId}}",
+  "task_status": "succeed",
+  "task_result": {
+    "images": [],
+    "videos": [
+      {
+        "url": "https://example.com/videos/video1.mp4",
+        "duration": 5,
+        "index": 0
+      }
+    ]
+  }
+}
+
+
+### KlingAI Mixed Media Success
+# Both images and videos in response
+POST {{baseUrl}}/webhooks/klingai/callback
+Content-Type: application/json
+
+{
+  "task_id": "{{testExternalId}}",
+  "task_status": "succeed",
+  "task_result": {
+    "images": [
+      {
+        "url": "https://example.com/images/thumbnail.jpg",
+        "index": 0
+      }
+    ],
+    "videos": [
+      {
+        "url": "https://example.com/videos/video.mp4",
+        "duration": 10,
+        "index": 0
+      }
+    ]
+  }
+}
+
+
+### KlingAI Generation Failed
+POST {{baseUrl}}/webhooks/klingai/callback
+Content-Type: application/json
+
+{
+  "task_id": "{{testExternalId}}",
+  "task_status": "failed",
+  "task_error": "Content policy violation",
+  "task_result": {
+    "images": [],
+    "videos": []
+  }
+}
+
+
+### KlingAI with Custom ID (Metadata)
+# Processes metadata-based webhook with custom_id
+POST {{baseUrl}}/webhooks/klingai/callback
+Content-Type: application/json
+
+{
+  "task_id": "kling_task_123",
+  "custom_id": "metadata_{{testExternalId}}",
+  "task_status": "succeed",
+  "task_result": {
+    "images": [
+      {
+        "url": "https://example.com/images/custom.jpg",
+        "index": 0
+      }
+    ],
+    "videos": []
+  }
+}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Empty Result
+POST {{baseUrl}}/webhooks/klingai/callback
+Content-Type: application/json
+
+{
+  "task_id": "test_empty",
+  "task_status": "succeed",
+  "task_result": {
+    "images": [],
+    "videos": []
+  }
+}
+
+
+### Test: Invalid Status
+POST {{baseUrl}}/webhooks/klingai/callback
+Content-Type: application/json
+
+{
+  "task_id": "test_invalid",
+  "task_status": "processing",
+  "task_result": {
+    "images": [],
+    "videos": []
+  }
+}
+
+

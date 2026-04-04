@@ -1,0 +1,71 @@
+### Genfeed API - CameraMovements Collection Endpoints
+### Manage camera movement presets for video generation
+
+########################################
+# List & Filter CameraMovements
+########################################
+
+### Get All CameraMovements (Paginated)
+GET {{apiBaseUrl}}/elements/camera-movements
+Authorization: Bearer {{bearerToken}}
+
+
+### Get CameraMovements with Pagination
+GET {{apiBaseUrl}}/elements/camera-movements?page=1&limit=50
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Active CameraMovements Only
+GET {{apiBaseUrl}}/elements/camera-movements?isActive=true
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Default CameraMovements Only
+GET {{apiBaseUrl}}/elements/camera-movements?isDefault=true
+Authorization: Bearer {{bearerToken}}
+
+
+### Search CameraMovements by Name
+GET {{apiBaseUrl}}/elements/camera-movements?search=natural
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort CameraMovements
+GET {{apiBaseUrl}}/elements/camera-movements?sort=label
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create, Update, Delete CameraMovements
+########################################
+
+### Create CameraMovement
+POST {{apiBaseUrl}}/elements/camera-movements
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "key": "pan-left",
+  "label": "Pan Left",
+  "description": "Soft natural sunlight from windows",
+  "category": "video",
+  "isActive": true,
+  "isDefault": false
+}
+
+
+### Update CameraMovement
+PATCH {{apiBaseUrl}}/elements/camera-movements/{{camera-movementId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Natural Daylight",
+  "description": "Smooth pan from left to right"
+}
+
+
+### Delete CameraMovement
+DELETE {{apiBaseUrl}}/elements/camera-movements/{{camera-movementId}}
+Authorization: Bearer {{bearerToken}}
+

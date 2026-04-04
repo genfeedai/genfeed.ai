@@ -1,0 +1,4 @@
+### Get Business Analytics (superadmin only)
+GET http://localhost:3001/v1/analytics/business
+Authorization: Bearer {{token}}
+Content-Type: application/json

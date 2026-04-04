@@ -1,0 +1,71 @@
+### Genfeed API - Lenss Collection Endpoints
+### Manage lens types for video generation
+
+########################################
+# List & Filter Lenss
+########################################
+
+### Get All Lenss (Paginated)
+GET {{apiBaseUrl}}/elements/lenss
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Lenss with Pagination
+GET {{apiBaseUrl}}/elements/lenss?page=1&limit=50
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Active Lenss Only
+GET {{apiBaseUrl}}/elements/lenss?isActive=true
+Authorization: Bearer {{bearerToken}}
+
+
+### Get Default Lenss Only
+GET {{apiBaseUrl}}/elements/lenss?isDefault=true
+Authorization: Bearer {{bearerToken}}
+
+
+### Search Lenss by Name
+GET {{apiBaseUrl}}/elements/lenss?search=natural
+Authorization: Bearer {{bearerToken}}
+
+
+### Sort Lenss
+GET {{apiBaseUrl}}/elements/lenss?sort=label
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create, Update, Delete Lenss
+########################################
+
+### Create Lens
+POST {{apiBaseUrl}}/elements/lenss
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "key": "wide-angle",
+  "label": "Wide Angle",
+  "description": "Soft natural sunlight from windows",
+  "category": "video",
+  "isActive": true,
+  "isDefault": false
+}
+
+
+### Update Lens
+PATCH {{apiBaseUrl}}/elements/lenss/{{lensId}}
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "label": "Natural Daylight",
+  "description": "Wide angle lens for expansive shots"
+}
+
+
+### Delete Lens
+DELETE {{apiBaseUrl}}/elements/lenss/{{lensId}}
+Authorization: Bearer {{bearerToken}}
+

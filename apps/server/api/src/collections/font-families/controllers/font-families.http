@@ -1,0 +1,63 @@
+### Genfeed API - Font Families Collection Endpoints
+### Manage font families for content
+### Handles: font CRUD, font library
+
+########################################
+# List & Filter Fonts
+########################################
+
+### Get All Font Families
+GET {{apiBaseUrl}}/font-families
+Authorization: Bearer {{bearerToken}}
+
+
+### Filter by Category
+GET {{apiBaseUrl}}/font-families?category=serif
+Authorization: Bearer {{bearerToken}}
+
+
+### Search Fonts
+GET {{apiBaseUrl}}/font-families?search=roboto
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Get Single Font
+########################################
+
+### Get Font Family by ID
+GET {{apiBaseUrl}}/font-families/{{testFontId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Create Font
+########################################
+
+### Add Custom Font
+POST {{apiBaseUrl}}/font-families
+Authorization: Bearer {{bearerToken}}
+Content-Type: application/json
+
+{
+  "name": "Custom Font",
+  "category": "sans-serif",
+  "url": "https://fonts.googleapis.com/css?family=CustomFont"
+}
+
+
+########################################
+# Delete Font
+########################################
+
+### Delete Font Family
+DELETE {{apiBaseUrl}}/font-families/{{testFontId}}
+Authorization: Bearer {{bearerToken}}
+
+
+########################################
+# Test Cases
+########################################
+
+### Test: Unauthorized Access
+GET {{apiBaseUrl}}/font-families

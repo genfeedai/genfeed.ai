@@ -1,0 +1,22 @@
+### Genfeed API - Elements Aggregated Endpoint
+### Get all element collections in a single request
+
+########################################
+# Get All Elements
+########################################
+
+### Get All Elements (Aggregated)
+GET {{apiBaseUrl}}/elements
+Authorization: Bearer {{bearerToken}}
+
+### Response includes:
+# - cameras: Camera angle presets
+# - moods: Mood presets
+# - scenes: Scene presets
+# - styles: Visual style presets
+# - sounds: Sound effect library
+# - blacklists: Content blacklists
+# - lightings: Lighting presets
+# - lenses: Lens type presets
+# - cameraMovements: Camera movement presets
+
