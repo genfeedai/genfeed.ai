@@ -1,0 +1,81 @@
+services:
+  api:
+    build: { context: .., dockerfile: docker/Dockerfile, target: api }
+    ports: ["3001:3001"]
+    env_file: .env
+    depends_on: [mongo, redis]
+
+  web:
+    build: { context: .., dockerfile: docker/Dockerfile, target: web }
+    ports: ["3000:3000"]
+    env_file: .env
+
+  admin:
+    build: { context: .., dockerfile: docker/Dockerfile, target: admin }
+    ports: ["3100:3100"]
+    env_file: .env
+
+  workers:
+    build: { context: .., dockerfile: docker/Dockerfile, target: workers }
+    env_file: .env
+    depends_on: [redis, mongo]
+
+  files:
+    build: { context: .., dockerfile: docker/Dockerfile, target: files }
+    env_file: .env
+    depends_on: [redis, mongo]
+
+  notifications:
+    build: { context: .., dockerfile: docker/Dockerfile, target: notifications }
+    env_file: .env
+    depends_on: [redis]
+
+  # Bot services (opt-in: docker compose --profile bots up)
+  discord:
+    build: { context: .., dockerfile: docker/Dockerfile, target: discord }
+    env_file: .env
+    depends_on: [redis]
+    profiles: [bots]
+
+  slack:
+    build: { context: .., dockerfile: docker/Dockerfile, target: slack }
+    env_file: .env
+    depends_on: [redis]
+    profiles: [bots]
+
+  telegram:
+    build: { context: .., dockerfile: docker/Dockerfile, target: telegram }
+    env_file: .env
+    depends_on: [redis]
+    profiles: [bots]
+
+  # GPU services (opt-in: docker compose --profile gpu up)
+  images:
+    build: { context: .., dockerfile: docker/Dockerfile, target: images }
+    env_file: .env
+    profiles: [gpu]
+
+  videos:
+    build: { context: .., dockerfile: docker/Dockerfile, target: videos }
+    env_file: .env
+    profiles: [gpu]
+
+  voices:
+    build: { context: .., dockerfile: docker/Dockerfile, target: voices }
+    env_file: .env
+    profiles: [gpu]
+
+  # Infrastructure
+  mongo:
+    image: mongo:7
+    volumes: ["mongo_data:/data/db"]
+    ports: ["27017:27017"]
+
+  redis:
+    image: redis:7-alpine
+    volumes: ["redis_data:/data"]
+    ports: ["6379:6379"]
+
+volumes:
+  mongo_data:
+  redis_data:
