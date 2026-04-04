@@ -1,0 +1,17 @@
+export type CameraMovementPreset =
+  | 'static'
+  | 'pan-left'
+  | 'pan-right'
+  | 'tilt-up'
+  | 'tilt-down'
+  | 'zoom-in'
+  | 'zoom-out'
+  | 'dolly-forward'
+  | 'dolly-back'
+  | 'truck-left'
+  | 'truck-right'
+  | 'crane-up'
+  | 'crane-down'
+  | 'rotate-clockwise'
+  | 'rotate-counter-clockwise'
+  | 'custom';

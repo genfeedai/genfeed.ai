@@ -1,0 +1,61 @@
+{
+  "description": "Type definitions for Genfeed workflow engine",
+  "devDependencies": {
+    "@xyflow/react": "12.10.2",
+    "tsup": "8.5.1",
+    "typescript": "5.9.3"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./comfyui": {
+      "import": "./dist/comfyui.mjs",
+      "require": "./dist/comfyui.js",
+      "types": "./dist/comfyui.d.ts"
+    },
+    "./nodes": {
+      "import": "./dist/nodes.mjs",
+      "require": "./dist/nodes.js",
+      "types": "./dist/nodes.d.ts"
+    },
+    "./replicate": {
+      "import": "./dist/replicate.mjs",
+      "require": "./dist/replicate.js",
+      "types": "./dist/replicate.d.ts"
+    },
+    "./replicate/schemas.json": "./src/replicate/schemas.json",
+    "./workflow": {
+      "import": "./dist/workflow.mjs",
+      "require": "./dist/workflow.js",
+      "types": "./dist/workflow.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src/replicate/schemas.json"
+  ],
+  "license": "AGPL-3.0",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "name": "@genfeedai/types",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "directory": "types",
+    "type": "git",
+    "url": "git+https://github.com/genfeedai/packages.git"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "prepublishOnly": "bun run build"
+  },
+  "sideEffects": false,
+  "types": "./dist/index.d.ts",
+  "version": "0.3.1"
+}

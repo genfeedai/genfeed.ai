@@ -1,0 +1,1354 @@
+{
+  "createdAt": "2025-01-19T00:00:00.000Z",
+  "description": "Generate 20 varied training images from 3 reference identity photos across 4 angle groups: frontal, three-quarter, side profile, and variety shots",
+  "edgeStyle": "smoothstep",
+  "edges": [
+    {
+      "id": "e1",
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "imageGen-1",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e2",
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "imageGen-2",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e3",
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "imageGen-3",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e4",
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "imageGen-4",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e5",
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "imageGen-5",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e6",
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "imageGen-6",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e7",
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "imageGen-7",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e8",
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "imageGen-8",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e9",
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "imageGen-9",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e10",
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "imageGen-10",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e11",
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "imageGen-11",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e12",
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "imageGen-12",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e13",
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "imageGen-13",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e14",
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "imageGen-14",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e15",
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "imageGen-15",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e16",
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "imageGen-16",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e17",
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "imageGen-17",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e18",
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "imageGen-18",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e19",
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "imageGen-19",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e20",
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "imageGen-20",
+      "targetHandle": "images"
+    },
+
+    {
+      "id": "e21",
+      "source": "imageInput-2",
+      "sourceHandle": "image",
+      "target": "imageGen-1",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e22",
+      "source": "imageInput-2",
+      "sourceHandle": "image",
+      "target": "imageGen-2",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e23",
+      "source": "imageInput-2",
+      "sourceHandle": "image",
+      "target": "imageGen-3",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e24",
+      "source": "imageInput-2",
+      "sourceHandle": "image",
+      "target": "imageGen-4",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e25",
+      "source": "imageInput-2",
+      "sourceHandle": "image",
+      "target": "imageGen-5",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e26",
+      "source": "imageInput-2",
+      "sourceHandle": "image",
+      "target": "imageGen-6",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e27",
+      "source": "imageInput-2",
+      "sourceHandle": "image",
+      "target": "imageGen-7",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e28",
+      "source": "imageInput-2",
+      "sourceHandle": "image",
+      "target": "imageGen-8",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e29",
+      "source": "imageInput-2",
+      "sourceHandle": "image",
+      "target": "imageGen-9",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e30",
+      "source": "imageInput-2",
+      "sourceHandle": "image",
+      "target": "imageGen-10",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e31",
+      "source": "imageInput-2",
+      "sourceHandle": "image",
+      "target": "imageGen-11",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e32",
+      "source": "imageInput-2",
+      "sourceHandle": "image",
+      "target": "imageGen-12",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e33",
+      "source": "imageInput-2",
+      "sourceHandle": "image",
+      "target": "imageGen-13",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e34",
+      "source": "imageInput-2",
+      "sourceHandle": "image",
+      "target": "imageGen-14",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e35",
+      "source": "imageInput-2",
+      "sourceHandle": "image",
+      "target": "imageGen-15",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e36",
+      "source": "imageInput-2",
+      "sourceHandle": "image",
+      "target": "imageGen-16",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e37",
+      "source": "imageInput-2",
+      "sourceHandle": "image",
+      "target": "imageGen-17",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e38",
+      "source": "imageInput-2",
+      "sourceHandle": "image",
+      "target": "imageGen-18",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e39",
+      "source": "imageInput-2",
+      "sourceHandle": "image",
+      "target": "imageGen-19",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e40",
+      "source": "imageInput-2",
+      "sourceHandle": "image",
+      "target": "imageGen-20",
+      "targetHandle": "images"
+    },
+
+    {
+      "id": "e41",
+      "source": "imageInput-3",
+      "sourceHandle": "image",
+      "target": "imageGen-1",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e42",
+      "source": "imageInput-3",
+      "sourceHandle": "image",
+      "target": "imageGen-2",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e43",
+      "source": "imageInput-3",
+      "sourceHandle": "image",
+      "target": "imageGen-3",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e44",
+      "source": "imageInput-3",
+      "sourceHandle": "image",
+      "target": "imageGen-4",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e45",
+      "source": "imageInput-3",
+      "sourceHandle": "image",
+      "target": "imageGen-5",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e46",
+      "source": "imageInput-3",
+      "sourceHandle": "image",
+      "target": "imageGen-6",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e47",
+      "source": "imageInput-3",
+      "sourceHandle": "image",
+      "target": "imageGen-7",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e48",
+      "source": "imageInput-3",
+      "sourceHandle": "image",
+      "target": "imageGen-8",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e49",
+      "source": "imageInput-3",
+      "sourceHandle": "image",
+      "target": "imageGen-9",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e50",
+      "source": "imageInput-3",
+      "sourceHandle": "image",
+      "target": "imageGen-10",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e51",
+      "source": "imageInput-3",
+      "sourceHandle": "image",
+      "target": "imageGen-11",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e52",
+      "source": "imageInput-3",
+      "sourceHandle": "image",
+      "target": "imageGen-12",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e53",
+      "source": "imageInput-3",
+      "sourceHandle": "image",
+      "target": "imageGen-13",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e54",
+      "source": "imageInput-3",
+      "sourceHandle": "image",
+      "target": "imageGen-14",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e55",
+      "source": "imageInput-3",
+      "sourceHandle": "image",
+      "target": "imageGen-15",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e56",
+      "source": "imageInput-3",
+      "sourceHandle": "image",
+      "target": "imageGen-16",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e57",
+      "source": "imageInput-3",
+      "sourceHandle": "image",
+      "target": "imageGen-17",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e58",
+      "source": "imageInput-3",
+      "sourceHandle": "image",
+      "target": "imageGen-18",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e59",
+      "source": "imageInput-3",
+      "sourceHandle": "image",
+      "target": "imageGen-19",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e60",
+      "source": "imageInput-3",
+      "sourceHandle": "image",
+      "target": "imageGen-20",
+      "targetHandle": "images"
+    },
+
+    {
+      "id": "e61",
+      "source": "prompt-1",
+      "sourceHandle": "text",
+      "target": "imageGen-1",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e62",
+      "source": "prompt-2",
+      "sourceHandle": "text",
+      "target": "imageGen-2",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e63",
+      "source": "prompt-3",
+      "sourceHandle": "text",
+      "target": "imageGen-3",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e64",
+      "source": "prompt-4",
+      "sourceHandle": "text",
+      "target": "imageGen-4",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e65",
+      "source": "prompt-5",
+      "sourceHandle": "text",
+      "target": "imageGen-5",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e66",
+      "source": "prompt-6",
+      "sourceHandle": "text",
+      "target": "imageGen-6",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e67",
+      "source": "prompt-7",
+      "sourceHandle": "text",
+      "target": "imageGen-7",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e68",
+      "source": "prompt-8",
+      "sourceHandle": "text",
+      "target": "imageGen-8",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e69",
+      "source": "prompt-9",
+      "sourceHandle": "text",
+      "target": "imageGen-9",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e70",
+      "source": "prompt-10",
+      "sourceHandle": "text",
+      "target": "imageGen-10",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e71",
+      "source": "prompt-11",
+      "sourceHandle": "text",
+      "target": "imageGen-11",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e72",
+      "source": "prompt-12",
+      "sourceHandle": "text",
+      "target": "imageGen-12",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e73",
+      "source": "prompt-13",
+      "sourceHandle": "text",
+      "target": "imageGen-13",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e74",
+      "source": "prompt-14",
+      "sourceHandle": "text",
+      "target": "imageGen-14",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e75",
+      "source": "prompt-15",
+      "sourceHandle": "text",
+      "target": "imageGen-15",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e76",
+      "source": "prompt-16",
+      "sourceHandle": "text",
+      "target": "imageGen-16",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e77",
+      "source": "prompt-17",
+      "sourceHandle": "text",
+      "target": "imageGen-17",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e78",
+      "source": "prompt-18",
+      "sourceHandle": "text",
+      "target": "imageGen-18",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e79",
+      "source": "prompt-19",
+      "sourceHandle": "text",
+      "target": "imageGen-19",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e80",
+      "source": "prompt-20",
+      "sourceHandle": "text",
+      "target": "imageGen-20",
+      "targetHandle": "prompt"
+    },
+
+    {
+      "id": "e81",
+      "source": "imageGen-1",
+      "sourceHandle": "image",
+      "target": "outputGallery-1",
+      "targetHandle": "image"
+    },
+    {
+      "id": "e82",
+      "source": "imageGen-2",
+      "sourceHandle": "image",
+      "target": "outputGallery-1",
+      "targetHandle": "image"
+    },
+    {
+      "id": "e83",
+      "source": "imageGen-3",
+      "sourceHandle": "image",
+      "target": "outputGallery-1",
+      "targetHandle": "image"
+    },
+    {
+      "id": "e84",
+      "source": "imageGen-4",
+      "sourceHandle": "image",
+      "target": "outputGallery-1",
+      "targetHandle": "image"
+    },
+    {
+      "id": "e85",
+      "source": "imageGen-5",
+      "sourceHandle": "image",
+      "target": "outputGallery-1",
+      "targetHandle": "image"
+    },
+    {
+      "id": "e86",
+      "source": "imageGen-6",
+      "sourceHandle": "image",
+      "target": "outputGallery-1",
+      "targetHandle": "image"
+    },
+    {
+      "id": "e87",
+      "source": "imageGen-7",
+      "sourceHandle": "image",
+      "target": "outputGallery-1",
+      "targetHandle": "image"
+    },
+    {
+      "id": "e88",
+      "source": "imageGen-8",
+      "sourceHandle": "image",
+      "target": "outputGallery-1",
+      "targetHandle": "image"
+    },
+    {
+      "id": "e89",
+      "source": "imageGen-9",
+      "sourceHandle": "image",
+      "target": "outputGallery-1",
+      "targetHandle": "image"
+    },
+    {
+      "id": "e90",
+      "source": "imageGen-10",
+      "sourceHandle": "image",
+      "target": "outputGallery-1",
+      "targetHandle": "image"
+    },
+    {
+      "id": "e91",
+      "source": "imageGen-11",
+      "sourceHandle": "image",
+      "target": "outputGallery-1",
+      "targetHandle": "image"
+    },
+    {
+      "id": "e92",
+      "source": "imageGen-12",
+      "sourceHandle": "image",
+      "target": "outputGallery-1",
+      "targetHandle": "image"
+    },
+    {
+      "id": "e93",
+      "source": "imageGen-13",
+      "sourceHandle": "image",
+      "target": "outputGallery-1",
+      "targetHandle": "image"
+    },
+    {
+      "id": "e94",
+      "source": "imageGen-14",
+      "sourceHandle": "image",
+      "target": "outputGallery-1",
+      "targetHandle": "image"
+    },
+    {
+      "id": "e95",
+      "source": "imageGen-15",
+      "sourceHandle": "image",
+      "target": "outputGallery-1",
+      "targetHandle": "image"
+    },
+    {
+      "id": "e96",
+      "source": "imageGen-16",
+      "sourceHandle": "image",
+      "target": "outputGallery-1",
+      "targetHandle": "image"
+    },
+    {
+      "id": "e97",
+      "source": "imageGen-17",
+      "sourceHandle": "image",
+      "target": "outputGallery-1",
+      "targetHandle": "image"
+    },
+    {
+      "id": "e98",
+      "source": "imageGen-18",
+      "sourceHandle": "image",
+      "target": "outputGallery-1",
+      "targetHandle": "image"
+    },
+    {
+      "id": "e99",
+      "source": "imageGen-19",
+      "sourceHandle": "image",
+      "target": "outputGallery-1",
+      "targetHandle": "image"
+    },
+    {
+      "id": "e100",
+      "source": "imageGen-20",
+      "sourceHandle": "image",
+      "target": "outputGallery-1",
+      "targetHandle": "image"
+    }
+  ],
+  "name": "LoRA Dataset Generator",
+  "nodes": [
+    {
+      "data": {
+        "dimensions": null,
+        "filename": null,
+        "image": null,
+        "label": "Reference Photo 1",
+        "source": "upload",
+        "status": "idle"
+      },
+      "id": "imageInput-1",
+      "position": { "x": 50, "y": 50 },
+      "type": "imageInput"
+    },
+    {
+      "data": {
+        "dimensions": null,
+        "filename": null,
+        "image": null,
+        "label": "Reference Photo 2",
+        "source": "upload",
+        "status": "idle"
+      },
+      "id": "imageInput-2",
+      "position": { "x": 50, "y": 200 },
+      "type": "imageInput"
+    },
+    {
+      "data": {
+        "dimensions": null,
+        "filename": null,
+        "image": null,
+        "label": "Reference Photo 3",
+        "source": "upload",
+        "status": "idle"
+      },
+      "id": "imageInput-3",
+      "position": { "x": 50, "y": 350 },
+      "type": "imageInput"
+    },
+
+    {
+      "data": {
+        "label": "Frontal 1",
+        "prompt": "close-up portrait from shoulders up, neutral expression, soft natural window light, direct eye contact, natural skin texture with visible pores",
+        "status": "idle",
+        "variables": {}
+      },
+      "id": "prompt-1",
+      "position": { "x": 50, "y": 550 },
+      "type": "prompt"
+    },
+    {
+      "data": {
+        "label": "Frontal 2",
+        "prompt": "three-quarter view turned slightly right, warm natural smile, golden hour outdoor light, head and shoulders, natural skin texture",
+        "status": "idle",
+        "variables": {}
+      },
+      "id": "prompt-2",
+      "position": { "x": 50, "y": 700 },
+      "type": "prompt"
+    },
+    {
+      "data": {
+        "label": "Frontal 3",
+        "prompt": "side profile facing left, dramatic rim lighting, defined jawline, dark moody background, natural skin imperfections visible",
+        "status": "idle",
+        "variables": {}
+      },
+      "id": "prompt-3",
+      "position": { "x": 50, "y": 850 },
+      "type": "prompt"
+    },
+    {
+      "data": {
+        "label": "Frontal 4",
+        "prompt": "sitting at outdoor cafe, laughing naturally, bright daylight, casual outfit, candid feel, authentic human skin texture",
+        "status": "idle",
+        "variables": {}
+      },
+      "id": "prompt-4",
+      "position": { "x": 50, "y": 1000 },
+      "type": "prompt"
+    },
+    {
+      "data": {
+        "label": "Frontal 5",
+        "prompt": "studio headshot, serious confident expression, soft even lighting, grey background, sharp focus on facial features",
+        "status": "idle",
+        "variables": {}
+      },
+      "id": "prompt-5",
+      "position": { "x": 50, "y": 1150 },
+      "type": "prompt"
+    },
+
+    {
+      "data": {
+        "label": "3/4 View 1",
+        "prompt": "three-quarter view turned left, relaxed neutral face, soft diffused light, clean background",
+        "status": "idle",
+        "variables": {}
+      },
+      "id": "prompt-6",
+      "position": { "x": 50, "y": 1450 },
+      "type": "prompt"
+    },
+    {
+      "data": {
+        "label": "3/4 View 2",
+        "prompt": "three-quarter angle right, confident smirk, dramatic side light, dark background",
+        "status": "idle",
+        "variables": {}
+      },
+      "id": "prompt-7",
+      "position": { "x": 50, "y": 1600 },
+      "type": "prompt"
+    },
+    {
+      "data": {
+        "label": "3/4 View 3",
+        "prompt": "three-quarter view, gentle smile, golden hour warm glow, shallow depth of field",
+        "status": "idle",
+        "variables": {}
+      },
+      "id": "prompt-8",
+      "position": { "x": 50, "y": 1750 },
+      "type": "prompt"
+    },
+    {
+      "data": {
+        "label": "3/4 View 4",
+        "prompt": "three-quarter angle left, serious expression, moody atmosphere, low key lighting",
+        "status": "idle",
+        "variables": {}
+      },
+      "id": "prompt-9",
+      "position": { "x": 50, "y": 1900 },
+      "type": "prompt"
+    },
+    {
+      "data": {
+        "label": "3/4 View 5",
+        "prompt": "three-quarter view right, head tilted slightly, bright overcast light, outdoor setting",
+        "status": "idle",
+        "variables": {}
+      },
+      "id": "prompt-10",
+      "position": { "x": 50, "y": 2050 },
+      "type": "prompt"
+    },
+
+    {
+      "data": {
+        "label": "Profile 1",
+        "prompt": "side profile facing right, backlit golden hour, hair catching light, silhouette edges",
+        "status": "idle",
+        "variables": {}
+      },
+      "id": "prompt-11",
+      "position": { "x": 50, "y": 2350 },
+      "type": "prompt"
+    },
+    {
+      "data": {
+        "label": "Profile 2",
+        "prompt": "side profile left, studio key light from front, neutral expression, grey background",
+        "status": "idle",
+        "variables": {}
+      },
+      "id": "prompt-12",
+      "position": { "x": 50, "y": 2500 },
+      "type": "prompt"
+    },
+    {
+      "data": {
+        "label": "Profile 3",
+        "prompt": "head tilted down looking up through lashes, soft overhead light, intimate close-up",
+        "status": "idle",
+        "variables": {}
+      },
+      "id": "prompt-13",
+      "position": { "x": 50, "y": 2650 },
+      "type": "prompt"
+    },
+    {
+      "data": {
+        "label": "Profile 4",
+        "prompt": "chin raised looking slightly upward, confident, low angle, dramatic light",
+        "status": "idle",
+        "variables": {}
+      },
+      "id": "prompt-14",
+      "position": { "x": 50, "y": 2800 },
+      "type": "prompt"
+    },
+    {
+      "data": {
+        "label": "Profile 5",
+        "prompt": "side profile right, natural outdoor light, relaxed expression, blurred background",
+        "status": "idle",
+        "variables": {}
+      },
+      "id": "prompt-15",
+      "position": { "x": 50, "y": 2950 },
+      "type": "prompt"
+    },
+
+    {
+      "data": {
+        "label": "Variety 1",
+        "prompt": "full body standing pose, casual streetwear, urban setting, bright daylight",
+        "status": "idle",
+        "variables": {}
+      },
+      "id": "prompt-16",
+      "position": { "x": 50, "y": 3250 },
+      "type": "prompt"
+    },
+    {
+      "data": {
+        "label": "Variety 2",
+        "prompt": "sitting on stool, formal outfit, studio lighting, clean white background",
+        "status": "idle",
+        "variables": {}
+      },
+      "id": "prompt-17",
+      "position": { "x": 50, "y": 3400 },
+      "type": "prompt"
+    },
+    {
+      "data": {
+        "label": "Variety 3",
+        "prompt": "leaning against wall, casual, golden hour, warm tones, natural skin",
+        "status": "idle",
+        "variables": {}
+      },
+      "id": "prompt-18",
+      "position": { "x": 50, "y": 3550 },
+      "type": "prompt"
+    },
+    {
+      "data": {
+        "label": "Variety 4",
+        "prompt": "close-up beauty shot, minimal makeup, ring light, visible skin pores and texture",
+        "status": "idle",
+        "variables": {}
+      },
+      "id": "prompt-19",
+      "position": { "x": 50, "y": 3700 },
+      "type": "prompt"
+    },
+    {
+      "data": {
+        "label": "Variety 5",
+        "prompt": "outdoor portrait, wind in hair, overcast sky, soft even lighting, waist up",
+        "status": "idle",
+        "variables": {}
+      },
+      "id": "prompt-20",
+      "position": { "x": 50, "y": 3850 },
+      "type": "prompt"
+    },
+
+    {
+      "data": {
+        "aspectRatio": "4:5",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "Frontal Gen 1",
+        "model": "nano-banana-pro",
+        "outputFormat": "png",
+        "outputImage": null,
+        "outputImages": [],
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-1",
+      "position": { "x": 450, "y": 550 },
+      "type": "imageGen"
+    },
+    {
+      "data": {
+        "aspectRatio": "4:5",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "Frontal Gen 2",
+        "model": "nano-banana-pro",
+        "outputFormat": "png",
+        "outputImage": null,
+        "outputImages": [],
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-2",
+      "position": { "x": 450, "y": 700 },
+      "type": "imageGen"
+    },
+    {
+      "data": {
+        "aspectRatio": "4:5",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "Frontal Gen 3",
+        "model": "nano-banana-pro",
+        "outputFormat": "png",
+        "outputImage": null,
+        "outputImages": [],
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-3",
+      "position": { "x": 450, "y": 850 },
+      "type": "imageGen"
+    },
+    {
+      "data": {
+        "aspectRatio": "4:5",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "Frontal Gen 4",
+        "model": "nano-banana-pro",
+        "outputFormat": "png",
+        "outputImage": null,
+        "outputImages": [],
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-4",
+      "position": { "x": 450, "y": 1000 },
+      "type": "imageGen"
+    },
+    {
+      "data": {
+        "aspectRatio": "4:5",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "Frontal Gen 5",
+        "model": "nano-banana-pro",
+        "outputFormat": "png",
+        "outputImage": null,
+        "outputImages": [],
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-5",
+      "position": { "x": 450, "y": 1150 },
+      "type": "imageGen"
+    },
+
+    {
+      "data": {
+        "aspectRatio": "4:5",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "3/4 Gen 1",
+        "model": "nano-banana-pro",
+        "outputFormat": "png",
+        "outputImage": null,
+        "outputImages": [],
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-6",
+      "position": { "x": 450, "y": 1450 },
+      "type": "imageGen"
+    },
+    {
+      "data": {
+        "aspectRatio": "4:5",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "3/4 Gen 2",
+        "model": "nano-banana-pro",
+        "outputFormat": "png",
+        "outputImage": null,
+        "outputImages": [],
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-7",
+      "position": { "x": 450, "y": 1600 },
+      "type": "imageGen"
+    },
+    {
+      "data": {
+        "aspectRatio": "4:5",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "3/4 Gen 3",
+        "model": "nano-banana-pro",
+        "outputFormat": "png",
+        "outputImage": null,
+        "outputImages": [],
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-8",
+      "position": { "x": 450, "y": 1750 },
+      "type": "imageGen"
+    },
+    {
+      "data": {
+        "aspectRatio": "4:5",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "3/4 Gen 4",
+        "model": "nano-banana-pro",
+        "outputFormat": "png",
+        "outputImage": null,
+        "outputImages": [],
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-9",
+      "position": { "x": 450, "y": 1900 },
+      "type": "imageGen"
+    },
+    {
+      "data": {
+        "aspectRatio": "4:5",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "3/4 Gen 5",
+        "model": "nano-banana-pro",
+        "outputFormat": "png",
+        "outputImage": null,
+        "outputImages": [],
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-10",
+      "position": { "x": 450, "y": 2050 },
+      "type": "imageGen"
+    },
+
+    {
+      "data": {
+        "aspectRatio": "4:5",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "Profile Gen 1",
+        "model": "nano-banana-pro",
+        "outputFormat": "png",
+        "outputImage": null,
+        "outputImages": [],
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-11",
+      "position": { "x": 450, "y": 2350 },
+      "type": "imageGen"
+    },
+    {
+      "data": {
+        "aspectRatio": "4:5",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "Profile Gen 2",
+        "model": "nano-banana-pro",
+        "outputFormat": "png",
+        "outputImage": null,
+        "outputImages": [],
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-12",
+      "position": { "x": 450, "y": 2500 },
+      "type": "imageGen"
+    },
+    {
+      "data": {
+        "aspectRatio": "4:5",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "Profile Gen 3",
+        "model": "nano-banana-pro",
+        "outputFormat": "png",
+        "outputImage": null,
+        "outputImages": [],
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-13",
+      "position": { "x": 450, "y": 2650 },
+      "type": "imageGen"
+    },
+    {
+      "data": {
+        "aspectRatio": "4:5",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "Profile Gen 4",
+        "model": "nano-banana-pro",
+        "outputFormat": "png",
+        "outputImage": null,
+        "outputImages": [],
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-14",
+      "position": { "x": 450, "y": 2800 },
+      "type": "imageGen"
+    },
+    {
+      "data": {
+        "aspectRatio": "4:5",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "Profile Gen 5",
+        "model": "nano-banana-pro",
+        "outputFormat": "png",
+        "outputImage": null,
+        "outputImages": [],
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-15",
+      "position": { "x": 450, "y": 2950 },
+      "type": "imageGen"
+    },
+
+    {
+      "data": {
+        "aspectRatio": "4:5",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "Variety Gen 1",
+        "model": "nano-banana-pro",
+        "outputFormat": "png",
+        "outputImage": null,
+        "outputImages": [],
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-16",
+      "position": { "x": 450, "y": 3250 },
+      "type": "imageGen"
+    },
+    {
+      "data": {
+        "aspectRatio": "4:5",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "Variety Gen 2",
+        "model": "nano-banana-pro",
+        "outputFormat": "png",
+        "outputImage": null,
+        "outputImages": [],
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-17",
+      "position": { "x": 450, "y": 3400 },
+      "type": "imageGen"
+    },
+    {
+      "data": {
+        "aspectRatio": "4:5",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "Variety Gen 3",
+        "model": "nano-banana-pro",
+        "outputFormat": "png",
+        "outputImage": null,
+        "outputImages": [],
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-18",
+      "position": { "x": 450, "y": 3550 },
+      "type": "imageGen"
+    },
+    {
+      "data": {
+        "aspectRatio": "4:5",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "Variety Gen 4",
+        "model": "nano-banana-pro",
+        "outputFormat": "png",
+        "outputImage": null,
+        "outputImages": [],
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-19",
+      "position": { "x": 450, "y": 3700 },
+      "type": "imageGen"
+    },
+    {
+      "data": {
+        "aspectRatio": "4:5",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "Variety Gen 5",
+        "model": "nano-banana-pro",
+        "outputFormat": "png",
+        "outputImage": null,
+        "outputImages": [],
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-20",
+      "position": { "x": 450, "y": 3850 },
+      "type": "imageGen"
+    },
+
+    {
+      "data": {
+        "images": [],
+        "label": "Output Gallery",
+        "status": "idle"
+      },
+      "id": "outputGallery-1",
+      "position": { "x": 850, "y": 2000 },
+      "type": "outputGallery"
+    }
+  ],
+  "updatedAt": "2025-01-19T00:00:00.000Z",
+  "version": 1
+}

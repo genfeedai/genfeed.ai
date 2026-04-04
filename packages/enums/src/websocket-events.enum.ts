@@ -1,0 +1,31 @@
+export enum WebSocketEventType {
+  VIDEO_GENERATED = 'video-generated',
+  VIDEO_MERGED = 'video-merged',
+  VIDEO_RESIZED = 'video-resized',
+  VIDEO_REVERSED = 'video-reversed',
+  VIDEO_MIRRORED = 'video-mirrored',
+  VIDEO_TRIMMED = 'video-trimmed',
+  VIDEO_TEXT_OVERLAY = 'video-text-overlay',
+  VIDEO_PORTRAIT = 'video-portrait',
+  CAPTIONS_COMPLETED = 'captions-completed',
+  CAPTIONS_FAILED = 'captions-failed',
+  IMAGE_GENERATED = 'image-generated',
+  IMAGE_RESIZED = 'image-resized',
+  IMAGE_TO_VIDEO = 'image-to-video',
+  AUDIO_GENERATED = 'audio-generated',
+  AUDIO_CONVERTED = 'audio-converted',
+  TRAINING_STARTED = 'training-started',
+  TRAINING_COMPLETED = 'training-completed',
+  TRAINING_FAILED = 'training-failed',
+  PROCESSING_STARTED = 'processing-started',
+  PROCESSING_COMPLETED = 'processing-completed',
+  PROCESSING_FAILED = 'processing-failed',
+}
+
+export enum WebSocketEventStatus {
+  STARTED = 'started',
+  PROCESSING = 'processing',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+  PROGRESS = 'progress',
+}

@@ -1,0 +1,50 @@
+@use 'masonry-base';
+
+/* Neural Noir hover dimming - subtle opacity changes */
+.masonry-container.is-hovering .masonry-item[data-hovered='false'] {
+  opacity: 0.5;
+  filter: brightness(0.7);
+}
+
+.masonry-container.is-hovering
+  .masonry-item[data-masonry-media='image'][data-hovered='false'] {
+  opacity: 0.6;
+  filter: brightness(0.75);
+}
+
+.masonry-container.is-hovering .masonry-item[data-hovered='true'] {
+  opacity: 1;
+  filter: brightness(1);
+  z-index: 10;
+}
+
+/* Allow tooltips to overflow masonry items */
+/* Note: All tooltips now use Portal-based rendering (Tooltip component) which escapes overflow clipping */
+.masonry-item .quick-actions-wrapper {
+  /* Ensure tooltips can overflow */
+  overflow: visible;
+}
+
+/* Menu tooltips use Portal so they escape overflow clipping */
+.menu-item {
+  overflow: visible;
+}
+
+/* Neural Noir Masonry Enhancements */
+.masonry-item {
+  /* Glass morphism glow on hover */
+  &:hover {
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+  }
+
+  /* Selected state */
+  &[data-selected='true'] {
+    box-shadow: 0 0 0 2px hsl(var(--primary));
+  }
+}
+
+/* Loading skeleton - uses shadcn theme variables */
+.masonry-skeleton {
+  background: linear-gradient(135deg, hsl(var(--muted)) 0%, hsl(var(--card)) 100%);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}

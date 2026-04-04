@@ -1,0 +1,49 @@
+{
+  "dependencies": {
+    "@genfeedai/enums": "2.3.2"
+  },
+  "devDependencies": {
+    "react-icons": "5.6.0",
+    "typescript": "5.9.3"
+  },
+  "exports": {
+    ".": {
+      "default": "./dist/index.js",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./*": {
+      "import": "./dist/*.js",
+      "require": "./dist/*.js",
+      "types": "./dist/*.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "name": "@genfeedai/constants",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "directory": "constants",
+    "type": "git",
+    "url": "git+https://github.com/genfeedai/packages.git"
+  },
+  "scripts": {
+    "build": "tsc --build --force && if [ -d dist/src ]; then mv dist/src/* dist/ 2>/dev/null && rm -rf dist/src; fi",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "dev": "tsc --watch",
+    "prepack": "npm run build",
+    "test": "vitest run --config vitest.config.ts",
+    "test:cov": "vitest run --config vitest.config.ts --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "sideEffects": false,
+  "types": "./dist/index.d.ts",
+  "version": "2.2.9"
+}

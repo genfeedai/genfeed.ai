@@ -1,0 +1,240 @@
+/* FullCalendar Custom Styling */
+.fullcalendar-container {
+  width: 100%;
+  height: calc(100vh - 280px);
+  min-height: 600px;
+}
+
+/* Calendar wrapper */
+.fc {
+  width: 100%;
+}
+
+/* Header toolbar */
+.fc .fc-toolbar {
+  padding: 1rem;
+  background-color: hsl(var(--muted));
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.fc .fc-toolbar-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+}
+
+.fc .fc-button {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-transform: none;
+  background-color: transparent;
+  color: hsl(var(--foreground));
+  border: 1px solid hsl(var(--border)) !important;
+  box-shadow: none !important;
+  transition: all 0.2s;
+}
+
+.fc .fc-button:hover {
+  background-color: hsl(var(--foreground) / 0.05);
+  border-color: hsl(var(--foreground)) !important;
+}
+
+.fc .fc-button-active {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-color: hsl(var(--primary)) !important;
+  opacity: 1;
+}
+
+.fc .fc-button-group {
+  gap: 0.25rem;
+}
+
+/* Today button - use secondary color for distinction */
+.fc .fc-today-button {
+  background-color: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+  border-color: hsl(var(--secondary)) !important;
+}
+
+.fc .fc-today-button:hover {
+  background-color: hsl(var(--secondary));
+  opacity: 0.9;
+  border-color: hsl(var(--secondary)) !important;
+}
+
+.fc .fc-today-button:disabled {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  opacity: 0.5;
+  border-color: hsl(var(--border)) !important;
+}
+
+/* Calendar body */
+.fc .fc-view-harness {
+  background-color: hsl(var(--card));
+}
+
+/* Time grid */
+.fc .fc-timegrid-slot {
+  border-color: hsl(var(--border));
+  height: 3rem !important;
+}
+
+.fc .fc-timegrid-slot-label {
+  font-size: 0.875rem;
+  color: hsl(var(--foreground) / 0.6);
+  padding-right: 0.5rem;
+}
+
+/* Column headers */
+.fc .fc-col-header-cell {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--foreground));
+  font-weight: 600;
+  border-color: hsl(var(--border));
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.fc .fc-col-header-cell-cushion {
+  font-size: 0.875rem;
+}
+
+/* Day cells */
+.fc .fc-daygrid-day {
+  border-color: hsl(var(--border));
+}
+
+.fc .fc-timegrid-col {
+  border-color: hsl(var(--border));
+}
+
+/* Events */
+.fc-event {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: none;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  transition:
+    box-shadow 0.2s,
+    opacity 0.2s;
+}
+
+.fc-event:hover {
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
+  opacity: 0.9;
+}
+
+.fc-event-title {
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+
+.fc-event-time {
+  font-size: 0.75rem;
+  opacity: 0.9;
+}
+
+/* Disabled events - past or published */
+.fc-event.event-disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+}
+
+.fc-event.event-disabled:hover {
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  opacity: 0.5;
+}
+
+.fc-event.event-disabled .fc-event-title,
+.fc-event.event-disabled .fc-event-time {
+  opacity: 0.7;
+}
+
+/* Now indicator */
+.fc .fc-timegrid-now-indicator-line {
+  border-color: hsl(var(--destructive));
+}
+
+.fc .fc-timegrid-now-indicator-arrow {
+  border-color: hsl(var(--destructive));
+}
+
+/* Grid lines */
+.fc-theme-standard td,
+.fc-theme-standard th {
+  border-color: hsl(var(--border));
+}
+
+/* Scrollbars */
+.fc-scroller::-webkit-scrollbar {
+  width: 0.5rem;
+  height: 0.5rem;
+}
+
+.fc-scroller::-webkit-scrollbar-track {
+  background-color: hsl(var(--muted));
+}
+
+.fc-scroller::-webkit-scrollbar-thumb {
+  background-color: hsl(var(--border));
+  border-radius: 9999px;
+}
+
+.fc-scroller::-webkit-scrollbar-thumb:hover {
+  background-color: hsl(var(--foreground) / 0.3);
+}
+
+/* Today highlight */
+.fc .fc-day-today {
+  background-color: hsl(var(--primary) / 0.05);
+}
+
+.fc .fc-timegrid-col.fc-day-today {
+  background-color: hsl(var(--primary) / 0.05);
+}
+
+/* Today column header - enhanced visibility */
+.fc .fc-col-header-cell.fc-day-today {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  font-weight: 700;
+}
+
+.fc .fc-col-header-cell.fc-day-today .fc-col-header-cell-cushion {
+  color: hsl(var(--primary-foreground));
+}
+
+/* Remove default background colors */
+.fc-theme-standard .fc-scrollgrid {
+  border-color: transparent;
+}
+
+/* Better spacing */
+.fc .fc-toolbar-chunk {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Responsive text sizes */
+@media (max-width: 640px) {
+  .fc .fc-toolbar-title {
+    font-size: 1rem;
+  }
+
+  .fc .fc-button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .fc .fc-col-header-cell-cushion {
+    font-size: 0.75rem;
+  }
+}

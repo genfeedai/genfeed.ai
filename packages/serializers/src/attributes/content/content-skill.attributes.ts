@@ -1,0 +1,23 @@
+import { createEntityAttributes } from '@genfeedai/helpers';
+
+export const skillAttributes = createEntityAttributes([
+  'organization',
+  'slug',
+  'name',
+  'description',
+  'category',
+  'modalities',
+  'channels',
+  'workflowStage',
+  'requiredProviders',
+  'configSchema',
+  'inputSchema',
+  'outputSchema',
+  'defaultInstructions',
+  'reviewDefaults',
+  'source',
+  'status',
+  'baseSkill',
+  'isBuiltIn',
+  'isEnabled',
+]);

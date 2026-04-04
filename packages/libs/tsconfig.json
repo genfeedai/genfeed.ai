@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "../dist/libs",
+    "paths": {
+      "@libs/*": ["./*"]
+    },
+    "sourceMap": true
+  },
+  "exclude": [
+    "node_modules",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/__tests__/**"
+  ],
+  "extends": "../../tsconfig.server.decorators.json",
+  "include": ["**/*.ts"]
+}

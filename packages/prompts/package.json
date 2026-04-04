@@ -1,0 +1,42 @@
+{
+  "devDependencies": {
+    "@genfeedai/types": "0.2.2",
+    "@types/node": "25.5.2",
+    "tsup": "8.5.1",
+    "typescript": "5.9.3"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./prompts/*": "./prompts/*"
+  },
+  "files": [
+    "dist",
+    "prompts",
+    "metadata"
+  ],
+  "license": "AGPL-3.0",
+  "main": "./dist/index.js",
+  "name": "@genfeedai/prompts",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "directory": "prompts",
+    "type": "git",
+    "url": "git+https://github.com/genfeedai/packages.git"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean --sourcemap",
+    "dev": "tsup src/index.ts --format esm,cjs --dts --watch --sourcemap",
+    "prepublishOnly": "bun run build",
+    "test": "bun test __tests__/*.spec.ts"
+  },
+  "sideEffects": false,
+  "types": "./dist/index.d.ts",
+  "version": "0.2.2"
+}

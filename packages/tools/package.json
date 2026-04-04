@@ -1,0 +1,37 @@
+{
+  "devDependencies": {
+    "typescript": "5.9.3"
+  },
+  "exports": {
+    ".": {
+      "default": "./dist/index.js",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "name": "@genfeedai/tools",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "directory": "tools",
+    "type": "git",
+    "url": "git+https://github.com/genfeedai/packages.git"
+  },
+  "scripts": {
+    "build": "tsc --build --force && if [ -d dist/src ]; then mv dist/src/* dist/ 2>/dev/null && rm -rf dist/src; fi",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "sideEffects": false,
+  "types": "./dist/index.d.ts",
+  "version": "0.1.3"
+}

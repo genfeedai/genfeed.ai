@@ -1,0 +1,26 @@
+/* App shell - base theme colors for body element */
+.gf-app {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  transition: color 0.3s, background-color 0.3s;
+}
+
+/* Dot pattern backgrounds - complex patterns not possible with Tailwind */
+.bg-dots {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 0);
+  background-size: 32px 32px;
+}
+
+.bg-dots-subtle {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+:root[data-theme='light'] {
+  .bg-dots {
+    background-image: radial-gradient(rgba(0, 0, 0, 0.06) 1px, transparent 0);
+  }
+  .bg-dots-subtle {
+    background-image: radial-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 0);
+  }
+}

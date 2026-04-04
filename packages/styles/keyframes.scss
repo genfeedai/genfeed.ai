@@ -1,0 +1,252 @@
+@use 'keyframes-base';
+
+/* Premium blur-based fade animations (Midday.ai style) */
+@keyframes fade-in-blur {
+  0% {
+    opacity: 0;
+    filter: blur(8px);
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in-scale {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fade-in-up {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-blur {
+  animation: fade-in-blur 0.35s ease-out forwards;
+}
+
+.animate-fade-in-scale {
+  animation: fade-in-scale 0.4s ease-out forwards;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.5s ease-out forwards;
+}
+
+/* Shimmer animation for skeleton loading (enhanced) */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Card enter animation */
+@keyframes card-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-card-enter {
+  animation: card-enter 0.3s ease-out forwards;
+}
+
+.animation-delay-100 {
+  animation-delay: 100ms;
+}
+
+.animation-delay-200 {
+  animation-delay: 200ms;
+}
+
+.animation-delay-300 {
+  animation-delay: 300ms;
+}
+
+.animation-delay-400 {
+  animation-delay: 400ms;
+}
+
+.animation-delay-500 {
+  animation-delay: 500ms;
+}
+
+/* Glow pulse animation for active/focus states */
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.2);
+  }
+  50% {
+    box-shadow: 0 0 20px 4px hsl(var(--primary) / 0.15);
+  }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* Slide in from right for table actions */
+@keyframes slide-in-right {
+  0% {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.2s ease-out forwards;
+}
+
+/* ============================================
+   Genfeed Animations
+   ============================================ */
+
+/* Fade up with longer travel distance for dramatic entrance */
+@keyframes gen-fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Glow pulse for active/feature elements */
+@keyframes gen-glow-pulse {
+  0%, 100% {
+    box-shadow: var(--shadow-glow-sm);
+  }
+  50% {
+    box-shadow: var(--shadow-glow-md);
+  }
+}
+
+/* Subtle float for decorative elements */
+@keyframes gen-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Border glow transition */
+@keyframes gen-border-glow {
+  0%, 100% {
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  50% {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Scale in with glow */
+@keyframes gen-scale-in-glow {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+    box-shadow: none;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: var(--shadow-glow-sm);
+  }
+}
+
+/* Animation classes */
+.animate-gen-fade-up {
+  animation: gen-fade-up 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-gen-glow {
+  animation: gen-glow-pulse 3s ease-in-out infinite;
+}
+
+.animate-gen-float {
+  animation: gen-float 4s ease-in-out infinite;
+}
+
+.animate-gen-border-glow {
+  animation: gen-border-glow 2s ease-in-out infinite;
+}
+
+.animate-gen-scale-in-glow {
+  animation: gen-scale-in-glow 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Staggered animation delays for bento grids */
+.gen-stagger-1 { animation-delay: 0.1s; }
+.gen-stagger-2 { animation-delay: 0.2s; }
+.gen-stagger-3 { animation-delay: 0.3s; }
+.gen-stagger-4 { animation-delay: 0.4s; }
+.gen-stagger-5 { animation-delay: 0.5s; }
+.gen-stagger-6 { animation-delay: 0.6s; }
+
+/* ============================================
+   Neural Noir Amber Animations
+   ============================================ */
+
+@keyframes gen-spotlight {
+  0%, 100% { background-position: 20% 50%; }
+  50% { background-position: 80% 50%; }
+}
+
+@keyframes gen-flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.94; }
+}
+
+@keyframes gen-scan {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes gen-reveal {
+  from { opacity: 0; filter: blur(6px); transform: translateY(16px); }
+  to { opacity: 1; filter: blur(0); transform: translateY(0); }
+}
+
+@keyframes gen-stagger-in {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-gen-reveal { animation: gen-reveal 0.8s ease-out both; }
+.animate-gen-stagger-in { animation: gen-stagger-in 0.5s ease-out both; }
+.animate-gen-flicker { animation: gen-flicker 4s ease-in-out infinite; }

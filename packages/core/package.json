@@ -1,0 +1,56 @@
+{
+  "dependencies": {
+    "@genfeedai/types": "0.2.2"
+  },
+  "description": "Core utilities for Genfeed workflow engine",
+  "devDependencies": {
+    "@vitest/coverage-v8": "4.1.2",
+    "tsup": "8.5.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.2"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./topological-sort": {
+      "import": "./dist/topological-sort.mjs",
+      "require": "./dist/topological-sort.js",
+      "types": "./dist/topological-sort.d.ts"
+    },
+    "./validation": {
+      "import": "./dist/validation.mjs",
+      "require": "./dist/validation.js",
+      "types": "./dist/validation.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "AGPL-3.0",
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "name": "@genfeedai/core",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "directory": "core",
+    "type": "git",
+    "url": "git+https://github.com/genfeedai/packages.git"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "prepublishOnly": "bun run build",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest"
+  },
+  "sideEffects": false,
+  "types": "./dist/index.d.ts",
+  "version": "0.2.1"
+}

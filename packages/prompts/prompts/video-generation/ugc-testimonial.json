@@ -1,0 +1,43 @@
+{
+  "category": "video-generation",
+  "createdAt": "2025-01-31T00:00:00.000Z",
+  "description": "Authentic user-generated content style testimonial videos",
+  "icon": "🗣️",
+  "id": "ugc-testimonial",
+  "tags": ["ugc", "testimonial", "authentic", "conversion"],
+  "template": "A {style} UGC testimonial video for {product}, featuring {scenario}, authentic {tone} delivery, mobile-first format",
+  "tier": "free",
+  "title": "UGC Testimonial",
+  "updatedAt": "2025-01-31T00:00:00.000Z",
+  "variables": [
+    {
+      "label": "Product/Service",
+      "name": "product",
+      "placeholder": "e.g., skincare routine",
+      "required": true,
+      "type": "text"
+    },
+    {
+      "label": "Usage Scenario",
+      "name": "scenario",
+      "placeholder": "e.g., morning routine",
+      "required": true,
+      "type": "text"
+    },
+    {
+      "default": "review",
+      "label": "UGC Style",
+      "name": "style",
+      "options": ["before-after", "day-in-life", "review", "tutorial"],
+      "type": "select"
+    },
+    {
+      "default": "casual",
+      "label": "Delivery Tone",
+      "name": "tone",
+      "options": ["casual", "enthusiastic", "honest", "expert"],
+      "type": "select"
+    }
+  ],
+  "version": 1
+}

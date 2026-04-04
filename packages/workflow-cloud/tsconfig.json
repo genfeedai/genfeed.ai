@@ -1,0 +1,41 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@cloud/interfaces": ["../interfaces/src/index.ts"],
+      "@cloud/interfaces/*": ["../interfaces/src/*"],
+      "@cloud/types": ["../types/src/index.ts"],
+      "@cloud/types/*": ["../types/src/*"],
+      "@cloud/workflow-saas": ["../workflow-saas/src/index.ts"],
+      "@cloud/workflow-saas/*": ["../workflow-saas/src/*"],
+      "@cloud/workflow-saas/types": ["../workflow-saas/src/types.ts"],
+      "@cloud/workflow/*": ["./src/*"],
+      "@configs/*": ["../../configs/*"],
+      "@contexts/*": ["../contexts/*"],
+      "@genfeedai/client": ["../client/dist/index"],
+      "@genfeedai/client/*": ["../client/dist/*"],
+      "@genfeedai/enums": ["../enums/dist/index"],
+      "@genfeedai/enums/*": ["../enums/dist/*"],
+      "@helpers/*": ["../helpers/src/*"],
+      "@hooks/*": ["../hooks/*"],
+      "@models/*": ["../models/*"],
+      "@pages/*": ["../pages/*"],
+      "@props/*": ["../props/*"],
+      "@providers/*": ["../providers/*"],
+      "@serializers/*": ["../serializers/src/*"],
+      "@services/*": ["../services/*"],
+      "@styles/*": ["../styles/*"],
+      "@ui-constants/*": ["../ui/constants/*"],
+      "@ui/*": ["../ui/*"],
+      "@utils/*": ["../utils/*"],
+      "@workflow-cloud/*": ["./src/*"],
+      "@workflow-saas": ["../workflow-saas/src/index.ts"],
+      "@workflow-saas/*": ["../workflow-saas/src/*"],
+      "@workflow-saas/types": ["../workflow-saas/src/types.ts"]
+    },
+    "types": ["react", "react-dom"]
+  },
+  "exclude": ["node_modules", "dist"],
+  "extends": "../tsconfig/nextjs.json",
+  "include": ["src/**/*"]
+}

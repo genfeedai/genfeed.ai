@@ -1,0 +1,60 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "inlineSources": true,
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "outDir": "./dist",
+    "paths": {
+      "@genfeedai/constants": ["../constants/src/index.ts"],
+      "@genfeedai/constants/*": ["../constants/src/*"],
+      "@genfeedai/deserializer": ["../deserializer/src/index.ts"],
+      "@genfeedai/deserializer/*": ["../deserializer/src/*"],
+      "@genfeedai/enums": ["../enums/src/index.ts"],
+      "@genfeedai/enums/*": ["../enums/src/*"],
+      "@genfeedai/helpers/*": ["./src/*"],
+      "@genfeedai/interfaces": ["../interfaces/src/index.ts"],
+      "@genfeedai/interfaces/*": ["../interfaces/src/*"],
+      "@helpers/*": ["./src/*"]
+    },
+    "rootDir": "./src",
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strict": true,
+    "target": "ES2022"
+  },
+  "exclude": ["node_modules", "dist"],
+  "include": [
+    "src/index.ts",
+    "src/aspect-ratio.helper.ts",
+    "src/business/pricing/pricing.helper.ts",
+    "src/business/tier-models/tier-models.helper.ts",
+    "src/deserializer.helper.ts",
+    "src/model-capability.helper.ts",
+    "src/quality-routing.helper.ts",
+    "src/serializer.helper.ts",
+    "src/social-url.helper.ts",
+    "src/types/model-like.type.ts",
+    "src/video-duration.helper.ts"
+  ],
+  "references": [
+    {
+      "path": "../constants"
+    },
+    {
+      "path": "../deserializer"
+    },
+    {
+      "path": "../enums"
+    },
+    {
+      "path": "../interfaces"
+    }
+  ]
+}

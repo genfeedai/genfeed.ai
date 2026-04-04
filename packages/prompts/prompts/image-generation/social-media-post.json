@@ -1,0 +1,43 @@
+{
+  "category": "image-generation",
+  "createdAt": "2025-01-31T00:00:00.000Z",
+  "description": "Eye-catching images optimized for social media engagement",
+  "icon": "📱",
+  "id": "social-media-post",
+  "tags": ["social", "media", "marketing", "engagement"],
+  "template": "A {style} social media post featuring {subject}, {mood} mood, {platform} optimized, trending design, vibrant colors",
+  "tier": "free",
+  "title": "Social Media Post",
+  "updatedAt": "2025-01-31T00:00:00.000Z",
+  "variables": [
+    {
+      "label": "Subject",
+      "name": "subject",
+      "placeholder": "e.g., coffee shop, workout",
+      "required": true,
+      "type": "text"
+    },
+    {
+      "default": "vibrant",
+      "label": "Style",
+      "name": "style",
+      "options": ["minimalist", "vibrant", "artistic", "corporate"],
+      "type": "select"
+    },
+    {
+      "default": "energetic",
+      "label": "Mood",
+      "name": "mood",
+      "options": ["energetic", "calm", "professional", "playful"],
+      "type": "select"
+    },
+    {
+      "default": "Instagram",
+      "label": "Platform",
+      "name": "platform",
+      "options": ["Instagram", "Facebook", "Twitter", "LinkedIn"],
+      "type": "select"
+    }
+  ],
+  "version": 1
+}

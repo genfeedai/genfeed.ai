@@ -1,0 +1,18 @@
+{
+  "dependencies": {
+    "@genfeedai/constants": "2.2.8",
+    "@genfeedai/enums": "2.3.1"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  },
+  "main": "dist/index.js",
+  "name": "@genfeedai/client/schemas",
+  "private": false,
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "types": "dist/index.d.ts",
+  "version": "2.2.2"
+}

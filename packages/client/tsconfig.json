@@ -1,0 +1,56 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "inlineSources": true,
+    "lib": ["ES2020", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "outDir": "./dist",
+    "paths": {
+      "@genfeedai/client": ["./src"],
+      "@genfeedai/client/*": ["./src/*"],
+      "@genfeedai/constants": ["../constants/src/index.ts"],
+      "@genfeedai/constants/*": ["../constants/src/*"],
+      "@genfeedai/enums": ["../enums/src/index.ts"],
+      "@genfeedai/enums/*": ["../enums/src/*"],
+      "@genfeedai/helpers": ["../helpers/src/index.ts"],
+      "@genfeedai/helpers/*": ["../helpers/src/*"],
+      "@genfeedai/interfaces": ["../interfaces/src/index.ts"],
+      "@genfeedai/interfaces/*": ["../interfaces/src/*"],
+      "@helpers/*": ["../helpers/src/*"],
+      "@models/*": ["../models/*.d.ts"],
+      "@props/*": ["../props/*.d.ts"],
+      "@services/*": ["../services/*.d.ts"],
+      "interfaces/*": ["./src/interfaces/*"],
+      "models/*": ["./src/models/*"],
+      "schemas/*": ["./src/schemas/*"],
+      "serializers/*": ["./src/serializers/*"]
+    },
+    "rootDir": "./src",
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strict": true,
+    "target": "ES2022"
+  },
+  "exclude": ["dist", "node_modules", "src/**/*.test.ts", "src/**/*.spec.ts"],
+  "include": ["src/**/*"],
+  "references": [
+    {
+      "path": "../interfaces"
+    },
+    {
+      "path": "../constants"
+    },
+    {
+      "path": "../enums"
+    },
+    {
+      "path": "../helpers"
+    },
+  ]
+}

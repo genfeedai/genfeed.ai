@@ -1,0 +1,7 @@
+import { buildSingleSerializer, type BuiltSerializer } from '../../builders';
+import { darkroomLipSyncStatusSerializerConfig } from '../../configs';
+
+export const DarkroomLipSyncStatusSerializer: BuiltSerializer = buildSingleSerializer(
+  'server',
+  darkroomLipSyncStatusSerializerConfig,
+);

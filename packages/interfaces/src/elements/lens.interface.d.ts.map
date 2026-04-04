@@ -1,0 +1,1 @@
+{"version":3,"file":"lens.interface.d.ts","sourceRoot":"","sources":["lens.interface.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,aAAa,EAAE,MAAM,kBAAkB,CAAC;AACtD,OAAO,KAAK,EAAE,WAAW,EAAE,iBAAiB,EAAE,MAAM,UAAU,CAAC;AAE/D,MAAM,WAAW,YAAa,SAAQ,WAAW,EAAE,iBAAiB;IAClE,QAAQ,CAAC,EAAE,aAAa,CAAC;CAC1B"}

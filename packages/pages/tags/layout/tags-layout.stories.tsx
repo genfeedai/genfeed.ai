@@ -1,0 +1,23 @@
+import TagsLayout from '@pages/tags/layout/tags-layout';
+import type { Meta, StoryObj } from '@storybook/nextjs';
+
+const meta: Meta<typeof TagsLayout> = {
+  argTypes: {},
+  component: TagsLayout,
+  parameters: {
+    layout: 'centered',
+  },
+  tags: ['autodocs'],
+  title: 'Components/Pages/Tags/TagsLayout',
+};
+
+export default meta;
+type Story = StoryObj<typeof TagsLayout>;
+
+export const Default: Story = {
+  args: {},
+};
+
+export const Interactive: Story = {
+  args: {},
+};

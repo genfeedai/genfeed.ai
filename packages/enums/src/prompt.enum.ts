@@ -1,0 +1,46 @@
+export enum PromptCategory {
+  BRAND_DESCRIPTION = 'brand-description',
+  STORYBOARD_SCRIPT_DESCRIPTION = 'storyboard-script-description',
+  PRESET_DESCRIPTION_TEXT = 'presets-description-text',
+  PRESET_DESCRIPTION_IMAGE = 'presets-description-image',
+  PRESET_DESCRIPTION_VIDEO = 'presets-description-video',
+  PRESET_DESCRIPTION_MUSIC = 'presets-description-music',
+  POST_CONTENT_TWITTER = 'post-content-twitter',
+  POST_CONTENT_YOUTUBE = 'post-content-youtube',
+  POST_CONTENT_TIKTOK = 'post-content-tiktok',
+  POST_CONTENT_INSTAGRAM = 'post-content-instagram',
+  POST_TITLE_TWITTER = 'post-title-twitter',
+  POST_TITLE_YOUTUBE = 'post-title-youtube',
+  POST_TITLE_TIKTOK = 'post-title-tiktok',
+  POST_TITLE_INSTAGRAM = 'post-title-instagram',
+  MODELS_PROMPT_IMAGE = 'models-prompt-image',
+  MODELS_PROMPT_VIDEO = 'models-prompt-video',
+  MODELS_PROMPT_MUSIC = 'models-prompt-music',
+  MODELS_PROMPT_TRAINING = 'models-prompt-genfeedai',
+  ARTICLE = 'article',
+}
+
+export enum PromptStatus {
+  DRAFT = 'draft',
+  PROCESSING = 'processing',
+  GENERATED = 'generated',
+  FAILED = 'failed',
+}
+
+export enum PromptTemplateCategory {
+  ARTICLE_GENERATION = 'article-generation',
+  ARTICLE_EDIT = 'article-edit',
+  ARTICLE_VIRALITY_ANALYSIS = 'article-virality-analysis',
+  VIDEO_GENERATION = 'video-generation',
+  VIDEO_CINEMATIC = 'video-cinematic',
+  VIDEO_SOCIAL_MEDIA = 'video-social-media',
+  VIDEO_PRODUCT_AD = 'video-product-ad',
+  VIDEO_PODCAST = 'video-podcast',
+  VIDEO_INFLUENCER = 'video-influencer',
+  IMAGE_GENERATION = 'image-generation',
+  IMAGE_PRODUCT_AD = 'image-product-ad',
+  IMAGE_BANNER = 'image-banner',
+  IMAGE_SUPER_MODEL = 'image-super-model',
+  MUSIC_GENERATION = 'music-generation',
+  CAPTION_GENERATION = 'caption-generation',
+}

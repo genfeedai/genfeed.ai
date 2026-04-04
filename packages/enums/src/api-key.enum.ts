@@ -1,0 +1,30 @@
+export enum ApiKeyCategory {
+  GENFEEDAI = 'genfeedai',
+  ELEVENLABS = 'elevenlabs',
+  HEDRA = 'hedra',
+  HEYGEN = 'heygen',
+  OPUS_PRO = 'opuspro',
+}
+
+export enum ApiKeyScope {
+  VIDEOS_READ = 'videos:read',
+  VIDEOS_CREATE = 'videos:create',
+  VIDEOS_UPDATE = 'videos:update',
+  VIDEOS_DELETE = 'videos:delete',
+  IMAGES_READ = 'images:read',
+  IMAGES_CREATE = 'images:create',
+  IMAGES_UPDATE = 'images:update',
+  IMAGES_DELETE = 'images:delete',
+  PROMPTS_READ = 'prompts:read',
+  PROMPTS_CREATE = 'prompts:create',
+  PROMPTS_UPDATE = 'prompts:update',
+  PROMPTS_DELETE = 'prompts:delete',
+  ARTICLES_READ = 'articles:read',
+  ARTICLES_CREATE = 'articles:create',
+  BRANDS_READ = 'brands:read',
+  CREDITS_READ = 'credits:read',
+  CREDITS_PROVISION = 'credits:provision',
+  POSTS_CREATE = 'posts:create',
+  ANALYTICS_READ = 'analytics:read',
+  ADMIN = 'admin',
+}

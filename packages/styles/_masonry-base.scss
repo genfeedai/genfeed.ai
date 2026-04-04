@@ -1,0 +1,77 @@
+/* JavaScript Masonry Layout */
+.masonry {
+  &-container {
+    position: relative;
+    width: 100%;
+    min-height: 200px; /* Prevent layout shift during initial load */
+
+    &.loading {
+      display: grid;
+      grid-template-columns: repeat(1, 1fr);
+      gap: 0.5rem;
+      position: static;
+    }
+  }
+
+  &-item {
+    position: absolute;
+    top: 0;
+    left: 0;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+  }
+}
+
+.masonry-container.loading .masonry-item {
+  position: static;
+  transition: none;
+}
+
+@media (min-width: 640px) {
+  .masonry-container.loading {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .masonry-container.loading {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Smooth animations for layout changes */
+.masonry-item[data-loaded='true'] {
+  opacity: 1;
+}
+
+.masonry-item[data-loaded='false'] {
+  opacity: 0;
+}
+
+/* Future CSS Grid Masonry fallback */
+@supports (grid-template-rows: masonry) {
+  .masonry-container.use-native-masonry {
+    display: grid;
+    grid-template-columns: repeat(1, 1fr);
+    grid-template-rows: masonry;
+    gap: 0.5rem;
+    position: static;
+  }
+
+  @media (min-width: 640px) {
+    .masonry-container.use-native-masonry {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .masonry-container.use-native-masonry {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  .masonry-container.use-native-masonry .masonry-item {
+    position: static;
+    transition: none;
+  }
+}

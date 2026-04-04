@@ -1,0 +1,1 @@
+{"version":3,"file":"trainings-context.interface.d.ts","sourceRoot":"","sources":["trainings-context.interface.ts"],"names":[],"mappings":"AAAA,MAAM,WAAW,qBAAqB;IACpC,gBAAgB,EAAE,CAAC,MAAM,IAAI,CAAC,GAAG,IAAI,CAAC;IACtC,YAAY,EAAE,OAAO,CAAC;IACtB,mBAAmB,EAAE,CAAC,EAAE,EAAE,CAAC,MAAM,OAAO,CAAC,IAAI,CAAC,CAAC,GAAG,IAAI,KAAK,IAAI,CAAC;CACjE"}

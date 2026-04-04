@@ -1,0 +1,43 @@
+{
+  "category": "content",
+  "createdAt": "2025-01-31T00:00:00.000Z",
+  "description": "Comprehensive blog post outlines for content marketing",
+  "icon": "📝",
+  "id": "blog-outline",
+  "tags": ["blog", "content", "seo", "marketing"],
+  "template": "Create a detailed blog post outline about {topic} for {audience}, {tone} tone, {format} format, SEO-optimized structure",
+  "tier": "free",
+  "title": "Blog Post Outline",
+  "updatedAt": "2025-01-31T00:00:00.000Z",
+  "variables": [
+    {
+      "label": "Blog Topic",
+      "name": "topic",
+      "placeholder": "e.g., AI in marketing",
+      "required": true,
+      "type": "text"
+    },
+    {
+      "default": "professionals",
+      "label": "Target Audience",
+      "name": "audience",
+      "options": ["beginners", "professionals", "experts", "general"],
+      "type": "select"
+    },
+    {
+      "default": "informative",
+      "label": "Writing Tone",
+      "name": "tone",
+      "options": ["informative", "conversational", "authoritative", "friendly"],
+      "type": "select"
+    },
+    {
+      "default": "how-to",
+      "label": "Content Format",
+      "name": "format",
+      "options": ["how-to", "listicle", "guide", "analysis"],
+      "type": "select"
+    }
+  ],
+  "version": 1
+}

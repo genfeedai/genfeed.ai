@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "inlineSources": true,
+    "isolatedModules": true,
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "outDir": "dist",
+    "paths": {
+      "@api-types/*": ["./src/*"],
+      "@genfeedai/api-types/*": ["./src/*"],
+      "@genfeedai/enums": ["../enums/src/index.ts"],
+      "@genfeedai/enums/*": ["../enums/src/*"]
+    },
+    "rootDir": "src",
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "strict": true,
+    "target": "ES2022"
+  },
+  "exclude": ["node_modules", "dist", "scripts"],
+  "include": ["src/**/*.ts"],
+  "references": [
+    {
+      "path": "../enums"
+    }
+  ]
+}

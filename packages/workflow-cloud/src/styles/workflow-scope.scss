@@ -1,0 +1,174 @@
+/**
+ * Workflow Editor — Core Token Sync + Utility Classes
+ *
+ * The current source-of-truth workflow editor styling lives in `core/apps/web`.
+ * Cloud previously tried to bridge the app shell theme into workflow-ui by
+ * remapping shadcn HSL triplets, which left this route visually behind the
+ * newer editor chrome. Keep cloud in sync by applying the same dedicated editor
+ * token pack here instead of inheriting the surrounding SaaS theme.
+ */
+
+/* ==========================================================================
+   1. Core Editor Tokens — mirror core/apps/web/src/app/globals.scss
+   ========================================================================== */
+
+.workflow-scope {
+  --background: oklch(0.09 0 0);
+  --foreground: oklch(0.95 0 0);
+  --card: oklch(0.12 0 0);
+  --card-foreground: oklch(0.95 0 0);
+  --popover: oklch(0.12 0 0);
+  --popover-foreground: oklch(0.95 0 0);
+  --primary: oklch(0.7 0.18 175);
+  --primary-foreground: oklch(0.1 0 0);
+  --secondary: oklch(0.18 0 0);
+  --secondary-foreground: oklch(0.95 0 0);
+  --muted: oklch(0.18 0 0);
+  --muted-foreground: oklch(0.6 0 0);
+  --accent: oklch(0.18 0 0);
+  --accent-foreground: oklch(0.95 0 0);
+  --destructive: oklch(0.55 0.2 25);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.22 0 0);
+  --input: oklch(0.22 0 0);
+  --ring: oklch(0.7 0.18 175);
+
+  /* Tailwind semantic color aliases used by core workflow-ui utilities */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+/* ==========================================================================
+   2. Utility Classes — workflow-ui arbitrary Tailwind classes
+   Scoped to .workflow-scope so they only apply inside the editor.
+   ========================================================================== */
+
+$bg-tokens: background, border, card, category-ai, category-composition,
+  category-input, category-output, category-processing, muted, primary,
+  secondary;
+
+$border-tokens: border, category-ai, category-composition, category-input,
+  category-output, category-processing, destructive, primary;
+
+$text-tokens: category-ai, category-composition, category-input,
+  category-output, category-processing, destructive, foreground,
+  muted-foreground, primary;
+
+$ring-tokens: primary, ring;
+
+.workflow-scope {
+  @each $token in $bg-tokens {
+    .bg-\[var\(--#{$token}\)\] {
+      background-color: var(--#{$token});
+    }
+  }
+
+  @each $token in $border-tokens {
+    .border-\[var\(--#{$token}\)\] {
+      border-color: var(--#{$token});
+    }
+  }
+
+  @each $token in $text-tokens {
+    .text-\[var\(--#{$token}\)\] {
+      color: var(--#{$token});
+    }
+  }
+
+  @each $token in $ring-tokens {
+    .ring-\[var\(--#{$token}\)\] {
+      --tw-ring-color: var(--#{$token});
+    }
+  }
+
+  /* Tailwind semantic classes emitted by shared workflow-ui package */
+  .border-border {
+    border-color: var(--color-border);
+  }
+
+  .border-border\/50 {
+    border-color: color-mix(in oklab, var(--color-border) 50%, transparent);
+  }
+
+  .bg-background {
+    background-color: var(--color-background);
+  }
+
+  .bg-card {
+    background-color: var(--color-card);
+  }
+
+  .bg-secondary\/20 {
+    background-color: color-mix(in oklab, var(--color-secondary) 20%, transparent);
+  }
+
+  .bg-secondary\/40 {
+    background-color: color-mix(in oklab, var(--color-secondary) 40%, transparent);
+  }
+
+  .text-muted-foreground {
+    color: var(--color-muted-foreground);
+  }
+
+  .text-muted-foreground\/50 {
+    color: color-mix(in oklab, var(--color-muted-foreground) 50%, transparent);
+  }
+
+  .text-muted-foreground\/70 {
+    color: color-mix(in oklab, var(--color-muted-foreground) 70%, transparent);
+  }
+
+  .hover\:border-primary\/50:hover {
+    border-color: color-mix(in oklab, var(--color-primary) 50%, transparent);
+  }
+
+  .hover\:bg-secondary\/40:hover {
+    background-color: color-mix(in oklab, var(--color-secondary) 40%, transparent);
+  }
+}
+
+.workflow-scope.workflow-editor-shell {
+  .workflow-topbar-shell {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+  }
+
+  .workflow-topbar-shell > div {
+    border-bottom: 1px solid var(--border);
+    background: color-mix(in oklab, var(--card) 95%, transparent);
+    backdrop-filter: blur(12px);
+  }
+
+  .cloud-workflow-toolbar-nav {
+    :where(a, button) {
+      color: var(--muted-foreground);
+    }
+  }
+
+  .cloud-workflow-title {
+    letter-spacing: -0.01em;
+  }
+
+  .fixed.bottom-5 > div {
+    border-color: color-mix(in oklab, var(--border) 85%, transparent);
+    background: color-mix(in oklab, var(--card) 8%, #1f1f1f 92%);
+  }
+}

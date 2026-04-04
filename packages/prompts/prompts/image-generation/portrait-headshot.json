@@ -1,0 +1,43 @@
+{
+  "category": "image-generation",
+  "createdAt": "2025-01-31T00:00:00.000Z",
+  "description": "Professional headshots perfect for LinkedIn and business use",
+  "icon": "👤",
+  "id": "portrait-headshot",
+  "tags": ["portrait", "headshot", "professional", "business"],
+  "template": "A professional {style} headshot of a {subject}, {background} background, {lighting} lighting, confident expression, business attire",
+  "tier": "free",
+  "title": "Portrait Headshot",
+  "updatedAt": "2025-01-31T00:00:00.000Z",
+  "variables": [
+    {
+      "label": "Subject",
+      "name": "subject",
+      "placeholder": "e.g., business executive, entrepreneur",
+      "required": true,
+      "type": "text"
+    },
+    {
+      "default": "corporate",
+      "label": "Style",
+      "name": "style",
+      "options": ["corporate", "creative", "casual", "formal"],
+      "type": "select"
+    },
+    {
+      "default": "neutral",
+      "label": "Background",
+      "name": "background",
+      "options": ["neutral", "office", "outdoor", "studio"],
+      "type": "select"
+    },
+    {
+      "default": "natural",
+      "label": "Lighting",
+      "name": "lighting",
+      "options": ["natural", "studio", "window", "soft"],
+      "type": "select"
+    }
+  ],
+  "version": 1
+}

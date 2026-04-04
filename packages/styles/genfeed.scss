@@ -1,0 +1,564 @@
+/* ==========================================================================
+   Genfeed Design System - Reusable CSS Utilities
+   Supports both dark and light themes via CSS variables
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Glass Utilities
+   -------------------------------------------------------------------------- */
+.gen-glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  :root[data-theme='light'] &,
+  .light & {
+    background: rgba(0, 0, 0, 0.02);
+    border-color: rgba(0, 0, 0, 0.06);
+  }
+}
+
+.gen-glass-strong {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  :root[data-theme='light'] &,
+  .light & {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.08);
+  }
+}
+
+.gen-glass-subtle {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+
+  :root[data-theme='light'] &,
+  .light & {
+    background: rgba(0, 0, 0, 0.01);
+    border-color: rgba(0, 0, 0, 0.04);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Typography Utilities
+   -------------------------------------------------------------------------- */
+.gen-heading {
+  font-family: var(--font-serif);
+  font-style: italic;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.gen-heading-xl {
+  font-size: clamp(3rem, 8vw, 6rem);
+}
+
+.gen-heading-lg {
+  font-size: clamp(2.5rem, 6vw, 4rem);
+}
+
+.gen-heading-md {
+  font-size: clamp(1.75rem, 4vw, 2.5rem);
+}
+
+.gen-heading-sm {
+  font-size: clamp(1.25rem, 3vw, 1.75rem);
+}
+
+.gen-label {
+  font-size: 0.625rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+}
+
+.gen-label-lg {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+
+.gen-label-sm {
+  font-size: 0.5rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.25em;
+}
+
+/* --------------------------------------------------------------------------
+   Status Dots
+   -------------------------------------------------------------------------- */
+.gen-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.gen-dot-sm {
+  width: 0.375rem;
+  height: 0.375rem;
+}
+
+.gen-dot-lg {
+  width: 0.625rem;
+  height: 0.625rem;
+}
+
+.gen-dot-success {
+  background: hsl(142 71% 45%);
+}
+
+.gen-dot-warning {
+  background: hsl(38 92% 50%);
+}
+
+.gen-dot-error {
+  background: hsl(0 84% 60%);
+}
+
+.gen-dot-info {
+  background: hsl(199 89% 48%);
+}
+
+.gen-dot-muted {
+  background: hsl(0 0% 45%);
+
+  :root[data-theme='light'] &,
+  .light & {
+    background: hsl(0 0% 65%);
+  }
+}
+
+.gen-dot-processing {
+  background: hsl(262 83% 58%);
+}
+
+.gen-dot-pulse {
+  animation: gen-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes gen-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Dividers
+   -------------------------------------------------------------------------- */
+.gen-divider {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.06),
+    transparent
+  );
+
+  :root[data-theme='light'] &,
+  .light & {
+    background: linear-gradient(
+      to right,
+      transparent,
+      rgba(0, 0, 0, 0.08),
+      transparent
+    );
+  }
+}
+
+.gen-divider-solid {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+
+  :root[data-theme='light'] &,
+  .light & {
+    background: rgba(0, 0, 0, 0.08);
+  }
+}
+
+.gen-divider-vertical {
+  width: 1px;
+  height: 100%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(255, 255, 255, 0.06),
+    transparent
+  );
+
+  :root[data-theme='light'] &,
+  .light & {
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      rgba(0, 0, 0, 0.08),
+      transparent
+    );
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Interactive States
+   -------------------------------------------------------------------------- */
+.gen-hover-lift {
+  transition: transform 0.3s ease-out, box-shadow 0.3s ease-out;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow-md);
+  }
+}
+
+.gen-hover-glow {
+  transition: box-shadow 0.3s ease-out, border-color 0.3s ease-out;
+
+  &:hover {
+    box-shadow: var(--shadow-glow-lg);
+    border-color: rgba(255, 255, 255, 0.15);
+
+    :root[data-theme='light'] &,
+    .light & {
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+      border-color: rgba(0, 0, 0, 0.12);
+    }
+  }
+}
+
+.node-card {
+  transition:
+    transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.6s ease,
+    border-color 0.6s ease;
+  cursor: pointer;
+  
+
+  &:hover {
+    border-color: var(--overlay-white-20);
+    box-shadow: 0 0 60px var(--overlay-white-20);
+    transform: scale(1.05);
+    z-index: 60;
+  }
+
+  :root[data-theme='light'] &,
+  .light & {
+    &:hover {
+      border-color: var(--overlay-black-20);
+      box-shadow: 0 4px 30px var(--overlay-black-10);
+    }
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Trend Indicators
+   -------------------------------------------------------------------------- */
+.gen-trend-up {
+  color: hsl(142 71% 45%);
+}
+
+.gen-trend-down {
+  color: hsl(0 84% 60%);
+}
+
+.gen-trend-neutral {
+  color: hsl(0 0% 45%);
+
+  :root[data-theme='light'] &,
+  .light & {
+    color: hsl(0 0% 55%);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Spacing Utilities
+   -------------------------------------------------------------------------- */
+.gen-section-spacing {
+  padding-top: 6rem;
+  padding-bottom: 6rem;
+
+  @media (max-width: 768px) {
+    padding-top: 4rem;
+    padding-bottom: 4rem;
+  }
+}
+
+.gen-section-spacing-lg {
+  padding-top: 8rem;
+  padding-bottom: 8rem;
+
+  @media (max-width: 768px) {
+    padding-top: 5rem;
+    padding-bottom: 5rem;
+  }
+}
+
+.gen-section-spacing-xl {
+  padding-top: 10rem;
+  padding-bottom: 10rem;
+
+  @media (max-width: 768px) {
+    padding-top: 6rem;
+    padding-bottom: 6rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Hero Utilities
+   -------------------------------------------------------------------------- */
+.gen-hero-glow {
+  background: radial-gradient(
+    circle at 30% 50%,
+    rgba(255, 255, 255, 0.05),
+    transparent 60%
+  );
+
+  :root[data-theme='light'] & {
+    background: radial-gradient(
+      circle at 30% 50%,
+      rgba(0, 0, 0, 0.03),
+      transparent 60%
+    );
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Cinematic Utilities
+   -------------------------------------------------------------------------- */
+
+/* Edge darkening — radial vignette overlay */
+.gen-vignette {
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, transparent 40%, hsl(0 0% 4%) 100%);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  :root[data-theme='light'] &::before {
+    background: radial-gradient(ellipse at center, transparent 40%, hsl(60 10% 98%) 100%);
+  }
+}
+
+/* Asymmetric left-side light source */
+.gen-spotlight-left {
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 15% 50%, var(--gen-accent-glow), transparent 60%);
+    pointer-events: none;
+    z-index: 1;
+  }
+}
+
+/* Asymmetric right-side light source */
+.gen-spotlight-right {
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 85% 50%, var(--gen-accent-glow), transparent 60%);
+    pointer-events: none;
+    z-index: 1;
+  }
+}
+
+/* Horizontal light bars (venetian blinds) */
+.gen-venetian {
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 80px,
+      var(--gen-accent-bg) 80px,
+      var(--gen-accent-bg) 82px
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+}
+
+/* SVG noise grain overlay */
+.gen-grain {
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0.4;
+  }
+}
+
+/* Contact sheet frame — inset shadow + accent border */
+.gen-contact-sheet {
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--gen-accent-border);
+  transition: border-color 0.3s ease;
+
+  &:hover {
+    border-color: var(--gen-accent-hover);
+  }
+}
+
+/* Hover card with radial gradient spotlight + border glow */
+.gen-card-spotlight {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  border: 1px solid var(--gen-accent-border);
+  background: color-mix(in srgb, hsl(var(--background)) 82%, hsl(var(--gen-accent)) 18%);
+  box-shadow: 0 22px 50px -34px rgba(0, 0, 0, 0.55);
+  transition:
+    border-color 0.3s ease,
+    box-shadow 0.3s ease,
+    transform 0.3s ease;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), var(--gen-accent-bg), transparent 60%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+  }
+
+  &:hover {
+    border-color: var(--gen-accent-hover);
+    box-shadow: 0 28px 64px -34px rgba(0, 0, 0, 0.68);
+    transform: translateY(-2px);
+
+    &::before {
+      opacity: 1;
+    }
+  }
+}
+
+/* Decorative perforation dots (film sprocket holes) */
+.gen-perf {
+  position: relative;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 12px,
+      var(--gen-accent-border) 12px,
+      var(--gen-accent-border) 14px
+    );
+  }
+
+  &::before { top: 0; }
+  &::after { bottom: 0; }
+}
+
+/* Gradient divider with accent center */
+.gen-divider-accent {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--gen-accent-hover),
+    transparent
+  );
+}
+
+/* ─── Accent Utility Classes ─── */
+
+/* Buttons */
+.gen-btn-primary {
+  background: hsl(var(--gen-accent));
+  color: hsl(var(--background));
+  transition: all 0.2s ease;
+  &:hover { background: hsl(var(--gen-accent-bright)); }
+}
+
+.gen-btn-outline {
+  border: 1px solid var(--gen-accent-border);
+  color: hsl(var(--gen-accent));
+  transition: all 0.2s ease;
+  &:hover {
+    border-color: var(--gen-accent-selection);
+    background: var(--gen-accent-bg);
+  }
+}
+
+.gen-btn-inverted {
+  background: hsl(var(--foreground));
+  color: hsl(var(--gen-accent));
+  transition: all 0.2s ease;
+  &:hover { background: rgba(0, 0, 0, 0.8); }
+}
+
+/* Badge */
+.gen-badge {
+  background: var(--gen-accent-bg);
+  border: 1px solid var(--gen-accent-border);
+  color: hsl(var(--gen-accent));
+}
+
+/* Text */
+.gen-text-accent  { color: hsl(var(--gen-accent)); }
+.gen-text-bright  { color: hsl(var(--gen-accent-bright)); }
+.gen-text-heading { color: var(--gen-accent-heading); }
+.gen-text-muted   { color: var(--gen-accent-text); }
+.gen-text-subtle  { color: var(--gen-accent-text); opacity: 0.75; }
+
+/* Icon */
+.gen-icon { color: hsl(var(--gen-accent)); }
+
+/* Borders */
+.gen-border        { border-color: var(--gen-accent-border); }
+.gen-border-strong { border-color: var(--gen-accent-border-strong); }
+
+/* Cards */
+.gen-card-featured {
+  border-radius: 1.75rem;
+  border: 1px solid color-mix(in srgb, hsl(var(--gen-accent)) 72%, white 28%);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, hsl(var(--gen-accent)) 88%, white 12%),
+      color-mix(in srgb, hsl(var(--gen-accent)) 68%, black 32%)
+    );
+  box-shadow: 0 28px 64px -34px color-mix(in srgb, hsl(var(--gen-accent)) 45%, black 55%);
+  color: hsl(var(--background));
+}
+
+/* Tab active state */
+.gen-tab-active {
+  background: hsl(var(--gen-accent));
+  color: hsl(var(--background));
+}

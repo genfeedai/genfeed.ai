@@ -1,0 +1,5 @@
+# Stray build artifacts (output belongs in dist/ only)
+src/**/*.js
+src/**/*.js.map
+src/**/*.d.ts
+src/**/*.d.ts.map

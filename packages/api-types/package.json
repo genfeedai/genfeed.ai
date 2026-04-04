@@ -1,0 +1,49 @@
+{
+  "dependencies": {
+    "@genfeedai/enums": "2.3.2",
+    "zod": "4.3.6"
+  },
+  "description": "Auto-generated TypeScript types from OpenAPI spec with Zod validation schemas",
+  "devDependencies": {
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3"
+  },
+  "exports": {
+    ".": {
+      "default": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./contracts": {
+      "default": "./dist/contracts/index.js",
+      "types": "./dist/contracts/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "name": "@cloud/api-types",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "directory": "api-types",
+    "type": "git",
+    "url": "git+https://github.com/genfeedai/packages.git"
+  },
+  "scripts": {
+    "build": "tsc --build --force && if [ -d dist/src ]; then mv dist/src/* dist/ 2>/dev/null && rm -rf dist/src; fi",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "dev": "tsc --watch",
+    "generate": "bun run scripts/generate.ts --skip-on-error",
+    "generate:strict": "bun run scripts/generate.ts",
+    "prepublishOnly": "bun run build",
+    "typecheck": "tsc --noEmit"
+  },
+  "sideEffects": false,
+  "types": "./dist/index.d.ts",
+  "version": "1.0.1"
+}

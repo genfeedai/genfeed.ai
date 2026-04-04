@@ -1,0 +1,1 @@
+{"version":3,"file":"lighting.interface.d.ts","sourceRoot":"","sources":["lighting.interface.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,aAAa,EAAE,MAAM,kBAAkB,CAAC;AACtD,OAAO,KAAK,EAAE,WAAW,EAAE,iBAAiB,EAAE,MAAM,UAAU,CAAC;AAE/D,MAAM,WAAW,gBAAiB,SAAQ,WAAW,EAAE,iBAAiB;IACtE,QAAQ,CAAC,EAAE,aAAa,CAAC;CAC1B"}

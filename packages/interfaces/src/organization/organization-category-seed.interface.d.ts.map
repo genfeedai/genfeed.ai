@@ -1,0 +1,1 @@
+{"version":3,"file":"organization-category-seed.interface.d.ts","sourceRoot":"","sources":["organization-category-seed.interface.ts"],"names":[],"mappings":"AAAA,MAAM,WAAW,iCAAiC;IAChD,GAAG,EAAE,MAAM,CAAC;IACZ,KAAK,EAAE,MAAM,CAAC;IACd,WAAW,EAAE,MAAM,CAAC;IACpB,IAAI,EAAE,MAAM,CAAC;IACb,SAAS,EAAE,MAAM,CAAC;IAClB,SAAS,EAAE,OAAO,CAAC;CACpB"}

@@ -1,0 +1,53 @@
+{
+  "dependencies": {
+    "@genfeedai/types": "0.2.2"
+  },
+  "devDependencies": {
+    "@types/node": "25.5.2",
+    "tsup": "8.5.1",
+    "typescript": "5.9.3"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./comfyui": {
+      "import": "./dist/comfyui/index.mjs",
+      "require": "./dist/comfyui/index.js",
+      "types": "./dist/comfyui/index.d.ts"
+    },
+    "./contracts": {
+      "import": "./dist/contracts/index.mjs",
+      "require": "./dist/contracts/index.js",
+      "types": "./dist/contracts/index.d.ts"
+    },
+    "./workflows/*": "./workflows/*"
+  },
+  "files": [
+    "dist",
+    "workflows",
+    "metadata"
+  ],
+  "license": "AGPL-3.0",
+  "main": "./dist/index.js",
+  "name": "@genfeedai/workflows",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "directory": "workflows",
+    "type": "git",
+    "url": "git+https://github.com/genfeedai/packages.git"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts src/contracts/index.ts --format esm,cjs --dts --clean --sourcemap",
+    "dev": "tsup src/index.ts src/contracts/index.ts --format esm,cjs --dts --watch --sourcemap",
+    "prepublishOnly": "bun run build"
+  },
+  "sideEffects": false,
+  "types": "./dist/index.d.ts",
+  "version": "0.3.2"
+}

@@ -1,0 +1,226 @@
+import { ModelKey } from '@genfeedai/enums';
+import type { VoiceCommand } from '@hooks/media/use-voice-commands/use-voice-commands';
+
+export const MODEL_VOICE_ALIASES: Record<string, ModelKey> = {
+  banana: ModelKey.REPLICATE_GOOGLE_NANO_BANANA,
+  'flux kontext': ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO,
+  'flux kontext pro': ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO,
+  'imagen 3': ModelKey.REPLICATE_GOOGLE_IMAGEN_3,
+  'imagen 4': ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+  kling: ModelKey.KLINGAI_V2,
+  'kling ai': ModelKey.KLINGAI_V2,
+  'kling v2': ModelKey.KLINGAI_V2,
+  kontext: ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO,
+  leonardo: ModelKey.LEONARDOAI,
+  leonardoai: ModelKey.LEONARDOAI,
+  musicgen: ModelKey.REPLICATE_META_MUSICGEN,
+  'nano banana': ModelKey.REPLICATE_GOOGLE_NANO_BANANA,
+  runway: ModelKey.RUNWAYML,
+  runwayml: ModelKey.RUNWAYML,
+  sdxl: ModelKey.SDXL,
+  'see dream': ModelKey.REPLICATE_BYTEDANCE_SEEDREAM_4,
+  'see dream 4': ModelKey.REPLICATE_BYTEDANCE_SEEDREAM_4,
+  seedream: ModelKey.REPLICATE_BYTEDANCE_SEEDREAM_4,
+  'seedream 4': ModelKey.REPLICATE_BYTEDANCE_SEEDREAM_4,
+  'sora 2': ModelKey.REPLICATE_OPENAI_SORA_2,
+  'sora 2 pro': ModelKey.REPLICATE_OPENAI_SORA_2_PRO,
+  'sora pro': ModelKey.REPLICATE_OPENAI_SORA_2_PRO,
+  'sora two': ModelKey.REPLICATE_OPENAI_SORA_2,
+  'veo 2': ModelKey.REPLICATE_GOOGLE_VEO_2,
+  'veo 3': ModelKey.REPLICATE_GOOGLE_VEO_3,
+  'veo 3 fast': ModelKey.REPLICATE_GOOGLE_VEO_3_FAST,
+  'veo fast': ModelKey.REPLICATE_GOOGLE_VEO_3_FAST,
+  'veo three': ModelKey.REPLICATE_GOOGLE_VEO_3,
+};
+
+export const FORMAT_VOICE_ALIASES: Record<string, string> = {
+  '1 1': 'square',
+  '1:1': 'square',
+  '9 16': 'portrait',
+  '9:16': 'portrait',
+  '16 9': 'landscape',
+  '16:9': 'landscape',
+  horizontal: 'landscape',
+  landscape: 'landscape',
+  portrait: 'portrait',
+  square: 'square',
+  vertical: 'portrait',
+};
+
+export const DURATION_VOICE_ALIASES: Record<string, number> = {
+  '5 seconds': 5,
+  '10 seconds': 10,
+  '15 seconds': 15,
+  '20 seconds': 20,
+  'fifteen seconds': 15,
+  'five seconds': 5,
+  'ten seconds': 10,
+  'twenty seconds': 20,
+};
+
+export function createPromptBarVoiceCommands(
+  setValue: (field: string, value: unknown) => void,
+): VoiceCommand[] {
+  return [
+    // Model selection
+    {
+      action: (matches: unknown) => {
+        const modelName = matches[1].trim().toLowerCase();
+        const modelKey = MODEL_VOICE_ALIASES[modelName];
+        if (modelKey) {
+          setValue('model', modelKey);
+        }
+      },
+      description: 'Change model to [model name]',
+      pattern: /(?:change|set|use|switch to) (?:the )?model (?:to )?(.+)/i,
+    },
+
+    // Format selection
+    {
+      action: (matches: unknown) => {
+        const formatName = matches[1].trim().toLowerCase();
+        const format = FORMAT_VOICE_ALIASES[formatName];
+        if (format) {
+          setValue('format', format);
+        }
+      },
+      description: 'Change format to [portrait|landscape|square]',
+      pattern: /(?:change|set|use|switch to) (?:the )?format (?:to )?(.+)/i,
+    },
+    {
+      action: (matches: unknown) => {
+        const formatName = matches[1].trim().toLowerCase();
+        const format = FORMAT_VOICE_ALIASES[formatName];
+        if (format) {
+          setValue('format', format);
+        }
+      },
+      description: 'Make it [portrait|landscape|square]',
+      pattern: /(?:make it|change to|set to) (portrait|landscape|square)/i,
+    },
+
+    // Duration selection
+    {
+      action: (matches: unknown) => {
+        const duration = parseInt(matches[1], 10);
+        if (!Number.isNaN(duration)) {
+          setValue('duration', duration);
+        }
+      },
+      description: 'Change duration to [number] seconds',
+      pattern:
+        /(?:change|set|make it) (?:the )?duration (?:to )?(\d+) seconds?/i,
+    },
+    {
+      action: (matches: unknown) => {
+        const durationStr = matches[1].trim().toLowerCase();
+        const duration =
+          DURATION_VOICE_ALIASES[`${durationStr} seconds`] ||
+          parseInt(durationStr, 10);
+        if (!Number.isNaN(duration)) {
+          setValue('duration', duration);
+        }
+      },
+      description: 'Make it [number] seconds',
+      pattern:
+        /(?:make it|set to) (five|ten|fifteen|twenty|\d+) seconds? (?:long)?/i,
+    },
+
+    // Clear/reset commands
+    {
+      action: () => {
+        setValue('text', '');
+      },
+      description: 'Clear the prompt',
+      pattern: /(?:clear|reset|remove) (?:the )?prompt/i,
+    },
+    {
+      action: () => {
+        setValue('references', []);
+      },
+      description: 'Clear the reference',
+      pattern: /(?:clear|remove) (?:the )?reference/i,
+    },
+
+    // Style/mood/camera shortcuts
+    {
+      action: (matches: unknown) => {
+        const style = matches[1].trim().toLowerCase().replace(/\s+/g, '-');
+        setValue('style', style);
+      },
+      description: 'Add style [style name]',
+      pattern: /(?:add|set|use) (?:the )?style (.+)/i,
+    },
+    {
+      action: (matches: unknown) => {
+        const mood = matches[1].trim().toLowerCase().replace(/\s+/g, '-');
+        setValue('mood', mood);
+      },
+      description: 'Add mood [mood name]',
+      pattern: /(?:add|set|use) (?:the )?mood (.+)/i,
+    },
+    {
+      action: (matches: unknown) => {
+        const camera = matches[1].trim().toLowerCase().replace(/\s+/g, '-');
+        setValue('camera', camera);
+      },
+      description: 'Add camera [camera type]',
+      pattern: /(?:add|set|use) (?:the )?camera (.+)/i,
+    },
+  ];
+}
+
+function getCategoryForDescription(desc: string): string | null {
+  const lowerDesc = desc.toLowerCase();
+
+  if (lowerDesc.includes('prompt')) {
+    return 'Prompt';
+  }
+  if (lowerDesc.includes('model')) {
+    return 'Model';
+  }
+  if (lowerDesc.includes('format')) {
+    return 'Format';
+  }
+  if (lowerDesc.includes('duration')) {
+    return 'Duration';
+  }
+  if (
+    lowerDesc.includes('style') ||
+    lowerDesc.includes('mood') ||
+    lowerDesc.includes('camera')
+  ) {
+    return 'Style/Mood/Camera';
+  }
+
+  return null;
+}
+
+export function getVoiceCommandHelp(): string[] {
+  const commands = createPromptBarVoiceCommands(() => {});
+  const help: string[] = ['Voice Commands Available:'];
+
+  const categories: Record<string, string[]> = {
+    Duration: [],
+    Format: [],
+    Model: [],
+    Prompt: [],
+    'Style/Mood/Camera': [],
+  };
+
+  for (const command of commands) {
+    const category = getCategoryForDescription(command.description);
+    if (category) {
+      categories[category].push(`• ${command.description}`);
+    }
+  }
+
+  for (const [category, items] of Object.entries(categories)) {
+    if (items.length > 0) {
+      help.push(`${category}:`);
+      help.push(...items);
+    }
+  }
+
+  return help;
+}

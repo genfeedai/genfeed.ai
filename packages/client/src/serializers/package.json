@@ -1,0 +1,18 @@
+{
+  "dependencies": {
+    "@genfeedai/enums": "2.3.1",
+    "ts-jsonapi": "2.1.3"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  },
+  "main": "dist/index.js",
+  "name": "@genfeedai/client/serializers",
+  "private": false,
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "types": "dist/index.d.ts",
+  "version": "2.2.2"
+}

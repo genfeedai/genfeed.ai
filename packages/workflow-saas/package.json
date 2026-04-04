@@ -1,0 +1,48 @@
+{
+  "dependencies": {
+    "@cloud/types": "workspace:*",
+    "@genfeedai/enums": "2.3.2",
+    "@genfeedai/interfaces": "2.3.18",
+    "@genfeedai/workflows": "0.3.2"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  },
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "require": "./src/index.ts",
+      "types": "./src/index.ts"
+    },
+    "./nodes": {
+      "import": "./src/nodes/index.ts",
+      "require": "./src/nodes/index.ts",
+      "types": "./src/nodes/index.ts"
+    },
+    "./registry": {
+      "import": "./src/registry/index.ts",
+      "require": "./src/registry/index.ts",
+      "types": "./src/registry/index.ts"
+    },
+    "./types": {
+      "import": "./src/types.ts",
+      "require": "./src/types.ts",
+      "types": "./src/types.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "main": "./src/index.ts",
+  "name": "@cloud/workflow-saas",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
+    "dev": "tsc --watch"
+  },
+  "sideEffects": false,
+  "types": "./src/index.ts",
+  "version": "0.1.0"
+}

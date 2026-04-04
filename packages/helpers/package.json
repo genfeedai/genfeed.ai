@@ -1,0 +1,73 @@
+{
+  "dependencies": {
+    "@genfeedai/constants": "2.2.9",
+    "@genfeedai/deserializer": "1.0.3",
+    "@genfeedai/enums": "2.3.2",
+    "@genfeedai/interfaces": "2.3.18",
+    "clsx": "2.1.1",
+    "tailwind-merge": "3.5.0",
+    "ts-jsonapi": "2.1.3"
+  },
+  "description": "Shared helpers for Genfeed clients and services",
+  "devDependencies": {
+    "@types/file-saver": "2.0.7",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "date-fns": "4.1.0",
+    "file-saver": "2.0.5",
+    "next": "16.2.2",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "react-hook-form": "7.72.1",
+    "react-icons": "5.6.0",
+    "typescript": "5.9.3"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src/index.ts",
+    "src/aspect-ratio.helper.ts",
+    "src/business/pricing/pricing.helper.ts",
+    "src/business/tier-models/tier-models.helper.ts",
+    "src/deserializer.helper.ts",
+    "src/model-capability.helper.ts",
+    "src/quality-routing.helper.ts",
+    "src/serializer.helper.ts",
+    "src/social-url.helper.ts",
+    "src/types/model-like.type.ts",
+    "src/video-duration.helper.ts"
+  ],
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "name": "@genfeedai/helpers",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "directory": "helpers",
+    "type": "git",
+    "url": "git+https://github.com/genfeedai/packages.git"
+  },
+  "scripts": {
+    "build": "rm -rf dist tsconfig.tsbuildinfo && tsc --build --force && if [ -d dist/src ]; then mv dist/src/* dist/ 2>/dev/null && rm -rf dist/src; fi",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "deps:update": "bunx npm-check-updates -u && bun install",
+    "dev": "tsc --watch",
+    "prepublishOnly": "bun run build",
+    "test": "vitest run --config vitest.config.ts",
+    "test:cov": "vitest run --coverage --config vitest.config.ts",
+    "test:coverage": "vitest run --coverage --config vitest.config.ts",
+    "test:watch": "vitest watch --config vitest.config.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "sideEffects": false,
+  "types": "./dist/index.d.ts",
+  "version": "2.2.12"
+}

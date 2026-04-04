@@ -1,0 +1,55 @@
+{
+  "category": "content",
+  "createdAt": "2025-01-31T00:00:00.000Z",
+  "description": "Engaging captions that drive interaction and engagement",
+  "icon": "💬",
+  "id": "social-caption",
+  "tags": ["social", "caption", "engagement", "copywriting"],
+  "template": "Write a {style} caption for {platform} about {topic}, {tone} voice, include {cta}, optimized for engagement",
+  "tier": "free",
+  "title": "Social Media Caption",
+  "updatedAt": "2025-01-31T00:00:00.000Z",
+  "variables": [
+    {
+      "label": "Post Topic",
+      "name": "topic",
+      "placeholder": "e.g., new product launch",
+      "required": true,
+      "type": "text"
+    },
+    {
+      "default": "Instagram",
+      "label": "Social Platform",
+      "name": "platform",
+      "options": ["Instagram", "Facebook", "Twitter", "LinkedIn"],
+      "type": "select"
+    },
+    {
+      "default": "storytelling",
+      "label": "Caption Style",
+      "name": "style",
+      "options": ["storytelling", "promotional", "educational", "humorous"],
+      "type": "select"
+    },
+    {
+      "default": "casual",
+      "label": "Brand Voice",
+      "name": "tone",
+      "options": ["casual", "professional", "playful", "inspirational"],
+      "type": "select"
+    },
+    {
+      "default": "like & comment",
+      "label": "Call-to-Action",
+      "name": "cta",
+      "options": [
+        "like & comment",
+        "share your story",
+        "visit link",
+        "tag friends"
+      ],
+      "type": "select"
+    }
+  ],
+  "version": 1
+}

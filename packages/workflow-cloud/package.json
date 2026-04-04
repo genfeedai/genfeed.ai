@@ -1,0 +1,53 @@
+{
+  "dependencies": {
+    "@cloud/workflow-engine": "workspace:*",
+    "@cloud/workflow-saas": "workspace:*",
+    "@genfeedai/constants": "2.2.9",
+    "@genfeedai/types": "0.3.1",
+    "@genfeedai/workflow-ui": "0.2.8",
+    "@genfeedai/workflows": "0.3.2",
+    "@xyflow/react": "12.10.2",
+    "zundo": "2.3.0",
+    "zustand": "5.0.12"
+  },
+  "exports": {
+    ".": {
+      "default": "./src/index.ts",
+      "types": "./src/index.ts"
+    },
+    "./components/*": {
+      "default": "./src/components/*",
+      "types": "./src/components/*"
+    },
+    "./hooks/*": {
+      "default": "./src/hooks/*",
+      "types": "./src/hooks/*"
+    },
+    "./nodes": {
+      "default": "./src/nodes/index.ts",
+      "types": "./src/nodes/index.ts"
+    },
+    "./nodes/*": {
+      "default": "./src/nodes/*",
+      "types": "./src/nodes/*"
+    },
+    "./services/*": {
+      "default": "./src/services/*",
+      "types": "./src/services/*"
+    },
+    "./stores/*": {
+      "default": "./src/stores/*",
+      "types": "./src/stores/*"
+    },
+    "./utils/*": {
+      "default": "./src/utils/*",
+      "types": "./src/utils/*"
+    }
+  },
+  "main": "src/index.ts",
+  "name": "@cloud/workflow",
+  "private": true,
+  "sideEffects": false,
+  "types": "src/index.ts",
+  "version": "0.1.0"
+}

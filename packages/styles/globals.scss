@@ -1,0 +1,189 @@
+@use 'tailwindcss';
+@use 'keyframes';
+@use 'animate';
+@use 'theme';
+@use 'shadcn-theme';
+@use 'calendar';
+@use 'genfeed';
+
+@theme inline {
+  /* Semantic surface tokens */
+  --color-surface: rgb(var(--surface));
+  --color-fill: rgb(var(--fill));
+  --color-edge: rgb(var(--edge));
+  --color-inv: rgb(var(--inv));
+  --color-inv-fg: rgb(var(--inv-fg));
+
+  /* shadcn/ui color tokens — maps CSS vars from shadcn-theme.scss to Tailwind v4 utilities */
+  --color-background: hsl(var(--background));
+  --color-background-secondary: hsl(var(--background-secondary));
+  --color-background-tertiary: hsl(var(--background-tertiary));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+  --color-warning: hsl(var(--warning));
+  --color-warning-foreground: hsl(var(--warning-foreground));
+  --color-info: hsl(var(--info));
+  --color-info-foreground: hsl(var(--info-foreground));
+
+  /* DaisyUI compat — "error" aliases destructive (92 usages across codebase) */
+  --color-error: hsl(var(--destructive));
+  --color-error-foreground: hsl(var(--destructive-foreground));
+
+  /* DaisyUI "-content" suffix compat → shadcn "-foreground" */
+  --color-primary-content: hsl(var(--primary-foreground));
+  --color-secondary-content: hsl(var(--secondary-foreground));
+  --color-success-content: hsl(var(--success-foreground));
+  --color-warning-content: hsl(var(--warning-foreground));
+  --color-info-content: hsl(var(--info-foreground));
+  --color-error-content: hsl(var(--destructive-foreground));
+}
+
+/**
+ * Neural Noir Typography - Satoshi + Zodiak
+ *
+ * Fonts are now self-hosted via next/font/local for:
+ * - Eliminated DNS lookup latency (LCP improvement)
+ * - Better font caching with immutable headers
+ * - No third-party dependencies
+ *
+ * CSS variables (--font-sans, --font-serif) are set by next/font in layout.tsx
+ * Fallback stack maintained for progressive enhancement
+ */
+:root {
+  /* Fallbacks - these will be overridden by next/font CSS variables */
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: Georgia, 'Times New Roman', serif;
+  --font-serif-italic: Georgia, 'Times New Roman', serif;
+}
+
+
+
+html,
+body {
+  @apply scroll-smooth;
+  @apply transition-colors duration-500;
+  @apply h-auto;
+
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Serif accent class for headings */
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+/* Zodiak for editorial headlines */
+.font-serif-italic {
+  font-family: var(--font-serif-italic);
+  font-style: normal;
+}
+
+
+
+a {
+  transition-property: background-color, border-color, color;
+  transition-duration: 0.3s;
+  transition-timing-function: ease-in-out;
+}
+
+.btn {
+  box-shadow: none;
+}
+
+/* Form focus styling utility */
+.form-focus {
+  &:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px hsl(var(--primary));
+    border-color: hsl(var(--primary));
+  }
+}
+
+/* Transition utilities for consistent interactions */
+.btn,
+button {
+  @apply transition-all duration-300;
+}
+
+a {
+  @apply transition-colors duration-200;
+}
+
+.card {
+  @apply transition-shadow duration-300;
+}
+
+/* Theme-aware scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+*:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Light theme scrollbar overrides */
+[data-theme='light'] {
+  *:hover {
+    scrollbar-color: rgba(0, 0, 0, 0.1) transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.2);
+  }
+}
+
+/* Respect user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

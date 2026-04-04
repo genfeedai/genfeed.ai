@@ -1,0 +1,68 @@
+{
+  "dependencies": {
+    "@genfeedai/enums": "2.3.2",
+    "@genfeedai/interfaces": "2.3.18",
+    "@genfeedai/workflows": "0.3.2"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./execution": {
+      "import": "./dist/execution/index.js",
+      "require": "./dist/execution/index.js",
+      "types": "./dist/execution/index.d.ts"
+    },
+    "./executors": {
+      "import": "./dist/executors/index.js",
+      "require": "./dist/executors/index.js",
+      "types": "./dist/executors/index.d.ts"
+    },
+    "./presets": {
+      "import": "./dist/presets/index.js",
+      "require": "./dist/presets/index.js",
+      "types": "./dist/presets/index.d.ts"
+    },
+    "./services": {
+      "import": "./dist/services/index.js",
+      "require": "./dist/services/index.js",
+      "types": "./dist/services/index.d.ts"
+    },
+    "./templates": {
+      "import": "./dist/templates/index.js",
+      "require": "./dist/templates/index.js",
+      "types": "./dist/templates/index.d.ts"
+    },
+    "./utils": {
+      "import": "./dist/utils/index.js",
+      "require": "./dist/utils/index.js",
+      "types": "./dist/utils/index.d.ts"
+    },
+    "./validation": {
+      "import": "./dist/validation/index.js",
+      "require": "./dist/validation/index.js",
+      "types": "./dist/validation/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "main": "./dist/index.js",
+  "name": "@cloud/workflow-engine",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
+    "dev": "tsc --watch",
+    "test": "vitest run"
+  },
+  "sideEffects": false,
+  "types": "./dist/index.d.ts",
+  "version": "0.1.0"
+}

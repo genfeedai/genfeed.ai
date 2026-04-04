@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@hooks/*": ["./*"],
+      "@props/*": ["../props/*"],
+      "@ui-constants/*": ["../ui/constants/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist"],
+  "extends": "../tsconfig/base.json",
+  "include": ["**/*.ts", "**/*.tsx"]
+}

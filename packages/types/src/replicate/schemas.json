@@ -1,0 +1,5256 @@
+[
+  {
+    "category": "image",
+    "componentSchemas": {
+      "aspect_ratio": {
+        "description": "An enumeration.",
+        "enum": [
+          "match_input_image",
+          "1:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9"
+        ],
+        "title": "aspect_ratio",
+        "type": "string"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "output_format": {
+        "description": "An enumeration.",
+        "enum": ["jpg", "png"],
+        "title": "output_format",
+        "type": "string"
+      },
+      "PredictionRequest": {
+        "properties": {
+          "context": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "title": "Context",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "output_file_prefix": {
+            "nullable": true,
+            "title": "Output File Prefix",
+            "type": "string"
+          },
+          "webhook": {
+            "format": "uri",
+            "maxLength": 65536,
+            "minLength": 1,
+            "nullable": true,
+            "title": "Webhook",
+            "type": "string"
+          },
+          "webhook_events_filter": {
+            "default": ["start", "output", "logs", "completed"],
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "title": "PredictionRequest",
+        "type": "object"
+      },
+      "PredictionResponse": {
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Completed At",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "title": "Error",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "logs": {
+            "default": "",
+            "title": "Logs",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "nullable": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          },
+          "started_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "nullable": true
+          },
+          "version": {
+            "nullable": true,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "title": "PredictionResponse",
+        "type": "object"
+      },
+      "Status": {
+        "description": "An enumeration.",
+        "enum": ["starting", "processing", "succeeded", "canceled", "failed"],
+        "title": "Status",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WebhookEvent": {
+        "description": "An enumeration.",
+        "enum": ["start", "output", "logs", "completed"],
+        "title": "WebhookEvent",
+        "type": "string"
+      }
+    },
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/ed879e99-71b5-4689-bed3-e7305e35a28a/this.png",
+    "description": "Google's latest image editing model in Gemini 2.5",
+    "fetchedAt": "2026-03-06T02:26:51.849Z",
+    "inputSchema": {
+      "properties": {
+        "aspect_ratio": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/aspect_ratio"
+            }
+          ],
+          "default": "match_input_image",
+          "description": "Aspect ratio of the generated image",
+          "x-order": 2
+        },
+        "image_input": {
+          "default": [],
+          "description": "Input images to transform or use as reference (supports multiple images)",
+          "items": {
+            "format": "uri",
+            "type": "string"
+          },
+          "title": "Image Input",
+          "type": "array",
+          "x-order": 1
+        },
+        "output_format": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/output_format"
+            }
+          ],
+          "default": "jpg",
+          "description": "Format of the output image",
+          "x-order": 3
+        },
+        "prompt": {
+          "description": "A text description of the image you want to generate",
+          "title": "Prompt",
+          "type": "string",
+          "x-order": 0
+        }
+      },
+      "required": ["prompt"],
+      "title": "Input",
+      "type": "object"
+    },
+    "modelId": "google/nano-banana",
+    "name": "NanoBanana",
+    "outputSchema": {
+      "format": "uri",
+      "title": "Output",
+      "type": "string"
+    }
+  },
+  {
+    "category": "image",
+    "componentSchemas": {
+      "aspect_ratio": {
+        "description": "An enumeration.",
+        "enum": [
+          "match_input_image",
+          "1:1",
+          "1:4",
+          "1:8",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:1",
+          "4:3",
+          "4:5",
+          "5:4",
+          "8:1",
+          "9:16",
+          "16:9",
+          "21:9"
+        ],
+        "title": "aspect_ratio",
+        "type": "string"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "output_format": {
+        "description": "An enumeration.",
+        "enum": ["jpg", "png"],
+        "title": "output_format",
+        "type": "string"
+      },
+      "PredictionRequest": {
+        "properties": {
+          "context": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "title": "Context",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "output_file_prefix": {
+            "nullable": true,
+            "title": "Output File Prefix",
+            "type": "string"
+          },
+          "webhook": {
+            "format": "uri",
+            "maxLength": 65536,
+            "minLength": 1,
+            "nullable": true,
+            "title": "Webhook",
+            "type": "string"
+          },
+          "webhook_events_filter": {
+            "default": ["start", "output", "logs", "completed"],
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "title": "PredictionRequest",
+        "type": "object"
+      },
+      "PredictionResponse": {
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Completed At",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "title": "Error",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "logs": {
+            "default": "",
+            "title": "Logs",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "nullable": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          },
+          "started_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "nullable": true
+          },
+          "version": {
+            "nullable": true,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "title": "PredictionResponse",
+        "type": "object"
+      },
+      "resolution": {
+        "description": "An enumeration.",
+        "enum": ["1K", "2K", "4K"],
+        "title": "resolution",
+        "type": "string"
+      },
+      "Status": {
+        "description": "An enumeration.",
+        "enum": ["starting", "processing", "succeeded", "canceled", "failed"],
+        "title": "Status",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WebhookEvent": {
+        "description": "An enumeration.",
+        "enum": ["start", "output", "logs", "completed"],
+        "title": "WebhookEvent",
+        "type": "string"
+      }
+    },
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/80e7a89d-6163-4a92-927c-79ec74379079/nano-banana-2.png",
+    "description": "Google's fast image generation model with conversational editing, multi-image fusion, and character consistency",
+    "fetchedAt": "2026-03-06T02:26:52.047Z",
+    "inputSchema": {
+      "properties": {
+        "aspect_ratio": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/aspect_ratio"
+            }
+          ],
+          "default": "match_input_image",
+          "description": "Aspect ratio of the generated image",
+          "x-order": 2
+        },
+        "google_search": {
+          "default": false,
+          "description": "Use Google Web Search grounding to generate images based on real-time information (e.g. weather, sports scores, recent events).",
+          "title": "Google Search",
+          "type": "boolean",
+          "x-order": 4
+        },
+        "image_input": {
+          "default": [],
+          "description": "Input images to transform or use as reference (supports up to 14 images)",
+          "items": {
+            "format": "uri",
+            "type": "string"
+          },
+          "title": "Image Input",
+          "type": "array",
+          "x-order": 1
+        },
+        "image_search": {
+          "default": false,
+          "description": "Use Google Image Search grounding to find web images as visual context for generation. When enabled, web search is also used automatically.",
+          "title": "Image Search",
+          "type": "boolean",
+          "x-order": 5
+        },
+        "output_format": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/output_format"
+            }
+          ],
+          "default": "jpg",
+          "description": "Format of the output image",
+          "x-order": 6
+        },
+        "prompt": {
+          "description": "A text description of the image you want to generate",
+          "title": "Prompt",
+          "type": "string",
+          "x-order": 0
+        },
+        "resolution": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/resolution"
+            }
+          ],
+          "default": "1K",
+          "description": "Resolution of the generated image. Higher resolutions take longer to generate.",
+          "x-order": 3
+        }
+      },
+      "required": ["prompt"],
+      "title": "Input",
+      "type": "object"
+    },
+    "modelId": "google/nano-banana-2",
+    "name": "NanoBanana2",
+    "outputSchema": {
+      "format": "uri",
+      "title": "Output",
+      "type": "string"
+    }
+  },
+  {
+    "category": "image",
+    "componentSchemas": {
+      "aspect_ratio": {
+        "description": "An enumeration.",
+        "enum": [
+          "match_input_image",
+          "1:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9"
+        ],
+        "title": "aspect_ratio",
+        "type": "string"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "output_format": {
+        "description": "An enumeration.",
+        "enum": ["jpg", "png"],
+        "title": "output_format",
+        "type": "string"
+      },
+      "PredictionRequest": {
+        "properties": {
+          "context": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "title": "Context",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "output_file_prefix": {
+            "nullable": true,
+            "title": "Output File Prefix",
+            "type": "string"
+          },
+          "webhook": {
+            "format": "uri",
+            "maxLength": 65536,
+            "minLength": 1,
+            "nullable": true,
+            "title": "Webhook",
+            "type": "string"
+          },
+          "webhook_events_filter": {
+            "default": ["start", "output", "logs", "completed"],
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "title": "PredictionRequest",
+        "type": "object"
+      },
+      "PredictionResponse": {
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Completed At",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "title": "Error",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "logs": {
+            "default": "",
+            "title": "Logs",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "nullable": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          },
+          "started_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "nullable": true
+          },
+          "version": {
+            "nullable": true,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "title": "PredictionResponse",
+        "type": "object"
+      },
+      "resolution": {
+        "description": "An enumeration.",
+        "enum": ["1K", "2K", "4K"],
+        "title": "resolution",
+        "type": "string"
+      },
+      "Status": {
+        "description": "An enumeration.",
+        "enum": ["starting", "processing", "succeeded", "canceled", "failed"],
+        "title": "Status",
+        "type": "string"
+      },
+      "safety_filter_level": {
+        "description": "An enumeration.",
+        "enum": [
+          "block_low_and_above",
+          "block_medium_and_above",
+          "block_only_high"
+        ],
+        "title": "safety_filter_level",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WebhookEvent": {
+        "description": "An enumeration.",
+        "enum": ["start", "output", "logs", "completed"],
+        "title": "WebhookEvent",
+        "type": "string"
+      }
+    },
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/5ee636db-8712-442f-9644-63980f6786f4/banana2.png",
+    "description": "Google's state of the art image generation and editing model 🍌🍌",
+    "fetchedAt": "2026-03-06T02:26:52.225Z",
+    "inputSchema": {
+      "properties": {
+        "allow_fallback_model": {
+          "default": false,
+          "description": "Fallback to another model (currently bytedance/seedream-5) if Nano Banana Pro is at capacity.",
+          "title": "Allow Fallback Model",
+          "type": "boolean",
+          "x-order": 6
+        },
+        "aspect_ratio": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/aspect_ratio"
+            }
+          ],
+          "default": "match_input_image",
+          "description": "Aspect ratio of the generated image",
+          "x-order": 2
+        },
+        "image_input": {
+          "default": [],
+          "description": "Input images to transform or use as reference (supports up to 14 images)",
+          "items": {
+            "format": "uri",
+            "type": "string"
+          },
+          "title": "Image Input",
+          "type": "array",
+          "x-order": 1
+        },
+        "output_format": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/output_format"
+            }
+          ],
+          "default": "jpg",
+          "description": "Format of the output image",
+          "x-order": 4
+        },
+        "prompt": {
+          "description": "A text description of the image you want to generate",
+          "title": "Prompt",
+          "type": "string",
+          "x-order": 0
+        },
+        "resolution": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/resolution"
+            }
+          ],
+          "default": "2K",
+          "description": "Resolution of the generated image",
+          "x-order": 3
+        },
+        "safety_filter_level": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/safety_filter_level"
+            }
+          ],
+          "default": "block_only_high",
+          "description": "block_low_and_above is strictest, block_medium_and_above blocks some prompts, block_only_high is most permissive but some prompts will still be blocked",
+          "x-order": 5
+        }
+      },
+      "required": ["prompt"],
+      "title": "Input",
+      "type": "object"
+    },
+    "modelId": "google/nano-banana-pro",
+    "name": "NanoBananaPro",
+    "outputSchema": {
+      "format": "uri",
+      "title": "Output",
+      "type": "string"
+    }
+  },
+  {
+    "category": "image",
+    "componentSchemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "output_format": {
+        "description": "An enumeration.",
+        "enum": ["png", "jpg", "webp"],
+        "title": "output_format",
+        "type": "string"
+      },
+      "PredictionRequest": {
+        "properties": {
+          "context": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "title": "Context",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "output_file_prefix": {
+            "nullable": true,
+            "title": "Output File Prefix",
+            "type": "string"
+          },
+          "webhook": {
+            "format": "uri",
+            "maxLength": 65536,
+            "minLength": 1,
+            "nullable": true,
+            "title": "Webhook",
+            "type": "string"
+          },
+          "webhook_events_filter": {
+            "default": ["start", "output", "logs", "completed"],
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "title": "PredictionRequest",
+        "type": "object"
+      },
+      "PredictionResponse": {
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Completed At",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "title": "Error",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "logs": {
+            "default": "",
+            "title": "Logs",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "nullable": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          },
+          "started_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "nullable": true
+          },
+          "version": {
+            "nullable": true,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "title": "PredictionResponse",
+        "type": "object"
+      },
+      "Status": {
+        "description": "An enumeration.",
+        "enum": ["starting", "processing", "succeeded", "canceled", "failed"],
+        "title": "Status",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WebhookEvent": {
+        "description": "An enumeration.",
+        "enum": ["start", "output", "logs", "completed"],
+        "title": "WebhookEvent",
+        "type": "string"
+      }
+    },
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/3fb764f9-6196-4cb7-b4f3-4b7b265cd822/z-img-sm.jpg",
+    "description": "Z-Image Turbo is a super fast text-to-image model of 6B parameters developed by Tongyi-MAI.",
+    "fetchedAt": "2026-03-06T02:26:52.400Z",
+    "inputSchema": {
+      "properties": {
+        "go_fast": {
+          "default": false,
+          "description": "Apply additional optimizations for faster generation",
+          "title": "Go Fast",
+          "type": "boolean",
+          "x-order": 6
+        },
+        "guidance_scale": {
+          "default": 0,
+          "description": "Guidance scale. Should be 0 for Turbo models",
+          "maximum": 20,
+          "minimum": 0,
+          "title": "Guidance Scale",
+          "type": "number",
+          "x-order": 4
+        },
+        "height": {
+          "default": 1024,
+          "description": "Height of the generated image",
+          "maximum": 2048,
+          "minimum": 64,
+          "title": "Height",
+          "type": "integer",
+          "x-order": 1
+        },
+        "num_inference_steps": {
+          "default": 8,
+          "description": "Number of inference steps.",
+          "maximum": 50,
+          "minimum": 1,
+          "title": "Num Inference Steps",
+          "type": "integer",
+          "x-order": 3
+        },
+        "output_format": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/output_format"
+            }
+          ],
+          "default": "jpg",
+          "description": "Format of the output images",
+          "x-order": 7
+        },
+        "output_quality": {
+          "default": 80,
+          "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs",
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Output Quality",
+          "type": "integer",
+          "x-order": 8
+        },
+        "prompt": {
+          "description": "Text prompt for image generation",
+          "title": "Prompt",
+          "type": "string",
+          "x-order": 0
+        },
+        "seed": {
+          "description": "Random seed. Set for reproducible generation",
+          "nullable": true,
+          "title": "Seed",
+          "type": "integer",
+          "x-order": 5
+        },
+        "width": {
+          "default": 1024,
+          "description": "Width of the generated image",
+          "maximum": 2048,
+          "minimum": 64,
+          "title": "Width",
+          "type": "integer",
+          "x-order": 2
+        }
+      },
+      "required": ["prompt"],
+      "title": "Input",
+      "type": "object"
+    },
+    "modelId": "prunaai/z-image-turbo",
+    "name": "ZImageTurbo",
+    "outputSchema": {
+      "format": "uri",
+      "title": "Output",
+      "type": "string"
+    }
+  },
+  {
+    "category": "image",
+    "componentSchemas": {
+      "aspect_ratio": {
+        "description": "An enumeration.",
+        "enum": [
+          "1:1",
+          "16:9",
+          "21:9",
+          "3:2",
+          "2:3",
+          "4:5",
+          "5:4",
+          "3:4",
+          "4:3",
+          "9:16",
+          "9:21"
+        ],
+        "title": "aspect_ratio",
+        "type": "string"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "megapixels": {
+        "description": "An enumeration.",
+        "enum": ["1", "0.25"],
+        "title": "megapixels",
+        "type": "string"
+      },
+      "output_format": {
+        "description": "An enumeration.",
+        "enum": ["webp", "jpg", "png"],
+        "title": "output_format",
+        "type": "string"
+      },
+      "PredictionRequest": {
+        "properties": {
+          "context": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "title": "Context",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "output_file_prefix": {
+            "nullable": true,
+            "title": "Output File Prefix",
+            "type": "string"
+          },
+          "webhook": {
+            "format": "uri",
+            "maxLength": 65536,
+            "minLength": 1,
+            "nullable": true,
+            "title": "Webhook",
+            "type": "string"
+          },
+          "webhook_events_filter": {
+            "default": ["start", "output", "logs", "completed"],
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "title": "PredictionRequest",
+        "type": "object"
+      },
+      "PredictionResponse": {
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Completed At",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "title": "Error",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "logs": {
+            "default": "",
+            "title": "Logs",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "nullable": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          },
+          "started_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "nullable": true
+          },
+          "version": {
+            "nullable": true,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "title": "PredictionResponse",
+        "type": "object"
+      },
+      "Status": {
+        "description": "An enumeration.",
+        "enum": ["starting", "processing", "succeeded", "canceled", "failed"],
+        "title": "Status",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WebhookEvent": {
+        "description": "An enumeration.",
+        "enum": ["start", "output", "logs", "completed"],
+        "title": "WebhookEvent",
+        "type": "string"
+      }
+    },
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/67c990ba-bb67-4355-822f-2bd8c42b2f0d/flux-schnell.webp",
+    "description": "The fastest image generation model tailored for local development and personal use",
+    "fetchedAt": "2026-03-06T02:26:52.581Z",
+    "inputSchema": {
+      "properties": {
+        "aspect_ratio": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/aspect_ratio"
+            }
+          ],
+          "default": "1:1",
+          "description": "Aspect ratio for the generated image",
+          "x-order": 1
+        },
+        "disable_safety_checker": {
+          "default": false,
+          "description": "Disable safety checker for generated images.",
+          "title": "Disable Safety Checker",
+          "type": "boolean",
+          "x-order": 7
+        },
+        "go_fast": {
+          "default": true,
+          "description": "Run faster predictions with model optimized for speed (currently fp8 quantized); disable to run in original bf16. Note that outputs will not be deterministic when this is enabled, even if you set a seed.",
+          "title": "Go Fast",
+          "type": "boolean",
+          "x-order": 8
+        },
+        "megapixels": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/megapixels"
+            }
+          ],
+          "default": "1",
+          "description": "Approximate number of megapixels for generated image",
+          "x-order": 9
+        },
+        "num_inference_steps": {
+          "default": 4,
+          "description": "Number of denoising steps. 4 is recommended, and lower number of steps produce lower quality outputs, faster.",
+          "maximum": 4,
+          "minimum": 1,
+          "title": "Num Inference Steps",
+          "type": "integer",
+          "x-order": 3
+        },
+        "num_outputs": {
+          "default": 1,
+          "description": "Number of outputs to generate",
+          "maximum": 4,
+          "minimum": 1,
+          "title": "Num Outputs",
+          "type": "integer",
+          "x-order": 2
+        },
+        "output_format": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/output_format"
+            }
+          ],
+          "default": "webp",
+          "description": "Format of the output images",
+          "x-order": 5
+        },
+        "output_quality": {
+          "default": 80,
+          "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs",
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Output Quality",
+          "type": "integer",
+          "x-order": 6
+        },
+        "prompt": {
+          "description": "Prompt for generated image",
+          "title": "Prompt",
+          "type": "string",
+          "x-order": 0
+        },
+        "seed": {
+          "description": "Random seed. Set for reproducible generation",
+          "title": "Seed",
+          "type": "integer",
+          "x-order": 4
+        }
+      },
+      "required": ["prompt"],
+      "title": "Input",
+      "type": "object"
+    },
+    "modelId": "black-forest-labs/flux-schnell",
+    "name": "FluxSchnell",
+    "outputSchema": {
+      "items": {
+        "format": "uri",
+        "type": "string"
+      },
+      "title": "Output",
+      "type": "array"
+    }
+  },
+  {
+    "category": "image",
+    "componentSchemas": {
+      "aspect_ratio": {
+        "description": "An enumeration.",
+        "enum": [
+          "1:1",
+          "16:9",
+          "21:9",
+          "3:2",
+          "2:3",
+          "4:5",
+          "5:4",
+          "3:4",
+          "4:3",
+          "9:16",
+          "9:21"
+        ],
+        "title": "aspect_ratio",
+        "type": "string"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "megapixels": {
+        "description": "An enumeration.",
+        "enum": ["1", "0.25"],
+        "title": "megapixels",
+        "type": "string"
+      },
+      "output_format": {
+        "description": "An enumeration.",
+        "enum": ["webp", "jpg", "png"],
+        "title": "output_format",
+        "type": "string"
+      },
+      "PredictionRequest": {
+        "properties": {
+          "context": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "title": "Context",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "output_file_prefix": {
+            "nullable": true,
+            "title": "Output File Prefix",
+            "type": "string"
+          },
+          "webhook": {
+            "format": "uri",
+            "maxLength": 65536,
+            "minLength": 1,
+            "nullable": true,
+            "title": "Webhook",
+            "type": "string"
+          },
+          "webhook_events_filter": {
+            "default": ["start", "output", "logs", "completed"],
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "title": "PredictionRequest",
+        "type": "object"
+      },
+      "PredictionResponse": {
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Completed At",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "title": "Error",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "logs": {
+            "default": "",
+            "title": "Logs",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "nullable": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          },
+          "started_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "nullable": true
+          },
+          "version": {
+            "nullable": true,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "title": "PredictionResponse",
+        "type": "object"
+      },
+      "Status": {
+        "description": "An enumeration.",
+        "enum": ["starting", "processing", "succeeded", "canceled", "failed"],
+        "title": "Status",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WebhookEvent": {
+        "description": "An enumeration.",
+        "enum": ["start", "output", "logs", "completed"],
+        "title": "WebhookEvent",
+        "type": "string"
+      }
+    },
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/cb4203e5-9ece-42e7-b326-98ff3fa35c3a/Replicate_Prediction_15.webp",
+    "description": "A 12 billion parameter rectified flow transformer capable of generating images from text descriptions",
+    "fetchedAt": "2026-03-06T02:26:52.758Z",
+    "inputSchema": {
+      "properties": {
+        "aspect_ratio": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/aspect_ratio"
+            }
+          ],
+          "default": "1:1",
+          "description": "Aspect ratio for the generated image",
+          "x-order": 1
+        },
+        "disable_safety_checker": {
+          "default": false,
+          "description": "Disable safety checker for generated images.",
+          "title": "Disable Safety Checker",
+          "type": "boolean",
+          "x-order": 10
+        },
+        "go_fast": {
+          "default": true,
+          "description": "Run faster predictions with model optimized for speed (currently fp8 quantized); disable to run in original bf16. Note that outputs will not be deterministic when this is enabled, even if you set a seed.",
+          "title": "Go Fast",
+          "type": "boolean",
+          "x-order": 11
+        },
+        "guidance": {
+          "default": 3,
+          "description": "Guidance for generated image",
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Guidance",
+          "type": "number",
+          "x-order": 6
+        },
+        "image": {
+          "description": "Input image for image to image mode. The aspect ratio of your output will match this image",
+          "format": "uri",
+          "title": "Image",
+          "type": "string",
+          "x-order": 2
+        },
+        "megapixels": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/megapixels"
+            }
+          ],
+          "default": "1",
+          "description": "Approximate number of megapixels for generated image",
+          "x-order": 12
+        },
+        "num_inference_steps": {
+          "default": 28,
+          "description": "Number of denoising steps. Recommended range is 28-50, and lower number of steps produce lower quality outputs, faster.",
+          "maximum": 50,
+          "minimum": 1,
+          "title": "Num Inference Steps",
+          "type": "integer",
+          "x-order": 5
+        },
+        "num_outputs": {
+          "default": 1,
+          "description": "Number of outputs to generate",
+          "maximum": 4,
+          "minimum": 1,
+          "title": "Num Outputs",
+          "type": "integer",
+          "x-order": 4
+        },
+        "output_format": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/output_format"
+            }
+          ],
+          "default": "webp",
+          "description": "Format of the output images",
+          "x-order": 8
+        },
+        "output_quality": {
+          "default": 80,
+          "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs",
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Output Quality",
+          "type": "integer",
+          "x-order": 9
+        },
+        "prompt": {
+          "description": "Prompt for generated image",
+          "title": "Prompt",
+          "type": "string",
+          "x-order": 0
+        },
+        "prompt_strength": {
+          "default": 0.8,
+          "description": "Prompt strength when using img2img. 1.0 corresponds to full destruction of information in image",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Prompt Strength",
+          "type": "number",
+          "x-order": 3
+        },
+        "seed": {
+          "description": "Random seed. Set for reproducible generation",
+          "title": "Seed",
+          "type": "integer",
+          "x-order": 7
+        }
+      },
+      "required": ["prompt"],
+      "title": "Input",
+      "type": "object"
+    },
+    "modelId": "black-forest-labs/flux-dev",
+    "name": "FluxDev",
+    "outputSchema": {
+      "items": {
+        "format": "uri",
+        "type": "string"
+      },
+      "title": "Output",
+      "type": "array"
+    }
+  },
+  {
+    "category": "image",
+    "componentSchemas": {
+      "aspect_ratio": {
+        "description": "An enumeration.",
+        "enum": [
+          "custom",
+          "1:1",
+          "16:9",
+          "3:2",
+          "2:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "3:4",
+          "4:3"
+        ],
+        "title": "aspect_ratio",
+        "type": "string"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "output_format": {
+        "description": "An enumeration.",
+        "enum": ["webp", "jpg", "png"],
+        "title": "output_format",
+        "type": "string"
+      },
+      "PredictionRequest": {
+        "properties": {
+          "context": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "title": "Context",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "output_file_prefix": {
+            "nullable": true,
+            "title": "Output File Prefix",
+            "type": "string"
+          },
+          "webhook": {
+            "format": "uri",
+            "maxLength": 65536,
+            "minLength": 1,
+            "nullable": true,
+            "title": "Webhook",
+            "type": "string"
+          },
+          "webhook_events_filter": {
+            "default": ["start", "output", "logs", "completed"],
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "title": "PredictionRequest",
+        "type": "object"
+      },
+      "PredictionResponse": {
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Completed At",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "title": "Error",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "logs": {
+            "default": "",
+            "title": "Logs",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "nullable": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          },
+          "started_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "nullable": true
+          },
+          "version": {
+            "nullable": true,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "title": "PredictionResponse",
+        "type": "object"
+      },
+      "Status": {
+        "description": "An enumeration.",
+        "enum": ["starting", "processing", "succeeded", "canceled", "failed"],
+        "title": "Status",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WebhookEvent": {
+        "description": "An enumeration.",
+        "enum": ["start", "output", "logs", "completed"],
+        "title": "WebhookEvent",
+        "type": "string"
+      }
+    },
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/bd872eff-363a-4e10-8cc1-84057afa9f57/flux-1.1-cover.webp",
+    "description": "Faster, better FLUX Pro. Text-to-image model with excellent image quality, prompt adherence, and output diversity.",
+    "fetchedAt": "2026-03-06T02:26:52.936Z",
+    "inputSchema": {
+      "properties": {
+        "aspect_ratio": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/aspect_ratio"
+            }
+          ],
+          "default": "1:1",
+          "description": "Aspect ratio for the generated image",
+          "x-order": 2
+        },
+        "height": {
+          "description": "Height of the generated image in text-to-image mode. Only used when aspect_ratio=custom. Must be a multiple of 32 (if it's not, it will be rounded to nearest multiple of 32). Note: Ignored in img2img and inpainting modes.",
+          "maximum": 1440,
+          "minimum": 256,
+          "title": "Height",
+          "type": "integer"
+        },
+        "image_prompt": {
+          "description": "Image to use with Flux Redux. This is used together with the text prompt to guide the generation towards the composition of the image_prompt. Must be jpeg, png, gif, or webp.",
+          "format": "uri",
+          "title": "Image Prompt",
+          "type": "string"
+        },
+        "output_format": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/output_format"
+            }
+          ],
+          "default": "webp",
+          "description": "Format of the output images.",
+          "x-order": 8
+        },
+        "output_quality": {
+          "default": 80,
+          "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs",
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Output Quality",
+          "type": "integer"
+        },
+        "prompt": {
+          "description": "Text prompt for image generation",
+          "title": "Prompt",
+          "type": "string"
+        },
+        "prompt_upsampling": {
+          "default": false,
+          "description": "Automatically modify the prompt for more creative generation",
+          "title": "Prompt Upsampling",
+          "type": "boolean"
+        },
+        "safety_tolerance": {
+          "default": 2,
+          "description": "Safety tolerance, 1 is most strict and 6 is most permissive",
+          "maximum": 6,
+          "minimum": 1,
+          "title": "Safety Tolerance",
+          "type": "integer"
+        },
+        "seed": {
+          "description": "Random seed. Set for reproducible generation",
+          "title": "Seed",
+          "type": "integer"
+        },
+        "width": {
+          "description": "Width of the generated image in text-to-image mode. Only used when aspect_ratio=custom. Must be a multiple of 32 (if it's not, it will be rounded to nearest multiple of 32). Note: Ignored in img2img and inpainting modes.",
+          "maximum": 1440,
+          "minimum": 256,
+          "title": "Width",
+          "type": "integer"
+        }
+      },
+      "required": ["prompt"],
+      "title": "Input",
+      "type": "object"
+    },
+    "modelId": "black-forest-labs/flux-1.1-pro",
+    "name": "Flux11Pro",
+    "outputSchema": {
+      "format": "uri",
+      "title": "Output",
+      "type": "string"
+    }
+  },
+  {
+    "category": "image",
+    "componentSchemas": {
+      "aspect_ratio": {
+        "description": "An enumeration.",
+        "enum": [
+          "1:1",
+          "16:9",
+          "21:9",
+          "3:2",
+          "2:3",
+          "4:5",
+          "5:4",
+          "3:4",
+          "4:3",
+          "9:16",
+          "9:21",
+          "match_input_image"
+        ],
+        "title": "aspect_ratio",
+        "type": "string"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "output_format": {
+        "description": "An enumeration.",
+        "enum": ["webp", "jpg", "png"],
+        "title": "output_format",
+        "type": "string"
+      },
+      "PredictionRequest": {
+        "properties": {
+          "context": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "title": "Context",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "output_file_prefix": {
+            "nullable": true,
+            "title": "Output File Prefix",
+            "type": "string"
+          },
+          "webhook": {
+            "format": "uri",
+            "maxLength": 65536,
+            "minLength": 1,
+            "nullable": true,
+            "title": "Webhook",
+            "type": "string"
+          },
+          "webhook_events_filter": {
+            "default": ["start", "output", "logs", "completed"],
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "title": "PredictionRequest",
+        "type": "object"
+      },
+      "PredictionResponse": {
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Completed At",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "title": "Error",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "logs": {
+            "default": "",
+            "title": "Logs",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "nullable": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          },
+          "started_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "nullable": true
+          },
+          "version": {
+            "nullable": true,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "title": "PredictionResponse",
+        "type": "object"
+      },
+      "Status": {
+        "description": "An enumeration.",
+        "enum": ["starting", "processing", "succeeded", "canceled", "failed"],
+        "title": "Status",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WebhookEvent": {
+        "description": "An enumeration.",
+        "enum": ["start", "output", "logs", "completed"],
+        "title": "WebhookEvent",
+        "type": "string"
+      }
+    },
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/0bbd6c48-2660-403b-86de-6ab9a87ffd64/v8tvckcb6hrm80cqnk798w47g0.webp",
+    "description": "Open-weight version of FLUX.1 Kontext",
+    "fetchedAt": "2026-03-06T02:26:53.104Z",
+    "inputSchema": {
+      "properties": {
+        "aspect_ratio": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/aspect_ratio"
+            }
+          ],
+          "default": "match_input_image",
+          "description": "Aspect ratio of the generated image. Use 'match_input_image' to match the aspect ratio of the input image.",
+          "x-order": 2
+        },
+        "disable_safety_checker": {
+          "default": false,
+          "description": "Disable NSFW safety checker",
+          "title": "Disable Safety Checker",
+          "type": "boolean",
+          "x-order": 8
+        },
+        "guidance": {
+          "default": 2.5,
+          "description": "Guidance scale for generation",
+          "maximum": 10,
+          "minimum": 0,
+          "title": "Guidance",
+          "type": "number",
+          "x-order": 4
+        },
+        "input_image": {
+          "description": "Image to use as reference. Must be jpeg, png, gif, or webp.",
+          "format": "uri",
+          "title": "Input Image",
+          "type": "string",
+          "x-order": 1
+        },
+        "num_inference_steps": {
+          "default": 30,
+          "description": "Number of inference steps",
+          "maximum": 50,
+          "minimum": 4,
+          "title": "Num Inference Steps",
+          "type": "integer",
+          "x-order": 3
+        },
+        "output_format": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/output_format"
+            }
+          ],
+          "default": "webp",
+          "description": "Output image format",
+          "x-order": 6
+        },
+        "output_quality": {
+          "default": 80,
+          "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs",
+          "maximum": 100,
+          "minimum": 0,
+          "title": "Output Quality",
+          "type": "integer",
+          "x-order": 7
+        },
+        "prompt": {
+          "description": "Text description of what you want to generate, or the instruction on how to edit the given image.",
+          "title": "Prompt",
+          "type": "string",
+          "x-order": 0
+        },
+        "seed": {
+          "description": "Random seed for reproducible generation. Leave blank for random.",
+          "title": "Seed",
+          "type": "integer",
+          "x-order": 5
+        }
+      },
+      "required": ["prompt", "input_image"],
+      "title": "Input",
+      "type": "object"
+    },
+    "modelId": "black-forest-labs/flux-kontext-dev",
+    "name": "FluxKontextDev",
+    "outputSchema": {
+      "format": "uri",
+      "title": "Output",
+      "type": "string"
+    }
+  },
+  {
+    "category": "video",
+    "componentSchemas": {
+      "aspect_ratio": {
+        "description": "An enumeration.",
+        "enum": ["16:9", "9:16"],
+        "title": "aspect_ratio",
+        "type": "string"
+      },
+      "duration": {
+        "description": "An enumeration.",
+        "enum": [4, 6, 8],
+        "title": "duration",
+        "type": "integer"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "PredictionRequest": {
+        "properties": {
+          "context": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "title": "Context",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "output_file_prefix": {
+            "nullable": true,
+            "title": "Output File Prefix",
+            "type": "string"
+          },
+          "webhook": {
+            "format": "uri",
+            "maxLength": 65536,
+            "minLength": 1,
+            "nullable": true,
+            "title": "Webhook",
+            "type": "string"
+          },
+          "webhook_events_filter": {
+            "default": ["start", "output", "logs", "completed"],
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "title": "PredictionRequest",
+        "type": "object"
+      },
+      "PredictionResponse": {
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Completed At",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "title": "Error",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "logs": {
+            "default": "",
+            "title": "Logs",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "nullable": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          },
+          "started_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "nullable": true
+          },
+          "version": {
+            "nullable": true,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "title": "PredictionResponse",
+        "type": "object"
+      },
+      "resolution": {
+        "description": "An enumeration.",
+        "enum": ["720p", "1080p"],
+        "title": "resolution",
+        "type": "string"
+      },
+      "Status": {
+        "description": "An enumeration.",
+        "enum": ["starting", "processing", "succeeded", "canceled", "failed"],
+        "title": "Status",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WebhookEvent": {
+        "description": "An enumeration.",
+        "enum": ["start", "output", "logs", "completed"],
+        "title": "WebhookEvent",
+        "type": "string"
+      }
+    },
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/8a4d195c-cdd7-4544-9ee4-d9f67bb9017d/replicate-prediction-9y7jqn5by.mp4",
+    "description": "New and improved version of Veo 3 Fast, with higher-fidelity video, context-aware audio and last frame support",
+    "fetchedAt": "2026-03-06T02:26:53.292Z",
+    "inputSchema": {
+      "properties": {
+        "aspect_ratio": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/aspect_ratio"
+            }
+          ],
+          "default": "16:9",
+          "description": "Video aspect ratio",
+          "x-order": 1
+        },
+        "duration": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/duration"
+            }
+          ],
+          "default": 8,
+          "description": "Video duration in seconds",
+          "x-order": 2
+        },
+        "generate_audio": {
+          "default": true,
+          "description": "Generate audio with the video",
+          "title": "Generate Audio",
+          "type": "boolean",
+          "x-order": 7
+        },
+        "image": {
+          "description": "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose.",
+          "format": "uri",
+          "nullable": true,
+          "title": "Image",
+          "type": "string",
+          "x-order": 3
+        },
+        "last_frame": {
+          "description": "Ending image for interpolation. When provided with an input image, creates a transition between the two images.",
+          "format": "uri",
+          "nullable": true,
+          "title": "Last Frame",
+          "type": "string",
+          "x-order": 4
+        },
+        "negative_prompt": {
+          "description": "Description of what to exclude from the generated video",
+          "nullable": true,
+          "title": "Negative Prompt",
+          "type": "string",
+          "x-order": 5
+        },
+        "prompt": {
+          "description": "Text prompt for video generation",
+          "title": "Prompt",
+          "type": "string",
+          "x-order": 0
+        },
+        "resolution": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/resolution"
+            }
+          ],
+          "default": "1080p",
+          "description": "Resolution of the generated video",
+          "x-order": 6
+        },
+        "seed": {
+          "description": "Random seed. Omit for random generations",
+          "nullable": true,
+          "title": "Seed",
+          "type": "integer",
+          "x-order": 8
+        }
+      },
+      "required": ["prompt"],
+      "title": "Input",
+      "type": "object"
+    },
+    "modelId": "google/veo-3.1-fast",
+    "name": "Veo31Fast",
+    "outputSchema": {
+      "format": "uri",
+      "title": "Output",
+      "type": "string"
+    }
+  },
+  {
+    "category": "video",
+    "componentSchemas": {
+      "aspect_ratio": {
+        "description": "An enumeration.",
+        "enum": ["16:9", "9:16"],
+        "title": "aspect_ratio",
+        "type": "string"
+      },
+      "duration": {
+        "description": "An enumeration.",
+        "enum": [4, 6, 8],
+        "title": "duration",
+        "type": "integer"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "PredictionRequest": {
+        "properties": {
+          "context": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "title": "Context",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "output_file_prefix": {
+            "nullable": true,
+            "title": "Output File Prefix",
+            "type": "string"
+          },
+          "webhook": {
+            "format": "uri",
+            "maxLength": 65536,
+            "minLength": 1,
+            "nullable": true,
+            "title": "Webhook",
+            "type": "string"
+          },
+          "webhook_events_filter": {
+            "default": ["start", "output", "logs", "completed"],
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "title": "PredictionRequest",
+        "type": "object"
+      },
+      "PredictionResponse": {
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Completed At",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "title": "Error",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "logs": {
+            "default": "",
+            "title": "Logs",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "nullable": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          },
+          "started_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "nullable": true
+          },
+          "version": {
+            "nullable": true,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "title": "PredictionResponse",
+        "type": "object"
+      },
+      "resolution": {
+        "description": "An enumeration.",
+        "enum": ["720p", "1080p"],
+        "title": "resolution",
+        "type": "string"
+      },
+      "Status": {
+        "description": "An enumeration.",
+        "enum": ["starting", "processing", "succeeded", "canceled", "failed"],
+        "title": "Status",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WebhookEvent": {
+        "description": "An enumeration.",
+        "enum": ["start", "output", "logs", "completed"],
+        "title": "WebhookEvent",
+        "type": "string"
+      }
+    },
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/7600d853-2847-4c46-afc9-faef04fea2c5/veo3.1-sm.mp4",
+    "description": "New and improved version of Veo 3, with higher-fidelity video, context-aware audio, reference image and last frame support",
+    "fetchedAt": "2026-03-06T02:26:53.474Z",
+    "inputSchema": {
+      "properties": {
+        "aspect_ratio": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/aspect_ratio"
+            }
+          ],
+          "default": "16:9",
+          "description": "Video aspect ratio",
+          "x-order": 1
+        },
+        "duration": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/duration"
+            }
+          ],
+          "default": 8,
+          "description": "Video duration in seconds",
+          "x-order": 2
+        },
+        "generate_audio": {
+          "default": true,
+          "description": "Generate audio with the video",
+          "title": "Generate Audio",
+          "type": "boolean",
+          "x-order": 8
+        },
+        "image": {
+          "description": "Input image to start generating from. Ideal images are 16:9 or 9:16 and 1280x720 or 720x1280, depending on the aspect ratio you choose.",
+          "format": "uri",
+          "nullable": true,
+          "title": "Image",
+          "type": "string",
+          "x-order": 3
+        },
+        "last_frame": {
+          "description": "Ending image for interpolation. When provided with an input image, creates a transition between the two images.",
+          "format": "uri",
+          "nullable": true,
+          "title": "Last Frame",
+          "type": "string",
+          "x-order": 4
+        },
+        "negative_prompt": {
+          "description": "Description of what to exclude from the generated video",
+          "nullable": true,
+          "title": "Negative Prompt",
+          "type": "string",
+          "x-order": 6
+        },
+        "prompt": {
+          "description": "Text prompt for video generation",
+          "title": "Prompt",
+          "type": "string",
+          "x-order": 0
+        },
+        "reference_images": {
+          "default": [],
+          "description": "1 to 3 reference images for subject-consistent generation (reference-to-video, or R2V). Reference images only work with 16:9 aspect ratio and 8-second duration. Last frame is ignored if reference images are provided.",
+          "items": {
+            "format": "uri",
+            "type": "string"
+          },
+          "title": "Reference Images",
+          "type": "array",
+          "x-order": 5
+        },
+        "resolution": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/resolution"
+            }
+          ],
+          "default": "1080p",
+          "description": "Resolution of the generated video",
+          "x-order": 7
+        },
+        "seed": {
+          "description": "Random seed. Omit for random generations",
+          "nullable": true,
+          "title": "Seed",
+          "type": "integer",
+          "x-order": 9
+        }
+      },
+      "required": ["prompt"],
+      "title": "Input",
+      "type": "object"
+    },
+    "modelId": "google/veo-3.1",
+    "name": "Veo31",
+    "outputSchema": {
+      "format": "uri",
+      "title": "Output",
+      "type": "string"
+    }
+  },
+  {
+    "category": "video",
+    "componentSchemas": {
+      "aspect_ratio": {
+        "description": "An enumeration.",
+        "enum": ["16:9", "9:16", "1:1"],
+        "title": "aspect_ratio",
+        "type": "string"
+      },
+      "duration": {
+        "description": "An enumeration.",
+        "enum": [5, 10],
+        "title": "duration",
+        "type": "integer"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "PredictionRequest": {
+        "properties": {
+          "context": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "title": "Context",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "output_file_prefix": {
+            "nullable": true,
+            "title": "Output File Prefix",
+            "type": "string"
+          },
+          "webhook": {
+            "format": "uri",
+            "maxLength": 65536,
+            "minLength": 1,
+            "nullable": true,
+            "title": "Webhook",
+            "type": "string"
+          },
+          "webhook_events_filter": {
+            "default": ["start", "output", "logs", "completed"],
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "title": "PredictionRequest",
+        "type": "object"
+      },
+      "PredictionResponse": {
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Completed At",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "title": "Error",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "logs": {
+            "default": "",
+            "title": "Logs",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "nullable": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          },
+          "started_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "nullable": true
+          },
+          "version": {
+            "nullable": true,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "title": "PredictionResponse",
+        "type": "object"
+      },
+      "Status": {
+        "description": "An enumeration.",
+        "enum": ["starting", "processing", "succeeded", "canceled", "failed"],
+        "title": "Status",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WebhookEvent": {
+        "description": "An enumeration.",
+        "enum": ["start", "output", "logs", "completed"],
+        "title": "WebhookEvent",
+        "type": "string"
+      }
+    },
+    "coverImageUrl": "https://replicate.delivery/xezq/17c3JG1SzH6NCduMiKp1Cxyqvpad0GXRf507Pqq5GOqNsZsKA/tmpg4w3kyjz.mp4",
+    "description": "Kling 2.5 Turbo Pro: Unlock pro-level text-to-video and image-to-video creation with smooth motion, cinematic depth, and remarkable prompt adherence.",
+    "fetchedAt": "2026-03-06T02:26:53.641Z",
+    "inputSchema": {
+      "properties": {
+        "aspect_ratio": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/aspect_ratio"
+            }
+          ],
+          "default": "16:9",
+          "description": "Aspect ratio of the video. Ignored if start_image is provided.",
+          "x-order": 4
+        },
+        "duration": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/duration"
+            }
+          ],
+          "default": 5,
+          "description": "Duration of the video in seconds",
+          "x-order": 5
+        },
+        "end_image": {
+          "description": "Last frame of the video",
+          "format": "uri",
+          "title": "End Image",
+          "type": "string",
+          "x-order": 3
+        },
+        "image": {
+          "deprecated": true,
+          "description": "Deprecated: Use start_image instead.",
+          "format": "uri",
+          "nullable": true,
+          "title": "Image",
+          "type": "string",
+          "x-order": 6
+        },
+        "negative_prompt": {
+          "default": "",
+          "description": "Things you do not want to see in the video",
+          "title": "Negative Prompt",
+          "type": "string",
+          "x-order": 1
+        },
+        "prompt": {
+          "description": "Text prompt for video generation",
+          "title": "Prompt",
+          "type": "string",
+          "x-order": 0
+        },
+        "start_image": {
+          "description": "First frame of the video",
+          "format": "uri",
+          "title": "Start Image",
+          "type": "string",
+          "x-order": 2
+        }
+      },
+      "required": ["prompt"],
+      "title": "Input",
+      "type": "object"
+    },
+    "modelId": "kwaivgi/kling-v2.5-turbo-pro",
+    "name": "KlingV25TurboPro",
+    "outputSchema": {
+      "format": "uri",
+      "title": "Output",
+      "type": "string"
+    }
+  },
+  {
+    "category": "video",
+    "componentSchemas": {
+      "character_orientation": {
+        "description": "An enumeration.",
+        "enum": ["image", "video"],
+        "title": "character_orientation",
+        "type": "string"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "mode": {
+        "description": "An enumeration.",
+        "enum": ["std", "pro"],
+        "title": "mode",
+        "type": "string"
+      },
+      "PredictionRequest": {
+        "properties": {
+          "context": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "title": "Context",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "output_file_prefix": {
+            "nullable": true,
+            "title": "Output File Prefix",
+            "type": "string"
+          },
+          "webhook": {
+            "format": "uri",
+            "maxLength": 65536,
+            "minLength": 1,
+            "nullable": true,
+            "title": "Webhook",
+            "type": "string"
+          },
+          "webhook_events_filter": {
+            "default": ["start", "output", "logs", "completed"],
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "title": "PredictionRequest",
+        "type": "object"
+      },
+      "PredictionResponse": {
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Completed At",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "title": "Error",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "logs": {
+            "default": "",
+            "title": "Logs",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "nullable": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          },
+          "started_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "nullable": true
+          },
+          "version": {
+            "nullable": true,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "title": "PredictionResponse",
+        "type": "object"
+      },
+      "Status": {
+        "description": "An enumeration.",
+        "enum": ["starting", "processing", "succeeded", "canceled", "failed"],
+        "title": "Status",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WebhookEvent": {
+        "description": "An enumeration.",
+        "enum": ["start", "output", "logs", "completed"],
+        "title": "WebhookEvent",
+        "type": "string"
+      }
+    },
+    "coverImageUrl": "https://replicate.delivery/xezq/xNPHY8OYsDbvDpAI22C9pa0FgDJcdV3ZzX2HBUj8nkAygcdF/tmp2jsjo2ed.mp4",
+    "description": "Enables precise control of character actions and expressions from a reference image.",
+    "fetchedAt": "2026-03-06T02:26:53.818Z",
+    "inputSchema": {
+      "properties": {
+        "character_orientation": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/character_orientation"
+            }
+          ],
+          "default": "image",
+          "description": "Generate the orientation of the characters in the video. 'image': same orientation as the person in the picture (max 10s video). 'video': consistent with the orientation of the characters in the video (max 30s video).",
+          "x-order": 3
+        },
+        "image": {
+          "description": "Reference image. The characters, backgrounds, and other elements in the generated video are based on the reference image. Supports .jpg/.jpeg/.png, max 10MB, dimensions 340px-3850px, aspect ratio 1:2.5 to 2.5:1.",
+          "format": "uri",
+          "title": "Image",
+          "type": "string",
+          "x-order": 1
+        },
+        "keep_original_sound": {
+          "default": true,
+          "description": "Whether to keep the original sound of the video",
+          "title": "Keep Original Sound",
+          "type": "boolean",
+          "x-order": 5
+        },
+        "mode": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/mode"
+            }
+          ],
+          "default": "std",
+          "description": "Video generation mode. 'std': Standard mode (cost-effective). 'pro': Professional mode (higher quality).",
+          "x-order": 4
+        },
+        "prompt": {
+          "default": "",
+          "description": "Text prompt for video generation. You can add elements to the screen and achieve motion effects through prompt words.",
+          "title": "Prompt",
+          "type": "string",
+          "x-order": 0
+        },
+        "video": {
+          "description": "Reference video. The character actions in the generated video are consistent with the reference video. Supports .mp4/.mov, max 100MB, 3-30 seconds duration depending on character_orientation.",
+          "format": "uri",
+          "title": "Video",
+          "type": "string",
+          "x-order": 2
+        }
+      },
+      "required": ["image", "video"],
+      "title": "Input",
+      "type": "object"
+    },
+    "modelId": "kwaivgi/kling-v2.6-motion-control",
+    "name": "KlingV26MotionControl",
+    "outputSchema": {
+      "format": "uri",
+      "title": "Output",
+      "type": "string"
+    }
+  },
+  {
+    "category": "video",
+    "componentSchemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "PredictionRequest": {
+        "properties": {
+          "context": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "title": "Context",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "output_file_prefix": {
+            "nullable": true,
+            "title": "Output File Prefix",
+            "type": "string"
+          },
+          "webhook": {
+            "format": "uri",
+            "maxLength": 65536,
+            "minLength": 1,
+            "nullable": true,
+            "title": "Webhook",
+            "type": "string"
+          },
+          "webhook_events_filter": {
+            "default": ["start", "output", "logs", "completed"],
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "title": "PredictionRequest",
+        "type": "object"
+      },
+      "PredictionResponse": {
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Completed At",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "title": "Error",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "logs": {
+            "default": "",
+            "title": "Logs",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "nullable": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          },
+          "started_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "nullable": true
+          },
+          "version": {
+            "nullable": true,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "title": "PredictionResponse",
+        "type": "object"
+      },
+      "Status": {
+        "description": "An enumeration.",
+        "enum": ["starting", "processing", "succeeded", "canceled", "failed"],
+        "title": "Status",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WebhookEvent": {
+        "description": "An enumeration.",
+        "enum": ["start", "output", "logs", "completed"],
+        "title": "WebhookEvent",
+        "type": "string"
+      }
+    },
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/b56c831c-4c68-4443-b69e-b71b105afe7f/minimax.webp",
+    "description": "Generate 6s videos with prompts or images. (Also known as Hailuo). Use a subject reference to make a video with a character and the S2V-01 model.",
+    "fetchedAt": "2026-03-06T02:26:53.995Z",
+    "inputSchema": {
+      "properties": {
+        "first_frame_image": {
+          "description": "First frame image for video generation. The output video will have the same aspect ratio as this image.",
+          "format": "uri",
+          "title": "First Frame Image",
+          "type": "string"
+        },
+        "prompt": {
+          "description": "Text prompt for generation",
+          "title": "Prompt",
+          "type": "string"
+        },
+        "prompt_optimizer": {
+          "default": true,
+          "description": "Use prompt optimizer",
+          "title": "Prompt Optimizer",
+          "type": "boolean"
+        },
+        "subject_reference": {
+          "description": "An optional character reference image to use as the subject in the generated video (this will use the S2V-01 model)",
+          "format": "uri",
+          "title": "Subject Reference",
+          "type": "string"
+        }
+      },
+      "required": ["prompt"],
+      "title": "Input",
+      "type": "object"
+    },
+    "modelId": "minimax/video-01",
+    "name": "MinimaxVideo01",
+    "outputSchema": {
+      "format": "uri",
+      "title": "Output",
+      "type": "string"
+    }
+  },
+  {
+    "category": "video",
+    "componentSchemas": {
+      "aspect_ratio": {
+        "description": "An enumeration.",
+        "enum": ["1:1", "3:4", "4:3", "9:16", "16:9", "9:21", "21:9"],
+        "title": "aspect_ratio",
+        "type": "string"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "PredictionRequest": {
+        "properties": {
+          "context": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "title": "Context",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "output_file_prefix": {
+            "nullable": true,
+            "title": "Output File Prefix",
+            "type": "string"
+          },
+          "webhook": {
+            "format": "uri",
+            "maxLength": 65536,
+            "minLength": 1,
+            "nullable": true,
+            "title": "Webhook",
+            "type": "string"
+          },
+          "webhook_events_filter": {
+            "default": ["start", "output", "logs", "completed"],
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "title": "PredictionRequest",
+        "type": "object"
+      },
+      "PredictionResponse": {
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Completed At",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "title": "Error",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "logs": {
+            "default": "",
+            "title": "Logs",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "nullable": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          },
+          "started_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "nullable": true
+          },
+          "version": {
+            "nullable": true,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "title": "PredictionResponse",
+        "type": "object"
+      },
+      "Status": {
+        "description": "An enumeration.",
+        "enum": ["starting", "processing", "succeeded", "canceled", "failed"],
+        "title": "Status",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WebhookEvent": {
+        "description": "An enumeration.",
+        "enum": ["start", "output", "logs", "completed"],
+        "title": "WebhookEvent",
+        "type": "string"
+      }
+    },
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/496f8ab2-3a87-4fe7-9867-5572460c2b5e/ray-cover.webp",
+    "description": "Fast, high quality text-to-video and image-to-video (Also known as Dream Machine)",
+    "fetchedAt": "2026-03-06T02:26:54.173Z",
+    "inputSchema": {
+      "properties": {
+        "aspect_ratio": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/aspect_ratio"
+            }
+          ],
+          "default": "16:9",
+          "description": "Aspect ratio of the video. Ignored if a start frame, end frame or video ID is given.",
+          "x-order": 1
+        },
+        "end_image": {
+          "description": "An optional last frame of the video to use as the ending frame.",
+          "format": "uri",
+          "title": "End Image",
+          "type": "string"
+        },
+        "end_image_url": {
+          "deprecated": true,
+          "description": "Deprecated: Use end_image instead",
+          "title": "End Image Url",
+          "type": "string"
+        },
+        "end_video_id": {
+          "description": "Prepend a new video generation to the beginning of an existing one (Also called 'reverse extend'). You can combine this with start_image, or start_video_id.",
+          "title": "End Video Id",
+          "type": "string"
+        },
+        "loop": {
+          "default": false,
+          "description": "Whether the video should loop, with the last frame matching the first frame for smooth, continuous playback. This input is ignored if end_image or end_video_id are set.",
+          "title": "Loop",
+          "type": "boolean"
+        },
+        "prompt": {
+          "description": "Text prompt for video generation",
+          "title": "Prompt",
+          "type": "string"
+        },
+        "start_image": {
+          "description": "An optional first frame of the video to use as the starting frame.",
+          "format": "uri",
+          "title": "Start Image",
+          "type": "string"
+        },
+        "start_image_url": {
+          "deprecated": true,
+          "description": "Deprecated: Use start_image instead",
+          "title": "Start Image Url",
+          "type": "string"
+        },
+        "start_video_id": {
+          "description": "Continue or extend a video generation with a new generation. You can combine this with end_image, or end_video_id.",
+          "title": "Start Video Id",
+          "type": "string"
+        }
+      },
+      "required": ["prompt"],
+      "title": "Input",
+      "type": "object"
+    },
+    "modelId": "luma/ray",
+    "name": "LumaRay",
+    "outputSchema": {
+      "format": "uri",
+      "title": "Output",
+      "type": "string"
+    }
+  },
+  {
+    "category": "llm",
+    "componentSchemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "PredictionRequest": {
+        "properties": {
+          "context": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "title": "Context",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "output_file_prefix": {
+            "nullable": true,
+            "title": "Output File Prefix",
+            "type": "string"
+          },
+          "webhook": {
+            "format": "uri",
+            "maxLength": 65536,
+            "minLength": 1,
+            "nullable": true,
+            "title": "Webhook",
+            "type": "string"
+          },
+          "webhook_events_filter": {
+            "default": ["start", "output", "logs", "completed"],
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "title": "PredictionRequest",
+        "type": "object"
+      },
+      "PredictionResponse": {
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Completed At",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "title": "Error",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "logs": {
+            "default": "",
+            "title": "Logs",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "nullable": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          },
+          "started_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "nullable": true
+          },
+          "version": {
+            "nullable": true,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "title": "PredictionResponse",
+        "type": "object"
+      },
+      "Status": {
+        "description": "An enumeration.",
+        "enum": ["starting", "processing", "succeeded", "canceled", "failed"],
+        "title": "Status",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WebhookEvent": {
+        "description": "An enumeration.",
+        "enum": ["start", "output", "logs", "completed"],
+        "title": "WebhookEvent",
+        "type": "string"
+      }
+    },
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/81ca001f-6a0a-4bef-b2f1-32466887df20/meta-logo.png",
+    "description": "Meta's flagship 405 billion parameter language model, fine-tuned for chat completions",
+    "fetchedAt": "2026-03-06T02:26:54.352Z",
+    "inputSchema": {
+      "properties": {
+        "frequency_penalty": {
+          "default": 0,
+          "description": "Frequency penalty",
+          "title": "Frequency Penalty",
+          "type": "number",
+          "x-order": 8
+        },
+        "max_tokens": {
+          "default": 512,
+          "description": "The maximum number of tokens the model should generate as output.",
+          "title": "Max Tokens",
+          "type": "integer",
+          "x-order": 3
+        },
+        "min_tokens": {
+          "default": 0,
+          "description": "The minimum number of tokens the model should generate as output.",
+          "title": "Min Tokens",
+          "type": "integer",
+          "x-order": 2
+        },
+        "presence_penalty": {
+          "default": 0,
+          "description": "Presence penalty",
+          "title": "Presence Penalty",
+          "type": "number",
+          "x-order": 7
+        },
+        "prompt": {
+          "default": "",
+          "description": "Prompt",
+          "title": "Prompt",
+          "type": "string",
+          "x-order": 0
+        },
+        "prompt_template": {
+          "default": "",
+          "description": "A template to format the prompt with. If not provided, the default prompt template will be used.",
+          "title": "Prompt Template",
+          "type": "string",
+          "x-order": 10
+        },
+        "stop_sequences": {
+          "default": "",
+          "description": "A comma-separated list of sequences to stop generation at. For example, '<end>,<stop>' will stop generation at the first instance of 'end' or '<stop>'.",
+          "title": "Stop Sequences",
+          "type": "string",
+          "x-order": 9
+        },
+        "system_prompt": {
+          "default": "You are a helpful assistant.",
+          "description": "System prompt to send to the model. This is prepended to the prompt and helps guide system behavior. Ignored for non-chat models.",
+          "title": "System Prompt",
+          "type": "string",
+          "x-order": 1
+        },
+        "temperature": {
+          "default": 0.6,
+          "description": "The value used to modulate the next token probabilities.",
+          "title": "Temperature",
+          "type": "number",
+          "x-order": 4
+        },
+        "top_k": {
+          "default": 50,
+          "description": "The number of highest probability tokens to consider for generating the output. If > 0, only keep the top k tokens with highest probability (top-k filtering).",
+          "title": "Top K",
+          "type": "integer",
+          "x-order": 6
+        },
+        "top_p": {
+          "default": 0.9,
+          "description": "A probability threshold for generating the output. If < 1.0, only keep the top tokens with cumulative probability >= top_p (nucleus filtering). Nucleus filtering is described in Holtzman et al. (http://arxiv.org/abs/1904.09751).",
+          "title": "Top P",
+          "type": "number",
+          "x-order": 5
+        }
+      },
+      "title": "Input",
+      "type": "object"
+    },
+    "modelId": "meta/meta-llama-3.1-405b-instruct",
+    "name": "MetaLlama31",
+    "outputSchema": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Output",
+      "type": "array",
+      "x-cog-array-display": "concatenate",
+      "x-cog-array-type": "iterator"
+    }
+  },
+  {
+    "category": "reframe",
+    "componentSchemas": {
+      "aspect_ratio": {
+        "description": "An enumeration.",
+        "enum": ["1:1", "3:4", "4:3", "9:16", "16:9", "9:21", "21:9"],
+        "title": "aspect_ratio",
+        "type": "string"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "model": {
+        "description": "An enumeration.",
+        "enum": ["photon-flash-1", "photon-1"],
+        "title": "model",
+        "type": "string"
+      },
+      "PredictionRequest": {
+        "properties": {
+          "context": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "title": "Context",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "output_file_prefix": {
+            "nullable": true,
+            "title": "Output File Prefix",
+            "type": "string"
+          },
+          "webhook": {
+            "format": "uri",
+            "maxLength": 65536,
+            "minLength": 1,
+            "nullable": true,
+            "title": "Webhook",
+            "type": "string"
+          },
+          "webhook_events_filter": {
+            "default": ["start", "output", "logs", "completed"],
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "title": "PredictionRequest",
+        "type": "object"
+      },
+      "PredictionResponse": {
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Completed At",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "title": "Error",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "logs": {
+            "default": "",
+            "title": "Logs",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "nullable": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          },
+          "started_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "nullable": true
+          },
+          "version": {
+            "nullable": true,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "title": "PredictionResponse",
+        "type": "object"
+      },
+      "Status": {
+        "description": "An enumeration.",
+        "enum": ["starting", "processing", "succeeded", "canceled", "failed"],
+        "title": "Status",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WebhookEvent": {
+        "description": "An enumeration.",
+        "enum": ["start", "output", "logs", "completed"],
+        "title": "WebhookEvent",
+        "type": "string"
+      }
+    },
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_cover_image/6718c188-d6a3-4572-953c-bd5455c359ca/tmp5_8g7kz2.png",
+    "description": "Change the aspect ratio of any photo using AI (not cropping)",
+    "fetchedAt": "2026-03-06T02:26:54.524Z",
+    "inputSchema": {
+      "properties": {
+        "aspect_ratio": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/aspect_ratio"
+            }
+          ],
+          "default": "16:9",
+          "description": "Aspect ratio of the output",
+          "x-order": 1
+        },
+        "grid_position_x": {
+          "description": "The x position of the input in the grid, in pixels. Controls horizontal positioning of the source within the target output dimensions.",
+          "title": "Grid Position X",
+          "type": "integer"
+        },
+        "grid_position_y": {
+          "description": "The y position of the input in the grid, in pixels. Controls vertical positioning of the source within the target output dimensions.",
+          "title": "Grid Position Y",
+          "type": "integer"
+        },
+        "image": {
+          "description": "The image to reframe",
+          "format": "uri",
+          "title": "Image",
+          "type": "string"
+        },
+        "image_url": {
+          "deprecated": true,
+          "description": "URL of the image to reframe",
+          "title": "Image Url",
+          "type": "string"
+        },
+        "model": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/model"
+            }
+          ],
+          "default": "photon-flash-1",
+          "description": "The model to use for the reframe generation",
+          "x-order": 3
+        },
+        "prompt": {
+          "description": "A prompt to guide the reframing generation",
+          "title": "Prompt",
+          "type": "string"
+        },
+        "x_end": {
+          "description": "The x end of the crop bounds, in pixels. Defines the right boundary where your source will be placed in the output frame. The distance between x_start and x_end determines the resized width of your content.",
+          "title": "X End",
+          "type": "integer"
+        },
+        "x_start": {
+          "description": "The x start of the crop bounds, in pixels. Defines the left boundary where your source will be placed in the output frame. The distance between x_start and x_end determines the resized width of your content.",
+          "title": "X Start",
+          "type": "integer"
+        },
+        "y_end": {
+          "description": "The y end of the crop bounds, in pixels. Defines the bottom boundary where your source will be placed in the output frame. The distance between y_start and y_end determines the resized height of your content.",
+          "title": "Y End",
+          "type": "integer"
+        },
+        "y_start": {
+          "description": "The y start of the crop bounds, in pixels. Defines the top boundary where your source will be placed in the output frame. The distance between y_start and y_end determines the resized height of your content.",
+          "title": "Y Start",
+          "type": "integer"
+        }
+      },
+      "title": "Input",
+      "type": "object"
+    },
+    "modelId": "luma/reframe-image",
+    "name": "LumaReframeImage",
+    "outputSchema": {
+      "format": "uri",
+      "title": "Output",
+      "type": "string"
+    }
+  },
+  {
+    "category": "reframe",
+    "componentSchemas": {
+      "aspect_ratio": {
+        "description": "An enumeration.",
+        "enum": ["1:1", "3:4", "4:3", "9:16", "16:9", "9:21", "21:9"],
+        "title": "aspect_ratio",
+        "type": "string"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "PredictionRequest": {
+        "properties": {
+          "context": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "title": "Context",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "output_file_prefix": {
+            "nullable": true,
+            "title": "Output File Prefix",
+            "type": "string"
+          },
+          "webhook": {
+            "format": "uri",
+            "maxLength": 65536,
+            "minLength": 1,
+            "nullable": true,
+            "title": "Webhook",
+            "type": "string"
+          },
+          "webhook_events_filter": {
+            "default": ["start", "output", "logs", "completed"],
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "title": "PredictionRequest",
+        "type": "object"
+      },
+      "PredictionResponse": {
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Completed At",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "title": "Error",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "logs": {
+            "default": "",
+            "title": "Logs",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "nullable": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          },
+          "started_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "nullable": true
+          },
+          "version": {
+            "nullable": true,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "title": "PredictionResponse",
+        "type": "object"
+      },
+      "Status": {
+        "description": "An enumeration.",
+        "enum": ["starting", "processing", "succeeded", "canceled", "failed"],
+        "title": "Status",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WebhookEvent": {
+        "description": "An enumeration.",
+        "enum": ["start", "output", "logs", "completed"],
+        "title": "WebhookEvent",
+        "type": "string"
+      }
+    },
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/a3d9c60a-0a0b-4907-980d-275483b78a45/replicate-prediction-j6fp3jym.webp",
+    "description": "Change the aspect ratio of any video up to 30 seconds long, outputs will be 720p",
+    "fetchedAt": "2026-03-06T02:26:54.698Z",
+    "inputSchema": {
+      "properties": {
+        "aspect_ratio": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/aspect_ratio"
+            }
+          ],
+          "default": "16:9",
+          "description": "Aspect ratio of the output",
+          "x-order": 1
+        },
+        "grid_position_x": {
+          "description": "The x position of the input in the grid, in pixels. Controls horizontal positioning of the source within the target output dimensions.",
+          "title": "Grid Position X",
+          "type": "integer"
+        },
+        "grid_position_y": {
+          "description": "The y position of the input in the grid, in pixels. Controls vertical positioning of the source within the target output dimensions.",
+          "title": "Grid Position Y",
+          "type": "integer"
+        },
+        "prompt": {
+          "description": "A prompt to guide the reframing generation",
+          "title": "Prompt",
+          "type": "string"
+        },
+        "video": {
+          "description": "The video to reframe. Maximum video duration is 10 seconds.",
+          "format": "uri",
+          "title": "Video",
+          "type": "string"
+        },
+        "video_url": {
+          "deprecated": true,
+          "description": "URL of the video to reframe. Maximum video duration is 10 seconds.",
+          "title": "Video Url",
+          "type": "string"
+        },
+        "x_end": {
+          "description": "The x end of the crop bounds, in pixels. Defines the right boundary where your source will be placed in the output frame. The distance between x_start and x_end determines the resized width of your content.",
+          "title": "X End",
+          "type": "integer"
+        },
+        "x_start": {
+          "description": "The x start of the crop bounds, in pixels. Defines the left boundary where your source will be placed in the output frame. The distance between x_start and x_end determines the resized width of your content.",
+          "title": "X Start",
+          "type": "integer"
+        },
+        "y_end": {
+          "description": "The y end of the crop bounds, in pixels. Defines the bottom boundary where your source will be placed in the output frame. The distance between y_start and y_end determines the resized height of your content.",
+          "title": "Y End",
+          "type": "integer"
+        },
+        "y_start": {
+          "description": "The y start of the crop bounds, in pixels. Defines the top boundary where your source will be placed in the output frame. The distance between y_start and y_end determines the resized height of your content.",
+          "title": "Y Start",
+          "type": "integer"
+        }
+      },
+      "title": "Input",
+      "type": "object"
+    },
+    "modelId": "luma/reframe-video",
+    "name": "LumaReframeVideo",
+    "outputSchema": {
+      "format": "uri",
+      "title": "Output",
+      "type": "string"
+    }
+  },
+  {
+    "category": "lipsync",
+    "componentSchemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "PredictionRequest": {
+        "properties": {
+          "context": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "title": "Context",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "output_file_prefix": {
+            "nullable": true,
+            "title": "Output File Prefix",
+            "type": "string"
+          },
+          "webhook": {
+            "format": "uri",
+            "maxLength": 65536,
+            "minLength": 1,
+            "nullable": true,
+            "title": "Webhook",
+            "type": "string"
+          },
+          "webhook_events_filter": {
+            "default": ["start", "output", "logs", "completed"],
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "title": "PredictionRequest",
+        "type": "object"
+      },
+      "PredictionResponse": {
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Completed At",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "title": "Error",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "logs": {
+            "default": "",
+            "title": "Logs",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "nullable": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          },
+          "started_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "nullable": true
+          },
+          "version": {
+            "nullable": true,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "title": "PredictionResponse",
+        "type": "object"
+      },
+      "Status": {
+        "description": "An enumeration.",
+        "enum": ["starting", "processing", "succeeded", "canceled", "failed"],
+        "title": "Status",
+        "type": "string"
+      },
+      "sync_mode": {
+        "description": "An enumeration.",
+        "enum": ["loop", "bounce", "cut_off", "silence", "remap"],
+        "title": "sync_mode",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WebhookEvent": {
+        "description": "An enumeration.",
+        "enum": ["start", "output", "logs", "completed"],
+        "title": "WebhookEvent",
+        "type": "string"
+      }
+    },
+    "coverImageUrl": "https://replicate.delivery/xezq/wJSCHDW1zvqcBtInTLFK9rW6N52db0y5FImHrJlyjYi12gQF/tmpr6cxkcvr.mp4",
+    "description": "Generate realistic lipsyncs with Sync Labs' 2.0 model",
+    "fetchedAt": "2026-03-06T02:26:54.868Z",
+    "inputSchema": {
+      "properties": {
+        "active_speaker": {
+          "default": false,
+          "description": "Whether to detect active speaker (i.e. whoever is speaking in the clip will be used for lipsync)",
+          "title": "Active Speaker",
+          "type": "boolean"
+        },
+        "audio": {
+          "description": "Input audio file (.wav)",
+          "format": "uri",
+          "title": "Audio",
+          "type": "string"
+        },
+        "sync_mode": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/sync_mode"
+            }
+          ],
+          "default": "loop",
+          "description": "Lipsync mode when audio and video durations are out of sync",
+          "x-order": 2
+        },
+        "temperature": {
+          "default": 0.5,
+          "description": "How expressive lipsync can be (0-1)",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Temperature",
+          "type": "number"
+        },
+        "video": {
+          "description": "Input video file (.mp4)",
+          "format": "uri",
+          "title": "Video",
+          "type": "string"
+        }
+      },
+      "required": ["video", "audio"],
+      "title": "Input",
+      "type": "object"
+    },
+    "modelId": "sync/lipsync-2",
+    "name": "Lipsync2",
+    "outputSchema": {
+      "format": "uri",
+      "title": "Output",
+      "type": "string"
+    }
+  },
+  {
+    "category": "lipsync",
+    "componentSchemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "PredictionRequest": {
+        "properties": {
+          "context": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "title": "Context",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "output_file_prefix": {
+            "nullable": true,
+            "title": "Output File Prefix",
+            "type": "string"
+          },
+          "webhook": {
+            "format": "uri",
+            "maxLength": 65536,
+            "minLength": 1,
+            "nullable": true,
+            "title": "Webhook",
+            "type": "string"
+          },
+          "webhook_events_filter": {
+            "default": ["start", "output", "logs", "completed"],
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "title": "PredictionRequest",
+        "type": "object"
+      },
+      "PredictionResponse": {
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Completed At",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "title": "Error",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "logs": {
+            "default": "",
+            "title": "Logs",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "nullable": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          },
+          "started_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "nullable": true
+          },
+          "version": {
+            "nullable": true,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "title": "PredictionResponse",
+        "type": "object"
+      },
+      "Status": {
+        "description": "An enumeration.",
+        "enum": ["starting", "processing", "succeeded", "canceled", "failed"],
+        "title": "Status",
+        "type": "string"
+      },
+      "sync_mode": {
+        "description": "An enumeration.",
+        "enum": ["loop", "bounce", "cut_off", "silence", "remap"],
+        "title": "sync_mode",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WebhookEvent": {
+        "description": "An enumeration.",
+        "enum": ["start", "output", "logs", "completed"],
+        "title": "WebhookEvent",
+        "type": "string"
+      }
+    },
+    "coverImageUrl": "https://replicate.delivery/xezq/boKOqiuyz9omClm432RN1vzB3wejNr36em4lmJ2SC6If6KnqA/tmp47bgpsi_.mp4",
+    "description": "Studio-grade lipsync in minutes, not weeks",
+    "fetchedAt": "2026-03-06T02:26:55.043Z",
+    "inputSchema": {
+      "properties": {
+        "active_speaker": {
+          "default": false,
+          "description": "Whether to detect active speaker (i.e. whoever is speaking in the clip will be used for lipsync)",
+          "title": "Active Speaker",
+          "type": "boolean"
+        },
+        "audio": {
+          "description": "Input audio file (.wav)",
+          "format": "uri",
+          "title": "Audio",
+          "type": "string"
+        },
+        "sync_mode": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/sync_mode"
+            }
+          ],
+          "default": "loop",
+          "description": "Lipsync mode when audio and video durations are out of sync",
+          "x-order": 2
+        },
+        "temperature": {
+          "default": 0.5,
+          "description": "How expressive lipsync can be (0-1)",
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Temperature",
+          "type": "number"
+        },
+        "video": {
+          "description": "Input video file (.mp4)",
+          "format": "uri",
+          "title": "Video",
+          "type": "string"
+        }
+      },
+      "required": ["video", "audio"],
+      "title": "Input",
+      "type": "object"
+    },
+    "modelId": "sync/lipsync-2-pro",
+    "name": "Lipsync2Pro",
+    "outputSchema": {
+      "format": "uri",
+      "title": "Output",
+      "type": "string"
+    }
+  },
+  {
+    "category": "lipsync",
+    "componentSchemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "PredictionRequest": {
+        "properties": {
+          "context": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "title": "Context",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "output_file_prefix": {
+            "nullable": true,
+            "title": "Output File Prefix",
+            "type": "string"
+          },
+          "webhook": {
+            "format": "uri",
+            "maxLength": 65536,
+            "minLength": 1,
+            "nullable": true,
+            "title": "Webhook",
+            "type": "string"
+          },
+          "webhook_events_filter": {
+            "default": ["start", "output", "logs", "completed"],
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "nullable": true,
+            "type": "array"
+          }
+        },
+        "title": "PredictionRequest",
+        "type": "object"
+      },
+      "PredictionResponse": {
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Completed At",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "nullable": true,
+            "title": "Error",
+            "type": "string"
+          },
+          "id": {
+            "nullable": true,
+            "title": "Id",
+            "type": "string"
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "logs": {
+            "default": "",
+            "title": "Logs",
+            "type": "string"
+          },
+          "metrics": {
+            "additionalProperties": true,
+            "nullable": true,
+            "title": "Metrics",
+            "type": "object"
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          },
+          "started_at": {
+            "format": "date-time",
+            "nullable": true,
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "nullable": true
+          },
+          "version": {
+            "nullable": true,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "title": "PredictionResponse",
+        "type": "object"
+      },
+      "Status": {
+        "description": "An enumeration.",
+        "enum": ["starting", "processing", "succeeded", "canceled", "failed"],
+        "title": "Status",
+        "type": "string"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "WebhookEvent": {
+        "description": "An enumeration.",
+        "enum": ["start", "output", "logs", "completed"],
+        "title": "WebhookEvent",
+        "type": "string"
+      }
+    },
+    "coverImageUrl": "https://replicate.delivery/xezq/IFUeAG1KsQWCHKURDyq182XIeJDVq5l0qVNGkksLttbvPyXVA/tmp__afyey0.mp4",
+    "description": "Generate realistic lipsync animations from audio for high-quality synchronization",
+    "fetchedAt": "2026-03-06T02:26:55.220Z",
+    "inputSchema": {
+      "properties": {
+        "audio": {
+          "description": "Audio file to upload to PixVerse as media",
+          "format": "uri",
+          "title": "Audio",
+          "type": "string",
+          "x-order": 1
+        },
+        "video": {
+          "description": "Video file to upload to PixVerse as media",
+          "format": "uri",
+          "title": "Video",
+          "type": "string",
+          "x-order": 0
+        }
+      },
+      "required": ["video", "audio"],
+      "title": "Input",
+      "type": "object"
+    },
+    "modelId": "pixverse/lipsync",
+    "name": "PixverseLipsync",
+    "outputSchema": {
+      "format": "uri",
+      "title": "Output",
+      "type": "string"
+    }
+  }
+]

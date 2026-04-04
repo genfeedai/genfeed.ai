@@ -1,0 +1,9 @@
+{
+  "files": [
+    "base.json",
+    "nextjs.json"
+  ],
+  "name": "@cloud/tsconfig",
+  "private": true,
+  "version": "1.0.0"
+}

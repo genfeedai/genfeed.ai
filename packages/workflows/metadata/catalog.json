@@ -1,0 +1,88 @@
+{
+  "workflows": [
+    {
+      "category": "image-generation",
+      "defaultModel": "nano-banana-pro",
+      "description": "Generate an AI image from a source image (img2img) with enhanced styling and effects",
+      "icon": "🖼️",
+      "inputTypes": ["image", "text"],
+      "outputTypes": ["image"],
+      "slug": "single-image",
+      "tags": ["image", "simple", "img2img", "enhancement"],
+      "tier": "free",
+      "title": "Single Image Generation"
+    },
+    {
+      "category": "video-generation",
+      "defaultModel": "nano-banana-pro",
+      "description": "Generate an AI video from a source image (img2video) with motion effects",
+      "icon": "🎬",
+      "inputTypes": ["image", "text"],
+      "outputTypes": ["video"],
+      "slug": "single-video",
+      "tags": ["video", "simple", "img2video", "animation"],
+      "tier": "free",
+      "title": "Single Video Generation"
+    },
+    {
+      "category": "image-generation",
+      "defaultModel": "nano-banana-pro",
+      "description": "Generate a series of related images from a concept using LLM-powered prompt expansion",
+      "icon": "📸",
+      "inputTypes": ["text"],
+      "outputTypes": ["image"],
+      "slug": "image-series",
+      "tags": ["image", "series", "llm", "batch", "automation"],
+      "tier": "free",
+      "title": "Image Series Generation"
+    },
+    {
+      "category": "video-generation",
+      "defaultModel": "nano-banana-pro",
+      "description": "Create smooth interpolated video transitions between two images with easing effects",
+      "icon": "🎞️",
+      "inputTypes": ["image"],
+      "outputTypes": ["video"],
+      "slug": "image-to-video",
+      "tags": ["video", "interpolation", "animation", "transition"],
+      "tier": "free",
+      "title": "Image to Video Transition"
+    },
+    {
+      "category": "full-pipeline",
+      "defaultModel": "nano-banana-pro",
+      "description": "Complete end-to-end workflow: concept development to final video production",
+      "icon": "⚡",
+      "inputTypes": ["text"],
+      "outputTypes": ["video"],
+      "slug": "full-pipeline",
+      "tags": ["pipeline", "advanced", "complete", "automation", "production"],
+      "tier": "free",
+      "title": "Full Content Pipeline"
+    },
+    {
+      "category": "full-pipeline",
+      "defaultModel": "nano-banana-pro",
+      "description": "Automated user-generated content creation for social media and marketing campaigns",
+      "icon": "🏭",
+      "inputTypes": ["text"],
+      "outputTypes": ["video", "image"],
+      "slug": "ugc-factory",
+      "tags": ["ugc", "social", "automation", "marketing", "content"],
+      "tier": "free",
+      "title": "UGC Content Factory"
+    },
+    {
+      "category": "image-generation",
+      "defaultModel": "nano-banana-pro",
+      "description": "Generate 20 varied training images from 3 reference identity photos across frontal, three-quarter, side profile, and variety shots",
+      "icon": "📷",
+      "inputTypes": ["image", "text"],
+      "outputTypes": ["image"],
+      "slug": "lora-dataset-generator",
+      "tags": ["lora", "dataset", "training", "portrait", "identity"],
+      "tier": "free",
+      "title": "LoRA Dataset Generator"
+    }
+  ]
+}

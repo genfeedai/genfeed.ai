@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@agent-tests/*": ["./tests/*"],
+      "@cloud/agent": ["./src/index.ts"],
+      "@cloud/agent/*": ["./src/*"],
+      "@contexts/*": ["../contexts/*"],
+      "@helpers/*": ["../helpers/src/*"],
+      "@hooks/*": ["../hooks/*"],
+      "@models/*": ["../models/*"],
+      "@pages/*": ["../pages/*"],
+      "@props/*": ["../props/*"],
+      "@services/*": ["../services/*"],
+      "@ui-constants/*": ["../ui/constants/*"],
+      "@ui/*": ["../ui/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist"],
+  "extends": "../tsconfig/base.json",
+  "include": ["**/*.ts", "**/*.tsx"]
+}

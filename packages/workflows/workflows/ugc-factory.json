@@ -1,0 +1,143 @@
+{
+  "createdAt": "2026-01-31T00:00:00.000Z",
+  "description": "UGC pipeline: script → voice → motion → lip sync → download",
+  "edgeStyle": "smoothstep",
+  "edges": [
+    {
+      "id": "e1",
+      "source": "script-input",
+      "sourceHandle": "text",
+      "target": "tts-voice",
+      "targetHandle": "text"
+    },
+    {
+      "id": "e2",
+      "source": "avatar-input",
+      "sourceHandle": "image",
+      "target": "motion-control",
+      "targetHandle": "image"
+    },
+    {
+      "id": "e3",
+      "source": "motion-control",
+      "sourceHandle": "video",
+      "target": "lip-sync",
+      "targetHandle": "video"
+    },
+    {
+      "id": "e4",
+      "source": "tts-voice",
+      "sourceHandle": "audio",
+      "target": "lip-sync",
+      "targetHandle": "audio"
+    },
+    {
+      "id": "e5",
+      "source": "lip-sync",
+      "sourceHandle": "video",
+      "target": "output",
+      "targetHandle": "video"
+    }
+  ],
+  "name": "UGC Factory",
+  "nodes": [
+    {
+      "data": {
+        "label": "UGC Script",
+        "prompt": "Hey everyone! I just discovered this amazing product and I had to share it with you. The quality is incredible and it's changed my daily routine completely. Trust me, you need to try this!",
+        "status": "idle",
+        "variables": {}
+      },
+      "id": "script-input",
+      "position": { "x": 50, "y": 200 },
+      "type": "prompt"
+    },
+    {
+      "data": {
+        "dimensions": null,
+        "filename": null,
+        "image": null,
+        "label": "Avatar Image",
+        "source": "upload",
+        "status": "idle"
+      },
+      "id": "avatar-input",
+      "position": { "x": 50, "y": 350 },
+      "type": "imageInput"
+    },
+    {
+      "data": {
+        "inputText": null,
+        "jobId": null,
+        "label": "Voice Generation",
+        "outputAudio": null,
+        "provider": "elevenlabs",
+        "similarityBoost": 0.8,
+        "speed": 1.0,
+        "stability": 0.6,
+        "status": "idle",
+        "voice": "rachel"
+      },
+      "id": "tts-voice",
+      "position": { "x": 300, "y": 200 },
+      "type": "textToSpeech"
+    },
+    {
+      "data": {
+        "aspectRatio": "16:9",
+        "duration": 5,
+        "inputImage": null,
+        "inputPrompt": null,
+        "inputVideo": null,
+        "jobId": null,
+        "label": "Avatar Motion",
+        "mode": "video_transfer",
+        "motionStrength": 0.3,
+        "outputVideo": null,
+        "status": "idle",
+        "trajectoryPoints": [
+          { "frame": 0, "x": 0.5, "y": 0.5 },
+          { "frame": 30, "x": 0.52, "y": 0.48 },
+          { "frame": 60, "x": 0.48, "y": 0.52 },
+          { "frame": 90, "x": 0.5, "y": 0.5 }
+        ]
+      },
+      "id": "motion-control",
+      "position": { "x": 300, "y": 350 },
+      "type": "motionControl"
+    },
+    {
+      "data": {
+        "activeSpeaker": false,
+        "inputAudio": null,
+        "inputImage": null,
+        "inputVideo": null,
+        "jobId": null,
+        "label": "Lip Sync",
+        "model": "sync/lipsync-2",
+        "outputVideo": null,
+        "status": "idle",
+        "syncMode": "loop",
+        "temperature": 0.5
+      },
+      "id": "lip-sync",
+      "position": { "x": 550, "y": 275 },
+      "type": "lipSync"
+    },
+    {
+      "data": {
+        "inputImage": null,
+        "inputType": null,
+        "inputVideo": null,
+        "label": "Download",
+        "outputName": "ugc-video",
+        "status": "idle"
+      },
+      "id": "output",
+      "position": { "x": 750, "y": 275 },
+      "type": "download"
+    }
+  ],
+  "updatedAt": "2026-02-05T00:00:00.000Z",
+  "version": 3
+}

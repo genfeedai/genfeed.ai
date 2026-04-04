@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "inlineSources": true,
+    "lib": ["ES2020"],
+    "module": "node16",
+    "moduleResolution": "node16",
+    "outDir": "./dist",
+    "paths": {
+      "@genfeedai/enums": ["../enums/src/index.ts"],
+      "@genfeedai/enums/*": ["../enums/src/*"]
+    },
+    "rootDir": "./src",
+    "skipLibCheck": true,
+    "sourceMap": true
+  },
+  "exclude": ["node_modules", "dist", "src/**/*.spec.ts", "src/**/*.test.ts"],
+  "include": ["src/**/*"],
+  "references": [
+    {
+      "path": "../enums"
+    }
+  ]
+}

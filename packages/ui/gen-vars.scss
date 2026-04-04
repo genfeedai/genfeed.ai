@@ -1,0 +1,72 @@
+/**
+ * gen-* overlay design variables
+ *
+ * Composition layer on top of the base token system.
+ * Import this in any app that uses the gen-* design language
+ * (Cloud, Core, extensions, etc.) to get the shared accent,
+ * shadow-glow, and glass overlay vars.
+ *
+ * Usage:
+ *   @use '@genfeedai/design-tokens/gen-vars.scss';
+ */
+
+@layer base {
+  /* Dark theme (default) */
+  :root,
+  [data-theme='dark'] {
+    --gen-accent: 0 0% 100%;
+    --gen-accent-bright: 0 0% 90%;
+    --gen-accent-bg: rgba(255, 255, 255, 0.05);
+    --gen-accent-tint: rgba(255, 255, 255, 0.08);
+    --gen-accent-border: rgba(255, 255, 255, 0.14);
+    --gen-accent-border-strong: rgba(255, 255, 255, 0.2);
+    --gen-accent-glow: rgba(255, 255, 255, 0.15);
+    --gen-accent-hover: rgba(255, 255, 255, 0.25);
+    --gen-accent-selection: rgba(255, 255, 255, 0.3);
+    --gen-accent-text: rgba(255, 255, 255, 0.4);
+    --gen-accent-heading: rgba(255, 255, 255, 0.6);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+    --shadow-glow: 0 0 20px rgba(255, 255, 255, 0.15);
+    --shadow-glow-sm: 0 0 20px rgba(255, 255, 255, 0.08);
+    --shadow-glow-md: 0 0 40px rgba(255, 255, 255, 0.12);
+    --shadow-glow-lg: 0 0 60px rgba(255, 255, 255, 0.15);
+
+    --nn-bg-glass: rgba(255, 255, 255, 0.05);
+    --nn-bg-glass-hover: rgba(255, 255, 255, 0.08);
+    --nn-border-subtle: rgba(255, 255, 255, 0.08);
+    --nn-border-hover: rgba(255, 255, 255, 0.15);
+    --nn-border-active: rgba(255, 255, 255, 0.25);
+  }
+
+  /* Light theme overrides */
+  [data-theme='light'] {
+    --gen-accent: 0 0% 0%;
+    --gen-accent-bright: 0 0% 15%;
+    --gen-accent-bg: rgba(0, 0, 0, 0.03);
+    --gen-accent-tint: rgba(0, 0, 0, 0.05);
+    --gen-accent-border: rgba(0, 0, 0, 0.08);
+    --gen-accent-border-strong: rgba(0, 0, 0, 0.15);
+    --gen-accent-glow: rgba(0, 0, 0, 0.06);
+    --gen-accent-hover: rgba(0, 0, 0, 0.15);
+    --gen-accent-selection: rgba(0, 0, 0, 0.2);
+    --gen-accent-text: rgba(0, 0, 0, 0.5);
+    --gen-accent-heading: rgba(0, 0, 0, 0.7);
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.1);
+    --shadow-glow: none;
+    --shadow-glow-sm: 0 1px 4px rgba(0, 0, 0, 0.06);
+    --shadow-glow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+    --shadow-glow-lg: 0 8px 30px rgba(0, 0, 0, 0.1);
+
+    --nn-bg-glass: rgba(0, 0, 0, 0.02);
+    --nn-bg-glass-hover: rgba(0, 0, 0, 0.04);
+    --nn-border-subtle: rgba(0, 0, 0, 0.06);
+    --nn-border-hover: rgba(0, 0, 0, 0.12);
+    --nn-border-active: rgba(0, 0, 0, 0.2);
+  }
+}

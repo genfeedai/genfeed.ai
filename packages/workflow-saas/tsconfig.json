@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "declaration": true,
+    "declarationMap": true,
+    "esModuleInterop": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "outDir": "./dist",
+    "paths": {
+      "@cloud/interfaces": ["../interfaces/src/index.ts"],
+      "@cloud/interfaces/*": ["../interfaces/src/*"],
+      "@cloud/types": ["../types/src/index.ts"],
+      "@cloud/types/*": ["../types/src/*"],
+      "@cloud/workflow-saas/*": ["./src/*"],
+      "@genfeedai/workflows/contracts": ["./src/workflows-contracts-shim.ts"],
+      "@workflow-saas/*": ["./src/*"]
+    },
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2022"
+  },
+  "exclude": ["node_modules", "dist"],
+  "include": ["src/**/*"]
+}

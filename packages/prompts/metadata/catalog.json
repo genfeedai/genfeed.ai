@@ -1,0 +1,94 @@
+{
+  "prompts": [
+    {
+      "category": "image-generation",
+      "description": "Professional product shots perfect for e-commerce and marketing",
+      "icon": "📦",
+      "slug": "product-photography",
+      "tags": ["product", "ecommerce", "photography", "commercial"],
+      "tier": "free",
+      "title": "Product Photography"
+    },
+    {
+      "category": "image-generation",
+      "description": "Eye-catching images optimized for social media engagement",
+      "icon": "📱",
+      "slug": "social-media-post",
+      "tags": ["social", "media", "marketing", "engagement"],
+      "tier": "free",
+      "title": "Social Media Post"
+    },
+    {
+      "category": "image-generation",
+      "description": "Professional brand advertisements that convert and engage",
+      "icon": "🎯",
+      "slug": "brand-ad",
+      "tags": ["brand", "advertising", "marketing", "commercial"],
+      "tier": "free",
+      "title": "Brand Advertisement"
+    },
+    {
+      "category": "image-generation",
+      "description": "Professional headshots perfect for LinkedIn and business use",
+      "icon": "👤",
+      "slug": "portrait-headshot",
+      "tags": ["portrait", "headshot", "professional", "business"],
+      "tier": "free",
+      "title": "Portrait Headshot"
+    },
+    {
+      "category": "video-generation",
+      "description": "Engaging product demonstration videos that showcase features",
+      "icon": "🎥",
+      "slug": "product-demo",
+      "tags": ["product", "demo", "video", "marketing"],
+      "tier": "free",
+      "title": "Product Demo Video"
+    },
+    {
+      "category": "video-generation",
+      "description": "Short-form video content optimized for social platforms",
+      "icon": "📹",
+      "slug": "social-clip",
+      "tags": ["social", "short-form", "viral", "content"],
+      "tier": "free",
+      "title": "Social Media Clip"
+    },
+    {
+      "category": "video-generation",
+      "description": "Authentic user-generated content style testimonial videos",
+      "icon": "🗣️",
+      "slug": "ugc-testimonial",
+      "tags": ["ugc", "testimonial", "authentic", "conversion"],
+      "tier": "free",
+      "title": "UGC Testimonial"
+    },
+    {
+      "category": "content",
+      "description": "Comprehensive blog post outlines for content marketing",
+      "icon": "📝",
+      "slug": "blog-outline",
+      "tags": ["blog", "content", "seo", "marketing"],
+      "tier": "free",
+      "title": "Blog Post Outline"
+    },
+    {
+      "category": "content",
+      "description": "Engaging captions that drive interaction and engagement",
+      "icon": "💬",
+      "slug": "social-caption",
+      "tags": ["social", "caption", "engagement", "copywriting"],
+      "tier": "free",
+      "title": "Social Media Caption"
+    },
+    {
+      "category": "content",
+      "description": "Effective email sequences for nurturing and conversion",
+      "icon": "📧",
+      "slug": "email-sequence",
+      "tags": ["email", "marketing", "sequence", "automation"],
+      "tier": "free",
+      "title": "Email Marketing Sequence"
+    }
+  ]
+}

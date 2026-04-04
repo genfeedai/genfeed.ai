@@ -1,0 +1,21 @@
+{
+  "description": "Self-hosted fonts for Genfeed.ai - Satoshi + Zodiak",
+  "exports": {
+    ".": {
+      "default": "./index.ts",
+      "types": "./index.ts"
+    },
+    "./fonts": {
+      "default": "./fonts.ts",
+      "types": "./fonts.ts"
+    }
+  },
+  "main": "./index.ts",
+  "name": "@cloud/fonts",
+  "peerDependencies": {
+    "next": ">=14.0.0"
+  },
+  "private": true,
+  "types": "./index.ts",
+  "version": "1.0.0"
+}

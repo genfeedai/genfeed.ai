@@ -1,0 +1,90 @@
+{
+  "dependencies": {
+    "@cloud/types": "workspace:*",
+    "@cloud/workflow": "workspace:*",
+    "@tiptap/core": "3.22.1",
+    "@tiptap/extension-mention": "3.22.1",
+    "@tiptap/extension-placeholder": "3.22.1",
+    "@tiptap/extensions": "3.22.1",
+    "@tiptap/pm": "3.22.1",
+    "@tiptap/react": "3.22.1",
+    "@tiptap/starter-kit": "3.22.1",
+    "@tiptap/suggestion": "3.22.1",
+    "effect": "^3.21.0",
+    "lucide-react": "^1.7.0",
+    "react-markdown": "10.1.0",
+    "remark-gfm": "4.0.1",
+    "zustand": "5.0.12"
+  },
+  "devDependencies": {
+    "react": "19.2.4",
+    "typescript": "5.9.3"
+  },
+  "exports": {
+    ".": {
+      "default": "./src/index.ts",
+      "types": "./src/index.ts"
+    },
+    "./components": {
+      "default": "./src/components/index.ts",
+      "types": "./src/components/index.ts"
+    },
+    "./components/*": {
+      "default": "./src/components/*",
+      "types": "./src/components/*"
+    },
+    "./constants/*": {
+      "default": "./src/constants/*",
+      "types": "./src/constants/*"
+    },
+    "./dashboard": {
+      "default": "./src/dashboard/index.ts",
+      "types": "./src/dashboard/index.ts"
+    },
+    "./hooks": {
+      "default": "./src/hooks/index.ts",
+      "types": "./src/hooks/index.ts"
+    },
+    "./hooks/*": {
+      "default": "./src/hooks/*",
+      "types": "./src/hooks/*"
+    },
+    "./models": {
+      "default": "./src/models/index.ts",
+      "types": "./src/models/index.ts"
+    },
+    "./models/*": {
+      "default": "./src/models/*",
+      "types": "./src/models/*"
+    },
+    "./services/*": {
+      "default": "./src/services/*",
+      "types": "./src/services/*"
+    },
+    "./stores": {
+      "default": "./src/stores/index.ts",
+      "types": "./src/stores/index.ts"
+    },
+    "./stores/*": {
+      "default": "./src/stores/*",
+      "types": "./src/stores/*"
+    },
+    "./workflow": {
+      "default": "./src/workflow/index.ts",
+      "types": "./src/workflow/index.ts"
+    },
+    "./workflow/*": {
+      "default": "./src/workflow/*",
+      "types": "./src/workflow/*"
+    }
+  },
+  "main": "src/index.ts",
+  "name": "@cloud/agent",
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "private": true,
+  "sideEffects": false,
+  "types": "src/index.ts",
+  "version": "1.0.0"
+}

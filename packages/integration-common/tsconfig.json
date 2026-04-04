@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "declaration": true,
+    "outDir": "dist",
+    "paths": {
+      "@cloud/integrations/*": ["./src/*"],
+      "@integrations/*": ["./src/*"]
+    },
+    "rootDir": "src"
+  },
+  "exclude": ["dist", "node_modules", "**/*.spec.ts", "**/*.test.ts"],
+  "extends": "../../tsconfig.json",
+  "include": ["src/**/*"]
+}

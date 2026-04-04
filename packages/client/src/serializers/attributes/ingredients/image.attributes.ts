@@ -1,0 +1,48 @@
+import { createEntityAttributes } from '@genfeedai/helpers';
+import { ingredientAttributes } from '../../attributes/ingredients/ingredient.attributes';
+
+export const imageAttributes = createEntityAttributes([
+  ...ingredientAttributes,
+  'width',
+  'height',
+  'seed',
+  'resolution',
+  'format',
+  'enhanceModel',
+  'outputFormat',
+  'upscaleFactor',
+  'faceEnhancement',
+  'subjectDetection',
+  'faceEnhancementStrength',
+  'faceEnhancementCreativity',
+  'camera',
+  'lens',
+  'style',
+  'mood',
+  'scene',
+  'lighting',
+  'isBrandingEnabled',
+  'blacklist',
+  'fontFamily',
+]);
+
+export const imageEditAttributes = createEntityAttributes([
+  'width',
+  'height',
+  'model',
+  'text',
+  'format',
+  'prompt',
+  'mood',
+  'style',
+  'camera',
+  'scene',
+  'enhanceModel',
+  'outputFormat',
+  'upscaleFactor',
+  'faceEnhancement',
+  'subjectDetection',
+  'faceEnhancementStrength',
+  'faceEnhancementCreativity',
+  'outputs',
+]);

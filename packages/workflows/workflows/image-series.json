@@ -1,0 +1,151 @@
+{
+  "createdAt": "2025-01-19T00:00:00.000Z",
+  "description": "Generate a series of related images from a concept prompt using LLM expansion",
+  "edgeStyle": "smoothstep",
+  "edges": [
+    {
+      "id": "e1",
+      "source": "prompt-1",
+      "sourceHandle": "text",
+      "target": "llm-1",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e2",
+      "source": "llm-1",
+      "sourceHandle": "text",
+      "target": "imageGen-1",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e3",
+      "source": "llm-1",
+      "sourceHandle": "text",
+      "target": "imageGen-2",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e4",
+      "source": "llm-1",
+      "sourceHandle": "text",
+      "target": "imageGen-3",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e5",
+      "source": "imageGen-1",
+      "sourceHandle": "image",
+      "target": "output-1",
+      "targetHandle": "media"
+    },
+    {
+      "id": "e6",
+      "source": "imageGen-2",
+      "sourceHandle": "image",
+      "target": "output-1",
+      "targetHandle": "media"
+    },
+    {
+      "id": "e7",
+      "source": "imageGen-3",
+      "sourceHandle": "image",
+      "target": "output-1",
+      "targetHandle": "media"
+    }
+  ],
+  "name": "Image Series",
+  "nodes": [
+    {
+      "data": {
+        "label": "Concept",
+        "prompt": "Create 3 variations of a futuristic city at sunset. Each should show different architectural styles but maintain a cohesive color palette.",
+        "status": "idle",
+        "variables": {}
+      },
+      "id": "prompt-1",
+      "position": { "x": 50, "y": 200 },
+      "type": "prompt"
+    },
+    {
+      "data": {
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "Prompt Expander",
+        "maxTokens": 1024,
+        "outputText": null,
+        "status": "idle",
+        "systemPrompt": "You are a creative prompt engineer. Take the user's concept and expand it into 3 detailed, specific image generation prompts. Format each prompt on a new line starting with '1.', '2.', '3.'",
+        "temperature": 0.8,
+        "topP": 0.9
+      },
+      "id": "llm-1",
+      "position": { "x": 350, "y": 200 },
+      "type": "llm"
+    },
+    {
+      "data": {
+        "aspectRatio": "16:9",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "Image 1",
+        "model": "nano-banana-pro",
+        "outputFormat": "jpg",
+        "outputImage": null,
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-1",
+      "position": { "x": 700, "y": 50 },
+      "type": "imageGen"
+    },
+    {
+      "data": {
+        "aspectRatio": "16:9",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "Image 2",
+        "model": "nano-banana-pro",
+        "outputFormat": "jpg",
+        "outputImage": null,
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-2",
+      "position": { "x": 700, "y": 250 },
+      "type": "imageGen"
+    },
+    {
+      "data": {
+        "aspectRatio": "16:9",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "Image 3",
+        "model": "nano-banana-pro",
+        "outputFormat": "jpg",
+        "outputImage": null,
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-3",
+      "position": { "x": 700, "y": 450 },
+      "type": "imageGen"
+    },
+    {
+      "data": {
+        "inputMedia": null,
+        "inputType": null,
+        "label": "Final Output",
+        "outputName": "image-series",
+        "status": "idle"
+      },
+      "id": "output-1",
+      "position": { "x": 1050, "y": 250 },
+      "type": "output"
+    }
+  ],
+  "updatedAt": "2025-01-19T00:00:00.000Z",
+  "version": 1
+}

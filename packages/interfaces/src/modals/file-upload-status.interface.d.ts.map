@@ -1,0 +1,1 @@
+{"version":3,"file":"file-upload-status.interface.d.ts","sourceRoot":"","sources":["file-upload-status.interface.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,YAAY,EAAE,MAAM,kBAAkB,CAAC;AAErD,MAAM,WAAW,gBAAgB;IAC/B,IAAI,EAAE,IAAI,CAAC;IACX,EAAE,EAAE,MAAM,CAAC;IACX,QAAQ,EAAE,MAAM,CAAC;IACjB,MAAM,EAAE,YAAY,CAAC;IACrB,KAAK,CAAC,EAAE,MAAM,CAAC;IACf,MAAM,CAAC,EAAE,OAAO,CAAC;CAClB"}

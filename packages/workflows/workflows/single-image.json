@@ -1,0 +1,86 @@
+{
+  "createdAt": "2025-01-19T00:00:00.000Z",
+  "description": "Generate an AI image from a source image (img2img)",
+  "edgeStyle": "smoothstep",
+  "edges": [
+    {
+      "id": "e1",
+      "source": "imageInput-1",
+      "sourceHandle": "image",
+      "target": "imageGen-1",
+      "targetHandle": "images"
+    },
+    {
+      "id": "e2",
+      "source": "prompt-1",
+      "sourceHandle": "text",
+      "target": "imageGen-1",
+      "targetHandle": "prompt"
+    },
+    {
+      "id": "e3",
+      "source": "imageGen-1",
+      "sourceHandle": "image",
+      "target": "output-1",
+      "targetHandle": "media"
+    }
+  ],
+  "name": "Single Image",
+  "nodes": [
+    {
+      "data": {
+        "dimensions": null,
+        "filename": null,
+        "image": null,
+        "label": "Source Image",
+        "source": "upload",
+        "status": "idle"
+      },
+      "id": "imageInput-1",
+      "position": { "x": 50, "y": 150 },
+      "type": "imageInput"
+    },
+    {
+      "data": {
+        "label": "Style Prompt",
+        "prompt": "A cinematic, detailed version of this image with enhanced lighting",
+        "status": "idle",
+        "variables": {}
+      },
+      "id": "prompt-1",
+      "position": { "x": 50, "y": 350 },
+      "type": "prompt"
+    },
+    {
+      "data": {
+        "aspectRatio": "1:1",
+        "inputImages": [],
+        "inputPrompt": null,
+        "jobId": null,
+        "label": "Image Generator",
+        "model": "nano-banana-pro",
+        "outputFormat": "jpg",
+        "outputImage": null,
+        "resolution": "2K",
+        "status": "idle"
+      },
+      "id": "imageGen-1",
+      "position": { "x": 400, "y": 200 },
+      "type": "imageGen"
+    },
+    {
+      "data": {
+        "inputMedia": null,
+        "inputType": "image",
+        "label": "Final Output",
+        "outputName": "generated-image",
+        "status": "idle"
+      },
+      "id": "output-1",
+      "position": { "x": 750, "y": 200 },
+      "type": "output"
+    }
+  ],
+  "updatedAt": "2025-01-19T00:00:00.000Z",
+  "version": 1
+}

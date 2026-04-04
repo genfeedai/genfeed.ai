@@ -1,0 +1,28 @@
+import { createEntityAttributes } from '@genfeedai/helpers';
+
+export const campaignAttributes = createEntityAttributes([
+  'aiConfig',
+  'brand',
+  'campaignType',
+  'completedAt',
+  'credential',
+  'description',
+  'discoveryConfig',
+  'dmConfig',
+  'isActive',
+  'label',
+  'lastActivityAt',
+  'organization',
+  'platform',
+  'rateLimits',
+  'schedule',
+  'startedAt',
+  'status',
+  'totalDmsSent',
+  'totalFailed',
+  'totalReplies',
+  'totalSkipped',
+  'totalSuccessful',
+  'totalTargets',
+  'user',
+]);

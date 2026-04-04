@@ -1,0 +1,26 @@
+import { createEntityAttributes } from '@genfeedai/helpers';
+
+export const settingAttributes = createEntityAttributes([
+  'theme',
+  'isVerified',
+  'isFirstLogin',
+  'isMenuCollapsed',
+  'isSidebarProgressVisible',
+  'isSidebarProgressCollapsed',
+  'isAdvancedMode',
+  'contentPreferences',
+  'favoriteModelKeys',
+  'defaultAgentModel',
+  'isAgentAssetsPanelOpen',
+  'dashboardPreferences',
+  'generationPriority',
+  'isTrendNotificationsInApp',
+  'isTrendNotificationsTelegram',
+  'isTrendNotificationsEmail',
+  'isWorkflowNotificationsEmail',
+  'isVideoNotificationsEmail',
+  'trendNotificationsTelegramChatId',
+  'trendNotificationsEmailAddress',
+  'trendNotificationsFrequency',
+  'trendNotificationsMinViralScore',
+]);

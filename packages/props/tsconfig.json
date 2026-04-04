@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@contexts/*": ["../contexts/*"],
+      "@helpers/*": ["../helpers/src/*"],
+      "@hooks/*": ["../hooks/*"],
+      "@models/*": ["../models/*"],
+      "@pages/*": ["../pages/*"],
+      "@props/*": ["./*"],
+      "@providers/*": ["../providers/*"],
+      "@serializers/*": ["../serializers/src/*"],
+      "@services/*": ["../services/*"],
+      "@styles/*": ["../styles/*"],
+      "@ui-constants/*": ["../ui/constants/*"],
+      "@ui/*": ["../ui/*"],
+      "@utils/*": ["../utils/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist"],
+  "extends": "../tsconfig/base.json",
+  "include": ["**/*.ts", "**/*.tsx"]
+}

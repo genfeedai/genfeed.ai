@@ -1,0 +1,55 @@
+{
+  "category": "content",
+  "createdAt": "2025-01-31T00:00:00.000Z",
+  "description": "Effective email sequences for nurturing and conversion",
+  "icon": "📧",
+  "id": "email-sequence",
+  "tags": ["email", "marketing", "sequence", "automation"],
+  "template": "Design a {type} email sequence for {goal}, {length} emails, {audience} audience, {tone} approach, conversion-focused",
+  "tier": "free",
+  "title": "Email Marketing Sequence",
+  "updatedAt": "2025-01-31T00:00:00.000Z",
+  "variables": [
+    {
+      "default": "welcome",
+      "label": "Sequence Type",
+      "name": "type",
+      "options": ["welcome", "nurture", "sales", "onboarding"],
+      "type": "select"
+    },
+    {
+      "label": "Primary Goal",
+      "name": "goal",
+      "placeholder": "e.g., increase product adoption",
+      "required": true,
+      "type": "text"
+    },
+    {
+      "default": "5-email",
+      "label": "Number of Emails",
+      "name": "length",
+      "options": ["3-email", "5-email", "7-email", "10-email"],
+      "type": "select"
+    },
+    {
+      "default": "new subscribers",
+      "label": "Target Audience",
+      "name": "audience",
+      "options": [
+        "new subscribers",
+        "existing customers",
+        "leads",
+        "inactive users"
+      ],
+      "type": "select"
+    },
+    {
+      "default": "friendly",
+      "label": "Email Tone",
+      "name": "tone",
+      "options": ["friendly", "professional", "urgent", "educational"],
+      "type": "select"
+    }
+  ],
+  "version": 1
+}

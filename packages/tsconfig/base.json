@@ -1,0 +1,52 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "esModuleInterop": true,
+    "incremental": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "paths": {
+      "@api-types/*": ["../../../packages/api-types/src/*"],
+      "@cloud-types/*": ["../types/src/*"],
+      "@cloud/agent": ["../agent/src/index.ts"],
+      "@cloud/agent/*": ["../agent/src/*"],
+      "@cloud/workflow-engine/*": ["../workflow-engine/src/*"],
+      "@cloud/workflow-saas/*": ["../workflow-saas/src/*"],
+      "@cloud/workflow/*": ["../workflow-cloud/src/*"],
+      "@components/*": ["../ui/*"],
+      "@configs/*": ["../../configs/*"],
+      "@contexts/*": ["../contexts/*"],
+      "@helpers/*": ["../helpers/src/*"],
+      "@hooks/*": ["../hooks/*"],
+      "@models/*": ["../models/*"],
+      "@pages/*": ["../pages/*"],
+      "@props/*": ["../props/*"],
+      "@providers/*": ["../providers/*"],
+      "@schemas/*": ["../schemas/*"],
+      "@serializers/*": ["../serializers/src/*"],
+      "@services/*": ["../services/*"],
+      "@styles/*": ["../styles/*"],
+      "@ui-constants/*": ["../ui/constants/*"],
+      "@ui/*": ["../ui/*"],
+      "@utils/*": ["../utils/*"],
+      "@workflow-cloud/*": ["../workflow-cloud/src/*"],
+      "@workflow-engine/*": ["../workflow-engine/src/*"],
+      "@workflow-saas/*": ["../workflow-saas/src/*"]
+    },
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "strictPropertyInitialization": false,
+    "target": "es2022"
+  },
+  "exclude": ["node_modules"]
+}

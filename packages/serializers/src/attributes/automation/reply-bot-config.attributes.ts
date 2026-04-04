@@ -1,0 +1,28 @@
+import { createEntityAttributes } from '@genfeedai/helpers';
+
+export const replyBotConfigAttributes = createEntityAttributes([
+  'organization',
+  'brand',
+  'user',
+  'credential',
+  'name',
+  'description',
+  'type',
+  'platform',
+  'actionType',
+  'isActive',
+  'replyTone',
+  'replyLength',
+  'replyInstructions',
+  'templateId',
+  'dmConfig',
+  'rateLimits',
+  'schedule',
+  'filters',
+  'monitoredAccounts',
+  'totalRepliesSent',
+  'totalDmsSent',
+  'totalSkipped',
+  'totalFailed',
+  'lastActivityAt',
+]);

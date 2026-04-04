@@ -1,0 +1,8 @@
+{
+  "main": "src/index.ts",
+  "name": "@cloud/desktop-core",
+  "private": true,
+  "sideEffects": false,
+  "types": "src/index.ts",
+  "version": "0.1.0"
+}

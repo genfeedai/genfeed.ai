@@ -1,0 +1,1 @@
+{"version":3,"file":"blacklist.interface.d.ts","sourceRoot":"","sources":["blacklist.interface.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,aAAa,EAAE,MAAM,kBAAkB,CAAC;AACtD,OAAO,KAAK,EAAE,WAAW,EAAE,YAAY,EAAE,MAAM,UAAU,CAAC;AAE1D,MAAM,WAAW,iBAAkB,SAAQ,WAAW,EAAE,YAAY;IAClE,QAAQ,CAAC,EAAE,aAAa,CAAC;IACzB,QAAQ,EAAE,OAAO,CAAC;IAClB,SAAS,EAAE,OAAO,CAAC;CACpB"}

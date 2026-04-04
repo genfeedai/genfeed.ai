@@ -1,0 +1,25 @@
+import { createEntityAttributes } from '@genfeedai/helpers';
+
+export const bookmarkAttributes = createEntityAttributes([
+  'user',
+  'organization',
+  'brand',
+  'category',
+  'url',
+  'platform',
+  'title',
+  'content',
+  'description',
+  'author',
+  'authorHandle',
+  'thumbnailUrl',
+  'mediaUrls',
+  'extractedIngredients',
+  'platformData',
+  'intent',
+  'generatedIngredients',
+  'folder',
+  'tags',
+  'savedAt',
+  'processedAt',
+]);

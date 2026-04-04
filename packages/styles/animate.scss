@@ -1,0 +1,11 @@
+@use 'animate-base';
+
+.animate {
+  &-fade-in {
+    animation: fade-in 0.3s ease-out forwards;
+  }
+
+  &-fade-out {
+    animation: fade-out 0.3s ease-out forwards;
+  }
+}
