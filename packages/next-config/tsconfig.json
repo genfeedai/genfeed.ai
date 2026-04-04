@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./",
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "outDir": "./dist",
+    "rootDir": "./",
+    "sourceMap": true
+  },
+  "exclude": ["node_modules", "dist"],
+  "extends": "../tsconfig.json",
+  "include": ["*.ts"]
+}

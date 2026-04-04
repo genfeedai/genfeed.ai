@@ -6,9 +6,10 @@
     "apps/web",
     "apps/admin",
     "apps/website",
-    "apps/desktop",
-    "apps/mobile",
-    "apps/extensions/*",
+    "apps/desktop/app",
+    "apps/mobile/app",
+    "apps/extensions/browser/app",
+    "apps/extensions/ide/app",
     "packages/*",
     "packages/integrations/*",
     "ee/packages/*"
