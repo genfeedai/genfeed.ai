@@ -1,0 +1,91 @@
+import type { WorkflowTemplate } from '@genfeedai/types';
+
+export const VOICE_TO_VIDEO_TEMPLATE: WorkflowTemplate = {
+  createdAt: new Date().toISOString(),
+  description: 'Generate a talking-head video from an image and audio file',
+  edgeStyle: 'smoothstep',
+  edges: [
+    {
+      id: 'e1',
+      source: 'image-1',
+      sourceHandle: 'image',
+      target: 'lipSync-1',
+      targetHandle: 'image',
+    },
+    {
+      id: 'e2',
+      source: 'audio-1',
+      sourceHandle: 'audio',
+      target: 'lipSync-1',
+      targetHandle: 'audio',
+    },
+    {
+      id: 'e3',
+      source: 'lipSync-1',
+      sourceHandle: 'video',
+      target: 'output-1',
+      targetHandle: 'video',
+    },
+  ],
+  name: 'Voice to Video',
+  nodes: [
+    {
+      data: {
+        dimensions: null,
+        filename: null,
+        image: null,
+        label: 'Face Image',
+        source: 'upload',
+        status: 'idle',
+      },
+      id: 'image-1',
+      position: { x: 50, y: 100 },
+      type: 'imageInput',
+    },
+    {
+      data: {
+        audio: null,
+        duration: null,
+        filename: null,
+        label: 'Voice Audio',
+        source: 'upload',
+        status: 'idle',
+      },
+      id: 'audio-1',
+      position: { x: 50, y: 350 },
+      type: 'audioInput',
+    },
+    {
+      data: {
+        activeSpeaker: false,
+        inputAudio: null,
+        inputImage: null,
+        inputVideo: null,
+        jobId: null,
+        label: 'Lip Sync Generator',
+        model: 'sync/lipsync-2',
+        outputVideo: null,
+        status: 'idle',
+        syncMode: 'loop',
+        temperature: 0.5,
+      },
+      id: 'lipSync-1',
+      position: { x: 400, y: 200 },
+      type: 'lipSync',
+    },
+    {
+      data: {
+        inputMedia: null,
+        inputType: 'video',
+        label: 'Final Video',
+        outputName: 'voice-to-video',
+        status: 'idle',
+      },
+      id: 'output-1',
+      position: { x: 750, y: 200 },
+      type: 'download',
+    },
+  ],
+  updatedAt: new Date().toISOString(),
+  version: 1,
+};

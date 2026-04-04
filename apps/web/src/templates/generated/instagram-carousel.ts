@@ -1,0 +1,270 @@
+import type { WorkflowTemplate } from '@genfeedai/types';
+
+export const INSTAGRAM_CAROUSEL_TEMPLATE: WorkflowTemplate = {
+  createdAt: new Date().toISOString(),
+  description:
+    'Generate 3 pose variations of a subject from a single reference image for Instagram carousel posts',
+  edgeStyle: 'smoothstep',
+  edges: [
+    // Concept Prompt → LLMs
+    {
+      id: 'e-concept-llm-1',
+      source: 'concept-prompt',
+      sourceHandle: 'text',
+      target: 'llm-prompt-1',
+      targetHandle: 'prompt',
+    },
+    {
+      id: 'e-concept-llm-2',
+      source: 'concept-prompt',
+      sourceHandle: 'text',
+      target: 'llm-prompt-2',
+      targetHandle: 'prompt',
+    },
+    {
+      id: 'e-concept-llm-3',
+      source: 'concept-prompt',
+      sourceHandle: 'text',
+      target: 'llm-prompt-3',
+      targetHandle: 'prompt',
+    },
+    // LLMs → Image Generators
+    {
+      id: 'e-llm-img-1',
+      source: 'llm-prompt-1',
+      sourceHandle: 'text',
+      target: 'image-gen-1',
+      targetHandle: 'prompt',
+    },
+    {
+      id: 'e-llm-img-2',
+      source: 'llm-prompt-2',
+      sourceHandle: 'text',
+      target: 'image-gen-2',
+      targetHandle: 'prompt',
+    },
+    {
+      id: 'e-llm-img-3',
+      source: 'llm-prompt-3',
+      sourceHandle: 'text',
+      target: 'image-gen-3',
+      targetHandle: 'prompt',
+    },
+    // Reference Image → Image Generators (for character consistency)
+    {
+      id: 'e-ref-img-1',
+      source: 'reference-image',
+      sourceHandle: 'image',
+      target: 'image-gen-1',
+      targetHandle: 'images',
+    },
+    {
+      id: 'e-ref-img-2',
+      source: 'reference-image',
+      sourceHandle: 'image',
+      target: 'image-gen-2',
+      targetHandle: 'images',
+    },
+    {
+      id: 'e-ref-img-3',
+      source: 'reference-image',
+      sourceHandle: 'image',
+      target: 'image-gen-3',
+      targetHandle: 'images',
+    },
+    // Image Generators → Outputs
+    {
+      id: 'e-img-out-1',
+      source: 'image-gen-1',
+      sourceHandle: 'image',
+      target: 'output-1',
+      targetHandle: 'image',
+    },
+    {
+      id: 'e-img-out-2',
+      source: 'image-gen-2',
+      sourceHandle: 'image',
+      target: 'output-2',
+      targetHandle: 'image',
+    },
+    {
+      id: 'e-img-out-3',
+      source: 'image-gen-3',
+      sourceHandle: 'image',
+      target: 'output-3',
+      targetHandle: 'image',
+    },
+  ],
+  name: 'Instagram Carousel',
+  nodes: [
+    // Reference Image Input
+    {
+      data: {
+        dimensions: null,
+        filename: null,
+        image: null,
+        label: 'Reference Image',
+        source: 'upload',
+        status: 'idle',
+      },
+      id: 'reference-image',
+      position: { x: 50, y: 200 },
+      type: 'imageInput',
+    },
+    // Concept Prompt
+    {
+      data: {
+        label: 'Concept Prompt',
+        prompt: 'Professional portrait photography, studio lighting, modern urban background',
+        status: 'idle',
+        variables: {},
+      },
+      id: 'concept-prompt',
+      position: { x: 50, y: 450 },
+      type: 'prompt',
+    },
+    // LLM to expand prompts for each pose
+    {
+      data: {
+        inputPrompt: null,
+        jobId: null,
+        label: 'Pose 1 Prompt',
+        maxTokens: 256,
+        outputText: null,
+        status: 'idle',
+        systemPrompt:
+          "You are a photography director. Take the user's concept and create a detailed image generation prompt for a pose where the subject is looking directly at the camera with an engaging, confident expression. Keep it concise (under 100 words). Start directly with the description, no preamble.",
+        temperature: 0.7,
+        topP: 0.9,
+      },
+      id: 'llm-prompt-1',
+      position: { x: 350, y: 50 },
+      type: 'llm',
+    },
+    {
+      data: {
+        inputPrompt: null,
+        jobId: null,
+        label: 'Pose 2 Prompt',
+        maxTokens: 256,
+        outputText: null,
+        status: 'idle',
+        systemPrompt:
+          "You are a photography director. Take the user's concept and create a detailed image generation prompt for a pose where the subject is looking to the side with a natural, relaxed smile. Keep it concise (under 100 words). Start directly with the description, no preamble.",
+        temperature: 0.7,
+        topP: 0.9,
+      },
+      id: 'llm-prompt-2',
+      position: { x: 350, y: 250 },
+      type: 'llm',
+    },
+    {
+      data: {
+        inputPrompt: null,
+        jobId: null,
+        label: 'Pose 3 Prompt',
+        maxTokens: 256,
+        outputText: null,
+        status: 'idle',
+        systemPrompt:
+          "You are a photography director. Take the user's concept and create a detailed image generation prompt for a candid, playful pose with a spontaneous expression. Keep it concise (under 100 words). Start directly with the description, no preamble.",
+        temperature: 0.7,
+        topP: 0.9,
+      },
+      id: 'llm-prompt-3',
+      position: { x: 350, y: 450 },
+      type: 'llm',
+    },
+    // Image Generation Nodes (3 variations)
+    {
+      data: {
+        aspectRatio: '4:5',
+        inputImages: [],
+        inputPrompt: null,
+        jobId: null,
+        label: 'Pose 1 - Camera',
+        model: 'nano-banana-pro',
+        outputFormat: 'jpg',
+        outputImage: null,
+        resolution: '2K',
+        status: 'idle',
+      },
+      id: 'image-gen-1',
+      position: { x: 650, y: 50 },
+      type: 'imageGen',
+    },
+    {
+      data: {
+        aspectRatio: '4:5',
+        inputImages: [],
+        inputPrompt: null,
+        jobId: null,
+        label: 'Pose 2 - Side',
+        model: 'nano-banana-pro',
+        outputFormat: 'jpg',
+        outputImage: null,
+        resolution: '2K',
+        status: 'idle',
+      },
+      id: 'image-gen-2',
+      position: { x: 650, y: 250 },
+      type: 'imageGen',
+    },
+    {
+      data: {
+        aspectRatio: '4:5',
+        inputImages: [],
+        inputPrompt: null,
+        jobId: null,
+        label: 'Pose 3 - Candid',
+        model: 'nano-banana-pro',
+        outputFormat: 'jpg',
+        outputImage: null,
+        resolution: '2K',
+        status: 'idle',
+      },
+      id: 'image-gen-3',
+      position: { x: 650, y: 450 },
+      type: 'imageGen',
+    },
+    // Output Nodes
+    {
+      data: {
+        inputMedia: null,
+        inputType: 'image',
+        label: 'Carousel Slide 1',
+        outputName: 'carousel-slide-1',
+        status: 'idle',
+      },
+      id: 'output-1',
+      position: { x: 950, y: 50 },
+      type: 'download',
+    },
+    {
+      data: {
+        inputMedia: null,
+        inputType: 'image',
+        label: 'Carousel Slide 2',
+        outputName: 'carousel-slide-2',
+        status: 'idle',
+      },
+      id: 'output-2',
+      position: { x: 950, y: 250 },
+      type: 'download',
+    },
+    {
+      data: {
+        inputMedia: null,
+        inputType: 'image',
+        label: 'Carousel Slide 3',
+        outputName: 'carousel-slide-3',
+        status: 'idle',
+      },
+      id: 'output-3',
+      position: { x: 950, y: 450 },
+      type: 'download',
+    },
+  ],
+  updatedAt: new Date().toISOString(),
+  version: 1,
+};
