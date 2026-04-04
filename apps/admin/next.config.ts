@@ -8,8 +8,8 @@ const withBundleAnalyzer = bundleAnalyzer({
   enabled: process.env.ANALYZE === 'true',
   openAnalyzer: false,
 });
-const helpersRoot = path.resolve(__dirname, '../../../packages/helpers');
-const typesRoot = path.resolve(__dirname, '../../../packages/types');
+const helpersRoot = path.resolve(__dirname, '../../packages/helpers');
+const typesRoot = path.resolve(__dirname, '../../packages/types');
 
 const config = createAppNextConfig({
   appName: 'admin',
@@ -92,9 +92,9 @@ config.turbopack = {
   ...(config.turbopack ?? {}),
   resolveAlias: {
     ...(config.turbopack?.resolveAlias ?? {}),
-    '@genfeedai/serializers': '../../../packages/serializers/src/index.ts',
-    '@genfeedai/types': '../../../packages/types/src/index.ts',
-    '@genfeedai/helpers': '../../../packages/helpers/src/index.ts',
+    '@genfeedai/serializers': '../../packages/serializers/src/index.ts',
+    '@genfeedai/types': '../../packages/types/src/index.ts',
+    '@genfeedai/helpers': '../../packages/helpers/src/index.ts',
   },
   root: path.resolve(__dirname, '../../..'),
 };
@@ -108,7 +108,7 @@ config.transpilePackages = [
 
 const serializersRoot = path.resolve(
   __dirname,
-  '../../../packages/serializers',
+  '../../packages/serializers',
 );
 const existingWebpack = config.webpack;
 

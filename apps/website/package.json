@@ -1,10 +1,10 @@
 {
   "dependencies": {
-    "@genfeedai/types": "workspace:*",
-    "@genfeedai/constants": "workspace:*",
-    "@genfeedai/helpers": "workspace:*",
-    "@genfeedai/interfaces": "workspace:*",
-    "@genfeedai/next-config": "workspace:*",
+    "@genfeedai/constants": "*",
+    "@genfeedai/helpers": "*",
+    "@genfeedai/interfaces": "*",
+    "@genfeedai/next-config": "*",
+    "@genfeedai/types": "*",
     "@tiptap/core": "3.22.1",
     "@tiptap/extension-image": "3.22.1",
     "@tiptap/extension-link": "3.22.1",
@@ -40,5 +40,10 @@
     "test:watch": "vitest --config ../vitest.config.mts",
     "type-check": "tsc --noEmit"
   },
-  "version": "1.0.0"
+  "version": "1.0.0",
+  "devDependencies": {
+    "@types/node": "25.5.2",
+    "@types/react": "19.2.14",
+    "typescript": "6.0.2"
+  }
 }

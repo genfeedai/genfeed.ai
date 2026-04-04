@@ -1,4 +1,5 @@
 export * from './aspect-ratio.helper';
+export * from './auth/clerk.helper';
 export * from './brand-completeness.helper';
 export * from './business/pricing/pricing.helper';
 export * from './business/tier-models/tier-models.helper';
@@ -10,4 +11,3 @@ export * from './quality-routing.helper';
 export * from './serializer.helper';
 export * from './social-url.helper';
 export * from './video-duration.helper';
-export * from './auth/clerk.helper';

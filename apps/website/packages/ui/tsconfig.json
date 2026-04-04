@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@cloud/agent": ["../agent/src/index.ts"],
+      "@cloud/agent/*": ["../agent/src/*"],
+      "@contexts/*": ["../contexts/*"],
+      "@helpers/*": ["../helpers/src/*"],
+      "@hooks/*": ["../hooks/*"],
+      "@models/*": ["../models/*"],
+      "@pages/*": ["../pages/*"],
+      "@props/*": ["../props/*"],
+      "@providers/*": ["../providers/*"],
+      "@serializers/*": ["../serializers/src/*"],
+      "@services/*": ["../services/*"],
+      "@styles/*": ["../styles/*"],
+      "@ui-constants/*": ["../ui/constants/*"],
+      "@ui/*": ["./*"],
+      "@utils/*": ["../utils/*"]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.stories.ts",
+    "**/*.stories.tsx"
+  ],
+  "extends": "../tsconfig/base.json",
+  "include": ["**/*.ts", "**/*.tsx"]
+}

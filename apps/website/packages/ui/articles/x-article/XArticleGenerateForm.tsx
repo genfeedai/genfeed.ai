@@ -1,0 +1,134 @@
+'use client';
+
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type { XArticleGenerateFormProps } from '@props/content/x-article.props';
+import Button from '@ui/buttons/base/Button';
+import Card from '@ui/card/Card';
+import FormControl from '@ui/forms/base/form-control/FormControl';
+import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
+import FormDropdown from '@ui/forms/selectors/dropdown/form-dropdown/FormDropdown';
+import type { ChangeEvent } from 'react';
+import { useState } from 'react';
+import { HiSparkles } from 'react-icons/hi2';
+
+const TONE_OPTIONS = [
+  { key: 'authoritative', label: 'Authoritative' },
+  { key: 'conversational', label: 'Conversational' },
+  { key: 'provocative', label: 'Provocative' },
+  { key: 'analytical', label: 'Analytical' },
+];
+
+export default function XArticleGenerateForm({
+  onGenerate,
+  isGenerating,
+}: XArticleGenerateFormProps) {
+  const [prompt, setPrompt] = useState('');
+  const [tone, setTone] = useState('authoritative');
+  const [targetWordCount, setTargetWordCount] = useState(5000);
+  const [keywords, setKeywords] = useState('');
+  const [isGenerateHeaderImage, setIsGenerateHeaderImage] = useState(true);
+
+  const handleSubmit = () => {
+    if (!prompt.trim() || isGenerating) {
+      return;
+    }
+
+    const keywordList = keywords
+      .split(',')
+      .map((k) => k.trim())
+      .filter(Boolean);
+
+    onGenerate({
+      generateHeaderImage: isGenerateHeaderImage,
+      keywords: keywordList.length > 0 ? keywordList : undefined,
+      prompt: prompt.trim(),
+      targetWordCount,
+      tone,
+    });
+  };
+
+  return (
+    <Card className="mx-auto max-w-2xl">
+      <div className="space-y-5">
+        <div className="mb-2">
+          <h3 className="text-lg font-semibold">Generate X Article</h3>
+          <p className="text-sm text-foreground/60">
+            Describe the long-form article you want to generate
+          </p>
+        </div>
+
+        <FormControl label="Prompt">
+          <textarea
+            className="w-full rounded border border-white/[0.08] bg-white/5 px-3 py-2 text-sm placeholder:text-foreground/40 focus:border-white/20 focus:outline-none focus:ring-1 focus:ring-white/20"
+            rows={4}
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Describe the article topic, angle, and key points to cover..."
+          />
+        </FormControl>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormControl label="Tone">
+            <FormDropdown
+              name="xArticleTone"
+              value={tone}
+              options={TONE_OPTIONS}
+              onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+                setTone(e.target.value)
+              }
+            />
+          </FormControl>
+
+          <FormControl
+            label={`Target Word Count: ${targetWordCount.toLocaleString()}`}
+          >
+            <input
+              type="range"
+              min={2500}
+              max={10000}
+              step={500}
+              value={targetWordCount}
+              onChange={(e) => setTargetWordCount(Number(e.target.value))}
+              className="mt-2 w-full accent-primary"
+            />
+            <div className="flex justify-between text-xs text-foreground/40">
+              <span>2,500</span>
+              <span>10,000</span>
+            </div>
+          </FormControl>
+        </div>
+
+        <FormControl label="Keywords">
+          <FormInput
+            name="xArticleKeywords"
+            value={keywords}
+            onChange={(e: ChangeEvent<HTMLInputElement>) =>
+              setKeywords(e.target.value)
+            }
+            placeholder="keyword1, keyword2, keyword3"
+          />
+        </FormControl>
+
+        <label className="flex items-center gap-2 cursor-pointer text-sm">
+          <input
+            type="checkbox"
+            checked={isGenerateHeaderImage}
+            onChange={(e) => setIsGenerateHeaderImage(e.target.checked)}
+            className="rounded border-white/20 bg-white/5"
+          />
+          Auto-generate header image
+        </label>
+
+        <Button
+          label={isGenerating ? 'Generating...' : 'Generate X Article'}
+          variant={ButtonVariant.DEFAULT}
+          size={ButtonSize.DEFAULT}
+          icon={<HiSparkles className="h-4 w-4" />}
+          isLoading={isGenerating}
+          isDisabled={!prompt.trim() || isGenerating}
+          onClick={handleSubmit}
+        />
+      </div>
+    </Card>
+  );
+}
