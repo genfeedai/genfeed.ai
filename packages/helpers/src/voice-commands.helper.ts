@@ -64,7 +64,7 @@ export function createPromptBarVoiceCommands(
   return [
     // Model selection
     {
-      action: (matches: unknown) => {
+      action: (matches: RegExpMatchArray) => {
         const modelName = matches[1].trim().toLowerCase();
         const modelKey = MODEL_VOICE_ALIASES[modelName];
         if (modelKey) {
@@ -77,7 +77,7 @@ export function createPromptBarVoiceCommands(
 
     // Format selection
     {
-      action: (matches: unknown) => {
+      action: (matches: RegExpMatchArray) => {
         const formatName = matches[1].trim().toLowerCase();
         const format = FORMAT_VOICE_ALIASES[formatName];
         if (format) {
@@ -88,7 +88,7 @@ export function createPromptBarVoiceCommands(
       pattern: /(?:change|set|use|switch to) (?:the )?format (?:to )?(.+)/i,
     },
     {
-      action: (matches: unknown) => {
+      action: (matches: RegExpMatchArray) => {
         const formatName = matches[1].trim().toLowerCase();
         const format = FORMAT_VOICE_ALIASES[formatName];
         if (format) {
@@ -101,7 +101,7 @@ export function createPromptBarVoiceCommands(
 
     // Duration selection
     {
-      action: (matches: unknown) => {
+      action: (matches: RegExpMatchArray) => {
         const duration = parseInt(matches[1], 10);
         if (!Number.isNaN(duration)) {
           setValue('duration', duration);
@@ -112,7 +112,7 @@ export function createPromptBarVoiceCommands(
         /(?:change|set|make it) (?:the )?duration (?:to )?(\d+) seconds?/i,
     },
     {
-      action: (matches: unknown) => {
+      action: (matches: RegExpMatchArray) => {
         const durationStr = matches[1].trim().toLowerCase();
         const duration =
           DURATION_VOICE_ALIASES[`${durationStr} seconds`] ||
@@ -144,7 +144,7 @@ export function createPromptBarVoiceCommands(
 
     // Style/mood/camera shortcuts
     {
-      action: (matches: unknown) => {
+      action: (matches: RegExpMatchArray) => {
         const style = matches[1].trim().toLowerCase().replace(/\s+/g, '-');
         setValue('style', style);
       },
@@ -152,7 +152,7 @@ export function createPromptBarVoiceCommands(
       pattern: /(?:add|set|use) (?:the )?style (.+)/i,
     },
     {
-      action: (matches: unknown) => {
+      action: (matches: RegExpMatchArray) => {
         const mood = matches[1].trim().toLowerCase().replace(/\s+/g, '-');
         setValue('mood', mood);
       },
@@ -160,7 +160,7 @@ export function createPromptBarVoiceCommands(
       pattern: /(?:add|set|use) (?:the )?mood (.+)/i,
     },
     {
-      action: (matches: unknown) => {
+      action: (matches: RegExpMatchArray) => {
         const camera = matches[1].trim().toLowerCase().replace(/\s+/g, '-');
         setValue('camera', camera);
       },

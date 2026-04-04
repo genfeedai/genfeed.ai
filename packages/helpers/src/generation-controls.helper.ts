@@ -1,4 +1,4 @@
-import type { IModel } from '@cloud/interfaces';
+import type { IModel } from '@genfeedai/interfaces';
 import {
   getModelDefaultDuration,
   getModelDurations,

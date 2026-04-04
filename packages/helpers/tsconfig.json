@@ -7,7 +7,7 @@
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
     "inlineSources": true,
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "DOM"],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "./dist",
@@ -21,7 +21,9 @@
       "@genfeedai/helpers/*": ["./src/*"],
       "@genfeedai/interfaces": ["../interfaces/src/index.ts"],
       "@genfeedai/interfaces/*": ["../interfaces/src/*"],
-      "@helpers/*": ["./src/*"]
+      "@helpers/*": ["./src/*"],
+      "@hooks/*": ["../hooks/*"],
+      "@utils/*": ["../utils/*"]
     },
     "rootDir": "./src",
     "skipLibCheck": true,
@@ -29,20 +31,8 @@
     "strict": true,
     "target": "ES2022"
   },
-  "exclude": ["node_modules", "dist"],
-  "include": [
-    "src/index.ts",
-    "src/aspect-ratio.helper.ts",
-    "src/business/pricing/pricing.helper.ts",
-    "src/business/tier-models/tier-models.helper.ts",
-    "src/deserializer.helper.ts",
-    "src/model-capability.helper.ts",
-    "src/quality-routing.helper.ts",
-    "src/serializer.helper.ts",
-    "src/social-url.helper.ts",
-    "src/types/model-like.type.ts",
-    "src/video-duration.helper.ts"
-  ],
+  "exclude": ["node_modules", "dist", "src/**/*.test.ts", "src/**/*.spec.ts", "src/voice-commands.helper.ts", "src/voice/**", "src/media/download/download.helper.ts"],
+  "include": ["src/**/*.ts"],
   "references": [
     {
       "path": "../constants"
