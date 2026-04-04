@@ -1,1 +1,0 @@
-{"version":3,"file":"populate.interface.d.ts","sourceRoot":"","sources":["populate.interface.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,QAAQ,EAAE,MAAM,kBAAkB,CAAC;AAE5C;;;GAGG;AACH,MAAM,WAAW,cAAc;IAC7B,IAAI,EAAE,MAAM,CAAC;IACb,MAAM,CAAC,EAAE,MAAM,CAAC;IAChB,KAAK,CAAC,EAAE,QAAQ,CAAC;IACjB,QAAQ,CAAC,EAAE,cAAc,CAAC;CAC3B"}

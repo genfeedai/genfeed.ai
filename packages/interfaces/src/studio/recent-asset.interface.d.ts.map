@@ -1,1 +1,0 @@
-{"version":3,"file":"recent-asset.interface.d.ts","sourceRoot":"","sources":["recent-asset.interface.ts"],"names":[],"mappings":"AAAA,MAAM,WAAW,WAAW;IAC1B,EAAE,EAAE,MAAM,CAAC;IACX,KAAK,EAAE,MAAM,CAAC;IACd,QAAQ,EAAE,OAAO,GAAG,OAAO,GAAG,OAAO,GAAG,OAAO,GAAG,SAAS,CAAC;IAC5D,SAAS,EAAE,MAAM,CAAC;IAClB,IAAI,EAAE,MAAM,CAAC;CACd"}

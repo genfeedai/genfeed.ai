@@ -1,1 +1,0 @@
-{"version":3,"file":"socket-listener.interface.d.ts","sourceRoot":"","sources":["socket-listener.interface.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,mBAAmB,EAAE,MAAM,UAAU,CAAC;AAEpD,MAAM,WAAW,cAAc;IAC7B,KAAK,EAAE,MAAM,CAAC;IACd,OAAO,EAAE,mBAAmB,CAAC,OAAO,CAAC,CAAC;IACtC,eAAe,EAAE,mBAAmB,CAAC,OAAO,CAAC,CAAC;CAC/C"}
