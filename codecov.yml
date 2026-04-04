@@ -1,0 +1,101 @@
+# Codecov Configuration
+# Enforces coverage requirements across the monorepo
+
+coverage:
+  precision: 2
+  round: down
+  range: "70...100"
+
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 2%
+        if_not_found: success
+
+      # API coverage — never let it drop from base branch
+      api:
+        paths:
+          - "apps/server/api/src/**"
+        target: auto
+        threshold: 2%
+
+      # Packages coverage — never let it drop from base branch
+      packages:
+        paths:
+          - "packages/**"
+        target: auto
+        threshold: 2%
+
+      # Web apps coverage — relaxed (harder to maintain solo)
+      web:
+        paths:
+          - "apps/web/**"
+        target: auto
+        threshold: 3%
+
+    patch:
+      default:
+        target: 80%
+        informational: true
+        if_not_found: success
+
+parsers:
+  gcov:
+    branch_detection:
+      conditional: yes
+      loop: yes
+      method: no
+      macro: no
+
+comment:
+  layout: "reach,diff,flags,files"
+  behavior: default
+  require_changes: true
+  require_base: no
+  require_head: yes
+
+flags:
+  api:
+    paths:
+      - apps/server/api/
+    carryforward: true
+
+  api-e2e:
+    paths:
+      - apps/server/api/
+    carryforward: false
+
+  packages:
+    paths:
+      - packages/
+    carryforward: true
+
+  web:
+    paths:
+      - apps/web/
+    carryforward: true
+
+  extension:
+    paths:
+      - apps/extensions/browser/
+    carryforward: true
+
+  mobile:
+    paths:
+      - apps/mobile/
+    carryforward: true
+
+ignore:
+  - "**/*.spec.ts"
+  - "**/*.test.ts"
+  - "**/*.e2e-spec.ts"
+  - "**/test/**"
+  - "**/tests/**"
+  - "**/__tests__/**"
+  - "**/mocks/**"
+  - "**/fixtures/**"
+  - "**/*.d.ts"
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/.next/**"

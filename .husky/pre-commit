@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+
+# Run lint-staged (Biome check + format on staged files only)
+bunx lint-staged

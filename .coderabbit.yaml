@@ -1,0 +1,80 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: en-US
+reviews:
+  profile: chill
+  high_level_summary: true
+  high_level_summary_in_walkthrough: true
+  review_status: true
+  review_details: false
+  commit_status: true
+  fail_commit_status: false
+  collapse_walkthrough: true
+  changed_files_summary: true
+  sequence_diagrams: false
+  estimate_code_review_effort: true
+  assess_linked_issues: true
+  related_issues: true
+  related_prs: true
+  suggested_labels: false
+  auto_apply_labels: false
+  suggested_reviewers: false
+  auto_assign_reviewers: false
+  in_progress_fortune: false
+  poem: false
+  enable_prompt_for_ai_agents: true
+  path_filters:
+    - "**"
+    - "!**/node_modules/**"
+    - "!**/.next/**"
+    - "!**/.turbo/**"
+    - "!**/dist/**"
+    - "!**/coverage/**"
+    - "!**/test-results/**"
+    - "!**/playwright-report/**"
+    - "!**/*.snap"
+    - "!bun.lock"
+    - "!.agents/**"
+  path_instructions:
+    - path: "apps/server/**/*.ts"
+      instructions: >
+        Focus on correctness, regressions, authorization, and multi-tenancy.
+        Flag MongoDB queries or mutations that do not consistently scope by
+        organization where required, miss soft-delete constraints
+        (`isDeleted: false`) where the collection expects them, or bypass
+        established NestJS module/service/controller boundaries.
+    - path: "packages/serializers/**/*.ts"
+      instructions: >
+        Treat serializer changes as contract changes. Check for accidental
+        attribute removals/renames, broken JSON:API semantics, and leakage of
+        internal-only fields.
+    - path: "apps/web/**/*.{ts,tsx}"
+      instructions: >
+        Focus on user-facing regressions, loading/error-state handling, and
+        contract mismatches with shared packages. Do not spend comments on style
+        issues already enforced by Biome or existing lint rules.
+    - path: ".github/workflows/**/*.{yml,yaml}"
+      instructions: >
+        Focus on broken branch targeting, missing required secrets, accidental
+        workflow duplication, and unsafe permissions changes. Ignore cosmetic
+        YAML formatting comments.
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: false
+    base_branches:
+      - staging
+  pre_merge_checks:
+    title:
+      mode: warning
+      requirements: >
+        Title should clearly describe the change and avoid vague labels like
+        "fix stuff" or "updates".
+    description:
+      mode: warning
+    issue_assessment:
+      mode: off
+  tools:
+    github-checks:
+      enabled: true
+

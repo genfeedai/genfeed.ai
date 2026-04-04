@@ -1,0 +1,1375 @@
+{
+  "cycles": [
+    {
+      "files": [
+        "apps/server/api/src/collections/activities/activities.module.ts",
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/streaks/streaks.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/activities/activities.module.ts -> apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/streaks/streaks.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/activities/activities.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/streaks/streaks.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/activities/activities.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/streaks/streaks.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/activities/activities.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/streaks/streaks.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/activities/activities.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/streaks/streaks.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/activities/activities.module.ts",
+        "apps/server/api/src/collections/images/images.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/streaks/streaks.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/activities/activities.module.ts -> apps/server/api/src/collections/images/images.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/streaks/streaks.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/activities/activities.module.ts",
+        "apps/server/api/src/collections/musics/musics.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts",
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/streaks/streaks.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/activities/activities.module.ts -> apps/server/api/src/collections/musics/musics.module.ts -> apps/server/api/src/collections/videos/videos.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts -> apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/streaks/streaks.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/activities/activities.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts",
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/streaks/streaks.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/activities/activities.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts -> apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/streaks/streaks.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/activities/activities.module.ts",
+        "apps/server/api/src/collections/posts/posts.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts",
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/streaks/streaks.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/activities/activities.module.ts -> apps/server/api/src/collections/posts/posts.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts -> apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/streaks/streaks.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/activities/activities.module.ts",
+        "apps/server/api/src/collections/prompts/prompts.module.ts",
+        "apps/server/api/src/collections/musics/musics.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts",
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/streaks/streaks.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/activities/activities.module.ts -> apps/server/api/src/collections/prompts/prompts.module.ts -> apps/server/api/src/collections/musics/musics.module.ts -> apps/server/api/src/collections/videos/videos.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts -> apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/streaks/streaks.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/activities/activities.module.ts",
+        "apps/server/api/src/collections/streaks/streaks.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts",
+        "apps/server/api/src/collections/credentials/credentials.module.ts",
+        "apps/server/api/src/services/integrations/twitter/twitter.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/activities/activities.module.ts -> apps/server/api/src/collections/streaks/streaks.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts -> apps/server/api/src/collections/credentials/credentials.module.ts -> apps/server/api/src/services/integrations/twitter/twitter.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/activities/activities.module.ts",
+        "apps/server/api/src/collections/streaks/streaks.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/activities/activities.module.ts -> apps/server/api/src/collections/streaks/streaks.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts -> apps/server/api/src/collections/videos/videos.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/activities/activities.module.ts",
+        "apps/server/api/src/collections/streaks/streaks.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts",
+        "apps/server/api/src/collections/musics/musics.module.ts",
+        "apps/server/api/src/collections/prompts/prompts.module.ts",
+        "apps/server/api/src/marketplace/listings/listings.module.ts",
+        "apps/server/api/src/marketplace/purchases/purchases.module.ts",
+        "apps/server/api/src/collections/workflows/workflows.module.ts",
+        "apps/server/api/src/collections/videos/video-generation.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/activities/activities.module.ts -> apps/server/api/src/collections/streaks/streaks.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts -> apps/server/api/src/collections/videos/videos.module.ts -> apps/server/api/src/collections/musics/musics.module.ts -> apps/server/api/src/collections/prompts/prompts.module.ts -> apps/server/api/src/marketplace/listings/listings.module.ts -> apps/server/api/src/marketplace/purchases/purchases.module.ts -> apps/server/api/src/collections/workflows/workflows.module.ts -> apps/server/api/src/collections/videos/video-generation.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/activities/activities.module.ts",
+        "apps/server/api/src/collections/streaks/streaks.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts",
+        "apps/server/api/src/collections/musics/musics.module.ts",
+        "apps/server/api/src/collections/prompts/prompts.module.ts",
+        "apps/server/api/src/marketplace/listings/listings.module.ts",
+        "apps/server/api/src/marketplace/purchases/purchases.module.ts",
+        "apps/server/api/src/collections/workflows/workflows.module.ts",
+        "apps/server/api/src/collections/videos/video-generation.module.ts",
+        "apps/server/api/src/collections/voices/voices.module.ts",
+        "apps/server/api/src/shared/services/failed-generation/failed-generation.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/activities/activities.module.ts -> apps/server/api/src/collections/streaks/streaks.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts -> apps/server/api/src/collections/videos/videos.module.ts -> apps/server/api/src/collections/musics/musics.module.ts -> apps/server/api/src/collections/prompts/prompts.module.ts -> apps/server/api/src/marketplace/listings/listings.module.ts -> apps/server/api/src/marketplace/purchases/purchases.module.ts -> apps/server/api/src/collections/workflows/workflows.module.ts -> apps/server/api/src/collections/videos/video-generation.module.ts -> apps/server/api/src/collections/voices/voices.module.ts -> apps/server/api/src/shared/services/failed-generation/failed-generation.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/activities/services/activities.service.ts",
+        "apps/server/api/src/collections/credits/services/credits.utils.service.ts",
+        "apps/server/api/src/collections/streaks/services/streaks.service.ts"
+      ],
+      "key": "apps/server/api/src/collections/activities/services/activities.service.ts -> apps/server/api/src/collections/credits/services/credits.utils.service.ts -> apps/server/api/src/collections/streaks/services/streaks.service.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/agent-campaigns/agent-campaigns.module.ts",
+        "apps/server/api/src/collections/agent-runs/agent-runs.module.ts",
+        "apps/server/api/src/services/agent-threading/agent-threading.module.ts",
+        "apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/agent-campaigns/agent-campaigns.module.ts -> apps/server/api/src/collections/agent-runs/agent-runs.module.ts -> apps/server/api/src/services/agent-threading/agent-threading.module.ts -> apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/agent-campaigns/agent-campaigns.module.ts",
+        "apps/server/api/src/collections/agent-runs/agent-runs.module.ts",
+        "apps/server/api/src/services/agent-threading/agent-threading.module.ts",
+        "apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts",
+        "apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts",
+        "apps/server/api/src/collections/content-performance/content-performance.module.ts",
+        "apps/server/api/src/queues/core/queues.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/agent-campaigns/agent-campaigns.module.ts -> apps/server/api/src/collections/agent-runs/agent-runs.module.ts -> apps/server/api/src/services/agent-threading/agent-threading.module.ts -> apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts -> apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts -> apps/server/api/src/collections/content-performance/content-performance.module.ts -> apps/server/api/src/queues/core/queues.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/agent-campaigns/agent-campaigns.module.ts",
+        "apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts",
+        "apps/server/api/src/collections/content-performance/content-performance.module.ts",
+        "apps/server/api/src/queues/core/queues.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/agent-campaigns/agent-campaigns.module.ts -> apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts -> apps/server/api/src/collections/content-performance/content-performance.module.ts -> apps/server/api/src/queues/core/queues.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/agent-campaigns/agent-campaigns.module.ts",
+        "apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts",
+        "apps/server/api/src/collections/content-performance/content-performance.module.ts",
+        "apps/server/api/src/queues/core/queues.module.ts",
+        "apps/server/api/src/collections/agent-runs/agent-runs.module.ts",
+        "apps/server/api/src/services/agent-threading/agent-threading.module.ts",
+        "apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/agent-campaigns/agent-campaigns.module.ts -> apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts -> apps/server/api/src/collections/content-performance/content-performance.module.ts -> apps/server/api/src/queues/core/queues.module.ts -> apps/server/api/src/collections/agent-runs/agent-runs.module.ts -> apps/server/api/src/services/agent-threading/agent-threading.module.ts -> apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/agent-campaigns/agent-campaigns.module.ts",
+        "apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts",
+        "apps/server/api/src/collections/content-performance/content-performance.module.ts",
+        "apps/server/api/src/queues/core/queues.module.ts",
+        "apps/server/api/src/collections/workspace-tasks/workspace-tasks.module.ts",
+        "apps/server/api/src/collections/agent-runs/agent-runs.module.ts",
+        "apps/server/api/src/services/agent-threading/agent-threading.module.ts",
+        "apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/agent-campaigns/agent-campaigns.module.ts -> apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts -> apps/server/api/src/collections/content-performance/content-performance.module.ts -> apps/server/api/src/queues/core/queues.module.ts -> apps/server/api/src/collections/workspace-tasks/workspace-tasks.module.ts -> apps/server/api/src/collections/agent-runs/agent-runs.module.ts -> apps/server/api/src/services/agent-threading/agent-threading.module.ts -> apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/agent-campaigns/agent-campaigns.module.ts",
+        "apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts",
+        "apps/server/api/src/collections/content-performance/content-performance.module.ts",
+        "apps/server/api/src/queues/core/queues.module.ts",
+        "apps/server/api/src/collections/workspace-tasks/workspace-tasks.module.ts",
+        "apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/agent-campaigns/agent-campaigns.module.ts -> apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts -> apps/server/api/src/collections/content-performance/content-performance.module.ts -> apps/server/api/src/queues/core/queues.module.ts -> apps/server/api/src/collections/workspace-tasks/workspace-tasks.module.ts -> apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/agent-campaigns/agent-campaigns.module.ts",
+        "apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts",
+        "apps/server/api/src/collections/content-performance/content-performance.module.ts",
+        "apps/server/api/src/queues/core/queues.module.ts",
+        "apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/agent-campaigns/agent-campaigns.module.ts -> apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts -> apps/server/api/src/collections/content-performance/content-performance.module.ts -> apps/server/api/src/queues/core/queues.module.ts -> apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/agent-campaigns/agent-campaigns.module.ts",
+        "apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts",
+        "apps/server/api/src/collections/content-performance/content-performance.module.ts",
+        "apps/server/api/src/queues/core/queues.module.ts",
+        "apps/server/api/src/services/agent-orchestrator/agent-stream-publisher.module.ts",
+        "apps/server/api/src/services/agent-threading/agent-threading.module.ts",
+        "apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/agent-campaigns/agent-campaigns.module.ts -> apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts -> apps/server/api/src/collections/content-performance/content-performance.module.ts -> apps/server/api/src/queues/core/queues.module.ts -> apps/server/api/src/services/agent-orchestrator/agent-stream-publisher.module.ts -> apps/server/api/src/services/agent-threading/agent-threading.module.ts -> apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/agent-campaigns/agent-campaigns.module.ts",
+        "apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts",
+        "apps/server/api/src/collections/content-performance/content-performance.module.ts",
+        "apps/server/api/src/queues/core/queues.module.ts",
+        "apps/server/api/src/services/task-orchestration/task-orchestration.module.ts",
+        "apps/server/api/src/collections/agent-runs/agent-runs.module.ts",
+        "apps/server/api/src/services/agent-threading/agent-threading.module.ts",
+        "apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/agent-campaigns/agent-campaigns.module.ts -> apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts -> apps/server/api/src/collections/content-performance/content-performance.module.ts -> apps/server/api/src/queues/core/queues.module.ts -> apps/server/api/src/services/task-orchestration/task-orchestration.module.ts -> apps/server/api/src/collections/agent-runs/agent-runs.module.ts -> apps/server/api/src/services/agent-threading/agent-threading.module.ts -> apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/agent-runs/agent-runs.module.ts",
+        "apps/server/api/src/collections/workspace-tasks/workspace-tasks.module.ts",
+        "apps/server/api/src/queues/core/queues.module.ts",
+        "apps/server/api/src/collections/content-performance/content-performance.module.ts",
+        "apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts",
+        "apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts",
+        "apps/server/api/src/services/agent-threading/agent-threading.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/agent-runs/agent-runs.module.ts -> apps/server/api/src/collections/workspace-tasks/workspace-tasks.module.ts -> apps/server/api/src/queues/core/queues.module.ts -> apps/server/api/src/collections/content-performance/content-performance.module.ts -> apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts -> apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts -> apps/server/api/src/services/agent-threading/agent-threading.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/agent-runs/agent-runs.module.ts",
+        "apps/server/api/src/queues/core/queues.module.ts",
+        "apps/server/api/src/collections/content-performance/content-performance.module.ts",
+        "apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts",
+        "apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts",
+        "apps/server/api/src/services/agent-threading/agent-threading.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/agent-runs/agent-runs.module.ts -> apps/server/api/src/queues/core/queues.module.ts -> apps/server/api/src/collections/content-performance/content-performance.module.ts -> apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts -> apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts -> apps/server/api/src/services/agent-threading/agent-threading.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/agent-runs/agent-runs.module.ts",
+        "apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts",
+        "apps/server/api/src/services/agent-threading/agent-threading.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/agent-runs/agent-runs.module.ts -> apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts -> apps/server/api/src/services/agent-threading/agent-threading.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/agent-runs/agent-runs.module.ts",
+        "apps/server/api/src/services/agent-threading/agent-threading.module.ts",
+        "apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts",
+        "apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts",
+        "apps/server/api/src/collections/content-performance/content-performance.module.ts",
+        "apps/server/api/src/queues/core/queues.module.ts",
+        "apps/server/api/src/services/task-orchestration/task-orchestration.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/agent-runs/agent-runs.module.ts -> apps/server/api/src/services/agent-threading/agent-threading.module.ts -> apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts -> apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts -> apps/server/api/src/collections/content-performance/content-performance.module.ts -> apps/server/api/src/queues/core/queues.module.ts -> apps/server/api/src/services/task-orchestration/task-orchestration.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts",
+        "apps/server/api/src/collections/content-performance/content-performance.module.ts",
+        "apps/server/api/src/queues/core/queues.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts -> apps/server/api/src/collections/content-performance/content-performance.module.ts -> apps/server/api/src/queues/core/queues.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts",
+        "apps/server/api/src/collections/content-performance/content-performance.module.ts",
+        "apps/server/api/src/queues/core/queues.module.ts",
+        "apps/server/api/src/collections/workspace-tasks/workspace-tasks.module.ts",
+        "apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts -> apps/server/api/src/collections/content-performance/content-performance.module.ts -> apps/server/api/src/queues/core/queues.module.ts -> apps/server/api/src/collections/workspace-tasks/workspace-tasks.module.ts -> apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts",
+        "apps/server/api/src/collections/content-performance/content-performance.module.ts",
+        "apps/server/api/src/queues/core/queues.module.ts",
+        "apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts -> apps/server/api/src/collections/content-performance/content-performance.module.ts -> apps/server/api/src/queues/core/queues.module.ts -> apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts",
+        "apps/server/api/src/collections/content-performance/content-performance.module.ts",
+        "apps/server/api/src/queues/core/queues.module.ts",
+        "apps/server/api/src/services/agent-orchestrator/agent-stream-publisher.module.ts",
+        "apps/server/api/src/services/agent-threading/agent-threading.module.ts",
+        "apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/agent-strategies/agent-strategies.module.ts -> apps/server/api/src/collections/content-performance/content-performance.module.ts -> apps/server/api/src/queues/core/queues.module.ts -> apps/server/api/src/services/agent-orchestrator/agent-stream-publisher.module.ts -> apps/server/api/src/services/agent-threading/agent-threading.module.ts -> apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/assets/assets.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/assets/assets.module.ts -> apps/server/api/src/collections/videos/videos.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credentials/credentials.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credentials/credentials.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/assets/assets.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/assets/assets.module.ts -> apps/server/api/src/collections/videos/videos.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/musics/musics.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/musics/musics.module.ts -> apps/server/api/src/collections/videos/videos.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/posts/posts.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/posts/posts.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/prompts/prompts.module.ts",
+        "apps/server/api/src/collections/musics/musics.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/prompts/prompts.module.ts -> apps/server/api/src/collections/musics/musics.module.ts -> apps/server/api/src/collections/videos/videos.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/subscriptions/subscriptions.module.ts",
+        "apps/server/api/src/collections/users/users.module.ts",
+        "apps/server/api/src/services/notifications/publisher/notifications-publisher.module.ts",
+        "apps/server/api/src/collections/posts/posts.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/subscriptions/subscriptions.module.ts -> apps/server/api/src/collections/users/users.module.ts -> apps/server/api/src/services/notifications/publisher/notifications-publisher.module.ts -> apps/server/api/src/collections/posts/posts.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/templates/templates.module.ts",
+        "apps/server/api/src/collections/posts/posts.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/templates/templates.module.ts -> apps/server/api/src/collections/posts/posts.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/trends/trends.module.ts",
+        "apps/server/api/src/collections/posts/posts.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/trends/trends.module.ts -> apps/server/api/src/collections/posts/posts.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/users/user-setup.module.ts",
+        "apps/server/api/src/collections/users/users.module.ts",
+        "apps/server/api/src/services/notifications/publisher/notifications-publisher.module.ts",
+        "apps/server/api/src/collections/posts/posts.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/users/user-setup.module.ts -> apps/server/api/src/collections/users/users.module.ts -> apps/server/api/src/services/notifications/publisher/notifications-publisher.module.ts -> apps/server/api/src/collections/posts/posts.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/videos/video-generation.module.ts",
+        "apps/server/api/src/collections/workflows/workflows.module.ts",
+        "apps/server/api/src/marketplace/purchases/purchases.module.ts",
+        "apps/server/api/src/marketplace/listings/listings.module.ts",
+        "apps/server/api/src/collections/prompts/prompts.module.ts",
+        "apps/server/api/src/collections/musics/musics.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/videos/video-generation.module.ts -> apps/server/api/src/collections/workflows/workflows.module.ts -> apps/server/api/src/marketplace/purchases/purchases.module.ts -> apps/server/api/src/marketplace/listings/listings.module.ts -> apps/server/api/src/collections/prompts/prompts.module.ts -> apps/server/api/src/collections/musics/musics.module.ts -> apps/server/api/src/collections/videos/videos.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/videos/videos.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/voices/voices.module.ts",
+        "apps/server/api/src/collections/videos/video-generation.module.ts",
+        "apps/server/api/src/collections/workflows/workflows.module.ts",
+        "apps/server/api/src/marketplace/purchases/purchases.module.ts",
+        "apps/server/api/src/marketplace/listings/listings.module.ts",
+        "apps/server/api/src/collections/prompts/prompts.module.ts",
+        "apps/server/api/src/collections/musics/musics.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/voices/voices.module.ts -> apps/server/api/src/collections/videos/video-generation.module.ts -> apps/server/api/src/collections/workflows/workflows.module.ts -> apps/server/api/src/marketplace/purchases/purchases.module.ts -> apps/server/api/src/marketplace/listings/listings.module.ts -> apps/server/api/src/collections/prompts/prompts.module.ts -> apps/server/api/src/collections/musics/musics.module.ts -> apps/server/api/src/collections/videos/videos.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/workflows/workflows.module.ts",
+        "apps/server/api/src/marketplace/purchases/purchases.module.ts",
+        "apps/server/api/src/marketplace/listings/listings.module.ts",
+        "apps/server/api/src/collections/prompts/prompts.module.ts",
+        "apps/server/api/src/collections/musics/musics.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/workflows/workflows.module.ts -> apps/server/api/src/marketplace/purchases/purchases.module.ts -> apps/server/api/src/marketplace/listings/listings.module.ts -> apps/server/api/src/collections/prompts/prompts.module.ts -> apps/server/api/src/collections/musics/musics.module.ts -> apps/server/api/src/collections/videos/videos.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/services/integrations/stripe/stripe.module.ts",
+        "apps/server/api/src/collections/subscriptions/subscriptions.module.ts",
+        "apps/server/api/src/collections/users/users.module.ts",
+        "apps/server/api/src/services/notifications/publisher/notifications-publisher.module.ts",
+        "apps/server/api/src/collections/posts/posts.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/services/integrations/stripe/stripe.module.ts -> apps/server/api/src/collections/subscriptions/subscriptions.module.ts -> apps/server/api/src/collections/users/users.module.ts -> apps/server/api/src/services/notifications/publisher/notifications-publisher.module.ts -> apps/server/api/src/collections/posts/posts.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/services/workflow-executor/workflow-executor.module.ts",
+        "apps/server/api/src/collections/workflows/workflows.module.ts",
+        "apps/server/api/src/marketplace/purchases/purchases.module.ts",
+        "apps/server/api/src/marketplace/listings/listings.module.ts",
+        "apps/server/api/src/collections/prompts/prompts.module.ts",
+        "apps/server/api/src/collections/musics/musics.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/services/workflow-executor/workflow-executor.module.ts -> apps/server/api/src/collections/workflows/workflows.module.ts -> apps/server/api/src/marketplace/purchases/purchases.module.ts -> apps/server/api/src/marketplace/listings/listings.module.ts -> apps/server/api/src/collections/prompts/prompts.module.ts -> apps/server/api/src/collections/musics/musics.module.ts -> apps/server/api/src/collections/videos/videos.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/musics/musics.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/musics/musics.module.ts -> apps/server/api/src/collections/videos/videos.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/newsletters/newsletters.module.ts",
+        "apps/server/api/src/collections/workflows/workflows.module.ts",
+        "apps/server/api/src/marketplace/purchases/purchases.module.ts",
+        "apps/server/api/src/marketplace/listings/listings.module.ts",
+        "apps/server/api/src/collections/prompts/prompts.module.ts",
+        "apps/server/api/src/collections/musics/musics.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/newsletters/newsletters.module.ts -> apps/server/api/src/collections/workflows/workflows.module.ts -> apps/server/api/src/marketplace/purchases/purchases.module.ts -> apps/server/api/src/marketplace/listings/listings.module.ts -> apps/server/api/src/collections/prompts/prompts.module.ts -> apps/server/api/src/collections/musics/musics.module.ts -> apps/server/api/src/collections/videos/videos.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/prompts/prompts.module.ts",
+        "apps/server/api/src/collections/musics/musics.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/prompts/prompts.module.ts -> apps/server/api/src/collections/musics/musics.module.ts -> apps/server/api/src/collections/videos/videos.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/skills/skills.module.ts",
+        "apps/server/api/src/marketplace/purchases/purchases.module.ts",
+        "apps/server/api/src/marketplace/listings/listings.module.ts",
+        "apps/server/api/src/collections/prompts/prompts.module.ts",
+        "apps/server/api/src/collections/musics/musics.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/skills/skills.module.ts -> apps/server/api/src/marketplace/purchases/purchases.module.ts -> apps/server/api/src/marketplace/listings/listings.module.ts -> apps/server/api/src/collections/prompts/prompts.module.ts -> apps/server/api/src/collections/musics/musics.module.ts -> apps/server/api/src/collections/videos/videos.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/trends/trends.module.ts",
+        "apps/server/api/src/collections/posts/posts.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/trends/trends.module.ts -> apps/server/api/src/collections/posts/posts.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/users/user-setup.module.ts",
+        "apps/server/api/src/collections/users/users.module.ts",
+        "apps/server/api/src/services/notifications/publisher/notifications-publisher.module.ts",
+        "apps/server/api/src/collections/posts/posts.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/users/user-setup.module.ts -> apps/server/api/src/collections/users/users.module.ts -> apps/server/api/src/services/notifications/publisher/notifications-publisher.module.ts -> apps/server/api/src/collections/posts/posts.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/users/users.module.ts",
+        "apps/server/api/src/services/notifications/publisher/notifications-publisher.module.ts",
+        "apps/server/api/src/collections/posts/posts.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/users/users.module.ts -> apps/server/api/src/services/notifications/publisher/notifications-publisher.module.ts -> apps/server/api/src/collections/posts/posts.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/videos/video-generation.module.ts",
+        "apps/server/api/src/collections/workflows/workflows.module.ts",
+        "apps/server/api/src/marketplace/purchases/purchases.module.ts",
+        "apps/server/api/src/marketplace/listings/listings.module.ts",
+        "apps/server/api/src/collections/prompts/prompts.module.ts",
+        "apps/server/api/src/collections/musics/musics.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/videos/video-generation.module.ts -> apps/server/api/src/collections/workflows/workflows.module.ts -> apps/server/api/src/marketplace/purchases/purchases.module.ts -> apps/server/api/src/marketplace/listings/listings.module.ts -> apps/server/api/src/collections/prompts/prompts.module.ts -> apps/server/api/src/collections/musics/musics.module.ts -> apps/server/api/src/collections/videos/videos.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/videos/videos.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/workflows/workflows.module.ts",
+        "apps/server/api/src/marketplace/purchases/purchases.module.ts",
+        "apps/server/api/src/marketplace/listings/listings.module.ts",
+        "apps/server/api/src/collections/prompts/prompts.module.ts",
+        "apps/server/api/src/collections/musics/musics.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/workflows/workflows.module.ts -> apps/server/api/src/marketplace/purchases/purchases.module.ts -> apps/server/api/src/marketplace/listings/listings.module.ts -> apps/server/api/src/collections/prompts/prompts.module.ts -> apps/server/api/src/collections/musics/musics.module.ts -> apps/server/api/src/collections/videos/videos.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/services/integrations/instagram/instagram.module.ts",
+        "apps/server/api/src/collections/credentials/credentials.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/services/integrations/instagram/instagram.module.ts -> apps/server/api/src/collections/credentials/credentials.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/services/integrations/linkedin/linkedin.module.ts",
+        "apps/server/api/src/collections/credentials/credentials.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/services/integrations/linkedin/linkedin.module.ts -> apps/server/api/src/collections/credentials/credentials.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/services/integrations/reddit/reddit.module.ts",
+        "apps/server/api/src/collections/credentials/credentials.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/services/integrations/reddit/reddit.module.ts -> apps/server/api/src/collections/credentials/credentials.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/services/integrations/tiktok/tiktok.module.ts",
+        "apps/server/api/src/collections/credentials/credentials.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/services/integrations/tiktok/tiktok.module.ts -> apps/server/api/src/collections/credentials/credentials.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/services/integrations/twitter/twitter.module.ts",
+        "apps/server/api/src/collections/credentials/credentials.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/services/integrations/twitter/twitter.module.ts -> apps/server/api/src/collections/credentials/credentials.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/articles.module.ts",
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/services/integrations/youtube/youtube.module.ts",
+        "apps/server/api/src/collections/credentials/credentials.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/articles.module.ts -> apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/services/integrations/youtube/youtube.module.ts -> apps/server/api/src/collections/credentials/credentials.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/articles/services/articles-content.service.ts",
+        "apps/server/api/src/collections/articles/services/articles.service.ts"
+      ],
+      "key": "apps/server/api/src/collections/articles/services/articles-content.service.ts -> apps/server/api/src/collections/articles/services/articles.service.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/images/images.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/images/images.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/collections/trainings/trainings.module.ts",
+        "apps/server/api/src/collections/images/images.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/collections/trainings/trainings.module.ts -> apps/server/api/src/collections/images/images.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/brands/brands.module.ts",
+        "apps/server/api/src/collections/images/images.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/brands/brands.module.ts -> apps/server/api/src/collections/images/images.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/content-performance/content-performance.module.ts",
+        "apps/server/api/src/queues/core/queues.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/content-performance/content-performance.module.ts -> apps/server/api/src/queues/core/queues.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/credentials/credentials.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/credentials/credentials.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/credentials/credentials.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts",
+        "apps/server/api/src/services/quota/quota.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/credentials/credentials.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts -> apps/server/api/src/services/quota/quota.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/credentials/credentials.module.ts",
+        "apps/server/api/src/services/files-microservice/queue/file-queue.module.ts",
+        "apps/server/api/src/services/integrations/youtube/youtube.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/credentials/credentials.module.ts -> apps/server/api/src/services/files-microservice/queue/file-queue.module.ts -> apps/server/api/src/services/integrations/youtube/youtube.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/credentials/credentials.module.ts",
+        "apps/server/api/src/services/integrations/facebook/facebook.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/credentials/credentials.module.ts -> apps/server/api/src/services/integrations/facebook/facebook.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/credentials/credentials.module.ts",
+        "apps/server/api/src/services/integrations/instagram/instagram.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/credentials/credentials.module.ts -> apps/server/api/src/services/integrations/instagram/instagram.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/credentials/credentials.module.ts",
+        "apps/server/api/src/services/integrations/linkedin/linkedin.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/credentials/credentials.module.ts -> apps/server/api/src/services/integrations/linkedin/linkedin.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/credentials/credentials.module.ts",
+        "apps/server/api/src/services/integrations/pinterest/pinterest.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/credentials/credentials.module.ts -> apps/server/api/src/services/integrations/pinterest/pinterest.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/credentials/credentials.module.ts",
+        "apps/server/api/src/services/integrations/reddit/reddit.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/credentials/credentials.module.ts -> apps/server/api/src/services/integrations/reddit/reddit.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/credentials/credentials.module.ts",
+        "apps/server/api/src/services/integrations/tiktok/tiktok.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/credentials/credentials.module.ts -> apps/server/api/src/services/integrations/tiktok/tiktok.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/credentials/credentials.module.ts",
+        "apps/server/api/src/services/integrations/twitter/twitter.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/credentials/credentials.module.ts -> apps/server/api/src/services/integrations/twitter/twitter.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/credentials/credentials.module.ts",
+        "apps/server/api/src/services/integrations/youtube/youtube.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/credentials/credentials.module.ts -> apps/server/api/src/services/integrations/youtube/youtube.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/credentials/credentials.module.ts",
+        "apps/server/api/src/services/quota/quota.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/credentials/credentials.module.ts -> apps/server/api/src/services/quota/quota.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/queues/credit-deduction/credit-deduction.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/queues/credit-deduction/credit-deduction.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/credits/credits.module.ts",
+        "apps/server/api/src/services/byok-billing/byok-billing.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/credits/credits.module.ts -> apps/server/api/src/services/byok-billing/byok-billing.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/distributions/distributions.module.ts",
+        "apps/server/api/src/services/distribution/telegram/telegram-distribution.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/distributions/distributions.module.ts -> apps/server/api/src/services/distribution/telegram/telegram-distribution.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/monitored-accounts/monitored-accounts.module.ts",
+        "apps/server/api/src/services/reply-bot/reply-bot.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/monitored-accounts/monitored-accounts.module.ts -> apps/server/api/src/services/reply-bot/reply-bot.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/musics/musics.module.ts",
+        "apps/server/api/src/collections/prompts/prompts.module.ts",
+        "apps/server/api/src/marketplace/listings/listings.module.ts",
+        "apps/server/api/src/marketplace/purchases/purchases.module.ts",
+        "apps/server/api/src/collections/workflows/workflows.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/musics/musics.module.ts -> apps/server/api/src/collections/prompts/prompts.module.ts -> apps/server/api/src/marketplace/listings/listings.module.ts -> apps/server/api/src/marketplace/purchases/purchases.module.ts -> apps/server/api/src/collections/workflows/workflows.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/musics/musics.module.ts",
+        "apps/server/api/src/collections/prompts/prompts.module.ts",
+        "apps/server/api/src/marketplace/listings/listings.module.ts",
+        "apps/server/api/src/marketplace/purchases/purchases.module.ts",
+        "apps/server/api/src/collections/workflows/workflows.module.ts",
+        "apps/server/api/src/collections/videos/video-generation.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/musics/musics.module.ts -> apps/server/api/src/collections/prompts/prompts.module.ts -> apps/server/api/src/marketplace/listings/listings.module.ts -> apps/server/api/src/marketplace/purchases/purchases.module.ts -> apps/server/api/src/collections/workflows/workflows.module.ts -> apps/server/api/src/collections/videos/video-generation.module.ts -> apps/server/api/src/collections/videos/videos.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/musics/musics.module.ts",
+        "apps/server/api/src/collections/prompts/prompts.module.ts",
+        "apps/server/api/src/marketplace/listings/listings.module.ts",
+        "apps/server/api/src/marketplace/purchases/purchases.module.ts",
+        "apps/server/api/src/collections/workflows/workflows.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/musics/musics.module.ts -> apps/server/api/src/collections/prompts/prompts.module.ts -> apps/server/api/src/marketplace/listings/listings.module.ts -> apps/server/api/src/marketplace/purchases/purchases.module.ts -> apps/server/api/src/collections/workflows/workflows.module.ts -> apps/server/api/src/collections/videos/videos.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/musics/musics.module.ts",
+        "apps/server/api/src/collections/prompts/prompts.module.ts",
+        "apps/server/api/src/marketplace/listings/listings.module.ts",
+        "apps/server/api/src/marketplace/purchases/purchases.module.ts",
+        "apps/server/api/src/collections/workflows/workflows.module.ts",
+        "apps/server/api/src/services/workflow-executor/workflow-executor.module.ts",
+        "apps/server/api/src/collections/organizations/organizations.module.ts",
+        "apps/server/api/src/collections/videos/videos.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/musics/musics.module.ts -> apps/server/api/src/collections/prompts/prompts.module.ts -> apps/server/api/src/marketplace/listings/listings.module.ts -> apps/server/api/src/marketplace/purchases/purchases.module.ts -> apps/server/api/src/collections/workflows/workflows.module.ts -> apps/server/api/src/services/workflow-executor/workflow-executor.module.ts -> apps/server/api/src/collections/organizations/organizations.module.ts -> apps/server/api/src/collections/videos/videos.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/organizations/organizations.module.ts",
+        "apps/server/api/src/collections/posts/posts.module.ts",
+        "apps/server/api/src/services/notifications/publisher/notifications-publisher.module.ts",
+        "apps/server/api/src/collections/users/users.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/organizations/organizations.module.ts -> apps/server/api/src/collections/posts/posts.module.ts -> apps/server/api/src/services/notifications/publisher/notifications-publisher.module.ts -> apps/server/api/src/collections/users/users.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/organizations/organizations.module.ts",
+        "apps/server/api/src/collections/posts/posts.module.ts",
+        "apps/server/api/src/services/notifications/publisher/notifications-publisher.module.ts",
+        "apps/server/api/src/collections/users/users.module.ts",
+        "apps/server/api/src/collections/subscriptions/subscriptions.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/organizations/organizations.module.ts -> apps/server/api/src/collections/posts/posts.module.ts -> apps/server/api/src/services/notifications/publisher/notifications-publisher.module.ts -> apps/server/api/src/collections/users/users.module.ts -> apps/server/api/src/collections/subscriptions/subscriptions.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/organizations/organizations.module.ts",
+        "apps/server/api/src/collections/posts/posts.module.ts",
+        "apps/server/api/src/services/notifications/publisher/notifications-publisher.module.ts",
+        "apps/server/api/src/collections/users/users.module.ts",
+        "apps/server/api/src/collections/subscriptions/subscriptions.module.ts",
+        "apps/server/api/src/services/integrations/stripe/stripe.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/organizations/organizations.module.ts -> apps/server/api/src/collections/posts/posts.module.ts -> apps/server/api/src/services/notifications/publisher/notifications-publisher.module.ts -> apps/server/api/src/collections/users/users.module.ts -> apps/server/api/src/collections/subscriptions/subscriptions.module.ts -> apps/server/api/src/services/integrations/stripe/stripe.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/organizations/organizations.module.ts",
+        "apps/server/api/src/collections/posts/posts.module.ts",
+        "apps/server/api/src/services/notifications/publisher/notifications-publisher.module.ts",
+        "apps/server/api/src/collections/users/users.module.ts",
+        "apps/server/api/src/collections/users/user-setup.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/organizations/organizations.module.ts -> apps/server/api/src/collections/posts/posts.module.ts -> apps/server/api/src/services/notifications/publisher/notifications-publisher.module.ts -> apps/server/api/src/collections/users/users.module.ts -> apps/server/api/src/collections/users/user-setup.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/outreach-campaigns/outreach-campaigns.module.ts",
+        "apps/server/api/src/queues/core/queues.module.ts",
+        "apps/server/api/src/collections/reply-bot-configs/reply-bot-configs.module.ts",
+        "apps/server/api/src/services/reply-bot/reply-bot.module.ts",
+        "apps/server/api/src/services/campaign/campaign.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/outreach-campaigns/outreach-campaigns.module.ts -> apps/server/api/src/queues/core/queues.module.ts -> apps/server/api/src/collections/reply-bot-configs/reply-bot-configs.module.ts -> apps/server/api/src/services/reply-bot/reply-bot.module.ts -> apps/server/api/src/services/campaign/campaign.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/outreach-campaigns/outreach-campaigns.module.ts",
+        "apps/server/api/src/services/campaign/campaign.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/outreach-campaigns/outreach-campaigns.module.ts -> apps/server/api/src/services/campaign/campaign.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/personas/personas.module.ts",
+        "apps/server/api/src/services/persona-content/persona-content.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/personas/personas.module.ts -> apps/server/api/src/services/persona-content/persona-content.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/prompts/prompts.module.ts",
+        "apps/server/api/src/collections/videos/video-generation.module.ts",
+        "apps/server/api/src/collections/workflows/workflows.module.ts",
+        "apps/server/api/src/marketplace/purchases/purchases.module.ts",
+        "apps/server/api/src/marketplace/listings/listings.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/prompts/prompts.module.ts -> apps/server/api/src/collections/videos/video-generation.module.ts -> apps/server/api/src/collections/workflows/workflows.module.ts -> apps/server/api/src/marketplace/purchases/purchases.module.ts -> apps/server/api/src/marketplace/listings/listings.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/prompts/prompts.module.ts",
+        "apps/server/api/src/marketplace/listings/listings.module.ts",
+        "apps/server/api/src/marketplace/purchases/purchases.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/prompts/prompts.module.ts -> apps/server/api/src/marketplace/listings/listings.module.ts -> apps/server/api/src/marketplace/purchases/purchases.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/prompts/prompts.module.ts",
+        "apps/server/api/src/marketplace/listings/listings.module.ts",
+        "apps/server/api/src/marketplace/purchases/purchases.module.ts",
+        "apps/server/api/src/collections/workflows/workflows.module.ts",
+        "apps/server/api/src/shared/shared.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/prompts/prompts.module.ts -> apps/server/api/src/marketplace/listings/listings.module.ts -> apps/server/api/src/marketplace/purchases/purchases.module.ts -> apps/server/api/src/collections/workflows/workflows.module.ts -> apps/server/api/src/shared/shared.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/reply-bot-configs/reply-bot-configs.module.ts",
+        "apps/server/api/src/services/reply-bot/reply-bot.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/reply-bot-configs/reply-bot-configs.module.ts -> apps/server/api/src/services/reply-bot/reply-bot.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/subscriptions/subscriptions.module.ts",
+        "apps/server/api/src/collections/users/users.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/subscriptions/subscriptions.module.ts -> apps/server/api/src/collections/users/users.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/subscriptions/subscriptions.module.ts",
+        "apps/server/api/src/collections/users/users.module.ts",
+        "apps/server/api/src/services/integrations/stripe/stripe.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/subscriptions/subscriptions.module.ts -> apps/server/api/src/collections/users/users.module.ts -> apps/server/api/src/services/integrations/stripe/stripe.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/subscriptions/subscriptions.module.ts",
+        "apps/server/api/src/services/integrations/stripe/stripe.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/subscriptions/subscriptions.module.ts -> apps/server/api/src/services/integrations/stripe/stripe.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/workflow-executions/workflow-executions.module.ts",
+        "apps/server/api/src/collections/workflows/workflows.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/workflow-executions/workflow-executions.module.ts -> apps/server/api/src/collections/workflows/workflows.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/workflows/workflows.module.ts",
+        "apps/server/api/src/marketplace/listings/listings.module.ts",
+        "apps/server/api/src/marketplace/purchases/purchases.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/workflows/workflows.module.ts -> apps/server/api/src/marketplace/listings/listings.module.ts -> apps/server/api/src/marketplace/purchases/purchases.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/collections/workspace-tasks/workspace-tasks.module.ts",
+        "apps/server/api/src/queues/core/queues.module.ts"
+      ],
+      "key": "apps/server/api/src/collections/workspace-tasks/workspace-tasks.module.ts -> apps/server/api/src/queues/core/queues.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/feature-flag/feature-flag.decorator.ts",
+        "apps/server/api/src/feature-flag/feature-flag.guard.ts"
+      ],
+      "key": "apps/server/api/src/feature-flag/feature-flag.decorator.ts -> apps/server/api/src/feature-flag/feature-flag.guard.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/marketplace/listings/listings.module.ts",
+        "apps/server/api/src/marketplace/purchases/purchases.module.ts"
+      ],
+      "key": "apps/server/api/src/marketplace/listings/listings.module.ts -> apps/server/api/src/marketplace/purchases/purchases.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/queues/core/queues.module.ts",
+        "apps/server/api/src/services/distribution/telegram/telegram-distribution.module.ts"
+      ],
+      "key": "apps/server/api/src/queues/core/queues.module.ts -> apps/server/api/src/services/distribution/telegram/telegram-distribution.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/queues/core/queues.module.ts",
+        "apps/server/api/src/services/integrations/meta-ads/meta-ads.module.ts"
+      ],
+      "key": "apps/server/api/src/queues/core/queues.module.ts -> apps/server/api/src/services/integrations/meta-ads/meta-ads.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/queues/core/queues.module.ts",
+        "apps/server/api/src/services/task-orchestration/task-orchestration.module.ts"
+      ],
+      "key": "apps/server/api/src/queues/core/queues.module.ts -> apps/server/api/src/services/task-orchestration/task-orchestration.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/queues/telegram-distribute/telegram-distribute.processor.ts",
+        "apps/server/api/src/services/distribution/telegram/telegram-distribution.service.ts"
+      ],
+      "key": "apps/server/api/src/queues/telegram-distribute/telegram-distribute.processor.ts -> apps/server/api/src/services/distribution/telegram/telegram-distribution.service.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts",
+        "apps/server/api/src/services/agent-threading/agent-threading.module.ts"
+      ],
+      "key": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator.module.ts -> apps/server/api/src/services/agent-threading/agent-threading.module.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "apps/server/api/src/services/agent-orchestrator/agent-orchestrator.service.ts",
+        "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts",
+        "apps/server/api/src/services/agent-spawn/agent-spawn.service.ts"
+      ],
+      "key": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator.service.ts -> apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts -> apps/server/api/src/services/agent-spawn/agent-spawn.service.ts",
+      "workspace": "apps/server/api"
+    },
+    {
+      "files": [
+        "packages/agent/src/components/blocks/CompositeLayout.tsx",
+        "packages/agent/src/components/blocks/DynamicBlockGrid.tsx"
+      ],
+      "key": "packages/agent/src/components/blocks/CompositeLayout.tsx -> packages/agent/src/components/blocks/DynamicBlockGrid.tsx",
+      "workspace": "packages/agent"
+    },
+    {
+      "files": [
+        "packages/models/content/ingredient.model.ts",
+        "packages/models/content/prompt.model.ts"
+      ],
+      "key": "packages/models/content/ingredient.model.ts -> packages/models/content/prompt.model.ts",
+      "workspace": "packages/models"
+    },
+    {
+      "files": [
+        "packages/models/organization/brand.model.ts",
+        "packages/models/social/link.model.ts"
+      ],
+      "key": "packages/models/organization/brand.model.ts -> packages/models/social/link.model.ts",
+      "workspace": "packages/models"
+    },
+    {
+      "files": [
+        "packages/props/posts/post-quick-actions.props.ts",
+        "packages/ui/posts/quick-actions/post-quick-actions/PostQuickActions.tsx"
+      ],
+      "key": "packages/props/posts/post-quick-actions.props.ts -> packages/ui/posts/quick-actions/post-quick-actions/PostQuickActions.tsx",
+      "workspace": "packages/props"
+    },
+    {
+      "files": [
+        "packages/providers/global-modals/global-modals.provider.tsx",
+        "packages/ui/lazy/modal/LazyModal.tsx",
+        "packages/ui/modals/brands/brand/ModalBrand.tsx"
+      ],
+      "key": "packages/providers/global-modals/global-modals.provider.tsx -> packages/ui/lazy/modal/LazyModal.tsx -> packages/ui/modals/brands/brand/ModalBrand.tsx",
+      "workspace": "packages/providers"
+    },
+    {
+      "files": [
+        "packages/providers/global-modals/global-modals.provider.tsx",
+        "packages/ui/lazy/modal/LazyModal.tsx",
+        "packages/ui/modals/gallery/ModalGallery.tsx",
+        "packages/ui/modals/gallery/ModalGalleryContent.tsx"
+      ],
+      "key": "packages/providers/global-modals/global-modals.provider.tsx -> packages/ui/lazy/modal/LazyModal.tsx -> packages/ui/modals/gallery/ModalGallery.tsx -> packages/ui/modals/gallery/ModalGalleryContent.tsx",
+      "workspace": "packages/providers"
+    },
+    {
+      "files": [
+        "packages/providers/global-modals/global-modals.provider.tsx",
+        "packages/ui/lazy/modal/LazyModal.tsx",
+        "packages/ui/modals/gallery/ModalGallery.tsx",
+        "packages/ui/modals/gallery/ModalGalleryHeader.tsx"
+      ],
+      "key": "packages/providers/global-modals/global-modals.provider.tsx -> packages/ui/lazy/modal/LazyModal.tsx -> packages/ui/modals/gallery/ModalGallery.tsx -> packages/ui/modals/gallery/ModalGalleryHeader.tsx",
+      "workspace": "packages/providers"
+    },
+    {
+      "files": [
+        "packages/providers/global-modals/global-modals.provider.tsx",
+        "packages/ui/lazy/modal/LazyModal.tsx",
+        "packages/ui/modals/ingredients/image-to-video/ModalImageToVideo.tsx",
+        "packages/ui/prompt-bars/base/PromptBar.tsx"
+      ],
+      "key": "packages/providers/global-modals/global-modals.provider.tsx -> packages/ui/lazy/modal/LazyModal.tsx -> packages/ui/modals/ingredients/image-to-video/ModalImageToVideo.tsx -> packages/ui/prompt-bars/base/PromptBar.tsx",
+      "workspace": "packages/providers"
+    },
+    {
+      "files": [
+        "packages/providers/global-modals/global-modals.provider.tsx",
+        "packages/ui/lazy/modal/LazyModal.tsx",
+        "packages/ui/modals/ingredients/ingredient/ModalIngredient.tsx"
+      ],
+      "key": "packages/providers/global-modals/global-modals.provider.tsx -> packages/ui/lazy/modal/LazyModal.tsx -> packages/ui/modals/ingredients/ingredient/ModalIngredient.tsx",
+      "workspace": "packages/providers"
+    },
+    {
+      "files": [
+        "packages/ui/lazy/masonry/LazyMasonry.tsx",
+        "packages/ui/masonry/grid/MasonryGrid.tsx"
+      ],
+      "key": "packages/ui/lazy/masonry/LazyMasonry.tsx -> packages/ui/masonry/grid/MasonryGrid.tsx",
+      "workspace": "packages/ui"
+    },
+    {
+      "files": [
+        "packages/ui/lazy/modal/LazyModal.tsx",
+        "packages/ui/modals/brands/brand/ModalBrand.tsx"
+      ],
+      "key": "packages/ui/lazy/modal/LazyModal.tsx -> packages/ui/modals/brands/brand/ModalBrand.tsx",
+      "workspace": "packages/ui"
+    }
+  ],
+  "version": 1
+}
