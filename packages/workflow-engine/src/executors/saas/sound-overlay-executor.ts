@@ -30,7 +30,7 @@ export type SoundOverlayProcessor = (params: {
  * Supports replace, mix, and background modes with volume controls.
  *
  * Node Type: soundOverlay
- * Definition: @cloud/workflow-saas/nodes/sound-overlay.ts
+ * Definition: @genfeedai/workflow-saas/nodes/sound-overlay.ts
  */
 export class SoundOverlayExecutor extends BaseExecutor {
   readonly nodeType = 'soundOverlay';

@@ -6,7 +6,7 @@ import type {
   WorkflowInputVariable,
   WorkflowNodeData,
   WorkflowVisualNode,
-} from '@cloud/interfaces/automation/workflow-builder.interface';
+} from '@genfeedai/interfaces/automation/workflow-builder.interface';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';

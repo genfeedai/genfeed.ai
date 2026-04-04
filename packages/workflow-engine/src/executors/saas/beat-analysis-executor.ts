@@ -30,7 +30,7 @@ export type BeatAnalyzer = (params: {
  * Uses aubio for accurate onset detection with FFmpeg fallback.
  *
  * Node Type: beatAnalysis
- * Definition: @cloud/workflow-saas/nodes/beat-analysis.ts
+ * Definition: @genfeedai/workflow-saas/nodes/beat-analysis.ts
  */
 export class BeatAnalysisExecutor extends BaseExecutor {
   readonly nodeType = 'beatAnalysis';

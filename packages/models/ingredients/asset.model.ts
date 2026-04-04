@@ -1,4 +1,4 @@
-import type { IAsset } from '@cloud/interfaces';
+import type { IAsset } from '@genfeedai/interfaces';
 import { Asset as BaseAsset } from '@genfeedai/client/models';
 import { User } from '@models/auth/user.model';
 

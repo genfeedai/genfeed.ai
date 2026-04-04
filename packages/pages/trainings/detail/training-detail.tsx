@@ -1,7 +1,7 @@
 'use client';
 
-import type { IBrand } from '@cloud/interfaces';
-import type { TrainingLayoutContentProps } from '@cloud/interfaces/training/training-layout-content.interface';
+import type { IBrand } from '@genfeedai/interfaces';
+import type { TrainingLayoutContentProps } from '@genfeedai/interfaces/training/training-layout-content.interface';
 import { TrainingProvider } from '@contexts/content/training-context/training-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {

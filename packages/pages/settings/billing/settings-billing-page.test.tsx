@@ -2,7 +2,7 @@ import SettingsBillingPage from '@pages/settings/billing/settings-billing-page';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom';
-import type { UseSubscriptionReturn } from '@cloud/interfaces/hooks/hooks.interface';
+import type { UseSubscriptionReturn } from '@genfeedai/interfaces/hooks/hooks.interface';
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({

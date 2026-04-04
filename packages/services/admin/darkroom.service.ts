@@ -7,7 +7,7 @@ import type {
   IPipelineCampaign,
   IPipelineStats,
   IServiceStatus,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import {
   deserializeCollection,
   deserializeResource,

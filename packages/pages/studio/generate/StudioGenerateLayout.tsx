@@ -5,8 +5,8 @@ import type {
   IIngredient,
   IModel,
   IQueryParams,
-} from '@cloud/interfaces';
-import type { AvatarVoiceData } from '@cloud/interfaces/studio/studio-generate.interface';
+} from '@genfeedai/interfaces';
+import type { AvatarVoiceData } from '@genfeedai/interfaces/studio/studio-generate.interface';
 import { useAssetSelection } from '@contexts/ui/asset-selection-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';

@@ -13,7 +13,7 @@ import type {
   ISound,
   ITag,
   ITraining,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import { IngredientCategory, ModelCategory } from '@genfeedai/enums';
 import { useFilteredData } from '@hooks/utils/use-filtered-data/use-filtered-data';
 import { useElementsContext } from '@providers/elements/elements.provider';

@@ -1,4 +1,4 @@
-import type { IOrganizationSetting } from '@cloud/interfaces';
+import type { IOrganizationSetting } from '@genfeedai/interfaces';
 import { IngredientCategory } from '@genfeedai/enums';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { useMemo } from 'react';

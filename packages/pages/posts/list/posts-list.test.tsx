@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import type { IPost } from '@cloud/interfaces';
+import type { IPost } from '@genfeedai/interfaces';
 import { Platform, PostStatus } from '@genfeedai/enums';
 import PostsList from '@pages/posts/list/posts-list';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';

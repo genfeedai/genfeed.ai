@@ -1,6 +1,6 @@
 'use client';
 
-import type { AgentRunStats } from '@cloud/types';
+import type { AgentRunStats } from '@genfeedai/types';
 
 interface RunStatsStripProps {
   stats: AgentRunStats | null;

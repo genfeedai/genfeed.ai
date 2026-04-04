@@ -4,7 +4,7 @@
     "declaration": true,
     "outDir": "dist",
     "paths": {
-      "@cloud/integrations/*": ["./src/*"],
+      "@genfeedai/integrations/*": ["./src/*"],
       "@integrations/*": ["./src/*"]
     },
     "rootDir": "src"

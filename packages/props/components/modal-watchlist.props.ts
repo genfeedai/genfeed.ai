@@ -1,4 +1,4 @@
-import type { IWatchlist } from '@cloud/interfaces';
+import type { IWatchlist } from '@genfeedai/interfaces';
 
 export interface ModalWatchlistProps {
   item?: IWatchlist | null;

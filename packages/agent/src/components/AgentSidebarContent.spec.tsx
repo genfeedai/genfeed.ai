@@ -1,9 +1,9 @@
-import { AgentSidebarContent } from '@cloud/agent/components/AgentSidebarContent';
+import { AgentSidebarContent } from '@genfeedai/agent/components/AgentSidebarContent';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@cloud/agent/components/AgentThreadList', () => ({
+vi.mock('@genfeedai/agent/components/AgentThreadList', () => ({
   AGENT_REFRESH_CONVERSATIONS_EVENT: 'agent:threads:refresh',
   AgentThreadList: () => <div>Thread list</div>,
 }));

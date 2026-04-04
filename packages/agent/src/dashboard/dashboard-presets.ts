@@ -9,7 +9,7 @@ import type {
   IAnalytics,
   MetricCardBlock,
   TopPostItem,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 
 const DEFAULT_OPERATION: AgentDashboardOperation = 'replace';
 

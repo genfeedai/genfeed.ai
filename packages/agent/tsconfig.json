@@ -3,8 +3,8 @@
     "baseUrl": ".",
     "paths": {
       "@agent-tests/*": ["./tests/*"],
-      "@cloud/agent": ["./src/index.ts"],
-      "@cloud/agent/*": ["./src/*"],
+      "@genfeedai/agent": ["./src/index.ts"],
+      "@genfeedai/agent/*": ["./src/*"],
       "@contexts/*": ["../contexts/*"],
       "@helpers/*": ["../helpers/src/*"],
       "@hooks/*": ["../hooks/*"],

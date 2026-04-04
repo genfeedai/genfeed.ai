@@ -1,4 +1,4 @@
-import type { IAsset } from '@cloud/interfaces';
+import type { IAsset } from '@genfeedai/interfaces';
 import type {
   ArticleCategory,
   ArticleStatus,

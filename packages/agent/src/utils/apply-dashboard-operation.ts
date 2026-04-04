@@ -1,5 +1,5 @@
-import { useAgentDashboardStore } from '@cloud/agent/stores/agent-dashboard.store';
-import type { AgentDashboardOperation, AgentUIBlock } from '@cloud/interfaces';
+import { useAgentDashboardStore } from '@genfeedai/agent/stores/agent-dashboard.store';
+import type { AgentDashboardOperation, AgentUIBlock } from '@genfeedai/interfaces';
 
 export function applyDashboardOperation(
   operation: AgentDashboardOperation,

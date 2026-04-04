@@ -1,6 +1,6 @@
 'use client';
 
-import type { ITwitterSearchResult } from '@cloud/interfaces';
+import type { ITwitterSearchResult } from '@genfeedai/interfaces';
 import {
   HiArrowPath,
   HiChatBubbleLeft,

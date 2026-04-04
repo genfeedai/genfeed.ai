@@ -1,4 +1,4 @@
-import type { IOrganizationSetting } from '@cloud/interfaces';
+import type { IOrganizationSetting } from '@genfeedai/interfaces';
 import { OrganizationSetting as BaseOrganizationSetting } from '@genfeedai/client/models';
 
 const OBJECT_ID_BYTE_LENGTH = 12;

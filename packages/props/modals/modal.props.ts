@@ -27,7 +27,7 @@ import type {
   ISound,
   ITag,
   IVideo,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import type {
   MultiPostSchema,
   PromptTextareaSchema,

@@ -1,4 +1,4 @@
-import type { ICreativePattern } from '@cloud/interfaces';
+import type { ICreativePattern } from '@genfeedai/interfaces';
 import type { BaseNodeData } from '@workflow-saas/types';
 
 /**

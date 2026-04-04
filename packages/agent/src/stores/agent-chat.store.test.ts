@@ -1,4 +1,4 @@
-import { useAgentChatStore } from '@cloud/agent/stores/agent-chat.store';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('useAgentChatStore overlay coordination', () => {

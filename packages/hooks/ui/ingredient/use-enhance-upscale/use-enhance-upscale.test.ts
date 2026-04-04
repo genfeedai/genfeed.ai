@@ -1,4 +1,4 @@
-import type { IIngredient } from '@cloud/interfaces';
+import type { IIngredient } from '@genfeedai/interfaces';
 import { IngredientCategory, ModelKey } from '@genfeedai/enums';
 import { useEnhanceUpscale } from '@hooks/ui/ingredient/use-enhance-upscale/use-enhance-upscale';
 import { act, renderHook } from '@testing-library/react';

@@ -1,4 +1,4 @@
-import type { IAnalytics } from '@cloud/interfaces';
+import type { IAnalytics } from '@genfeedai/interfaces';
 import { AnalyticsMetric } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';

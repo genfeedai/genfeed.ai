@@ -1,4 +1,4 @@
-import type { IActivity, ISetting, IUser } from '@cloud/interfaces';
+import type { IActivity, ISetting, IUser } from '@genfeedai/interfaces';
 import { ActivityKey } from '@genfeedai/enums';
 import { describe, expect, it, vi } from 'vitest';
 

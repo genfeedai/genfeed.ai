@@ -1,8 +1,8 @@
 import type {
   IAgentCampaign,
   IAgentCampaignStatusResponse,
-} from '@cloud/interfaces';
-import type { IServiceSerializer } from '@cloud/interfaces/utils/error.interface';
+} from '@genfeedai/interfaces';
+import type { IServiceSerializer } from '@genfeedai/interfaces/utils/error.interface';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import {
   BaseService,

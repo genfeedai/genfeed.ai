@@ -1,6 +1,6 @@
 'use client';
 
-import type { ITrendVideo } from '@cloud/interfaces';
+import type { ITrendVideo } from '@genfeedai/interfaces';
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import { AlertCategory, ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

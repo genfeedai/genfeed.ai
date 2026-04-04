@@ -1,8 +1,8 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import type { IOrganization } from '@cloud/interfaces';
-import type { IElementContentProps } from '@cloud/interfaces/ui/elements-content.interface';
+import type { IOrganization } from '@genfeedai/interfaces';
+import type { IElementContentProps } from '@genfeedai/interfaces/ui/elements-content.interface';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
 import { openModal } from '@helpers/ui/modal/modal.helper';

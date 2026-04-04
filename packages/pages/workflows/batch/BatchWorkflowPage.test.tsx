@@ -34,7 +34,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: mockUseAuthedService,
 }));
 
-vi.mock('@cloud/workflow', () => ({
+vi.mock('@genfeedai/workflow', () => ({
   createWorkflowApiService: function createWorkflowApiService() {
     return workflowApiService;
   },

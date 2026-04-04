@@ -1,4 +1,4 @@
-import type { IIngredient } from '@cloud/interfaces';
+import type { IIngredient } from '@genfeedai/interfaces';
 import { IngredientCategory } from '@genfeedai/enums';
 import { useIngredientsList } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-list';
 import { act, renderHook } from '@testing-library/react';

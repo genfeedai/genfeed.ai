@@ -1,4 +1,4 @@
-import type { IAsset, IImage, IMusic, IVideo } from '@cloud/interfaces';
+import type { IAsset, IImage, IMusic, IVideo } from '@genfeedai/interfaces';
 import type { IngredientCategory, IngredientFormat } from '@genfeedai/enums';
 import type { Dispatch, SetStateAction } from 'react';
 

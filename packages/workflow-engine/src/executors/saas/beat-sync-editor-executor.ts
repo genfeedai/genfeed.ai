@@ -34,7 +34,7 @@ export type BeatSyncEditor = (params: {
  * Supports multiple cut strategies and transition types.
  *
  * Node Type: beatSyncEditor
- * Definition: @cloud/workflow-saas/nodes/beat-sync-editor.ts
+ * Definition: @genfeedai/workflow-saas/nodes/beat-sync-editor.ts
  */
 export class BeatSyncEditorExecutor extends BaseExecutor {
   readonly nodeType = 'beatSyncEditor';

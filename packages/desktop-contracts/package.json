@@ -1,6 +1,6 @@
 {
   "main": "src/index.ts",
-  "name": "@cloud/desktop-contracts",
+  "name": "@genfeedai/desktop-contracts",
   "private": true,
   "sideEffects": false,
   "types": "src/index.ts",

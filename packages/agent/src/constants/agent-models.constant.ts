@@ -1,4 +1,4 @@
-import { DEFAULT_RUNTIME_AGENT_MODEL } from '@cloud/agent/constants/agent-runtime-model.constant';
+import { DEFAULT_RUNTIME_AGENT_MODEL } from '@genfeedai/agent/constants/agent-runtime-model.constant';
 import { CostTier } from '@genfeedai/enums';
 
 export interface AgentModelOption {

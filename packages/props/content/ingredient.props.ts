@@ -5,7 +5,7 @@ import type {
   IIngredient,
   IPost,
   IVideo,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import type {
   AssetScope,
   ComponentSize,

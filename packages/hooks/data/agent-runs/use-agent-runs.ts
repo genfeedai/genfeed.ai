@@ -1,12 +1,12 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import type { IAgentRun } from '@cloud/interfaces';
+import type { IAgentRun } from '@genfeedai/interfaces';
 import type {
   AgentRunListQueryParams,
   AgentRunStats,
   AgentRunTimeRange,
-} from '@cloud/types';
+} from '@genfeedai/types';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { AgentRunsService } from '@services/ai/agent-runs.service';

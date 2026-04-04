@@ -1,5 +1,5 @@
-import type { AgentChatMessage } from '@cloud/agent/models/agent-chat.model';
-import { extractThreadAssets } from '@cloud/agent/utils/extract-thread-assets';
+import type { AgentChatMessage } from '@genfeedai/agent/models/agent-chat.model';
+import { extractThreadAssets } from '@genfeedai/agent/utils/extract-thread-assets';
 import { describe, expect, it } from 'vitest';
 
 const baseMessage: AgentChatMessage = {

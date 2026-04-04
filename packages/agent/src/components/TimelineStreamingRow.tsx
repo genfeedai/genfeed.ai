@@ -1,13 +1,13 @@
-import { TOOL_LABELS } from '@cloud/agent/components/AgentToolCallDisplay';
-import { AnimatedStatusText } from '@cloud/agent/components/AnimatedStatusText';
-import { TimelineWorkEntry } from '@cloud/agent/components/TimelineWorkEntry';
-import { useAnimatedText } from '@cloud/agent/hooks/use-animated-text';
+import { TOOL_LABELS } from '@genfeedai/agent/components/AgentToolCallDisplay';
+import { AnimatedStatusText } from '@genfeedai/agent/components/AnimatedStatusText';
+import { TimelineWorkEntry } from '@genfeedai/agent/components/TimelineWorkEntry';
+import { useAnimatedText } from '@genfeedai/agent/hooks/use-animated-text';
 import {
   AgentWorkEventStatus,
   AgentWorkEventType,
-} from '@cloud/agent/models/agent-chat.model';
-import type { TimelineStreaming } from '@cloud/agent/utils/derive-timeline';
-import { summarizeStreamingProgress } from '@cloud/agent/utils/summarize-streaming-progress';
+} from '@genfeedai/agent/models/agent-chat.model';
+import type { TimelineStreaming } from '@genfeedai/agent/utils/derive-timeline';
+import { summarizeStreamingProgress } from '@genfeedai/agent/utils/summarize-streaming-progress';
 import { type ReactElement, useMemo } from 'react';
 import { HiClock, HiSparkles } from 'react-icons/hi2';
 

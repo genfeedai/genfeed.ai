@@ -7,7 +7,7 @@ import type {
   TemplatePerformance,
   TemplateType,
   TemplateVariable,
-} from '@cloud/interfaces/content/template-ui.interface';
+} from '@genfeedai/interfaces/content/template-ui.interface';
 
 export class Template implements IContentTemplate {
   public id!: string;

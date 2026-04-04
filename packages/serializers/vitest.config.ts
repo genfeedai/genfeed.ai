@@ -33,7 +33,7 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../helpers/src/$1'),
       },
       {
-        find: '@cloud/serializers',
+        find: '@genfeedai/serializers',
         replacement: path.resolve(__dirname, './src'),
       },
       {

@@ -1,8 +1,8 @@
-import type { IArticle, IIngredient, IPost } from '@cloud/interfaces';
+import type { IArticle, IIngredient, IPost } from '@genfeedai/interfaces';
 import type {
   AvatarVoiceOption,
   ProviderVariant,
-} from '@cloud/interfaces/studio/studio-generate.interface';
+} from '@genfeedai/interfaces/studio/studio-generate.interface';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 
 export const IMAGE_OR_VIDEO_CATEGORIES = new Set([

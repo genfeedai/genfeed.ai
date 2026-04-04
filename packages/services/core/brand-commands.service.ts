@@ -3,8 +3,8 @@
  * Generates dynamic commands for brand switching in the command palette
  */
 
-import type { IBrand } from '@cloud/interfaces';
-import type { ICommand } from '@cloud/interfaces/ui/command-palette.interface';
+import type { IBrand } from '@genfeedai/interfaces';
+import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
 import type { Brand } from '@models/organization/brand.model';
 import { HiOutlineUserCircle } from 'react-icons/hi2';
 

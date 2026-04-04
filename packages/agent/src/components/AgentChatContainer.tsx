@@ -1,39 +1,39 @@
 import {
   AgentChatInput,
   type ExtractedMention,
-} from '@cloud/agent/components/AgentChatInput';
+} from '@genfeedai/agent/components/AgentChatInput';
 import {
   AgentChatMessage,
   UiActionRenderer,
-} from '@cloud/agent/components/AgentChatMessage';
-import { AgentInputRequestOverlay } from '@cloud/agent/components/AgentInputRequestOverlay';
-import { AgentPlanReviewCard } from '@cloud/agent/components/AgentPlanReviewCard';
-import { AGENT_REFRESH_CONVERSATIONS_EVENT } from '@cloud/agent/components/AgentThreadList';
-import { AnimatedStatusText } from '@cloud/agent/components/AnimatedStatusText';
-import { OnboardingConversationCard } from '@cloud/agent/components/OnboardingConversationCard';
-import { TimelineStreamingRow } from '@cloud/agent/components/TimelineStreamingRow';
-import { TimelineWorkGroup } from '@cloud/agent/components/TimelineWorkGroup';
-import { useAgentChat } from '@cloud/agent/hooks/use-agent-chat';
-import { useAgentChatStream } from '@cloud/agent/hooks/use-agent-chat-stream';
+} from '@genfeedai/agent/components/AgentChatMessage';
+import { AgentInputRequestOverlay } from '@genfeedai/agent/components/AgentInputRequestOverlay';
+import { AgentPlanReviewCard } from '@genfeedai/agent/components/AgentPlanReviewCard';
+import { AGENT_REFRESH_CONVERSATIONS_EVENT } from '@genfeedai/agent/components/AgentThreadList';
+import { AnimatedStatusText } from '@genfeedai/agent/components/AnimatedStatusText';
+import { OnboardingConversationCard } from '@genfeedai/agent/components/OnboardingConversationCard';
+import { TimelineStreamingRow } from '@genfeedai/agent/components/TimelineStreamingRow';
+import { TimelineWorkGroup } from '@genfeedai/agent/components/TimelineWorkGroup';
+import { useAgentChat } from '@genfeedai/agent/hooks/use-agent-chat';
+import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
 import type {
   AgentChatMessage as AgentChatMessageType,
   AgentWorkEvent,
-} from '@cloud/agent/models/agent-chat.model';
+} from '@genfeedai/agent/models/agent-chat.model';
 import {
   AgentWorkEventStatus,
   AgentWorkEventType,
-} from '@cloud/agent/models/agent-chat.model';
-import type { SuggestedAction } from '@cloud/agent/models/agent-suggested-action.model';
-import type { AgentApiService } from '@cloud/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@cloud/agent/services/agent-base-api.service';
-import { useAgentChatStore } from '@cloud/agent/stores/agent-chat.store';
-import { applyDashboardOperation } from '@cloud/agent/utils/apply-dashboard-operation';
-import { deriveTimeline } from '@cloud/agent/utils/derive-timeline';
-import { mapToolCallResponse } from '@cloud/agent/utils/map-tool-call-response';
-import { resolveRetryPrompt } from '@cloud/agent/utils/resolve-retry-prompt';
-import { PhaseProgress } from '@cloud/agent/workflow/components/PhaseProgress';
-import { useAgentWorkflowStore } from '@cloud/agent/workflow/store';
-import type { AgentDashboardOperation, AgentUIBlock } from '@cloud/interfaces';
+} from '@genfeedai/agent/models/agent-chat.model';
+import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
+import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
+import { deriveTimeline } from '@genfeedai/agent/utils/derive-timeline';
+import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
+import { resolveRetryPrompt } from '@genfeedai/agent/utils/resolve-retry-prompt';
+import { PhaseProgress } from '@genfeedai/agent/workflow/components/PhaseProgress';
+import { useAgentWorkflowStore } from '@genfeedai/agent/workflow/store';
+import type { AgentDashboardOperation, AgentUIBlock } from '@genfeedai/interfaces';
 import {
   AgentThreadStatus,
   AlertCategory,

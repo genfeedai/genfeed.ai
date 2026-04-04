@@ -1,6 +1,6 @@
 'use client';
 
-import type { IBackgroundTaskUpdateEvent } from '@cloud/interfaces';
+import type { IBackgroundTaskUpdateEvent } from '@genfeedai/interfaces';
 import { useBackgroundTaskContext } from '@contexts/ui/background-task-context';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';

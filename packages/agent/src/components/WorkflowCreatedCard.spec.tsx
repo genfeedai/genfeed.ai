@@ -1,5 +1,5 @@
-import { WorkflowCreatedCard } from '@cloud/agent/components/WorkflowCreatedCard';
-import type { AgentUiAction } from '@cloud/agent/models/agent-chat.model';
+import { WorkflowCreatedCard } from '@genfeedai/agent/components/WorkflowCreatedCard';
+import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 

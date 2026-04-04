@@ -1,11 +1,11 @@
-import type { IIngredient, IModel } from '@cloud/interfaces';
+import type { IIngredient, IModel } from '@genfeedai/interfaces';
 import type {
   AvatarGenerationPayload,
   BaseGenerationPayload,
   ImageGenerationPayload,
   MusicGenerationPayload,
   VideoGenerationPayload,
-} from '@cloud/interfaces/content/generation-payload.interface';
+} from '@genfeedai/interfaces/content/generation-payload.interface';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import {
   ContentTemplateKey,

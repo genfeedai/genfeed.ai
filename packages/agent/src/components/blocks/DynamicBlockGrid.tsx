@@ -1,9 +1,9 @@
 'use client';
 
-import CompositeLayout from '@cloud/agent/components/blocks/CompositeLayout';
-import DynamicChart from '@cloud/agent/components/blocks/DynamicChart';
-import DynamicTable from '@cloud/agent/components/blocks/DynamicTable';
-import { SafeMarkdown } from '@cloud/agent/components/SafeMarkdown';
+import CompositeLayout from '@genfeedai/agent/components/blocks/CompositeLayout';
+import DynamicChart from '@genfeedai/agent/components/blocks/DynamicChart';
+import DynamicTable from '@genfeedai/agent/components/blocks/DynamicTable';
+import { SafeMarkdown } from '@genfeedai/agent/components/SafeMarkdown';
 import type {
   AgentUIBlock,
   AgentUIBlockWidth,
@@ -21,7 +21,7 @@ import type {
   TableBlock,
   TextParagraphBlock,
   TopPostsBlock,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import type { ReactElement } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 

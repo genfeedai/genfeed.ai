@@ -7,7 +7,7 @@ import type {
   IPost,
   ISetting,
   IUser,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import {
   AssetScope,
   CredentialPlatform,

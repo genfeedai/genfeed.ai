@@ -2,7 +2,7 @@ import type {
   IEngagementBreakdown,
   IGrowthTrends,
   ITimeSeriesDataPoint,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import { AnalyticsMetric, Timeframe } from '@genfeedai/enums';
 import type { PlatformBreakdownData } from '@services/analytics/analytics.service';
 import type { ComponentType } from 'react';

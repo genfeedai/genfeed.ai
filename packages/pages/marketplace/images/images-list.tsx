@@ -1,6 +1,6 @@
 'use client';
 
-import type { IImage, IIngredient } from '@cloud/interfaces';
+import type { IImage, IIngredient } from '@genfeedai/interfaces';
 import {
   GALLERY_CONTAINER_PADDING,
   GALLERY_EMPTY_MESSAGES,

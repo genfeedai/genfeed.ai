@@ -1,4 +1,4 @@
-import type { AgentUIBlock } from '@cloud/interfaces';
+import type { AgentUIBlock } from '@genfeedai/interfaces';
 import { create } from 'zustand';
 
 export const AGENT_DASHBOARD_STORAGE_KEY = 'genfeed-agent-dashboard-blocks';

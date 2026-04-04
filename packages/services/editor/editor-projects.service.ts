@@ -2,7 +2,7 @@ import type {
   ICreateEditorProjectDto,
   IEditorProject,
   IUpdateEditorProjectDto,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import { EditorProjectStatus, IngredientFormat } from '@genfeedai/enums';
 import {
   deserializeCollection,

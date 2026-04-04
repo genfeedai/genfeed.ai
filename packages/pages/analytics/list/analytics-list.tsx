@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import type { IAnalytics } from '@cloud/interfaces';
+import type { IAnalytics } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AnalyticsMetric,

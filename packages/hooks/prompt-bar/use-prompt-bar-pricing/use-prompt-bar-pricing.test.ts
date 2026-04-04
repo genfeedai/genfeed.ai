@@ -1,4 +1,4 @@
-import type { IModel } from '@cloud/interfaces';
+import type { IModel } from '@genfeedai/interfaces';
 import { usePromptBarPricing } from '@hooks/prompt-bar/use-prompt-bar-pricing/use-prompt-bar-pricing';
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';

@@ -1,6 +1,6 @@
-import type { SuggestedAction } from '@cloud/agent/models/agent-suggested-action.model';
-import { useAgentChatStore } from '@cloud/agent/stores/agent-chat.store';
-import { filterActionsByRole } from '@cloud/agent/utils/filter-actions-by-role';
+import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { filterActionsByRole } from '@genfeedai/agent/utils/filter-actions-by-role';
 import type { MemberRole } from '@genfeedai/enums';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo } from 'react';

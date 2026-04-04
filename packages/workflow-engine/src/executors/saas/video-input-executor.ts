@@ -25,7 +25,7 @@ export type VideoInputValidator = (params: {
  * Validates and resolves video files, calculates total duration.
  *
  * Node Type: videoInput
- * Definition: @cloud/workflow-saas/nodes/video-input.ts
+ * Definition: @genfeedai/workflow-saas/nodes/video-input.ts
  */
 export class VideoInputExecutor extends BaseExecutor {
   readonly nodeType = 'videoInput';

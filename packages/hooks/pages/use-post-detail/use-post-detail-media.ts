@@ -1,6 +1,6 @@
 'use client';
 
-import type { IIngredient, IPost } from '@cloud/interfaces';
+import type { IIngredient, IPost } from '@genfeedai/interfaces';
 import {
   CredentialPlatform,
   IngredientCategory,

@@ -1,4 +1,4 @@
-import type { IQueryParams, ITag } from '@cloud/interfaces';
+import type { IQueryParams, ITag } from '@genfeedai/interfaces';
 import { TagSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type { TagCategory } from '@genfeedai/enums';

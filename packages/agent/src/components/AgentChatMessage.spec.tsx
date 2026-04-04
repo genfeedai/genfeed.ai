@@ -1,5 +1,5 @@
-import { AgentChatMessage } from '@cloud/agent/components/AgentChatMessage';
-import type { AgentChatMessage as AgentChatMessageType } from '@cloud/agent/models/agent-chat.model';
+import { AgentChatMessage } from '@genfeedai/agent/components/AgentChatMessage';
+import type { AgentChatMessage as AgentChatMessageType } from '@genfeedai/agent/models/agent-chat.model';
 import { act, render, screen } from '@testing-library/react';
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
 import type { ReactNode } from 'react';

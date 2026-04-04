@@ -21,13 +21,13 @@ const storeState = {
   ),
 };
 
-vi.mock('@cloud/agent/hooks/use-credential-mentions', () => ({
+vi.mock('@genfeedai/agent/hooks/use-credential-mentions', () => ({
   useCredentialMentions: () => ({
     mentions: [],
   }),
 }));
 
-vi.mock('@cloud/agent/hooks/use-microphone-input', () => ({
+vi.mock('@genfeedai/agent/hooks/use-microphone-input', () => ({
   useMicrophoneInput: () => ({
     isListening: false,
     isSupported: false,
@@ -37,12 +37,12 @@ vi.mock('@cloud/agent/hooks/use-microphone-input', () => ({
   }),
 }));
 
-vi.mock('@cloud/agent/stores/agent-chat.store', () => ({
+vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
   useAgentChatStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector(storeState),
 }));
 
-import { AgentChatInput } from '@cloud/agent/components/AgentChatInput';
+import { AgentChatInput } from '@genfeedai/agent/components/AgentChatInput';
 
 describe('AgentChatInput', () => {
   beforeEach(() => {

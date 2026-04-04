@@ -1,4 +1,4 @@
-import type { IImage } from '@cloud/interfaces';
+import type { IImage } from '@genfeedai/interfaces';
 import type { IngredientFormat } from '@genfeedai/enums';
 
 export interface FrameSequenceSelectorProps {

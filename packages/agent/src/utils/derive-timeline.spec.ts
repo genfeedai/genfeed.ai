@@ -1,11 +1,11 @@
 import type {
   AgentChatMessage,
   AgentWorkEvent,
-} from '@cloud/agent/models/agent-chat.model';
+} from '@genfeedai/agent/models/agent-chat.model';
 import {
   AgentWorkEventStatus,
   AgentWorkEventType,
-} from '@cloud/agent/models/agent-chat.model';
+} from '@genfeedai/agent/models/agent-chat.model';
 import { describe, expect, it } from 'vitest';
 import type { TimelineStreaming } from './derive-timeline';
 import { deriveTimeline } from './derive-timeline';

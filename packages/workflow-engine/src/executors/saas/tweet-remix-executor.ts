@@ -31,7 +31,7 @@ export type TweetRemixer = (params: {
  * Used for social media content creation workflows.
  *
  * Node Type: tweetRemix
- * Definition: @cloud/workflow-saas/nodes/tweet-remix.ts
+ * Definition: @genfeedai/workflow-saas/nodes/tweet-remix.ts
  */
 export class TweetRemixExecutor extends BaseExecutor {
   readonly nodeType = 'tweetRemix';

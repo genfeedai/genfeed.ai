@@ -3,7 +3,7 @@ import {
   AgentApiDecodeError,
   type AgentApiError,
   AgentApiRequestError,
-} from '@cloud/agent/services/agent-api-error';
+} from '@genfeedai/agent/services/agent-api-error';
 import {
   deserializeCollection,
   deserializeResource,

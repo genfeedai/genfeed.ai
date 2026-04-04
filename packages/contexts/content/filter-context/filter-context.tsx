@@ -5,7 +5,7 @@ import type {
   IFilterProviderProps,
   IFilters,
   IFiltersState,
-} from '@cloud/interfaces/utils/filters.interface';
+} from '@genfeedai/interfaces/utils/filters.interface';
 import {
   createContext,
   useCallback,

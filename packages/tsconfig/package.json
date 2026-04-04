@@ -3,7 +3,7 @@
     "base.json",
     "nextjs.json"
   ],
-  "name": "@cloud/tsconfig",
+  "name": "@genfeedai/tsconfig",
   "private": true,
   "version": "1.0.0"
 }

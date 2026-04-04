@@ -5,7 +5,7 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: '@cloud/config',
+        find: '@genfeedai/config',
         replacement: path.resolve(__dirname, '../config/src'),
       },
       {
@@ -13,7 +13,7 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../config/src/$1'),
       },
       {
-        find: '@cloud/integrations',
+        find: '@genfeedai/integrations',
         replacement: path.resolve(__dirname, './src'),
       },
       {

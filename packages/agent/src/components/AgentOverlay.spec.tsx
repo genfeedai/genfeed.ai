@@ -8,7 +8,7 @@ vi.mock('next/navigation', () => ({
   usePathname: () => mockUsePathname(),
 }));
 
-vi.mock('@cloud/agent/components/AgentPanel', () => ({
+vi.mock('@genfeedai/agent/components/AgentPanel', () => ({
   AgentPanel: () => <div data-testid="agent-panel-mock" />,
 }));
 
@@ -33,7 +33,7 @@ vi.mock('@ui/buttons/base/Button', () => ({
   },
 }));
 
-import { AgentOverlay } from '@cloud/agent/components/AgentOverlay';
+import { AgentOverlay } from '@genfeedai/agent/components/AgentOverlay';
 
 describe('AgentOverlay', () => {
   it('renders the overlay controls on non-agent routes and opens the drawer on demand', () => {

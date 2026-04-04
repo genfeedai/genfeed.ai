@@ -1,6 +1,6 @@
 'use client';
 
-import type { IIngredient } from '@cloud/interfaces';
+import type { IIngredient } from '@genfeedai/interfaces';
 import { useIngredientsContext } from '@contexts/content/ingredients-context/ingredients-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {

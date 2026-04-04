@@ -1,5 +1,5 @@
-import { AGENT_MODELS } from '@cloud/agent/constants/agent-models.constant';
-import type { AgentApiConfig } from '@cloud/agent/services/agent-api.service';
+import { AGENT_MODELS } from '@genfeedai/agent/constants/agent-models.constant';
+import type { AgentApiConfig } from '@genfeedai/agent/services/agent-api.service';
 import { ButtonSize, ButtonVariant, CostTier } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Button from '@ui/buttons/base/Button';

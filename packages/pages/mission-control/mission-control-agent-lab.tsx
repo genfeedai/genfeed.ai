@@ -1,11 +1,11 @@
 'use client';
 
-import { AgentChatInput } from '@cloud/agent/components/AgentChatInput';
-import { AgentChatMessage } from '@cloud/agent/components/AgentChatMessage';
+import { AgentChatInput } from '@genfeedai/agent/components/AgentChatInput';
+import { AgentChatMessage } from '@genfeedai/agent/components/AgentChatMessage';
 import type {
   AgentChatMessage as AgentChatMessageModel,
   AgentToolCall,
-} from '@cloud/agent/models/agent-chat.model';
+} from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';

@@ -5,7 +5,7 @@ import type {
   IPrompt,
   ISetting,
   IUser,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import {
   AssetScope,
   IngredientCategory,

@@ -1,4 +1,4 @@
-import type { IMusic } from '@cloud/interfaces';
+import type { IMusic } from '@genfeedai/interfaces';
 import { MusicSerializer } from '@genfeedai/client/serializers';
 import type { Music } from '@models/ingredients/music.model';
 import { IngredientsService } from '@services/content/ingredients.service';

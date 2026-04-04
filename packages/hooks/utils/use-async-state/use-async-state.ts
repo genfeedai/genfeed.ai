@@ -1,7 +1,7 @@
 import type {
   AsyncState,
   UseAsyncStateOptions,
-} from '@cloud/interfaces/hooks/use-async-state.interface';
+} from '@genfeedai/interfaces/hooks/use-async-state.interface';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export function useAsyncState<T = unknown>(

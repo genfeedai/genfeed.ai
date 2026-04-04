@@ -1,4 +1,4 @@
-import type { IAnnouncement } from '@cloud/interfaces';
+import type { IAnnouncement } from '@genfeedai/interfaces';
 
 export interface AnnouncementComposeFormState {
   body: string;

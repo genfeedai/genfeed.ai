@@ -1,6 +1,6 @@
 'use client';
 
-import type { IBatchItem } from '@cloud/interfaces';
+import type { IBatchItem } from '@genfeedai/interfaces';
 import {
   BatchItemStatus,
   ButtonVariant,

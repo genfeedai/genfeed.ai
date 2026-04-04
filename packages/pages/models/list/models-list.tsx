@@ -1,10 +1,10 @@
 'use client';
 
-import type { IModel, IOrganizationSetting } from '@cloud/interfaces';
+import type { IModel, IOrganizationSetting } from '@genfeedai/interfaces';
 import type {
   IFilters,
   IFiltersState,
-} from '@cloud/interfaces/utils/filters.interface';
+} from '@genfeedai/interfaces/utils/filters.interface';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { ModalEnum, ModelCategory } from '@genfeedai/enums';

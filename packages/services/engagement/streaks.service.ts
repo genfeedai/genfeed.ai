@@ -1,4 +1,4 @@
-import type { IStreakCalendarResponse, IStreakSummary } from '@cloud/types';
+import type { IStreakCalendarResponse, IStreakSummary } from '@genfeedai/types';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 

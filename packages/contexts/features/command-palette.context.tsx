@@ -5,7 +5,7 @@ import type {
   ICommandPaletteContext,
   ICommandPaletteProviderProps,
   ICommandPaletteState,
-} from '@cloud/interfaces/ui/command-palette.interface';
+} from '@genfeedai/interfaces/ui/command-palette.interface';
 import { CommandPaletteService } from '@services/core/command-palette.service';
 import { logger } from '@services/core/logger.service';
 import {

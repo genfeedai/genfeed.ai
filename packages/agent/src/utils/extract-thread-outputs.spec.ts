@@ -1,4 +1,4 @@
-import { extractThreadOutputs } from '@cloud/agent/utils/extract-thread-outputs';
+import { extractThreadOutputs } from '@genfeedai/agent/utils/extract-thread-outputs';
 import { describe, expect, it } from 'vitest';
 
 describe('extractThreadOutputs', () => {

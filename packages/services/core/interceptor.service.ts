@@ -1,9 +1,9 @@
-import type { IErrorDebugInfo } from '@cloud/interfaces/modals/error-debug.interface';
+import type { IErrorDebugInfo } from '@genfeedai/interfaces/modals/error-debug.interface';
 import type {
   IHttpCancelledError,
   IHttpInterceptorError,
   IHttpSanitizedError,
-} from '@cloud/interfaces/utils/http-interceptor-error.interface';
+} from '@genfeedai/interfaces/utils/http-interceptor-error.interface';
 import { ModalEnum } from '@genfeedai/enums';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { EnvironmentService } from '@services/core/environment.service';

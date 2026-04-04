@@ -2,7 +2,7 @@ import {
   type AgentChatMessage as AgentChatMessageType,
   AgentWorkEventStatus,
   AgentWorkEventType,
-} from '@cloud/agent/models/agent-chat.model';
+} from '@genfeedai/agent/models/agent-chat.model';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Effect } from 'effect';
 import type { ReactNode } from 'react';
@@ -126,13 +126,13 @@ vi.mock('@ui/prompt-bars/components/suggestions/PromptBarSuggestions', () => ({
   },
 }));
 
-vi.mock('@cloud/agent/hooks/use-agent-chat', () => ({
+vi.mock('@genfeedai/agent/hooks/use-agent-chat', () => ({
   useAgentChat: () => ({
     sendMessage: sendNonStreaming,
   }),
 }));
 
-vi.mock('@cloud/agent/hooks/use-agent-chat-stream', () => ({
+vi.mock('@genfeedai/agent/hooks/use-agent-chat-stream', () => ({
   useAgentChatStream: () => ({
     isStreaming: isStreamingHookActive,
     sendMessage: sendStreaming,
@@ -143,13 +143,13 @@ vi.mock('../utils/extract-thread-assets', () => ({
   extractThreadAssets: () => [],
 }));
 
-vi.mock('@cloud/agent/components/AgentChatInput', () => ({
+vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
   AgentChatInput: function MockAgentChatInput(props: { showStop?: boolean }) {
     return <div>chat-input{props.showStop ? ' stop-visible' : ''}</div>;
   },
 }));
 
-vi.mock('@cloud/agent/components/AgentChatMessage', () => ({
+vi.mock('@genfeedai/agent/components/AgentChatMessage', () => ({
   AgentChatMessage: function MockAgentChatMessage(props: {
     message?: {
       role?: string;
@@ -209,13 +209,13 @@ vi.mock('@cloud/agent/components/AgentChatMessage', () => ({
   },
 }));
 
-vi.mock('@cloud/agent/components/TimelineWorkGroup', () => ({
+vi.mock('@genfeedai/agent/components/TimelineWorkGroup', () => ({
   TimelineWorkGroup: function MockTimelineWorkGroup() {
     return <div>work-group</div>;
   },
 }));
 
-vi.mock('@cloud/agent/components/TimelineStreamingRow', () => ({
+vi.mock('@genfeedai/agent/components/TimelineStreamingRow', () => ({
   TimelineStreamingRow: function MockTimelineStreamingRow(props: {
     entry?: {
       runDurationLabel?: string | null;
@@ -241,7 +241,7 @@ vi.mock('./AgentToolCallDisplay', () => ({
   TOOL_LABELS: {},
 }));
 
-vi.mock('@cloud/agent/components/AgentInputRequestOverlay', () => ({
+vi.mock('@genfeedai/agent/components/AgentInputRequestOverlay', () => ({
   AgentInputRequestOverlay: function MockAgentInputRequestOverlay(props: {
     onSubmit: (answer: string) => Promise<void>;
   }) {
@@ -422,12 +422,12 @@ function buildAssistantMessage(
   };
 }
 
-vi.mock('@cloud/agent/stores/agent-chat.store', () => ({
+vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
   useAgentChatStore: (selector: (state: StoreState) => unknown) =>
     selector(storeState),
 }));
 
-let AgentChatContainer: typeof import('@cloud/agent/components/AgentChatContainer').AgentChatContainer;
+let AgentChatContainer: typeof import('@genfeedai/agent/components/AgentChatContainer').AgentChatContainer;
 
 describe('AgentChatContainer', () => {
   beforeAll(async () => {
@@ -440,7 +440,7 @@ describe('AgentChatContainer', () => {
     }
 
     ({ AgentChatContainer } = await import(
-      '@cloud/agent/components/AgentChatContainer'
+      '@genfeedai/agent/components/AgentChatContainer'
     ));
   });
 

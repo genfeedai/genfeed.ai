@@ -9,7 +9,7 @@ import type {
   ILinkPerformance,
   ITrackedLink,
   IUTMBuilder,
-} from '@cloud/interfaces/analytics/link-tracking.interface';
+} from '@genfeedai/interfaces/analytics/link-tracking.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import { logger } from '@services/core/logger.service';

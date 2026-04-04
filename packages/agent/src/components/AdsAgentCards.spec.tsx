@@ -2,8 +2,8 @@ import {
   AdDetailSummaryCard,
   AdsSearchResultsCard,
   CampaignLaunchPrepCard,
-} from '@cloud/agent/components/AdsAgentCards';
-import type { AgentUiAction } from '@cloud/agent/models/agent-chat.model';
+} from '@genfeedai/agent/components/AdsAgentCards';
+import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 

@@ -11,11 +11,11 @@ import type {
   IElementScene,
   IElementStyle,
   ISound,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import type {
   IFilters,
   IFiltersState,
-} from '@cloud/interfaces/utils/filters.interface';
+} from '@genfeedai/interfaces/utils/filters.interface';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { LayoutProps } from '@props/layout/layout.props';
 import {

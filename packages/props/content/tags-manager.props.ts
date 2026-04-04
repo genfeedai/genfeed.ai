@@ -1,4 +1,4 @@
-import type { IIngredient, ITag } from '@cloud/interfaces';
+import type { IIngredient, ITag } from '@genfeedai/interfaces';
 import type { Tag } from '@models/content/tag.model';
 
 export interface TagsManagerProps {

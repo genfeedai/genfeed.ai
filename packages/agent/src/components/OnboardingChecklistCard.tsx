@@ -1,4 +1,4 @@
-import type { AgentUiAction } from '@cloud/agent/models/agent-chat.model';
+import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { ReactElement } from 'react';
 import { HiCheckCircle, HiChevronRight, HiRocketLaunch } from 'react-icons/hi2';
 

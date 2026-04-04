@@ -3,7 +3,7 @@ import type {
   IPostAnalytics,
   IPostAnalyticsSummary,
   IQueryParams,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import {
   deserializeResource,
   type JsonApiResponseDocument,

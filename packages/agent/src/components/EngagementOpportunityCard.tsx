@@ -1,4 +1,4 @@
-import type { AgentUiAction } from '@cloud/agent/models/agent-chat.model';
+import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { type ReactElement, useCallback, useState } from 'react';
 import {
   HiChatBubbleLeftRight,

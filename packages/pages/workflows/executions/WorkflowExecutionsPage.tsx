@@ -1,6 +1,6 @@
 'use client';
 
-import { type ExecutionResult } from '@cloud/workflow';
+import { type ExecutionResult } from '@genfeedai/workflow';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';

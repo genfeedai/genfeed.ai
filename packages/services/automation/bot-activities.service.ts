@@ -1,4 +1,4 @@
-import type { IBotActivityStats } from '@cloud/interfaces';
+import type { IBotActivityStats } from '@genfeedai/interfaces';
 import { BotActivitySerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import { BotActivity } from '@models/automation/bot-activity.model';

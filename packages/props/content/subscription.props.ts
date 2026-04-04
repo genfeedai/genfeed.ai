@@ -1,7 +1,7 @@
 import type {
   ISubscription,
   SubscriptionChangePreview,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import type { ReactNode } from 'react';
 
 export interface SubscriptionGuardProps {

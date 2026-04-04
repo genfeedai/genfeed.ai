@@ -1,4 +1,4 @@
-import type { AgentToolCallSummary } from '@cloud/agent/models/agent-chat.model';
+import type { AgentToolCallSummary } from '@genfeedai/agent/models/agent-chat.model';
 
 export function mapToolCallResponse(tc: AgentToolCallSummary) {
   return {

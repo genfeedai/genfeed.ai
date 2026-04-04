@@ -1,6 +1,6 @@
 'use client';
 
-import type { BrandAssetNodeData, BrandAssetType } from '@cloud/workflow-saas';
+import type { BrandAssetNodeData, BrandAssetType } from '@genfeedai/workflow-saas';
 import {
   selectUpdateNodeData,
   useWorkflowStore,

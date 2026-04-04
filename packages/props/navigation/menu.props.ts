@@ -1,8 +1,8 @@
-import type { IIngredient } from '@cloud/interfaces';
+import type { IIngredient } from '@genfeedai/interfaces';
 import type {
   MenuConfig,
   MenuItemConfig,
-} from '@cloud/interfaces/ui/menu-config.interface';
+} from '@genfeedai/interfaces/ui/menu-config.interface';
 import type { ComponentType, ReactNode } from 'react';
 
 /**

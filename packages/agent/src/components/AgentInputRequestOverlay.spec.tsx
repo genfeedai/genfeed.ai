@@ -1,5 +1,5 @@
-import { AgentInputRequestOverlay } from '@cloud/agent/components/AgentInputRequestOverlay';
-import type { AgentInputRequest } from '@cloud/agent/models/agent-chat.model';
+import { AgentInputRequestOverlay } from '@genfeedai/agent/components/AgentInputRequestOverlay';
+import type { AgentInputRequest } from '@genfeedai/agent/models/agent-chat.model';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';

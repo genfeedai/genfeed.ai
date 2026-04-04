@@ -11,7 +11,7 @@ import type {
 import { PageScope } from '@ui-constants/misc.constant';
 import { useCallback, useMemo } from 'react';
 
-export type { ImageToVideoGenerationPayload } from '@cloud/interfaces';
+export type { ImageToVideoGenerationPayload } from '@genfeedai/interfaces';
 
 export function useIngredientsList({
   type,

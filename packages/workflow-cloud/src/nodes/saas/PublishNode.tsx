@@ -1,6 +1,6 @@
 'use client';
 
-import type { PublishNodeData, PublishPlatform } from '@cloud/workflow-saas';
+import type { PublishNodeData, PublishPlatform } from '@genfeedai/workflow-saas';
 import {
   selectUpdateNodeData,
   useWorkflowStore,

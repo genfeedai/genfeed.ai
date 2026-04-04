@@ -1,4 +1,4 @@
-import { getDashboardPreset } from '@cloud/agent/dashboard/dashboard-presets';
+import { getDashboardPreset } from '@genfeedai/agent/dashboard/dashboard-presets';
 import { describe, expect, it } from 'vitest';
 
 describe('dashboard presets', () => {

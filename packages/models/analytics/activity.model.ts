@@ -1,4 +1,4 @@
-import type { IActivity } from '@cloud/interfaces';
+import type { IActivity } from '@genfeedai/interfaces';
 import { Activity as BaseActivity } from '@genfeedai/client/models';
 import { ActivityKey } from '@genfeedai/enums';
 import { User } from '@models/auth/user.model';

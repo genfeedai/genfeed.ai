@@ -1,6 +1,6 @@
 'use client';
 
-import type { IPost } from '@cloud/interfaces';
+import type { IPost } from '@genfeedai/interfaces';
 import { PostStatus } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useConfirmDeleteModal } from '@providers/global-modals/global-modals.provider';

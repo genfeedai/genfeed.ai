@@ -1,4 +1,4 @@
-import type { IPreset } from '@cloud/interfaces';
+import type { IPreset } from '@genfeedai/interfaces';
 import type { Platform } from '@genfeedai/enums';
 
 /**

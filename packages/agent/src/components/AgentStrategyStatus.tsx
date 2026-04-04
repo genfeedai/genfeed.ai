@@ -1,6 +1,6 @@
-import { runAgentApiEffect } from '@cloud/agent/services/agent-base-api.service';
-import type { AgentStrategyApiService } from '@cloud/agent/services/agent-strategy-api.service';
-import { useAgentStrategyStore } from '@cloud/agent/stores/agent-strategy.store';
+import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
+import type { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';
+import { useAgentStrategyStore } from '@genfeedai/agent/stores/agent-strategy.store';
 import { ButtonVariant } from '@genfeedai/enums';
 import Button from '@ui/buttons/base/Button';
 import { type ReactElement, useCallback, useRef, useState } from 'react';

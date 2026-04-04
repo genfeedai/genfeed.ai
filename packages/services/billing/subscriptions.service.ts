@@ -1,4 +1,4 @@
-import type { ISubscriptionPreview } from '@cloud/interfaces';
+import type { ISubscriptionPreview } from '@genfeedai/interfaces';
 import {
   SubscriptionPreviewSerializer,
   SubscriptionSerializer,

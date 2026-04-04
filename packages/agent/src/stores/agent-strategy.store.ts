@@ -1,4 +1,4 @@
-import type { AgentStrategy } from '@cloud/agent/models/agent-strategy.model';
+import type { AgentStrategy } from '@genfeedai/agent/models/agent-strategy.model';
 import { create } from 'zustand';
 
 interface AgentStrategyState {

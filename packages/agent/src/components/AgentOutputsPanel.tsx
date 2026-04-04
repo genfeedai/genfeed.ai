@@ -1,9 +1,9 @@
-import { useAgentChatStore } from '@cloud/agent/stores/agent-chat.store';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import type {
   ThreadOutputGroup,
   ThreadOutputVariant,
-} from '@cloud/agent/utils/extract-thread-outputs';
-import { extractThreadOutputs } from '@cloud/agent/utils/extract-thread-outputs';
+} from '@genfeedai/agent/utils/extract-thread-outputs';
+import { extractThreadOutputs } from '@genfeedai/agent/utils/extract-thread-outputs';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Button from '@ui/buttons/base/Button';

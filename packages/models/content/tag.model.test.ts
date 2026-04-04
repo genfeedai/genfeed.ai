@@ -5,7 +5,7 @@ import type {
   ISetting,
   ITag,
   IUser,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import { AssetScope, TagCategory } from '@genfeedai/enums';
 import { describe, expect, it, vi } from 'vitest';
 

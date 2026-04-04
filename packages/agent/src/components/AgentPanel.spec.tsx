@@ -12,7 +12,7 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('@cloud/agent/stores/agent-chat.store', () => ({
+vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
   useAgentChatStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector({
       activeThreadId: 'thread-123',
@@ -51,7 +51,7 @@ vi.mock('@ui/buttons/base/Button', () => ({
   },
 }));
 
-vi.mock('@cloud/agent/components/AgentChatContainer', () => ({
+vi.mock('@genfeedai/agent/components/AgentChatContainer', () => ({
   AgentChatContainer: function MockAgentChatContainer(props: {
     promptBarLayoutMode?: string;
     onModelChange?: (model: string) => void;
@@ -69,13 +69,13 @@ vi.mock('@cloud/agent/components/AgentChatContainer', () => ({
   },
 }));
 
-vi.mock('@cloud/agent/components/AgentOutputsPanel', () => ({
+vi.mock('@genfeedai/agent/components/AgentOutputsPanel', () => ({
   AgentOutputsPanel: function MockAgentOutputsPanel() {
     return <div data-testid="agent-outputs-panel">outputs-panel</div>;
   },
 }));
 
-import { AgentPanel } from '@cloud/agent/components/AgentPanel';
+import { AgentPanel } from '@genfeedai/agent/components/AgentPanel';
 
 function createCreditsInfoApiService() {
   const getCreditsInfo = vi.fn().mockResolvedValue({

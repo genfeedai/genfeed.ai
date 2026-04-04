@@ -1,4 +1,4 @@
-import type { IIngredient } from '@cloud/interfaces';
+import type { IIngredient } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { executeWithLoading } from '@hooks/utils/service-operation/service-operation.util';
 import { IngredientsService } from '@services/content/ingredients.service';

@@ -7,7 +7,7 @@ import {
   type AgentRunTimeRange,
   DEFAULT_AGENT_RUN_SORT_MODE,
   DEFAULT_AGENT_RUN_TIME_RANGE,
-} from '@cloud/types';
+} from '@genfeedai/types';
 import { ComponentSize } from '@genfeedai/enums';
 import { useActiveAgentRuns } from '@hooks/data/agent-runs/use-active-agent-runs';
 import { useAgentRuns } from '@hooks/data/agent-runs/use-agent-runs';

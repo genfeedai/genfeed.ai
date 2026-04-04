@@ -1,8 +1,8 @@
 {
   "dependencies": {
-    "@genfeedai/enums": "2.3.2",
-    "@genfeedai/interfaces": "2.3.18",
-    "@genfeedai/workflows": "0.3.2"
+    "@genfeedai/enums": "workspace:*",
+    "@genfeedai/interfaces": "workspace:*",
+    "@genfeedai/workflows": "workspace:*"
   },
   "devDependencies": {
     "typescript": "5.9.3"
@@ -54,7 +54,7 @@
     "src"
   ],
   "main": "./dist/index.js",
-  "name": "@cloud/workflow-engine",
+  "name": "@genfeedai/workflow-engine",
   "private": true,
   "scripts": {
     "build": "tsc",

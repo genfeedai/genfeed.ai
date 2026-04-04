@@ -4,7 +4,7 @@ import type {
   IQueryParams,
   ISetting,
   IUser,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import {
   SettingSerializer,
   UserSerializer,

@@ -2,9 +2,9 @@ import type {
   AgentStrategy,
   CreateAgentStrategyPayload,
   UpdateAgentStrategyPayload,
-} from '@cloud/agent/models/agent-strategy.model';
-import { type AgentApiError } from '@cloud/agent/services/agent-api-error';
-import { AgentBaseApiService } from '@cloud/agent/services/agent-base-api.service';
+} from '@genfeedai/agent/models/agent-strategy.model';
+import { type AgentApiError } from '@genfeedai/agent/services/agent-api-error';
+import { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
 import { Effect } from 'effect';
 
 export class AgentStrategyApiService extends AgentBaseApiService {

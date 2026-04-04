@@ -1,4 +1,4 @@
-import type { MenuItemConfig } from '@cloud/interfaces/ui/menu-config.interface';
+import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import type { TopbarProps } from '@props/navigation/topbar.props';
 import type { ComponentType, ReactNode } from 'react';
 

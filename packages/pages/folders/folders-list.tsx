@@ -1,11 +1,11 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import type { IFolder, IQueryParams } from '@cloud/interfaces';
+import type { IFolder, IQueryParams } from '@genfeedai/interfaces';
 import type {
   IFilters,
   IFiltersState,
-} from '@cloud/interfaces/utils/filters.interface';
+} from '@genfeedai/interfaces/utils/filters.interface';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
 import { openModal } from '@helpers/ui/modal/modal.helper';

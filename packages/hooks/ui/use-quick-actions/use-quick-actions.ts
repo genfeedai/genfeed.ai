@@ -1,9 +1,9 @@
-import type { IIngredient } from '@cloud/interfaces';
+import type { IIngredient } from '@genfeedai/interfaces';
 import type {
   IActionHandlers,
   ILoadingStates,
   IQuickAction,
-} from '@cloud/interfaces/ui/quick-actions.interface';
+} from '@genfeedai/interfaces/ui/quick-actions.interface';
 import {
   IngredientCategory,
   IngredientFormat,

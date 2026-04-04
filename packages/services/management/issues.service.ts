@@ -1,4 +1,4 @@
-import type { IServiceSerializer } from '@cloud/interfaces/utils/error.interface';
+import type { IServiceSerializer } from '@genfeedai/interfaces/utils/error.interface';
 import {
   BaseService,
   type JsonApiResponseDocument,

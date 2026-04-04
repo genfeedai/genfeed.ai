@@ -1,7 +1,7 @@
 import type {
   WorkflowEdge,
   WorkflowVisualNode,
-} from '@cloud/interfaces/automation/workflow-builder.interface';
+} from '@genfeedai/interfaces/automation/workflow-builder.interface';
 import { useWorkflowBuilder } from '@hooks/automation/use-workflow-builder/use-workflow-builder';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

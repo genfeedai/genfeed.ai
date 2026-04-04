@@ -1,6 +1,6 @@
 'use client';
 
-import { type IStreakMilestoneState } from '@cloud/types';
+import { type IStreakMilestoneState } from '@genfeedai/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useStreak } from '@hooks/data/streaks/use-streak/use-streak';
 import { STREAK_CELEBRATION_EVENT } from '@services/engagement/streak-events';

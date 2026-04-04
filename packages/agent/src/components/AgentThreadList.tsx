@@ -1,7 +1,7 @@
-import type { AgentThread } from '@cloud/agent/models/agent-chat.model';
-import type { AgentApiService } from '@cloud/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@cloud/agent/services/agent-base-api.service';
-import { useAgentChatStore } from '@cloud/agent/stores/agent-chat.store';
+import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   AgentThreadStatus,
   ButtonVariant,

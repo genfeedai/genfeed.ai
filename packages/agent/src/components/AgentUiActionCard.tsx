@@ -1,4 +1,4 @@
-import type { AgentUiAction } from '@cloud/agent/models/agent-chat.model';
+import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
 import Button from '@ui/buttons/base/Button';
 import { type ReactElement } from 'react';

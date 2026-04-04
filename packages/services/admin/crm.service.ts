@@ -10,7 +10,7 @@ import type {
   IMarginSummary,
   IMonthlyMargin,
   IProactivePreparationStatus,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import {
   deserializeCollection,
   deserializeResource,

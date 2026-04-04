@@ -3,7 +3,7 @@ import type {
   IBulkDeleteResult,
   IIngredient,
   IPost,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import {
   AvatarSerializer,
   ImageSerializer,

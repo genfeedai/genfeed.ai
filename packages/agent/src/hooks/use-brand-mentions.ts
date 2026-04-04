@@ -1,4 +1,4 @@
-import type { BrandMentionItem } from '@cloud/agent/types/mention.types';
+import type { BrandMentionItem } from '@genfeedai/agent/types/mention.types';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useMemo } from 'react';
 

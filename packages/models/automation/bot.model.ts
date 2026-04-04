@@ -1,4 +1,4 @@
-import type { IBot, IBotSettings, IBotTarget } from '@cloud/interfaces';
+import type { IBot, IBotSettings, IBotTarget } from '@genfeedai/interfaces';
 import { Bot as BaseBot } from '@genfeedai/client/models';
 import {
   BotLivestreamMessageType,

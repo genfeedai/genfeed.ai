@@ -1,6 +1,6 @@
 'use client';
 
-import { IBrand, IRole } from '@cloud/interfaces';
+import { IBrand, IRole } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   type InviteMemberSchema,

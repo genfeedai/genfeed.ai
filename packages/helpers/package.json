@@ -1,9 +1,9 @@
 {
   "dependencies": {
-    "@genfeedai/constants": "2.2.9",
-    "@genfeedai/deserializer": "1.0.3",
-    "@genfeedai/enums": "2.3.2",
-    "@genfeedai/interfaces": "2.3.18",
+    "@genfeedai/constants": "workspace:*",
+    "@genfeedai/deserializer": "workspace:*",
+    "@genfeedai/enums": "workspace:*",
+    "@genfeedai/interfaces": "workspace:*",
     "clsx": "2.1.1",
     "tailwind-merge": "3.5.0",
     "ts-jsonapi": "2.1.3"

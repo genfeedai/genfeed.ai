@@ -1,4 +1,4 @@
-import type { ISetting } from '@cloud/interfaces';
+import type { ISetting } from '@genfeedai/interfaces';
 
 export interface TrendNotificationSettingsProps {
   settings: Partial<ISetting>;

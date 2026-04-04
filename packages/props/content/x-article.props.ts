@@ -1,4 +1,4 @@
-import type { IXArticleMetadata, IXArticleSection } from '@cloud/interfaces';
+import type { IXArticleMetadata, IXArticleSection } from '@genfeedai/interfaces';
 import type { Article } from '@models/content/article.model';
 import type { GenerateArticlesRequest } from '@services/content/articles.service';
 

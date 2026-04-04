@@ -1,5 +1,5 @@
 import { useAuth } from '@clerk/nextjs';
-import type { IActivity } from '@cloud/interfaces';
+import type { IActivity } from '@genfeedai/interfaces';
 import { getPlaywrightAuthState } from '@helpers/auth/clerk.helper';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import { act, renderHook } from '@testing-library/react';

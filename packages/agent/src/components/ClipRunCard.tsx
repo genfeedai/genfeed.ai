@@ -2,7 +2,7 @@ import type {
   ClipRunCardState,
   ClipRunModes,
   ClipRunStep,
-} from '@cloud/agent/models/clip-run-card.model';
+} from '@genfeedai/agent/models/clip-run-card.model';
 import type { ReactElement } from 'react';
 import {
   HiCheckCircle,

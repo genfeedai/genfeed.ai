@@ -1,4 +1,4 @@
-import type { GenerationResponse } from '@cloud/interfaces/content/generation-payload.interface';
+import type { GenerationResponse } from '@genfeedai/interfaces/content/generation-payload.interface';
 
 /**
  * Extracts pending IDs from generation response (batch or single).

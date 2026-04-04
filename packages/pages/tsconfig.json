@@ -2,8 +2,8 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@cloud/agent": ["../agent/src/index.ts"],
-      "@cloud/agent/*": ["../agent/src/*"],
+      "@genfeedai/agent": ["../agent/src/index.ts"],
+      "@genfeedai/agent/*": ["../agent/src/*"],
       "@contexts/*": ["../contexts/*"],
       "@helpers/*": ["../helpers/src/*"],
       "@hooks/*": ["../hooks/*"],

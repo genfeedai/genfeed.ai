@@ -6,11 +6,11 @@ export type {
   AgentToolCall,
   CreateThreadPayload,
   SendMessagePayload,
-} from '@cloud/agent/models/agent-chat.model';
+} from '@genfeedai/agent/models/agent-chat.model';
 export {
   AgentWorkEventStatus,
   AgentWorkEventType,
-} from '@cloud/agent/models/agent-chat.model';
+} from '@genfeedai/agent/models/agent-chat.model';
 
 export type {
   AgentStrategy,
@@ -18,6 +18,6 @@ export type {
   ContentMixConfig,
   CreateAgentStrategyPayload,
   UpdateAgentStrategyPayload,
-} from '@cloud/agent/models/agent-strategy.model';
+} from '@genfeedai/agent/models/agent-strategy.model';
 
-export type { SuggestedAction } from '@cloud/agent/models/agent-suggested-action.model';
+export type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';

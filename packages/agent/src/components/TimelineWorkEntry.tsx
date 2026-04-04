@@ -1,11 +1,11 @@
-import { TOOL_LABELS } from '@cloud/agent/components/AgentToolCallDisplay';
-import { ToolCallDetailPanel } from '@cloud/agent/components/ToolCallDetailPanel';
+import { TOOL_LABELS } from '@genfeedai/agent/components/AgentToolCallDisplay';
+import { ToolCallDetailPanel } from '@genfeedai/agent/components/ToolCallDetailPanel';
 import {
   AgentWorkEventStatus,
   AgentWorkEventType,
-} from '@cloud/agent/models/agent-chat.model';
-import type { EnrichedWorkEvent } from '@cloud/agent/utils/derive-timeline';
-import { formatDuration } from '@cloud/agent/utils/format-duration';
+} from '@genfeedai/agent/models/agent-chat.model';
+import type { EnrichedWorkEvent } from '@genfeedai/agent/utils/derive-timeline';
+import { formatDuration } from '@genfeedai/agent/utils/format-duration';
 import { ButtonVariant } from '@genfeedai/enums';
 import Button from '@ui/buttons/base/Button';
 import { type ReactElement, useState } from 'react';

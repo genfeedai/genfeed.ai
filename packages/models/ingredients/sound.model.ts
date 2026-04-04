@@ -1,4 +1,4 @@
-import type { ISound } from '@cloud/interfaces';
+import type { ISound } from '@genfeedai/interfaces';
 import { IngredientCategory } from '@genfeedai/enums';
 import { Ingredient } from '@models/content/ingredient.model';
 

@@ -1,4 +1,4 @@
-import type { IAiActionRequest, IAiActionResponse } from '@cloud/interfaces';
+import type { IAiActionRequest, IAiActionResponse } from '@genfeedai/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 

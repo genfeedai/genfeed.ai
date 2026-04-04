@@ -1,6 +1,6 @@
 'use client';
 
-import type { ICredential, IPost } from '@cloud/interfaces';
+import type { ICredential, IPost } from '@genfeedai/interfaces';
 import { PostCategory, PostStatus, Status } from '@genfeedai/enums';
 import {
   FIRST_COMMENT_PLACEHOLDER,

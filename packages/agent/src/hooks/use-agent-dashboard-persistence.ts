@@ -5,7 +5,7 @@ import type {
   DashboardPreferenceScope,
   DashboardPreferences,
   DashboardScopePreferences,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import { useEffect, useRef } from 'react';
 
 interface DashboardPreferencesShape {

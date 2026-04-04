@@ -1,4 +1,4 @@
-import type { IImage } from '@cloud/interfaces';
+import type { IImage } from '@genfeedai/interfaces';
 import { IngredientCategory } from '@genfeedai/enums';
 import { Ingredient } from '@models/content/ingredient.model';
 

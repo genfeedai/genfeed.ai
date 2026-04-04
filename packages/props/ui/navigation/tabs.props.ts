@@ -1,4 +1,4 @@
-import type { NavigationTab } from '@cloud/interfaces/ui/navigation.interface';
+import type { NavigationTab } from '@genfeedai/interfaces/ui/navigation.interface';
 import type { ComponentType, ReactNode } from 'react';
 
 export type TabsVariant = 'default' | 'pills' | 'underline' | 'segmented';

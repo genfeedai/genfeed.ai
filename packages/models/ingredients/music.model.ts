@@ -1,4 +1,4 @@
-import type { IMusic } from '@cloud/interfaces';
+import type { IMusic } from '@genfeedai/interfaces';
 import { IngredientCategory } from '@genfeedai/enums';
 import { Ingredient } from '@models/content/ingredient.model';
 

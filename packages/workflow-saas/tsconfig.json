@@ -8,11 +8,11 @@
     "moduleResolution": "bundler",
     "outDir": "./dist",
     "paths": {
-      "@cloud/interfaces": ["../interfaces/src/index.ts"],
-      "@cloud/interfaces/*": ["../interfaces/src/*"],
-      "@cloud/types": ["../types/src/index.ts"],
-      "@cloud/types/*": ["../types/src/*"],
-      "@cloud/workflow-saas/*": ["./src/*"],
+      "@genfeedai/interfaces": ["../interfaces/src/index.ts"],
+      "@genfeedai/interfaces/*": ["../interfaces/src/*"],
+      "@genfeedai/types": ["../types/src/index.ts"],
+      "@genfeedai/types/*": ["../types/src/*"],
+      "@genfeedai/workflow-saas/*": ["./src/*"],
       "@genfeedai/workflows/contracts": ["./src/workflows-contracts-shim.ts"],
       "@workflow-saas/*": ["./src/*"]
     },

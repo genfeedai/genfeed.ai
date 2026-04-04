@@ -4,7 +4,7 @@ import {
   createWorkflowApiService,
   getLifecycleBadgeClass,
   type WorkflowSummary,
-} from '@cloud/workflow';
+} from '@genfeedai/workflow';
 import { ButtonVariant } from '@genfeedai/enums';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

@@ -1,4 +1,4 @@
-import type { IListingPreview } from '@cloud/interfaces';
+import type { IListingPreview } from '@genfeedai/interfaces';
 
 export type ListingCardVariant = 'default' | 'compact' | 'featured';
 

@@ -6,7 +6,7 @@ import type {
   IOrganization,
   ITraining,
   IUser,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant, ModalEnum, TrainingStatus } from '@genfeedai/enums';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';

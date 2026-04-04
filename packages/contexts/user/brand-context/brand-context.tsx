@@ -4,7 +4,7 @@ import type {
   ICredential,
   IDarkroomCapabilities,
   IOrganizationSetting,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import {
   getClerkPublicData,
   getPlaywrightAuthState,

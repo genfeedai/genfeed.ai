@@ -3,7 +3,7 @@ import type {
   IBillingPortalResponse,
   ICheckoutSessionResponse,
   IClerkPublicData,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import { StripeCheckoutSerializer } from '@genfeedai/client/serializers';
 import { SubscriptionStatus } from '@genfeedai/enums';
 import {

@@ -1,6 +1,6 @@
-import { TimelineWorkEntry } from '@cloud/agent/components/TimelineWorkEntry';
-import { AgentWorkEventStatus } from '@cloud/agent/models/agent-chat.model';
-import type { TimelineWorkGroup as TimelineWorkGroupEntry } from '@cloud/agent/utils/derive-timeline';
+import { TimelineWorkEntry } from '@genfeedai/agent/components/TimelineWorkEntry';
+import { AgentWorkEventStatus } from '@genfeedai/agent/models/agent-chat.model';
+import type { TimelineWorkGroup as TimelineWorkGroupEntry } from '@genfeedai/agent/utils/derive-timeline';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { type ReactElement, useState } from 'react';
 import { HiCheckCircle, HiChevronDown, HiClock } from 'react-icons/hi2';

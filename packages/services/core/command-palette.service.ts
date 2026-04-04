@@ -3,7 +3,7 @@
  * Manages command registration, search, and execution
  */
 
-import type { ICommand } from '@cloud/interfaces/ui/command-palette.interface';
+import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
 import { logger } from '@services/core/logger.service';
 
 class CommandPaletteServiceClass {

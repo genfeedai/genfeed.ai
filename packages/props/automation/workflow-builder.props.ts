@@ -5,7 +5,7 @@ import type {
   WorkflowInputVariable,
   WorkflowNodeData,
   WorkflowVisualNode,
-} from '@cloud/interfaces/automation/workflow-builder.interface';
+} from '@genfeedai/interfaces/automation/workflow-builder.interface';
 import type {
   Edge,
   Node,

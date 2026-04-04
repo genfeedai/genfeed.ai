@@ -1,4 +1,4 @@
-import type { IBackgroundTaskUpdateEvent } from '@cloud/interfaces';
+import type { IBackgroundTaskUpdateEvent } from '@genfeedai/interfaces';
 
 export type StructuredProgressStatus =
   | 'pending'

@@ -4,12 +4,12 @@
  * Backend: /runs API
  */
 
-import type { IAgentRun, IAgentRunContent } from '@cloud/interfaces';
+import type { IAgentRun, IAgentRunContent } from '@genfeedai/interfaces';
 import type {
   AgentRunListQueryParams,
   AgentRunStats,
   AgentRunStatsQueryParams,
-} from '@cloud/types';
+} from '@genfeedai/types';
 import {
   deserializeCollection,
   deserializeResource,

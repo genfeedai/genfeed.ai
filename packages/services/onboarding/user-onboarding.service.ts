@@ -1,4 +1,4 @@
-import type { IUser, OnboardingType } from '@cloud/interfaces';
+import type { IUser, OnboardingType } from '@genfeedai/interfaces';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';

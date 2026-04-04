@@ -1,4 +1,4 @@
-import type { IModel } from '@cloud/interfaces';
+import type { IModel } from '@genfeedai/interfaces';
 import { ModelProvider } from '@genfeedai/enums';
 import { ModelsService } from '@services/ai/models.service';
 import { FalProviderService } from '@services/ai/providers/fal/fal-provider.service';

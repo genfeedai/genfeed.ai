@@ -1,7 +1,7 @@
 {
   "dependencies": {
-    "@cloud/types": "workspace:*",
-    "@cloud/workflow": "workspace:*",
+    "@genfeedai/types": "workspace:*",
+    "@genfeedai/workflow": "workspace:*",
     "@tiptap/core": "3.22.1",
     "@tiptap/extension-mention": "3.22.1",
     "@tiptap/extension-placeholder": "3.22.1",
@@ -79,7 +79,7 @@
     }
   },
   "main": "src/index.ts",
-  "name": "@cloud/agent",
+  "name": "@genfeedai/agent",
   "peerDependencies": {
     "react": ">=18"
   },

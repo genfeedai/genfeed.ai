@@ -36,7 +36,7 @@ export type BrandContextResolver = (
  * into downstream workflow nodes.
  *
  * Node Type: brandContext
- * Definition: @cloud/workflow-saas/nodes/brand-context.ts
+ * Definition: @genfeedai/workflow-saas/nodes/brand-context.ts
  */
 export class BrandContextExecutor extends BaseExecutor {
   readonly nodeType = 'brandContext';

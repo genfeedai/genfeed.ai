@@ -1,4 +1,4 @@
-import type { IIngredient, IMetadata } from '@cloud/interfaces';
+import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useIngredientMetadata } from '@hooks/ui/ingredient/use-ingredient-metadata/use-ingredient-metadata';
 import { logger } from '@services/core/logger.service';

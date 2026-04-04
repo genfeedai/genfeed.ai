@@ -1,11 +1,11 @@
 'use client';
 
-import type { IImage, IVideo } from '@cloud/interfaces';
+import type { IImage, IVideo } from '@genfeedai/interfaces';
 import type {
   GenerationResponse,
   SocketResult,
-} from '@cloud/interfaces/content/generation-payload.interface';
-import type { AssetQueryService } from '@cloud/interfaces/studio/studio-generate.interface';
+} from '@genfeedai/interfaces/content/generation-payload.interface';
+import type { AssetQueryService } from '@genfeedai/interfaces/studio/studio-generate.interface';
 import { useAssetSelection } from '@contexts/ui/asset-selection-context';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import type { IClerkPublicData } from '@cloud/interfaces';
+import type { IClerkPublicData } from '@genfeedai/interfaces';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { SETUP_CARD_STEPS } from '@genfeedai/constants';
 import { useMemo } from 'react';

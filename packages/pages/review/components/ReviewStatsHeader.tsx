@@ -1,6 +1,6 @@
 'use client';
 
-import type { IBatchSummary } from '@cloud/interfaces';
+import type { IBatchSummary } from '@genfeedai/interfaces';
 import StatsCards from '@ui/card/stats/StatsCards';
 import {
   HiCheckCircle,

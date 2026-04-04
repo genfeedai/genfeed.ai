@@ -1,6 +1,6 @@
 'use client';
 
-import type { IEditorEffect, IEditorTrack } from '@cloud/interfaces';
+import type { IEditorEffect, IEditorTrack } from '@genfeedai/interfaces';
 import { EditorTrackType } from '@genfeedai/enums';
 import type { EditorPreviewProps } from '@props/studio/editor-preview.props';
 import type { Player, PlayerRef } from '@remotion/player';

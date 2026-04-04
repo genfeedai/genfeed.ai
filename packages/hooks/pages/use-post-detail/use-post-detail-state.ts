@@ -1,7 +1,7 @@
 'use client';
 
-import type { ICredential, IPost } from '@cloud/interfaces';
-import type { AnalyticsStat } from '@cloud/interfaces/analytics/analytics-ui.interface';
+import type { ICredential, IPost } from '@genfeedai/interfaces';
+import type { AnalyticsStat } from '@genfeedai/interfaces/analytics/analytics-ui.interface';
 import {
   CredentialPlatform,
   IngredientFormat,

@@ -6,8 +6,8 @@ export default defineConfig({
     alias: {
       '@agent-tests': path.resolve(__dirname, './tests'),
       '@agent-tests/*': path.resolve(__dirname, './tests/*'),
-      '@cloud/agent': path.resolve(__dirname, './src'),
-      '@cloud/agent/*': path.resolve(__dirname, './src/*'),
+      '@genfeedai/agent': path.resolve(__dirname, './src'),
+      '@genfeedai/agent/*': path.resolve(__dirname, './src/*'),
       '@components': path.resolve(__dirname, '../ui'),
       '@contexts': path.resolve(__dirname, '../contexts'),
       '@helpers': path.resolve(__dirname, '../helpers/src'),

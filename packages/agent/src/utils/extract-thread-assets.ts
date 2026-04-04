@@ -1,5 +1,5 @@
-import type { AgentChatMessage } from '@cloud/agent/models/agent-chat.model';
-import { extractThreadOutputs } from '@cloud/agent/utils/extract-thread-outputs';
+import type { AgentChatMessage } from '@genfeedai/agent/models/agent-chat.model';
+import { extractThreadOutputs } from '@genfeedai/agent/utils/extract-thread-outputs';
 
 export type ThreadAssetType = 'audio' | 'image' | 'video';
 

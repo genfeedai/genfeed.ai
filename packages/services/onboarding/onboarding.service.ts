@@ -4,7 +4,7 @@ import type {
   IConfirmBrandDataRequest,
   IGeneratePreviewResponse,
   IPost,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type { ReferenceImageCategory } from '@genfeedai/enums';
 import { EnvironmentService } from '@services/core/environment.service';

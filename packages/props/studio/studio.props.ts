@@ -12,7 +12,7 @@ import type {
   ITag,
   ITraining,
   ITrainingConfig,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import type {
   AssetScope,

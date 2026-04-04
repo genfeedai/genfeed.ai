@@ -1,4 +1,4 @@
-import type { TeamMentionItem } from '@cloud/agent/types/mention.types';
+import type { TeamMentionItem } from '@genfeedai/agent/types/mention.types';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import {
   forwardRef,

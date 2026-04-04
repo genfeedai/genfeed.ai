@@ -18,8 +18,8 @@ import type {
   ISound,
   ITag,
   ITraining,
-} from '@cloud/interfaces';
-import type { IGenerationItem } from '@cloud/interfaces/components/generation.interface';
+} from '@genfeedai/interfaces';
+import type { IGenerationItem } from '@genfeedai/interfaces/components/generation.interface';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import type {
   IngredientCategory,

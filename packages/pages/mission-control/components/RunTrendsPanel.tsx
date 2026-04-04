@@ -1,6 +1,6 @@
 'use client';
 
-import type { AgentRunStats, AgentRunTrendPoint } from '@cloud/types';
+import type { AgentRunStats, AgentRunTrendPoint } from '@genfeedai/types';
 
 interface RunTrendsPanelProps {
   stats: AgentRunStats | null;

@@ -8,9 +8,9 @@
     "moduleResolution": "bundler",
     "outDir": "./dist",
     "paths": {
-      "@cloud/interfaces": ["../interfaces/src/index.ts"],
-      "@cloud/interfaces/*": ["../interfaces/src/*"],
-      "@cloud/workflow-engine/*": ["./src/*"],
+      "@genfeedai/interfaces": ["../interfaces/src/index.ts"],
+      "@genfeedai/interfaces/*": ["../interfaces/src/*"],
+      "@genfeedai/workflow-engine/*": ["./src/*"],
       "@genfeedai/workflows/contracts": ["./src/workflows-contracts-shim.ts"],
       "@workflow-engine/*": ["./src/*"]
     },

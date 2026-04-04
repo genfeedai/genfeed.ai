@@ -1,4 +1,4 @@
-import type { ICreativePattern, PatternType } from '@cloud/interfaces';
+import type { ICreativePattern, PatternType } from '@genfeedai/interfaces';
 
 export interface PatternCardProps {
   pattern: ICreativePattern;

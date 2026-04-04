@@ -1,5 +1,5 @@
-import { PublishPostCard } from '@cloud/agent/components/PublishPostCard';
-import type { AgentUiAction } from '@cloud/agent/models/agent-chat.model';
+import { PublishPostCard } from '@genfeedai/agent/components/PublishPostCard';
+import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 

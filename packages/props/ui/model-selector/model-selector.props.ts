@@ -1,4 +1,4 @@
-import type { IModel } from '@cloud/interfaces';
+import type { IModel } from '@genfeedai/interfaces';
 import type { CostTier, ModelCategory, RouterPriority } from '@genfeedai/enums';
 import type { ReactNode, RefObject } from 'react';
 import type { IconType } from 'react-icons';

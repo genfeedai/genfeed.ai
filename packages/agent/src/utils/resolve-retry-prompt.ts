@@ -1,4 +1,4 @@
-import type { AgentChatMessage } from '@cloud/agent/models/agent-chat.model';
+import type { AgentChatMessage } from '@genfeedai/agent/models/agent-chat.model';
 
 /**
  * Resolves the nearest previous user prompt for a given assistant message.

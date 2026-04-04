@@ -1,4 +1,4 @@
-import type { IBatchItem } from '@cloud/interfaces';
+import type { IBatchItem } from '@genfeedai/interfaces';
 import { BatchItemStatus } from '@genfeedai/enums';
 
 export function isApproved(item: IBatchItem): boolean {

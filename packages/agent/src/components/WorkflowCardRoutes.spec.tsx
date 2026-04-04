@@ -1,8 +1,8 @@
-import { ClipWorkflowRunCard } from '@cloud/agent/components/ClipWorkflowRunCard';
-import { WorkflowExecuteCard } from '@cloud/agent/components/WorkflowExecuteCard';
-import { WorkflowTriggerCard } from '@cloud/agent/components/WorkflowTriggerCard';
-import type { AgentUiAction } from '@cloud/agent/models/agent-chat.model';
-import type { AgentApiService } from '@cloud/agent/services/agent-api.service';
+import { ClipWorkflowRunCard } from '@genfeedai/agent/components/ClipWorkflowRunCard';
+import { WorkflowExecuteCard } from '@genfeedai/agent/components/WorkflowExecuteCard';
+import { WorkflowTriggerCard } from '@genfeedai/agent/components/WorkflowTriggerCard';
+import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';

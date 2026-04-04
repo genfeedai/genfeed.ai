@@ -1,4 +1,4 @@
-import type { IBrand } from '@cloud/interfaces';
+import type { IBrand } from '@genfeedai/interfaces';
 import { AssetCategory } from '@genfeedai/enums';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import { act, renderHook, waitFor } from '@testing-library/react';

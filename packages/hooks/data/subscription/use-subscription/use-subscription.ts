@@ -3,8 +3,8 @@ import type { UserResource } from '@clerk/types';
 import type {
   IBillingPortalResponse,
   ICreditsBreakdown,
-} from '@cloud/interfaces';
-import type { UseSubscriptionReturn } from '@cloud/interfaces/hooks/hooks.interface';
+} from '@genfeedai/interfaces';
+import type { UseSubscriptionReturn } from '@genfeedai/interfaces/hooks/hooks.interface';
 import { SubscriptionStatus } from '@genfeedai/enums';
 import { getClerkPublicData } from '@helpers/auth/clerk.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

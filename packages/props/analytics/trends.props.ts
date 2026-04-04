@@ -2,7 +2,7 @@ import type {
   ITrendHashtag,
   ITrendSound,
   ITrendVideo,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import { Timeframe } from '@genfeedai/enums';
 
 /**

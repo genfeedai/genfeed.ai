@@ -3,7 +3,7 @@
 import {
   type IStreakCalendarResponse,
   type IStreakSummary,
-} from '@cloud/types';
+} from '@genfeedai/types';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';

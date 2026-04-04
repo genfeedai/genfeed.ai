@@ -23,7 +23,7 @@ vi.mock('@helpers/formatting/cn/cn.util', () => ({
     classes.filter(Boolean).join(' '),
 }));
 
-vi.mock('@cloud/agent/components/AgentChatContainer', () => ({
+vi.mock('@genfeedai/agent/components/AgentChatContainer', () => ({
   AgentChatContainer: (props: {
     emptyStateDescription?: string;
     emptyStateTitle?: string;
@@ -56,15 +56,15 @@ vi.mock('@cloud/agent/components/AgentChatContainer', () => ({
   ),
 }));
 
-vi.mock('@cloud/agent/components/AgentOnboardingChecklist', () => ({
+vi.mock('@genfeedai/agent/components/AgentOnboardingChecklist', () => ({
   AgentOnboardingChecklist: () => <div>agent-onboarding-checklist</div>,
 }));
 
-vi.mock('@cloud/agent/components/AgentOutputsPanel', () => ({
+vi.mock('@genfeedai/agent/components/AgentOutputsPanel', () => ({
   AgentOutputsPanel: () => <div>agent-outputs-panel</div>,
 }));
 
-vi.mock('@cloud/agent/components/AgentSidebarContent', () => ({
+vi.mock('@genfeedai/agent/components/AgentSidebarContent', () => ({
   AgentSidebarContent: () => <div>agent-sidebar-content</div>,
 }));
 
@@ -161,7 +161,7 @@ const storeState: StoreState = {
   upsertThread: vi.fn(),
 };
 
-vi.mock('@cloud/agent/stores/agent-chat.store', () => {
+vi.mock('@genfeedai/agent/stores/agent-chat.store', () => {
   const useAgentChatStore = Object.assign(
     (selector: (state: StoreState) => unknown) => selector(storeState),
     {
@@ -172,7 +172,7 @@ vi.mock('@cloud/agent/stores/agent-chat.store', () => {
   return { useAgentChatStore };
 });
 
-let AgentFullPage: typeof import('@cloud/agent/components/AgentFullPage').AgentFullPage;
+let AgentFullPage: typeof import('@genfeedai/agent/components/AgentFullPage').AgentFullPage;
 
 const EFFECT_METHOD_MAP = {
   getCreditsInfo: 'getCreditsInfoEffect',
@@ -238,7 +238,7 @@ function createAbortAwareValue<T>(value: T, signal?: AbortSignal): Promise<T> {
 
 describe('AgentFullPage', () => {
   beforeEach(async () => {
-    ({ AgentFullPage } = await import('@cloud/agent/components/AgentFullPage'));
+    ({ AgentFullPage } = await import('@genfeedai/agent/components/AgentFullPage'));
 
     storeState.setActiveRun.mockReset();
     storeState.setActiveThread.mockReset();

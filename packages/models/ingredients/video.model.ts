@@ -1,4 +1,4 @@
-import type { IVideo } from '@cloud/interfaces';
+import type { IVideo } from '@genfeedai/interfaces';
 import { IngredientCategory } from '@genfeedai/enums';
 import { Ingredient } from '@models/content/ingredient.model';
 

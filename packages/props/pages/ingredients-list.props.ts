@@ -10,7 +10,7 @@ import type {
   IPreset,
   ISound,
   ITag,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import type {
   AssetScope,
   IngredientCategory,

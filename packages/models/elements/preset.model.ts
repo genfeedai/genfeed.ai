@@ -1,4 +1,4 @@
-import type { IPreset } from '@cloud/interfaces';
+import type { IPreset } from '@genfeedai/interfaces';
 import { Preset as BasePreset } from '@genfeedai/client/models';
 import { Brand } from '@models/organization/brand.model';
 import { Organization } from '@models/organization/organization.model';

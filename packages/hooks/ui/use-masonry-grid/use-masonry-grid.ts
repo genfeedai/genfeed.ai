@@ -3,7 +3,7 @@
 import type {
   IItemPosition,
   IMasonryGridOptions,
-} from '@cloud/interfaces/components/masonry-grid.interface';
+} from '@genfeedai/interfaces/components/masonry-grid.interface';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface MasonryItem {

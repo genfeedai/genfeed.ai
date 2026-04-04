@@ -1,5 +1,5 @@
-import type { AgentUiAction } from '@cloud/agent/models/agent-chat.model';
-import { useAgentChatStore } from '@cloud/agent/stores/agent-chat.store';
+import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('agent-chat.store finalizeStream', () => {

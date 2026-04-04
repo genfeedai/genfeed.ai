@@ -6,8 +6,8 @@ import type {
   IPost,
   IQueryParams,
   IVideo,
-} from '@cloud/interfaces';
-import type { BrandQueryParams } from '@cloud/interfaces/utils/query.interface';
+} from '@genfeedai/interfaces';
+import type { BrandQueryParams } from '@genfeedai/interfaces/utils/query.interface';
 import { BrandSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import {

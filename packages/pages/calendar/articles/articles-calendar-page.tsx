@@ -1,6 +1,6 @@
 'use client';
 
-import type { IArticle } from '@cloud/interfaces';
+import type { IArticle } from '@genfeedai/interfaces';
 import { ArticleStatus } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCalendarWeekRange } from '@hooks/utils/use-calendar-week-range/use-calendar-week-range';

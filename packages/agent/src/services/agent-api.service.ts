@@ -10,22 +10,22 @@ import type {
   AgentThreadSnapshot,
   CreateThreadPayload,
   SendMessagePayload,
-} from '@cloud/agent/models/agent-chat.model';
+} from '@genfeedai/agent/models/agent-chat.model';
 import {
   type AgentApiError,
   AgentApiRequestError,
-} from '@cloud/agent/services/agent-api-error';
-import { AgentBaseApiService } from '@cloud/agent/services/agent-base-api.service';
+} from '@genfeedai/agent/services/agent-api-error';
+import { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
 import type {
   ContentMentionItem,
   TeamMentionItem,
-} from '@cloud/agent/types/mention.types';
-import type { IModel } from '@cloud/interfaces';
+} from '@genfeedai/agent/types/mention.types';
+import type { IModel } from '@genfeedai/interfaces';
 import { AgentThreadStatus } from '@genfeedai/enums';
 import { type JsonApiResponseDocument } from '@helpers/data/json-api/json-api.helper';
 import { Effect } from 'effect';
 
-export type { AgentApiConfig } from '@cloud/agent/services/agent-base-api.service';
+export type { AgentApiConfig } from '@genfeedai/agent/services/agent-base-api.service';
 
 export interface CredentialMentionItem {
   id: string;

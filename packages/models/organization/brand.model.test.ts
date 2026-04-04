@@ -7,7 +7,7 @@ import type {
   IOrganizationSetting,
   ISetting,
   IUser,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import {
   AssetCategory,
   AssetParent,

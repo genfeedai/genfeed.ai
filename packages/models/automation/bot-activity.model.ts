@@ -1,4 +1,4 @@
-import type { IBotActivity } from '@cloud/interfaces';
+import type { IBotActivity } from '@genfeedai/interfaces';
 import { BotActivity as BaseBotActivity } from '@genfeedai/client/models';
 
 export class BotActivity extends BaseBotActivity {

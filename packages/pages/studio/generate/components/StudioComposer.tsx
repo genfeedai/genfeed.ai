@@ -13,8 +13,8 @@ import type {
   ISound,
   ITag,
   ITraining,
-} from '@cloud/interfaces';
-import type { AvatarVoiceOption } from '@cloud/interfaces/studio/studio-generate.interface';
+} from '@genfeedai/interfaces';
+import type { AvatarVoiceOption } from '@genfeedai/interfaces/studio/studio-generate.interface';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { ButtonVariant, type IngredientCategory } from '@genfeedai/enums';
 import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';

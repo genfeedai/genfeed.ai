@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import type { IOnboardingContextValue } from '@cloud/interfaces';
+import type { IOnboardingContextValue } from '@genfeedai/interfaces';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import type { OnboardingStepKey } from '@genfeedai/constants';
 import { ONBOARDING_STEP_LABELS, ONBOARDING_STEPS } from '@genfeedai/constants';

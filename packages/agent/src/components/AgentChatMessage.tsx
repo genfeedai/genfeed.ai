@@ -2,46 +2,46 @@ import {
   AdDetailSummaryCard,
   AdsSearchResultsCard,
   CampaignLaunchPrepCard,
-} from '@cloud/agent/components/AdsAgentCards';
-import { AgentCompletionSummaryCard } from '@cloud/agent/components/AgentCompletionSummaryCard';
-import { AgentGeneratedTextCard } from '@cloud/agent/components/AgentGeneratedTextCard';
-import { AiTextActionCard } from '@cloud/agent/components/AiTextActionCard';
-import { AnalyticsSnapshotCard } from '@cloud/agent/components/AnalyticsSnapshotCard';
-import { BatchGenerationCard } from '@cloud/agent/components/BatchGenerationCard';
-import { BatchGenerationResultCard } from '@cloud/agent/components/BatchGenerationResultCard';
-import { BrandCreateCard } from '@cloud/agent/components/BrandCreateCard';
-import { BrandVoiceProfileCard } from '@cloud/agent/components/BrandVoiceProfileCard';
+} from '@genfeedai/agent/components/AdsAgentCards';
+import { AgentCompletionSummaryCard } from '@genfeedai/agent/components/AgentCompletionSummaryCard';
+import { AgentGeneratedTextCard } from '@genfeedai/agent/components/AgentGeneratedTextCard';
+import { AiTextActionCard } from '@genfeedai/agent/components/AiTextActionCard';
+import { AnalyticsSnapshotCard } from '@genfeedai/agent/components/AnalyticsSnapshotCard';
+import { BatchGenerationCard } from '@genfeedai/agent/components/BatchGenerationCard';
+import { BatchGenerationResultCard } from '@genfeedai/agent/components/BatchGenerationResultCard';
+import { BrandCreateCard } from '@genfeedai/agent/components/BrandCreateCard';
+import { BrandVoiceProfileCard } from '@genfeedai/agent/components/BrandVoiceProfileCard';
 import {
   CampaignControlCard,
   CampaignCreateCard,
-} from '@cloud/agent/components/CampaignCard';
-import { ClipRunCard } from '@cloud/agent/components/ClipRunCard';
-import { ClipWorkflowRunCard } from '@cloud/agent/components/ClipWorkflowRunCard';
-import { ContentCalendarCard } from '@cloud/agent/components/ContentCalendarCard';
-import { CreditsBalanceCard } from '@cloud/agent/components/CreditsBalanceCard';
-import { EngagementOpportunityCard } from '@cloud/agent/components/EngagementOpportunityCard';
-import { GenerationActionCard } from '@cloud/agent/components/GenerationActionCard';
-import { ImageTransformCard } from '@cloud/agent/components/ImageTransformCard';
-import { IngredientAlternativesCard } from '@cloud/agent/components/IngredientAlternativesCard';
-import { IngredientPickerCard } from '@cloud/agent/components/IngredientPickerCard';
-import { LivestreamBotCard } from '@cloud/agent/components/LivestreamBotCard';
-import { OnboardingChecklistCard } from '@cloud/agent/components/OnboardingChecklistCard';
-import { PublishPostCard } from '@cloud/agent/components/PublishPostCard';
-import { ReviewGateCard } from '@cloud/agent/components/ReviewGateCard';
-import { SafeMarkdown } from '@cloud/agent/components/SafeMarkdown';
-import { SchedulePostCard } from '@cloud/agent/components/SchedulePostCard';
-import { StudioHandoffCard } from '@cloud/agent/components/StudioHandoffCard';
-import { TrendingTopicsCard } from '@cloud/agent/components/TrendingTopicsCard';
-import { VoiceCloneCard } from '@cloud/agent/components/VoiceCloneCard';
-import { WorkflowCreatedCard } from '@cloud/agent/components/WorkflowCreatedCard';
-import { WorkflowExecuteCard } from '@cloud/agent/components/WorkflowExecuteCard';
-import { WorkflowTriggerCard } from '@cloud/agent/components/WorkflowTriggerCard';
-import { useAnimatedText } from '@cloud/agent/hooks/use-animated-text';
+} from '@genfeedai/agent/components/CampaignCard';
+import { ClipRunCard } from '@genfeedai/agent/components/ClipRunCard';
+import { ClipWorkflowRunCard } from '@genfeedai/agent/components/ClipWorkflowRunCard';
+import { ContentCalendarCard } from '@genfeedai/agent/components/ContentCalendarCard';
+import { CreditsBalanceCard } from '@genfeedai/agent/components/CreditsBalanceCard';
+import { EngagementOpportunityCard } from '@genfeedai/agent/components/EngagementOpportunityCard';
+import { GenerationActionCard } from '@genfeedai/agent/components/GenerationActionCard';
+import { ImageTransformCard } from '@genfeedai/agent/components/ImageTransformCard';
+import { IngredientAlternativesCard } from '@genfeedai/agent/components/IngredientAlternativesCard';
+import { IngredientPickerCard } from '@genfeedai/agent/components/IngredientPickerCard';
+import { LivestreamBotCard } from '@genfeedai/agent/components/LivestreamBotCard';
+import { OnboardingChecklistCard } from '@genfeedai/agent/components/OnboardingChecklistCard';
+import { PublishPostCard } from '@genfeedai/agent/components/PublishPostCard';
+import { ReviewGateCard } from '@genfeedai/agent/components/ReviewGateCard';
+import { SafeMarkdown } from '@genfeedai/agent/components/SafeMarkdown';
+import { SchedulePostCard } from '@genfeedai/agent/components/SchedulePostCard';
+import { StudioHandoffCard } from '@genfeedai/agent/components/StudioHandoffCard';
+import { TrendingTopicsCard } from '@genfeedai/agent/components/TrendingTopicsCard';
+import { VoiceCloneCard } from '@genfeedai/agent/components/VoiceCloneCard';
+import { WorkflowCreatedCard } from '@genfeedai/agent/components/WorkflowCreatedCard';
+import { WorkflowExecuteCard } from '@genfeedai/agent/components/WorkflowExecuteCard';
+import { WorkflowTriggerCard } from '@genfeedai/agent/components/WorkflowTriggerCard';
+import { useAnimatedText } from '@genfeedai/agent/hooks/use-animated-text';
 import type {
   AgentChatMessage as AgentChatMessageType,
   AgentUiAction,
-} from '@cloud/agent/models/agent-chat.model';
-import type { AgentApiService } from '@cloud/agent/services/agent-api.service';
+} from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Button from '@ui/buttons/base/Button';

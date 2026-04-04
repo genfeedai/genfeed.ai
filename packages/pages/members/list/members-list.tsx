@@ -1,6 +1,6 @@
 'use client';
 
-import type { IQueryParams } from '@cloud/interfaces';
+import type { IQueryParams } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { EMPTY_STATES, ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { ModalEnum } from '@genfeedai/enums';

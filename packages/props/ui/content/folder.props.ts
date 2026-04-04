@@ -1,4 +1,4 @@
-import type { IFolder } from '@cloud/interfaces';
+import type { IFolder } from '@genfeedai/interfaces';
 
 export interface FolderCardProps {
   folder: IFolder;

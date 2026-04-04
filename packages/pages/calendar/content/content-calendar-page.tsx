@@ -1,6 +1,6 @@
 'use client';
 
-import type { IArticle } from '@cloud/interfaces';
+import type { IArticle } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { PLATFORM_COLORS } from '@genfeedai/constants';
 import {

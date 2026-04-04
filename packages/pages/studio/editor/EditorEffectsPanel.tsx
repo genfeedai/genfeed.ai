@@ -1,6 +1,6 @@
 'use client';
 
-import type { IEditorEffect, IEditorTrack } from '@cloud/interfaces';
+import type { IEditorEffect, IEditorTrack } from '@genfeedai/interfaces';
 import {
   ButtonSize,
   ButtonVariant,

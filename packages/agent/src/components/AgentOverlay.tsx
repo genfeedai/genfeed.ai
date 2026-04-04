@@ -1,5 +1,5 @@
-import { AgentPanel } from '@cloud/agent/components/AgentPanel';
-import type { AgentApiService } from '@cloud/agent/services/agent-api.service';
+import { AgentPanel } from '@genfeedai/agent/components/AgentPanel';
+import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Button from '@ui/buttons/base/Button';

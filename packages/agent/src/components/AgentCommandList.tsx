@@ -1,4 +1,4 @@
-import type { AgentSlashCommand } from '@cloud/agent/constants/agent-slash-commands.constant';
+import type { AgentSlashCommand } from '@genfeedai/agent/constants/agent-slash-commands.constant';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import {
   forwardRef,

@@ -1,6 +1,6 @@
 'use client';
 
-import type { StudioEditTopbarProps } from '@cloud/interfaces/studio/studio-edit-topbar.interface';
+import type { StudioEditTopbarProps } from '@genfeedai/interfaces/studio/studio-edit-topbar.interface';
 import {
   ButtonSize,
   ButtonVariant,

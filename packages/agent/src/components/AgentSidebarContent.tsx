@@ -1,12 +1,12 @@
 import {
   AGENT_REFRESH_CONVERSATIONS_EVENT,
   AgentThreadList,
-} from '@cloud/agent/components/AgentThreadList';
+} from '@genfeedai/agent/components/AgentThreadList';
 import {
   AGENT_SIDEBAR_TRANSITION_DURATION_MS,
   AGENT_SIDEBAR_TRANSITION_EASING,
-} from '@cloud/agent/constants/agent-panel.constant';
-import type { AgentApiService } from '@cloud/agent/services/agent-api.service';
+} from '@genfeedai/agent/constants/agent-panel.constant';
+import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearchTrigger';
 import Link from 'next/link';

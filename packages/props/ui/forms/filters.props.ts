@@ -1,8 +1,8 @@
-import type { IFieldOption } from '@cloud/interfaces';
+import type { IFieldOption } from '@genfeedai/interfaces';
 import type {
   IFilters,
   IFiltersState,
-} from '@cloud/interfaces/utils/filters.interface';
+} from '@genfeedai/interfaces/utils/filters.interface';
 
 export interface FiltersBarProps {
   filters: IFiltersState;

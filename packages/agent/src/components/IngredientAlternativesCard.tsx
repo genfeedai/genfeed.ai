@@ -1,10 +1,10 @@
-import type { AgentUiAction } from '@cloud/agent/models/agent-chat.model';
-import type { AgentApiService } from '@cloud/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@cloud/agent/services/agent-base-api.service';
+import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import {
   buildAgentGenerationRequestBody,
   getPromptCategoryForGenerationType,
-} from '@cloud/agent/utils/generation-request';
+} from '@genfeedai/agent/utils/generation-request';
 import { type ReactElement, useCallback, useRef, useState } from 'react';
 import {
   HiArrowPath,

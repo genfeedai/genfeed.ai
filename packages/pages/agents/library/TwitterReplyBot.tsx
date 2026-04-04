@@ -1,6 +1,6 @@
 'use client';
 
-import BotToggle from '@cloud/workflow/components/bots/BotToggle';
+import BotToggle from '@genfeedai/workflow/components/bots/BotToggle';
 import { SiX } from 'react-icons/si';
 
 const TWITTER_CONFIG_ITEMS = [

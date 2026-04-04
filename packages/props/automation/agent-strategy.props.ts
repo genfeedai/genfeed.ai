@@ -1,4 +1,4 @@
-import type { IAgentRun } from '@cloud/interfaces';
+import type { IAgentRun } from '@genfeedai/interfaces';
 import type { AgentStrategy } from '@services/automation/agent-strategies.service';
 
 export interface AgentDetailPageProps {

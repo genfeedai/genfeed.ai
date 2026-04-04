@@ -5,8 +5,8 @@ import type {
   IDarkroomCapabilities,
   IOrganizationSetting,
   IUser,
-} from '@cloud/interfaces';
-import type { AgentRunStats, IStreakSummary } from '@cloud/types';
+} from '@genfeedai/interfaces';
+import type { AgentRunStats, IStreakSummary } from '@genfeedai/types';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 

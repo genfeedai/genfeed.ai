@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@genfeedai/types": "0.2.2"
+    "@genfeedai/types": "workspace:*"
   },
   "description": "Core utilities for Genfeed workflow engine",
   "devDependencies": {

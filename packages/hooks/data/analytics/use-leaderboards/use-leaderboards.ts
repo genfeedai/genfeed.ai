@@ -1,6 +1,6 @@
 'use client';
 
-import type { DateRange } from '@cloud/interfaces';
+import type { DateRange } from '@genfeedai/interfaces';
 import { AnalyticsMetric } from '@genfeedai/enums';
 import {
   createCacheKey,

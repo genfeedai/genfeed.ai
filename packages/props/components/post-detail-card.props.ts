@@ -1,4 +1,4 @@
-import type { IIngredient, IPost } from '@cloud/interfaces';
+import type { IIngredient, IPost } from '@genfeedai/interfaces';
 import type { CredentialPlatform } from '@genfeedai/enums';
 import type { PostsService } from '@services/content/posts.service';
 import type { NotificationsService } from '@services/core/notifications.service';

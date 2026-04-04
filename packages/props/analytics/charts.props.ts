@@ -1,4 +1,4 @@
-import type { PostPerformanceDataPoint } from '@cloud/interfaces/analytics/analytics-ui.interface';
+import type { PostPerformanceDataPoint } from '@genfeedai/interfaces/analytics/analytics-ui.interface';
 import type { AnalyticsMetric } from '@genfeedai/enums';
 import type { BrandPerformanceData } from '@services/analytics/analytics.service';
 

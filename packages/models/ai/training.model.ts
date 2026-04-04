@@ -1,4 +1,4 @@
-import type { IImage, ITraining } from '@cloud/interfaces';
+import type { IImage, ITraining } from '@genfeedai/interfaces';
 import { Training as BaseTraining } from '@genfeedai/client/models';
 import { IngredientCategory } from '@genfeedai/enums';
 import { Image } from '@models/ingredients/image.model';

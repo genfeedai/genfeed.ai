@@ -1,13 +1,13 @@
 'use client';
 
-import type { IIngredient, IMetadata } from '@cloud/interfaces';
+import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
 import {
   type BatchItemStatus,
   type BatchJobStatus,
   type BatchJobSummary,
   createWorkflowApiService,
   type WorkflowSummary,
-} from '@cloud/workflow';
+} from '@genfeedai/workflow';
 import {
   AssetScope,
   IngredientCategory,

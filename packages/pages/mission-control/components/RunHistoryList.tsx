@@ -1,6 +1,6 @@
 'use client';
 
-import type { IAgentRun } from '@cloud/interfaces';
+import type { IAgentRun } from '@genfeedai/interfaces';
 import AgentRunCard from '@pages/mission-control/components/AgentRunCard';
 
 interface RunHistoryListProps {

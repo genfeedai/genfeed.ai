@@ -4,7 +4,7 @@ import type {
   IBackgroundTask,
   IBackgroundTaskContextType,
   IBackgroundTaskUpdateEvent,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import {
   buildGenerationEtaSnapshot,

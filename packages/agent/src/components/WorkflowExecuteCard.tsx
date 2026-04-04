@@ -1,10 +1,10 @@
-import type { AgentUiAction } from '@cloud/agent/models/agent-chat.model';
+import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type {
   AgentApiService,
   WorkflowInterfaceField,
   WorkflowInterfaceSchema,
-} from '@cloud/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@cloud/agent/services/agent-base-api.service';
+} from '@genfeedai/agent/services/agent-api.service';
+import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import {
   type ChangeEvent,
   type ReactElement,

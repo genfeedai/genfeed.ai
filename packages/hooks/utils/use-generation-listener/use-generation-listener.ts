@@ -1,6 +1,6 @@
 'use client';
 
-import type { SocketResult } from '@cloud/interfaces/content/generation-payload.interface';
+import type { SocketResult } from '@genfeedai/interfaces/content/generation-payload.interface';
 import type { IngredientCategory } from '@genfeedai/enums';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { logger } from '@services/core/logger.service';

@@ -1,4 +1,4 @@
-import type { IIngredient, ITag } from '@cloud/interfaces';
+import type { IIngredient, ITag } from '@genfeedai/interfaces';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

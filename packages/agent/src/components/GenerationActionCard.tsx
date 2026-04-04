@@ -1,15 +1,15 @@
-import type { AgentUiAction } from '@cloud/agent/models/agent-chat.model';
+import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type {
   AgentApiService,
   GenerationModel,
-} from '@cloud/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@cloud/agent/services/agent-base-api.service';
-import { useAgentChatStore } from '@cloud/agent/stores/agent-chat.store';
+} from '@genfeedai/agent/services/agent-api.service';
+import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   buildAgentGenerationRequestBody,
   DEFAULT_AGENT_GENERATION_PRIORITY,
   getPromptCategoryForGenerationType,
-} from '@cloud/agent/utils/generation-request';
+} from '@genfeedai/agent/utils/generation-request';
 import { ModelCategory, RouterPriority } from '@genfeedai/enums';
 import { resolveGenerationModelControls } from '@helpers/generation-controls.helper';
 import AspectRatioDropdown from '@ui/dropdowns/aspect-ratio/AspectRatioDropdown';

@@ -7,7 +7,7 @@ import type {
   AdsResearchResponse,
   AdsResearchWorkflowResult,
   CampaignLaunchPrep,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 

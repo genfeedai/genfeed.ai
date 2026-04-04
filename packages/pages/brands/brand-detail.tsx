@@ -1,6 +1,6 @@
 'use client';
 
-import type { ILink } from '@cloud/interfaces';
+import type { ILink } from '@genfeedai/interfaces';
 import {
   AlertCategory,
   AssetCategory,

@@ -1,4 +1,4 @@
-import type { IPost } from '@cloud/interfaces';
+import type { IPost } from '@genfeedai/interfaces';
 
 export interface PlatformTabBarProps {
   posts: IPost[];

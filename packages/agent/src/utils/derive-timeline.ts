@@ -2,11 +2,11 @@ import type {
   AgentChatMessage,
   AgentToolCall,
   AgentWorkEvent,
-} from '@cloud/agent/models/agent-chat.model';
+} from '@genfeedai/agent/models/agent-chat.model';
 import {
   AgentWorkEventStatus,
   AgentWorkEventType,
-} from '@cloud/agent/models/agent-chat.model';
+} from '@genfeedai/agent/models/agent-chat.model';
 
 export interface EnrichedWorkEvent extends AgentWorkEvent {
   durationMs?: number;

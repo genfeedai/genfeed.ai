@@ -1,5 +1,5 @@
-import type { IIngredient, IMetadata } from '@cloud/interfaces';
-import type { MasonryActionStates } from '@cloud/interfaces/hooks/hooks.interface';
+import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
+import type { MasonryActionStates } from '@genfeedai/interfaces/hooks/hooks.interface';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AssetCategory,

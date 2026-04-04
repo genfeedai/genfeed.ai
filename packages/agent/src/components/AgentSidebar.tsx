@@ -1,7 +1,7 @@
-import { AgentChatContainer } from '@cloud/agent/components/AgentChatContainer';
-import type { AgentChatMessage } from '@cloud/agent/models/agent-chat.model';
-import type { AgentApiService } from '@cloud/agent/services/agent-api.service';
-import { useAgentChatStore } from '@cloud/agent/stores/agent-chat.store';
+import { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
+import type { AgentChatMessage } from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import Button from '@ui/buttons/base/Button';
 import type { ReactElement } from 'react';

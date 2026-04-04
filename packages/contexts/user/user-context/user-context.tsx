@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth, useUser } from '@clerk/nextjs';
-import type { IUser } from '@cloud/interfaces';
+import type { IUser } from '@genfeedai/interfaces';
 import { getPlaywrightAuthState } from '@helpers/auth/clerk.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';

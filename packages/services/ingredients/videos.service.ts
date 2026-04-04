@@ -1,10 +1,10 @@
-import type { ICaption, IIngredient, IPost, IVideo } from '@cloud/interfaces';
+import type { ICaption, IIngredient, IPost, IVideo } from '@genfeedai/interfaces';
 import type {
   IVideoEditParams,
   IVideoMergeParams,
   IVideoResizeParams,
   IVideoTextOverlayParams,
-} from '@cloud/interfaces/components/video-operations.interface';
+} from '@genfeedai/interfaces/components/video-operations.interface';
 import {
   IngredientMergeSerializer,
   VideoCaptionSerializer,

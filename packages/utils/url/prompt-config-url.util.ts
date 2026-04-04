@@ -1,4 +1,4 @@
-import type { IIngredient, IMetadata, IPrompt } from '@cloud/interfaces';
+import type { IIngredient, IMetadata, IPrompt } from '@genfeedai/interfaces';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { IngredientFormat } from '@genfeedai/enums';
 

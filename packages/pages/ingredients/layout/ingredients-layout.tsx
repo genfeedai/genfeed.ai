@@ -1,11 +1,11 @@
 'use client';
 
-import type { IBrand, IFieldOption } from '@cloud/interfaces';
-import type { IIngredientsContextValue } from '@cloud/interfaces/providers/providers.interface';
+import type { IBrand, IFieldOption } from '@genfeedai/interfaces';
+import type { IIngredientsContextValue } from '@genfeedai/interfaces/providers/providers.interface';
 import type {
   IFilters,
   IFiltersState,
-} from '@cloud/interfaces/utils/filters.interface';
+} from '@genfeedai/interfaces/utils/filters.interface';
 import { IngredientsProvider } from '@contexts/content/ingredients-context/ingredients-context';
 import { IngredientsHeaderProvider } from '@contexts/content/ingredients-header-context/ingredients-header-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';

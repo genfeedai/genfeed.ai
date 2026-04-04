@@ -22,7 +22,7 @@ export type TweetFetcher = (tweetUrl: string) => Promise<TweetFetchResult>;
  * Requires Twitter API access for URL fetching mode.
  *
  * Node Type: tweetInput
- * Definition: @cloud/workflow-saas/nodes/tweet-input.ts
+ * Definition: @genfeedai/workflow-saas/nodes/tweet-input.ts
  */
 export class TweetInputExecutor extends BaseExecutor {
   readonly nodeType = 'tweetInput';

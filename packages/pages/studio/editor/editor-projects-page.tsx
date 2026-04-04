@@ -1,6 +1,6 @@
 'use client';
 
-import type { IEditorProject } from '@cloud/interfaces';
+import type { IEditorProject } from '@genfeedai/interfaces';
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

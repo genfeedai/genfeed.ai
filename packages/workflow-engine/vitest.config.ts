@@ -5,7 +5,7 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: '@cloud/workflow-engine',
+        find: '@genfeedai/workflow-engine',
         replacement: path.resolve(__dirname, './src'),
       },
       {

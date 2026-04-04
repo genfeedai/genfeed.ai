@@ -4,7 +4,7 @@ import type {
   ITrendHashtag,
   ITrendSound,
   ITrendVideo,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import { AlertCategory, ButtonVariant, Platform } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

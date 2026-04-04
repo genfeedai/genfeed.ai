@@ -7,7 +7,7 @@ import type {
   IDateRange,
   IInsightResponse,
   IReportConfig,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import {
   deserializeCollection,

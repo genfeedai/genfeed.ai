@@ -1,6 +1,6 @@
 'use client';
 
-import type { IAnalytics } from '@cloud/interfaces';
+import type { IAnalytics } from '@genfeedai/interfaces';
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { PostStatus } from '@genfeedai/enums';

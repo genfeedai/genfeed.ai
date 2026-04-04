@@ -1,4 +1,4 @@
-import type { IErrorDebugInfo } from '@cloud/interfaces/modals/error-debug.interface';
+import type { IErrorDebugInfo } from '@genfeedai/interfaces/modals/error-debug.interface';
 
 type Listener = (info: IErrorDebugInfo) => void;
 

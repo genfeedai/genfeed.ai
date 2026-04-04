@@ -1,6 +1,6 @@
 'use client';
 
-import type { IMetadata } from '@cloud/interfaces';
+import type { IMetadata } from '@genfeedai/interfaces';
 import {
   GALLERY_EMPTY_MESSAGES,
   GALLERY_EMPTY_SIZE,

@@ -1,6 +1,6 @@
 'use client';
 
-import type { AgentUiAction } from '@cloud/agent/models/agent-chat.model';
+import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { ReactElement } from 'react';
 import { HiCurrencyDollar } from 'react-icons/hi2';

@@ -1,5 +1,5 @@
-import type { IImage } from '@cloud/interfaces';
-import type { IImageEditParams } from '@cloud/interfaces/components/image-edit.interface';
+import type { IImage } from '@genfeedai/interfaces';
+import type { IImageEditParams } from '@genfeedai/interfaces/components/image-edit.interface';
 import {
   ImageEditSerializer,
   ImageSerializer,

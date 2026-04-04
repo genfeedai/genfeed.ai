@@ -1,4 +1,4 @@
-import type { IListing, IPurchase, ISeller } from '@cloud/interfaces';
+import type { IListing, IPurchase, ISeller } from '@genfeedai/interfaces';
 import type {
   ListingStatus,
   ListingType,

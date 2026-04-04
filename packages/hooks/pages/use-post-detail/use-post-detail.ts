@@ -1,7 +1,7 @@
 'use client';
 
-import type { ICredential, IIngredient, IPost } from '@cloud/interfaces';
-import type { AnalyticsStat } from '@cloud/interfaces/analytics/analytics-ui.interface';
+import type { ICredential, IIngredient, IPost } from '@genfeedai/interfaces';
+import type { AnalyticsStat } from '@genfeedai/interfaces/analytics/analytics-ui.interface';
 import type { Platform } from '@genfeedai/enums';
 import { usePostDetailActions } from '@hooks/pages/use-post-detail/use-post-detail-actions';
 import { usePostDetailDrafts } from '@hooks/pages/use-post-detail/use-post-detail-drafts';

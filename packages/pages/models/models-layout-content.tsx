@@ -1,6 +1,6 @@
 'use client';
 
-import type { NavigationTab } from '@cloud/interfaces/ui/navigation.interface';
+import type { NavigationTab } from '@genfeedai/interfaces/ui/navigation.interface';
 import { useModelsContext } from '@contexts/models/models-context/models-context';
 import { useTrainingsContext } from '@contexts/models/trainings-context/trainings-context';
 import { ButtonVariant, ModalEnum } from '@genfeedai/enums';

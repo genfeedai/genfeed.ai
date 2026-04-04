@@ -1,6 +1,6 @@
 'use client';
 
-import type { IAgentWizardFormData } from '@cloud/interfaces';
+import type { IAgentWizardFormData } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AgentAutonomyMode,

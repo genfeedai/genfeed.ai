@@ -1,8 +1,8 @@
-import { AgentCommandList } from '@cloud/agent/components/AgentCommandList';
+import { AgentCommandList } from '@genfeedai/agent/components/AgentCommandList';
 import {
   AGENT_SLASH_COMMANDS,
   type AgentSlashCommand,
-} from '@cloud/agent/constants/agent-slash-commands.constant';
+} from '@genfeedai/agent/constants/agent-slash-commands.constant';
 import { Extension, ReactRenderer } from '@tiptap/react';
 import Suggestion, { type SuggestionOptions } from '@tiptap/suggestion';
 import tippy, { type Instance } from 'tippy.js';

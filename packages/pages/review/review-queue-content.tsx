@@ -1,6 +1,6 @@
 'use client';
 
-import type { IBatchItem, IBatchSummary } from '@cloud/interfaces';
+import type { IBatchItem, IBatchSummary } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';

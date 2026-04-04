@@ -1,4 +1,4 @@
-import type { IImage, IIngredient, ITag, IVideo } from '@cloud/interfaces';
+import type { IImage, IIngredient, ITag, IVideo } from '@genfeedai/interfaces';
 import type { AssetScope } from '@genfeedai/enums';
 import type { ReactNode } from 'react';
 

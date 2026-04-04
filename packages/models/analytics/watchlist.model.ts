@@ -3,7 +3,7 @@ import type {
   IOrganization,
   IUser,
   IWatchlist,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import type { WatchlistPlatform } from '@genfeedai/enums';
 
 export class Watchlist implements IWatchlist {

@@ -4,7 +4,7 @@ import type {
   IIngredient,
   ImageToVideoGenerationPayload,
   ITag,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import {
   IngredientFormat,

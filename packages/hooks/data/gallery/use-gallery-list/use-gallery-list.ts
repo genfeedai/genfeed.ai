@@ -1,4 +1,4 @@
-import type { IQueryParams } from '@cloud/interfaces';
+import type { IQueryParams } from '@genfeedai/interfaces';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import {
   GALLERY_DEFAULT_SORT,

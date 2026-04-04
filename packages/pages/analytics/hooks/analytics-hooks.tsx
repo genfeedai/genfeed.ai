@@ -1,10 +1,10 @@
 'use client';
 
-import type { IQueryParams } from '@cloud/interfaces';
+import type { IQueryParams } from '@genfeedai/interfaces';
 import type {
   IViralHookAnalysis,
   IViralHookVideo,
-} from '@cloud/interfaces/analytics/viral-hooks.interface';
+} from '@genfeedai/interfaces/analytics/viral-hooks.interface';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { formatDuration } from '@genfeedai/helpers';
 import { formatDate } from '@helpers/formatting/date/date.helper';

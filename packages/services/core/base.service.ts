@@ -2,7 +2,7 @@ import type {
   IHttpError,
   IServiceSerializer,
   IStructuredError,
-} from '@cloud/interfaces/utils/error.interface';
+} from '@genfeedai/interfaces/utils/error.interface';
 import {
   deserializeCollection,
   deserializeResource,

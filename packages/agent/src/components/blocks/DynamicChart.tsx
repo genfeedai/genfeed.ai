@@ -1,6 +1,6 @@
 'use client';
 
-import type { ChartBlock, ChartSeriesConfig } from '@cloud/interfaces';
+import type { ChartBlock, ChartSeriesConfig } from '@genfeedai/interfaces';
 import { type ReactElement, useMemo } from 'react';
 import {
   Area,

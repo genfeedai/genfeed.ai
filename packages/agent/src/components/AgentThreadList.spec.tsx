@@ -1,5 +1,5 @@
-import { AgentThreadList } from '@cloud/agent/components/AgentThreadList';
-import type { AgentThread } from '@cloud/agent/models/agent-chat.model';
+import { AgentThreadList } from '@genfeedai/agent/components/AgentThreadList';
+import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Effect } from 'effect';
 import type { ReactNode } from 'react';

@@ -1,20 +1,20 @@
-import { AgentChatContainer } from '@cloud/agent/components/AgentChatContainer';
-import { AgentOnboardingChecklist } from '@cloud/agent/components/AgentOnboardingChecklist';
-import { AgentOutputsPanel } from '@cloud/agent/components/AgentOutputsPanel';
-import { AgentSidebarContent } from '@cloud/agent/components/AgentSidebarContent';
-import type { AgentUiAction } from '@cloud/agent/models/agent-chat.model';
-import type { SuggestedAction } from '@cloud/agent/models/agent-suggested-action.model';
-import type { AgentApiService } from '@cloud/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@cloud/agent/services/agent-base-api.service';
-import { useAgentChatStore } from '@cloud/agent/stores/agent-chat.store';
+import { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
+import { AgentOnboardingChecklist } from '@genfeedai/agent/components/AgentOnboardingChecklist';
+import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
+import { AgentSidebarContent } from '@genfeedai/agent/components/AgentSidebarContent';
+import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
+import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   buildThreadSummaryFromSnapshot,
   mapSnapshotPendingInputRequest,
   mapSnapshotRunStatus,
   mapSnapshotWorkEvents,
-} from '@cloud/agent/utils/agent-thread-snapshot.util';
-import { extractThreadOutputs } from '@cloud/agent/utils/extract-thread-outputs';
-import { filterActionsByRole } from '@cloud/agent/utils/filter-actions-by-role';
+} from '@genfeedai/agent/utils/agent-thread-snapshot.util';
+import { extractThreadOutputs } from '@genfeedai/agent/utils/extract-thread-outputs';
+import { filterActionsByRole } from '@genfeedai/agent/utils/filter-actions-by-role';
 import type { MemberRole } from '@genfeedai/enums';
 import { AgentThreadStatus } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';

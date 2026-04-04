@@ -6,9 +6,9 @@ import type {
   ITrendPlaybook,
   ITrendSound,
   ITrendVideo,
-} from '@cloud/interfaces';
-import type { ICreatorWatchlist } from '@cloud/interfaces/analytics/creator-watchlist.interface';
-import type { ITrendPlatformConfig } from '@cloud/interfaces/analytics/platform-config.interface';
+} from '@genfeedai/interfaces';
+import type { ICreatorWatchlist } from '@genfeedai/interfaces/analytics/creator-watchlist.interface';
+import type { ITrendPlatformConfig } from '@genfeedai/interfaces/analytics/platform-config.interface';
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import { Platform, Timeframe } from '@genfeedai/enums';
 import { createLocalStorageCache } from '@helpers/data/cache/cache.helper';

@@ -1,4 +1,4 @@
-import { CONNECTION_RULES } from '@cloud/types/nodes';
+import { CONNECTION_RULES } from '@genfeedai/types/nodes';
 import type { SaaSHandleType } from '@workflow-saas/types';
 
 /**

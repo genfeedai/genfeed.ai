@@ -6,8 +6,8 @@ import type {
   IPost,
   IPreset,
   IQueryParams,
-} from '@cloud/interfaces';
-import type { IFiltersState } from '@cloud/interfaces/utils/filters.interface';
+} from '@genfeedai/interfaces';
+import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { EMPTY_STATES, ITEMS_PER_PAGE } from '@genfeedai/constants';

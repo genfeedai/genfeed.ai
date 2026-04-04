@@ -1,4 +1,4 @@
-import type { IMonitoredAccount } from '@cloud/interfaces';
+import type { IMonitoredAccount } from '@genfeedai/interfaces';
 import { MonitoredAccount as BaseMonitoredAccount } from '@genfeedai/client/models';
 
 export class MonitoredAccount extends BaseMonitoredAccount {

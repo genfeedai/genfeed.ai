@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { AgentApiService, AgentFullPage } from '@cloud/agent';
+import { AgentApiService, AgentFullPage } from '@genfeedai/agent';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { useUserRole } from '@hooks/auth/use-user-role';
 import { useCallback, useMemo } from 'react';

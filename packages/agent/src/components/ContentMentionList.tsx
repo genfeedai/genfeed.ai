@@ -1,4 +1,4 @@
-import type { ContentMentionItem } from '@cloud/agent/types/mention.types';
+import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import {
   forwardRef,

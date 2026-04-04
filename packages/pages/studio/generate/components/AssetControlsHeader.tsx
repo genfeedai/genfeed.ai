@@ -1,6 +1,6 @@
 'use client';
 
-import type { IFiltersState } from '@cloud/interfaces/utils/filters.interface';
+import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
 import type { IngredientCategory } from '@genfeedai/enums';
 import { IngredientFormat, IngredientStatus, ViewType } from '@genfeedai/enums';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';

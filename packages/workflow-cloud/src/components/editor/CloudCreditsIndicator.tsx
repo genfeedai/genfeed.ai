@@ -1,6 +1,6 @@
 'use client';
 
-import { NodeStatusEnum } from '@cloud/workflow-saas';
+import { NodeStatusEnum } from '@genfeedai/workflow-saas';
 import { calculateWorkflowCost } from '@genfeedai/workflow-ui/lib';
 import {
   selectNodes,

@@ -4,7 +4,7 @@ import type {
   IOrganizationSetting,
   ISetting,
   IUser,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/client/models', () => ({

@@ -4,7 +4,7 @@ import type {
   IOrganizationSetting,
   ISetting,
   IUser,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { describe, expect, it, vi } from 'vitest';
 

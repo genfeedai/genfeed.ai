@@ -14,13 +14,13 @@ vi.mock('next/link', () => ({
   },
 }));
 
-vi.mock('@cloud/agent/components/AgentChatInput', () => ({
+vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
   AgentChatInput: function MockAgentChatInput() {
     return <div data-testid="agent-chat-input-shell">agent-chat-input</div>;
   },
 }));
 
-vi.mock('@cloud/agent/components/AgentChatMessage', () => ({
+vi.mock('@genfeedai/agent/components/AgentChatMessage', () => ({
   AgentChatMessage: function MockAgentChatMessage(props: {
     message: { content: string; role: string };
   }) {

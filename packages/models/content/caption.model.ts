@@ -1,4 +1,4 @@
-import type { ICaption, IIngredient } from '@cloud/interfaces';
+import type { ICaption, IIngredient } from '@genfeedai/interfaces';
 import { Caption as BaseCaption } from '@genfeedai/client/models';
 import { Ingredient } from '@models/content/ingredient.model';
 

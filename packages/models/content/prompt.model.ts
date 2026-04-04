@@ -1,4 +1,4 @@
-import type { IIngredient, IPrompt } from '@cloud/interfaces';
+import type { IIngredient, IPrompt } from '@genfeedai/interfaces';
 import { Prompt as BasePrompt } from '@genfeedai/client/models';
 import { Ingredient } from '@models/content/ingredient.model';
 

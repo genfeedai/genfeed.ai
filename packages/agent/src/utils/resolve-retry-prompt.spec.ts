@@ -1,5 +1,5 @@
-import type { AgentChatMessage } from '@cloud/agent/models/agent-chat.model';
-import { resolveRetryPrompt } from '@cloud/agent/utils/resolve-retry-prompt';
+import type { AgentChatMessage } from '@genfeedai/agent/models/agent-chat.model';
+import { resolveRetryPrompt } from '@genfeedai/agent/utils/resolve-retry-prompt';
 import { describe, expect, it } from 'vitest';
 
 function createMessage(

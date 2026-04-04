@@ -1,4 +1,4 @@
-import type { IIngredient, IPost } from '@cloud/interfaces';
+import type { IIngredient, IPost } from '@genfeedai/interfaces';
 import { Post as BasePost } from '@genfeedai/client/models';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import { SocialUrlHelper } from '@genfeedai/helpers';

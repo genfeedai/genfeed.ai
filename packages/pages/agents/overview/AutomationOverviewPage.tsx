@@ -1,6 +1,6 @@
 'use client';
 
-import type { OverviewCard } from '@cloud/interfaces/ui/overview-card.interface';
+import type { OverviewCard } from '@genfeedai/interfaces/ui/overview-card.interface';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';

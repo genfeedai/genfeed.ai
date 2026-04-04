@@ -1,6 +1,6 @@
 'use client';
 
-import type { IVideo } from '@cloud/interfaces';
+import type { IVideo } from '@genfeedai/interfaces';
 import {
   GALLERY_CONTAINER_PADDING,
   GALLERY_EMPTY_MESSAGES,

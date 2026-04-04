@@ -1,4 +1,4 @@
-import type { IMember } from '@cloud/interfaces';
+import type { IMember } from '@genfeedai/interfaces';
 import { Member as BaseMember } from '@genfeedai/client/models';
 import { Role } from '@models/auth/role.model';
 import { User } from '@models/auth/user.model';

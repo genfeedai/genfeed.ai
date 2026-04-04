@@ -1,6 +1,6 @@
 'use client';
 
-import type { IAgentRun } from '@cloud/interfaces';
+import type { IAgentRun } from '@genfeedai/interfaces';
 import { AgentExecutionStatus, ButtonVariant } from '@genfeedai/enums';
 import Button from '@ui/buttons/base/Button';
 

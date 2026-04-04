@@ -1,4 +1,4 @@
-import type { IBulkOperationResult, IBulkPatchData } from '@cloud/interfaces';
+import type { IBulkOperationResult, IBulkPatchData } from '@genfeedai/interfaces';
 import {
   ActivityBulkPatchSerializer,
   ActivitySerializer,

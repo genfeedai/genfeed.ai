@@ -3,7 +3,7 @@
 import type {
   ITwitterOpportunity,
   ITwitterPublishResult,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import { ButtonVariant } from '@genfeedai/enums';
 import Button from '@ui/buttons/base/Button';
 import AppLink from '@ui/navigation/link/Link';

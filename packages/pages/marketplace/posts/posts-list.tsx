@@ -1,6 +1,6 @@
 'use client';
 
-import type { IPost } from '@cloud/interfaces';
+import type { IPost } from '@genfeedai/interfaces';
 import {
   GALLERY_EMPTY_MESSAGES,
   GALLERY_EMPTY_SIZE,

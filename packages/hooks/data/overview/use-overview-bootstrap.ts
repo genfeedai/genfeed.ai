@@ -1,8 +1,8 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import type { IAgentRun, IAnalytics } from '@cloud/interfaces';
-import type { AgentRunStats as CloudAgentRunStats } from '@cloud/types';
+import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
+import type { AgentRunStats as CloudAgentRunStats } from '@genfeedai/types';
 import { getPlaywrightAuthState } from '@helpers/auth/clerk.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';

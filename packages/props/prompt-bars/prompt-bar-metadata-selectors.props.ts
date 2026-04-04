@@ -8,7 +8,7 @@ import type {
   IElementStyle,
   IFontFamily,
   IPreset,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import type { PromptBarConfig } from '@props/studio/prompt-bar.props';
 import type { UseFormReturn } from 'react-hook-form';

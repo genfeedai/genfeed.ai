@@ -3,4 +3,4 @@ export {
   fontVariables,
   satoshi,
   zodiak,
-} from '@cloud/fonts/fonts';
+} from '@genfeedai/fonts/fonts';

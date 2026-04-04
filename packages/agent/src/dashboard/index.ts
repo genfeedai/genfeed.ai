@@ -1,4 +1,4 @@
 export {
   DASHBOARD_KPI_CATALOG,
   getDashboardPreset,
-} from '@cloud/agent/dashboard/dashboard-presets';
+} from '@genfeedai/agent/dashboard/dashboard-presets';

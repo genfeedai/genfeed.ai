@@ -1,4 +1,4 @@
-import { BatchGenerationResultCard } from '@cloud/agent/components/BatchGenerationResultCard';
+import { BatchGenerationResultCard } from '@genfeedai/agent/components/BatchGenerationResultCard';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 

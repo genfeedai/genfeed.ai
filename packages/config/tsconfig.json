@@ -6,8 +6,8 @@
     "declarationMap": true,
     "outDir": "./dist",
     "paths": {
-      "@cloud/config": ["./src/index.ts"],
-      "@cloud/config/*": ["./src/*"],
+      "@genfeedai/config": ["./src/index.ts"],
+      "@genfeedai/config/*": ["./src/*"],
       "@config/*": ["./src/*"]
     },
     "rootDir": "./src",

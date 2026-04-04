@@ -6,7 +6,7 @@ vi.mock('@services/core/logger.service', () => ({
   logger: { debug: vi.fn(), error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 }));
 
-import type { ICommand } from '@cloud/interfaces/ui/command-palette.interface';
+import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
 import { CommandPaletteService } from '@services/core/command-palette.service';
 
 function makeCommand(

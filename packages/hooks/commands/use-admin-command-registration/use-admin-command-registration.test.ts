@@ -1,4 +1,4 @@
-import type { ICommand } from '@cloud/interfaces/ui/command-palette.interface';
+import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
 import { useAdminCommandRegistration } from '@hooks/commands/use-admin-command-registration/use-admin-command-registration';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

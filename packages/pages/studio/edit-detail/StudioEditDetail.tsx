@@ -4,16 +4,16 @@ import type {
   IEditFormData,
   IIngredient,
   IQueryParams,
-} from '@cloud/interfaces';
-import type { IImageEditParams } from '@cloud/interfaces/components/image-edit.interface';
-import type { IStudioEditDetailContentProps } from '@cloud/interfaces/content/studio-edit-detail.interface';
+} from '@genfeedai/interfaces';
+import type { IImageEditParams } from '@genfeedai/interfaces/components/image-edit.interface';
+import type { IStudioEditDetailContentProps } from '@genfeedai/interfaces/content/studio-edit-detail.interface';
 import type {
   EditPayload,
   EditReframePayload,
   ImageUpscalePayload,
   MediaResult,
   VideoUpscalePayload,
-} from '@cloud/interfaces/studio/studio-edit.interface';
+} from '@genfeedai/interfaces/studio/studio-edit.interface';
 import { useAssetSelection } from '@contexts/ui/asset-selection-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { editFormSchema } from '@genfeedai/client/schemas';

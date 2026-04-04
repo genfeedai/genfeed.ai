@@ -1,10 +1,10 @@
-import { AgentOutputsPanel } from '@cloud/agent/components/AgentOutputsPanel';
+import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 const seedComposer = vi.fn();
 
-vi.mock('@cloud/agent/stores/agent-chat.store', () => ({
+vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
   useAgentChatStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector({
       activeThreadId: 'thread-1',

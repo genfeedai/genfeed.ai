@@ -6,7 +6,7 @@ import type {
   ITwitterPublishResult,
   ITwitterSearchResult,
   ITwitterVoiceConfig,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { TwitterPipelineService } from '@services/twitter/twitter-pipeline.service';

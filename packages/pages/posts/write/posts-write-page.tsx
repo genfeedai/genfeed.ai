@@ -1,6 +1,6 @@
 'use client';
 
-import type { ICredential } from '@cloud/interfaces';
+import type { ICredential } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   ButtonVariant,

@@ -1,5 +1,5 @@
-import { ClipWorkflowRunCard } from '@cloud/agent/components/ClipWorkflowRunCard';
-import type { AgentUiAction } from '@cloud/agent/models/agent-chat.model';
+import { ClipWorkflowRunCard } from '@genfeedai/agent/components/ClipWorkflowRunCard';
+import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

@@ -1,5 +1,5 @@
-import type { IModel } from '@cloud/interfaces';
-import type { ToolbarValues } from '@cloud/interfaces/ui/toolbar.interface';
+import type { IModel } from '@genfeedai/interfaces';
+import type { ToolbarValues } from '@genfeedai/interfaces/ui/toolbar.interface';
 import type { ChangeEvent } from 'react';
 
 export interface ToolbarProps {

@@ -1,4 +1,4 @@
-import type { CameraMovementPreset } from '@cloud/interfaces/studio/camera-movement.interface';
+import type { CameraMovementPreset } from '@genfeedai/interfaces/studio/camera-movement.interface';
 
 export interface CameraMovementPromptBarProps {
   preset: CameraMovementPreset;

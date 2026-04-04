@@ -1,4 +1,4 @@
-import type { ICreativePattern, PatternType } from '@cloud/interfaces';
+import type { ICreativePattern, PatternType } from '@genfeedai/interfaces';
 import {
   BaseExecutor,
   type ExecutorInput,
@@ -19,7 +19,7 @@ export type PatternContextResolver = (
  * and makes them available to downstream workflow nodes.
  *
  * Node Type: patternContext
- * Definition: @cloud/workflow-saas/nodes/pattern-context.ts
+ * Definition: @genfeedai/workflow-saas/nodes/pattern-context.ts
  */
 export class PatternContextExecutor extends BaseExecutor {
   readonly nodeType = 'patternContext';

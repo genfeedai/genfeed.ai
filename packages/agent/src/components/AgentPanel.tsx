@@ -1,8 +1,8 @@
-import { AgentChatContainer } from '@cloud/agent/components/AgentChatContainer';
-import { AgentOutputsPanel } from '@cloud/agent/components/AgentOutputsPanel';
-import type { AgentApiService } from '@cloud/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@cloud/agent/services/agent-base-api.service';
-import { useAgentChatStore } from '@cloud/agent/stores/agent-chat.store';
+import { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
+import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
+import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { AgentPanelShell } from '@ui/agent-panel';
 import { useRouter } from 'next/navigation';

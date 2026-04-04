@@ -1,6 +1,6 @@
 'use client';
 
-import type { IBatchItem, IBatchSummary } from '@cloud/interfaces';
+import type { IBatchItem, IBatchSummary } from '@genfeedai/interfaces';
 import { BatchItemStatus, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import ReviewDetailPanel from '@pages/review/components/ReviewDetailPanel';

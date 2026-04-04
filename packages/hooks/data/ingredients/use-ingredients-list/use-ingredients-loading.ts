@@ -5,7 +5,7 @@ import type {
   IFolder,
   IIngredient,
   IQueryParams,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import type { IngredientCategorySchema } from '@genfeedai/client/schemas';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { IngredientCategory } from '@genfeedai/enums';

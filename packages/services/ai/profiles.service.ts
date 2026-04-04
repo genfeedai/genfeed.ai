@@ -10,7 +10,7 @@ import type {
   IApplyToneResult,
   IToneAnalysis,
   IToneProfile,
-} from '@cloud/interfaces/ai/tone-profile.interface';
+} from '@genfeedai/interfaces/ai/tone-profile.interface';
 import {
   deserializeCollection,
   deserializeResource,

@@ -1,6 +1,6 @@
-import { ToolCallDetailPanel } from '@cloud/agent/components/ToolCallDetailPanel';
-import type { AgentToolCall } from '@cloud/agent/models/agent-chat.model';
-import { formatDuration } from '@cloud/agent/utils/format-duration';
+import { ToolCallDetailPanel } from '@genfeedai/agent/components/ToolCallDetailPanel';
+import type { AgentToolCall } from '@genfeedai/agent/models/agent-chat.model';
+import { formatDuration } from '@genfeedai/agent/utils/format-duration';
 import { ButtonVariant } from '@genfeedai/enums';
 import Button from '@ui/buttons/base/Button';
 import { type ReactElement, useState } from 'react';

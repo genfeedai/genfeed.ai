@@ -5,7 +5,7 @@ import type {
   IMetadata,
   IPrompt,
   ITag,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import { Ingredient as BaseIngredient } from '@genfeedai/client/models';
 import {
   IngredientCategory,

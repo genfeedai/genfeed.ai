@@ -1,4 +1,4 @@
-import type { IEditorTrack } from '@cloud/interfaces';
+import type { IEditorTrack } from '@genfeedai/interfaces';
 
 export interface EditorTimelineProps {
   tracks: IEditorTrack[];

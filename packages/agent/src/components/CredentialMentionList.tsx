@@ -1,4 +1,4 @@
-import type { CredentialMentionItem } from '@cloud/agent/services/agent-api.service';
+import type { CredentialMentionItem } from '@genfeedai/agent/services/agent-api.service';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import {
   forwardRef,

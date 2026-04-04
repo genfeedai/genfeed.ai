@@ -3,7 +3,7 @@
  * Extended node types for premium content distribution features
  */
 
-import type { BaseNodeData } from '@cloud/types/nodes';
+import type { BaseNodeData } from '@genfeedai/types/nodes';
 import {
   NotificationChannel,
   PublishStatus,

@@ -1,6 +1,6 @@
 'use client';
 
-import type { MenuItemConfig } from '@cloud/interfaces/ui/menu-config.interface';
+import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import {

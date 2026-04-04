@@ -1,6 +1,6 @@
 'use client';
 
-import type { DateRange, ITimeSeriesApiDataPoint } from '@cloud/interfaces';
+import type { DateRange, ITimeSeriesApiDataPoint } from '@genfeedai/interfaces';
 import {
   createCacheKey,
   createLocalStorageCache,

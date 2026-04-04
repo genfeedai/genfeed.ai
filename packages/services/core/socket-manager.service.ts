@@ -7,8 +7,8 @@ import type {
   ISocketEventHandler,
   ISocketManagerConfig,
   IStepsEventData,
-} from '@cloud/interfaces';
-import type { SocketListener } from '@cloud/interfaces/services/socket-listener.interface';
+} from '@genfeedai/interfaces';
+import type { SocketListener } from '@genfeedai/interfaces/services/socket-listener.interface';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { SocketService } from '@services/core/socket.service';

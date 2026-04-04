@@ -1,4 +1,4 @@
-import type { ILink } from '@cloud/interfaces';
+import type { ILink } from '@genfeedai/interfaces';
 import { Link as BaseLink } from '@genfeedai/client/models';
 import { Brand } from '@models/organization/brand.model';
 

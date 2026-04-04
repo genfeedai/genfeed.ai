@@ -11,8 +11,8 @@ import type {
   ITemplateGenerationResult,
   ITemplateSuggestion,
   ITemplateUsage,
-} from '@cloud/interfaces';
-import type { IContentTemplate } from '@cloud/interfaces/content/template-ui.interface';
+} from '@genfeedai/interfaces';
+import type { IContentTemplate } from '@genfeedai/interfaces/content/template-ui.interface';
 import { TemplateSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type { JsonApiResponseDocument } from '@helpers/data/json-api/json-api.helper';

@@ -1,6 +1,6 @@
 'use client';
 
-import type { IEditorTextOverlay, IEditorTrack } from '@cloud/interfaces';
+import type { IEditorTextOverlay, IEditorTrack } from '@genfeedai/interfaces';
 import { ButtonSize, ButtonVariant, EditorTrackType } from '@genfeedai/enums';
 import Button from '@ui/buttons/base/Button';
 import { ColorInput } from '@ui/primitives/color-input';

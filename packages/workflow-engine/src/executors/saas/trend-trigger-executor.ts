@@ -36,7 +36,7 @@ export type TrendChecker = (params: {
  * Polls trends at configurable intervals and deduplicates to avoid re-triggering.
  *
  * Node Type: trendTrigger
- * Definition: @cloud/workflow-saas/nodes/trend-trigger.ts
+ * Definition: @genfeedai/workflow-saas/nodes/trend-trigger.ts
  */
 export class TrendTriggerExecutor extends BaseExecutor {
   readonly nodeType = 'trendTrigger';

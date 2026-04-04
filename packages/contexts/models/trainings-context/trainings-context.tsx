@@ -1,6 +1,6 @@
 'use client';
 
-import type { ITrainingsContextType } from '@cloud/interfaces/models/trainings-context.interface';
+import type { ITrainingsContextType } from '@genfeedai/interfaces/models/trainings-context.interface';
 import {
   createContext,
   type ReactNode,

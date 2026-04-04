@@ -1,4 +1,4 @@
-import type { ISubscriptionPreview } from '@cloud/interfaces';
+import type { ISubscriptionPreview } from '@genfeedai/interfaces';
 import { Subscription as BaseSubscription } from '@genfeedai/client/models';
 import { User } from '@models/auth/user.model';
 import { Brand } from '@models/organization/brand.model';

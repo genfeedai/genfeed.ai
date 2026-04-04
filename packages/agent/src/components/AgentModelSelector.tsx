@@ -3,7 +3,7 @@
 import {
   AGENT_MODELS,
   type AgentModelOption,
-} from '@cloud/agent/constants/agent-models.constant';
+} from '@genfeedai/agent/constants/agent-models.constant';
 import { CostTier } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import {

@@ -1,10 +1,10 @@
 import { useAuth, useUser } from '@clerk/nextjs';
 import type { UserResource } from '@clerk/types';
-import type { IActivity } from '@cloud/interfaces';
+import type { IActivity } from '@genfeedai/interfaces';
 import type {
   ActivitiesOptions,
   ActivitiesReturn,
-} from '@cloud/interfaces/hooks/hooks.interface';
+} from '@genfeedai/interfaces/hooks/hooks.interface';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   getClerkPublicData,

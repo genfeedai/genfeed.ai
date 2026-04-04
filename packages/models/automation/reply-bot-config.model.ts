@@ -1,4 +1,4 @@
-import type { IReplyBotConfig, IReplyBotRateLimits } from '@cloud/interfaces';
+import type { IReplyBotConfig, IReplyBotRateLimits } from '@genfeedai/interfaces';
 import { ReplyBotConfig as BaseReplyBotConfig } from '@genfeedai/client/models';
 
 function normalizeRateLimits(

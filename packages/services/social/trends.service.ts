@@ -8,7 +8,7 @@ import type {
   ITrendSound,
   ITrendVideo,
   IViralVideoOptions,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import { TrendSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import { deserializeCollection } from '@helpers/data/json-api/json-api.helper';

@@ -1,4 +1,4 @@
-import type { IIngredient, IMetadata } from '@cloud/interfaces';
+import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
 import { IngredientCategory, IngredientExtension } from '@genfeedai/enums';
 
 const AVATAR_IMAGE_EXTENSIONS = new Set([IngredientExtension.JPG, 'jpeg']);

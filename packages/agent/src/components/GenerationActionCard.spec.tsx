@@ -1,4 +1,4 @@
-import type { IModel } from '@cloud/interfaces';
+import type { IModel } from '@genfeedai/interfaces';
 import {
   ModelCategory,
   ModelKey,
@@ -115,7 +115,7 @@ const storeState = {
   setThreadUiBusy: vi.fn(),
 };
 
-vi.mock('@cloud/agent/stores/agent-chat.store', () => ({
+vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
   useAgentChatStore: (selector: (state: typeof storeState) => unknown) =>
     selector(storeState),
 }));

@@ -1,9 +1,9 @@
 {
   "dependencies": {
-    "@genfeedai/constants": "2.2.9",
-    "@genfeedai/enums": "2.3.2",
-    "@genfeedai/helpers": "2.2.12",
-    "@genfeedai/interfaces": "2.3.18",
+    "@genfeedai/constants": "workspace:*",
+    "@genfeedai/enums": "workspace:*",
+    "@genfeedai/helpers": "workspace:*",
+    "@genfeedai/interfaces": "workspace:*",
     "ts-jsonapi": "2.1.3",
     "zod": "4.3.6"
   },

@@ -3,7 +3,7 @@
 import type {
   IMaskDrawingState,
   IMaskEditorProps,
-} from '@cloud/interfaces/components/mask-editor.interface';
+} from '@genfeedai/interfaces/components/mask-editor.interface';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';

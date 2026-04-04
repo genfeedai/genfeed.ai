@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { type AgentApiConfig, AgentSettings } from '@cloud/agent';
+import { type AgentApiConfig, AgentSettings } from '@genfeedai/agent';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import Container from '@ui/layout/container/Container';

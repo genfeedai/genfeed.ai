@@ -1,6 +1,6 @@
 'use client';
 
-import type { IXArticleMetadata } from '@cloud/interfaces';
+import type { IXArticleMetadata } from '@genfeedai/interfaces';
 import { downloadUrl } from '@helpers/media/download/download.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Article } from '@models/content/article.model';

@@ -11,7 +11,7 @@
     }
   },
   "main": "./index.ts",
-  "name": "@cloud/fonts",
+  "name": "@genfeedai/fonts",
   "peerDependencies": {
     "next": ">=14.0.0"
   },

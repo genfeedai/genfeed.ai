@@ -1,6 +1,6 @@
 'use client';
 
-import type { IActivity, IIngredient } from '@cloud/interfaces';
+import type { IActivity, IIngredient } from '@genfeedai/interfaces';
 import {
   ActivityKey,
   ActivitySource,

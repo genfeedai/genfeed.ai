@@ -1,10 +1,10 @@
 'use client';
 
-import type { IModelsContextType } from '@cloud/interfaces/models/models-context.interface';
+import type { IModelsContextType } from '@genfeedai/interfaces/models/models-context.interface';
 import type {
   IFilters,
   IFiltersState,
-} from '@cloud/interfaces/utils/filters.interface';
+} from '@genfeedai/interfaces/utils/filters.interface';
 import {
   createContext,
   type ReactNode,

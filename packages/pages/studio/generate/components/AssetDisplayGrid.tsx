@@ -1,6 +1,6 @@
 'use client';
 
-import type { IIngredient } from '@cloud/interfaces';
+import type { IIngredient } from '@genfeedai/interfaces';
 import {
   IngredientCategory,
   type IngredientFormat,

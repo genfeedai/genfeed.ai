@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@genfeedai/enums": "2.3.2",
+    "@genfeedai/enums": "workspace:*",
     "zod": "4.3.6"
   },
   "description": "Auto-generated TypeScript types from OpenAPI spec with Zod validation schemas",
@@ -24,7 +24,7 @@
   ],
   "license": "MIT",
   "main": "./dist/index.js",
-  "name": "@cloud/api-types",
+  "name": "@genfeedai/api-types",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"

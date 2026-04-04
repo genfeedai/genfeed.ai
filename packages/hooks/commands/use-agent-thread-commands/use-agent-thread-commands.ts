@@ -1,6 +1,6 @@
 'use client';
 
-import type { ICommand } from '@cloud/interfaces/ui/command-palette.interface';
+import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
 import { useCommandPalette } from '@hooks/ui/use-command-palette/use-command-palette';
 import { useEffect, useMemo, useRef } from 'react';
 import { HiOutlineChatBubbleLeftRight } from 'react-icons/hi2';

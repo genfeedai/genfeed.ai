@@ -1,13 +1,13 @@
 'use client';
 
-import { DynamicBlockGrid } from '@cloud/agent/components/blocks';
-import { useAgentDashboardPersistence } from '@cloud/agent/hooks/use-agent-dashboard-persistence';
+import { DynamicBlockGrid } from '@genfeedai/agent/components/blocks';
+import { useAgentDashboardPersistence } from '@genfeedai/agent/hooks/use-agent-dashboard-persistence';
 import type {
   AgentUIBlock,
   DashboardPreferenceScope,
   DashboardScopePreferences,
   IUser,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import Button from '@ui/buttons/base/Button';
 

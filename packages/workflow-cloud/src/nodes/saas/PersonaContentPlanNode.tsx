@@ -1,6 +1,6 @@
 'use client';
 
-import type { PersonaContentPlanNodeData } from '@cloud/workflow-saas';
+import type { PersonaContentPlanNodeData } from '@genfeedai/workflow-saas';
 import {
   selectUpdateNodeData,
   useWorkflowStore,

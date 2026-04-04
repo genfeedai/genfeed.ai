@@ -4,7 +4,7 @@ import type {
   IImage,
   ILink,
   IVideo,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import type { AssetCategory, CredentialPlatform } from '@genfeedai/enums';
 
 export interface BrandDetailBannerProps {

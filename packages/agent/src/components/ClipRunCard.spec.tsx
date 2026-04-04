@@ -1,9 +1,9 @@
-import { ClipRunCard } from '@cloud/agent/components/ClipRunCard';
+import { ClipRunCard } from '@genfeedai/agent/components/ClipRunCard';
 import type {
   ClipRunCardState,
   ClipRunModes,
   ClipRunStep,
-} from '@cloud/agent/models/clip-run-card.model';
+} from '@genfeedai/agent/models/clip-run-card.model';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';

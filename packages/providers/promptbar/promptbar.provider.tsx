@@ -7,7 +7,7 @@ import type {
   IPreset,
   ITag,
   ITraining,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { IngredientCategory } from '@genfeedai/enums';

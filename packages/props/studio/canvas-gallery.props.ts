@@ -1,4 +1,4 @@
-import type { IIngredient } from '@cloud/interfaces';
+import type { IIngredient } from '@genfeedai/interfaces';
 import type { IngredientCategory } from '@genfeedai/enums';
 
 export interface CanvasGalleryProps {

@@ -3,7 +3,7 @@
 import {
   type ExecutionNodeResult,
   type ExecutionResult,
-} from '@cloud/workflow';
+} from '@genfeedai/workflow';
 import { ButtonVariant, WorkflowExecutionStatus } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';

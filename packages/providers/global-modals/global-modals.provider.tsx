@@ -9,8 +9,8 @@ import type {
   IIngredient,
   IMusic,
   IPost,
-} from '@cloud/interfaces';
-import type { UsePostModalOptions } from '@cloud/interfaces/hooks/use-publication-modal.interface';
+} from '@genfeedai/interfaces';
+import type { UsePostModalOptions } from '@genfeedai/interfaces/hooks/use-publication-modal.interface';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   type IngredientCategory,

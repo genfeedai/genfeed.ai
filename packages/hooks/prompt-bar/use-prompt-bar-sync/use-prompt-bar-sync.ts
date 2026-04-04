@@ -1,4 +1,4 @@
-import type { IAsset, IImage } from '@cloud/interfaces';
+import type { IAsset, IImage } from '@genfeedai/interfaces';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import {
   IngredientCategory,

@@ -1,6 +1,6 @@
 'use client';
 
-import type { IPost } from '@cloud/interfaces';
+import type { IPost } from '@genfeedai/interfaces';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { CardEmptySize } from '@genfeedai/enums';
 import type { Ingredient } from '@models/content/ingredient.model';

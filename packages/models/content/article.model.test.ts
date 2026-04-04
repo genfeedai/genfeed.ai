@@ -7,7 +7,7 @@ import type {
   ISetting,
   ITag,
   IUser,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import {
   ArticleCategory,
   ArticleStatus,

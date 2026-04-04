@@ -154,15 +154,15 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
   useOptionalUser: () => mockUserContext,
 }));
 
-vi.mock('@cloud/agent/hooks/use-agent-dashboard-persistence', () => ({
+vi.mock('@genfeedai/agent/hooks/use-agent-dashboard-persistence', () => ({
   useAgentDashboardPersistence: mockUseAgentDashboardPersistence,
 }));
 
-vi.mock('@cloud/agent/components/blocks', () => ({
+vi.mock('@genfeedai/agent/components/blocks', () => ({
   DynamicBlockGrid: () => <div data-testid="dynamic-block-grid" />,
 }));
 
-vi.mock('@cloud/agent', () => ({
+vi.mock('@genfeedai/agent', () => ({
   DynamicBlockGrid: () => <div data-testid="dynamic-block-grid" />,
   useAgentDashboardStore: (
     selector: (state: typeof mockAnalyticsStore) => unknown,

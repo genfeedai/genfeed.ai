@@ -1,7 +1,7 @@
 import type {
   IAnnouncement,
   IAnnouncementBroadcastRequest,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import {
   deserializeCollection,
   deserializeResource,

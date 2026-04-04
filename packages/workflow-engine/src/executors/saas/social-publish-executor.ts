@@ -41,7 +41,7 @@ export type SocialPublisher = (params: {
  * Requires OAuth integrations with each platform.
  *
  * Node Type: socialPublish
- * Definition: @cloud/workflow-saas/nodes/social-publish.ts
+ * Definition: @genfeedai/workflow-saas/nodes/social-publish.ts
  */
 export class SocialPublishExecutor extends BaseExecutor {
   readonly nodeType = 'socialPublish';

@@ -8,7 +8,7 @@ import type {
   IElementScene,
   IElementStyle,
   ISound,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import {
   deserializeCollection,

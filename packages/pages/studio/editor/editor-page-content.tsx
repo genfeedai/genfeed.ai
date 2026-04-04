@@ -4,7 +4,7 @@ import type {
   IEditorProject,
   IEditorTrack,
   IIngredient,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import {
   ButtonVariant,

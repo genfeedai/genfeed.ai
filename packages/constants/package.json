@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@genfeedai/enums": "2.3.2"
+    "@genfeedai/enums": "workspace:*"
   },
   "devDependencies": {
     "react-icons": "5.6.0",

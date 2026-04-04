@@ -1,7 +1,7 @@
 import {
   AgentWorkEventStatus,
   AgentWorkEventType,
-} from '@cloud/agent/models/agent-chat.model';
+} from '@genfeedai/agent/models/agent-chat.model';
 import { describe, expect, it } from 'vitest';
 import { mapSnapshotWorkEvents } from './agent-thread-snapshot.util';
 

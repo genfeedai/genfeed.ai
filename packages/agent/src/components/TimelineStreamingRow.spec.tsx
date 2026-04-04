@@ -1,8 +1,8 @@
-import { TimelineStreamingRow } from '@cloud/agent/components/TimelineStreamingRow';
+import { TimelineStreamingRow } from '@genfeedai/agent/components/TimelineStreamingRow';
 import {
   AgentWorkEventStatus,
   AgentWorkEventType,
-} from '@cloud/agent/models/agent-chat.model';
+} from '@genfeedai/agent/models/agent-chat.model';
 import { act, render, screen } from '@testing-library/react';
 import { type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

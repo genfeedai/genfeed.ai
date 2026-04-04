@@ -1,7 +1,7 @@
 import {
   buildSerializer,
   newsletterSerializerConfig,
-} from '@cloud/serializers';
+} from '@genfeedai/serializers';
 import { Newsletter } from '@models/content/newsletter.model';
 import {
   BaseService,

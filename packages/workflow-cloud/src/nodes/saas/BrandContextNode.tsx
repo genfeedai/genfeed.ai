@@ -1,6 +1,6 @@
 'use client';
 
-import type { BrandContextNodeData } from '@cloud/workflow-saas';
+import type { BrandContextNodeData } from '@genfeedai/workflow-saas';
 import { NodeBadge } from '@workflow-cloud/components/ui/badge';
 import { NodeCard, NodeHeader } from '@workflow-cloud/components/ui/card';
 import { HelpText } from '@workflow-cloud/components/ui/status';

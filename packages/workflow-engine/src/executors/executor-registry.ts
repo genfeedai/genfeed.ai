@@ -151,7 +151,7 @@ import {
 /**
  * Node Type to Executor Mapping
  *
- * This registry maps node types (from @cloud/workflow-saas) to their
+ * This registry maps node types (from @genfeedai/workflow-saas) to their
  * executor implementations in this package.
  *
  * | Node Type       | Executor                 | Package Location                      |

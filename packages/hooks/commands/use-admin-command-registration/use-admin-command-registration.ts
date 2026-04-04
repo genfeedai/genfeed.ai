@@ -1,6 +1,6 @@
 'use client';
 
-import type { ICommand } from '@cloud/interfaces/ui/command-palette.interface';
+import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { useEffect } from 'react';

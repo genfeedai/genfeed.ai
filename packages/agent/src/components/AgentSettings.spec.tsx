@@ -1,4 +1,4 @@
-import { AgentSettings } from '@cloud/agent/components/AgentSettings';
+import { AgentSettings } from '@genfeedai/agent/components/AgentSettings';
 import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

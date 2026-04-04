@@ -1,4 +1,4 @@
-import type { ICredential } from '@cloud/interfaces';
+import type { ICredential } from '@genfeedai/interfaces';
 
 export interface PlatformSelectorProps {
   credentials: ICredential[];

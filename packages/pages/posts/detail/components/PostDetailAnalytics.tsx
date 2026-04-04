@@ -1,6 +1,6 @@
 'use client';
 
-import type { AnalyticsStat } from '@cloud/interfaces/analytics/analytics-ui.interface';
+import type { AnalyticsStat } from '@genfeedai/interfaces/analytics/analytics-ui.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';

@@ -1,4 +1,4 @@
-import type { ITag } from '@cloud/interfaces';
+import type { ITag } from '@genfeedai/interfaces';
 import { Tag as BaseTag } from '@genfeedai/client/models';
 import { User } from '@models/auth/user.model';
 import { Brand } from '@models/organization/brand.model';

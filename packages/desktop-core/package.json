@@ -1,6 +1,6 @@
 {
   "main": "src/index.ts",
-  "name": "@cloud/desktop-core",
+  "name": "@genfeedai/desktop-core",
   "private": true,
   "sideEffects": false,
   "types": "src/index.ts",

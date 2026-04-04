@@ -1,5 +1,5 @@
-import { AgentGeneratedTextCard } from '@cloud/agent/components/AgentGeneratedTextCard';
-import type { AgentUiAction } from '@cloud/agent/models/agent-chat.model';
+import { AgentGeneratedTextCard } from '@genfeedai/agent/components/AgentGeneratedTextCard';
+import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { type ReactElement, useCallback, useState } from 'react';
 import { HiCheck, HiDocumentText } from 'react-icons/hi2';
 

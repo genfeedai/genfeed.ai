@@ -1,6 +1,6 @@
 'use client';
 
-import { DEFAULT_RUNTIME_AGENT_MODEL } from '@cloud/agent/constants/agent-runtime-model.constant';
+import { DEFAULT_RUNTIME_AGENT_MODEL } from '@genfeedai/agent/constants/agent-runtime-model.constant';
 import type {
   AgentChatMessage,
   AgentInputRequestPayload,
@@ -15,22 +15,22 @@ import type {
   AgentStreamUIBlocksPayload,
   AgentThread,
   AgentWorkEventPayload,
-} from '@cloud/agent/models/agent-chat.model';
+} from '@genfeedai/agent/models/agent-chat.model';
 import {
   AgentWorkEventStatus,
   AgentWorkEventType,
-} from '@cloud/agent/models/agent-chat.model';
-import type { AgentApiService } from '@cloud/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@cloud/agent/services/agent-base-api.service';
-import { useAgentChatStore } from '@cloud/agent/stores/agent-chat.store';
+} from '@genfeedai/agent/models/agent-chat.model';
+import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   buildThreadSummaryFromSnapshot,
   mapSnapshotPendingInputRequest,
   mapSnapshotRunStatus,
   mapSnapshotWorkEvents,
-} from '@cloud/agent/utils/agent-thread-snapshot.util';
-import { applyDashboardOperation } from '@cloud/agent/utils/apply-dashboard-operation';
-import { mapToolCallResponse } from '@cloud/agent/utils/map-tool-call-response';
+} from '@genfeedai/agent/utils/agent-thread-snapshot.util';
+import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
+import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
 import { AgentThreadStatus } from '@genfeedai/enums';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import type { ChatAttachment } from '@props/ui/attachments.props';

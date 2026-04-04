@@ -1,4 +1,4 @@
-import type { IAsset, IImage } from '@cloud/interfaces';
+import type { IAsset, IImage } from '@genfeedai/interfaces';
 import { IngredientFormat, ModelCategory } from '@genfeedai/enums';
 import type {
   UsePromptBarReferencesOptions,

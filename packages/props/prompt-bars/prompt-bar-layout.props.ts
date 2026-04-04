@@ -13,8 +13,8 @@ import type {
   IModel,
   IPreset,
   ISound,
-} from '@cloud/interfaces';
-import type { MediaConfig } from '@cloud/interfaces/ui/media-config.interface';
+} from '@genfeedai/interfaces';
+import type { MediaConfig } from '@genfeedai/interfaces/ui/media-config.interface';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import type {
   IngredientCategory,

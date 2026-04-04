@@ -1,8 +1,8 @@
 import {
   AgentWorkEventStatus,
   AgentWorkEventType,
-} from '@cloud/agent/models/agent-chat.model';
-import type { EnrichedWorkEvent } from '@cloud/agent/utils/derive-timeline';
+} from '@genfeedai/agent/models/agent-chat.model';
+import type { EnrichedWorkEvent } from '@genfeedai/agent/utils/derive-timeline';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';

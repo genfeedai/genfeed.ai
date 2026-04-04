@@ -1,4 +1,4 @@
-import type { IArticle, IIngredient } from '@cloud/interfaces';
+import type { IArticle, IIngredient } from '@genfeedai/interfaces';
 import type { AssetScope } from '@genfeedai/enums';
 
 export interface ScopeDropdownProps {

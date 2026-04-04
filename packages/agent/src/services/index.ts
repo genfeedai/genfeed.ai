@@ -5,21 +5,21 @@ export type {
   GenerationModel,
   WorkflowInterfaceField,
   WorkflowInterfaceSchema,
-} from '@cloud/agent/services/agent-api.service';
-export { AgentApiService } from '@cloud/agent/services/agent-api.service';
-export type { AgentApiError } from '@cloud/agent/services/agent-api-error';
+} from '@genfeedai/agent/services/agent-api.service';
+export { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+export type { AgentApiError } from '@genfeedai/agent/services/agent-api-error';
 export {
   AgentApiAuthError,
   AgentApiDecodeError,
   AgentApiRequestError,
-} from '@cloud/agent/services/agent-api-error';
+} from '@genfeedai/agent/services/agent-api-error';
 export type {
   AgentApiConfig,
   AgentApiEffectError,
-} from '@cloud/agent/services/agent-base-api.service';
+} from '@genfeedai/agent/services/agent-base-api.service';
 export {
   AgentBaseApiService,
   runAgentApiEffect,
-} from '@cloud/agent/services/agent-base-api.service';
+} from '@genfeedai/agent/services/agent-base-api.service';
 
-export { AgentStrategyApiService } from '@cloud/agent/services/agent-strategy-api.service';
+export { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';

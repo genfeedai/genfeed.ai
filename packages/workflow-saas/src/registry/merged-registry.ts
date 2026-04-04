@@ -3,7 +3,7 @@ import {
   type NodeType as CoreNodeType,
   type NodeCategory,
   type NodeDefinition,
-} from '@cloud/types/nodes';
+} from '@genfeedai/types/nodes';
 import type { ExtendedNodeCategory } from '@workflow-saas/types';
 import {
   isSaaSNode,

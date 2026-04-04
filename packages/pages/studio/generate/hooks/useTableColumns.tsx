@@ -5,7 +5,7 @@ import type {
   IIngredient,
   IMetadata,
   IPost,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import {
   type ArticleStatus,
   ButtonSize,

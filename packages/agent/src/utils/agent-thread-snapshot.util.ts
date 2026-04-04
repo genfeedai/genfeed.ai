@@ -2,11 +2,11 @@ import type {
   AgentInputRequest,
   AgentThread,
   AgentThreadSnapshot,
-} from '@cloud/agent/models/agent-chat.model';
+} from '@genfeedai/agent/models/agent-chat.model';
 import {
   AgentWorkEventStatus,
   AgentWorkEventType,
-} from '@cloud/agent/models/agent-chat.model';
+} from '@genfeedai/agent/models/agent-chat.model';
 
 export function mapSnapshotRunStatus(
   status?: string | null,

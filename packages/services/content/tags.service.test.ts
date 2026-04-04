@@ -1,4 +1,4 @@
-import type { ITag } from '@cloud/interfaces';
+import type { ITag } from '@genfeedai/interfaces';
 import { TagSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import { TagCategory } from '@genfeedai/enums';

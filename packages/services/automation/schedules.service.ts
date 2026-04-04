@@ -14,7 +14,7 @@ import type {
   ISmartSchedule,
   IWorkflowExecution,
   RepurposeFormat,
-} from '@cloud/interfaces/automation/smart-scheduler.interface';
+} from '@genfeedai/interfaces/automation/smart-scheduler.interface';
 import {
   deserializeResource,
   type JsonApiResponseDocument,

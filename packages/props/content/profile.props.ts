@@ -1,4 +1,4 @@
-import type { IArticle, IImage, IVideo } from '@cloud/interfaces';
+import type { IArticle, IImage, IVideo } from '@genfeedai/interfaces';
 
 export interface ProfileSocialLinksProps {
   handle: string;

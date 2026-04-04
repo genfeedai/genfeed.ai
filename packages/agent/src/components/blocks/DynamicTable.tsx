@@ -1,6 +1,6 @@
 'use client';
 
-import type { TableBlock, TableColumnConfig } from '@cloud/interfaces';
+import type { TableBlock, TableColumnConfig } from '@genfeedai/interfaces';
 import { type ReactElement, useMemo, useState } from 'react';
 
 interface DynamicTableProps {

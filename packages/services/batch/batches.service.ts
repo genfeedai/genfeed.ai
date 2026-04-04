@@ -1,4 +1,4 @@
-import type { IBatchSummary } from '@cloud/interfaces';
+import type { IBatchSummary } from '@genfeedai/interfaces';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type { BatchStatus } from '@genfeedai/enums';
 import {

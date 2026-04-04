@@ -3,8 +3,8 @@ import type {
   IDarkroomCapabilities,
   IOrganizationSetting,
   IUser,
-} from '@cloud/interfaces';
-import type { IStreakSummary } from '@cloud/types';
+} from '@genfeedai/interfaces';
+import type { IStreakSummary } from '@genfeedai/types';
 import type { LayoutProps } from '@props/layout/layout.props';
 import type { AccessBootstrapState } from '@services/auth/auth.service';
 

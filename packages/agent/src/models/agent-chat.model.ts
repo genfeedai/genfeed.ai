@@ -1,6 +1,6 @@
-import type { SuggestedAction } from '@cloud/agent/models/agent-suggested-action.model';
-import type { ClipRunCardState } from '@cloud/agent/models/clip-run-card.model';
-import type { AgentDashboardOperation, AgentUIBlock } from '@cloud/interfaces';
+import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
+import type { ClipRunCardState } from '@genfeedai/agent/models/clip-run-card.model';
+import type { AgentDashboardOperation, AgentUIBlock } from '@genfeedai/interfaces';
 import type { AgentThreadStatus } from '@genfeedai/enums';
 import type { ChatAttachment } from '@props/ui/attachments.props';
 import type { StructuredProgressDebugPayload } from '@utils/progress/structured-progress-event.util';

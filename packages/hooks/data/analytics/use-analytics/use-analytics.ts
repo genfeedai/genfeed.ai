@@ -1,10 +1,10 @@
-import type { IAnalytics } from '@cloud/interfaces';
-import type { ContentScope } from '@cloud/interfaces/common/content-scope.interface';
+import type { IAnalytics } from '@genfeedai/interfaces';
+import type { ContentScope } from '@genfeedai/interfaces/common/content-scope.interface';
 import type {
   AnalyticsCacheEntry,
   AnalyticsScopedOptions,
   AnalyticsScopedReturn,
-} from '@cloud/interfaces/hooks/hooks.interface';
+} from '@genfeedai/interfaces/hooks/hooks.interface';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   createCacheKey,

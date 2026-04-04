@@ -5,7 +5,7 @@ import type {
   IFolder,
   IIngredient,
   IMediaEventData,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import type { AssetScope } from '@genfeedai/enums';
 import {
   IngredientCategory,

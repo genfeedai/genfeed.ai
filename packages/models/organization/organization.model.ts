@@ -1,4 +1,4 @@
-import type { IOrganization } from '@cloud/interfaces';
+import type { IOrganization } from '@genfeedai/interfaces';
 import { Organization as BaseOrganization } from '@genfeedai/client/models';
 import { Credit } from '@models/billing/credit.model';
 import { OrganizationSetting } from '@models/organization/organization-setting.model';

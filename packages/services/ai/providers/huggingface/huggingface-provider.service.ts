@@ -1,4 +1,4 @@
-import type { IModel } from '@cloud/interfaces';
+import type { IModel } from '@genfeedai/interfaces';
 import { ModelCategory, ModelKey, ModelProvider } from '@genfeedai/enums';
 import { logger } from '@services/core/logger.service';
 

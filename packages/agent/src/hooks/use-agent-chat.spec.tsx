@@ -1,7 +1,7 @@
-import { DEFAULT_RUNTIME_AGENT_MODEL } from '@cloud/agent/constants/agent-runtime-model.constant';
-import { useAgentChat } from '@cloud/agent/hooks/use-agent-chat';
-import type { AgentApiService } from '@cloud/agent/services/agent-api.service';
-import { useAgentChatStore } from '@cloud/agent/stores/agent-chat.store';
+import { DEFAULT_RUNTIME_AGENT_MODEL } from '@genfeedai/agent/constants/agent-runtime-model.constant';
+import { useAgentChat } from '@genfeedai/agent/hooks/use-agent-chat';
+import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { act, renderHook } from '@testing-library/react';
 import { Effect } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

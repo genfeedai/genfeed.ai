@@ -1,6 +1,6 @@
 'use client';
 
-import type { IAvatar } from '@cloud/interfaces';
+import type { IAvatar } from '@genfeedai/interfaces';
 import { IngredientCategory } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';

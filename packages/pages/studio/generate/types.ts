@@ -1,9 +1,9 @@
-import type { IFolder, IIngredient, IModel, IPreset } from '@cloud/interfaces';
+import type { IFolder, IIngredient, IModel, IPreset } from '@genfeedai/interfaces';
 import type {
   AvatarVoiceData,
   AvatarVoiceOption,
-} from '@cloud/interfaces/studio/studio-generate.interface';
-import type { IFiltersState } from '@cloud/interfaces/utils/filters.interface';
+} from '@genfeedai/interfaces/studio/studio-generate.interface';
+import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import {
   type IngredientCategory,

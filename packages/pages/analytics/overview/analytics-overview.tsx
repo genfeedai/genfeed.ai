@@ -1,7 +1,7 @@
 'use client';
 
-import { useAgentDashboardStore } from '@cloud/agent/stores/agent-dashboard.store';
-import type { DashboardScopePreferences, IAnalytics } from '@cloud/interfaces';
+import { useAgentDashboardStore } from '@genfeedai/agent/stores/agent-dashboard.store';
+import type { DashboardScopePreferences, IAnalytics } from '@genfeedai/interfaces';
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { useOptionalUser } from '@contexts/user/user-context/user-context';
 import {

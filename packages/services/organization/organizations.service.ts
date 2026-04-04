@@ -11,7 +11,7 @@ import type {
   IQueryParams,
   ISubscription,
   UpdateMemberData,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import {
   MemberInvitationSerializer,
   OrganizationSerializer,

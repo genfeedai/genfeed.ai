@@ -1,8 +1,8 @@
 {
   "dependencies": {
     "@dagrejs/dagre": "3.0.0",
-    "@genfeedai/core": "0.2.1",
-    "@genfeedai/types": "0.2.2",
+    "@genfeedai/core": "workspace:*",
+    "@genfeedai/types": "workspace:*",
     "@radix-ui/react-checkbox": "1.3.3",
     "@radix-ui/react-label": "2.1.8",
     "@radix-ui/react-select": "2.2.6",

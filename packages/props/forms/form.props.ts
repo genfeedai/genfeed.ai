@@ -1,4 +1,4 @@
-import type { DateRange } from '@cloud/interfaces/utils/date.interface';
+import type { DateRange } from '@genfeedai/interfaces/utils/date.interface';
 import {
   ButtonSize,
   ButtonVariant,

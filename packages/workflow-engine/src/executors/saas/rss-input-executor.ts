@@ -29,7 +29,7 @@ export type RssFeedParser = (rawXml: string) => Promise<RssFeedResult>;
  * Used for content aggregation workflows.
  *
  * Node Type: rssInput
- * Definition: @cloud/workflow-saas/nodes/rss-input.ts
+ * Definition: @genfeedai/workflow-saas/nodes/rss-input.ts
  */
 export class RssInputExecutor extends BaseExecutor {
   readonly nodeType = 'rssInput';

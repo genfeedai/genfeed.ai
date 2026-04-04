@@ -1,4 +1,4 @@
-import type { IArticle, IIngredient, IPost } from '@cloud/interfaces';
+import type { IArticle, IIngredient, IPost } from '@genfeedai/interfaces';
 import type {
   ArticleStatus,
   IngredientStatus,

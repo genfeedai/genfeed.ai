@@ -1,6 +1,6 @@
 'use client';
 
-import type { AgentRunAnomaly, AgentRunStats } from '@cloud/types';
+import type { AgentRunAnomaly, AgentRunStats } from '@genfeedai/types';
 
 interface RunAnomaliesPanelProps {
   stats: AgentRunStats | null;

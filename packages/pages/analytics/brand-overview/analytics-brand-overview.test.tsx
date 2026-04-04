@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom';
-import type { IAnalytics } from '@cloud/interfaces';
+import type { IAnalytics } from '@genfeedai/interfaces';
 import { PostStatus } from '@genfeedai/enums';
 import type { Post } from '@models/content/post.model';
 import AnalyticsBrandOverview from '@pages/analytics/brand-overview/analytics-brand-overview';

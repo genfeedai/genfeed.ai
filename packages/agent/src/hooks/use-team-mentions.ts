@@ -1,6 +1,6 @@
-import type { AgentApiService } from '@cloud/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@cloud/agent/services/agent-base-api.service';
-import type { TeamMentionItem } from '@cloud/agent/types/mention.types';
+import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
+import type { TeamMentionItem } from '@genfeedai/agent/types/mention.types';
 import { useEffect, useState } from 'react';
 
 interface UseTeamMentionsReturn {

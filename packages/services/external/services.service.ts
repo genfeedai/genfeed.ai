@@ -1,4 +1,4 @@
-import type { ICredential, ICredentialOAuth } from '@cloud/interfaces';
+import type { ICredential, ICredentialOAuth } from '@genfeedai/interfaces';
 import {
   CredentialOAuthSerializer,
   ServiceSerializer,

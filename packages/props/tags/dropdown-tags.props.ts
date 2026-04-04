@@ -1,4 +1,4 @@
-import type { ITag } from '@cloud/interfaces';
+import type { ITag } from '@genfeedai/interfaces';
 import type {
   DropdownDirection,
   IngredientCategory,

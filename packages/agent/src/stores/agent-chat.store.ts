@@ -7,12 +7,12 @@ import type {
   AgentToolCall,
   AgentUiAction,
   AgentWorkEvent,
-} from '@cloud/agent/models/agent-chat.model';
-import type { SuggestedAction } from '@cloud/agent/models/agent-suggested-action.model';
+} from '@genfeedai/agent/models/agent-chat.model';
+import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import {
   ONBOARDING_SIGNUP_GIFT_CREDITS,
   ONBOARDING_TOTAL_VISIBLE_CREDITS,
-} from '@cloud/types';
+} from '@genfeedai/types';
 import type {
   OnboardingChecklistStatus,
   OnboardingChecklistStep,

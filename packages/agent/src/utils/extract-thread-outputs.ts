@@ -3,7 +3,7 @@ import type {
   AgentIngredientItem,
   AgentUiAction,
   AgentUiActionCta,
-} from '@cloud/agent/models/agent-chat.model';
+} from '@genfeedai/agent/models/agent-chat.model';
 
 export type ThreadOutputKind = 'audio' | 'image' | 'text' | 'video';
 

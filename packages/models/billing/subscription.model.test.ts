@@ -5,7 +5,7 @@ import type {
   ISetting,
   ISubscription,
   IUser,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import {
   AssetScope,
   SubscriptionCategory,
@@ -24,7 +24,7 @@ vi.mock('@genfeedai/client/models', () => ({
   },
 }));
 
-vi.mock('@cloud/interfaces', () => ({}));
+vi.mock('@genfeedai/interfaces', () => ({}));
 
 vi.mock('@models/auth/user.model', () => ({
   User: class User {

@@ -1,7 +1,7 @@
 {
   "description": "Shared design tokens and UI primitives for Genfeed web, mobile, and extension surfaces",
   "devDependencies": {
-    "@genfeedai/enums": "^2.3.2",
+    "@genfeedai/enums": "workspace:*",
     "@types/react": "^19.2.14",
     "react": "^19.2.4",
     "react-day-picker": "^9.14.0",

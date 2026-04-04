@@ -1,4 +1,4 @@
-import type { IAsset, IBrand, ICredential, ILink } from '@cloud/interfaces';
+import type { IAsset, IBrand, ICredential, ILink } from '@genfeedai/interfaces';
 import { Brand as BaseBrand } from '@genfeedai/client/models';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { getDeepLink, isMobileDevice } from '@helpers/ui/mobile/mobile.helper';

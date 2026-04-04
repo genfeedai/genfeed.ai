@@ -7,7 +7,7 @@ import type {
   IImage,
   ILink,
   IVideo,
-} from '@cloud/interfaces';
+} from '@genfeedai/interfaces';
 import {
   ArticleStatus,
   AssetCategory,

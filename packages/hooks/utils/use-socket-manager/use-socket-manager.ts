@@ -4,8 +4,8 @@ import { useAuth } from '@clerk/nextjs';
 import type {
   ISocketEventHandler,
   ISocketManagerConfig,
-} from '@cloud/interfaces';
-import type { UseSocketManagerOptions } from '@cloud/interfaces/hooks/hooks.interface';
+} from '@genfeedai/interfaces';
+import type { UseSocketManagerOptions } from '@genfeedai/interfaces/hooks/hooks.interface';
 import {
   getPlaywrightAuthState,
   resolveClerkToken,

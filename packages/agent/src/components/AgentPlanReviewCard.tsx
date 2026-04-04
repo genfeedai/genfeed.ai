@@ -1,4 +1,4 @@
-import type { AgentProposedPlan } from '@cloud/agent/models/agent-chat.model';
+import type { AgentProposedPlan } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Button from '@ui/buttons/base/Button';

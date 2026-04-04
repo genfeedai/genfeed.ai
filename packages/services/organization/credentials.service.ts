@@ -1,4 +1,4 @@
-import type { QuotaStatus } from '@cloud/interfaces/organization/quota-status.interface';
+import type { QuotaStatus } from '@genfeedai/interfaces/organization/quota-status.interface';
 import { CredentialSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import { Credential, CredentialInstagram } from '@models/auth/credential.model';

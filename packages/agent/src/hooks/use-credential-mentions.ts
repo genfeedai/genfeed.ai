@@ -1,8 +1,8 @@
 import type {
   AgentApiService,
   CredentialMentionItem,
-} from '@cloud/agent/services/agent-api.service';
-import { runAgentApiEffect } from '@cloud/agent/services/agent-base-api.service';
+} from '@genfeedai/agent/services/agent-api.service';
+import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useEffect, useState } from 'react';
 
 interface UseCredentialMentionsReturn {

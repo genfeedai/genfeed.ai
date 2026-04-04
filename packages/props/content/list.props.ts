@@ -1,4 +1,4 @@
-import type { IAudio, IMusic, IVoice } from '@cloud/interfaces';
+import type { IAudio, IMusic, IVoice } from '@genfeedai/interfaces';
 import type { Dispatch, MouseEvent, ReactNode, SetStateAction } from 'react';
 
 type SoundIngredient = IMusic | IVoice | IAudio;

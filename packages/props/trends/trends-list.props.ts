@@ -1,4 +1,4 @@
-import type { ITrendVideo } from '@cloud/interfaces';
+import type { ITrendVideo } from '@genfeedai/interfaces';
 import type { TrendItem } from '@props/trends/trends-page.props';
 
 export interface TrendCardProps {
