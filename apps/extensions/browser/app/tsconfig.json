@@ -3,14 +3,14 @@
     "baseUrl": ".",
     "paths": {
       "@api-types/*": ["../../../../../packages/api-types/src/*"],
-      "@cloud-types/*": ["../../../../packages/types/src/*"],
-      "@genfeedai/agent": ["../../../../packages/agent/src/index.ts"],
-      "@genfeedai/agent/*": ["../../../../packages/agent/src/*"],
-      "@genfeedai/interfaces": ["../../../../packages/interfaces/src/index.ts"],
-      "@genfeedai/interfaces/*": ["../../../../packages/interfaces/src/*"],
-      "@workflow-cloud/*": ["../../../../packages/workflow-cloud/src/*"],
-      "@workflow-engine/*": ["../../../../packages/workflow-engine/src/*"],
-      "@workflow-saas/*": ["../../../../packages/workflow-saas/src/*"],
+      "@genfeedai-types/*": ["../../../packages/types/src/*"],
+      "@genfeedai/agent": ["../../../packages/agent/src/index.ts"],
+      "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
+      "@genfeedai/interfaces": ["../../../packages/interfaces/src/index.ts"],
+      "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
+      "@workflow-cloud/*": ["../../../packages/workflow-cloud/src/*"],
+      "@workflow-engine/*": ["../../../packages/workflow-engine/src/*"],
+      "@workflow-saas/*": ["../../../packages/workflow-saas/src/*"],
       "~*": ["./src/*"]
     }
   },

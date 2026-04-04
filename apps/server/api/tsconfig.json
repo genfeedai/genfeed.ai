@@ -7,9 +7,9 @@
       "@api-root/*": ["./*"],
       "@api-scripts/*": ["./scripts/*"],
       "@api-test/*": ["./test/*"],
-      "@api-types/*": ["../../../../packages/api-types/src/*"],
+      "@api-types/*": ["../../../packages/api-types/src/*"],
       "@api/*": ["./src/*"],
-      "@cloud-types/*": ["../../../packages/types/src/*"],
+      "@genfeedai-types/*": ["../../../packages/types/src/*"],
       "@genfeedai/agent": ["../../../packages/agent/src/index.ts"],
       "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
       "@genfeedai/config": ["../../../packages/config/src/index.ts"],
@@ -17,9 +17,9 @@
         "../../../packages/integration-common/src/index.ts"
       ],
       "@genfeedai/interfaces": [
-        "../../../../packages/interfaces/src/index.ts.d.ts"
+        "../../../packages/interfaces/src/index.ts.d.ts"
       ],
-      "@genfeedai/interfaces/*": ["../../../../packages/interfaces/src/*"],
+      "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
       "@genfeedai/serializers": ["../../../packages/serializers/src/index.ts"],
       "@genfeedai/serializers/*": ["../../../packages/serializers/src/*"],
       "@genfeedai/types": ["../../../packages/types/src/index.ts"],
