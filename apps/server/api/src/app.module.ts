@@ -176,6 +176,7 @@ import { SharedModule } from '@api/shared/shared.module';
 import { HealthModule } from '@libs/health/health.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { RedisModule } from '@libs/redis/redis.module';
+import { isEEEnabled } from '@genfeedai/config';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { OrgPrefixMiddleware } from '@api/common/middleware/org-prefix.middleware';
 import { RequestContextMiddleware } from '@api/common/middleware/request-context.middleware';
@@ -369,7 +370,7 @@ import { SubscriptionsModule } from '@api/collections/subscriptions/subscription
     AuthModule,
     AvatarsModule,
     BookmarksModule,
-    BusinessAnalyticsModule,
+    // BusinessAnalyticsModule — EE (gated below)
     BotsModule,
     BrandMemoryModule,
     BrandsModule,
@@ -415,14 +416,14 @@ import { SubscriptionsModule } from '@api/collections/subscriptions/subscription
     InsightsModule,
     TasksModule,
     LinksModule,
-    MarketplaceModule,
+    // MarketplaceModule — EE (gated below)
     MembersModule,
     MetadataModule,
     ModelsModule,
     MusicsModule,
     NewslettersModule,
     OptimizersModule,
-    OrganizationSettingsModule,
+    // OrganizationSettingsModule — EE (gated below)
     OrganizationsModule,
     PersonasModule,
     PostsModule,
@@ -436,8 +437,8 @@ import { SubscriptionsModule } from '@api/collections/subscriptions/subscription
     SettingsModule,
     SpeechModule,
     StreaksModule,
-    SubscriptionAttributionsModule,
-    SubscriptionsModule,
+    // SubscriptionAttributionsModule — EE (gated below)
+    // SubscriptionsModule — EE (gated below)
     TagsModule,
     TemplatesModule,
     TrainingsModule,
@@ -462,7 +463,7 @@ import { SubscriptionsModule } from '@api/collections/subscriptions/subscription
 
     // Services (alphabetical)
     BeehiivModule,
-    CreditsModule,
+    // CreditsModule — EE (gated below)
     DiscordModule,
     GhostModule,
     HedraModule,
@@ -492,7 +493,7 @@ import { SubscriptionsModule } from '@api/collections/subscriptions/subscription
     ThreadsModule,
     TiktokModule,
     TwitterModule,
-    UserSubscriptionsModule,
+    // UserSubscriptionsModule — EE (gated below)
     VideoCompletionModule,
     WebhooksModule,
     WhatsappModule,
@@ -563,6 +564,19 @@ import { SubscriptionsModule } from '@api/collections/subscriptions/subscription
 
     // Dev-only modules (only registered in development)
     ...(process.env.NODE_ENV === 'development' ? [DevModule] : []),
+
+    // EE-only modules (require GENFEED_LICENSE_KEY)
+    ...(isEEEnabled()
+      ? [
+          CreditsModule,
+          SubscriptionsModule,
+          SubscriptionAttributionsModule,
+          UserSubscriptionsModule,
+          MarketplaceModule,
+          BusinessAnalyticsModule,
+          OrganizationSettingsModule,
+        ]
+      : []),
   ],
   providers: [
     ClerkClientProvider,
