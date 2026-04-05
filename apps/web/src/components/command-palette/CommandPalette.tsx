@@ -1,5 +1,6 @@
 'use client';
 
+import { Kbd } from '@genfeedai/ui';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useCommandPaletteStore } from '@/store/commandPaletteStore';
@@ -38,9 +39,9 @@ function CommandItem({ command, isSelected, onSelect, onMouseEnter }: CommandIte
       <Icon className="h-4 w-4 shrink-0" />
       <span className="flex-1 truncate">{command.label}</span>
       {command.shortcut && (
-        <kbd className="ml-auto shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+        <Kbd variant="muted" size="xs" className="ml-auto shrink-0 text-muted-foreground">
           {command.shortcut}
-        </kbd>
+        </Kbd>
       )}
     </button>
   );
@@ -242,9 +243,9 @@ export function CommandPalette() {
             placeholder="Type a command or search..."
             className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
           />
-          <kbd className="rounded bg-muted px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">
+          <Kbd variant="muted" size="xs" className="text-muted-foreground">
             ESC
-          </kbd>
+          </Kbd>
         </div>
 
         {/* Command list */}
@@ -289,11 +290,11 @@ export function CommandPalette() {
         {/* Footer hint */}
         <div className="flex items-center justify-between border-t border-border px-4 py-2 text-[10px] text-muted-foreground">
           <span>
-            <kbd className="rounded bg-muted px-1 py-0.5 font-mono">↑</kbd>{' '}
-            <kbd className="rounded bg-muted px-1 py-0.5 font-mono">↓</kbd> to navigate
+            <Kbd variant="muted" size="xs" className="px-1">↑</Kbd>{' '}
+            <Kbd variant="muted" size="xs" className="px-1">↓</Kbd> to navigate
           </span>
           <span>
-            <kbd className="rounded bg-muted px-1 py-0.5 font-mono">Enter</kbd> to select
+            <Kbd variant="muted" size="xs" className="px-1">Enter</Kbd> to select
           </span>
         </div>
       </div>

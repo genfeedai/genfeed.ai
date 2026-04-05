@@ -1,5 +1,6 @@
 'use client';
 
+import { Kbd } from '@genfeedai/ui';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -95,9 +96,9 @@ export function WorkflowSidebarContent({
         >
           <HiMagnifyingGlass className="h-4 w-4 flex-shrink-0" />
           <span className="flex-1 text-left">Find...</span>
-          <kbd className="text-[10px] font-medium text-white/25 bg-white/[0.06] px-1.5 py-0.5 rounded">
+          <Kbd variant="subtle" size="xs">
             {'\u2318'}K
-          </kbd>
+          </Kbd>
         </button>
       </div>
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { Pre } from '@ui/src/primitives/pre';
 import { Bug, ChevronDown, ChevronRight, Copy, Trash2, X } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import type { DebugPayload } from '../stores/execution/types';
@@ -89,9 +90,9 @@ function PayloadCard({ payload }: PayloadCardProps) {
               {copied ? 'Copied!' : 'Copy'}
             </button>
           </div>
-          <pre className="text-[11px] font-mono text-[var(--muted-foreground)] bg-[var(--background)] p-2 rounded border border-[var(--border)] overflow-x-auto max-h-64 overflow-y-auto">
+          <Pre variant="debug" size="xs" className="text-[11px]">
             {JSON.stringify(payload.input, null, 2)}
-          </pre>
+          </Pre>
         </div>
       )}
     </div>

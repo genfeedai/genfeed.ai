@@ -1,6 +1,7 @@
 'use client';
 
 import { WorkflowNodeStatus } from '@genfeedai/enums';
+import { Pre } from '@ui/src/primitives/pre';
 import {
   selectUpdateNodeData,
   useWorkflowStore,
@@ -204,11 +205,11 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
             <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
               View example request
             </summary>
-            <pre className="mt-2 p-2 bg-muted overflow-x-auto text-[10px]">
+            <Pre size="xs" className="mt-2">
               {`curl -X POST "${data.webhookUrl}" \\
   -H "Content-Type: application/json" \\${curlAuthHeader}
   -d '{"key": "value"}'`}
-            </pre>
+            </Pre>
           </details>
 
           {/* Stats */}

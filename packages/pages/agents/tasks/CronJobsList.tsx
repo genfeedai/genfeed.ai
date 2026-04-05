@@ -9,6 +9,7 @@ import {
 } from '@services/automation/cron-jobs.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { Pre } from '@ui/src/primitives/pre';
 import Button from '@ui/buttons/base/Button';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Badge from '@ui/display/badge/Badge';
@@ -1001,9 +1002,9 @@ export default function CronJobsList() {
           {selectedRun && (
             <div className="mt-3 rounded border border-white/10 bg-black/20 p-3">
               <div className="mb-1 text-xs text-white/60">Run Detail</div>
-              <pre className="max-h-72 overflow-auto whitespace-pre-wrap break-words text-xs text-white/75">
+              <Pre variant="ghost" size="sm" className="max-h-72 overflow-y-auto text-white/75">
                 {JSON.stringify(selectedRun, null, 2)}
-              </pre>
+              </Pre>
             </div>
           )}
         </div>
