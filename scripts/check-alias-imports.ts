@@ -19,11 +19,9 @@ const IGNORE_GLOBS = [
 ];
 
 const ALLOWED_RELATIVE_IMPORT_FILES = new Set([
-  'apps/web/admin/instrumentation.ts',
-  'apps/web/app/instrumentation.ts',
-  'apps/web/chatgpt/instrumentation.ts',
-  'apps/web/marketplace/instrumentation.ts',
-  'apps/web/website/instrumentation.ts',
+  'apps/admin/instrumentation.ts',
+  'apps/app/instrumentation.ts',
+  'apps/website/instrumentation.ts',
 ]);
 
 function isAllowedRelativeImportFile(relativePath: string): boolean {

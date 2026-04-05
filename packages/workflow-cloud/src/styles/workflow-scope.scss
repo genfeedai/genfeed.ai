@@ -1,15 +1,15 @@
 /**
  * Workflow Editor — Core Token Sync + Utility Classes
  *
- * The current source-of-truth workflow editor styling lives in `core/apps/web`.
- * Cloud previously tried to bridge the app shell theme into workflow-ui by
+ * The current source-of-truth workflow editor styling lives in `apps/app`.
+ * The app previously tried to bridge the app shell theme into workflow-ui by
  * remapping shadcn HSL triplets, which left this route visually behind the
- * newer editor chrome. Keep cloud in sync by applying the same dedicated editor
+ * newer editor chrome. Keep the app in sync by applying the same dedicated editor
  * token pack here instead of inheriting the surrounding SaaS theme.
  */
 
 /* ==========================================================================
-   1. Core Editor Tokens — mirror core/apps/web/src/app/globals.scss
+   1. Core Editor Tokens — mirror apps/app/src/app/globals.scss
    ========================================================================== */
 
 .workflow-scope {

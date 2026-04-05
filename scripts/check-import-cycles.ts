@@ -7,7 +7,7 @@ const ROOT_DIR = process.cwd();
 const ROOT_TSCONFIG = path.join(ROOT_DIR, 'tsconfig.json');
 const BASELINE_FILE = path.join(ROOT_DIR, 'scripts/import-cycle-baseline.json');
 const EXCLUDE_REGEX = String.raw`(^|/)(node_modules|dist|coverage|storybook-static|public|docs|e2e|__tests__|__mocks__|\.next)(/|$)|\.(spec|test)\.[jt]sx?$|\.d\.ts$`;
-const WORKSPACE_GLOBS = ['packages/*', 'apps/server/*', 'apps/web/*'];
+const WORKSPACE_GLOBS = ['packages/*', 'apps/server/*', 'apps/app/*'];
 const CODE_DIR_HINTS = ['src', 'app', 'packages', 'components', 'lib'];
 
 type CliArgs = {
@@ -218,7 +218,7 @@ function normalizeCycleFiles(
 }
 
 function resolveWorkspaceFromFile(file: string): string | null {
-  const match = /^(packages\/[^/]+|apps\/server\/[^/]+|apps\/web\/[^/]+)/.exec(
+  const match = /^(packages\/[^/]+|apps\/server\/[^/]+|apps\/app\/[^/]+)/.exec(
     file,
   );
   return match?.[1] ?? null;

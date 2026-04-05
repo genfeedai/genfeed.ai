@@ -73,7 +73,7 @@ if should_run "api"; then
 fi
 
 if should_run "web"; then
-  run_suite "web" bun run test:cov --filter="./apps/web/*"
+  run_suite "web" bun run test:cov --filter="./apps/app/*"
 fi
 
 if should_run "e2e"; then

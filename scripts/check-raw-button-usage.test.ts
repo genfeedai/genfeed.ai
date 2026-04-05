@@ -21,19 +21,19 @@ describe('check-raw-button-usage', () => {
 
   it('detects raw <button> usage in app code', () => {
     writeFixture(
-      'apps/web/app/page.tsx',
+      'apps/app/page.tsx',
       'export default function Page(){return <button>Click</button>;}',
     );
 
     const result = runCheckRawButtonUsage();
     expect(result.violations).toHaveLength(1);
     expect(result.violations[0]?.type).toBe('raw-button');
-    expect(result.violations[0]?.file).toBe('apps/web/app/page.tsx');
+    expect(result.violations[0]?.file).toBe('apps/app/page.tsx');
   });
 
   it('detects styled anchors that look like buttons', () => {
     writeFixture(
-      'apps/web/app/page.tsx',
+      'apps/app/page.tsx',
       'export default function Page(){return <a className="inline-flex items-center rounded border px-3 py-2 font-medium hover:bg-muted" href="/x">Go</a>;}',
     );
 
@@ -44,7 +44,7 @@ describe('check-raw-button-usage', () => {
 
   it('does not flag plain text links', () => {
     writeFixture(
-      'apps/web/app/page.tsx',
+      'apps/app/page.tsx',
       'export default function Page(){return <a href="/terms">Terms</a>;}',
     );
 
@@ -52,7 +52,7 @@ describe('check-raw-button-usage', () => {
     expect(result.violations).toHaveLength(0);
   });
 
-  it('scans packages/pages in addition to apps/web', () => {
+  it('scans packages/pages in addition to apps/app', () => {
     writeFixture(
       'packages/pages/demo/page.tsx',
       'export default function Page(){return <button>Do it</button>;}',
@@ -65,7 +65,7 @@ describe('check-raw-button-usage', () => {
 
   it('ignores test files', () => {
     writeFixture(
-      'apps/web/app/page.test.tsx',
+      'apps/app/page.test.tsx',
       'export default function Test(){return <button>Ignore</button>;}',
     );
 

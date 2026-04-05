@@ -1,0 +1,14 @@
+title = "Gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Global allowlist"
+paths = [
+  '''node_modules''',
+  '''bun\.lockb''',
+  '''\.secretlintrc\.json''',
+  '''\.gitleaks\.toml''',
+  '''package-lock\.json''',
+]

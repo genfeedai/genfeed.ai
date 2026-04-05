@@ -1,5 +1,5 @@
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
 
 assertSourceHasExport(
-  'apps/web/admin/app/(protected)/crm/alignment/alignment-page.tsx',
+  'apps/admin/app/(protected)/crm/alignment/alignment-page.tsx',
 );

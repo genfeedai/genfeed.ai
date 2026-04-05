@@ -3,7 +3,7 @@
   "private": true,
   "workspaces": [
     "apps/server/*",
-    "apps/web",
+    "apps/app",
     "apps/admin",
     "apps/website",
     "apps/desktop/app",
@@ -61,12 +61,25 @@
     "test": "bunx turbo test",
     "test:e2e": "bunx playwright test",
     "test:e2e:full": "bunx playwright test --config=playwright-full.config.ts",
-    "typecheck": "bunx turbo type-check"
+    "typecheck": "bunx turbo type-check",
+    "secretlint": "secretlint '**/*'"
+  },
+  "lint-staged": {
+    "*.{js,ts,jsx,tsx,json,css,yml,yaml,md,toml,env*}": [
+      "secretlint --no-glob"
+    ],
+    "*.{js,ts,jsx,tsx,json,css}": [
+      "biome check --write --no-errors-on-unmatched"
+    ]
   },
   "devDependencies": {
     "@nestjs/cli": "11.0.17",
     "@next/bundle-analyzer": "^16.2.2",
+    "@secretlint/secretlint-rule-no-homedir": "^11.5.0",
+    "@secretlint/secretlint-rule-preset-recommend": "^11.4.1",
     "@sentry/nextjs": "^10.47.0",
+    "lint-staged": "^16.4.0",
+    "secretlint": "^11.4.1",
     "ts-loader": "^9.5.7",
     "tsconfig-paths-webpack-plugin": "^4.2.0",
     "turbo": "^2.9.3",

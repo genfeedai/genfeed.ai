@@ -3,7 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 const baseURL =
   process.env.APP_BASE_URL || process.env.BASE_URL || 'http://localhost:3102';
 const webServerUrl = process.env.PLAYWRIGHT_WEB_SERVER_URL || baseURL;
-const webAppPath = process.env.PLAYWRIGHT_WEB_APP_PATH || 'apps/web/app';
+const webAppPath = process.env.PLAYWRIGHT_WEB_APP_PATH || 'apps/app';
 const ciWebServerCommand =
   process.env.PLAYWRIGHT_APP_COMMAND_CI ||
   process.env.PLAYWRIGHT_WEB_SERVER_COMMAND_CI ||

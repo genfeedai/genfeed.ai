@@ -30,7 +30,7 @@ coverage:
       # Web apps coverage — relaxed (harder to maintain solo)
       web:
         paths:
-          - "apps/web/**"
+          - "apps/app/**"
         target: auto
         threshold: 3%
 
@@ -73,7 +73,7 @@ flags:
 
   web:
     paths:
-      - apps/web/
+      - apps/app/
     carryforward: true
 
   extension:

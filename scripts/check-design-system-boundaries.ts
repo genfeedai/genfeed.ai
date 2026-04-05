@@ -6,12 +6,12 @@ import { globSync } from 'glob';
 const logger = new Logger('CheckDesignSystemBoundaries');
 
 const BANNED_COMPONENT_GLOBS = [
-  'apps/web/*/packages/components/**/_menu.tsx',
-  'apps/web/*/packages/components/**/_topbar.tsx',
+  'apps/app/packages/components/**/_menu.tsx',
+  'apps/app/packages/components/**/_topbar.tsx',
 ];
 
 const GUARDED_IMPORT_GLOBS = [
-  'apps/web/**/*.{ts,tsx,js,jsx}',
+  'apps/app/**/*.{ts,tsx,js,jsx}',
   'packages/**/*.{ts,tsx,js,jsx}',
 ];
 
