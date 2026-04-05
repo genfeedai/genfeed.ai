@@ -8,7 +8,7 @@ Monorepo with Turborepo + Bun workspaces.
 
 ### Apps
 - `apps/server/*` — NestJS backend services (api, files, clips, mcp, notifications, workers, discord, slack, telegram, images, videos, voices)
-- `apps/web` — Next.js studio UI
+- `apps/app` — Next.js studio UI
 - `apps/admin` — Admin panel (model mgmt, GPU config, system settings)
 - `apps/website` — Marketing site
 - `apps/desktop` — Electron desktop app

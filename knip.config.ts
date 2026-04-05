@@ -109,23 +109,15 @@ const config: KnipConfig = {
     },
 
     // Frontend apps — Next.js
-    'apps/web/admin': {
+    'apps/app': {
       entry: ['app/**/*.{ts,tsx}', 'packages/**/*.{ts,tsx}'],
       ignore: ['dist/**', '.next/**', 'node_modules/**'],
     },
-    'apps/web/app': {
+    'apps/admin': {
       entry: ['app/**/*.{ts,tsx}', 'packages/**/*.{ts,tsx}'],
       ignore: ['dist/**', '.next/**', 'node_modules/**'],
     },
-    'apps/web/chatgpt': {
-      entry: ['app/**/*.{ts,tsx}', 'packages/**/*.{ts,tsx}'],
-      ignore: ['dist/**', '.next/**', 'node_modules/**'],
-    },
-    'apps/web/marketplace': {
-      entry: ['app/**/*.{ts,tsx}', 'packages/**/*.{ts,tsx}'],
-      ignore: ['dist/**', '.next/**', 'node_modules/**'],
-    },
-    'apps/web/website': {
+    'apps/website': {
       entry: ['app/**/*.{ts,tsx}', 'packages/**/*.{ts,tsx}'],
       ignore: ['dist/**', '.next/**', 'node_modules/**'],
     },

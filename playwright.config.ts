@@ -27,9 +27,9 @@ const appWebServerUrl =
 const adminWebServerUrl =
   process.env.PLAYWRIGHT_ADMIN_WEB_SERVER_URL ||
   `${adminBaseURL}/playwright-ready`;
-const appWebAppPath = process.env.PLAYWRIGHT_WEB_APP_PATH || 'apps/web/app';
+const appWebAppPath = process.env.PLAYWRIGHT_WEB_APP_PATH || 'apps/app';
 const adminWebAppPath =
-  process.env.PLAYWRIGHT_ADMIN_WEB_APP_PATH || 'apps/web/admin';
+  process.env.PLAYWRIGHT_ADMIN_WEB_APP_PATH || 'apps/admin';
 const testApiEndpoint =
   process.env.NEXT_PUBLIC_API_ENDPOINT || 'http://local.genfeed.ai:3001/v1';
 const appPlaywrightWebServerEnv = {

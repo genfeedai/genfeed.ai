@@ -6,7 +6,7 @@ import { globSync } from 'glob';
 const logger = new Logger('CheckRawButtonUsage');
 
 const INCLUDE_GLOBS = [
-  'apps/web/**/*.{tsx,jsx}',
+  'apps/app/**/*.{tsx,jsx}',
   'packages/pages/**/*.{tsx,jsx}',
 ];
 
@@ -27,13 +27,13 @@ const ALLOWLIST_PATH_SEGMENTS = [
 ];
 
 const ALLOWLIST_VIOLATION_FILES = new Set([
-  'apps/web/app/app/(full-screen)/editor/page.tsx',
-  'apps/web/website/app/(public)/agencies/agencies-content.tsx',
-  'apps/web/website/app/(public)/articles/[slug]/article-detail.tsx',
-  'apps/web/website/app/(public)/influencers/ai-influencers-content.tsx',
-  'apps/web/website/packages/components/NotFoundContent.tsx',
-  'apps/web/website/packages/components/content/post-card/PostCard.tsx',
-  'apps/web/website/packages/components/home/_marketplace-cta.tsx',
+  'apps/app/app/(full-screen)/editor/page.tsx',
+  'apps/website/app/(public)/agencies/agencies-content.tsx',
+  'apps/website/app/(public)/articles/[slug]/article-detail.tsx',
+  'apps/website/app/(public)/influencers/ai-influencers-content.tsx',
+  'apps/website/packages/components/NotFoundContent.tsx',
+  'apps/website/packages/components/content/post-card/PostCard.tsx',
+  'apps/website/packages/components/home/_marketplace-cta.tsx',
   'packages/pages/analytics/overview/analytics-overview.tsx',
   'packages/pages/analytics/trend-turnover/analytics-trend-turnover.tsx',
   'packages/pages/automation/agents/new/AgentWizardPage.tsx',

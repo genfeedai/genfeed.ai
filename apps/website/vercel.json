@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "alias": ["genfeed.ai", "www.genfeed.ai"],
-  "buildCommand": "cd ../../../configs && sh ../scripts/sh/vercel-bun.sh run build && cd ../apps/web/website && sh ../../../scripts/sh/vercel-bun.sh run build",
+  "buildCommand": "cd ../../configs && sh ../scripts/sh/vercel-bun.sh run build && cd ../apps/website && sh ../../scripts/sh/vercel-bun.sh run build",
   "git": {
     "deploymentEnabled": {
       "*": false,
@@ -9,6 +9,6 @@
       "staging": true
     }
   },
-  "installCommand": "cd ../../../ && sh scripts/sh/vercel-bun.sh install",
+  "installCommand": "cd ../../ && sh scripts/sh/vercel-bun.sh install",
   "outputDirectory": ".next"
 }

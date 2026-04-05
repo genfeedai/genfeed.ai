@@ -41,7 +41,7 @@ function getChangedFiles() {
 function collectHints(files) {
   const hints = [];
   const hasServer = files.some((file) => file.startsWith('apps/server/'));
-  const hasWeb = files.some((file) => file.startsWith('apps/web/'));
+  const hasWeb = files.some((file) => file.startsWith('apps/app/'));
   const hasPackages = files.some((file) => file.startsWith('packages/'));
   const hasDocsOnly =
     files.length > 0 &&
@@ -65,7 +65,7 @@ function collectHints(files) {
   }
 
   if (hasWeb) {
-    hints.push('bun run test --filter="./apps/web/*"');
+    hints.push('bun run test --filter="./apps/app/*"');
     hints.push('bun run test:e2e:safe');
   }
 
