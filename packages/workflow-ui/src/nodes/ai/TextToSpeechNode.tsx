@@ -14,7 +14,7 @@ import {
   Volume2,
 } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
-import { Code } from '@ui/src/primitives/code';
+import { Code } from '@genfeedai/ui';
 import { useCanGenerate } from '../../hooks/useCanGenerate';
 import { useNodeExecution } from '../../hooks/useNodeExecution';
 import { useWorkflowStore } from '../../stores/workflowStore';

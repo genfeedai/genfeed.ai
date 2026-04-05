@@ -7,7 +7,7 @@ import type { Image } from '@models/ingredients/image.model';
 import { TrainingsService } from '@services/ai/trainings.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { Code } from '@ui/src/primitives/code';
+import { Code } from '@genfeedai/ui';
 import MasonryGrid from '@ui/masonry/grid/MasonryGrid';
 import { PageScope } from '@ui-constants/misc.constant';
 import { useEffect, useRef, useState } from 'react';

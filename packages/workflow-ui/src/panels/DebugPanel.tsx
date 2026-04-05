@@ -1,6 +1,6 @@
 'use client';
 
-import { Pre } from '@ui/src/primitives/pre';
+import { Pre } from '@genfeedai/ui';
 import { Bug, ChevronDown, ChevronRight, Copy, Trash2, X } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import type { DebugPayload } from '../stores/execution/types';

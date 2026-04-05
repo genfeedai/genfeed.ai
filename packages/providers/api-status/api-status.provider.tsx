@@ -4,7 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import Button from '@ui/buttons/base/Button';
-import { Code } from '@ui/src/primitives/code';
+import { Code } from '@genfeedai/ui';
 import {
   createContext,
   type ReactNode,

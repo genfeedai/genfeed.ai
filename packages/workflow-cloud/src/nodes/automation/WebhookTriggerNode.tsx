@@ -1,7 +1,7 @@
 'use client';
 
 import { WorkflowNodeStatus } from '@genfeedai/enums';
-import { Pre } from '@ui/src/primitives/pre';
+import { Code, Pre } from '@genfeedai/ui';
 import {
   selectUpdateNodeData,
   useWorkflowStore,
@@ -29,7 +29,6 @@ import { useNodeExecution } from '@workflow-cloud/hooks/useNodeExecution';
 import { coerceNodeData } from '@workflow-cloud/nodes/node-data';
 import type { WebhookTriggerNodeData } from '@workflow-cloud/nodes/types';
 import type { NodeProps } from '@xyflow/react';
-import { Code } from '@ui/src/primitives/code';
 import { memo, useCallback, useState } from 'react';
 
 function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {

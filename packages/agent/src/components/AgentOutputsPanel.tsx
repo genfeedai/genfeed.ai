@@ -6,7 +6,7 @@ import type {
 import { extractThreadOutputs } from '@genfeedai/agent/utils/extract-thread-outputs';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import { Pre } from '@ui/src/primitives/pre';
+import { Pre } from '@genfeedai/ui';
 import Button from '@ui/buttons/base/Button';
 import type { ReactElement } from 'react';
 import { useEffect, useMemo, useState } from 'react';

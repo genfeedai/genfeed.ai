@@ -1,5 +1,5 @@
 import { cn } from '@helpers/formatting/cn/cn.util';
-import { Pre } from '@ui/src/primitives/pre';
+import { Pre } from '@genfeedai/ui';
 import {
   AlertCircle,
   CheckCircle2,

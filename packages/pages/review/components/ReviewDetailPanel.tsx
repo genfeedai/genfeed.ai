@@ -19,7 +19,7 @@ import {
   DefinitionDetail,
   DefinitionList,
   DefinitionTerm,
-} from '@ui/src/primitives/definition-list';
+} from '@genfeedai/ui';
 import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';

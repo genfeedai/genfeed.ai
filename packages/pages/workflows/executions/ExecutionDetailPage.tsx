@@ -5,7 +5,7 @@ import {
   type ExecutionResult,
 } from '@genfeedai/workflow';
 import { ButtonVariant, WorkflowExecutionStatus } from '@genfeedai/enums';
-import { Pre } from '@ui/src/primitives/pre';
+import { Pre } from '@genfeedai/ui';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import Button from '@ui/buttons/base/Button';

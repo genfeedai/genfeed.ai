@@ -34,7 +34,7 @@ import {
   LazyModalTraining,
   LazyModalTrainingNew,
 } from '@ui/lazy/modal/LazyModal';
-import { Code } from '@ui/src/primitives/code';
+import { Code } from '@genfeedai/ui';
 import { PageScope } from '@ui-constants/misc.constant';
 import { getErrorMessage } from '@utils/error/error-handler.util';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
