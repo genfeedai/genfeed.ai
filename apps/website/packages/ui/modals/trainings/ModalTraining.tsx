@@ -12,6 +12,7 @@ import {
   ButtonVariant,
   ModalEnum,
 } from '@genfeedai/enums';
+import { Code } from '@genfeedai/ui';
 import {
   hasFormErrors,
   parseFormErrors,
@@ -155,9 +156,9 @@ export default function ModalTraining({
 
           <div className="flex items-center gap-2 p-4 bg-background/50">
             <span className="text-sm text-muted-foreground">Trigger</span>
-            <code className="bg-muted px-2 py-1 text-sm">
+            <Code size="md">
               {training.trigger}
-            </code>
+            </Code>
             <span className="text-xs text-muted-foreground ml-auto">
               (cannot be edited)
             </span>

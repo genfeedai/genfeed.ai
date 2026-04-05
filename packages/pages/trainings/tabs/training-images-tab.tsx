@@ -7,6 +7,7 @@ import type { Image } from '@models/ingredients/image.model';
 import { TrainingsService } from '@services/ai/trainings.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { Code } from '@ui/src/primitives/code';
 import MasonryGrid from '@ui/masonry/grid/MasonryGrid';
 import { PageScope } from '@ui-constants/misc.constant';
 import { useEffect, useRef, useState } from 'react';
@@ -98,7 +99,7 @@ export default function TrainingImagesTab({
         {training?.status === TrainingStatus.COMPLETED && (
           <p className="text-sm text-muted-foreground mt-2">
             Use the trigger word{' '}
-            <code className="bg-muted px-2 py-1">{training.trigger}</code> in
+            <Code>{training.trigger}</Code> in
             your prompts
           </p>
         )}

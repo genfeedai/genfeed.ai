@@ -1,0 +1,54 @@
+name: Codebase Health Check
+
+on:
+  schedule:
+    - cron: '0 9 * * 1' # Every Monday at 9am UTC
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  health:
+    name: Health Score
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: fallow-rs/fallow@v2
+        with:
+          command: health --score --hotspots --min-score 60
+          format: sarif
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: fallow.sarif
+
+  dead-code:
+    name: Dead Code & Unused Deps
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: fallow-rs/fallow@v2
+        with:
+          command: dead-code --unused-exports --unused-deps --circular-deps
+          format: annotations
+
+  duplication:
+    name: Code Duplication
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: fallow-rs/fallow@v2
+        with:
+          command: dupes --mode mild
+          format: annotations

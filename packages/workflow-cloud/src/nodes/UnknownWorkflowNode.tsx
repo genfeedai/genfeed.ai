@@ -1,5 +1,6 @@
 'use client';
 
+import { Code } from '@ui/src/primitives/code';
 import { isNodeDataRecord } from '@workflow-cloud/nodes/node-data';
 import type { NodeProps } from '@xyflow/react';
 import { memo } from 'react';
@@ -32,7 +33,7 @@ function UnknownWorkflowNodeComponent({
         This workflow contains a node type the editor cannot render yet.
       </p>
       <p className="mt-2 text-[11px] text-muted-foreground">
-        Type: <code className="font-mono text-foreground">{originalType}</code>
+        Type: <Code className="bg-transparent text-foreground">{originalType}</Code>
       </p>
     </div>
   );

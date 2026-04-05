@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { Code } from '@genfeedai/ui';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import {
   HOW_IT_WORKS,
@@ -270,9 +271,9 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
             </NeuralGrid>
 
             <div className="text-center mt-8">
-              <code className="text-xs text-surface/25 font-mono">
+              <Code className="bg-transparent text-surface/25">
                 npx skills add genfeedai/skills/{category.skills[0]?.slug}
-              </code>
+              </Code>
             </div>
           </WebSection>
         ))}
@@ -399,17 +400,17 @@ export default function SkillsContent({ initialRegistry }: SkillsContentProps) {
                   <span className="text-surface/60 font-medium">
                     Install all:
                   </span>{' '}
-                  <code className="text-surface/50 bg-fill/5 px-2 py-0.5 font-mono text-xs">
+                  <Code className="text-surface/50 bg-fill/5">
                     npx skills add genfeedai/skills
-                  </code>
+                  </Code>
                 </p>
                 <p>
                   <span className="text-surface/60 font-medium">
                     Install one:
                   </span>{' '}
-                  <code className="text-surface/50 bg-fill/5 px-2 py-0.5 font-mono text-xs">
+                  <Code className="text-surface/50 bg-fill/5">
                     npx skills add genfeedai/skills/x-content-creator
-                  </code>
+                  </Code>
                 </p>
               </div>
             </div>

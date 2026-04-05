@@ -1,6 +1,7 @@
 import type { ReactElement, ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { Code } from '@ui/src/primitives/code';
 
 function isSafeHref(href?: string): boolean {
   if (!href) {
@@ -53,16 +54,16 @@ export function SafeMarkdown({
 
             if (!isBlockCode) {
               return (
-                <code className="rounded bg-muted px-1 py-0.5 text-[0.9em]">
+                <Code className="text-[0.9em]">
                   {children}
-                </code>
+                </Code>
               );
             }
 
             return (
-              <code className="block overflow-x-auto rounded bg-muted/70 p-2">
+              <Code display="block" size="sm" className="bg-muted/70">
                 {children}
-              </code>
+              </Code>
             );
           },
         }}

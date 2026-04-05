@@ -21,6 +21,7 @@ import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
 import { LazyModalTraining } from '@ui/lazy/modal/LazyModal';
+import { Code } from '@ui/src/primitives/code';
 import Loading from '@ui/loading/default/Loading';
 import Breadcrumb from '@ui/navigation/breadcrumb/Breadcrumb';
 import { getErrorMessage } from '@utils/error/error-handler.util';
@@ -163,14 +164,14 @@ export default function TrainingDetail({
 
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">Brand</span>
-                  <code className="bg-muted px-2 py-1 text-sm">
+                  <Code size="md">
                     {trainingAccount
                       ? brands.find((a: IBrand) => a.id === trainingAccount?.id)
                           ?.label ||
                         (trainingAccount as IBrand)?.label ||
                         'Unknown'
                       : '-'}
-                  </code>
+                  </Code>
                 </div>
 
                 {training.trigger && (
@@ -178,9 +179,9 @@ export default function TrainingDetail({
                     <span className="text-sm text-muted-foreground">
                       Trigger
                     </span>
-                    <code className="bg-muted px-2 py-1 text-sm">
+                    <Code size="md">
                       {training.trigger}
-                    </code>
+                    </Code>
                   </div>
                 )}
 
@@ -189,18 +190,18 @@ export default function TrainingDetail({
                     <span className="text-sm text-muted-foreground">
                       Category
                     </span>
-                    <code className="bg-muted px-2 py-1 text-sm">
+                    <Code size="md">
                       {training.category}
-                    </code>
+                    </Code>
                   </div>
                 )}
 
                 {training.steps && (
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">Steps</span>
-                    <code className="bg-muted px-2 py-1 text-sm">
+                    <Code size="md">
                       {training.steps}
-                    </code>
+                    </Code>
                   </div>
                 )}
               </div>
