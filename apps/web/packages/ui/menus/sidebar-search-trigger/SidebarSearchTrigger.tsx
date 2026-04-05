@@ -1,5 +1,6 @@
 'use client';
 
+import { Kbd } from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { HiMagnifyingGlass } from 'react-icons/hi2';
 
@@ -24,9 +25,9 @@ export default function SidebarSearchTrigger({
     >
       <HiMagnifyingGlass className="h-4 w-4 flex-shrink-0" />
       <span className="flex-1 text-left">Find...</span>
-      <kbd className="rounded bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-medium text-white/25">
+      <Kbd variant="subtle" size="xs">
         {'\u2318'}K
-      </kbd>
+      </Kbd>
     </button>
   );
 }

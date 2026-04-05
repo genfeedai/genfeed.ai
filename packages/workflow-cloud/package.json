@@ -4,6 +4,7 @@
     "@genfeedai/workflow-saas": "workspace:*",
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/types": "workspace:*",
+    "@genfeedai/ui": "workspace:*",
     "@genfeedai/workflow-ui": "workspace:*",
     "@genfeedai/workflows": "workspace:*",
     "@xyflow/react": "12.10.2",

@@ -2,6 +2,7 @@ import {
   AGENT_REFRESH_CONVERSATIONS_EVENT,
   AgentThreadList,
 } from '@genfeedai/agent/components/AgentThreadList';
+import { Kbd } from '@genfeedai/ui';
 import {
   AGENT_SIDEBAR_TRANSITION_DURATION_MS,
   AGENT_SIDEBAR_TRANSITION_EASING,
@@ -71,9 +72,9 @@ export function AgentSidebarContent({
               <span className="text-sm font-medium text-white/90">
                 New Chat
               </span>
-              <kbd className="ml-auto text-[11px] text-white/30 opacity-0 transition-opacity duration-200 group-hover:text-white/50 group-hover:opacity-100">
+              <Kbd variant="ghost" className="ml-auto text-[11px] opacity-0 transition-opacity duration-200 group-hover:text-white/50 group-hover:opacity-100">
                 ⌘⇧N
-              </kbd>
+              </Kbd>
             </Link>
           </li>
           <li className="list-none">

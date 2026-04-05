@@ -71,7 +71,31 @@ module.exports = function createWebpackConfig({
     externals: [
       nodeExternals({
         // Allow workspace packages to be bundled
-        allowlist: [/^@genfeedai\//, /^@cloud\//],
+        allowlist: [
+          /^@genfeedai\//,
+          /^@cloud\//,
+          /^@api\//,
+          /^@helpers\//,
+          /^@libs\//,
+          /^@serializers\//,
+          /^@files\//,
+          /^@workers\//,
+          /^@notifications\//,
+          /^@mcp\//,
+          /^@discord\//,
+          /^@slack\//,
+          /^@telegram\//,
+          /^@images\//,
+          /^@videos\//,
+          /^@voices\//,
+          /^@clips\//,
+          /^@fanvue\//,
+          /^@workflow-engine\//,
+          /^@workflow-saas\//,
+          /^@workflow-cloud\//,
+          /^@api-types\//,
+          /^@cloud-types\//,
+        ],
         modulesDir: nodeModulesDir,
       }),
       // Explicitly externalize NestJS optional peer dependencies and problematic modules

@@ -2,6 +2,7 @@
 
 import { SignIn, useAuth, useUser } from '@clerk/nextjs';
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { Code } from '@genfeedai/ui';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import Spinner from '@ui/feedback/spinner/Spinner';
@@ -465,9 +466,9 @@ function CopyKeyFallback({
         key:
       </p>
       <div className="flex items-center gap-2">
-        <code className="flex-1 block px-3 py-2 bg-white/5 border border-white/10 rounded text-xs text-white/70 font-mono truncate select-all">
+        <Code display="block" size="sm" className="flex-1 border border-white/10 text-white/70 truncate select-all">
           {apiKey}
-        </code>
+        </Code>
         <Button
           variant={ButtonVariant.SOFT}
           size={ButtonSize.SM}

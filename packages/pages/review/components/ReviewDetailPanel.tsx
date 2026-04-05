@@ -15,6 +15,11 @@ import {
   isChangesRequested,
   isReadyToReview,
 } from '@pages/review/components/review-state';
+import {
+  DefinitionDetail,
+  DefinitionList,
+  DefinitionTerm,
+} from '@ui/src/primitives/definition-list';
 import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
@@ -294,68 +299,68 @@ export default function ReviewDetailPanel({
 
           <InsetSurface className="p-5" tone="contrast">
             <h3 className="text-sm font-medium text-foreground">Details</h3>
-            <dl className="mt-4 space-y-3 text-sm">
+            <DefinitionList className="mt-4 text-sm">
               <div className="flex items-start justify-between gap-4">
-                <dt className="text-foreground/45">Created</dt>
-                <dd className="text-right text-foreground/80">
+                <DefinitionTerm>Created</DefinitionTerm>
+                <DefinitionDetail variant="value">
                   {formattedCreatedDate}
-                </dd>
+                </DefinitionDetail>
               </div>
               <div className="flex items-start justify-between gap-4">
-                <dt className="text-foreground/45">Scheduled</dt>
-                <dd className="text-right text-foreground/80">
+                <DefinitionTerm>Scheduled</DefinitionTerm>
+                <DefinitionDetail variant="value">
                   {formattedScheduledDate ?? 'Not scheduled'}
-                </dd>
+                </DefinitionDetail>
               </div>
               <div className="flex items-start justify-between gap-4">
-                <dt className="text-foreground/45">Post draft</dt>
-                <dd className="text-right text-foreground/80">
+                <DefinitionTerm>Post draft</DefinitionTerm>
+                <DefinitionDetail variant="value">
                   {item.postId ? 'Draft linked' : 'No draft linked'}
-                </dd>
+                </DefinitionDetail>
               </div>
               <div className="flex items-start justify-between gap-4">
-                <dt className="text-foreground/45">Review state</dt>
-                <dd className="text-right text-foreground/80">{statusLabel}</dd>
+                <DefinitionTerm>Review state</DefinitionTerm>
+                <DefinitionDetail variant="value">{statusLabel}</DefinitionDetail>
               </div>
-            </dl>
+            </DefinitionList>
           </InsetSurface>
 
           <InsetSurface className="p-5" tone="contrast">
             <h3 className="text-sm font-medium text-foreground">Lineage</h3>
-            <dl className="mt-4 space-y-3 text-sm">
+            <DefinitionList className="mt-4 text-sm">
               <div className="flex items-start justify-between gap-4">
-                <dt className="text-foreground/45">Topic</dt>
-                <dd className="text-right text-foreground/80">
+                <DefinitionTerm>Topic</DefinitionTerm>
+                <DefinitionDetail variant="value">
                   {item.opportunityTopic ?? 'Not recorded'}
-                </dd>
+                </DefinitionDetail>
               </div>
               <div className="flex items-start justify-between gap-4">
-                <dt className="text-foreground/45">Source type</dt>
-                <dd className="text-right capitalize text-foreground/80">
+                <DefinitionTerm>Source type</DefinitionTerm>
+                <DefinitionDetail variant="value" className="capitalize">
                   {item.opportunitySourceType ?? 'Not recorded'}
-                </dd>
+                </DefinitionDetail>
               </div>
               <div className="flex items-start justify-between gap-4">
-                <dt className="text-foreground/45">Workflow</dt>
-                <dd className="text-right text-foreground/80">
+                <DefinitionTerm>Workflow</DefinitionTerm>
+                <DefinitionDetail variant="value">
                   {item.sourceWorkflowName ??
                     item.sourceWorkflowId ??
                     'Not recorded'}
-                </dd>
+                </DefinitionDetail>
               </div>
               <div className="flex items-start justify-between gap-4">
-                <dt className="text-foreground/45">Action</dt>
-                <dd className="text-right text-foreground/80">
+                <DefinitionTerm>Action</DefinitionTerm>
+                <DefinitionDetail variant="value">
                   {item.sourceActionId ?? 'Not recorded'}
-                </dd>
+                </DefinitionDetail>
               </div>
               <div className="flex items-start justify-between gap-4">
-                <dt className="text-foreground/45">Generation</dt>
-                <dd className="text-right text-foreground/80">
+                <DefinitionTerm>Generation</DefinitionTerm>
+                <DefinitionDetail variant="value">
                   {item.postGenerationId ?? 'Not linked'}
-                </dd>
+                </DefinitionDetail>
               </div>
-            </dl>
+            </DefinitionList>
 
             <div className="mt-4 flex flex-wrap gap-2 border-t border-white/10 pt-4">
               {item.sourceWorkflowId && (
@@ -398,16 +403,16 @@ export default function ReviewDetailPanel({
                 <HiOutlineLightBulb className="h-4 w-4 text-foreground/55" />
                 Publish Gate
               </div>
-              <dl className="mt-4 space-y-3 text-sm">
+              <DefinitionList className="mt-4 text-sm">
                 <div className="flex items-start justify-between gap-4">
-                  <dt className="text-foreground/45">Overall score</dt>
-                  <dd className="text-right text-foreground/80">
+                  <DefinitionTerm>Overall score</DefinitionTerm>
+                  <DefinitionDetail variant="value">
                     {item.gateOverallScore !== undefined
                       ? `${item.gateOverallScore}/100`
                       : 'Not recorded'}
-                  </dd>
+                  </DefinitionDetail>
                 </div>
-              </dl>
+              </DefinitionList>
 
               {(item.gateReasons?.length ?? 0) > 0 && (
                 <div className="mt-4 border-t border-white/10 pt-4">
@@ -433,22 +438,22 @@ export default function ReviewDetailPanel({
             <h3 className="text-sm font-medium text-foreground">
               Publish Outcome
             </h3>
-            <dl className="mt-4 space-y-3 text-sm">
+            <DefinitionList className="mt-4 text-sm">
               <div className="flex items-start justify-between gap-4">
-                <dt className="text-foreground/45">Post status</dt>
-                <dd className="text-right text-foreground/80">
+                <DefinitionTerm>Post status</DefinitionTerm>
+                <DefinitionDetail variant="value">
                   {item.postStatus ?? 'Not linked'}
-                </dd>
+                </DefinitionDetail>
               </div>
               <div className="flex items-start justify-between gap-4">
-                <dt className="text-foreground/45">External ID</dt>
-                <dd className="text-right text-foreground/80">
+                <DefinitionTerm>External ID</DefinitionTerm>
+                <DefinitionDetail variant="value">
                   {item.postExternalId ?? 'Not published'}
-                </dd>
+                </DefinitionDetail>
               </div>
               <div className="flex items-start justify-between gap-4">
-                <dt className="text-foreground/45">Published</dt>
-                <dd className="text-right text-foreground/80">
+                <DefinitionTerm>Published</DefinitionTerm>
+                <DefinitionDetail variant="value">
                   {item.postPublishedAt
                     ? formatDateInTimezone(
                         item.postPublishedAt,
@@ -456,11 +461,11 @@ export default function ReviewDetailPanel({
                         'MMM d, yyyy h:mm a',
                       )
                     : 'Not published'}
-                </dd>
+                </DefinitionDetail>
               </div>
               <div className="flex items-start justify-between gap-4">
-                <dt className="text-foreground/45">Last attempt</dt>
-                <dd className="text-right text-foreground/80">
+                <DefinitionTerm>Last attempt</DefinitionTerm>
+                <DefinitionDetail variant="value">
                   {item.postLastAttemptAt
                     ? formatDateInTimezone(
                         item.postLastAttemptAt,
@@ -468,54 +473,54 @@ export default function ReviewDetailPanel({
                         'MMM d, yyyy h:mm a',
                       )
                     : 'No attempts recorded'}
-                </dd>
+                </DefinitionDetail>
               </div>
               <div className="flex items-start justify-between gap-4">
-                <dt className="text-foreground/45">Retry count</dt>
-                <dd className="text-right text-foreground/80">
+                <DefinitionTerm>Retry count</DefinitionTerm>
+                <DefinitionDetail variant="value">
                   {item.postRetryCount ?? 0}
-                </dd>
+                </DefinitionDetail>
               </div>
-            </dl>
+            </DefinitionList>
 
             <div className="mt-4 border-t border-white/10 pt-4">
               <h4 className="text-xs font-medium uppercase tracking-[0.18em] text-foreground/45">
                 Performance snapshot
               </h4>
-              <dl className="mt-3 space-y-3 text-sm">
+              <DefinitionList className="mt-3 text-sm">
                 <div className="flex items-start justify-between gap-4">
-                  <dt className="text-foreground/45">Views</dt>
-                  <dd className="text-right text-foreground/80">
+                  <DefinitionTerm>Views</DefinitionTerm>
+                  <DefinitionDetail variant="value">
                     {item.postTotalViews ?? 0}
-                  </dd>
+                  </DefinitionDetail>
                 </div>
                 <div className="flex items-start justify-between gap-4">
-                  <dt className="text-foreground/45">Likes</dt>
-                  <dd className="text-right text-foreground/80">
+                  <DefinitionTerm>Likes</DefinitionTerm>
+                  <DefinitionDetail variant="value">
                     {item.postTotalLikes ?? 0}
-                  </dd>
+                  </DefinitionDetail>
                 </div>
                 <div className="flex items-start justify-between gap-4">
-                  <dt className="text-foreground/45">Comments</dt>
-                  <dd className="text-right text-foreground/80">
+                  <DefinitionTerm>Comments</DefinitionTerm>
+                  <DefinitionDetail variant="value">
                     {item.postTotalComments ?? 0}
-                  </dd>
+                  </DefinitionDetail>
                 </div>
                 <div className="flex items-start justify-between gap-4">
-                  <dt className="text-foreground/45">Shares</dt>
-                  <dd className="text-right text-foreground/80">
+                  <DefinitionTerm>Shares</DefinitionTerm>
+                  <DefinitionDetail variant="value">
                     {item.postTotalShares ?? 0}
-                  </dd>
+                  </DefinitionDetail>
                 </div>
                 <div className="flex items-start justify-between gap-4">
-                  <dt className="text-foreground/45">Engagement</dt>
-                  <dd className="text-right text-foreground/80">
+                  <DefinitionTerm>Engagement</DefinitionTerm>
+                  <DefinitionDetail variant="value">
                     {item.postAvgEngagementRate !== undefined
                       ? `${item.postAvgEngagementRate.toFixed(1)}%`
                       : 'Not synced'}
-                  </dd>
+                  </DefinitionDetail>
                 </div>
-              </dl>
+              </DefinitionList>
             </div>
 
             {item.postUrl && (

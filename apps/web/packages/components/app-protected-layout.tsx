@@ -30,6 +30,7 @@ import {
   useAgentChatStore,
   useAgentPageContext,
 } from '@genfeedai/agent';
+import { Kbd } from '@genfeedai/ui';
 import { CommandPaletteProvider } from '@contexts/features/command-palette.context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
@@ -160,9 +161,9 @@ function ChatSidebarContent({
           >
             <HiPlus className="h-4 w-4 text-white/80 group-hover:text-white" />
             <span className="text-sm font-medium text-white/90">New Chat</span>
-            <kbd className="ml-auto text-[11px] text-white/30 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+            <Kbd variant="ghost" className="ml-auto text-[11px] opacity-0 transition-opacity duration-200 group-hover:opacity-100">
               ⌘⇧N
-            </kbd>
+            </Kbd>
           </Link>
         </div>
 

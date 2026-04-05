@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@genfeedai/types": "workspace:*",
+    "@genfeedai/ui": "workspace:*",
     "@genfeedai/workflow": "workspace:*",
     "@tiptap/core": "3.22.2",
     "@tiptap/extension-mention": "3.22.2",

@@ -1,4 +1,5 @@
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Pre } from '@ui/src/primitives/pre';
 import {
   AlertCircle,
   CheckCircle2,
@@ -46,9 +47,9 @@ function EvidenceItem({ evidence }: { evidence: Evidence }) {
           <AlertCircle className="size-4 text-red-400 ml-auto" />
         )}
       </div>
-      <pre className="text-xs text-white/50 font-mono whitespace-pre-wrap overflow-x-auto max-h-40 bg-black/20 rounded p-2">
+      <Pre variant="ghost" size="xs" className="text-white/50 bg-black/20 max-h-40 overflow-y-auto">
         {evidence.content}
-      </pre>
+      </Pre>
     </div>
   );
 }

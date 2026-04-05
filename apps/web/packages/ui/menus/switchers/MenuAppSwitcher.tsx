@@ -3,6 +3,7 @@
 import { useUser } from '@clerk/nextjs';
 import type { UserResource } from '@clerk/types';
 import type { AppLink } from '@genfeedai/interfaces/ui/navigation.interface';
+import { Kbd } from '@genfeedai/ui';
 import { ButtonVariant } from '@genfeedai/enums';
 import { getClerkPublicData } from '@helpers/auth/clerk.helper';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
@@ -189,12 +190,12 @@ export default function MenuAppSwitcher() {
     return (
       <div className="flex gap-2">
         {app.shortcut.map((key) => (
-          <kbd
+          <Kbd
             key={key}
-            className="inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-mono bg-white/10 text-white/70 border border-white/20"
+            className="bg-white/10 text-white/70 border border-white/20"
           >
             {key}
-          </kbd>
+          </Kbd>
         ))}
       </div>
     );

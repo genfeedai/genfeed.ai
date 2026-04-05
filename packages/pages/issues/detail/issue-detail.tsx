@@ -14,6 +14,11 @@ import {
   type IssueStatus,
   IssuesService,
 } from '@services/management/issues.service';
+import {
+  DefinitionDetail,
+  DefinitionList,
+  DefinitionTerm,
+} from '@ui/src/primitives/definition-list';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import Link from 'next/link';
@@ -482,15 +487,15 @@ export default function IssueDetail({
               <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-white/40">
                 Details
               </h3>
-              <dl className="space-y-3 text-sm">
+              <DefinitionList className="text-sm">
                 <div>
-                  <dt className="text-[10px] uppercase tracking-wider text-white/30">
+                  <DefinitionTerm variant="label">
                     Status
-                  </dt>
-                  <dd className="mt-1">
+                  </DefinitionTerm>
+                  <DefinitionDetail variant="inline" className="mt-1">
                     <span
                       className={cn(
-                        'inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider',
+                        'inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider',
                         STATUS_COLORS[issue.status],
                       )}
                     >
@@ -502,7 +507,7 @@ export default function IssueDetail({
                           <button
                             key={s}
                             type="button"
-                            className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5 text-[9px] text-white/50 transition-colors hover:bg-white/10 hover:text-white/70"
+                            className="border border-white/10 bg-white/5 px-1.5 py-0.5 text-[9px] text-white/50 transition-colors hover:bg-white/10 hover:text-white/70"
                             onClick={() => handleStatusUpdate(s)}
                           >
                             {STATUS_LABELS[s]}
@@ -510,56 +515,56 @@ export default function IssueDetail({
                         ))}
                       </div>
                     )}
-                  </dd>
+                  </DefinitionDetail>
                 </div>
                 <div>
-                  <dt className="text-[10px] uppercase tracking-wider text-white/30">
+                  <DefinitionTerm variant="label">
                     Priority
-                  </dt>
-                  <dd className={cn('mt-0.5', PRIORITY_COLORS[issue.priority])}>
+                  </DefinitionTerm>
+                  <DefinitionDetail variant="inline" className={PRIORITY_COLORS[issue.priority]}>
                     {PRIORITY_LABELS[issue.priority]}
-                  </dd>
+                  </DefinitionDetail>
                 </div>
                 {issue.parentId ? (
                   <div>
-                    <dt className="text-[10px] uppercase tracking-wider text-white/30">
+                    <DefinitionTerm variant="label">
                       Parent Issue
-                    </dt>
-                    <dd className="mt-0.5">
+                    </DefinitionTerm>
+                    <DefinitionDetail variant="inline">
                       <Link
                         href={`/issues/${issue.parentId}`}
                         className="text-blue-400 hover:text-blue-300"
                       >
                         View parent
                       </Link>
-                    </dd>
+                    </DefinitionDetail>
                   </div>
                 ) : null}
                 <div>
-                  <dt className="text-[10px] uppercase tracking-wider text-white/30">
+                  <DefinitionTerm variant="label">
                     Created
-                  </dt>
-                  <dd className="mt-0.5 text-white/50">
+                  </DefinitionTerm>
+                  <DefinitionDetail variant="inline" className="text-white/50">
                     {getRelativeTime(issue.createdAt)}
-                  </dd>
+                  </DefinitionDetail>
                 </div>
                 <div>
-                  <dt className="text-[10px] uppercase tracking-wider text-white/30">
+                  <DefinitionTerm variant="label">
                     Updated
-                  </dt>
-                  <dd className="mt-0.5 text-white/50">
+                  </DefinitionTerm>
+                  <DefinitionDetail variant="inline" className="text-white/50">
                     {getRelativeTime(issue.updatedAt)}
-                  </dd>
+                  </DefinitionDetail>
                 </div>
                 {issue.checkoutAgentId ? (
                   <div>
-                    <dt className="text-[10px] uppercase tracking-wider text-white/30">
+                    <DefinitionTerm variant="label">
                       Checked Out By
-                    </dt>
-                    <dd className="mt-0.5 text-blue-400">Agent</dd>
+                    </DefinitionTerm>
+                    <DefinitionDetail variant="inline" className="text-blue-400">Agent</DefinitionDetail>
                   </div>
                 ) : null}
-              </dl>
+              </DefinitionList>
             </div>
           </Card>
 

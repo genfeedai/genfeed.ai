@@ -2,6 +2,7 @@
 
 import type { IErrorDebugInfo } from '@genfeedai/interfaces/modals/error-debug.interface';
 import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import { Pre } from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
 import { ClipboardService } from '@services/core/clipboard.service';
@@ -22,7 +23,7 @@ export default function ModalErrorDebug() {
   const sectionClassName =
     'rounded-lg border border-destructive/30 bg-destructive/10 p-4';
   const preClassName =
-    'mt-2 max-h-48 overflow-x-auto overflow-y-auto rounded border border-destructive/20 bg-black/30 p-2 text-xs text-red-50';
+    'mt-2 max-h-48 overflow-y-auto border-destructive/20 bg-black/30 text-red-50';
 
   const [errorInfo, setErrorInfo] = useState<IErrorDebugInfo | null>(null);
   const [isResponseExpanded, setIsResponseExpanded] = useState(false);
@@ -127,9 +128,9 @@ export default function ModalErrorDebug() {
                 </Button>
 
                 {isResponseExpanded && (
-                  <pre className={preClassName}>
+                  <Pre variant="debug" size="xs" className={preClassName}>
                     {JSON.stringify(errorInfo.response.data, null, 2)}
-                  </pre>
+                  </Pre>
                 )}
               </div>
             ) : null}
@@ -151,7 +152,7 @@ export default function ModalErrorDebug() {
                 </Button>
 
                 {isStackExpanded && (
-                  <pre className={preClassName}>{errorInfo.stack}</pre>
+                  <Pre variant="debug" size="xs" className={preClassName}>{errorInfo.stack}</Pre>
                 )}
               </div>
             )}
@@ -173,9 +174,9 @@ export default function ModalErrorDebug() {
                 </Button>
 
                 {isContextExpanded && (
-                  <pre className={preClassName}>
+                  <Pre variant="debug" size="xs" className={preClassName}>
                     {JSON.stringify(errorInfo.context, null, 2)}
-                  </pre>
+                  </Pre>
                 )}
               </div>
             )}

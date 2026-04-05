@@ -2,6 +2,7 @@
 
 import type { IContentTemplate } from '@genfeedai/interfaces/content/template-ui.interface';
 import { ComponentSize } from '@genfeedai/enums';
+import { Code, Pre } from '@genfeedai/ui';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TemplateDetailProps } from '@props/admin/templates.props';
 import { TemplateService } from '@services/content/template.service';
@@ -200,9 +201,9 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
                     className="border-b border-white/[0.08] pb-4 last:border-b-0 last:pb-0"
                   >
                     <div className="flex items-center gap-2 mb-2">
-                      <code className="text-sm font-mono bg-background px-2 py-1">
+                      <Code size="md" className="bg-background">
                         {`{{${variable.name}}}`}
-                      </code>
+                      </Code>
                       <Badge variant="outline" size={ComponentSize.SM}>
                         {variable.type}
                       </Badge>
@@ -224,7 +225,7 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
                     )}
                     {variable.defaultValue !== undefined && (
                       <Text as="p" size="xs" color="subtle-60">
-                        Default: <code>{String(variable.defaultValue)}</code>
+                        Default: <Code>{String(variable.defaultValue)}</Code>
                       </Text>
                     )}
                     {variable.validation && (
@@ -282,9 +283,9 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
                   <Text as="p" size="sm" weight="medium" className="mb-1">
                     Prompt:
                   </Text>
-                  <pre className="text-sm bg-background p-3 whitespace-pre-wrap">
+                  <Pre variant="debug" size="md" className="text-sm">
                     {template.content.prompt}
-                  </pre>
+                  </Pre>
                 </div>
               )}
               {template.content.style && (
@@ -311,9 +312,9 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
                     Structure
                   </summary>
                   <div className="px-4 pb-4">
-                    <pre className="text-xs whitespace-pre-wrap bg-muted p-3">
+                    <Pre>
                       {JSON.stringify(template.content.structure, null, 2)}
-                    </pre>
+                    </Pre>
                   </div>
                 </details>
               )}
