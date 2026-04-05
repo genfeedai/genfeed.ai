@@ -1,5 +1,6 @@
 'use client';
 
+import { Kbd } from '@genfeedai/ui';
 import { Keyboard, Search, X } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { useUIStore } from '../stores/uiStore';
@@ -184,9 +185,9 @@ export function ShortcutHelpModal() {
                       className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-secondary/50"
                     >
                       <span className="text-sm">{shortcut.description}</span>
-                      <kbd className="px-2 py-1 text-xs font-mono bg-secondary rounded border border-border">
+                      <Kbd variant="muted" className="px-2 py-1 border border-border">
                         {shortcut.keys}
-                      </kbd>
+                      </Kbd>
                     </div>
                   ))}
                 </div>

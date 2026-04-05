@@ -4,6 +4,7 @@ import type {
   ICommand,
   ICommandPaletteProps,
 } from '@genfeedai/interfaces/ui/command-palette.interface';
+import { Kbd } from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { CommandPaletteItem } from '@ui/command-palette/command-palette-item/CommandPaletteItem';
 import Modal from '@ui/modals/modal/Modal';
@@ -85,21 +86,21 @@ export function CommandPaletteView({
         <div className="flex-shrink-0 flex items-center justify-between border-t border-white/[0.08] px-4 py-2 text-xs text-foreground/60">
           <div className="flex gap-4">
             <span>
-              <kbd className="px-1.5 py-0.5 text-xs bg-background border border-white/[0.08]">
+              <Kbd>
                 ↑↓
-              </kbd>{' '}
+              </Kbd>{' '}
               Navigate
             </span>
             <span>
-              <kbd className="px-1.5 py-0.5 text-xs bg-background border border-white/[0.08]">
+              <Kbd>
                 ↵
-              </kbd>{' '}
+              </Kbd>{' '}
               Execute
             </span>
             <span>
-              <kbd className="px-1.5 py-0.5 text-xs bg-background border border-white/[0.08]">
+              <Kbd>
                 Esc
-              </kbd>{' '}
+              </Kbd>{' '}
               Close
             </span>
           </div>

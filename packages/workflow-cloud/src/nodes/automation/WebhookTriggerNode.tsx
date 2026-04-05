@@ -1,6 +1,7 @@
 'use client';
 
 import { WorkflowNodeStatus } from '@genfeedai/enums';
+import { Pre } from '@ui/src/primitives/pre';
 import {
   selectUpdateNodeData,
   useWorkflowStore,
@@ -28,6 +29,7 @@ import { useNodeExecution } from '@workflow-cloud/hooks/useNodeExecution';
 import { coerceNodeData } from '@workflow-cloud/nodes/node-data';
 import type { WebhookTriggerNodeData } from '@workflow-cloud/nodes/types';
 import type { NodeProps } from '@xyflow/react';
+import { Code } from '@ui/src/primitives/code';
 import { memo, useCallback, useState } from 'react';
 
 function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
@@ -139,9 +141,9 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
           <div>
             <label className="text-xs text-muted-foreground">Webhook URL</label>
             <div className="flex items-center gap-2 mt-1">
-              <code className="flex-1 px-2 py-1.5 text-xs bg-muted font-mono truncate">
+              <Code className="flex-1 truncate">
                 {data.webhookUrl}
-              </code>
+              </Code>
               <NodeIconButton
                 onClick={() => copyToClipboard(data.webhookUrl!, 'url')}
                 title="Copy URL"
@@ -168,11 +170,11 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
                 {data.authType === 'bearer' ? 'Bearer Token' : 'Secret Key'}
               </label>
               <div className="flex items-center gap-2 mt-1">
-                <code className="flex-1 px-2 py-1.5 text-xs bg-muted font-mono truncate">
+                <Code className="flex-1 truncate">
                   {showSecret
                     ? data.webhookSecret
                     : '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}
-                </code>
+                </Code>
                 <NodeIconButton
                   onClick={() => setShowSecret(!showSecret)}
                   title={showSecret ? 'Hide secret' : 'Show secret'}
@@ -203,11 +205,11 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
             <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
               View example request
             </summary>
-            <pre className="mt-2 p-2 bg-muted overflow-x-auto text-[10px]">
+            <Pre size="xs" className="mt-2">
               {`curl -X POST "${data.webhookUrl}" \\
   -H "Content-Type: application/json" \\${curlAuthHeader}
   -d '{"key": "value"}'`}
-            </pre>
+            </Pre>
           </details>
 
           {/* Stats */}

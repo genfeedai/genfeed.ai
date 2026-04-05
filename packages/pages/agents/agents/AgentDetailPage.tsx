@@ -15,6 +15,11 @@ import {
 } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import {
+  DefinitionDetail,
+  DefinitionList,
+  DefinitionTerm,
+} from '@ui/src/primitives/definition-list';
 import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
@@ -313,36 +318,36 @@ export default function AgentDetailPage({ agentId }: AgentDetailPageProps) {
               </Badge>
             </div>
 
-            <dl className="mt-4 grid gap-3 text-sm md:grid-cols-2">
+            <DefinitionList variant="grid" className="mt-4 gap-3 text-sm md:grid-cols-2">
               <InsetSurface className="p-3" density="compact" tone="contrast">
-                <dt className="text-foreground/45">Opportunity</dt>
-                <dd className="mt-1 text-foreground/85">
+                <DefinitionTerm>Opportunity</DefinitionTerm>
+                <DefinitionDetail variant="inline" className="mt-1 text-foreground/85">
                   {selectedOpportunity?.topic ??
                     (isOpportunitiesLoading
                       ? 'Loading opportunity...'
                       : requestedOpportunityId)}
-                </dd>
+                </DefinitionDetail>
               </InsetSurface>
               <InsetSurface className="p-3" density="compact" tone="contrast">
-                <dt className="text-foreground/45">Status</dt>
-                <dd className="mt-1 capitalize text-foreground/85">
+                <DefinitionTerm>Status</DefinitionTerm>
+                <DefinitionDetail variant="inline" className="mt-1 capitalize text-foreground/85">
                   {selectedOpportunity?.status ??
                     (isOpportunitiesLoading ? 'Loading' : 'Unavailable')}
-                </dd>
+                </DefinitionDetail>
               </InsetSurface>
               <InsetSurface className="p-3" density="compact" tone="contrast">
-                <dt className="text-foreground/45">Reason</dt>
-                <dd className="mt-1 text-foreground/85">
+                <DefinitionTerm>Reason</DefinitionTerm>
+                <DefinitionDetail variant="inline" className="mt-1 text-foreground/85">
                   {selectedOpportunity?.decisionReason ?? 'Not recorded'}
-                </dd>
+                </DefinitionDetail>
               </InsetSurface>
               <InsetSurface className="p-3" density="compact" tone="contrast">
-                <dt className="text-foreground/45">Expected traffic</dt>
-                <dd className="mt-1 text-foreground/85">
+                <DefinitionTerm>Expected traffic</DefinitionTerm>
+                <DefinitionDetail variant="inline" className="mt-1 text-foreground/85">
                   {selectedOpportunity?.expectedTrafficScore ?? 'Not recorded'}
-                </dd>
+                </DefinitionDetail>
               </InsetSurface>
-            </dl>
+            </DefinitionList>
           </InsetSurface>
         )}
 

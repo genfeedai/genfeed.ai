@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { Pre } from '@ui/src/primitives/pre';
 import Button from '@ui/buttons/base/Button';
 import type { StructuredProgressDebugPayload } from '@utils/progress/structured-progress-event.util';
 import type { ReactElement } from 'react';
@@ -56,9 +57,9 @@ export function ToolCallDetailPanel({
           <span className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/60">
             Parameters
           </span>
-          <pre className="overflow-x-auto whitespace-pre-wrap break-words text-[10px] text-muted-foreground">
+          <Pre variant="ghost" size="xs">
             {JSON.stringify(resolvedParameters, null, 2)}
-          </pre>
+          </Pre>
         </div>
       )}
       {resultSummary && (
@@ -66,9 +67,9 @@ export function ToolCallDetailPanel({
           <span className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/60">
             Result
           </span>
-          <pre className="overflow-x-auto whitespace-pre-wrap break-words text-[10px] text-muted-foreground">
+          <Pre variant="ghost" size="xs">
             {resultSummary}
-          </pre>
+          </Pre>
         </div>
       )}
       {rawOutput && (
@@ -76,9 +77,9 @@ export function ToolCallDetailPanel({
           <span className="mb-0.5 block text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/60">
             Debug Output
           </span>
-          <pre className="overflow-x-auto whitespace-pre-wrap break-words text-[10px] text-muted-foreground">
+          <Pre variant="ghost" size="xs">
             {rawOutput}
-          </pre>
+          </Pre>
         </div>
       )}
       {copyValue && (

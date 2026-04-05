@@ -15,6 +15,11 @@ export { Alert, AlertDescription, AlertTitle } from './alert';
 export { Avatar, AvatarFallback, AvatarImage } from './avatar';
 export { Badge, type BadgeProps, badgeVariants } from './badge';
 export {
+  Blockquote,
+  type BlockquoteProps,
+  blockquoteVariants,
+} from './blockquote';
+export {
   Breadcrumb,
   BreadcrumbEllipsis,
   BreadcrumbItem,
@@ -29,6 +34,7 @@ export {
   buttonVariants,
 } from './button';
 export { Checkbox } from './checkbox';
+export { Code, type CodeProps, codeVariants } from './code';
 export { ColorInput, type ColorInputProps } from './color-input';
 export {
   Dialog,
@@ -42,6 +48,17 @@ export {
   DialogTitle,
   DialogTrigger,
 } from './dialog';
+export {
+  ddVariants,
+  DefinitionDetail,
+  type DefinitionDetailProps,
+  DefinitionList,
+  type DefinitionListProps,
+  DefinitionTerm,
+  type DefinitionTermProps,
+  dlVariants,
+  dtVariants,
+} from './definition-list';
 export {
   Drawer,
   DrawerClose,
@@ -61,12 +78,14 @@ export {
   fieldControlTriggerClassName,
 } from './field-control';
 export { Input, type InputProps } from './input';
+export { Kbd, type KbdProps, kbdVariants } from './kbd';
 export { Label } from './label';
 export {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from './popover';
+export { Pre, type PreProps, preVariants } from './pre';
 export { Progress } from './progress';
 export { RadioGroup, RadioGroupItem } from './radio-group';
 export { ScrollArea, ScrollBar } from './scroll-area';

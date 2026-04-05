@@ -34,6 +34,7 @@ import {
   LazyModalTraining,
   LazyModalTrainingNew,
 } from '@ui/lazy/modal/LazyModal';
+import { Code } from '@ui/src/primitives/code';
 import { PageScope } from '@ui-constants/misc.constant';
 import { getErrorMessage } from '@utils/error/error-handler.util';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -328,9 +329,9 @@ export default function TrainingsList({
         header: 'Trigger Word',
         key: 'trigger_word',
         render: (training: ITraining) => (
-          <code className="bg-muted px-2 py-1 text-sm dark:bg-muted">
+          <Code size="md">
             {training.trigger}
-          </code>
+          </Code>
         ),
       },
       {

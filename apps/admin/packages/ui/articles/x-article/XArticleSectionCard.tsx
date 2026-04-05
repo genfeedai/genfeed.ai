@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { Blockquote } from '@genfeedai/ui';
 import type { XArticleSectionCardProps } from '@props/content/x-article.props';
 import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
@@ -32,9 +33,9 @@ export default function XArticleSectionCard({
         />
 
         {section.pullQuote && (
-          <blockquote className="mt-4 border-l-4 border-primary/60 pl-4 italic text-foreground/70">
+          <Blockquote className="mt-4">
             {section.pullQuote}
-          </blockquote>
+          </Blockquote>
         )}
       </div>
     </Card>
