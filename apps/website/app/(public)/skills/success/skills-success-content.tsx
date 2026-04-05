@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { Code } from '@genfeedai/ui';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { Button } from '@ui/primitives/button';
 import { CtaSection, WebSection } from '@web-components/content/NeuralGrid';
@@ -81,9 +82,9 @@ export default function SkillsSuccessContent() {
               <LuTerminal className="h-4 w-4 mt-0.5 shrink-0 text-surface/30" />
               <span>
                 Replace{' '}
-                <code className="text-surface/60 bg-fill/5 px-1.5 py-0.5 rounded text-xs">
+                <Code className="text-surface/60 bg-fill/5">
                   sk_rcpt_xxx
-                </code>{' '}
+                </Code>{' '}
                 with the receipt ID from your confirmation email.
               </span>
             </div>
@@ -91,9 +92,9 @@ export default function SkillsSuccessContent() {
               <LuTerminal className="h-4 w-4 mt-0.5 shrink-0 text-surface/30" />
               <span>
                 Skills are installed to{' '}
-                <code className="text-surface/60 bg-fill/5 px-1.5 py-0.5 rounded text-xs">
+                <Code className="text-surface/60 bg-fill/5">
                   skills/
-                </code>{' '}
+                </Code>{' '}
                 in your project directory.
               </span>
             </div>

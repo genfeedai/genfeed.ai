@@ -2,6 +2,7 @@
 
 import type { IContentTemplate } from '@genfeedai/interfaces/content/template-ui.interface';
 import { ComponentSize } from '@genfeedai/enums';
+import { Code } from '@genfeedai/ui';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TemplateDetailProps } from '@props/admin/templates.props';
 import { TemplateService } from '@services/content/template.service';
@@ -200,9 +201,9 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
                     className="border-b border-white/[0.08] pb-4 last:border-b-0 last:pb-0"
                   >
                     <div className="flex items-center gap-2 mb-2">
-                      <code className="text-sm font-mono bg-background px-2 py-1">
+                      <Code size="md" className="bg-background">
                         {`{{${variable.name}}}`}
-                      </code>
+                      </Code>
                       <Badge variant="outline" size={ComponentSize.SM}>
                         {variable.type}
                       </Badge>
@@ -224,7 +225,7 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
                     )}
                     {variable.defaultValue !== undefined && (
                       <Text as="p" size="xs" color="subtle-60">
-                        Default: <code>{String(variable.defaultValue)}</code>
+                        Default: <Code>{String(variable.defaultValue)}</Code>
                       </Text>
                     )}
                     {variable.validation && (

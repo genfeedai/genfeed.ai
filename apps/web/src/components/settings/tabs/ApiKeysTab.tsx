@@ -3,7 +3,8 @@
 import { InfoBox } from '@/components/ui/settings-section';
 import { LLM_PROVIDERS, useSettingsStore } from '@/store/settingsStore';
 import type { LLMProviderType } from '@/store/settingsStore';
-import { Check, Code, Eye, EyeOff, Trash2 } from 'lucide-react';
+import { Code } from '@genfeedai/ui';
+import { Check, Code as CodeIcon, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 
 const TTS_ENABLED = process.env.NEXT_PUBLIC_TTS_ENABLED === 'true';
@@ -230,9 +231,9 @@ export function ApiKeysTab() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-sm text-foreground">{key.name}</span>
-                  <code className="text-[10px] bg-secondary px-1.5 py-0.5 rounded text-muted-foreground">
+                  <Code className="text-[10px] bg-secondary text-muted-foreground">
                     {key.envVar}
-                  </code>
+                  </Code>
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">{key.description}</p>
                 {key.isConfigured === false && (
@@ -256,7 +257,7 @@ export function ApiKeysTab() {
         </div>
       </div>
 
-      <InfoBox title="ElevenLabs Setup" icon={Code}>
+      <InfoBox title="ElevenLabs Setup" icon={CodeIcon}>
         <p className="text-xs text-muted-foreground">To enable Text-to-Speech, add both:</p>
         <pre className="mt-2 overflow-x-auto rounded bg-background p-3 text-xs text-muted-foreground">
           {`# apps/api/.env

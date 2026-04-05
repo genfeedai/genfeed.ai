@@ -14,6 +14,7 @@ import {
   Volume2,
 } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
+import { Code } from '@ui/src/primitives/code';
 import { useCanGenerate } from '../../hooks/useCanGenerate';
 import { useNodeExecution } from '../../hooks/useNodeExecution';
 import { useWorkflowStore } from '../../stores/workflowStore';
@@ -137,13 +138,13 @@ function TextToSpeechNodeComponent(props: NodeProps) {
               <p className="font-medium">ElevenLabs not configured</p>
               <p className="text-amber-500/80 mt-0.5">
                 Set{' '}
-                <code className="bg-amber-500/20 px-1 rounded">
+                <Code className="bg-amber-500/20">
                   ELEVENLABS_API_KEY
-                </code>{' '}
+                </Code>{' '}
                 in API and{' '}
-                <code className="bg-amber-500/20 px-1 rounded">
+                <Code className="bg-amber-500/20">
                   NEXT_PUBLIC_TTS_ENABLED=true
-                </code>{' '}
+                </Code>{' '}
                 in web
               </p>
             </div>
