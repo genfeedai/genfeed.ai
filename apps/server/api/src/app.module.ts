@@ -423,7 +423,7 @@ import { SubscriptionsModule } from '@api/collections/subscriptions/subscription
     MusicsModule,
     NewslettersModule,
     OptimizersModule,
-    // OrganizationSettingsModule — EE (gated below)
+    OrganizationSettingsModule,
     OrganizationsModule,
     PersonasModule,
     PostsModule,
@@ -437,8 +437,8 @@ import { SubscriptionsModule } from '@api/collections/subscriptions/subscription
     SettingsModule,
     SpeechModule,
     StreaksModule,
-    // SubscriptionAttributionsModule — EE (gated below)
-    // SubscriptionsModule — EE (gated below)
+    SubscriptionAttributionsModule,
+    SubscriptionsModule,
     TagsModule,
     TemplatesModule,
     TrainingsModule,
@@ -569,12 +569,9 @@ import { SubscriptionsModule } from '@api/collections/subscriptions/subscription
     ...(isEEEnabled()
       ? [
           CreditsModule,
-          SubscriptionsModule,
-          SubscriptionAttributionsModule,
           UserSubscriptionsModule,
-          MarketplaceModule,
+          // MarketplaceModule — separate repo
           BusinessAnalyticsModule,
-          OrganizationSettingsModule,
         ]
       : []),
   ],
