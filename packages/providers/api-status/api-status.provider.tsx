@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import Button from '@ui/buttons/base/Button';
+import { Code } from '@ui/src/primitives/code';
 import {
   createContext,
   type ReactNode,
@@ -154,7 +155,7 @@ export default function ApiStatusProvider({
       <ApiStatusContext.Provider value={contextValue}>
         <div className="fixed inset-0 flex items-center justify-center bg-background p-4">
           <div className="max-w-md w-full text-center space-y-6">
-            <div className="mx-auto flex items-center justify-center w-16 h-16 bg-error/10 rounded-full">
+            <div className="mx-auto flex items-center justify-center w-16 h-16 bg-error/10">
               <HiExclamationTriangle className="w-8 h-8 text-error" />
             </div>
 
@@ -166,13 +167,13 @@ export default function ApiStatusProvider({
               </p>
             </div>
 
-            <div className="rounded-lg bg-white/5 p-4 text-left space-y-2">
+            <div className="bg-white/5 p-4 text-left space-y-2">
               <p className="text-sm font-medium text-foreground/70">
                 Trying to connect to:
               </p>
-              <code className="block rounded bg-white/5 p-2 text-xs font-mono text-foreground/80 break-all">
+              <Code display="block" size="sm" className="text-foreground/80 break-all">
                 {EnvironmentService.apiEndpoint}
-              </code>
+              </Code>
               {error && (
                 <p className="text-xs text-foreground/50 mt-2">
                   Error: {error}
@@ -184,9 +185,9 @@ export default function ApiStatusProvider({
               <p className="text-sm text-foreground/60">
                 If you&apos;re developing locally, start the backend:
               </p>
-              <code className="block rounded bg-white/5 p-3 text-sm font-mono">
+              <Code display="block" size="md">
                 bun run dev:backend
-              </code>
+              </Code>
             </div>
 
             <Button

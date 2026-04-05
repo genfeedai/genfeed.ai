@@ -1,9 +1,11 @@
 {
   "compilerOptions": {
     "baseUrl": ".",
+    "declaration": false,
+    "declarationMap": false,
     "ignoreDeprecations": "6.0",
     "outDir": "../dist/apps/api",
-    "rootDir": "./src",
+    "rootDir": "../../..",
     "paths": {
       "@api/*": ["./src/*"],
       "@files/*": ["../files/src/*"],
@@ -21,3 +23,5 @@
   "extends": "../tsconfig.json",
   "include": ["src/**/*", "src/**/*.d.ts"]
 }
+
+

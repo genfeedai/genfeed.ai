@@ -29,6 +29,7 @@ export {
   buttonVariants,
 } from './button';
 export { Checkbox } from './checkbox';
+export { Code, type CodeProps, codeVariants } from './code';
 export { ColorInput, type ColorInputProps } from './color-input';
 export {
   Dialog,
