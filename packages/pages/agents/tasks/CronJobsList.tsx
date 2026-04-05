@@ -9,7 +9,7 @@ import {
 } from '@services/automation/cron-jobs.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { Pre } from '@ui/src/primitives/pre';
+import { Pre } from '@genfeedai/ui';
 import Button from '@ui/buttons/base/Button';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Badge from '@ui/display/badge/Badge';

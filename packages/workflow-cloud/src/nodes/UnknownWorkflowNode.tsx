@@ -1,6 +1,6 @@
 'use client';
 
-import { Code } from '@ui/src/primitives/code';
+import { Code } from '@genfeedai/ui';
 import { isNodeDataRecord } from '@workflow-cloud/nodes/node-data';
 import type { NodeProps } from '@xyflow/react';
 import { memo } from 'react';

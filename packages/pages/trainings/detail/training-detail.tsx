@@ -21,7 +21,7 @@ import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
 import { LazyModalTraining } from '@ui/lazy/modal/LazyModal';
-import { Code } from '@ui/src/primitives/code';
+import { Code } from '@genfeedai/ui';
 import Loading from '@ui/loading/default/Loading';
 import Breadcrumb from '@ui/navigation/breadcrumb/Breadcrumb';
 import { getErrorMessage } from '@utils/error/error-handler.util';

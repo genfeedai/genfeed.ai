@@ -1,7 +1,7 @@
 import type { ReactElement, ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Code } from '@ui/src/primitives/code';
+import { Code } from '@genfeedai/ui';
 
 function isSafeHref(href?: string): boolean {
   if (!href) {

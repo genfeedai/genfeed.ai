@@ -18,7 +18,7 @@ import {
   DefinitionDetail,
   DefinitionList,
   DefinitionTerm,
-} from '@ui/src/primitives/definition-list';
+} from '@genfeedai/ui';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import Link from 'next/link';
