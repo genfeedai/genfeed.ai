@@ -1,6 +1,7 @@
 'use client';
 
 import type { ICommandPaletteItemProps } from '@genfeedai/interfaces/ui/command-palette.interface';
+import { Kbd } from '@genfeedai/ui';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Button from '@ui/buttons/base/Button';
@@ -42,9 +43,9 @@ export function CommandPaletteItem({
           {command.shortcut && (
             <div className="ml-auto flex gap-2">
               {command.shortcut.map((key) => (
-                <kbd key={key} className="kbd kbd-xs bg-muted opacity-60">
+                <Kbd key={key} variant="muted" size="xs" className="opacity-60">
                   {key}
-                </kbd>
+                </Kbd>
               ))}
             </div>
           )}

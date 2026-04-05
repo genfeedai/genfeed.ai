@@ -49,6 +49,17 @@ export {
   DialogTrigger,
 } from './dialog';
 export {
+  ddVariants,
+  DefinitionDetail,
+  type DefinitionDetailProps,
+  DefinitionList,
+  type DefinitionListProps,
+  DefinitionTerm,
+  type DefinitionTermProps,
+  dlVariants,
+  dtVariants,
+} from './definition-list';
+export {
   Drawer,
   DrawerClose,
   DrawerContent,

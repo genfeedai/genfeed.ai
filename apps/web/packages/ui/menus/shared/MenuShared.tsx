@@ -2,6 +2,7 @@
 
 import { UserButton, useAuth, useUser } from '@clerk/nextjs';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
+import { Kbd } from '@genfeedai/ui';
 import { useSidebarNavigation } from '@contexts/ui/sidebar-navigation-context';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
@@ -493,9 +494,9 @@ export default function MenuShared({
                     <HiPlus className="h-4 w-4" />
                   )}
                   <span className="flex-1">{config.primaryAction.label}</span>
-                  <kbd className="rounded bg-black/[0.08] px-1.5 py-0.5 text-[10px] font-medium text-black/45">
+                  <Kbd variant="subtle" size="xs" className="bg-black/[0.08] text-black/45">
                     {'\u2318'}N
-                  </kbd>
+                  </Kbd>
                 </Link>
               ) : (
                 <button
@@ -517,9 +518,9 @@ export default function MenuShared({
                     <HiPlus className="h-4 w-4" />
                   )}
                   <span className="flex-1">{config.primaryAction.label}</span>
-                  <kbd className="rounded bg-black/[0.08] px-1.5 py-0.5 text-[10px] font-medium text-black/45">
+                  <Kbd variant="subtle" size="xs" className="bg-black/[0.08] text-black/45">
                     {'\u2318'}N
-                  </kbd>
+                  </Kbd>
                 </button>
               )}
             </div>
@@ -628,9 +629,9 @@ export default function MenuShared({
                           <span className="text-sm font-medium text-white/90">
                             New Chat
                           </span>
-                          <kbd className="ml-auto text-[11px] text-white/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <Kbd variant="ghost" className="ml-auto text-[11px] opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                             ⌘⇧N
-                          </kbd>
+                          </Kbd>
                         </Link>
                       </div>
                       <div

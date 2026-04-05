@@ -2,7 +2,7 @@
 
 import type { IContentTemplate } from '@genfeedai/interfaces/content/template-ui.interface';
 import { ComponentSize } from '@genfeedai/enums';
-import { Code } from '@genfeedai/ui';
+import { Code, Pre } from '@genfeedai/ui';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TemplateDetailProps } from '@props/admin/templates.props';
 import { TemplateService } from '@services/content/template.service';
@@ -283,9 +283,9 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
                   <Text as="p" size="sm" weight="medium" className="mb-1">
                     Prompt:
                   </Text>
-                  <pre className="text-sm bg-background p-3 whitespace-pre-wrap">
+                  <Pre variant="debug" size="md" className="text-sm">
                     {template.content.prompt}
-                  </pre>
+                  </Pre>
                 </div>
               )}
               {template.content.style && (
@@ -312,9 +312,9 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
                     Structure
                   </summary>
                   <div className="px-4 pb-4">
-                    <pre className="text-xs whitespace-pre-wrap bg-muted p-3">
+                    <Pre>
                       {JSON.stringify(template.content.structure, null, 2)}
-                    </pre>
+                    </Pre>
                   </div>
                 </details>
               )}

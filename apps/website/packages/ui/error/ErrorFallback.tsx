@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
+import { Pre } from '@genfeedai/ui';
 import Button from '@ui/buttons/base/Button';
 import { HiOutlineExclamationTriangle } from 'react-icons/hi2';
 
@@ -30,9 +31,9 @@ export function ErrorFallback({
         {description}
       </p>
       {error?.message && process.env.NODE_ENV === 'development' && (
-        <pre className="text-xs text-muted-foreground bg-muted p-3 rounded mb-4 max-w-lg overflow-auto">
+        <Pre className="mb-4 max-w-lg">
           {error.message}
-        </pre>
+        </Pre>
       )}
       {resetErrorBoundary && (
         <Button

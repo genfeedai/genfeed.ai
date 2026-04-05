@@ -5,6 +5,7 @@ import {
   type ExecutionResult,
 } from '@genfeedai/workflow';
 import { ButtonVariant, WorkflowExecutionStatus } from '@genfeedai/enums';
+import { Pre } from '@ui/src/primitives/pre';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import Button from '@ui/buttons/base/Button';
@@ -358,9 +359,9 @@ export default function ExecutionDetailPage({
                         <div className="mb-1 text-sm font-medium text-red-800 dark:text-red-200">
                           Error
                         </div>
-                        <pre className="text-sm text-red-700 dark:text-red-300">
+                        <Pre variant="ghost" size="md" className="text-red-700 dark:text-red-300">
                           {result.error}
-                        </pre>
+                        </Pre>
                       </div>
                     )}
                     {result.output && (
@@ -368,9 +369,9 @@ export default function ExecutionDetailPage({
                         <div className="mb-1 text-sm font-medium text-muted-foreground">
                           Output
                         </div>
-                        <pre className="bg-muted p-3 text-sm">
+                        <Pre size="md" className="text-sm">
                           {JSON.stringify(result.output, null, 2)}
-                        </pre>
+                        </Pre>
                       </div>
                     )}
                   </div>
@@ -386,9 +387,9 @@ export default function ExecutionDetailPage({
             <h3 className="mb-2 font-semibold text-red-800 dark:text-red-200">
               Execution Error
             </h3>
-            <pre className="text-sm text-red-700 dark:text-red-300">
+            <Pre variant="ghost" size="md" className="text-red-700 dark:text-red-300">
               {execution.error}
-            </pre>
+            </Pre>
           </div>
         )}
 

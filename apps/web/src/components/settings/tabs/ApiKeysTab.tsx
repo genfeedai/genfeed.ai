@@ -3,7 +3,7 @@
 import { InfoBox } from '@/components/ui/settings-section';
 import { LLM_PROVIDERS, useSettingsStore } from '@/store/settingsStore';
 import type { LLMProviderType } from '@/store/settingsStore';
-import { Code } from '@genfeedai/ui';
+import { Code, Pre } from '@genfeedai/ui';
 import { Check, Code as CodeIcon, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 
@@ -259,13 +259,13 @@ export function ApiKeysTab() {
 
       <InfoBox title="ElevenLabs Setup" icon={CodeIcon}>
         <p className="text-xs text-muted-foreground">To enable Text-to-Speech, add both:</p>
-        <pre className="mt-2 overflow-x-auto rounded bg-background p-3 text-xs text-muted-foreground">
+        <Pre variant="debug" className="mt-2">
           {`# apps/api/.env
 ELEVENLABS_API_KEY=your_key_here
 
 # apps/web/.env
 NEXT_PUBLIC_TTS_ENABLED=true`}
-        </pre>
+        </Pre>
         <p className="mt-2 text-xs text-muted-foreground">
           Then restart both the API and web servers.
         </p>

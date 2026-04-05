@@ -1,6 +1,7 @@
 'use client';
 
 import type { WorkflowNode } from '@genfeedai/types';
+import { Kbd } from '@genfeedai/ui';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
 import { useReactFlow } from '@xyflow/react';
 import { Input } from '@/components/ui/input';
@@ -154,13 +155,13 @@ export function NodeSearch() {
         {filteredNodes.length > 0 && (
           <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground flex gap-4">
             <span>
-              <kbd className="px-1.5 py-0.5 bg-secondary rounded">↑↓</kbd> Navigate
+              <Kbd variant="muted">↑↓</Kbd> Navigate
             </span>
             <span>
-              <kbd className="px-1.5 py-0.5 bg-secondary rounded">Enter</kbd> Select
+              <Kbd variant="muted">Enter</Kbd> Select
             </span>
             <span>
-              <kbd className="px-1.5 py-0.5 bg-secondary rounded">Esc</kbd> Close
+              <Kbd variant="muted">Esc</Kbd> Close
             </span>
           </div>
         )}
