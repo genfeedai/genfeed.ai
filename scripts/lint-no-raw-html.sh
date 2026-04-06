@@ -57,10 +57,7 @@ for file in "$@"; do
   [[ "$file" == *.spec.* ]] && continue
   [[ "$file" == *.stories.* ]] && continue
 
-  # Skip apps with their own UI systems (no shared @ui access)
-  [[ "$file" == *apps/extensions/* ]] && continue
-  [[ "$file" == *apps/desktop/* ]] && continue
-  [[ "$file" == *packages/workflow-cloud/src/components/ui/* ]] && continue
+  # Skip workflow packages (standalone UI systems, separate migration scope)
   [[ "$file" == *packages/workflow-ui/* ]] && continue
   [[ "$file" == *packages/workflow-cloud/* ]] && continue
 

@@ -1,3 +1,5 @@
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import { type ReactElement, useEffect, useRef } from 'react';
 
 import { BrandVoiceIndicator } from '~components/chat/BrandVoiceIndicator';
@@ -42,13 +44,14 @@ export function ChatContainer(): ReactElement {
       {error && (
         <div className="mx-3 mt-2 flex items-center justify-between rounded bg-destructive/10 px-3 py-2 text-xs text-destructive">
           <span>{error}</span>
-          <button
+          <Button
             type="button"
+            variant={ButtonVariant.GHOST}
             onClick={() => setError(null)}
             className="ml-2 text-destructive hover:text-destructive/80"
           >
             Dismiss
-          </button>
+          </Button>
         </div>
       )}
 
