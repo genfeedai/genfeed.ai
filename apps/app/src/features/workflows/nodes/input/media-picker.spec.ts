@@ -1,3 +1,4 @@
+import { describe, expect, it, vi } from 'vitest';
 import {
   buildWorkflowMediaNodePatch,
   clearCurrentWorkflowMedia,
@@ -6,8 +7,7 @@ import {
   getWorkflowMediaConfig,
   setWorkflowMediaSource,
   toWorkflowMediaSelection,
-} from '@workflow-cloud/nodes/input/media-picker';
-import { describe, expect, it, vi } from 'vitest';
+} from '@/features/workflows/nodes/input/media-picker';
 
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {

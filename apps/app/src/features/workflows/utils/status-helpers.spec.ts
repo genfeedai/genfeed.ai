@@ -1,10 +1,10 @@
+import { describe, expect, it } from 'vitest';
 import {
   getLifecycleBadgeClass,
   getStatusBorderColor,
   getStatusColor,
   getStatusIcon,
-} from '@workflow-cloud/utils/status-helpers';
-import { describe, expect, it } from 'vitest';
+} from '@/features/workflows/utils/status-helpers';
 
 describe('getStatusIcon', () => {
   it('completed', () => expect(getStatusIcon('completed')).toBe('✅'));

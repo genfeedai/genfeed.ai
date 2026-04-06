@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import {
   CTA_OPTIONS,
   formatTime,
@@ -6,8 +7,7 @@ import {
   getPlatformsByAspectRatio,
   PLATFORM_OPTIONS,
   TONE_OPTIONS,
-} from '@workflow-cloud/nodes/constants';
-import { describe, expect, it } from 'vitest';
+} from '@/features/workflows/nodes/constants';
 
 describe('PLATFORM_OPTIONS', () => {
   it('has platforms', () => {
