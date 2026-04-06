@@ -6,6 +6,7 @@ import {
   type WorkflowTemplate,
 } from '@genfeedai/workflow';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import Button from '@ui/buttons/base/Button';
 import Link from 'next/link';
@@ -27,6 +28,7 @@ const TEMPLATE_CATEGORIES = [
  * Template Gallery - Pre-built workflow templates
  */
 export default function WorkflowTemplatesPage() {
+  const { href } = useOrgUrl();
   const [templates, setTemplates] = useState<WorkflowTemplate[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
@@ -107,7 +109,7 @@ export default function WorkflowTemplatesPage() {
         });
 
         if (!isCancelled) {
-          router.replace(`/workflows/${workflow._id}`);
+          router.replace(href(`/workflows/${workflow._id}`));
         }
       } catch (err) {
         logger.error('Failed to bootstrap workflow template', { error: err });
@@ -128,7 +130,7 @@ export default function WorkflowTemplatesPage() {
     return () => {
       isCancelled = true;
     };
-  }, [getService, router, templateId]);
+  }, [getService, href, router, templateId]);
 
   const filteredTemplates =
     selectedCategory === 'all'
@@ -268,7 +270,9 @@ export default function WorkflowTemplatesPage() {
                       {template.steps.length} steps
                     </span>
                     <Link
-                      href={`/workflows/templates?template=${template.id}`}
+                      href={href(
+                        `/workflows/templates?template=${template.id}`,
+                      )}
                       className=" bg-primary px-4 py-2 text-sm text-primary-foreground opacity-0 transition-opacity hover:bg-primary/90 group-hover:opacity-100"
                     >
                       Use Template

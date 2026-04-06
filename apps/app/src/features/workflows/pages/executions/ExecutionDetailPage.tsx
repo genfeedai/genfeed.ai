@@ -4,6 +4,7 @@ import { ButtonVariant, WorkflowExecutionStatus } from '@genfeedai/enums';
 import { Pre } from '@genfeedai/ui';
 import type { ExecutionNodeResult, ExecutionResult } from '@genfeedai/workflow';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import Button from '@ui/buttons/base/Button';
 import { createWorkflowApiService } from '@workflow-cloud/services/workflow-api';
@@ -95,6 +96,7 @@ export default function ExecutionDetailPage({
   executionId: runId,
 }: ExecutionLogsProps) {
   const [execution, setExecution] = useState<ExecutionDetail | null>(null);
+  const { href } = useOrgUrl();
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
@@ -169,7 +171,7 @@ export default function ExecutionDetailPage({
         <h1 className="mb-4 text-2xl font-bold">Execution Failed To Load</h1>
         <p className="mb-6 text-muted-foreground">{error}</p>
         <Link
-          href="/workflows/executions"
+          href={href('/workflows/executions')}
           className=" bg-primary px-6 py-3 text-primary-foreground hover:bg-primary/90"
         >
           Back to History
@@ -186,7 +188,7 @@ export default function ExecutionDetailPage({
           The execution run you're looking for doesn't exist.
         </p>
         <Link
-          href="/workflows/executions"
+          href={href('/workflows/executions')}
           className=" bg-primary px-6 py-3 text-primary-foreground hover:bg-primary/90"
         >
           Back to History
@@ -215,7 +217,7 @@ export default function ExecutionDetailPage({
         <div className="mx-auto max-w-5xl">
           <div className="mb-2 flex items-center gap-2 text-sm text-muted-foreground">
             <Link
-              href="/workflows/executions"
+              href={href('/workflows/executions')}
               className="hover:text-foreground"
             >
               Executions
@@ -232,7 +234,9 @@ export default function ExecutionDetailPage({
             </div>
             <div className="flex items-center gap-4">
               <Link
-                href={`/workflows/${execution.workflowId}?execution=${execution.runId}`}
+                href={href(
+                  `/workflows/${execution.workflowId}?execution=${execution.runId}`,
+                )}
                 className=" border border-white/[0.08] px-4 py-2 hover:bg-accent"
               >
                 View Workflow
