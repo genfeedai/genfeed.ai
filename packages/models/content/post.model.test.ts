@@ -1,3 +1,10 @@
+import {
+  AssetScope,
+  CredentialPlatform,
+  IngredientStatus,
+  PostCategory,
+  PostStatus,
+} from '@genfeedai/enums';
 import type {
   IBrand,
   ICredential,
@@ -8,13 +15,6 @@ import type {
   ISetting,
   IUser,
 } from '@genfeedai/interfaces';
-import {
-  AssetScope,
-  CredentialPlatform,
-  IngredientStatus,
-  PostCategory,
-  PostStatus,
-} from '@genfeedai/enums';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies

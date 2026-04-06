@@ -1,5 +1,5 @@
-import type { IIngredient, IPrompt } from '@genfeedai/interfaces';
 import { Prompt as BasePrompt } from '@genfeedai/client/models';
+import type { IIngredient, IPrompt } from '@genfeedai/interfaces';
 import { Ingredient } from '@models/content/ingredient.model';
 
 export interface IExtendedPrompt extends Partial<IPrompt> {

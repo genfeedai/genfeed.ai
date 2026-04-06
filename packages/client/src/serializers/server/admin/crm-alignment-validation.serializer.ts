@@ -1,7 +1,5 @@
-import { buildSingleSerializer, type BuiltSerializer } from '../../builders';
+import { type BuiltSerializer, buildSingleSerializer } from '../../builders';
 import { crmAlignmentValidationSerializerConfig } from '../../configs';
 
-export const CrmAlignmentValidationSerializer: BuiltSerializer = buildSingleSerializer(
-  'server',
-  crmAlignmentValidationSerializerConfig,
-);
+export const CrmAlignmentValidationSerializer: BuiltSerializer =
+  buildSingleSerializer('server', crmAlignmentValidationSerializerConfig);

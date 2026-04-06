@@ -8,7 +8,10 @@ interface PaginationProps {
   onPageChange: (page: number) => void;
 }
 
-function getPageNumbers(current: number, total: number): (number | 'ellipsis')[] {
+function getPageNumbers(
+  current: number,
+  total: number,
+): (number | 'ellipsis')[] {
   if (total <= 7) {
     return Array.from({ length: total }, (_, i) => i + 1);
   }
@@ -35,7 +38,11 @@ function getPageNumbers(current: number, total: number): (number | 'ellipsis')[]
   return pages;
 }
 
-export function Pagination({ page, totalPages, onPageChange }: PaginationProps) {
+export function Pagination({
+  page,
+  totalPages,
+  onPageChange,
+}: PaginationProps) {
   if (totalPages <= 1) return null;
 
   const pages = getPageNumbers(page, totalPages);
@@ -52,7 +59,10 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
 
       {pages.map((p, i) =>
         p === 'ellipsis' ? (
-          <span key={`ellipsis-${i}`} className="px-2 text-sm text-[var(--muted-foreground)]">
+          <span
+            key={`ellipsis-${i}`}
+            className="px-2 text-sm text-[var(--muted-foreground)]"
+          >
             ...
           </span>
         ) : (
@@ -67,7 +77,7 @@ export function Pagination({ page, totalPages, onPageChange }: PaginationProps) 
           >
             {p}
           </button>
-        )
+        ),
       )}
 
       <button

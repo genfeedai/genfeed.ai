@@ -50,7 +50,7 @@ export default function PostsLayoutContent({
       platform: parsedSearchParams.get('platform'),
       status: normalizePublisherPostsStatus(parsedSearchParams.get('status')),
     });
-  }, [pathname, parsedSearchParams]);
+  }, [parsedSearchParams]);
   const tabs = useMemo(
     () => [
       {

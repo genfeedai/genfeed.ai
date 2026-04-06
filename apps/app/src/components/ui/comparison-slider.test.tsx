@@ -32,14 +32,22 @@ describe('ComparisonSlider', () => {
     });
 
     it('should render custom labels', () => {
-      render(<ComparisonSlider {...defaultProps} beforeLabel="Original" afterLabel="Enhanced" />);
+      render(
+        <ComparisonSlider
+          {...defaultProps}
+          beforeLabel="Original"
+          afterLabel="Enhanced"
+        />,
+      );
 
       expect(screen.getByText('Original')).toBeInTheDocument();
       expect(screen.getByText('Enhanced')).toBeInTheDocument();
     });
 
     it('should apply custom height', () => {
-      const { container } = render(<ComparisonSlider {...defaultProps} height={200} />);
+      const { container } = render(
+        <ComparisonSlider {...defaultProps} height={200} />,
+      );
 
       const slider = container.firstChild as HTMLElement;
       expect(slider).toHaveStyle({ height: '200px' });
@@ -53,7 +61,9 @@ describe('ComparisonSlider', () => {
     });
 
     it('should apply custom className', () => {
-      const { container } = render(<ComparisonSlider {...defaultProps} className="custom-class" />);
+      const { container } = render(
+        <ComparisonSlider {...defaultProps} className="custom-class" />,
+      );
 
       const slider = container.firstChild as HTMLElement;
       expect(slider).toHaveClass('custom-class');
@@ -272,14 +282,20 @@ describe('ComparisonSlider', () => {
 
   describe('position styling', () => {
     it('should set clip width based on position prop', () => {
-      const { container } = render(<ComparisonSlider {...defaultProps} position={75} />);
+      const { container } = render(
+        <ComparisonSlider {...defaultProps} position={75} />,
+      );
 
-      const clipDiv = container.querySelector('[class*="overflow-hidden pointer-events-none"]');
+      const clipDiv = container.querySelector(
+        '[class*="overflow-hidden pointer-events-none"]',
+      );
       expect(clipDiv).toHaveStyle({ width: '75%' });
     });
 
     it('should set divider position based on position prop', () => {
-      const { container } = render(<ComparisonSlider {...defaultProps} position={30} />);
+      const { container } = render(
+        <ComparisonSlider {...defaultProps} position={30} />,
+      );
 
       const divider = container.querySelector('[class*="w-0.5 bg-white"]');
       expect(divider).toHaveStyle({ left: '30%' });

@@ -152,7 +152,14 @@ export default function PostDetail({
         throw error;
       }
     });
-  }, [post, openPostRemixModal, getPostsService, notificationsService, router]);
+  }, [
+    post,
+    openPostRemixModal,
+    getPostsService,
+    notificationsService,
+    router,
+    href,
+  ]);
 
   // Handler for duplicating a post (create copy as draft)
   const handleDuplicate = useCallback(async () => {
@@ -167,7 +174,7 @@ export default function PostDetail({
     } catch {
       notificationsService.error('Failed to duplicate post');
     }
-  }, [post, getPostsService, notificationsService, router]);
+  }, [post, getPostsService, notificationsService, router, href]);
 
   const isPagePresentation = presentation === 'page';
   const wrapperClassName = isPagePresentation ? 'container mx-auto p-6' : '';

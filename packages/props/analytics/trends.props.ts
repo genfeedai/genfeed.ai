@@ -1,9 +1,9 @@
+import type { Timeframe } from '@genfeedai/enums';
 import type {
   ITrendHashtag,
   ITrendSound,
   ITrendVideo,
 } from '@genfeedai/interfaces';
-import { Timeframe } from '@genfeedai/enums';
 
 /**
  * Props for ViralVideoLeaderboard component

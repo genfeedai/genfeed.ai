@@ -1,7 +1,6 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { AgentApiService, useAgentChatStore } from '@genfeedai/agent';
 import { CommandPalette } from '@components/command-palette/command-palette/CommandPalette';
 import { CommandPaletteInitializer } from '@components/command-palette/command-palette-initializer/CommandPaletteInitializer';
 import AppLayout from '@components/layouts/app/AppLayout';
@@ -9,6 +8,7 @@ import AdminSidebar from '@components/shell/menus/AdminSidebar';
 import AdminTopbar from '@components/shell/topbars/AdminTopbar';
 import { ADMIN_LOGO_HREF, ADMIN_MENU_ITEMS } from '@config/menu-items.config';
 import { CommandPaletteProvider } from '@contexts/features/command-palette.context';
+import { AgentApiService, useAgentChatStore } from '@genfeedai/agent';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { useAdminNavigationCommands } from '@hooks/commands/use-admin-navigation-commands/use-admin-navigation-commands';
 import type { LayoutProps } from '@props/layout/layout.props';

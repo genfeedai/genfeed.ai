@@ -2,7 +2,8 @@ import type { WorkflowTemplate } from '@genfeedai/types';
 
 export const FACECAM_AVATAR_TEMPLATE: WorkflowTemplate = {
   createdAt: new Date().toISOString(),
-  description: 'Generate talking head videos from text scripts using ElevenLabs TTS and lip sync',
+  description:
+    'Generate talking head videos from text scripts using ElevenLabs TTS and lip sync',
   edgeStyle: 'smoothstep',
   edges: [
     // Script → Text to Speech
@@ -44,7 +45,8 @@ export const FACECAM_AVATAR_TEMPLATE: WorkflowTemplate = {
     {
       data: {
         label: 'Script',
-        prompt: 'Hello! Welcome to my channel. Today I want to share something exciting with you.',
+        prompt:
+          'Hello! Welcome to my channel. Today I want to share something exciting with you.',
         status: 'idle',
         variables: {},
       },
@@ -69,7 +71,8 @@ export const FACECAM_AVATAR_TEMPLATE: WorkflowTemplate = {
     // Text to Speech
     {
       data: {
-        comment: 'Requires ELEVENLABS_API_KEY. Use Audio Input below as alternative.',
+        comment:
+          'Requires ELEVENLABS_API_KEY. Use Audio Input below as alternative.',
         inputText: null,
         jobId: null,
         label: 'Text to Speech',
@@ -89,7 +92,8 @@ export const FACECAM_AVATAR_TEMPLATE: WorkflowTemplate = {
     {
       data: {
         audio: null,
-        comment: 'Upload your own audio instead of TTS. Connect to Lip Sync audio input.',
+        comment:
+          'Upload your own audio instead of TTS. Connect to Lip Sync audio input.',
         duration: null,
         filename: null,
         label: 'Voice Audio (Alternative)',

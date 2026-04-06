@@ -1,9 +1,9 @@
 'use client';
 
-import { InfoBox, LinkCard } from '@/components/ui/settings-section';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { BookOpen, HelpCircle, MessageCircle, Store } from 'lucide-react';
 import { XIcon } from '@/components/toolbar/icons';
+import { InfoBox, LinkCard } from '@/components/ui/settings-section';
 
 export function HelpTab() {
   const { openModal, closeModal } = useUIStore();
@@ -26,7 +26,9 @@ export function HelpTab() {
             <HelpCircle className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <div className="font-medium text-foreground">Show Welcome Screen</div>
+            <div className="font-medium text-foreground">
+              Show Welcome Screen
+            </div>
             <p className="text-sm text-muted-foreground">
               View the welcome modal with quick start options
             </p>

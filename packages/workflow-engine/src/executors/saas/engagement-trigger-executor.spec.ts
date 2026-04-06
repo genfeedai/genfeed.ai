@@ -3,7 +3,7 @@ import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
   createEngagementTriggerExecutor,
   type EngagementChecker,
-  EngagementTriggerExecutor,
+  type EngagementTriggerExecutor,
 } from '@workflow-engine/executors/saas/engagement-trigger-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

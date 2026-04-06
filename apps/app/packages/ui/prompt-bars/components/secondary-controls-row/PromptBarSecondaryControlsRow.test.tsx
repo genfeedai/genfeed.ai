@@ -1,6 +1,6 @@
-import type { MediaConfig } from '@genfeedai/interfaces/ui/media-config.interface';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { ModelKey } from '@genfeedai/enums';
+import type { MediaConfig } from '@genfeedai/interfaces/ui/media-config.interface';
 import type { PromptBarSecondaryControlsRowProps } from '@props/prompt-bars/prompt-bar-layout.props';
 import { render } from '@testing-library/react';
 import PromptBarSecondaryControlsRow from '@ui/prompt-bars/components/secondary-controls-row/PromptBarSecondaryControlsRow';

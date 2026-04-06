@@ -1,10 +1,10 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type {
   ITwitterOpportunity,
   ITwitterPublishResult,
 } from '@genfeedai/interfaces';
-import { ButtonVariant } from '@genfeedai/enums';
 import Button from '@ui/buttons/base/Button';
 import AppLink from '@ui/navigation/link/Link';
 import { Textarea } from '@ui/primitives/textarea';

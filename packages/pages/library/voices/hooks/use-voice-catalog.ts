@@ -1,6 +1,6 @@
 'use client';
 
-import { IngredientStatus, VoiceProvider } from '@genfeedai/enums';
+import { IngredientStatus, type VoiceProvider } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Voice } from '@models/ingredients/voice.model';
 import { logger } from '@services/core/logger.service';

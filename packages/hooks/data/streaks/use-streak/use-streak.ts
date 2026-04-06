@@ -1,10 +1,7 @@
 'use client';
 
-import {
-  type IStreakCalendarResponse,
-  type IStreakSummary,
-} from '@genfeedai/types';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import type { IStreakCalendarResponse, IStreakSummary } from '@genfeedai/types';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { StreaksService } from '@services/engagement/streaks.service';

@@ -175,7 +175,7 @@ const TrendItem = memo(function TrendItem({ trend }: TrendItemProps) {
             <YAxis hide domain={['auto', 'auto']} />
             <Tooltip
               content={({ active, payload }) => {
-                if (active && payload && payload.length) {
+                if (active && payload?.length) {
                   return (
                     <div className="bg-card border border-white/[0.08] px-3 py-2 shadow-lg">
                       <p className="text-sm font-medium">

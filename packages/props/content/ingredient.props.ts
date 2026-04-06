@@ -1,4 +1,9 @@
 import type {
+  AssetScope,
+  ComponentSize,
+  IngredientFormat,
+} from '@genfeedai/enums';
+import type {
   IAudio,
   ICredential,
   IImage,
@@ -6,11 +11,6 @@ import type {
   IPost,
   IVideo,
 } from '@genfeedai/interfaces';
-import type {
-  AssetScope,
-  ComponentSize,
-  IngredientFormat,
-} from '@genfeedai/enums';
 import type { Dispatch, ReactNode, RefObject, SetStateAction } from 'react';
 
 export interface IngredientListProps<T extends IIngredient = IIngredient> {

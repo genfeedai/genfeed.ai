@@ -1,8 +1,8 @@
 'use client';
 
-import type { IMetadata } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { IngredientCategory } from '@genfeedai/enums';
+import type { IMetadata } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import type { TabsIngredientInfoProps } from '@props/content/ingredient.props';

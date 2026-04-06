@@ -1,12 +1,12 @@
 'use client';
 
-import type { IEditorEffect, IEditorTrack } from '@genfeedai/interfaces';
 import {
   ButtonSize,
   ButtonVariant,
   EditorEffectType,
   EditorTrackType,
 } from '@genfeedai/enums';
+import type { IEditorEffect, IEditorTrack } from '@genfeedai/interfaces';
 import Button from '@ui/buttons/base/Button';
 import { Slider } from '@ui/primitives/slider';
 import { useCallback, useState } from 'react';

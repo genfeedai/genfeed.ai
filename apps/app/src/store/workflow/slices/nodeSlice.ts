@@ -1,26 +1,40 @@
-import type { NodeType, WorkflowEdge, WorkflowNode, WorkflowNodeData } from '@genfeedai/types';
+import type {
+  NodeType,
+  WorkflowEdge,
+  WorkflowNode,
+  WorkflowNodeData,
+} from '@genfeedai/types';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
 import type { XYPosition } from '@xyflow/react';
 import type { StateCreator } from 'zustand';
 import { generateId } from '../helpers/nodeHelpers';
 import {
-  getNodeOutput,
-  computeDownstreamUpdates,
-  hasStateChanged,
   applyNodeUpdates,
+  computeDownstreamUpdates,
+  getNodeOutput,
+  hasStateChanged,
 } from '../helpers/propagation';
 import type { WorkflowStore } from '../types';
 
 export interface NodeSlice {
   addNode: (type: NodeType, position: XYPosition) => string;
   addNodesAndEdges: (nodes: WorkflowNode[], edges: WorkflowEdge[]) => void;
-  updateNodeData: <T extends WorkflowNodeData>(nodeId: string, data: Partial<T>) => void;
+  updateNodeData: <T extends WorkflowNodeData>(
+    nodeId: string,
+    data: Partial<T>,
+  ) => void;
   removeNode: (nodeId: string) => void;
   duplicateNode: (nodeId: string) => string | null;
-  propagateOutputsDownstream: (sourceNodeId: string, outputValue?: string) => void;
+  propagateOutputsDownstream: (
+    sourceNodeId: string,
+    outputValue?: string,
+  ) => void;
 }
 
-export const createNodeSlice: StateCreator<WorkflowStore, [], [], NodeSlice> = (set, get) => ({
+export const createNodeSlice: StateCreator<WorkflowStore, [], [], NodeSlice> = (
+  set,
+  get,
+) => ({
   addNode: (type, position) => {
     const nodeDef = NODE_DEFINITIONS[type];
     if (!nodeDef) return '';
@@ -83,7 +97,9 @@ export const createNodeSlice: StateCreator<WorkflowStore, [], [], NodeSlice> = (
       },
     };
 
-    const incomingEdges = edges.filter((e) => e.target === nodeId && e.source !== nodeId);
+    const incomingEdges = edges.filter(
+      (e) => e.target === nodeId && e.source !== nodeId,
+    );
     const clonedEdges: WorkflowEdge[] = incomingEdges.map((edge) => ({
       ...edge,
       id: generateId(),
@@ -116,7 +132,12 @@ export const createNodeSlice: StateCreator<WorkflowStore, [], [], NodeSlice> = (
     const output = outputValue ?? getNodeOutput(sourceNode);
     if (!output) return;
 
-    const updates = computeDownstreamUpdates(sourceNodeId, output, nodes, edges);
+    const updates = computeDownstreamUpdates(
+      sourceNodeId,
+      output,
+      nodes,
+      edges,
+    );
     if (updates.size === 0) return;
     if (!hasStateChanged(updates, nodes)) return;
 
@@ -128,7 +149,9 @@ export const createNodeSlice: StateCreator<WorkflowStore, [], [], NodeSlice> = (
 
   removeNode: (nodeId) => {
     set((state) => ({
-      edges: state.edges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId),
+      edges: state.edges.filter(
+        (edge) => edge.source !== nodeId && edge.target !== nodeId,
+      ),
       isDirty: true,
       nodes: state.nodes.filter((node) => node.id !== nodeId),
     }));
@@ -143,7 +166,9 @@ export const createNodeSlice: StateCreator<WorkflowStore, [], [], NodeSlice> = (
     const hasPersistedChange = dataKeys.some((key) => !TRANSIENT_KEYS.has(key));
 
     set((state) => ({
-      nodes: state.nodes.map((n) => (n.id === nodeId ? { ...n, data: { ...n.data, ...data } } : n)),
+      nodes: state.nodes.map((n) =>
+        n.id === nodeId ? { ...n, data: { ...n.data, ...data } } : n,
+      ),
       ...(hasPersistedChange && { isDirty: true }),
     }));
 
@@ -164,7 +189,10 @@ export const createNodeSlice: StateCreator<WorkflowStore, [], [], NodeSlice> = (
       'outputAudio' in data ||
       'outputText' in data;
 
-    if (node && (inputNodeTypes.includes(node.type as string) || hasOutputUpdate)) {
+    if (
+      node &&
+      (inputNodeTypes.includes(node.type as string) || hasOutputUpdate)
+    ) {
       if (hasOutputUpdate) {
         const dataRecord = data as Record<string, unknown>;
         if ('outputImages' in dataRecord) {

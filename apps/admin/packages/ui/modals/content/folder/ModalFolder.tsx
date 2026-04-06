@@ -1,7 +1,7 @@
-import type { IBrand, IFolder } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { type FolderSchema, folderSchema } from '@genfeedai/client/schemas';
 import { AlertCategory, ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import type { IBrand, IFolder } from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,

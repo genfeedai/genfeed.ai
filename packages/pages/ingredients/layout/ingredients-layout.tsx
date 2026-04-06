@@ -1,11 +1,5 @@
 'use client';
 
-import type { IBrand, IFieldOption } from '@genfeedai/interfaces';
-import type { IIngredientsContextValue } from '@genfeedai/interfaces/providers/providers.interface';
-import type {
-  IFilters,
-  IFiltersState,
-} from '@genfeedai/interfaces/utils/filters.interface';
 import { IngredientsProvider } from '@contexts/content/ingredients-context/ingredients-context';
 import { IngredientsHeaderProvider } from '@contexts/content/ingredients-header-context/ingredients-header-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
@@ -14,6 +8,12 @@ import {
   IngredientFormat,
   IngredientStatus,
 } from '@genfeedai/enums';
+import type { IBrand, IFieldOption } from '@genfeedai/interfaces';
+import type { IIngredientsContextValue } from '@genfeedai/interfaces/providers/providers.interface';
+import type {
+  IFilters,
+  IFiltersState,
+} from '@genfeedai/interfaces/utils/filters.interface';
 import type { IngredientsLayoutProps } from '@props/content/ingredients-layout.props';
 import { useUploadModal } from '@providers/global-modals/global-modals.provider';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -394,7 +394,7 @@ export default function IngredientsLayout({
     if (statusDefaultApplied) {
       updateURLFromFilters(filters);
     }
-  }, [filters, searchParams?.get, updateURLFromFilters]); // Only run on mount
+  }, [filters, updateURLFromFilters, searchParams?.getAll]); // Only run on mount
 
   // Register refresh callback from child components
   const registerRefresh = useCallback((callback: () => void) => {

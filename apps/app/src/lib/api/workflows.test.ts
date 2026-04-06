@@ -41,7 +41,9 @@ describe('workflowsApi', () => {
 
       const result = await workflowsApi.getAll();
 
-      expect(apiClient.get).toHaveBeenCalledWith('/workflows', { signal: undefined });
+      expect(apiClient.get).toHaveBeenCalledWith('/workflows', {
+        signal: undefined,
+      });
       expect(result).toEqual([mockWorkflow]);
     });
 
@@ -52,7 +54,9 @@ describe('workflowsApi', () => {
       const controller = new AbortController();
       await workflowsApi.getAll(undefined, controller.signal);
 
-      expect(apiClient.get).toHaveBeenCalledWith('/workflows', { signal: controller.signal });
+      expect(apiClient.get).toHaveBeenCalledWith('/workflows', {
+        signal: controller.signal,
+      });
     });
   });
 
@@ -63,7 +67,9 @@ describe('workflowsApi', () => {
 
       const result = await workflowsApi.getById('workflow-1');
 
-      expect(apiClient.get).toHaveBeenCalledWith('/workflows/workflow-1', { signal: undefined });
+      expect(apiClient.get).toHaveBeenCalledWith('/workflows/workflow-1', {
+        signal: undefined,
+      });
       expect(result).toEqual(mockWorkflow);
     });
   });
@@ -81,7 +87,9 @@ describe('workflowsApi', () => {
 
       const result = await workflowsApi.create(createData);
 
-      expect(apiClient.post).toHaveBeenCalledWith('/workflows', createData, { signal: undefined });
+      expect(apiClient.post).toHaveBeenCalledWith('/workflows', createData, {
+        signal: undefined,
+      });
       expect(result).toEqual(mockWorkflow);
     });
 
@@ -100,7 +108,9 @@ describe('workflowsApi', () => {
 
       await workflowsApi.create(createData);
 
-      expect(apiClient.post).toHaveBeenCalledWith('/workflows', createData, { signal: undefined });
+      expect(apiClient.post).toHaveBeenCalledWith('/workflows', createData, {
+        signal: undefined,
+      });
     });
   });
 
@@ -113,9 +123,13 @@ describe('workflowsApi', () => {
       const updateData = { name: 'Updated Workflow' };
       const result = await workflowsApi.update('workflow-1', updateData);
 
-      expect(apiClient.put).toHaveBeenCalledWith('/workflows/workflow-1', updateData, {
-        signal: undefined,
-      });
+      expect(apiClient.put).toHaveBeenCalledWith(
+        '/workflows/workflow-1',
+        updateData,
+        {
+          signal: undefined,
+        },
+      );
       expect(result.name).toBe('Updated Workflow');
     });
 
@@ -137,7 +151,7 @@ describe('workflowsApi', () => {
 
       await workflowsApi.update(
         'workflow-1',
-        updateData as unknown as Parameters<typeof workflowsApi.update>[1]
+        updateData as unknown as Parameters<typeof workflowsApi.update>[1],
       );
 
       expect(apiClient.put).toHaveBeenCalledWith(
@@ -146,7 +160,7 @@ describe('workflowsApi', () => {
           edges: expect.any(Array),
           nodes: expect.any(Array),
         }),
-        { signal: undefined }
+        { signal: undefined },
       );
     });
   });
@@ -158,7 +172,9 @@ describe('workflowsApi', () => {
 
       await workflowsApi.delete('workflow-1');
 
-      expect(apiClient.delete).toHaveBeenCalledWith('/workflows/workflow-1', { signal: undefined });
+      expect(apiClient.delete).toHaveBeenCalledWith('/workflows/workflow-1', {
+        signal: undefined,
+      });
     });
   });
 
@@ -174,9 +190,13 @@ describe('workflowsApi', () => {
 
       const result = await workflowsApi.duplicate('workflow-1');
 
-      expect(apiClient.post).toHaveBeenCalledWith('/workflows/workflow-1/duplicate', undefined, {
-        signal: undefined,
-      });
+      expect(apiClient.post).toHaveBeenCalledWith(
+        '/workflows/workflow-1/duplicate',
+        undefined,
+        {
+          signal: undefined,
+        },
+      );
       expect(result._id).toBe('workflow-2');
       expect(result.name).toBe('Test Workflow (Copy)');
     });

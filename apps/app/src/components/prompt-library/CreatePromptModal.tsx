@@ -35,10 +35,13 @@ function CreatePromptModalComponent() {
   const [tagInput, setTagInput] = useState('');
 
   const handleChange = useCallback(
-    (field: keyof ICreatePrompt, value: string | string[] | Record<string, string>) => {
+    (
+      field: keyof ICreatePrompt,
+      value: string | string[] | Record<string, string>,
+    ) => {
       setFormData((prev) => ({ ...prev, [field]: value }));
     },
-    []
+    [],
   );
 
   const handleStyleChange = useCallback((field: string, value: string) => {
@@ -75,13 +78,18 @@ function CreatePromptModalComponent() {
         await createItem(formData);
       }
     } catch (error) {
-      logger.error('Failed to save prompt', error, { context: 'CreatePromptModal' });
+      logger.error('Failed to save prompt', error, {
+        context: 'CreatePromptModal',
+      });
     }
   }, [formData, isEditing, editingItem, createItem, updateItem]);
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 z-[60]" onClick={closeCreateModal} />
+      <div
+        className="fixed inset-0 bg-black/50 z-[60]"
+        onClick={closeCreateModal}
+      />
       <div className="fixed inset-10 md:inset-20 lg:inset-x-40 bg-[var(--card)] rounded-lg shadow-xl z-[60] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
@@ -114,7 +122,9 @@ function CreatePromptModalComponent() {
               <label className="block text-sm font-medium mb-1">Category</label>
               <select
                 value={formData.category}
-                onChange={(e) => handleChange('category', e.target.value as PromptCategory)}
+                onChange={(e) =>
+                  handleChange('category', e.target.value as PromptCategory)
+                }
                 className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
               >
                 {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
@@ -140,7 +150,9 @@ function CreatePromptModalComponent() {
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
+            <label className="block text-sm font-medium mb-1">
+              Description
+            </label>
             <textarea
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
@@ -156,7 +168,9 @@ function CreatePromptModalComponent() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {/* Mood */}
               <div>
-                <label className="block text-xs text-[var(--muted-foreground)] mb-1">Mood</label>
+                <label className="block text-xs text-[var(--muted-foreground)] mb-1">
+                  Mood
+                </label>
                 <select
                   value={formData.styleSettings?.mood ?? ''}
                   onChange={(e) => handleStyleChange('mood', e.target.value)}
@@ -173,7 +187,9 @@ function CreatePromptModalComponent() {
 
               {/* Style */}
               <div>
-                <label className="block text-xs text-[var(--muted-foreground)] mb-1">Style</label>
+                <label className="block text-xs text-[var(--muted-foreground)] mb-1">
+                  Style
+                </label>
                 <select
                   value={formData.styleSettings?.style ?? ''}
                   onChange={(e) => handleStyleChange('style', e.target.value)}
@@ -190,7 +206,9 @@ function CreatePromptModalComponent() {
 
               {/* Camera */}
               <div>
-                <label className="block text-xs text-[var(--muted-foreground)] mb-1">Camera</label>
+                <label className="block text-xs text-[var(--muted-foreground)] mb-1">
+                  Camera
+                </label>
                 <select
                   value={formData.styleSettings?.camera ?? ''}
                   onChange={(e) => handleStyleChange('camera', e.target.value)}
@@ -212,7 +230,9 @@ function CreatePromptModalComponent() {
                 </label>
                 <select
                   value={formData.styleSettings?.lighting ?? ''}
-                  onChange={(e) => handleStyleChange('lighting', e.target.value)}
+                  onChange={(e) =>
+                    handleStyleChange('lighting', e.target.value)
+                  }
                   className="w-full px-2 py-1.5 bg-[var(--background)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
                 >
                   <option value="">None</option>
@@ -226,7 +246,9 @@ function CreatePromptModalComponent() {
 
               {/* Scene */}
               <div>
-                <label className="block text-xs text-[var(--muted-foreground)] mb-1">Scene</label>
+                <label className="block text-xs text-[var(--muted-foreground)] mb-1">
+                  Scene
+                </label>
                 <select
                   value={formData.styleSettings?.scene ?? ''}
                   onChange={(e) => handleStyleChange('scene', e.target.value)}
@@ -253,7 +275,10 @@ function CreatePromptModalComponent() {
                   className="px-2 py-1 bg-[var(--secondary)] rounded text-xs flex items-center gap-1"
                 >
                   {tag}
-                  <button onClick={() => handleRemoveTag(tag)} className="hover:text-red-400">
+                  <button
+                    onClick={() => handleRemoveTag(tag)}
+                    className="hover:text-red-400"
+                  >
                     <X className="w-3 h-3" />
                   </button>
                 </span>

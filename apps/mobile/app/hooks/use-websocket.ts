@@ -1,9 +1,9 @@
 import { useAuth } from '@clerk/clerk-expo';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
+import { AppState, type AppStateStatus } from 'react-native';
 import {
-  ConnectionState,
-  WebSocketMessage,
+  type ConnectionState,
+  type WebSocketMessage,
   websocketService,
 } from '@/services/websocket.service';
 

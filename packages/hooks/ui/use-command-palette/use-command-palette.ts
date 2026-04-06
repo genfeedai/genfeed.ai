@@ -5,8 +5,8 @@
 
 'use client';
 
-import type { ICommandPaletteContext } from '@genfeedai/interfaces/ui/command-palette.interface';
 import { CommandPaletteContext } from '@contexts/features/command-palette.context';
+import type { ICommandPaletteContext } from '@genfeedai/interfaces/ui/command-palette.interface';
 import { useContext } from 'react';
 
 export function useCommandPalette(): ICommandPaletteContext {

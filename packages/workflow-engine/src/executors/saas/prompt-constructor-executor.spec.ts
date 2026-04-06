@@ -2,7 +2,7 @@ import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
   createPromptConstructorExecutor,
-  PromptConstructorExecutor,
+  type PromptConstructorExecutor,
 } from '@workflow-engine/executors/saas/prompt-constructor-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
 import { beforeEach, describe, expect, it } from 'vitest';

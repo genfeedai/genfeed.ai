@@ -1,7 +1,7 @@
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
-import type { CreditsConfig } from '@genfeedai/interfaces';
 import { ActivitySource } from '@genfeedai/enums';
+import type { CreditsConfig } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   CallHandler,

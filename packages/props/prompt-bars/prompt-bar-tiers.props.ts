@@ -1,3 +1,12 @@
+import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
+import type {
+  IngredientCategory,
+  IngredientFormat,
+  ModelCategory,
+  ModelKey,
+  QualityTier,
+  SubscriptionTier,
+} from '@genfeedai/enums';
 import type {
   IAsset,
   IElementBlacklist,
@@ -17,15 +26,6 @@ import type {
   ITraining,
 } from '@genfeedai/interfaces';
 import type { IGenerationItem } from '@genfeedai/interfaces/components/generation.interface';
-import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import type {
-  IngredientCategory,
-  IngredientFormat,
-  ModelCategory,
-  ModelKey,
-  QualityTier,
-  SubscriptionTier,
-} from '@genfeedai/enums';
 import type { FormDropdownOption } from '@props/forms/form.props';
 import type { PromptBarSuggestionItem } from '@props/prompt-bars/prompt-bar-suggestion-item.props';
 import type {

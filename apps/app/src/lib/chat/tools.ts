@@ -9,7 +9,9 @@ import type { SubgraphResult } from './subgraphExtractor';
 /**
  * Valid node types for workflow editing, derived from NODE_DEFINITIONS.
  */
-const VALID_NODE_TYPES: NodeType[] = Object.keys(NODE_DEFINITIONS) as NodeType[];
+const VALID_NODE_TYPES: NodeType[] = Object.keys(
+  NODE_DEFINITIONS,
+) as NodeType[];
 
 /**
  * Generates a description of editable properties per node type from NODE_DEFINITIONS.
@@ -22,17 +24,19 @@ function getEditablePropertiesDescription(): string {
 
   // Input nodes
   lines.push('- **prompt** node: `{ "prompt": "the text" }`');
-  lines.push('- **promptConstructor** node: `{ "template": "Use @var1 with @var2" }`');
+  lines.push(
+    '- **promptConstructor** node: `{ "template": "Use @var1 with @var2" }`',
+  );
 
   // AI nodes with key configs
   lines.push(
-    '- **imageGen** node: `{ "model": "nano-banana"|"nano-banana-pro", "aspectRatio": "1:1"|"16:9"|..., "resolution": "1K"|"2K"|"4K" }`'
+    '- **imageGen** node: `{ "model": "nano-banana"|"nano-banana-pro", "aspectRatio": "1:1"|"16:9"|..., "resolution": "1K"|"2K"|"4K" }`',
   );
   lines.push(
-    '- **videoGen** node: `{ "model": "veo-3.1-fast"|..., "duration": 4-16, "aspectRatio": "16:9"|... }`'
+    '- **videoGen** node: `{ "model": "veo-3.1-fast"|..., "duration": 4-16, "aspectRatio": "16:9"|... }`',
   );
   lines.push(
-    '- **llm** node: `{ "systemPrompt": "...", "temperature": 0-2, "maxTokens": 256-16384 }`'
+    '- **llm** node: `{ "systemPrompt": "...", "temperature": 0-2, "maxTokens": 256-16384 }`',
   );
 
   return lines.join('\n');
@@ -43,7 +47,7 @@ function getEditablePropertiesDescription(): string {
  */
 export function buildEditSystemPrompt(
   workflowContext: WorkflowContext,
-  restSummary?: SubgraphResult['restSummary']
+  restSummary?: SubgraphResult['restSummary'],
 ): string {
   const baseDomainExpertise = `You are a workflow expert for Genfeed, a visual node-based AI content creation tool. Be concise and direct — short bullet points, no fluff.
 
@@ -124,14 +128,19 @@ export function createChatTools(_nodeIds: string[]) {
         'Create a brand new workflow from scratch based on user description. Use when user wants to start fresh or build something new.',
       execute: async ({ description }) => ({ description }),
       inputSchema: z.object({
-        description: z.string().describe('Description of what the workflow should do'),
+        description: z
+          .string()
+          .describe('Description of what the workflow should do'),
       }),
     }),
 
     editWorkflow: tool({
       description:
         'Make targeted edits to the current workflow. Use when user wants to add, remove, or modify nodes and connections. Reference nodes by their ID.',
-      execute: async ({ operations, explanation }) => ({ explanation, operations }),
+      execute: async ({ operations, explanation }) => ({
+        explanation,
+        operations,
+      }),
       inputSchema: z.object({
         explanation: z
           .string()
@@ -144,21 +153,44 @@ export function createChatTools(_nodeIds: string[]) {
                 .optional()
                 .describe('Node data to set/merge for addNode/updateNode'),
               edgeId: z.string().optional().describe('Edge ID for removeEdge'),
-              nodeId: z.string().optional().describe('Target node ID for removeNode/updateNode'),
+              nodeId: z
+                .string()
+                .optional()
+                .describe('Target node ID for removeNode/updateNode'),
               nodeType: z
                 .string()
                 .optional()
-                .describe(`Node type for addNode. Valid: ${VALID_NODE_TYPES.join(', ')}`),
+                .describe(
+                  `Node type for addNode. Valid: ${VALID_NODE_TYPES.join(', ')}`,
+                ),
               position: z
                 .object({ x: z.number(), y: z.number() })
                 .optional()
                 .describe('Position for addNode'),
-              source: z.string().optional().describe('Source node ID for addEdge'),
-              sourceHandle: z.string().optional().describe('Source handle type for addEdge'),
-              target: z.string().optional().describe('Target node ID for addEdge'),
-              targetHandle: z.string().optional().describe('Target handle type for addEdge'),
-              type: z.enum(['addNode', 'removeNode', 'updateNode', 'addEdge', 'removeEdge']),
-            })
+              source: z
+                .string()
+                .optional()
+                .describe('Source node ID for addEdge'),
+              sourceHandle: z
+                .string()
+                .optional()
+                .describe('Source handle type for addEdge'),
+              target: z
+                .string()
+                .optional()
+                .describe('Target node ID for addEdge'),
+              targetHandle: z
+                .string()
+                .optional()
+                .describe('Target handle type for addEdge'),
+              type: z.enum([
+                'addNode',
+                'removeNode',
+                'updateNode',
+                'addEdge',
+                'removeEdge',
+              ]),
+            }),
           )
           .describe('List of edit operations to apply'),
       }),

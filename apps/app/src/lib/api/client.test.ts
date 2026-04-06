@@ -1,6 +1,6 @@
-import { server } from '@/test/mocks/server';
 import { HttpResponse, http } from 'msw';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { server } from '@/test/mocks/server';
 import { ApiError, apiClient } from './client';
 
 const API_BASE_URL = 'http://local.genfeed.ai:4001/api';
@@ -21,7 +21,7 @@ describe('apiClient', () => {
       server.use(
         http.get(`${API_BASE_URL}/test-endpoint`, () => {
           return HttpResponse.json(mockResponse);
-        })
+        }),
       );
 
       const result = await apiClient.get<typeof mockResponse>('/test-endpoint');
@@ -37,13 +37,15 @@ describe('apiClient', () => {
           // Simulate slow response
           await new Promise((resolve) => setTimeout(resolve, 100));
           return HttpResponse.json(mockResponse);
-        })
+        }),
       );
 
       // Abort immediately
       controller.abort();
 
-      await expect(apiClient.get('/test', { signal: controller.signal })).rejects.toThrow();
+      await expect(
+        apiClient.get('/test', { signal: controller.signal }),
+      ).rejects.toThrow();
     });
   });
 
@@ -56,7 +58,7 @@ describe('apiClient', () => {
         http.post(`${API_BASE_URL}/test`, async ({ request }) => {
           receivedBody = await request.json();
           return HttpResponse.json(mockResponse);
-        })
+        }),
       );
 
       await apiClient.post('/test', data);
@@ -68,7 +70,7 @@ describe('apiClient', () => {
       server.use(
         http.post(`${API_BASE_URL}/test`, () => {
           return HttpResponse.json(mockResponse);
-        })
+        }),
       );
 
       const result = await apiClient.post('/test', undefined);
@@ -86,7 +88,7 @@ describe('apiClient', () => {
         http.put(`${API_BASE_URL}/test/123`, async ({ request }) => {
           receivedBody = await request.json();
           return HttpResponse.json(mockResponse);
-        })
+        }),
       );
 
       await apiClient.put('/test/123', data);
@@ -104,7 +106,7 @@ describe('apiClient', () => {
         http.patch(`${API_BASE_URL}/test/123`, async ({ request }) => {
           receivedBody = await request.json();
           return HttpResponse.json(mockResponse);
-        })
+        }),
       );
 
       await apiClient.patch('/test/123', data);
@@ -118,7 +120,7 @@ describe('apiClient', () => {
       server.use(
         http.delete(`${API_BASE_URL}/test/123`, () => {
           return HttpResponse.json({});
-        })
+        }),
       );
 
       const result = await apiClient.delete('/test/123');
@@ -132,7 +134,7 @@ describe('apiClient', () => {
       server.use(
         http.get(`${API_BASE_URL}/not-found`, () => {
           return HttpResponse.json({ message: 'Not found' }, { status: 404 });
-        })
+        }),
       );
 
       await expect(apiClient.get('/not-found')).rejects.toThrow(ApiError);
@@ -141,8 +143,11 @@ describe('apiClient', () => {
     it('should include status code in ApiError', async () => {
       server.use(
         http.get(`${API_BASE_URL}/error`, () => {
-          return HttpResponse.json({ message: 'Server error' }, { status: 500 });
-        })
+          return HttpResponse.json(
+            { message: 'Server error' },
+            { status: 500 },
+          );
+        }),
       );
 
       try {
@@ -163,9 +168,9 @@ describe('apiClient', () => {
               details: ['field required'],
               message: 'Validation failed',
             },
-            { status: 400 }
+            { status: 400 },
           );
-        })
+        }),
       );
 
       try {
@@ -175,7 +180,7 @@ describe('apiClient', () => {
         expect((error as ApiError).data).toEqual(
           expect.objectContaining({
             code: 'VALIDATION_ERROR',
-          })
+          }),
         );
       }
     });
@@ -184,7 +189,9 @@ describe('apiClient', () => {
 
 describe('ApiError', () => {
   it('should have correct properties', () => {
-    const error = new ApiError(404, 'Not found', { detail: 'Resource missing' });
+    const error = new ApiError(404, 'Not found', {
+      detail: 'Resource missing',
+    });
 
     expect(error.statusCode).toBe(404);
     expect(error.message).toBe('Not found');

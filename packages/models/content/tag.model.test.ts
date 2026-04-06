@@ -1,3 +1,4 @@
+import { AssetScope, TagCategory } from '@genfeedai/enums';
 import type {
   IBrand,
   IOrganization,
@@ -6,7 +7,6 @@ import type {
   ITag,
   IUser,
 } from '@genfeedai/interfaces';
-import { AssetScope, TagCategory } from '@genfeedai/enums';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/client/models', () => ({

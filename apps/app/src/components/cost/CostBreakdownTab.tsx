@@ -1,9 +1,19 @@
 'use client';
 
-import { Brain, ChevronDown, ChevronRight, Film, Image, Mic } from 'lucide-react';
-import { memo, useMemo, useRef, useState } from 'react';
 import type { NodeCostEstimate } from '@genfeedai/types';
-import { calculateWorkflowCostWithBreakdown, PRICING } from '@/lib/replicate/client';
+import {
+  Brain,
+  ChevronDown,
+  ChevronRight,
+  Film,
+  Image,
+  Mic,
+} from 'lucide-react';
+import { memo, useMemo, useRef, useState } from 'react';
+import {
+  calculateWorkflowCostWithBreakdown,
+  PRICING,
+} from '@/lib/replicate/client';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
@@ -87,7 +97,9 @@ const NodeTypeGroupSection = memo(function NodeTypeGroupSection({
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <span className="font-medium text-foreground">{formatCost(group.subtotal)}</span>
+          <span className="font-medium text-foreground">
+            {formatCost(group.subtotal)}
+          </span>
           {isExpanded ? (
             <ChevronDown className="h-4 w-4 text-muted-foreground" />
           ) : (
@@ -104,7 +116,9 @@ const NodeTypeGroupSection = memo(function NodeTypeGroupSection({
               className="flex items-center justify-between border-b border-border/50 px-4 py-2 last:border-b-0"
             >
               <div className="flex flex-col">
-                <span className="text-sm text-foreground">{item.nodeLabel}</span>
+                <span className="text-sm text-foreground">
+                  {item.nodeLabel}
+                </span>
                 <span className="text-xs text-muted-foreground">
                   {item.model} - {item.details}
                 </span>
@@ -159,7 +173,7 @@ function PricingReference() {
 
 // Extract only cost-relevant data from nodes to prevent recalculation on position changes
 function extractCostRelevantData(
-  nodes: Array<{ id?: string; type: string; data: Record<string, unknown> }>
+  nodes: Array<{ id?: string; type: string; data: Record<string, unknown> }>,
 ): string {
   // Create a stable string representation of only cost-affecting properties
   return JSON.stringify(
@@ -171,7 +185,7 @@ function extractCostRelevantData(
       model: node.data.model,
       resolution: node.data.resolution,
       type: node.type,
-    }))
+    })),
   );
 }
 
@@ -224,7 +238,8 @@ function CostBreakdownTabComponent() {
   }, [items]);
 
   const hasVariance = actualCost > 0 && Math.abs(actualCost - total) > 0.01;
-  const variancePercent = actualCost > 0 ? ((actualCost - total) / total) * 100 : 0;
+  const variancePercent =
+    actualCost > 0 ? ((actualCost - total) / total) * 100 : 0;
 
   return (
     <div className="space-y-6">
@@ -233,12 +248,16 @@ function CostBreakdownTabComponent() {
         <div className="flex items-center justify-between">
           <div>
             <div className="text-sm text-muted-foreground">Estimated Cost</div>
-            <div className="text-2xl font-semibold text-foreground">{formatCost(total)}</div>
+            <div className="text-2xl font-semibold text-foreground">
+              {formatCost(total)}
+            </div>
           </div>
           {actualCost > 0 && (
             <div className="text-right">
               <div className="text-sm text-muted-foreground">Actual Cost</div>
-              <div className="text-2xl font-semibold text-foreground">{formatCost(actualCost)}</div>
+              <div className="text-2xl font-semibold text-foreground">
+                {formatCost(actualCost)}
+              </div>
               {hasVariance && (
                 <div
                   className={`text-xs ${variancePercent > 10 ? 'text-red-400' : variancePercent < -10 ? 'text-green-400' : 'text-muted-foreground'}`}
@@ -255,9 +274,12 @@ function CostBreakdownTabComponent() {
       {/* Empty State */}
       {items.length === 0 && (
         <div className="rounded-lg border border-border p-8 text-center">
-          <div className="text-muted-foreground">No billable nodes in workflow</div>
+          <div className="text-muted-foreground">
+            No billable nodes in workflow
+          </div>
           <p className="mt-2 text-sm text-muted-foreground">
-            Add image generation, video generation, lip sync, or LLM nodes to see cost estimates.
+            Add image generation, video generation, lip sync, or LLM nodes to
+            see cost estimates.
           </p>
         </div>
       )}
@@ -265,7 +287,9 @@ function CostBreakdownTabComponent() {
       {/* Breakdown by Type */}
       {groups.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-sm font-medium text-foreground">Cost Breakdown</h3>
+          <h3 className="text-sm font-medium text-foreground">
+            Cost Breakdown
+          </h3>
           {groups.map((group) => (
             <NodeTypeGroupSection key={group.type} group={group} />
           ))}

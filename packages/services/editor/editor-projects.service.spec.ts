@@ -1,5 +1,5 @@
-import type { IEditorProject } from '@genfeedai/interfaces';
 import { EditorProjectStatus, IngredientFormat } from '@genfeedai/enums';
+import type { IEditorProject } from '@genfeedai/interfaces';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EditorProjectsService } from './editor-projects.service';
 

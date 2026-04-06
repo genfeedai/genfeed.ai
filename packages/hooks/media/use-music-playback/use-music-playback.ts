@@ -1,5 +1,5 @@
-import type { IIngredient } from '@genfeedai/interfaces';
 import { IngredientCategory } from '@genfeedai/enums';
+import type { IIngredient } from '@genfeedai/interfaces';
 import { useAudioPlayer } from '@hooks/media/use-audio-player/use-audio-player';
 import type { Dispatch, SetStateAction } from 'react';
 import { useCallback, useRef } from 'react';

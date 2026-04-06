@@ -24,6 +24,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import type { User } from '@clerk/backend';
+import { LeadStatus } from '@genfeedai/enums';
 import {
   AlignmentRuleSerializer,
   CompanySerializer,
@@ -43,7 +44,6 @@ import {
   LeadSerializer,
   RevenueRecordSerializer,
 } from '@genfeedai/serializers';
-import { LeadStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,

@@ -1,5 +1,5 @@
-import type { IModel } from '@genfeedai/interfaces';
 import type { ModelKey } from '@genfeedai/enums';
+import type { IModel } from '@genfeedai/interfaces';
 import { usePromptBarModels } from '@hooks/prompt-bar/use-prompt-bar-models/use-prompt-bar-models';
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';

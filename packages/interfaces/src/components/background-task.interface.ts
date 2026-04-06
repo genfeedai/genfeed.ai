@@ -4,7 +4,12 @@ export type BackgroundTaskStatus =
   | 'completed'
   | 'failed';
 
-export type BackgroundTaskResultType = 'VIDEO' | 'IMAGE' | 'MUSIC' | 'ARTICLE' | 'WORKFLOW';
+export type BackgroundTaskResultType =
+  | 'VIDEO'
+  | 'IMAGE'
+  | 'MUSIC'
+  | 'ARTICLE'
+  | 'WORKFLOW';
 
 export interface IBackgroundTask {
   id: string;

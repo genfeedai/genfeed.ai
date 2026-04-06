@@ -1,9 +1,9 @@
 'use client';
 
 import { Menu, Moon, Sun, X } from 'lucide-react';
-import { useTheme } from 'next-themes';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -12,7 +12,10 @@ interface CoreTopbarProps {
   onMenuToggle?: () => void;
 }
 
-export default function CoreTopbar({ isMenuOpen, onMenuToggle }: CoreTopbarProps) {
+export default function CoreTopbar({
+  isMenuOpen,
+  onMenuToggle,
+}: CoreTopbarProps) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -32,14 +35,19 @@ export default function CoreTopbar({ isMenuOpen, onMenuToggle }: CoreTopbarProps
             <button
               type="button"
               onClick={onMenuToggle}
-              aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-label={
+                isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'
+              }
               className="inline-flex h-10 w-10 items-center justify-center text-muted-foreground hover:bg-white/[0.06] hover:text-foreground transition-colors md:hidden"
             >
               <ToggleIcon className="h-5 w-5" />
             </button>
           ) : null}
 
-          <Link href="/workspace/overview" className="flex items-center gap-2.5">
+          <Link
+            href="/workspace/overview"
+            className="flex items-center gap-2.5"
+          >
             <Image
               src="https://cdn.genfeed.ai/assets/branding/logo-white.png"
               alt="Genfeed"
@@ -63,10 +71,16 @@ export default function CoreTopbar({ isMenuOpen, onMenuToggle }: CoreTopbarProps
             onClick={() => setTheme(isDark ? 'light' : 'dark')}
             className={cn(
               'flex h-8 w-8 items-center justify-center text-muted-foreground',
-              'transition-colors hover:bg-white/[0.06] hover:text-foreground'
+              'transition-colors hover:bg-white/[0.06] hover:text-foreground',
             )}
           >
-            {mounted ? isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" /> : null}
+            {mounted ? (
+              isDark ? (
+                <Sun className="h-4 w-4" />
+              ) : (
+                <Moon className="h-4 w-4" />
+              )
+            ) : null}
           </button>
         </div>
       </div>

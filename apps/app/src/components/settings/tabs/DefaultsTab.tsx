@@ -11,7 +11,11 @@ import { SettingsField } from '@/components/ui/settings-section';
 import { type ProviderType, useSettingsStore } from '@/store/settingsStore';
 
 const IMAGE_MODELS = [
-  { description: 'Fast, $0.039/image', label: 'Nano Banana', value: 'nano-banana' },
+  {
+    description: 'Fast, $0.039/image',
+    label: 'Nano Banana',
+    value: 'nano-banana',
+  },
   {
     description: 'High quality, $0.15-0.30/image',
     label: 'Nano Banana Pro',
@@ -20,8 +24,16 @@ const IMAGE_MODELS = [
 ];
 
 const VIDEO_MODELS = [
-  { description: 'Fast, $0.10-0.15/sec', label: 'Veo 3.1 Fast', value: 'veo-3.1-fast' },
-  { description: 'High quality, $0.20-0.40/sec', label: 'Veo 3.1', value: 'veo-3.1' },
+  {
+    description: 'Fast, $0.10-0.15/sec',
+    label: 'Veo 3.1 Fast',
+    value: 'veo-3.1-fast',
+  },
+  {
+    description: 'High quality, $0.20-0.40/sec',
+    label: 'Veo 3.1',
+    value: 'veo-3.1',
+  },
 ];
 
 export function DefaultsTab() {
@@ -36,7 +48,9 @@ export function DefaultsTab() {
       <SettingsField label="Default Image Model">
         <Select
           value={defaults.imageModel}
-          onValueChange={(value) => setDefaultModel('image', value, defaults.imageProvider)}
+          onValueChange={(value) =>
+            setDefaultModel('image', value, defaults.imageProvider)
+          }
         >
           <SelectTrigger className="w-full">
             <SelectValue />
@@ -45,7 +59,9 @@ export function DefaultsTab() {
             {IMAGE_MODELS.map((model) => (
               <SelectItem key={model.value} value={model.value}>
                 <span>{model.label}</span>
-                <span className="ml-2 text-xs text-muted-foreground">{model.description}</span>
+                <span className="ml-2 text-xs text-muted-foreground">
+                  {model.description}
+                </span>
               </SelectItem>
             ))}
           </SelectContent>
@@ -55,7 +71,9 @@ export function DefaultsTab() {
       <SettingsField label="Default Video Model">
         <Select
           value={defaults.videoModel}
-          onValueChange={(value) => setDefaultModel('video', value, defaults.videoProvider)}
+          onValueChange={(value) =>
+            setDefaultModel('video', value, defaults.videoProvider)
+          }
         >
           <SelectTrigger className="w-full">
             <SelectValue />
@@ -64,7 +82,9 @@ export function DefaultsTab() {
             {VIDEO_MODELS.map((model) => (
               <SelectItem key={model.value} value={model.value}>
                 <span>{model.label}</span>
-                <span className="ml-2 text-xs text-muted-foreground">{model.description}</span>
+                <span className="ml-2 text-xs text-muted-foreground">
+                  {model.description}
+                </span>
               </SelectItem>
             ))}
           </SelectContent>

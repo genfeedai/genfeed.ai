@@ -1,11 +1,11 @@
 import {
   IMAGE_MODELS,
-  ImageModel,
+  type ImageModel,
   REDIS_EVENTS,
   VIDEO_MODELS,
-  VideoModel,
+  type VideoModel,
 } from '@integrations/constants';
-import {
+import type {
   ExecutionResult,
   OrgIntegration,
   UserSettings,

@@ -242,10 +242,6 @@ vi.mock('@genfeedai/agent', () => ({
   useAgentPageContext: vi.fn(),
 }));
 
-vi.mock('@genfeedai/workflow', () => ({
-  WorkflowSidebarContent: () => <div data-testid="workflow-sidebar-content" />,
-}));
-
 vi.mock('@hooks/auth/use-is-super-admin/use-is-super-admin', () => ({
   useIsSuperAdmin: () => false,
 }));

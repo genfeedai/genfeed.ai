@@ -1,9 +1,9 @@
 'use client';
 
+import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { DollarSign, X } from 'lucide-react';
 import { memo, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { CostBreakdownTab } from './CostBreakdownTab';
 import { ExecutionHistoryTab } from './ExecutionHistoryTab';
 
@@ -60,7 +60,9 @@ function CostModalComponent() {
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-3">
             <DollarSign className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">Cost Analysis</h2>
+            <h2 className="text-lg font-semibold text-foreground">
+              Cost Analysis
+            </h2>
           </div>
           <Button variant="ghost" size="icon-sm" onClick={closeModal}>
             <X className="h-5 w-5" />

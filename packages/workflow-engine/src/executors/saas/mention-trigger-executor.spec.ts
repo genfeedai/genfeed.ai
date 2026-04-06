@@ -3,7 +3,7 @@ import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
   createMentionTriggerExecutor,
   type MentionChecker,
-  MentionTriggerExecutor,
+  type MentionTriggerExecutor,
 } from '@workflow-engine/executors/saas/mention-trigger-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

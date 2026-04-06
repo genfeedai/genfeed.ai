@@ -18,8 +18,6 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { User } from '@clerk/backend';
-import type { IResizeBodyParams } from '@genfeedai/interfaces';
-import { IngredientSerializer } from '@genfeedai/serializers';
 import {
   AssetScope,
   FileInputType,
@@ -30,8 +28,11 @@ import {
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/enums';
+import type { IResizeBodyParams } from '@genfeedai/interfaces';
+import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Body, Controller, Param, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { Types } from 'mongoose';
@@ -97,7 +98,7 @@ export class VideosResizeController {
           inputPath: `${this.configService.ingredientsEndpoint}/videos/${videoId}`,
           width: resizeVideoDto.width,
         },
-        room: `user-${user.id}`,
+        room: getUserRoomName(user.id),
         type: 'resize',
         userId: publicMetadata.user,
         websocketUrl: `/videos/${ingredientData._id}`,
@@ -177,7 +178,7 @@ export class VideosResizeController {
           inputPath: `${this.configService.ingredientsEndpoint}/videos/${videoId}`,
           width: 1080,
         },
-        room: `user-${user.id}`,
+        room: getUserRoomName(user.id),
         type: 'convert-to-portrait',
         userId: publicMetadata.user,
         websocketUrl: `/videos/${ingredientData._id}`,
@@ -213,7 +214,7 @@ export class VideosResizeController {
             transformation: TransformationCategory.RESIZED,
           },
           user.id,
-          `user-${user.id}`,
+          getUserRoomName(user.id),
         );
       })
       .catch((error: unknown) => {

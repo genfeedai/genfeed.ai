@@ -1,4 +1,3 @@
-import type { IElementStyle } from '@genfeedai/interfaces';
 import {
   type ElementStyleSchema,
   elementStyleSchema,
@@ -10,6 +9,7 @@ import {
   ModalEnum,
   ModelKey,
 } from '@genfeedai/enums';
+import type { IElementStyle } from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,

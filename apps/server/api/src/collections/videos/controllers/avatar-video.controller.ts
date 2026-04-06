@@ -10,9 +10,9 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import type { User } from '@clerk/backend';
+import { ActivitySource, ModelKey } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
-import { ActivitySource, ModelKey } from '@genfeedai/enums';
 import {
   Body,
   Controller,

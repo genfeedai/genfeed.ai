@@ -39,8 +39,6 @@ import { ReplicateService } from '@api/services/integrations/replicate/replicate
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import type { User } from '@clerk/backend';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
-import { AssetSerializer } from '@genfeedai/serializers';
 import {
   ActivitySource,
   AssetCategory,
@@ -50,6 +48,8 @@ import {
   ModelCategory,
   ModelKey,
 } from '@genfeedai/enums';
+import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import { AssetSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {

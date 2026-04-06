@@ -1,11 +1,11 @@
 'use client';
 
-import { Input } from '@/components/ui/input';
-import { Modal } from '@/components/ui/modal';
 import { Kbd } from '@genfeedai/ui';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { Keyboard, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { Modal } from '@/components/ui/modal';
 
 interface ShortcutItem {
   keys: string;
@@ -17,12 +17,20 @@ const SHORTCUTS: ShortcutItem[] = [
   // Navigation
   { category: 'Navigation', description: 'Pan canvas', keys: 'Scroll' },
   { category: 'Navigation', description: 'Zoom in/out', keys: 'Ctrl + Scroll' },
-  { category: 'Navigation', description: 'Fit view to selection (or all)', keys: 'F' },
+  {
+    category: 'Navigation',
+    description: 'Fit view to selection (or all)',
+    keys: 'F',
+  },
   { category: 'Navigation', description: 'Toggle sidebar', keys: 'M' },
 
   // Selection
   { category: 'Selection', description: 'Select node', keys: 'Click' },
-  { category: 'Selection', description: 'Add to selection', keys: 'Shift + Click' },
+  {
+    category: 'Selection',
+    description: 'Add to selection',
+    keys: 'Shift + Click',
+  },
   { category: 'Selection', description: 'Marquee select', keys: 'Drag' },
   { category: 'Selection', description: 'Select all nodes', keys: 'Ctrl + A' },
   { category: 'Selection', description: 'Search nodes', keys: 'Ctrl + F' },
@@ -34,7 +42,11 @@ const SHORTCUTS: ShortcutItem[] = [
   { category: 'Editing', description: 'Cut', keys: 'Ctrl + X' },
   { category: 'Editing', description: 'Paste', keys: 'Ctrl + V' },
   { category: 'Editing', description: 'Duplicate', keys: 'Ctrl + D' },
-  { category: 'Editing', description: 'Delete selected', keys: 'Delete / Backspace' },
+  {
+    category: 'Editing',
+    description: 'Delete selected',
+    keys: 'Delete / Backspace',
+  },
 
   // Nodes
   { category: 'Nodes', description: 'Add Image Gen node', keys: 'Shift + I' },
@@ -43,16 +55,39 @@ const SHORTCUTS: ShortcutItem[] = [
   { category: 'Nodes', description: 'Add LLM node', keys: 'Shift + L' },
 
   // Organization
-  { category: 'Organization', description: 'Toggle lock on selected', keys: 'L' },
-  { category: 'Organization', description: 'Group selected nodes', keys: 'Ctrl + G' },
-  { category: 'Organization', description: 'Ungroup', keys: 'Ctrl + Shift + G' },
-  { category: 'Organization', description: 'Unlock all nodes', keys: 'Ctrl + Shift + L' },
+  {
+    category: 'Organization',
+    description: 'Toggle lock on selected',
+    keys: 'L',
+  },
+  {
+    category: 'Organization',
+    description: 'Group selected nodes',
+    keys: 'Ctrl + G',
+  },
+  {
+    category: 'Organization',
+    description: 'Ungroup',
+    keys: 'Ctrl + Shift + G',
+  },
+  {
+    category: 'Organization',
+    description: 'Unlock all nodes',
+    keys: 'Ctrl + Shift + L',
+  },
 
   // Help
   { category: 'Help', description: 'Show this help', keys: '?' },
 ];
 
-const CATEGORIES = ['Navigation', 'Selection', 'Editing', 'Nodes', 'Organization', 'Help'];
+const CATEGORIES = [
+  'Navigation',
+  'Selection',
+  'Editing',
+  'Nodes',
+  'Organization',
+  'Help',
+];
 
 export function ShortcutHelpModal() {
   const { activeModal, closeModal } = useUIStore();
@@ -68,7 +103,7 @@ export function ShortcutHelpModal() {
       (shortcut) =>
         shortcut.keys.toLowerCase().includes(query) ||
         shortcut.description.toLowerCase().includes(query) ||
-        shortcut.category.toLowerCase().includes(query)
+        shortcut.category.toLowerCase().includes(query),
     );
   }, [searchQuery]);
 
@@ -111,7 +146,9 @@ export function ShortcutHelpModal() {
         <div className="max-h-[60vh] overflow-y-auto space-y-6 pr-2">
           {Object.entries(groupedShortcuts).map(([category, shortcuts]) => (
             <div key={category}>
-              <h3 className="text-sm font-semibold text-muted-foreground mb-2">{category}</h3>
+              <h3 className="text-sm font-semibold text-muted-foreground mb-2">
+                {category}
+              </h3>
               <div className="space-y-1">
                 {shortcuts.map((shortcut) => (
                   <div
@@ -119,7 +156,10 @@ export function ShortcutHelpModal() {
                     className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-secondary/50"
                   >
                     <span className="text-sm">{shortcut.description}</span>
-                    <Kbd variant="muted" className="px-2 py-1 border border-border">
+                    <Kbd
+                      variant="muted"
+                      className="px-2 py-1 border border-border"
+                    >
                       {shortcut.keys}
                     </Kbd>
                   </div>

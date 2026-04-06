@@ -1,6 +1,9 @@
 'use client';
 
-import type { ISetting, TrendNotificationFrequency } from '@genfeedai/interfaces';
+import type {
+  ISetting,
+  TrendNotificationFrequency,
+} from '@genfeedai/interfaces';
 import type { TrendNotificationSettingsProps } from '@props/settings/notifications.props';
 import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
 import FormRange from '@ui/forms/selectors/range/form-range/FormRange';

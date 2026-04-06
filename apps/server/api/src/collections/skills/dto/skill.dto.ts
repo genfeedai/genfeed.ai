@@ -84,6 +84,18 @@ export class SkillPayloadDto {
   reviewDefaults?: Record<string, unknown>;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(16000)
+  @ApiPropertyOptional({ type: String })
+  systemPromptTemplate?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @ApiPropertyOptional({ type: [String] })
+  toolOverrides?: string[];
+
+  @IsOptional()
   @IsEnum(SKILL_SOURCES)
   @ApiPropertyOptional({ enum: SKILL_SOURCES })
   source?: (typeof SKILL_SOURCES)[number];
@@ -206,6 +218,18 @@ export class UpdateSkillDto {
   @IsObject()
   @ApiPropertyOptional({ type: Object })
   reviewDefaults?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(16000)
+  @ApiPropertyOptional({ type: String })
+  systemPromptTemplate?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @ApiPropertyOptional({ type: [String] })
+  toolOverrides?: string[];
 
   @IsOptional()
   @IsEnum(SKILL_STATUSES)

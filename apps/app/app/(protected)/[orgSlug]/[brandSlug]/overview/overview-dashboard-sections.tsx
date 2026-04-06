@@ -1,7 +1,7 @@
 'use client';
 
-import type { IAgentRun } from '@genfeedai/interfaces';
 import { AgentExecutionStatus, ButtonVariant } from '@genfeedai/enums';
+import type { IAgentRun } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type {
   PlatformTimeSeriesDataPoint,

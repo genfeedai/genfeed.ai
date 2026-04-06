@@ -1,5 +1,5 @@
-import type { IIngredientsContextValue } from '@genfeedai/interfaces/providers/providers.interface';
 import { IngredientsProvider } from '@contexts/content/ingredients-context/ingredients-context';
+import type { IIngredientsContextValue } from '@genfeedai/interfaces/providers/providers.interface';
 import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 

@@ -1,4 +1,4 @@
-import { NotificationEvent } from '@libs/interfaces/events.interface';
+import type { NotificationEvent } from '@libs/interfaces/events.interface';
 
 describe('NotificationEvent', () => {
   it('should allow valid notification event structure', () => {

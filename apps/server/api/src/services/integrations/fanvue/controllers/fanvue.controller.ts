@@ -17,11 +17,11 @@ import {
 import { FanvueService } from '@api/services/integrations/fanvue/services/fanvue.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import type { User } from '@clerk/backend';
+import { CredentialPlatform } from '@genfeedai/enums';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
 } from '@genfeedai/serializers';
-import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Body, Controller, Post, Req } from '@nestjs/common';

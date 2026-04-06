@@ -4,7 +4,7 @@ import {
   buildCinematicColorGradeFilterChain,
   CAMERA_PROFILE_CURVES,
   type CinematicColorGradeConfig,
-  CinematicColorGradeExecutor,
+  type CinematicColorGradeExecutor,
   type CinematicColorGradeProcessor,
   createCinematicColorGradeExecutor,
 } from '@workflow-engine/executors/saas/cinematic-color-grade-executor';

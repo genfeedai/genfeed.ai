@@ -1,6 +1,6 @@
-import type { IIngredient, IMetadata, IPrompt } from '@genfeedai/interfaces';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { IngredientFormat } from '@genfeedai/enums';
+import type { IIngredient, IMetadata, IPrompt } from '@genfeedai/interfaces';
 
 export const PROMPT_STORAGE_KEY = 'studio_promptbar_state';
 

@@ -69,7 +69,7 @@ jobs:
   test-changed:
     name: Test Changed Services
     needs: [detect-changes]
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     if: |
       (inputs.skip_tests != true) && (
@@ -143,7 +143,7 @@ jobs:
   build-unified-image:
     name: Build Unified Server Image
     needs: [test-changed]
-    runs-on: blacksmith-8vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     if: |
       always() &&
@@ -173,7 +173,7 @@ jobs:
   deploy-services:
     name: Deploy Services
     needs: [detect-changes, resolve-config, build-unified-image]
-    runs-on: blacksmith-4vcpu-ubuntu-2404
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     if: |
       always() &&

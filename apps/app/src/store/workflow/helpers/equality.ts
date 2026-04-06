@@ -15,7 +15,10 @@ interface TemporalState {
  * 2. Reference equality for arrays (no change)
  * 3. Individual item id + key property comparisons
  */
-export function temporalStateEquals(a: TemporalState, b: TemporalState): boolean {
+export function temporalStateEquals(
+  a: TemporalState,
+  b: TemporalState,
+): boolean {
   // Reference equality (same object)
   if (a === b) return true;
 
@@ -35,7 +38,11 @@ export function temporalStateEquals(a: TemporalState, b: TemporalState): boolean
  * Compare two arrays using a custom equality function for items.
  * Returns true if arrays have same length and all items are equal.
  */
-function arraysShallowEqual<T>(a: T[], b: T[], itemEquals: (a: T, b: T) => boolean): boolean {
+function arraysShallowEqual<T>(
+  a: T[],
+  b: T[],
+  itemEquals: (a: T, b: T) => boolean,
+): boolean {
   // Reference equality
   if (a === b) return true;
 
@@ -62,7 +69,8 @@ function nodeEquals(a: WorkflowNode, b: WorkflowNode): boolean {
   if (a.type !== b.type) return false;
 
   // Position
-  if (a.position.x !== b.position.x || a.position.y !== b.position.y) return false;
+  if (a.position.x !== b.position.x || a.position.y !== b.position.y)
+    return false;
 
   // Dimensions (if set)
   if (a.width !== b.width || a.height !== b.height) return false;
@@ -94,7 +102,9 @@ function nodeEquals(a: WorkflowNode, b: WorkflowNode): boolean {
 
   // Schema params need JSON comparison (complex objects)
   if (aData.schemaParams !== bData.schemaParams) {
-    if (JSON.stringify(aData.schemaParams) !== JSON.stringify(bData.schemaParams)) {
+    if (
+      JSON.stringify(aData.schemaParams) !== JSON.stringify(bData.schemaParams)
+    ) {
       return false;
     }
   }

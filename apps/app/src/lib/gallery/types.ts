@@ -19,9 +19,21 @@ export interface GalleryResponse {
   counts: { all: number; image: number; video: number; audio: number };
 }
 
-export const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'] as const;
+export const IMAGE_EXTENSIONS = [
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.gif',
+  '.webp',
+] as const;
 export const VIDEO_EXTENSIONS = ['.mp4', '.webm', '.mov'] as const;
-export const AUDIO_EXTENSIONS = ['.mp3', '.wav', '.ogg', '.m4a', '.aac'] as const;
+export const AUDIO_EXTENSIONS = [
+  '.mp3',
+  '.wav',
+  '.ogg',
+  '.m4a',
+  '.aac',
+] as const;
 
 export const MIME_TYPES: Record<string, string> = {
   '.aac': 'audio/aac',

@@ -33,6 +33,7 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
   HttpException,
   HttpStatus,
@@ -193,7 +194,7 @@ export class AvatarVideoGenerationService {
           ingredientId,
           WebSocketPaths.video(ingredientId),
           context.userId,
-          `user-${context.userId}`,
+          getUserRoomName(context.userId),
         );
       }
 
@@ -667,7 +668,7 @@ export class AvatarVideoGenerationService {
         status: WebSocketEventStatus.PROCESSING,
       },
       userId,
-      `user-${userId}`,
+      getUserRoomName(userId),
     );
   }
 

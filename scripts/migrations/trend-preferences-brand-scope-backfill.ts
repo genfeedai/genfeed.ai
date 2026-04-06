@@ -18,7 +18,7 @@
  */
 
 import { Logger } from '@nestjs/common';
-import { Db, ObjectId } from 'mongodb';
+import type { Db, ObjectId } from 'mongodb';
 
 import { runScript } from '../../apps/server/api/scripts/db/connection';
 import { parseArgs } from '../../apps/server/api/scripts/db/seed-utils';

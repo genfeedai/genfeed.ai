@@ -1,7 +1,5 @@
 'use client';
 
-import type { IBrand } from '@genfeedai/interfaces';
-import type { TrainingLayoutContentProps } from '@genfeedai/interfaces/training/training-layout-content.interface';
 import { TrainingProvider } from '@contexts/content/training-context/training-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
@@ -10,6 +8,9 @@ import {
   ComponentSize,
   ModalEnum,
 } from '@genfeedai/enums';
+import type { IBrand } from '@genfeedai/interfaces';
+import type { TrainingLayoutContentProps } from '@genfeedai/interfaces/training/training-layout-content.interface';
+import { Code } from '@genfeedai/ui';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Training } from '@models/ai/training.model';
@@ -21,7 +22,6 @@ import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
 import { LazyModalTraining } from '@ui/lazy/modal/LazyModal';
-import { Code } from '@genfeedai/ui';
 import Loading from '@ui/loading/default/Loading';
 import Breadcrumb from '@ui/navigation/breadcrumb/Breadcrumb';
 import { getErrorMessage } from '@utils/error/error-handler.util';
@@ -179,9 +179,7 @@ export default function TrainingDetail({
                     <span className="text-sm text-muted-foreground">
                       Trigger
                     </span>
-                    <Code size="md">
-                      {training.trigger}
-                    </Code>
+                    <Code size="md">{training.trigger}</Code>
                   </div>
                 )}
 
@@ -190,18 +188,14 @@ export default function TrainingDetail({
                     <span className="text-sm text-muted-foreground">
                       Category
                     </span>
-                    <Code size="md">
-                      {training.category}
-                    </Code>
+                    <Code size="md">{training.category}</Code>
                   </div>
                 )}
 
                 {training.steps && (
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground">Steps</span>
-                    <Code size="md">
-                      {training.steps}
-                    </Code>
+                    <Code size="md">{training.steps}</Code>
                   </div>
                 )}
               </div>

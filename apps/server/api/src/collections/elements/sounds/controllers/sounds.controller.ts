@@ -17,9 +17,9 @@ import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.
 import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import type { User } from '@clerk/backend';
+import { MemberRole } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { SoundSerializer } from '@genfeedai/serializers';
-import { MemberRole } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,

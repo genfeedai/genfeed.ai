@@ -221,11 +221,11 @@ describe('error-handler.util', () => {
         };
         const result = ErrorHandler.convertJsonApiError(jsonApiError);
         expect(result).not.toBeNull();
-        expect(result!.status).toBe(404);
-        expect(result!.detail).toBe('User not found');
-        expect(result!.code).toBe('NOT_FOUND');
-        expect(result!.title).toBe('Not Found');
-        expect(result!.timestamp).toBeDefined();
+        expect(result?.status).toBe(404);
+        expect(result?.detail).toBe('User not found');
+        expect(result?.code).toBe('NOT_FOUND');
+        expect(result?.title).toBe('Not Found');
+        expect(result?.timestamp).toBeDefined();
       });
 
       it('should return null for empty errors array', () => {
@@ -237,21 +237,21 @@ describe('error-handler.util', () => {
         const test400: IJsonApiError = {
           errors: [{ code: 400, detail: 'Bad', title: 'Bad' }],
         };
-        expect(ErrorHandler.convertJsonApiError(test400)!.code).toBe(
+        expect(ErrorHandler.convertJsonApiError(test400)?.code).toBe(
           'VALIDATION_FAILED',
         );
 
         const test401: IJsonApiError = {
           errors: [{ code: 401, detail: 'Unauth', title: 'Unauth' }],
         };
-        expect(ErrorHandler.convertJsonApiError(test401)!.code).toBe(
+        expect(ErrorHandler.convertJsonApiError(test401)?.code).toBe(
           'UNAUTHORIZED',
         );
 
         const test429: IJsonApiError = {
           errors: [{ code: 429, detail: 'Limit', title: 'Limit' }],
         };
-        expect(ErrorHandler.convertJsonApiError(test429)!.code).toBe(
+        expect(ErrorHandler.convertJsonApiError(test429)?.code).toBe(
           'RATE_LIMIT_EXCEEDED',
         );
       });
@@ -260,7 +260,7 @@ describe('error-handler.util', () => {
         const error: IJsonApiError = {
           errors: [{ code: 418, detail: "I'm a teapot", title: 'Teapot' }],
         };
-        expect(ErrorHandler.convertJsonApiError(error)!.code).toBe(
+        expect(ErrorHandler.convertJsonApiError(error)?.code).toBe(
           'UNKNOWN_ERROR',
         );
       });

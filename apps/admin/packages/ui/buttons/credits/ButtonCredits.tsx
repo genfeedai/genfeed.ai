@@ -1,11 +1,11 @@
 'use client';
 
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { ButtonVariant } from '@genfeedai/enums';
 import type {
   ICreditsEventData,
   IOrganizationEventData,
 } from '@genfeedai/interfaces';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant } from '@genfeedai/enums';
 import { BG_BLUR, BORDER_WHITE_30, cn } from '@helpers/formatting/cn/cn.util';
 import {
   formatCompactNumber,

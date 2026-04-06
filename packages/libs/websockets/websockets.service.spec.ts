@@ -1,6 +1,7 @@
 import { RedisService } from '@libs/redis/redis.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { WebSocketService } from '@libs/websockets/websockets.service';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('WebSocketService', () => {
   let service: WebSocketService;
@@ -43,7 +44,7 @@ describe('WebSocketService', () => {
         JSON.stringify({
           path,
           progress,
-          room: `user-${userId}`,
+          room: getUserRoomName(userId),
           userId,
         }),
       );
@@ -82,7 +83,7 @@ describe('WebSocketService', () => {
         JSON.stringify({
           path,
           result,
-          room: `user-${userId}`,
+          room: getUserRoomName(userId),
           userId,
         }),
       );
@@ -121,7 +122,7 @@ describe('WebSocketService', () => {
         JSON.stringify({
           error,
           path,
-          room: `user-${userId}`,
+          room: getUserRoomName(userId),
           userId,
         }),
       );

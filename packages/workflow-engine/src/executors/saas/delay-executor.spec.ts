@@ -2,7 +2,7 @@ import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
   createDelayExecutor,
-  DelayExecutor,
+  type DelayExecutor,
   durationToMs,
   type OptimalTimeResolver,
 } from '@workflow-engine/executors/saas/delay-executor';

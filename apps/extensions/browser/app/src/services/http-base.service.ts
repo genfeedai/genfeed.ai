@@ -1,7 +1,7 @@
 import axios, {
-  AxiosError,
-  AxiosInstance,
-  InternalAxiosRequestConfig,
+  type AxiosError,
+  type AxiosInstance,
+  type InternalAxiosRequestConfig,
 } from 'axios';
 import { logger } from '~utils/logger.util';
 import { ServiceInstanceManager } from '~utils/service-instance-manager.util';

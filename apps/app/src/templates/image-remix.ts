@@ -2,7 +2,8 @@ import type { WorkflowTemplate } from '@genfeedai/types';
 
 export const IMAGE_REMIX_TEMPLATE: WorkflowTemplate = {
   createdAt: new Date().toISOString(),
-  description: 'Reimagine your image in a new style while keeping the overall composition',
+  description:
+    'Reimagine your image in a new style while keeping the overall composition',
   edgeStyle: 'smoothstep',
   edges: [
     {

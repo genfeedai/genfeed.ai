@@ -1,5 +1,7 @@
 'use client';
 
+import { useBrandId } from '@contexts/user/brand-context/brand-context';
+import { Platform, Timeframe } from '@genfeedai/enums';
 import type {
   ITrend,
   ITrendHashtag,
@@ -9,8 +11,6 @@ import type {
 } from '@genfeedai/interfaces';
 import type { ICreatorWatchlist } from '@genfeedai/interfaces/analytics/creator-watchlist.interface';
 import type { ITrendPlatformConfig } from '@genfeedai/interfaces/analytics/platform-config.interface';
-import { useBrandId } from '@contexts/user/brand-context/brand-context';
-import { Platform, Timeframe } from '@genfeedai/enums';
 import { createLocalStorageCache } from '@helpers/data/cache/cache.helper';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
@@ -129,7 +129,7 @@ export default function AnalyticsTrends() {
 
     fetchTrendingTopics();
     return () => controller.abort();
-  }, [brandId, getTrendsService]);
+  }, [getTrendsService]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -166,7 +166,7 @@ export default function AnalyticsTrends() {
 
     findTrends();
     return () => controller.abort();
-  }, [brandId, getTrendsService]);
+  }, [getTrendsService]);
 
   // Fetch viral videos from backend
   useEffect(() => {

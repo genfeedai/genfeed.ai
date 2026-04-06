@@ -46,6 +46,7 @@ import {
   WebSocketEventType,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { Types } from 'mongoose';
 
@@ -205,7 +206,7 @@ export class VideoMusicOrchestrationService {
       activityId: activity._id.toString(),
       label: 'Generating Background Music',
       progress: 0,
-      room: `user-${context.clerkUserId}`,
+      room: getUserRoomName(context.clerkUserId),
       status: 'processing',
       taskId: ingredientData._id.toString(),
       userId: context.clerkUserId,
@@ -319,7 +320,7 @@ export class VideoMusicOrchestrationService {
       activityId,
       label: 'Adding Background Music',
       progress: 0,
-      room: `user-${context.clerkUserId}`,
+      room: getUserRoomName(context.clerkUserId),
       status: 'processing',
       taskId: mergedIngredientId,
       userId: context.clerkUserId,
@@ -337,7 +338,7 @@ export class VideoMusicOrchestrationService {
           musicVolume: musicVolume / 100, // Convert 0-100 to 0-1
           sourceIds: [videoIngredientId],
         },
-        room: `user-${context.clerkUserId}`,
+        room: getUserRoomName(context.clerkUserId),
         type: JOB_TYPES.MERGE_VIDEOS,
         userId: context.userId,
         websocketUrl,
@@ -380,7 +381,7 @@ export class VideoMusicOrchestrationService {
           transformation: TransformationCategory.MERGED,
         },
         context.clerkUserId,
-        `user-${context.clerkUserId}`,
+        getUserRoomName(context.clerkUserId),
       );
 
       // Update activity
@@ -402,7 +403,7 @@ export class VideoMusicOrchestrationService {
         progress: 100,
         resultId: mergedIngredientId,
         resultType: 'VIDEO',
-        room: `user-${context.clerkUserId}`,
+        room: getUserRoomName(context.clerkUserId),
         status: 'completed',
         taskId: mergedIngredientId,
         userId: context.clerkUserId,
@@ -447,7 +448,7 @@ export class VideoMusicOrchestrationService {
         activityId,
         error: errorMessage,
         label: 'Failed to add background music',
-        room: `user-${context.clerkUserId}`,
+        room: getUserRoomName(context.clerkUserId),
         status: 'failed',
         taskId: mergedIngredientId,
         userId: context.clerkUserId,
@@ -457,7 +458,7 @@ export class VideoMusicOrchestrationService {
         websocketUrl,
         `Failed to add background music: ${errorMessage}`,
         context.clerkUserId,
-        `user-${context.clerkUserId}`,
+        getUserRoomName(context.clerkUserId),
       );
 
       throw new HttpException(

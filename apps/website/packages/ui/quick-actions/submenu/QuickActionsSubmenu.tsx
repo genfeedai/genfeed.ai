@@ -1,8 +1,8 @@
 'use client';
 
+import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import type { IQuickAction } from '@genfeedai/interfaces/ui/quick-actions.interface';
 import type { QuickActionsSubmenuProps } from '@genfeedai/interfaces/ui/quick-actions-submenu.interface';
-import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import { BG_BLUR, BORDER_WHITE_30, cn } from '@helpers/formatting/cn/cn.util';
 import Button from '@ui/buttons/base/Button';
 import Spinner from '@ui/feedback/spinner/Spinner';

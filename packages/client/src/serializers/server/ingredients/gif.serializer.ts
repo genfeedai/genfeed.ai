@@ -1,4 +1,7 @@
-import { buildSingleSerializer, type BuiltSerializer } from '../../builders';
+import { type BuiltSerializer, buildSingleSerializer } from '../../builders';
 import { gifSerializerConfig } from '../../configs';
 
-export const GifSerializer: BuiltSerializer = buildSingleSerializer('server', gifSerializerConfig);
+export const GifSerializer: BuiltSerializer = buildSingleSerializer(
+  'server',
+  gifSerializerConfig,
+);

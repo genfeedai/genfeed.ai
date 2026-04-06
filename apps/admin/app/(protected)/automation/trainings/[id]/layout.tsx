@@ -1,5 +1,5 @@
-import type { TrainingLayoutProps } from '@genfeedai/interfaces/training-layout.interface';
 import LazyLoadingFallback from '@components/loading/fallback/LazyLoadingFallback';
+import type { TrainingLayoutProps } from '@genfeedai/interfaces/training-layout.interface';
 import TrainingDetail from '@pages/trainings/detail/training-detail';
 import { Suspense } from 'react';
 

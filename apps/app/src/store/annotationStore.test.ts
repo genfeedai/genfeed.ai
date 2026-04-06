@@ -1,4 +1,3 @@
-import { beforeEach, describe, expect, it } from 'vitest';
 import {
   type AnnotationShape,
   type AnnotationTool,
@@ -7,6 +6,7 @@ import {
   type RectangleShape,
   useAnnotationStore,
 } from '@genfeedai/workflow-ui/stores';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 describe('useAnnotationStore', () => {
   beforeEach(() => {
@@ -486,7 +486,9 @@ describe('useAnnotationStore', () => {
 
       setToolOptions({ strokeColor: '#00ff00' });
 
-      expect(useAnnotationStore.getState().toolOptions.strokeColor).toBe('#00ff00');
+      expect(useAnnotationStore.getState().toolOptions.strokeColor).toBe(
+        '#00ff00',
+      );
     });
 
     it('should set stroke width', () => {
@@ -502,7 +504,9 @@ describe('useAnnotationStore', () => {
 
       setToolOptions({ fillColor: '#ff000050' });
 
-      expect(useAnnotationStore.getState().toolOptions.fillColor).toBe('#ff000050');
+      expect(useAnnotationStore.getState().toolOptions.fillColor).toBe(
+        '#ff000050',
+      );
     });
 
     it('should set font size', () => {

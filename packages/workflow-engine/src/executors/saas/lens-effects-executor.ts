@@ -213,7 +213,7 @@ export class LensEffectsExecutor extends BaseExecutor {
 
     const videoUrl = this.getRequiredInput<string>(inputs, 'videoUrl');
 
-    const defaultSub = { enabled: false, intensity: 0 };
+    const _defaultSub = { enabled: false, intensity: 0 };
 
     const config: LensEffectsConfig = {
       barrelDistortion: {

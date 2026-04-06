@@ -1,8 +1,8 @@
 'use client';
 
 import type { WorkflowNode } from '@genfeedai/types';
-import { Kbd } from '@genfeedai/ui';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
+import { Kbd } from '@genfeedai/ui';
 import { useReactFlow } from '@xyflow/react';
 import { Search, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -105,7 +105,7 @@ export function NodeSearch() {
         handleClose();
       }
     },
-    [filteredNodes, selectedIndex, handleSelectNode],
+    [filteredNodes, selectedIndex, handleSelectNode, handleClose],
   );
 
   const handleClose = () => {
@@ -159,7 +159,6 @@ export function NodeSearch() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-3 py-2 text-sm bg-[var(--secondary)] border border-[var(--border)] rounded-md outline-none focus:ring-1 focus:ring-[var(--ring)]"
-              autoFocus
             />
           </div>
 
@@ -210,18 +209,13 @@ export function NodeSearch() {
           {filteredNodes.length > 0 && (
             <div className="mt-3 pt-3 border-t border-border text-xs text-muted-foreground flex gap-4">
               <span>
-                <Kbd variant="muted">
-                  up/down
-                </Kbd>{' '}
-                Navigate
+                <Kbd variant="muted">up/down</Kbd> Navigate
               </span>
               <span>
-                <Kbd variant="muted">Enter</Kbd>{' '}
-                Select
+                <Kbd variant="muted">Enter</Kbd> Select
               </span>
               <span>
-                <Kbd variant="muted">Esc</Kbd>{' '}
-                Close
+                <Kbd variant="muted">Esc</Kbd> Close
               </span>
             </div>
           )}

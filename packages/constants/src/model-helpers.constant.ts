@@ -1,4 +1,4 @@
-import { ModelCategory, ModelKey } from '@genfeedai/enums';
+import { ModelCategory, type ModelKey } from '@genfeedai/enums';
 
 import {
   type ImageModelCapability,

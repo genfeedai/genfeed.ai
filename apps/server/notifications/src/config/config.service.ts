@@ -59,7 +59,7 @@ export class ConfigService extends BaseConfigService<IEnvConfig> {
       if (!this.envConfig.TELEGRAM_BOT_TOKEN) {
         warnings.push('Telegram bot is not configured');
       }
-      
+
       if (!this.envConfig.DISCORD_BOT_TOKEN) {
         warnings.push('Discord bot is not configured');
       }

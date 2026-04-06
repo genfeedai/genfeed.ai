@@ -56,13 +56,19 @@ function DynamicListComponent<
       moveDown: () => {
         if (index === items.length - 1) return;
         const newItems = [...items];
-        [newItems[index], newItems[index + 1]] = [newItems[index + 1], newItems[index]];
+        [newItems[index], newItems[index + 1]] = [
+          newItems[index + 1],
+          newItems[index],
+        ];
         onChange(newItems);
       },
       moveUp: () => {
         if (index === 0) return;
         const newItems = [...items];
-        [newItems[index - 1], newItems[index]] = [newItems[index], newItems[index - 1]];
+        [newItems[index - 1], newItems[index]] = [
+          newItems[index],
+          newItems[index - 1],
+        ];
         onChange(newItems);
       },
       remove: () => {
@@ -76,7 +82,7 @@ function DynamicListComponent<
         onChange(newItems);
       },
     }),
-    [items, onChange, canRemove, canAdd]
+    [items, onChange, canRemove, canAdd],
   );
 
   return (
@@ -117,7 +123,7 @@ function DynamicListComponent<
             'text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]',
             'border border-dashed border-[var(--border)] hover:border-[var(--primary)]',
             'rounded-lg transition-colors',
-            'hover:bg-[var(--card)]/50'
+            'hover:bg-[var(--card)]/50',
           )}
         >
           <Plus className="w-4 h-4" />
@@ -135,4 +141,6 @@ function DynamicListComponent<
   );
 }
 
-export const DynamicList = memo(DynamicListComponent) as typeof DynamicListComponent;
+export const DynamicList = memo(
+  DynamicListComponent,
+) as typeof DynamicListComponent;

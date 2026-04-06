@@ -65,6 +65,6 @@ export const useCommandPaletteStore = create<CommandPaletteStore>()(
     {
       name: 'command-palette-storage',
       partialize: (state) => ({ recentCommands: state.recentCommands }),
-    }
-  )
+    },
+  ),
 );

@@ -2,16 +2,16 @@ import {
   AGENT_REFRESH_CONVERSATIONS_EVENT,
   AgentThreadList,
 } from '@genfeedai/agent/components/AgentThreadList';
-import { Kbd } from '@genfeedai/ui';
 import {
   AGENT_SIDEBAR_TRANSITION_DURATION_MS,
   AGENT_SIDEBAR_TRANSITION_EASING,
 } from '@genfeedai/agent/constants/agent-panel.constant';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { Kbd } from '@genfeedai/ui';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearchTrigger';
 import Link from 'next/link';
-import { type ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import { HiArrowLeft, HiArrowPath, HiPlus } from 'react-icons/hi2';
 
 interface AgentSidebarContentProps {
@@ -72,7 +72,10 @@ export function AgentSidebarContent({
               <span className="text-sm font-medium text-white/90">
                 New Chat
               </span>
-              <Kbd variant="ghost" className="ml-auto text-[11px] opacity-0 transition-opacity duration-200 group-hover:text-white/50 group-hover:opacity-100">
+              <Kbd
+                variant="ghost"
+                className="ml-auto text-[11px] opacity-0 transition-opacity duration-200 group-hover:text-white/50 group-hover:opacity-100"
+              >
                 ⌘⇧N
               </Kbd>
             </Link>

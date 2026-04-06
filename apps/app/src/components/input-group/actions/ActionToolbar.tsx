@@ -45,7 +45,7 @@ function ActionToolbarComponent({
         visible === true && 'opacity-100',
         visible === false && 'opacity-0',
         'transition-opacity',
-        className
+        className,
       )}
       role="toolbar"
       aria-label="Actions"
@@ -62,9 +62,13 @@ function ActionToolbarComponent({
             action.danger
               ? 'hover:bg-red-500/10 text-red-400 hover:text-red-300'
               : 'hover:bg-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]',
-            action.disabled && 'opacity-50 cursor-not-allowed'
+            action.disabled && 'opacity-50 cursor-not-allowed',
           )}
-          title={action.shortcut ? `${action.label} (${action.shortcut})` : action.label}
+          title={
+            action.shortcut
+              ? `${action.label} (${action.shortcut})`
+              : action.label
+          }
           aria-label={action.label}
         >
           <span className={sizeClasses.icon}>{action.icon}</span>

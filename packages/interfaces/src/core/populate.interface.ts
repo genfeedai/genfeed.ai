@@ -1,4 +1,4 @@
-import { ModelKey } from '@genfeedai/enums';
+import type { ModelKey } from '@genfeedai/enums';
 
 /**
  * Configuration for Mongoose population (joins).

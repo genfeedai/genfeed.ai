@@ -1,4 +1,3 @@
-import type { IModel } from '@genfeedai/interfaces';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import {
   IngredientFormat,
@@ -7,6 +6,7 @@ import {
   ModelProvider,
   RouterPriority,
 } from '@genfeedai/enums';
+import type { IModel } from '@genfeedai/interfaces';
 import type { PromptBarModelControlsProps } from '@props/studio/prompt-bar.props';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';

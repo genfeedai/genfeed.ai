@@ -32,7 +32,7 @@ import {
   HiTrash,
 } from 'react-icons/hi2';
 
-const DEFAULT_TEXT_MODEL_COST = EnvironmentService.TEXT_MODEL_DEFAULT_COST;
+const _DEFAULT_TEXT_MODEL_COST = EnvironmentService.TEXT_MODEL_DEFAULT_COST;
 
 export const QUICK_ACTIONS = [
   {

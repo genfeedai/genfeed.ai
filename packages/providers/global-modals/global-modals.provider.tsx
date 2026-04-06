@@ -1,6 +1,13 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import {
+  type IngredientCategory,
+  ModalEnum,
+  type Platform,
+  type SubscriptionTier,
+} from '@genfeedai/enums';
 import type {
   IAsset,
   IBrand,
@@ -11,13 +18,6 @@ import type {
   IPost,
 } from '@genfeedai/interfaces';
 import type { UsePostModalOptions } from '@genfeedai/interfaces/hooks/use-publication-modal.interface';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
-import {
-  type IngredientCategory,
-  ModalEnum,
-  type Platform,
-  type SubscriptionTier,
-} from '@genfeedai/enums';
 import { capitalize } from '@helpers/formatting/format/format.helper';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

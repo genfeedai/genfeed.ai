@@ -1,5 +1,5 @@
-import type { IVideo } from '@genfeedai/interfaces';
 import { IngredientFormat } from '@genfeedai/enums';
+import type { IVideo } from '@genfeedai/interfaces';
 import { render, screen } from '@testing-library/react';
 import ModalVideo from '@ui/modals/ingredients/video/ModalVideo';
 import { describe, expect, it, vi } from 'vitest';

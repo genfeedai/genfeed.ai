@@ -1,10 +1,10 @@
-import type { IModel } from '@genfeedai/interfaces';
 import {
   ModelCategory,
   ModelKey,
   ModelProvider,
   RouterPriority,
 } from '@genfeedai/enums';
+import type { IModel } from '@genfeedai/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

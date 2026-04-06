@@ -8,10 +8,10 @@ import {
   type IssueComment,
   IssueCommentsService,
 } from '@services/management/issue-comments.service';
-import {
-  type Issue,
-  type IssueLinkedEntityModel,
-  type IssueStatus,
+import type {
+  Issue,
+  IssueLinkedEntityModel,
+  IssueStatus,
 } from '@services/management/issues.service';
 import EntityOverlayShell from '@ui/overlays/entity/EntityOverlayShell';
 import { useRouter } from 'next/navigation';

@@ -1,4 +1,4 @@
-import { buildSingleSerializer, type BuiltSerializer } from '../../builders';
+import { type BuiltSerializer, buildSingleSerializer } from '../../builders';
 import {
   activityBulkPatchSerializerConfig,
   activitySerializerConfig,
@@ -9,7 +9,5 @@ export const ActivitySerializer: BuiltSerializer = buildSingleSerializer(
   activitySerializerConfig,
 );
 
-export const ActivityBulkPatchSerializer: BuiltSerializer = buildSingleSerializer(
-  'server',
-  activityBulkPatchSerializerConfig,
-);
+export const ActivityBulkPatchSerializer: BuiltSerializer =
+  buildSingleSerializer('server', activityBulkPatchSerializerConfig);

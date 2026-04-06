@@ -1,5 +1,5 @@
-import type { IModel } from '@genfeedai/interfaces';
 import { ModelCategory, ModelKey, ModelProvider } from '@genfeedai/enums';
+import type { IModel } from '@genfeedai/interfaces';
 
 import {
   DEFAULT_VIDEO_DURATION_OPTIONS,

@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import type { IEnvConfig } from '@config/interfaces/env-config.interface';
 import dotenv from 'dotenv';
-import Joi from 'joi';
+import type Joi from 'joi';
 
 export interface ConfigServiceOptions {
   /**

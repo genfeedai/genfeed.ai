@@ -135,6 +135,12 @@ export class Skill {
   })
   baseSkill?: Types.ObjectId | null;
 
+  @Prop({ required: false, type: String })
+  systemPromptTemplate?: string;
+
+  @Prop({ default: [], type: [String] })
+  toolOverrides!: string[];
+
   @Prop({ default: true, type: Boolean })
   isBuiltIn!: boolean;
 
