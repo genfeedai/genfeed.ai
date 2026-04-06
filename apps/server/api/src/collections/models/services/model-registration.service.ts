@@ -5,10 +5,14 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import type { Model as MongooseModel, Types } from 'mongoose';
+import type { Model as MongooseModel } from 'mongoose';
+import { Types } from 'mongoose';
 import { DB_CONNECTIONS } from '../../../constants/database.constants';
 import type { OrganizationSettingsService } from '../../organization-settings/services/organization-settings.service';
-import type { TrainingDocument } from '../../trainings/schemas/training.schema';
+import {
+  Training,
+  type TrainingDocument,
+} from '../../trainings/schemas/training.schema';
 import { Model, type ModelDocument } from '../schemas/model.schema';
 
 @Injectable()
@@ -16,6 +20,8 @@ export class ModelRegistrationService {
   constructor(
     @InjectModel(Model.name, DB_CONNECTIONS.CLOUD)
     private readonly modelModel: MongooseModel<ModelDocument>,
+    @InjectModel(Training.name, DB_CONNECTIONS.CLOUD)
+    private readonly trainingModel: MongooseModel<TrainingDocument>,
     private readonly orgSettingsService: OrganizationSettingsService,
     private readonly logger: LoggerService,
   ) {}
@@ -113,5 +119,73 @@ export class ModelRegistrationService {
       }
       throw err;
     }
+  }
+
+  async reconcileTrainingModels(): Promise<void> {
+    const orphanedTrainings = await this.trainingModel.aggregate([
+      { $match: { status: 'COMPLETED', isDeleted: false } },
+      {
+        $lookup: {
+          from: 'models',
+          localField: '_id',
+          foreignField: 'training',
+          as: 'model',
+        },
+      },
+      { $match: { model: { $size: 0 } } },
+    ]);
+
+    for (const training of orphanedTrainings) {
+      try {
+        await this.createFromTraining(training);
+      } catch (err: any) {
+        this.logger.error(
+          `Reconciliation failed for training ${training._id}: ${err.message}`,
+        );
+      }
+    }
+
+    this.logger.log(
+      `Reconciled ${orphanedTrainings.length} orphaned trainings`,
+    );
+  }
+
+  async reconcileEnabledModels(): Promise<void> {
+    const orgModels = await this.modelModel
+      .find({ organization: { $ne: null }, isActive: true, isDeleted: false })
+      .select('_id organization')
+      .lean()
+      .exec();
+
+    const modelsByOrg = new Map<string, Types.ObjectId[]>();
+    for (const model of orgModels) {
+      const orgKey = model.organization.toString();
+      if (!modelsByOrg.has(orgKey)) modelsByOrg.set(orgKey, []);
+      modelsByOrg.get(orgKey)!.push(model._id);
+    }
+
+    let repaired = 0;
+    for (const [orgId, modelIds] of modelsByOrg) {
+      const orgSettings = await this.orgSettingsService.findOne({
+        organization: new Types.ObjectId(orgId),
+      });
+      const enabledSet = new Set(
+        (orgSettings?.enabledModels ?? []).map((id: Types.ObjectId) =>
+          id.toString(),
+        ),
+      );
+
+      for (const modelId of modelIds) {
+        if (!enabledSet.has(modelId.toString())) {
+          await this.orgSettingsService.addEnabledModel(
+            new Types.ObjectId(orgId),
+            modelId,
+          );
+          repaired++;
+        }
+      }
+    }
+
+    this.logger.log(`Reconciled ${repaired} enabledModels drift entries`);
   }
 }
