@@ -1,3 +1,13 @@
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 import {
   type AnalyticsSnapshot,
@@ -681,9 +691,10 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
           </p>
           <div className="grid grid-cols-2 gap-2">
             {RUN_TEMPLATES.map((template) => (
-              <button
+              <Button
                 key={template.id}
                 type="button"
+                variant={ButtonVariant.UNSTYLED}
                 disabled={isRunning}
                 onClick={() => handleRunTemplate(template)}
                 className="rounded border border-border bg-background px-2 py-2 text-left transition-colors hover:bg-muted disabled:opacity-60"
@@ -694,7 +705,7 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
                 <p className="mt-0.5 text-[10px] text-muted-foreground">
                   {template.description}
                 </p>
-              </button>
+              </Button>
             ))}
           </div>
         </section>
@@ -703,51 +714,54 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             1. Generate
           </p>
-          <textarea
+          <Textarea
             value={generatePrompt}
             onChange={(event) => setGeneratePrompt(event.target.value)}
             placeholder="Write a prompt for generated content..."
             className="min-h-20 w-full rounded border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
           />
-          <button
+          <Button
             type="button"
+            variant={ButtonVariant.DEFAULT}
             disabled={isRunning || !generatePrompt.trim()}
             onClick={handleGenerateRun}
-            className="mt-2 w-full rounded bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            className="mt-2 w-full rounded text-xs"
           >
             {isRunning && currentRun?.actionType === 'generate'
               ? 'Running Generate...'
               : 'Run Generate'}
-          </button>
+          </Button>
         </section>
 
         <section className="rounded-lg border border-border bg-card p-3">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             2. Preview
           </p>
-          <textarea
+          <Textarea
             value={previewContent}
             onChange={(event) => setPreviewContent(event.target.value)}
             placeholder="Generated preview appears here..."
             className="min-h-24 w-full rounded border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
           />
           <div className="mt-2 grid grid-cols-2 gap-2">
-            <button
+            <Button
               type="button"
+              variant={ButtonVariant.OUTLINE}
               disabled={!previewContent.trim() || !composeBoxAvailable}
               onClick={() => relayComposer('INSERT_CONTENT')}
-              className="rounded border border-border bg-background px-2 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+              className="rounded px-2 py-2 text-xs font-medium"
             >
               Insert In Composer
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant={ButtonVariant.OUTLINE}
               disabled={!previewContent.trim() || !canSubmitFromComposer}
               onClick={() => relayComposer('INSERT_AND_PUBLISH_CONTENT')}
-              className="rounded border border-border bg-background px-2 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
+              className="rounded px-2 py-2 text-xs font-medium"
             >
               Insert + Publish
-            </button>
+            </Button>
           </div>
         </section>
 
@@ -756,23 +770,24 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
             3. Post
           </p>
 
-          <select
+          <Select
             value={selectedCredentialId ?? ''}
-            onChange={(event) =>
-              setSelectedCredentialId(event.target.value || null)
-            }
-            className="w-full rounded border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
+            onValueChange={(value) => setSelectedCredentialId(value || null)}
           >
-            <option value="">Default connected account</option>
-            {credentials.map((credential) => (
-              <option key={credential.id} value={credential.id}>
-                {credential.platform}
-                {credential.externalHandle
-                  ? ` (@${credential.externalHandle})`
-                  : ''}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-full rounded border border-border bg-background px-3 py-2 text-xs text-foreground">
+              <SelectValue placeholder="Default connected account" />
+            </SelectTrigger>
+            <SelectContent>
+              {credentials.map((credential) => (
+                <SelectItem key={credential.id} value={credential.id}>
+                  {credential.platform}
+                  {credential.externalHandle
+                    ? ` (@${credential.externalHandle})`
+                    : ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           <label className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
             <input
@@ -783,16 +798,17 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
             Also publish from current page composer after run completes
           </label>
 
-          <button
+          <Button
             type="button"
+            variant={ButtonVariant.DEFAULT}
             disabled={isRunning || !previewContent.trim()}
             onClick={handlePostRun}
-            className="mt-2 w-full rounded bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            className="mt-2 w-full rounded text-xs"
           >
             {isRunning && currentRun?.actionType === 'post'
               ? 'Running Post...'
               : 'Run Post'}
-          </button>
+          </Button>
 
           {postResults.length > 0 ? (
             <div className="mt-2 max-h-32 space-y-1 overflow-y-auto rounded border border-border bg-background p-2">
@@ -837,16 +853,17 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
             placeholder="Analytics query"
             className="w-full rounded border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
           />
-          <button
+          <Button
             type="button"
+            variant={ButtonVariant.DEFAULT}
             disabled={isRunning || !analyticsQuery.trim()}
             onClick={handleAnalyticsRun}
-            className="mt-2 w-full rounded bg-primary px-3 py-2 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            className="mt-2 w-full rounded text-xs"
           >
             {isRunning && currentRun?.actionType === 'analytics'
               ? 'Running Analytics...'
               : 'Run Analytics'}
-          </button>
+          </Button>
 
           <div className="mt-2 grid grid-cols-2 gap-2">
             <div className="rounded border border-border bg-background p-2">

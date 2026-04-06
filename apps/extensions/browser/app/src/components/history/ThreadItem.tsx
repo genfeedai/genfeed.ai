@@ -1,3 +1,5 @@
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 
 import type { Thread } from '~models/chat.model';
@@ -21,8 +23,9 @@ export function ThreadItem({ thread, onOpen }: ThreadItemProps): ReactElement {
   const platformIcon = thread.platform ? PLATFORM_ICONS[thread.platform] : null;
 
   return (
-    <button
+    <Button
       type="button"
+      variant={ButtonVariant.UNSTYLED}
       onClick={onOpen}
       className="flex w-full items-start gap-3 px-4 py-2.5 text-left transition-colors hover:bg-secondary/50"
     >
@@ -44,7 +47,7 @@ export function ThreadItem({ thread, onOpen }: ThreadItemProps): ReactElement {
       <span className="shrink-0 text-[10px] text-muted-foreground">
         {formatRelativeTime(thread.updatedAt)}
       </span>
-    </button>
+    </Button>
   );
 }
 
