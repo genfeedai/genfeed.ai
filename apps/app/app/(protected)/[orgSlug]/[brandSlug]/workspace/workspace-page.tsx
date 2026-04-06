@@ -1,8 +1,6 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
-import type { AgentRunStats } from '@genfeedai/types';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   ButtonSize,
@@ -10,10 +8,12 @@ import {
   PromptCategory,
   SystemPromptKey,
 } from '@genfeedai/enums';
+import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
+import type { AgentRunStats } from '@genfeedai/types';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useWebsocketPrompt } from '@hooks/utils/use-websocket-prompt/use-websocket-prompt';
-import { Ingredient } from '@models/content/ingredient.model';
+import type { Ingredient } from '@models/content/ingredient.model';
 import { Prompt } from '@models/content/prompt.model';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import { AgentRunsService } from '@services/ai/agent-runs.service';
@@ -31,6 +31,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { EditorContent, ReactRenderer, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import type { SuggestionOptions } from '@tiptap/suggestion';
+import BaseButton from '@ui/buttons/base/Button';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
@@ -45,6 +46,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@ui/primitives/sheet';
+import { Textarea } from '@ui/primitives/textarea';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -355,8 +357,9 @@ const WorkspaceBrandMentionList = forwardRef<
   return (
     <div className="max-h-48 overflow-y-auto rounded-lg border border-white/[0.12] bg-popover shadow-lg">
       {items.map((item, index) => (
-        <button
-          type="button"
+        <BaseButton
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           key={item.id}
           onClick={() => command(item)}
           className={cn(
@@ -367,7 +370,7 @@ const WorkspaceBrandMentionList = forwardRef<
           )}
         >
           <span className="font-medium">@{item.label}</span>
-        </button>
+        </BaseButton>
       ))}
     </div>
   );
@@ -822,9 +825,10 @@ function WorkspaceTaskRow({
   const needsAttention = isUnreadInboxTask(task);
 
   return (
-    <button
-      type="button"
-      aria-label={`Open details for ${task.title}`}
+    <BaseButton
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
+      ariaLabel={`Open details for ${task.title}`}
       className="w-full border-b border-white/[0.06] px-4 py-4 text-left transition-colors duration-150 last:border-b-0 hover:bg-white/[0.03]"
       data-testid="workspace-task-row"
       onClick={() => onOpen(task)}
@@ -866,7 +870,7 @@ function WorkspaceTaskRow({
 
         <HiArrowTopRightOnSquare className="mt-1 h-4 w-4 shrink-0 text-foreground/30" />
       </div>
-    </button>
+    </BaseButton>
   );
 }
 
@@ -2151,7 +2155,7 @@ export default function WorkspacePageContent({
                 </Button>
               </div>
             </div>
-            <textarea
+            <Textarea
               id="workspace-task-request"
               className="min-h-48 w-full rounded-lg border border-white/10 bg-black/30 px-4 py-3 text-sm text-foreground outline-none placeholder:text-foreground/35 focus:border-white/20"
               placeholder="Create three thumbnail directions for our next launch, then draft a caption."

@@ -1,15 +1,32 @@
 'use client';
 
-import { ArrowLeft, Film, ImageIcon, Music, RefreshCw, Trash2 } from 'lucide-react';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
+import {
+  ArrowLeft,
+  Film,
+  ImageIcon,
+  Music,
+  RefreshCw,
+  Trash2,
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { GalleryGrid } from '@/components/gallery/GalleryGrid';
 import { LightboxModal } from '@/components/gallery/LightboxModal';
 import { Pagination } from '@/components/gallery/Pagination';
-import type { GalleryFilterType, GalleryItem, GalleryResponse } from '@/lib/gallery/types';
+import type {
+  GalleryFilterType,
+  GalleryItem,
+  GalleryResponse,
+} from '@/lib/gallery/types';
 
-const FILTERS: { type: GalleryFilterType; label: string; icon: typeof ImageIcon }[] = [
+const FILTERS: {
+  type: GalleryFilterType;
+  label: string;
+  icon: typeof ImageIcon;
+}[] = [
   { icon: ImageIcon, label: 'All', type: 'all' },
   { icon: ImageIcon, label: 'Images', type: 'image' },
   { icon: Film, label: 'Videos', type: 'video' },
@@ -37,7 +54,11 @@ export default function GalleryPage() {
   const selectedItem = selectedIndex !== null ? items[selectedIndex] : null;
 
   const fetchGallery = useCallback(
-    async (targetPage: number, targetFilter: GalleryFilterType, signal?: AbortSignal) => {
+    async (
+      targetPage: number,
+      targetFilter: GalleryFilterType,
+      signal?: AbortSignal,
+    ) => {
       try {
         const params = new URLSearchParams({
           page: String(targetPage),
@@ -58,7 +79,7 @@ export default function GalleryPage() {
         setError(err instanceof Error ? err.message : 'Failed to load gallery');
       }
     },
-    []
+    [],
   );
 
   useEffect(() => {
@@ -87,7 +108,7 @@ export default function GalleryPage() {
       await fetchGallery(1, newFilter);
       setIsRefreshing(false);
     },
-    [fetchGallery]
+    [fetchGallery],
   );
 
   const handlePageChange = useCallback(
@@ -98,7 +119,7 @@ export default function GalleryPage() {
       setIsRefreshing(false);
       window.scrollTo({ behavior: 'smooth', top: 0 });
     },
-    [fetchGallery, filter]
+    [fetchGallery, filter],
   );
 
   const handleSelect = useCallback(
@@ -106,7 +127,7 @@ export default function GalleryPage() {
       const index = items.findIndex((i) => i.id === item.id);
       setSelectedIndex(index >= 0 ? index : null);
     },
-    [items]
+    [items],
   );
 
   const handlePrev = useCallback(() => {
@@ -147,7 +168,7 @@ export default function GalleryPage() {
         alert(err instanceof Error ? err.message : 'Failed to delete file');
       }
     },
-    [items, selectedIndex, page, filter, fetchGallery]
+    [items, selectedIndex, page, filter, fetchGallery],
   );
 
   const handleClose = useCallback(() => {
@@ -171,11 +192,14 @@ export default function GalleryPage() {
         type: filter,
       });
       const allResponse = await fetch(`/api/gallery?${params}`);
-      if (!allResponse.ok) throw new Error('Failed to fetch items for deletion');
+      if (!allResponse.ok)
+        throw new Error('Failed to fetch items for deletion');
       const allData: GalleryResponse = await allResponse.json();
 
       await Promise.all(
-        allData.items.map((item) => fetch(`/api/gallery/${item.path}`, { method: 'DELETE' }))
+        allData.items.map((item) =>
+          fetch(`/api/gallery/${item.path}`, { method: 'DELETE' }),
+        ),
       );
 
       setSelectedIndex(null);
@@ -208,21 +232,26 @@ export default function GalleryPage() {
               className="h-8 w-auto"
               unoptimized
             />
-            <h1 className="text-xl font-semibold text-[var(--foreground)]">Gallery</h1>
+            <h1 className="text-xl font-semibold text-[var(--foreground)]">
+              Gallery
+            </h1>
           </div>
           <div className="flex items-center gap-3">
             <p className="text-sm text-[var(--muted-foreground)]">
               {total} {total === 1 ? 'item' : 'items'}
             </p>
-            <button
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.ICON}
               onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="p-2 rounded-lg bg-[var(--secondary)] hover:bg-[var(--secondary)]/80 transition disabled:opacity-50"
-            >
-              <RefreshCw
-                className={`w-4 h-4 text-[var(--foreground)] ${isRefreshing ? 'animate-spin' : ''}`}
-              />
-            </button>
+              isDisabled={isRefreshing}
+              className="p-2 rounded-lg"
+              icon={
+                <RefreshCw
+                  className={`w-4 h-4 text-[var(--foreground)] ${isRefreshing ? 'animate-spin' : ''}`}
+                />
+              }
+            />
           </div>
         </div>
       </header>
@@ -234,29 +263,37 @@ export default function GalleryPage() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               {FILTERS.map(({ type, label, icon: Icon }) => (
-                <button
+                <Button
                   key={type}
-                  onClick={() => handleFilterChange(type)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                  variant={
                     filter === type
-                      ? 'bg-white text-black'
-                      : 'bg-[var(--secondary)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-                  }`}
+                      ? ButtonVariant.DEFAULT
+                      : ButtonVariant.SECONDARY
+                  }
+                  size={ButtonSize.SM}
+                  onClick={() => handleFilterChange(type)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
+                  icon={<Icon className="w-4 h-4" />}
                 >
-                  <Icon className="w-4 h-4" />
                   {label}
-                  {type !== 'all' && <span className="text-xs opacity-60">({counts[type]})</span>}
-                </button>
+                  {type !== 'all' && (
+                    <span className="text-xs opacity-60">({counts[type]})</span>
+                  )}
+                </Button>
               ))}
             </div>
-            <button
+            <Button
+              variant={ButtonVariant.DESTRUCTIVE}
+              size={ButtonSize.SM}
               onClick={handleDeleteAll}
-              disabled={isDeleting || items.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-red-500/10 text-red-500 hover:bg-red-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              isDisabled={isDeleting || items.length === 0}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
+              icon={<Trash2 className="w-4 h-4" />}
             >
-              <Trash2 className="w-4 h-4" />
-              {isDeleting ? 'Deleting...' : `Delete ${filter === 'all' ? 'All' : `${filter}s`}`}
-            </button>
+              {isDeleting
+                ? 'Deleting...'
+                : `Delete ${filter === 'all' ? 'All' : `${filter}s`}`}
+            </Button>
           </div>
         )}
 
@@ -264,7 +301,9 @@ export default function GalleryPage() {
         {isLoading && (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-[var(--muted-foreground)]">Loading gallery...</p>
+            <p className="text-sm text-[var(--muted-foreground)]">
+              Loading gallery...
+            </p>
           </div>
         )}
 
@@ -272,12 +311,13 @@ export default function GalleryPage() {
         {error && (
           <div className="text-center py-20">
             <p className="text-red-500 mb-4">{error}</p>
-            <button
+            <Button
+              variant={ButtonVariant.SECONDARY}
               onClick={handleRefresh}
-              className="px-4 py-2 bg-[var(--secondary)] text-[var(--foreground)] rounded-lg hover:opacity-90 transition"
+              className="px-4 py-2 rounded-lg"
             >
               Try Again
-            </button>
+            </Button>
           </div>
         )}
 
@@ -287,7 +327,9 @@ export default function GalleryPage() {
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--secondary)] flex items-center justify-center">
               <ImageIcon className="w-8 h-8 text-[var(--muted-foreground)]" />
             </div>
-            <h3 className="text-lg font-medium text-[var(--foreground)] mb-2">No assets yet</h3>
+            <h3 className="text-lg font-medium text-[var(--foreground)] mb-2">
+              No assets yet
+            </h3>
             <p className="text-[var(--muted-foreground)] mb-6">
               Generated images, videos, and audio will appear here
             </p>
@@ -311,7 +353,11 @@ export default function GalleryPage() {
         {!isLoading && !error && items.length > 0 && (
           <>
             <GalleryGrid items={items} onSelect={handleSelect} />
-            <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+            />
           </>
         )}
       </main>

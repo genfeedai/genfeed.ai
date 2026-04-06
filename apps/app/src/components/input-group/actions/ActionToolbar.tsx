@@ -1,11 +1,13 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type {
   ActionConfig,
   ToolbarOrientation,
   ToolbarSize,
   ToolbarVisibility,
 } from '@genfeedai/types';
+import Button from '@ui/buttons/base/Button';
 import { clsx } from 'clsx';
 import { memo, type ReactNode } from 'react';
 
@@ -45,30 +47,35 @@ function ActionToolbarComponent({
         visible === true && 'opacity-100',
         visible === false && 'opacity-0',
         'transition-opacity',
-        className
+        className,
       )}
       role="toolbar"
       aria-label="Actions"
     >
       {visibleActions.map((action) => (
-        <button
+        <Button
           key={action.id}
-          type="button"
           onClick={action.onClick}
-          disabled={action.disabled}
+          isDisabled={action.disabled}
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           className={clsx(
             'rounded transition-colors',
             sizeClasses.button,
             action.danger
               ? 'hover:bg-red-500/10 text-red-400 hover:text-red-300'
               : 'hover:bg-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]',
-            action.disabled && 'opacity-50 cursor-not-allowed'
+            action.disabled && 'opacity-50 cursor-not-allowed',
           )}
-          title={action.shortcut ? `${action.label} (${action.shortcut})` : action.label}
-          aria-label={action.label}
+          tooltip={
+            action.shortcut
+              ? `${action.label} (${action.shortcut})`
+              : action.label
+          }
+          ariaLabel={action.label}
         >
           <span className={sizeClasses.icon}>{action.icon}</span>
-        </button>
+        </Button>
       ))}
     </div>
   );

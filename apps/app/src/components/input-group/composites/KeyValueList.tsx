@@ -1,6 +1,7 @@
 'use client';
 
 import type { KeyValuePair, RowHelpers } from '@genfeedai/types';
+import { Input } from '@ui/primitives/input';
 import { clsx } from 'clsx';
 import { nanoid } from 'nanoid';
 import { memo, useCallback } from 'react';
@@ -38,38 +39,26 @@ function KeyValueListComponent({
   const renderRow = useCallback(
     (item: KeyValuePair, _index: number, helpers: RowHelpers<KeyValuePair>) => (
       <div className="flex items-center gap-2">
-        <input
+        <Input
           type="text"
           value={item.key}
           onChange={(e) => helpers.update({ key: e.target.value })}
           placeholder={keyPlaceholder}
           disabled={disabled}
-          className={clsx(
-            'flex-1 px-2 py-1.5 text-sm font-mono',
-            'bg-[var(--background)] border border-[var(--border)] rounded',
-            'focus:outline-none focus:ring-1 focus:ring-[var(--primary)] focus:border-[var(--primary)]',
-            'placeholder:text-[var(--muted-foreground)]',
-            disabled && 'opacity-50 cursor-not-allowed'
-          )}
+          className="flex-1 font-mono"
         />
         <span className="text-[var(--muted-foreground)] text-sm">=</span>
-        <input
+        <Input
           type="text"
           value={item.value}
           onChange={(e) => helpers.update({ value: e.target.value })}
           placeholder={valuePlaceholder}
           disabled={disabled}
-          className={clsx(
-            'flex-1 px-2 py-1.5 text-sm',
-            'bg-[var(--background)] border border-[var(--border)] rounded',
-            'focus:outline-none focus:ring-1 focus:ring-[var(--primary)] focus:border-[var(--primary)]',
-            'placeholder:text-[var(--muted-foreground)]',
-            disabled && 'opacity-50 cursor-not-allowed'
-          )}
+          className="flex-1"
         />
       </div>
     ),
-    [keyPlaceholder, valuePlaceholder, disabled]
+    [keyPlaceholder, valuePlaceholder, disabled],
   );
 
   const handleChange = useCallback(
@@ -81,11 +70,13 @@ function KeyValueListComponent({
       }));
       onChange(itemsWithIds);
     },
-    [onChange]
+    [onChange],
   );
 
   return (
-    <div className={clsx(disabled && 'opacity-50 pointer-events-none', className)}>
+    <div
+      className={clsx(disabled && 'opacity-50 pointer-events-none', className)}
+    >
       <DynamicList
         items={items}
         defaultItem={defaultItem}

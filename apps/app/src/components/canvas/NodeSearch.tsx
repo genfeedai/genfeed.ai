@@ -1,15 +1,17 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type { WorkflowNode } from '@genfeedai/types';
-import { Kbd } from '@genfeedai/ui';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
-import { useReactFlow } from '@xyflow/react';
-import { Input } from '@/components/ui/input';
-import { Modal } from '@/components/ui/modal';
+import { Kbd } from '@genfeedai/ui';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
-import { useWorkflowStore } from '@/store/workflowStore';
+import Button from '@ui/buttons/base/Button';
+import { useReactFlow } from '@xyflow/react';
 import { Search } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { Modal } from '@/components/ui/modal';
+import { useWorkflowStore } from '@/store/workflowStore';
 
 export function NodeSearch() {
   const { activeModal, closeModal } = useUIStore();
@@ -29,9 +31,13 @@ export function NodeSearch() {
     return nodes.filter((node) => {
       const label = (node.data.label || '').toLowerCase();
       const type = (node.type || '').toLowerCase();
-      const comment = ((node.data as { comment?: string }).comment || '').toLowerCase();
+      const comment = (
+        (node.data as { comment?: string }).comment || ''
+      ).toLowerCase();
       const nodeDefLabel =
-        NODE_DEFINITIONS[node.type as keyof typeof NODE_DEFINITIONS]?.label?.toLowerCase() || '';
+        NODE_DEFINITIONS[
+          node.type as keyof typeof NODE_DEFINITIONS
+        ]?.label?.toLowerCase() || '';
 
       return (
         label.includes(query) ||
@@ -50,7 +56,9 @@ export function NodeSearch() {
   // Scroll selected item into view
   useEffect(() => {
     if (listRef.current) {
-      const selectedItem = listRef.current.children[selectedIndex] as HTMLElement | undefined;
+      const selectedItem = listRef.current.children[selectedIndex] as
+        | HTMLElement
+        | undefined;
       selectedItem?.scrollIntoView({ block: 'nearest' });
     }
   }, [selectedIndex]);
@@ -71,14 +79,16 @@ export function NodeSearch() {
       closeModal();
       setSearch('');
     },
-    [setSelectedNodeIds, reactFlow, closeModal]
+    [setSelectedNodeIds, reactFlow, closeModal],
   );
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        setSelectedIndex((prev) => Math.min(prev + 1, filteredNodes.length - 1));
+        setSelectedIndex((prev) =>
+          Math.min(prev + 1, filteredNodes.length - 1),
+        );
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
         setSelectedIndex((prev) => Math.max(prev - 1, 0));
@@ -87,7 +97,7 @@ export function NodeSearch() {
         handleSelectNode(filteredNodes[selectedIndex]);
       }
     },
-    [filteredNodes, selectedIndex, handleSelectNode]
+    [filteredNodes, selectedIndex, handleSelectNode],
   );
 
   const handleClose = () => {
@@ -119,16 +129,21 @@ export function NodeSearch() {
         <div ref={listRef} className="max-h-[300px] overflow-y-auto space-y-1">
           {filteredNodes.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
-              {search ? `No nodes found for "${search}"` : 'No nodes in workflow'}
+              {search
+                ? `No nodes found for "${search}"`
+                : 'No nodes in workflow'}
             </div>
           ) : (
             filteredNodes.map((node, index) => {
-              const nodeDef = NODE_DEFINITIONS[node.type as keyof typeof NODE_DEFINITIONS];
+              const nodeDef =
+                NODE_DEFINITIONS[node.type as keyof typeof NODE_DEFINITIONS];
               const comment = (node.data as { comment?: string }).comment;
 
               return (
-                <button
+                <Button
                   key={node.id}
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
                   onClick={() => handleSelectNode(node)}
                   className={`w-full flex items-center gap-3 p-2 rounded text-left transition-colors ${
                     index === selectedIndex
@@ -140,13 +155,15 @@ export function NodeSearch() {
                     {nodeDef?.label?.charAt(0) || '?'}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium truncate text-sm">{node.data.label}</div>
+                    <div className="font-medium truncate text-sm">
+                      {node.data.label}
+                    </div>
                     <div className="text-xs text-muted-foreground truncate">
                       {nodeDef?.label || node.type}
                       {comment && ` · ${comment}`}
                     </div>
                   </div>
-                </button>
+                </Button>
               );
             })
           )}

@@ -1,7 +1,24 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { ProviderModel } from '@genfeedai/types';
-import { ArrowRight, Clapperboard, LoaderCircle, Sparkles, Wand2 } from 'lucide-react';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
+import {
+  ArrowRight,
+  Clapperboard,
+  LoaderCircle,
+  Sparkles,
+  Wand2,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -47,14 +64,16 @@ export default function StudioPage() {
 
     async function loadModels() {
       try {
-        const response = await fetch('/api/providers/models?provider=replicate');
+        const response = await fetch(
+          '/api/providers/models?provider=replicate',
+        );
         if (!response.ok) {
           throw new Error('Failed to load models');
         }
 
         const data = await response.json();
         const filtered = (data.models as ProviderModel[]).filter(
-          (candidate) => getMediaCapabilities(candidate).length > 0
+          (candidate) => getMediaCapabilities(candidate).length > 0,
         );
 
         if (cancelled) return;
@@ -66,14 +85,18 @@ export default function StudioPage() {
           }
 
           const firstImageModel = filtered.find((candidate) =>
-            getMediaCapabilities(candidate).includes('image')
+            getMediaCapabilities(candidate).includes('image'),
           );
 
           return firstImageModel?.id ?? '';
         });
       } catch (loadError) {
         if (!cancelled) {
-          setError(loadError instanceof Error ? loadError.message : 'Failed to load models');
+          setError(
+            loadError instanceof Error
+              ? loadError.message
+              : 'Failed to load models',
+          );
         }
       }
     }
@@ -85,8 +108,11 @@ export default function StudioPage() {
   }, []);
 
   const availableModels = useMemo(
-    () => models.filter((candidate) => getMediaCapabilities(candidate).includes(mediaType)),
-    [mediaType, models]
+    () =>
+      models.filter((candidate) =>
+        getMediaCapabilities(candidate).includes(mediaType),
+      ),
+    [mediaType, models],
   );
 
   useEffect(() => {
@@ -104,7 +130,9 @@ export default function StudioPage() {
 
   async function pollPrediction(predictionId: string): Promise<string[]> {
     while (true) {
-      const response = await fetch(`/api/status/${predictionId}`, { cache: 'no-store' });
+      const response = await fetch(`/api/status/${predictionId}`, {
+        cache: 'no-store',
+      });
       if (!response.ok) {
         throw new Error('Failed to check prediction status');
       }
@@ -154,7 +182,7 @@ export default function StudioPage() {
           }),
           headers: { 'Content-Type': 'application/json' },
           method: 'POST',
-        }
+        },
       );
 
       if (!response.ok) {
@@ -184,7 +212,11 @@ export default function StudioPage() {
       setResults(imported.items as StudioGenerationResult[]);
       setStatus('succeeded');
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : 'Generation failed');
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : 'Generation failed',
+      );
       setStatus('failed');
     } finally {
       setIsSubmitting(false);
@@ -204,32 +236,35 @@ export default function StudioPage() {
             Generate assets fast, then move straight into editing.
           </h1>
           <p className="mt-4 text-[var(--muted-foreground)]">
-            Core Studio is Replicate-only. Pick a model, write the prompt, generate locally, and
-            save the result into the Core gallery.
+            Core Studio is Replicate-only. Pick a model, write the prompt,
+            generate locally, and save the result into the Core gallery.
           </p>
         </div>
 
         <div className="mt-8 grid gap-6">
           <div className="flex flex-wrap gap-3">
             {(['image', 'video'] as StudioMediaType[]).map((option) => (
-              <button
+              <Button
                 key={option}
-                type="button"
-                onClick={() => setMediaType(option)}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                variant={
                   mediaType === option
-                    ? 'bg-white text-black'
-                    : 'bg-[var(--secondary)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-                }`}
+                    ? ButtonVariant.DEFAULT
+                    : ButtonVariant.SECONDARY
+                }
+                size={ButtonSize.SM}
+                onClick={() => setMediaType(option)}
+                className="rounded-full px-4 py-2 text-sm font-medium"
               >
                 {option === 'image' ? 'Images' : 'Video'}
-              </button>
+              </Button>
             ))}
           </div>
 
           <label className="grid gap-2">
-            <span className="text-sm font-medium text-[var(--muted-foreground)]">Prompt</span>
-            <textarea
+            <span className="text-sm font-medium text-[var(--muted-foreground)]">
+              Prompt
+            </span>
+            <Textarea
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
               rows={6}
@@ -240,42 +275,48 @@ export default function StudioPage() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-[var(--muted-foreground)]">Model</span>
-              <select
-                value={model}
-                onChange={(event) => setModel(event.target.value)}
-                className="rounded-2xl border border-[var(--border)] bg-[var(--secondary)] px-4 py-3 outline-none transition focus:border-white/50"
-              >
-                {availableModels.map((candidate) => (
-                  <option key={candidate.id} value={candidate.id}>
-                    {candidate.displayName}
-                  </option>
-                ))}
-              </select>
+              <span className="text-sm font-medium text-[var(--muted-foreground)]">
+                Model
+              </span>
+              <Select value={model} onValueChange={setModel}>
+                <SelectTrigger className="rounded-2xl border border-[var(--border)] bg-[var(--secondary)] px-4 py-3 outline-none transition focus:border-white/50">
+                  <SelectValue placeholder="Select model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableModels.map((candidate) => (
+                    <SelectItem key={candidate.id} value={candidate.id}>
+                      {candidate.displayName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </label>
 
             <label className="grid gap-2">
               <span className="text-sm font-medium text-[var(--muted-foreground)]">
                 Aspect ratio
               </span>
-              <select
-                value={aspectRatio}
-                onChange={(event) => setAspectRatio(event.target.value)}
-                className="rounded-2xl border border-[var(--border)] bg-[var(--secondary)] px-4 py-3 outline-none transition focus:border-white/50"
-              >
-                {aspectChoices.map((choice) => (
-                  <option key={choice} value={choice}>
-                    {choice}
-                  </option>
-                ))}
-              </select>
+              <Select value={aspectRatio} onValueChange={setAspectRatio}>
+                <SelectTrigger className="rounded-2xl border border-[var(--border)] bg-[var(--secondary)] px-4 py-3 outline-none transition focus:border-white/50">
+                  <SelectValue placeholder="Select ratio" />
+                </SelectTrigger>
+                <SelectContent>
+                  {aspectChoices.map((choice) => (
+                    <SelectItem key={choice} value={choice}>
+                      {choice}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </label>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-[var(--muted-foreground)]">Count</span>
-              <input
+              <span className="text-sm font-medium text-[var(--muted-foreground)]">
+                Count
+              </span>
+              <Input
                 type="number"
                 min={1}
                 max={4}
@@ -286,34 +327,35 @@ export default function StudioPage() {
             </label>
 
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-[var(--muted-foreground)]">Duration</span>
-              <input
+              <span className="text-sm font-medium text-[var(--muted-foreground)]">
+                Duration
+              </span>
+              <Input
                 type="number"
                 min={4}
                 max={12}
                 step={1}
                 disabled={mediaType !== 'video'}
                 value={duration}
-                onChange={(event) => setDuration(Number(event.target.value) || 8)}
+                onChange={(event) =>
+                  setDuration(Number(event.target.value) || 8)
+                }
                 className="rounded-2xl border border-[var(--border)] bg-[var(--secondary)] px-4 py-3 outline-none transition focus:border-white/50 disabled:opacity-50"
               />
             </label>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              disabled={!prompt.trim() || !model || isSubmitting}
+            <Button
+              variant={ButtonVariant.DEFAULT}
+              isDisabled={!prompt.trim() || !model || isSubmitting}
+              isLoading={isSubmitting}
               onClick={handleGenerate}
-              className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold"
+              icon={<Sparkles className="h-4 w-4" />}
             >
-              {isSubmitting ? (
-                <LoaderCircle className="h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4" />
-              )}
               Generate
-            </button>
+            </Button>
             <Link
               href="/workflows/new"
               className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] px-5 py-3 text-sm font-medium text-[var(--muted-foreground)] transition hover:border-white hover:text-[var(--foreground)]"
@@ -322,7 +364,9 @@ export default function StudioPage() {
               Open Workflow Builder
             </Link>
             {status ? (
-              <span className="text-sm text-[var(--muted-foreground)]">Status: {status}</span>
+              <span className="text-sm text-[var(--muted-foreground)]">
+                Status: {status}
+              </span>
             ) : null}
           </div>
 
@@ -343,8 +387,8 @@ export default function StudioPage() {
           <div className="mt-5 space-y-4">
             {results.length === 0 ? (
               <div className="rounded-3xl border border-dashed border-[var(--border)] bg-[var(--secondary)]/60 p-6 text-sm text-[var(--muted-foreground)]">
-                Generated assets land here. From here you can open them directly in Editor or review
-                them in Gallery.
+                Generated assets land here. From here you can open them directly
+                in Editor or review them in Gallery.
               </div>
             ) : (
               results.map((result) => (
@@ -370,7 +414,9 @@ export default function StudioPage() {
                   <div className="flex flex-wrap items-center justify-between gap-3 p-4">
                     <div>
                       <p className="font-medium">{result.name}</p>
-                      <p className="text-sm text-[var(--muted-foreground)]">{result.mimeType}</p>
+                      <p className="text-sm text-[var(--muted-foreground)]">
+                        {result.mimeType}
+                      </p>
                     </div>
                     <div className="flex gap-2">
                       <Link

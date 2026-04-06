@@ -1,6 +1,9 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type { CubicBezier } from '@genfeedai/types';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
 import { useCallback, useRef, useState } from 'react';
 import { EASING_PRESETS } from '@/lib/easing/presets';
 
@@ -17,7 +20,10 @@ export function BezierCurveEditor({ value, onChange }: BezierCurveEditorProps) {
 
   // Convert bezier coordinates (0-1) to SVG coordinates (0-200)
   const toSvg = (v: number) => v * 200;
-  const fromSvg = useCallback((v: number) => Math.max(0, Math.min(1, v / 200)), []);
+  const fromSvg = useCallback(
+    (v: number) => Math.max(0, Math.min(1, v / 200)),
+    [],
+  );
 
   const handleMouseDown = useCallback((point: 1 | 2) => {
     setDragging(point);
@@ -37,7 +43,7 @@ export function BezierCurveEditor({ value, onChange }: BezierCurveEditorProps) {
         onChange([x1, y1, x, y]);
       }
     },
-    [dragging, x1, y1, x2, y2, onChange, fromSvg]
+    [dragging, x1, y1, x2, y2, onChange, fromSvg],
   );
 
   const handleMouseUp = useCallback(() => {
@@ -65,18 +71,45 @@ export function BezierCurveEditor({ value, onChange }: BezierCurveEditorProps) {
         >
           {/* Grid */}
           <defs>
-            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--border)" strokeWidth="0.5" />
+            <pattern
+              id="grid"
+              width="40"
+              height="40"
+              patternUnits="userSpaceOnUse"
+            >
+              <path
+                d="M 40 0 L 0 0 0 40"
+                fill="none"
+                stroke="var(--border)"
+                strokeWidth="0.5"
+              />
             </pattern>
           </defs>
           <rect width="200" height="200" fill="url(#grid)" />
 
           {/* Diagonal reference */}
-          <line x1="0" y1="200" x2="200" y2="0" stroke="var(--border)" strokeDasharray="4 4" />
+          <line
+            x1="0"
+            y1="200"
+            x2="200"
+            y2="0"
+            stroke="var(--border)"
+            strokeDasharray="4 4"
+          />
 
           {/* Control point lines */}
-          <path d={line1} stroke="var(--primary)" strokeWidth="1" opacity="0.5" />
-          <path d={line2} stroke="var(--primary)" strokeWidth="1" opacity="0.5" />
+          <path
+            d={line1}
+            stroke="var(--primary)"
+            strokeWidth="1"
+            opacity="0.5"
+          />
+          <path
+            d={line2}
+            stroke="var(--primary)"
+            strokeWidth="1"
+            opacity="0.5"
+          />
 
           {/* Bezier curve */}
           <path d={pathD} fill="none" stroke="var(--primary)" strokeWidth="2" />
@@ -109,7 +142,7 @@ export function BezierCurveEditor({ value, onChange }: BezierCurveEditorProps) {
       <div className="grid grid-cols-4 gap-2 text-xs">
         <div>
           <label className="text-[var(--muted-foreground)]">X1</label>
-          <input
+          <Input
             type="number"
             min="0"
             max="1"
@@ -121,7 +154,7 @@ export function BezierCurveEditor({ value, onChange }: BezierCurveEditorProps) {
         </div>
         <div>
           <label className="text-[var(--muted-foreground)]">Y1</label>
-          <input
+          <Input
             type="number"
             min="0"
             max="1"
@@ -133,7 +166,7 @@ export function BezierCurveEditor({ value, onChange }: BezierCurveEditorProps) {
         </div>
         <div>
           <label className="text-[var(--muted-foreground)]">X2</label>
-          <input
+          <Input
             type="number"
             min="0"
             max="1"
@@ -145,7 +178,7 @@ export function BezierCurveEditor({ value, onChange }: BezierCurveEditorProps) {
         </div>
         <div>
           <label className="text-[var(--muted-foreground)]">Y2</label>
-          <input
+          <Input
             type="number"
             min="0"
             max="1"
@@ -159,18 +192,22 @@ export function BezierCurveEditor({ value, onChange }: BezierCurveEditorProps) {
 
       {/* Quick Presets */}
       <div>
-        <label className="text-xs text-[var(--muted-foreground)] mb-1 block">Quick Presets</label>
+        <label className="text-xs text-[var(--muted-foreground)] mb-1 block">
+          Quick Presets
+        </label>
         <div className="flex flex-wrap gap-1">
           {Object.entries(EASING_PRESETS)
             .slice(0, 6)
             .map(([name, curve]) => (
-              <button
+              <Button
                 key={name}
                 onClick={() => onChange(curve)}
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
                 className="px-2 py-1 text-xs bg-[var(--card)] border border-[var(--border)] rounded hover:border-[var(--primary)] transition"
               >
                 {name.replace(/([A-Z])/g, ' $1').trim()}
-              </button>
+              </Button>
             ))}
         </div>
       </div>

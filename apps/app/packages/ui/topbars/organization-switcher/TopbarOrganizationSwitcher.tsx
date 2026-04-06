@@ -1,10 +1,14 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { OrganizationsService } from '@services/organization/organizations.service';
+import Button from '@ui/buttons/base/Button';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
 import { Modal } from '@ui/modals/compound/Modal';
+import { Input } from '@ui/primitives/input';
+import { Textarea } from '@ui/primitives/textarea';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HiChevronDown, HiOutlineCog6Tooth } from 'react-icons/hi2';
@@ -195,14 +199,13 @@ export default function TopbarOrganizationSwitcher() {
                 <label className="text-xs font-medium text-white/70">
                   Name <span className="text-red-400">*</span>
                 </label>
-                <input
+                <Input
                   type="text"
                   value={newOrganizationLabel}
                   onChange={(event) =>
                     setNewOrganizationLabel(event.target.value)
                   }
                   placeholder="My Organization"
-                  className="w-full rounded-lg border border-white/[0.12] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder-white/30 focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/50"
                   onKeyDown={(event) => {
                     if (event.key === 'Enter') {
                       void handleCreateOrganization();
@@ -215,14 +218,14 @@ export default function TopbarOrganizationSwitcher() {
                 <label className="text-xs font-medium text-white/70">
                   Description <span className="text-white/30">(optional)</span>
                 </label>
-                <textarea
+                <Textarea
                   value={newOrganizationDescription}
                   onChange={(event) =>
                     setNewOrganizationDescription(event.target.value)
                   }
                   placeholder="What does this organization do?"
                   rows={2}
-                  className="w-full resize-none rounded-lg border border-white/[0.12] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder-white/30 focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                  className="resize-none"
                 />
               </div>
 
@@ -236,29 +239,26 @@ export default function TopbarOrganizationSwitcher() {
 
           <Modal.Footer>
             <Modal.CloseButton asChild>
-              <button
-                type="button"
+              <Button
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
                 className="px-4 py-2 text-sm text-white/60 transition-colors hover:text-white"
               >
                 Cancel
-              </button>
+              </Button>
             </Modal.CloseButton>
-            <button
-              type="button"
-              disabled={
+            <Button
+              variant={ButtonVariant.DEFAULT}
+              withWrapper={false}
+              isDisabled={
                 isCreatingOrganization ||
                 newOrganizationLabel.trim().length === 0
               }
               onClick={() => void handleCreateOrganization()}
-              className={cn(
-                'rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90',
-                (isCreatingOrganization ||
-                  newOrganizationLabel.trim().length === 0) &&
-                  'cursor-not-allowed opacity-50',
-              )}
+              className="rounded-lg px-4 py-2 text-sm font-medium"
             >
-              {isCreatingOrganization ? 'Creating…' : 'Create'}
-            </button>
+              {isCreatingOrganization ? 'Creating\u2026' : 'Create'}
+            </Button>
           </Modal.Footer>
         </Modal.Content>
       </Modal.Root>

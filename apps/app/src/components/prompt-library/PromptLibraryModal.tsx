@@ -1,13 +1,34 @@
 'use client';
 
-import { CATEGORY_LABELS, type IPrompt, type PromptCategory } from '@genfeedai/types';
-import { BookMarked, Copy, MoreVertical, Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import {
+  CATEGORY_LABELS,
+  type IPrompt,
+  type PromptCategory,
+} from '@genfeedai/types';
+import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
+import {
+  BookMarked,
+  Copy,
+  MoreVertical,
+  Plus,
+  Search,
+  Sparkles,
+  Trash2,
+  X,
+} from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { usePromptLibraryStore } from '@/store/promptLibraryStore';
-import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { CreatePromptModal } from './CreatePromptModal';
 
 interface PromptCardProps {
@@ -18,7 +39,13 @@ interface PromptCardProps {
   onDelete: (id: string) => void;
 }
 
-function PromptCard({ item, onSelect, onEdit, onDuplicate, onDelete }: PromptCardProps) {
+function PromptCard({
+  item,
+  onSelect,
+  onEdit,
+  onDuplicate,
+  onDelete,
+}: PromptCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuId = `prompt-menu-${item._id}`;
@@ -55,8 +82,12 @@ function PromptCard({ item, onSelect, onEdit, onDuplicate, onDelete }: PromptCar
       )}
 
       {/* Content */}
-      <h3 className="truncate text-sm font-medium text-foreground">{item.name}</h3>
-      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.promptText}</p>
+      <h3 className="truncate text-sm font-medium text-foreground">
+        {item.name}
+      </h3>
+      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+        {item.promptText}
+      </p>
 
       {/* Category badge */}
       <div className="mt-2 flex items-center gap-2">
@@ -78,17 +109,15 @@ function PromptCard({ item, onSelect, onEdit, onDuplicate, onDelete }: PromptCar
       {/* Actions menu */}
       <div className="absolute right-2 top-2" ref={menuRef}>
         <Button
-          variant="ghost"
-          size="icon-sm"
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
+          withWrapper={false}
           onClick={(e) => {
             e.stopPropagation();
             setShowMenu(!showMenu);
           }}
           className="opacity-0 group-hover:opacity-100"
-          aria-haspopup="menu"
-          aria-expanded={showMenu}
-          aria-controls={menuId}
-          aria-label={`Actions for ${item.name}`}
+          ariaLabel={`Actions for ${item.name}`}
         >
           <MoreVertical className="h-4 w-4" />
         </Button>
@@ -100,8 +129,9 @@ function PromptCard({ item, onSelect, onEdit, onDuplicate, onDelete }: PromptCar
             aria-label="Prompt actions"
             className="absolute right-0 top-full z-10 mt-1 w-32 rounded-md border border-border bg-card py-1 shadow-lg"
           >
-            <button
-              role="menuitem"
+            <Button
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
               onClick={(e) => {
                 e.stopPropagation();
                 onEdit(item);
@@ -110,9 +140,10 @@ function PromptCard({ item, onSelect, onEdit, onDuplicate, onDelete }: PromptCar
               className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-secondary"
             >
               <BookMarked className="h-3 w-3" /> Edit
-            </button>
-            <button
-              role="menuitem"
+            </Button>
+            <Button
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
               onClick={(e) => {
                 e.stopPropagation();
                 onDuplicate(item._id);
@@ -121,9 +152,10 @@ function PromptCard({ item, onSelect, onEdit, onDuplicate, onDelete }: PromptCar
               className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-secondary"
             >
               <Copy className="h-3 w-3" /> Duplicate
-            </button>
-            <button
-              role="menuitem"
+            </Button>
+            <Button
+              variant={ButtonVariant.DESTRUCTIVE}
+              withWrapper={false}
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(item._id);
@@ -132,7 +164,7 @@ function PromptCard({ item, onSelect, onEdit, onDuplicate, onDelete }: PromptCar
               className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-destructive hover:bg-secondary"
             >
               <Trash2 className="h-3 w-3" /> Delete
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -172,21 +204,21 @@ function PromptLibraryModalComponent() {
       // Just close modal for now - integration will handle applying to node
       closeModal();
     },
-    [closeModal]
+    [closeModal],
   );
 
   const handleEdit = useCallback(
     (item: IPrompt) => {
       openCreateModal(item);
     },
-    [openCreateModal]
+    [openCreateModal],
   );
 
   const handleDuplicate = useCallback(
     async (id: string) => {
       await duplicateItem(id);
     },
-    [duplicateItem]
+    [duplicateItem],
   );
 
   const handleDelete = useCallback(
@@ -195,7 +227,7 @@ function PromptLibraryModalComponent() {
         await deleteItem(id);
       }
     },
-    [deleteItem]
+    [deleteItem],
   );
 
   if (!isOpen) return null;
@@ -208,9 +240,16 @@ function PromptLibraryModalComponent() {
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-3">
             <BookMarked className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">Prompt Library</h2>
+            <h2 className="text-lg font-semibold text-foreground">
+              Prompt Library
+            </h2>
           </div>
-          <Button variant="ghost" size="icon-sm" onClick={closeModal}>
+          <Button
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
+            withWrapper={false}
+            onClick={closeModal}
+          >
             <X className="h-5 w-5" />
           </Button>
         </div>
@@ -230,23 +269,30 @@ function PromptLibraryModalComponent() {
           </div>
 
           {/* Category filter */}
-          <select
+          <Select
             value={categoryFilter ?? ''}
-            onChange={(e) =>
-              setCategoryFilter(e.target.value ? (e.target.value as PromptCategory) : null)
+            onValueChange={(value) =>
+              setCategoryFilter(value ? (value as PromptCategory) : null)
             }
-            className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
-            <option value="">All Categories</option>
-            {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Categories</SelectItem>
+              {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+                <SelectItem key={key} value={key}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           {/* Create button */}
-          <Button onClick={() => openCreateModal()}>
+          <Button
+            variant={ButtonVariant.DEFAULT}
+            onClick={() => openCreateModal()}
+          >
             <Plus className="h-4 w-4" />
             New Prompt
           </Button>
@@ -263,7 +309,11 @@ function PromptLibraryModalComponent() {
               <BookMarked className="mb-4 h-12 w-12" />
               <p className="text-lg font-medium">No prompts yet</p>
               <p className="text-sm">Create your first prompt to get started</p>
-              <Button className="mt-4" onClick={() => openCreateModal()}>
+              <Button
+                variant={ButtonVariant.DEFAULT}
+                className="mt-4"
+                onClick={() => openCreateModal()}
+              >
                 <Plus className="h-4 w-4" />
                 Create Prompt
               </Button>

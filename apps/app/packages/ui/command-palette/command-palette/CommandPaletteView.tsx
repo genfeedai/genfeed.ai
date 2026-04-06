@@ -8,6 +8,7 @@ import { Kbd } from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { CommandPaletteItem } from '@ui/command-palette/command-palette-item/CommandPaletteItem';
 import Modal from '@ui/modals/modal/Modal';
+import { Input } from '@ui/primitives/input';
 import type { ReactElement, RefObject } from 'react';
 
 export interface CommandPaletteViewProps extends ICommandPaletteProps {
@@ -48,13 +49,13 @@ export function CommandPaletteView({
     >
       <div className={cn('flex h-full flex-col', className)}>
         <div className="flex-shrink-0 border-b border-white/[0.08] p-4">
-          <input
+          <Input
             ref={inputRef}
             type="search"
             value={query}
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder={placeholder}
-            className="h-12 border border-input px-4 w-full text-lg bg-background"
+            className="h-12 text-lg"
           />
         </div>
 
@@ -86,22 +87,13 @@ export function CommandPaletteView({
         <div className="flex-shrink-0 flex items-center justify-between border-t border-white/[0.08] px-4 py-2 text-xs text-foreground/60">
           <div className="flex gap-4">
             <span>
-              <Kbd>
-                ↑↓
-              </Kbd>{' '}
-              Navigate
+              <Kbd>↑↓</Kbd> Navigate
             </span>
             <span>
-              <Kbd>
-                ↵
-              </Kbd>{' '}
-              Execute
+              <Kbd>↵</Kbd> Execute
             </span>
             <span>
-              <Kbd>
-                Esc
-              </Kbd>{' '}
-              Close
+              <Kbd>Esc</Kbd> Close
             </span>
           </div>
           <span>

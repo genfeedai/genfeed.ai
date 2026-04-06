@@ -1,5 +1,7 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import { ChevronRight } from 'lucide-react';
 import { type ReactNode, useCallback, useRef, useState } from 'react';
 import type { ContextMenuItemConfig } from './ContextMenu';
@@ -57,7 +59,7 @@ export function ContextMenuItem({
         onClose?.();
       }
     },
-    [onClose]
+    [onClose],
   );
 
   const hasSubmenu = submenu && submenu.length > 0;
@@ -69,9 +71,11 @@ export function ContextMenuItem({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <button
+      <Button
         onClick={hasSubmenu ? undefined : onClick}
-        disabled={disabled}
+        isDisabled={disabled}
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
         className={`
           w-full flex items-center gap-3 px-3 py-2 text-left text-sm rounded-md
           transition-colors outline-none
@@ -89,10 +93,14 @@ export function ContextMenuItem({
         )}
         {label && <span className="flex-1">{label}</span>}
         {shortcut && !hasSubmenu && (
-          <span className="text-xs text-[var(--muted-foreground)] ml-4">{shortcut}</span>
+          <span className="text-xs text-[var(--muted-foreground)] ml-4">
+            {shortcut}
+          </span>
         )}
-        {hasSubmenu && <ChevronRight className="w-4 h-4 text-[var(--muted-foreground)]" />}
-      </button>
+        {hasSubmenu && (
+          <ChevronRight className="w-4 h-4 text-[var(--muted-foreground)]" />
+        )}
+      </Button>
 
       {/* Submenu */}
       {hasSubmenu && showSubmenu && (
@@ -107,10 +115,12 @@ export function ContextMenuItem({
             }
 
             return (
-              <button
+              <Button
                 key={item.id}
                 onClick={() => handleSubmenuClick(item)}
-                disabled={item.disabled}
+                isDisabled={item.disabled}
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
                 className={`
                   w-full flex items-center gap-3 px-3 py-2 text-left text-sm rounded-md
                   transition-colors outline-none
@@ -131,7 +141,7 @@ export function ContextMenuItem({
                     {item.shortcut}
                   </span>
                 )}
-              </button>
+              </Button>
             );
           })}
         </div>

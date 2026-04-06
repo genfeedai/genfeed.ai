@@ -1,11 +1,18 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IPrompt } from '@genfeedai/types';
-import { BookMarked, ChevronDown, ChevronUp, ExternalLink, Sparkles } from 'lucide-react';
+import Button from '@ui/buttons/base/Button';
+import {
+  BookMarked,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  Sparkles,
+} from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Button } from '@/components/ui/button';
 import { usePromptLibraryStore } from '@/store/promptLibraryStore';
 
 interface PromptPickerProps {
@@ -19,8 +26,14 @@ function PromptPickerComponent({ onSelect, label }: PromptPickerProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { items, featuredItems, isLoading, loadItems, loadFeatured, recordItemUsage } =
-    usePromptLibraryStore();
+  const {
+    items,
+    featuredItems,
+    isLoading,
+    loadItems,
+    loadFeatured,
+    recordItemUsage,
+  } = usePromptLibraryStore();
 
   // Update dropdown position when opened
   useEffect(() => {
@@ -55,7 +68,10 @@ function PromptPickerComponent({ onSelect, label }: PromptPickerProps) {
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     }
@@ -69,7 +85,7 @@ function PromptPickerComponent({ onSelect, label }: PromptPickerProps) {
       onSelect(item);
       setIsOpen(false);
     },
-    [recordItemUsage, onSelect]
+    [recordItemUsage, onSelect],
   );
 
   // Combine recent and featured, remove duplicates
@@ -81,9 +97,11 @@ function PromptPickerComponent({ onSelect, label }: PromptPickerProps) {
   return (
     <>
       {label ? (
-        <button
+        <Button
           ref={buttonRef}
           onClick={() => setIsOpen(!isOpen)}
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           className="flex flex-1 items-center gap-1 text-sm font-medium text-foreground hover:text-foreground/80 transition"
         >
           <span className="truncate">{label}</span>
@@ -92,18 +110,22 @@ function PromptPickerComponent({ onSelect, label }: PromptPickerProps) {
           ) : (
             <ChevronDown className="h-3 w-3 shrink-0" />
           )}
-        </button>
+        </Button>
       ) : (
         <Button
           ref={buttonRef}
-          variant="ghost"
-          size="sm"
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.SM}
           onClick={() => setIsOpen(!isOpen)}
-          title="Load from library"
+          tooltip="Load from library"
           className="gap-1 px-2"
         >
           <BookMarked className="h-3.5 w-3.5" />
-          {isOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          {isOpen ? (
+            <ChevronUp className="h-3 w-3" />
+          ) : (
+            <ChevronDown className="h-3 w-3" />
+          )}
         </Button>
       )}
 
@@ -132,9 +154,11 @@ function PromptPickerComponent({ onSelect, label }: PromptPickerProps) {
               ) : (
                 <div className="py-1">
                   {displayItems.map((item) => (
-                    <button
+                    <Button
                       key={item._id}
                       onClick={() => handleSelect(item)}
+                      variant={ButtonVariant.UNSTYLED}
+                      withWrapper={false}
                       className="w-full px-3 py-2 text-left transition hover:bg-secondary"
                     >
                       <div className="flex items-start gap-2">
@@ -153,7 +177,9 @@ function PromptPickerComponent({ onSelect, label }: PromptPickerProps) {
                           </div>
                         )}
                         <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium">{item.name}</div>
+                          <div className="truncate text-sm font-medium">
+                            {item.name}
+                          </div>
                           <div className="truncate text-xs text-muted-foreground">
                             {item.promptText}
                           </div>
@@ -164,7 +190,7 @@ function PromptPickerComponent({ onSelect, label }: PromptPickerProps) {
                           </span>
                         )}
                       </div>
-                    </button>
+                    </Button>
                   ))}
                 </div>
               )}
@@ -183,7 +209,7 @@ function PromptPickerComponent({ onSelect, label }: PromptPickerProps) {
               </a>
             </div>
           </div>,
-          document.body
+          document.body,
         )}
     </>
   );

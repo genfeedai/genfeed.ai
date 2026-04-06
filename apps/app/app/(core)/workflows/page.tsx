@@ -1,6 +1,19 @@
 'use client';
 
-import { Clock, Copy, MoreHorizontal, Plus, Search, Tag, Trash2, Workflow, X } from 'lucide-react';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
+import {
+  Clock,
+  Copy,
+  MoreHorizontal,
+  Plus,
+  Search,
+  Tag,
+  Trash2,
+  Workflow,
+  X,
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -70,12 +83,17 @@ function WorkflowCard({ workflow, onDelete, onDuplicate }: WorkflowCardProps) {
             />
           )
         ) : (
-          <WorkflowPreview nodes={workflow.nodes ?? []} edges={workflow.edges ?? []} />
+          <WorkflowPreview
+            nodes={workflow.nodes ?? []}
+            edges={workflow.edges ?? []}
+          />
         )}
       </div>
 
       {/* Info */}
-      <h3 className="font-medium text-[var(--foreground)] truncate">{workflow.name}</h3>
+      <h3 className="font-medium text-[var(--foreground)] truncate">
+        {workflow.name}
+      </h3>
       <div className="flex items-center gap-1 text-xs text-[var(--muted-foreground)] mt-1">
         <Clock className="w-3 h-3" />
         <span>{formatRelativeTime(new Date(workflow.updatedAt))}</span>
@@ -104,46 +122,56 @@ function WorkflowCard({ workflow, onDelete, onDuplicate }: WorkflowCardProps) {
       )}
 
       {/* Menu button */}
-      <button
+      <Button
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
           setShowMenu(!showMenu);
         }}
         className="absolute top-3 right-3 p-1.5 rounded-md bg-[var(--background)] border border-[var(--border)] opacity-0 group-hover:opacity-100 hover:bg-[var(--secondary)] transition"
-      >
-        <MoreHorizontal className="w-4 h-4 text-[var(--muted-foreground)]" />
-      </button>
+        icon={
+          <MoreHorizontal className="w-4 h-4 text-[var(--muted-foreground)]" />
+        }
+      />
 
       {/* Dropdown menu */}
       {showMenu && (
         <>
-          <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+          <div
+            className="fixed inset-0 z-10"
+            onClick={() => setShowMenu(false)}
+          />
           <div className="absolute top-12 right-3 z-20 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg py-1 min-w-[140px]">
-            <button
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 onDuplicate(workflow._id);
                 setShowMenu(false);
               }}
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--secondary)] transition"
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--secondary)] transition rounded-none justify-start"
+              icon={<Copy className="w-4 h-4" />}
             >
-              <Copy className="w-4 h-4" />
               Duplicate
-            </button>
-            <button
+            </Button>
+            <Button
+              variant={ButtonVariant.DESTRUCTIVE}
+              size={ButtonSize.SM}
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 onDelete(workflow._id);
                 setShowMenu(false);
               }}
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-500 hover:bg-[var(--secondary)] transition"
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-[var(--secondary)] transition rounded-none justify-start"
+              icon={<Trash2 className="w-4 h-4" />}
             >
-              <Trash2 className="w-4 h-4" />
               Delete
-            </button>
+            </Button>
           </div>
         </>
       )}
@@ -162,24 +190,34 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasFetched, setHasFetched] = useState(false);
-  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
 
   const fetchWorkflows = useCallback(
-    async (params?: { search?: string; tag?: string }, signal?: AbortSignal) => {
+    async (
+      params?: { search?: string; tag?: string },
+      signal?: AbortSignal,
+    ) => {
       try {
         setIsLoading(true);
         const data = await workflowsApi.getAll(params, signal);
-        data.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        data.sort(
+          (a, b) =>
+            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+        );
         setWorkflows(data);
         setHasFetched(true);
       } catch (err) {
         if (signal?.aborted) return;
-        setError(err instanceof Error ? err.message : 'Failed to load workflows');
+        setError(
+          err instanceof Error ? err.message : 'Failed to load workflows',
+        );
       } finally {
         setIsLoading(false);
       }
     },
-    []
+    [],
   );
 
   const fetchTags = useCallback(async (signal?: AbortSignal) => {
@@ -225,7 +263,7 @@ export default function DashboardPage() {
         alert(err instanceof Error ? err.message : 'Failed to delete workflow');
       }
     },
-    [deleteWorkflow]
+    [deleteWorkflow],
   );
 
   const handleDuplicate = useCallback(
@@ -234,10 +272,12 @@ export default function DashboardPage() {
         const duplicated = await duplicateWorkflowApi(id);
         router.push(`/workflows/${duplicated._id}`);
       } catch (err) {
-        alert(err instanceof Error ? err.message : 'Failed to duplicate workflow');
+        alert(
+          err instanceof Error ? err.message : 'Failed to duplicate workflow',
+        );
       }
     },
-    [duplicateWorkflowApi, router]
+    [duplicateWorkflowApi, router],
   );
 
   return (
@@ -245,14 +285,16 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="flex flex-col gap-4 mb-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-[var(--foreground)]">Your Workflows</h2>
+            <h2 className="text-lg font-semibold text-[var(--foreground)]">
+              Your Workflows
+            </h2>
           </div>
 
           {/* Search & Filter Bar */}
           <div className="flex items-center gap-3 flex-wrap">
             <div className="relative flex-1 min-w-[200px] max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
-              <input
+              <Input
                 type="text"
                 placeholder="Search workflows..."
                 onChange={(e) => handleSearchChange(e.target.value)}
@@ -264,27 +306,31 @@ export default function DashboardPage() {
             {allTags.length > 0 && (
               <div className="flex items-center gap-2 flex-wrap">
                 {selectedTag && (
-                  <button
+                  <Button
+                    variant={ButtonVariant.DEFAULT}
+                    size={ButtonSize.XS}
                     onClick={() => setSelectedTag(null)}
-                    className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-white text-black font-medium hover:bg-white/90 transition"
+                    className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full font-medium"
+                    icon={<Tag className="w-3 h-3" />}
                   >
-                    <Tag className="w-3 h-3" />
                     {selectedTag}
                     <X className="w-3 h-3" />
-                  </button>
+                  </Button>
                 )}
                 {allTags
                   .filter((t) => t !== selectedTag)
                   .slice(0, 8)
                   .map((tag) => (
-                    <button
+                    <Button
                       key={tag}
+                      variant={ButtonVariant.GHOST}
+                      size={ButtonSize.XS}
                       onClick={() => setSelectedTag(tag)}
-                      className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-[var(--secondary)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)]/80 hover:text-[var(--foreground)] transition"
+                      className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-[var(--secondary)] text-[var(--muted-foreground)] hover:bg-[var(--secondary)]/80 hover:text-[var(--foreground)]"
+                      icon={<Tag className="w-3 h-3" />}
                     >
-                      <Tag className="w-3 h-3" />
                       {tag}
-                    </button>
+                    </Button>
                   ))}
               </div>
             )}
@@ -295,7 +341,9 @@ export default function DashboardPage() {
         {isLoading && (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-[var(--muted-foreground)]">Loading workflows...</p>
+            <p className="text-sm text-[var(--muted-foreground)]">
+              Loading workflows...
+            </p>
           </div>
         )}
 
@@ -303,12 +351,13 @@ export default function DashboardPage() {
         {error && (
           <div className="text-center py-20">
             <p className="text-red-500 mb-4">{error}</p>
-            <button
+            <Button
+              variant={ButtonVariant.SECONDARY}
               onClick={() => fetchWorkflows()}
-              className="px-4 py-2 bg-[var(--secondary)] text-[var(--foreground)] rounded-lg hover:opacity-90 transition"
+              className="px-4 py-2 rounded-lg"
             >
               Try Again
-            </button>
+            </Button>
           </div>
         )}
 
@@ -318,7 +367,9 @@ export default function DashboardPage() {
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--secondary)] flex items-center justify-center">
               <Workflow className="w-8 h-8 text-[var(--muted-foreground)]" />
             </div>
-            <h3 className="text-lg font-medium text-[var(--foreground)] mb-2">No workflows yet</h3>
+            <h3 className="text-lg font-medium text-[var(--foreground)] mb-2">
+              No workflows yet
+            </h3>
             <p className="text-[var(--muted-foreground)] mb-6">
               Create your first AI content workflow to get started
             </p>
@@ -344,7 +395,9 @@ export default function DashboardPage() {
                 <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center group-hover:bg-white/20 group-hover:scale-110 transition-all duration-300">
                   <Plus className="w-7 h-7 text-white" />
                 </div>
-                <span className="text-sm font-medium text-[var(--foreground)]">New Workflow</span>
+                <span className="text-sm font-medium text-[var(--foreground)]">
+                  New Workflow
+                </span>
               </div>
             </Link>
 
