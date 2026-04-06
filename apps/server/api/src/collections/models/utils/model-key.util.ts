@@ -7,11 +7,16 @@ export function baseModelKey(key?: string): string | undefined {
   return key.split(':')[0];
 }
 
-export function isTrainingKey(key?: string): boolean {
-  if (!key || typeof key !== 'string') {
-    return false;
+export function isTrainingKey(key?: unknown): boolean {
+  if (!key || typeof key !== 'string') return false;
+  const normalized = key.toLowerCase();
+  if (normalized.startsWith('genfeed-ai/')) {
+    return key.split('/').length === 3;
   }
-  return key.toLowerCase().startsWith('genfeedai');
+  if (normalized.startsWith('genfeedai/')) {
+    return key.split('/').length === 3;
+  }
+  return false;
 }
 
 export function isTrainerKey(key?: string): boolean {
