@@ -1,6 +1,8 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type { NodeCostEstimate } from '@genfeedai/types';
+import Button from '@ui/buttons/base/Button';
 import {
   Brain,
   ChevronDown,
@@ -81,7 +83,9 @@ const NodeTypeGroupSection = memo(function NodeTypeGroupSection({
 
   return (
     <div className="rounded-lg border border-border">
-      <button
+      <Button
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
         onClick={() => setIsExpanded(!isExpanded)}
         className="flex w-full items-center justify-between p-3 text-left transition hover:bg-secondary/30"
       >
@@ -106,7 +110,7 @@ const NodeTypeGroupSection = memo(function NodeTypeGroupSection({
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
           )}
         </div>
-      </button>
+      </Button>
 
       {isExpanded && (
         <div className="border-t border-border">

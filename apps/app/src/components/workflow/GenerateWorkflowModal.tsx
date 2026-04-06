@@ -1,10 +1,19 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import Button from '@ui/buttons/base/Button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { clsx } from 'clsx';
 import { AlertCircle, Loader2, Sparkles, X } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 // =============================================================================
@@ -197,7 +206,12 @@ function GenerateWorkflowModalComponent() {
             AI Workflow Generator
           </h2>
         </div>
-        <Button variant="ghost" size="icon-sm" onClick={handleClose}>
+        <Button
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
+          withWrapper={false}
+          onClick={handleClose}
+        >
           <X className="h-5 w-5" />
         </Button>
       </div>
@@ -209,7 +223,7 @@ function GenerateWorkflowModalComponent() {
           <label className="text-sm font-medium text-foreground">
             Describe your workflow
           </label>
-          <textarea
+          <Textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="e.g., Generate an image from a prompt and convert it to a short video"
@@ -221,18 +235,22 @@ function GenerateWorkflowModalComponent() {
         {/* Model Selection */}
         <div className="mt-4 space-y-2">
           <label className="text-sm font-medium text-foreground">Model</label>
-          <select
+          <Select
             value={model}
-            onChange={(e) => setModel(e.target.value)}
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            onValueChange={(value) => setModel(value)}
             disabled={isGenerating}
           >
-            {GENERATOR_MODELS.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name} ({m.provider}) - {m.pricing}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {GENERATOR_MODELS.map((m) => (
+                <SelectItem key={m.id} value={m.id}>
+                  {m.name} ({m.provider}) - {m.pricing}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <p className="text-xs text-muted-foreground">
             {GENERATOR_MODELS.find((m) => m.id === model)?.description}
           </p>
@@ -245,14 +263,16 @@ function GenerateWorkflowModalComponent() {
           </label>
           <div className="flex flex-wrap gap-1.5">
             {EXAMPLE_PROMPTS.map((prompt) => (
-              <button
+              <Button
                 key={prompt}
+                variant={ButtonVariant.OUTLINE}
+                withWrapper={false}
                 onClick={() => setDescription(prompt)}
                 className="rounded-full border border-border px-2.5 py-1 text-xs text-muted-foreground transition hover:border-primary hover:text-foreground"
-                disabled={isGenerating}
+                isDisabled={isGenerating}
               >
                 {prompt.length > 40 ? `${prompt.slice(0, 40)}...` : prompt}
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -264,8 +284,14 @@ function GenerateWorkflowModalComponent() {
           </label>
           <div className="space-y-2">
             {CONTENT_LEVELS.map(({ value, label, description: desc }) => (
-              <button
+              <Button
                 key={value}
+                variant={
+                  contentLevel === value
+                    ? ButtonVariant.OUTLINE
+                    : ButtonVariant.GHOST
+                }
+                withWrapper={false}
                 onClick={() => setContentLevel(value)}
                 className={clsx(
                   'w-full rounded-md border p-3 text-left transition',
@@ -273,7 +299,7 @@ function GenerateWorkflowModalComponent() {
                     ? 'border-primary bg-primary/5'
                     : 'border-border hover:border-muted-foreground',
                 )}
-                disabled={isGenerating}
+                isDisabled={isGenerating}
               >
                 <div className="text-sm font-medium text-foreground">
                   {label}
@@ -281,7 +307,7 @@ function GenerateWorkflowModalComponent() {
                 <div className="mt-0.5 text-xs text-muted-foreground">
                   {desc}
                 </div>
-              </button>
+              </Button>
             ))}
           </div>
         </div>
@@ -334,7 +360,11 @@ function GenerateWorkflowModalComponent() {
               </div>
             </div>
 
-            <Button onClick={handleApply} className="w-full">
+            <Button
+              variant={ButtonVariant.DEFAULT}
+              onClick={handleApply}
+              className="w-full"
+            >
               <Sparkles className="mr-2 h-4 w-4" />
               Apply to Canvas
             </Button>
@@ -345,8 +375,9 @@ function GenerateWorkflowModalComponent() {
       {/* Footer */}
       <div className="border-t border-border p-4">
         <Button
+          variant={ButtonVariant.DEFAULT}
           onClick={handleGenerate}
-          disabled={isGenerating || !description.trim()}
+          isDisabled={isGenerating || !description.trim()}
           className="w-full"
         >
           {isGenerating ? (

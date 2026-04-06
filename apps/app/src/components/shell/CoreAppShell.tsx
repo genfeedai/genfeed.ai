@@ -1,5 +1,7 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import {
   type CSSProperties,
   type ReactNode,
@@ -167,9 +169,10 @@ export default function CoreAppShell({ children }: CoreAppShellProps) {
             : 'hidden pointer-events-none opacity-0',
         )}
       >
-        <button
-          type="button"
-          aria-label="Close navigation"
+        <Button
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+          ariaLabel="Close navigation"
           className="absolute inset-0 bg-black/60"
           onClick={handleCloseSidebar}
         />

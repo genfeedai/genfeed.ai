@@ -1,5 +1,7 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import {
   ChevronLeft,
   ChevronRight,
@@ -81,45 +83,50 @@ export function LightboxModal({
             </Link>
           )}
           {onDelete && (
-            <button
+            <Button
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
               onClick={handleDelete}
               className="p-2 rounded-lg bg-[var(--card)] border border-[var(--border)] hover:bg-red-500/20 hover:border-red-500/50 transition"
-            >
-              <Trash2 className="w-5 h-5 text-red-500" />
-            </button>
+              icon={<Trash2 className="w-5 h-5 text-red-500" />}
+            />
           )}
-          <button
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
             onClick={handleDownload}
             className="p-2 rounded-lg bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--secondary)] transition"
-          >
-            <Download className="w-5 h-5 text-[var(--foreground)]" />
-          </button>
-          <button
+            icon={<Download className="w-5 h-5 text-[var(--foreground)]" />}
+          />
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
             onClick={onClose}
             className="p-2 rounded-lg bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--secondary)] transition"
-          >
-            <X className="w-5 h-5 text-[var(--foreground)]" />
-          </button>
+            icon={<X className="w-5 h-5 text-[var(--foreground)]" />}
+          />
         </div>
 
         {/* Previous button */}
         {onPrev && (
-          <button
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
             onClick={onPrev}
             className="absolute left-0 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--secondary)] transition pointer-events-auto"
-          >
-            <ChevronLeft className="w-6 h-6 text-[var(--foreground)]" />
-          </button>
+            icon={<ChevronLeft className="w-6 h-6 text-[var(--foreground)]" />}
+          />
         )}
 
         {/* Next button */}
         {onNext && (
-          <button
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
             onClick={onNext}
             className="absolute right-0 top-1/2 -translate-y-1/2 p-2 rounded-lg bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--secondary)] transition pointer-events-auto"
-          >
-            <ChevronRight className="w-6 h-6 text-[var(--foreground)]" />
-          </button>
+            icon={<ChevronRight className="w-6 h-6 text-[var(--foreground)]" />}
+          />
         )}
 
         {/* Media */}

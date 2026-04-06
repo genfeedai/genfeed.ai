@@ -1,9 +1,14 @@
 'use client';
 
-import { IngredientCategory, ModelCategory } from '@genfeedai/enums';
+import {
+  ButtonVariant,
+  IngredientCategory,
+  ModelCategory,
+} from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getVideoResolutionsByModel } from '@helpers/media/video-resolution/video-resolution.helper';
 import type { PromptBarQuickOptionsProps } from '@props/prompt-bars/prompt-bar-tiers.props';
+import Button from '@ui/buttons/base/Button';
 import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
 import FormCheckbox from '@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox';
 import FormDropdown from '@ui/forms/selectors/dropdown/form-dropdown/FormDropdown';
@@ -89,18 +94,20 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
   return (
     <div className="flex flex-col gap-1.5">
       {showToggle && (
-        <button
-          type="button"
+        <Button
+          variant={ButtonVariant.GHOST}
           onClick={handleToggle}
-          className="flex items-center gap-1.5 text-xs font-medium text-foreground/50 hover:text-foreground/70 transition-colors self-start"
+          className="flex items-center gap-1.5 text-xs font-medium text-foreground/50 hover:text-foreground/70 self-start"
+          icon={
+            expanded ? (
+              <HiChevronUp className="w-3.5 h-3.5" />
+            ) : (
+              <HiChevronDown className="w-3.5 h-3.5" />
+            )
+          }
         >
-          {expanded ? (
-            <HiChevronUp className="w-3.5 h-3.5" />
-          ) : (
-            <HiChevronDown className="w-3.5 h-3.5" />
-          )}
           Options
-        </button>
+        </Button>
       )}
 
       <div

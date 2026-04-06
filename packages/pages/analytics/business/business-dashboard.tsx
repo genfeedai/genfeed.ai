@@ -10,6 +10,14 @@ import Card from '@ui/card/Card';
 import Alert from '@ui/feedback/alert/Alert';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Loading from '@ui/loading/default/Loading';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@ui/primitives/table';
 import { useCallback } from 'react';
 import {
   HiOutlineBanknotes,
@@ -56,37 +64,39 @@ function LeaderTable({
       {leaders.length === 0 ? (
         <p className="text-sm text-muted-foreground">No data available</p>
       ) : (
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="pb-2 text-left font-medium text-muted-foreground">
+        <Table className="w-full text-sm">
+          <TableHeader>
+            <TableRow className="border-b border-border">
+              <TableHead className="pb-2 text-left font-medium text-muted-foreground">
                 #
-              </th>
-              <th className="pb-2 text-left font-medium text-muted-foreground">
+              </TableHead>
+              <TableHead className="pb-2 text-left font-medium text-muted-foreground">
                 Organization
-              </th>
-              <th className="pb-2 text-right font-medium text-muted-foreground">
+              </TableHead>
+              <TableHead className="pb-2 text-right font-medium text-muted-foreground">
                 {valueLabel}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {leaders.map((leader, index) => (
-              <tr
+              <TableRow
                 key={leader.organizationId}
                 className="border-b border-border/50 last:border-0"
               >
-                <td className="py-2 text-muted-foreground">{index + 1}</td>
-                <td className="py-2 font-medium text-foreground">
+                <TableCell className="py-2 text-muted-foreground">
+                  {index + 1}
+                </TableCell>
+                <TableCell className="py-2 font-medium text-foreground">
                   {leader.organizationName}
-                </td>
-                <td className="py-2 text-right tabular-nums text-foreground">
+                </TableCell>
+                <TableCell className="py-2 text-right tabular-nums text-foreground">
                   {valueFormatter(leader)}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       )}
     </Card>
   );

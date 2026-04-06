@@ -1,3 +1,5 @@
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 
 export type ActiveTab =
@@ -186,9 +188,10 @@ export function SidebarNav({
       {NAV_ITEMS.map(({ id, label, icon }) => {
         const isActive = activeTab === id;
         return (
-          <button
+          <Button
             key={id}
             type="button"
+            variant={ButtonVariant.UNSTYLED}
             onClick={() => onTabChange(id)}
             title={label}
             className={`flex h-9 w-9 items-center justify-center rounded transition-colors ${
@@ -198,7 +201,7 @@ export function SidebarNav({
             }`}
           >
             {icon}
-          </button>
+          </Button>
         );
       })}
     </nav>

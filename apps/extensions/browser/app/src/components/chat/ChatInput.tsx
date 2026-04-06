@@ -1,3 +1,6 @@
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
+import { Textarea } from '@ui/primitives/textarea';
 import {
   type KeyboardEvent,
   type ReactElement,
@@ -62,7 +65,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps): ReactElement {
 
   return (
     <div className="flex items-end gap-2 p-3">
-      <textarea
+      <Textarea
         ref={textareaRef}
         value={value}
         onChange={(e) => setValue(e.target.value)}
@@ -73,12 +76,13 @@ export function ChatInput({ onSend, disabled }: ChatInputProps): ReactElement {
         rows={1}
         className="flex-1 resize-none rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-50"
       />
-      <button
+      <Button
         type="button"
+        variant={ButtonVariant.DEFAULT}
         onClick={handleSend}
         disabled={disabled || !value.trim()}
         aria-label="Send message"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
       >
         <svg
           aria-hidden="true"
@@ -95,7 +99,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps): ReactElement {
           <line x1="22" y1="2" x2="11" y2="13" />
           <polygon points="22 2 15 22 11 13 2 9 22 2" />
         </svg>
-      </button>
+      </Button>
     </div>
   );
 }

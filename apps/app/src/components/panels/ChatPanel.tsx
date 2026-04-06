@@ -1,6 +1,16 @@
 'use client';
 
 import { useChat } from '@ai-sdk/react';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import type { UIMessage } from 'ai';
 import { DefaultChatTransport } from 'ai';
 import {
@@ -12,8 +22,7 @@ import {
   Wrench,
   X,
 } from 'lucide-react';
-import { memo, useCallback, useMemo, useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { LLMProviderType } from '@/lib/ai/llm-providers';
 import { LLM_PROVIDERS } from '@/lib/ai/llm-providers';
 import { buildWorkflowContext } from '@/lib/chat/contextBuilder';
@@ -155,8 +164,9 @@ function ChatPanelComponent() {
           </span>
         </div>
         <Button
-          variant="ghost"
-          size="icon-sm"
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
+          withWrapper={false}
           onClick={() => setChatOpen(false)}
         >
           <X className="w-4 h-4" />
@@ -166,31 +176,39 @@ function ChatPanelComponent() {
       {/* Model selector */}
       <div className="px-4 py-2 border-b border-border flex items-center gap-2">
         <Settings2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-        <select
+        <Select
           value={llm.activeProvider}
-          onChange={(e) =>
-            setLLMActiveProvider(e.target.value as LLMProviderType)
+          onValueChange={(value) =>
+            setLLMActiveProvider(value as LLMProviderType)
           }
-          className="text-xs bg-transparent border-none focus:outline-none text-foreground cursor-pointer"
         >
-          {(Object.keys(LLM_PROVIDERS) as LLMProviderType[]).map((p) => (
-            <option key={p} value={p}>
-              {LLM_PROVIDERS[p].name}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="text-xs bg-transparent border-none focus:outline-none text-foreground cursor-pointer h-auto p-0 shadow-none">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {(Object.keys(LLM_PROVIDERS) as LLMProviderType[]).map((p) => (
+              <SelectItem key={p} value={p}>
+                {LLM_PROVIDERS[p].name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <span className="text-muted-foreground text-xs">/</span>
-        <select
+        <Select
           value={llm.activeModel}
-          onChange={(e) => setLLMActiveModel(e.target.value)}
-          className="text-xs bg-transparent border-none focus:outline-none text-foreground cursor-pointer flex-1 min-w-0"
+          onValueChange={(value) => setLLMActiveModel(value)}
         >
-          {providerInfo.models.map((m) => (
-            <option key={m.id} value={m.id}>
-              {m.label}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="text-xs bg-transparent border-none focus:outline-none text-foreground cursor-pointer flex-1 min-w-0 h-auto p-0 shadow-none">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {providerInfo.models.map((m) => (
+              <SelectItem key={m.id} value={m.id}>
+                {m.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Not configured warning */}
@@ -212,7 +230,9 @@ function ChatPanelComponent() {
               nodes, make connections, and update settings.
             </p>
             <div className="space-y-1.5 text-xs text-left">
-              <button
+              <Button
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
                 onClick={() =>
                   setExample(
                     'Add an image generation node connected to a prompt',
@@ -221,23 +241,27 @@ function ChatPanelComponent() {
                 className="block w-full text-left p-2 bg-muted rounded hover:bg-muted/80 transition"
               >
                 &quot;Add an image generation node connected to a prompt&quot;
-              </button>
-              <button
+              </Button>
+              <Button
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
                 onClick={() =>
                   setExample('Create a 3-scene video pipeline with stitching')
                 }
                 className="block w-full text-left p-2 bg-muted rounded hover:bg-muted/80 transition"
               >
                 &quot;Create a 3-scene video pipeline with stitching&quot;
-              </button>
-              <button
+              </Button>
+              <Button
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
                 onClick={() =>
                   setExample('What does each node in my workflow do?')
                 }
                 className="block w-full text-left p-2 bg-muted rounded hover:bg-muted/80 transition"
               >
                 &quot;What does each node in my workflow do?&quot;
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -263,7 +287,7 @@ function ChatPanelComponent() {
       {/* Input */}
       <div className="border-t border-border px-4 py-3">
         <div className="flex items-end gap-2">
-          <textarea
+          <Textarea
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -277,9 +301,10 @@ function ChatPanelComponent() {
             rows={1}
           />
           <Button
-            size="icon-sm"
+            variant={ButtonVariant.DEFAULT}
+            size={ButtonSize.ICON}
             onClick={handleSend}
-            disabled={!inputValue.trim() || !configured || isActive}
+            isDisabled={!inputValue.trim() || !configured || isActive}
           >
             {isActive ? (
               <Loader2 className="w-4 h-4 animate-spin" />

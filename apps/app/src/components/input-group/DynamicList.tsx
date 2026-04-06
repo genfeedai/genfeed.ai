@@ -1,6 +1,8 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type { ActionConfig, RowHelpers } from '@genfeedai/types';
+import Button from '@ui/buttons/base/Button';
 import { clsx } from 'clsx';
 import { Plus } from 'lucide-react';
 import { nanoid } from 'nanoid';
@@ -115,9 +117,10 @@ function DynamicListComponent<
 
       {/* Add Button */}
       {canAdd && (
-        <button
-          type="button"
+        <Button
           onClick={handleAdd}
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           className={clsx(
             'w-full flex items-center justify-center gap-2 py-2 px-3',
             'text-sm text-[var(--muted-foreground)] hover:text-[var(--foreground)]',
@@ -128,7 +131,7 @@ function DynamicListComponent<
         >
           <Plus className="w-4 h-4" />
           {addButtonLabel}
-        </button>
+        </Button>
       )}
 
       {/* Item Count */}

@@ -1,4 +1,8 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
+import { Textarea } from '@ui/primitives/textarea';
 import {
   type ChangeEvent,
   type ReactElement,
@@ -134,11 +138,10 @@ export function PublishPostCard({
         <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
           Caption
         </label>
-        <textarea
+        <Textarea
           value={caption}
           onChange={handleCaptionChange}
           rows={4}
-          className="w-full rounded border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
           placeholder="Optional caption override"
         />
       </div>
@@ -152,9 +155,10 @@ export function PublishPostCard({
             const selected = selectedPlatforms.includes(platform);
 
             return (
-              <button
+              <Button
                 key={platform}
-                type="button"
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
                 onClick={() => togglePlatform(platform)}
                 className={`rounded border px-2.5 py-1 text-xs transition-colors ${
                   selected
@@ -163,7 +167,7 @@ export function PublishPostCard({
                 }`}
               >
                 {platform}
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -174,23 +178,23 @@ export function PublishPostCard({
           <HiCalendarDays className="mr-1 inline h-3 w-3" />
           Schedule for later
         </label>
-        <input
+        <Input
           type="datetime-local"
           value={scheduledAt}
           onChange={handleScheduleChange}
-          className="w-full rounded border border-border bg-background px-2.5 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
         />
       </div>
 
-      <button
-        type="button"
+      <Button
+        variant={ButtonVariant.DEFAULT}
+        withWrapper={false}
         onClick={() => {
           void handleConfirm();
         }}
-        disabled={
+        isDisabled={
           !action.contentId || selectedPlatforms.length === 0 || isSubmitting
         }
-        className="flex w-full items-center justify-center gap-2 rounded bg-emerald-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-2 rounded bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600"
       >
         <HiPaperAirplane className="h-4 w-4" />
         {isSubmitting
@@ -198,7 +202,7 @@ export function PublishPostCard({
           : scheduledAt
             ? 'Confirm schedule'
             : 'Confirm publish'}
-      </button>
+      </Button>
     </div>
   );
 }

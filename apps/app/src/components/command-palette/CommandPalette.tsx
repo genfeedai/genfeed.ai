@@ -1,7 +1,10 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import { Kbd } from '@genfeedai/ui';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
@@ -33,8 +36,9 @@ function CommandItem({
   const Icon = command.icon;
 
   return (
-    <button
-      type="button"
+    <Button
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
       onClick={onSelect}
       onMouseEnter={onMouseEnter}
       className={`
@@ -53,7 +57,7 @@ function CommandItem({
           {command.shortcut}
         </Kbd>
       )}
-    </button>
+    </Button>
   );
 }
 
@@ -274,13 +278,13 @@ export function CommandPalette() {
               d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
             />
           </svg>
-          <input
+          <Input
             ref={inputRef}
             type="text"
             value={searchQuery}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Type a command or search..."
-            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none border-none shadow-none"
           />
           <Kbd variant="muted" size="xs" className="text-muted-foreground">
             ESC

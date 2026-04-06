@@ -1,4 +1,6 @@
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Button from '@ui/buttons/base/Button';
 import { Check, Minus, Plus, Star } from 'lucide-react';
 import { memo } from 'react';
 import type { Approach } from '../types';
@@ -17,16 +19,17 @@ function ApproachCardInner({
   disabled,
 }: ApproachCardProps) {
   return (
-    <button
-      type="button"
+    <Button
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
       onClick={() => !disabled && onSelect(approach.id)}
-      disabled={disabled}
+      isDisabled={disabled}
       className={cn(
         'w-full text-left rounded-xl border p-4 transition-all',
         isSelected
           ? 'border-blue-500/40 bg-blue-500/10 ring-1 ring-blue-500/20'
           : 'border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/8',
-        disabled && 'opacity-60 cursor-not-allowed',
+        disabled && 'opacity-60',
       )}
     >
       <div className="flex items-start justify-between gap-3 mb-2">
@@ -80,7 +83,7 @@ function ApproachCardInner({
           ))}
         </div>
       </div>
-    </button>
+    </Button>
   );
 }
 

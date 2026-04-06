@@ -1,3 +1,6 @@
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
+import { Textarea } from '@ui/primitives/textarea';
 import { useState } from 'react';
 import { ButtonSpinner } from '~components/ui';
 
@@ -59,7 +62,7 @@ export default function PromptPage() {
           >
             Video Prompt
           </label>
-          <textarea
+          <Textarea
             id="prompt"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
@@ -81,17 +84,18 @@ export default function PromptPage() {
           </div>
         )}
 
-        <button
+        <Button
           type="submit"
           disabled={isGenerating || !prompt.trim()}
-          className="w-full bg-blue-600 text-white py-2 px-4 font-medium hover:bg-blue-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+          variant={ButtonVariant.DEFAULT}
+          className="w-full"
         >
           {isGenerating ? (
             <ButtonSpinner text="Generating..." />
           ) : (
             'Generate Video'
           )}
-        </button>
+        </Button>
       </form>
 
       <div className="border-t pt-4">

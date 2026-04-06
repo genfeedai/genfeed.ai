@@ -1,5 +1,7 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import {
   ArrowLeft,
   Film,
@@ -238,15 +240,18 @@ export default function GalleryPage() {
             <p className="text-sm text-[var(--muted-foreground)]">
               {total} {total === 1 ? 'item' : 'items'}
             </p>
-            <button
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.ICON}
               onClick={handleRefresh}
-              disabled={isRefreshing}
-              className="p-2 rounded-lg bg-[var(--secondary)] hover:bg-[var(--secondary)]/80 transition disabled:opacity-50"
-            >
-              <RefreshCw
-                className={`w-4 h-4 text-[var(--foreground)] ${isRefreshing ? 'animate-spin' : ''}`}
-              />
-            </button>
+              isDisabled={isRefreshing}
+              className="p-2 rounded-lg"
+              icon={
+                <RefreshCw
+                  className={`w-4 h-4 text-[var(--foreground)] ${isRefreshing ? 'animate-spin' : ''}`}
+                />
+              }
+            />
           </div>
         </div>
       </header>
@@ -258,33 +263,37 @@ export default function GalleryPage() {
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               {FILTERS.map(({ type, label, icon: Icon }) => (
-                <button
+                <Button
                   key={type}
-                  onClick={() => handleFilterChange(type)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                  variant={
                     filter === type
-                      ? 'bg-white text-black'
-                      : 'bg-[var(--secondary)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-                  }`}
+                      ? ButtonVariant.DEFAULT
+                      : ButtonVariant.SECONDARY
+                  }
+                  size={ButtonSize.SM}
+                  onClick={() => handleFilterChange(type)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
+                  icon={<Icon className="w-4 h-4" />}
                 >
-                  <Icon className="w-4 h-4" />
                   {label}
                   {type !== 'all' && (
                     <span className="text-xs opacity-60">({counts[type]})</span>
                   )}
-                </button>
+                </Button>
               ))}
             </div>
-            <button
+            <Button
+              variant={ButtonVariant.DESTRUCTIVE}
+              size={ButtonSize.SM}
               onClick={handleDeleteAll}
-              disabled={isDeleting || items.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-red-500/10 text-red-500 hover:bg-red-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              isDisabled={isDeleting || items.length === 0}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
+              icon={<Trash2 className="w-4 h-4" />}
             >
-              <Trash2 className="w-4 h-4" />
               {isDeleting
                 ? 'Deleting...'
                 : `Delete ${filter === 'all' ? 'All' : `${filter}s`}`}
-            </button>
+            </Button>
           </div>
         )}
 
@@ -302,12 +311,13 @@ export default function GalleryPage() {
         {error && (
           <div className="text-center py-20">
             <p className="text-red-500 mb-4">{error}</p>
-            <button
+            <Button
+              variant={ButtonVariant.SECONDARY}
               onClick={handleRefresh}
-              className="px-4 py-2 bg-[var(--secondary)] text-[var(--foreground)] rounded-lg hover:opacity-90 transition"
+              className="px-4 py-2 rounded-lg"
             >
               Try Again
-            </button>
+            </Button>
           </div>
         )}
 

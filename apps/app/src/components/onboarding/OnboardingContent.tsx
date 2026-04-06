@@ -1,5 +1,8 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
 import {
   ArrowRight,
   CheckCircle2,
@@ -11,8 +14,6 @@ import {
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import type { DetectedTools } from '@/lib/api/setup';
 import { setupApi } from '@/lib/api/setup';
 import { logger } from '@/lib/logger';
@@ -211,18 +212,19 @@ function OnboardingContent() {
             className="pr-10"
             autoComplete="off"
           />
-          <button
-            type="button"
+          <Button
             onClick={() => setShowKey((prev) => !prev)}
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
             className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]"
-            aria-label={showKey ? 'Hide API key' : 'Show API key'}
+            ariaLabel={showKey ? 'Hide API key' : 'Show API key'}
           >
             {showKey ? (
               <EyeOff className="h-4 w-4" />
             ) : (
               <Eye className="h-4 w-4" />
             )}
-          </button>
+          </Button>
         </div>
 
         {/* Validation status */}
@@ -249,10 +251,10 @@ function OnboardingContent() {
             Get your key &rarr;
           </a>
           <Button
-            variant="outline"
-            size="sm"
+            variant={ButtonVariant.OUTLINE}
+            size={ButtonSize.SM}
             onClick={handleValidate}
-            disabled={!replicateApiKey.trim() || isValidating}
+            isDisabled={!replicateApiKey.trim() || isValidating}
           >
             {isValidating && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             Validate
@@ -302,9 +304,9 @@ function OnboardingContent() {
       {/* Submit */}
       <Button
         className="mt-8 w-full"
-        size="lg"
+        size={ButtonSize.LG}
         onClick={handleSubmit}
-        disabled={!replicateApiKey.trim() || isSubmitting}
+        isDisabled={!replicateApiKey.trim() || isSubmitting}
       >
         {isSubmitting ? (
           <Loader2 className="h-4 w-4 animate-spin" />

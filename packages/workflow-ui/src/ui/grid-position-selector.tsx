@@ -1,6 +1,7 @@
 'use client';
 
 import { memo, useCallback } from 'react';
+import { Button } from './button';
 import { cn } from './utils';
 
 interface GridPosition {
@@ -58,14 +59,15 @@ function GridPositionSelectorComponent({
       <label className="text-xs text-muted-foreground">Content Position</label>
       <div className="grid grid-cols-3 gap-1 p-2 bg-background border border-input rounded-md">
         {GRID_POSITIONS.map((pos, idx) => (
-          <button
+          <Button
             key={idx}
+            variant="ghost"
             type="button"
             onClick={() => onPositionChange(pos)}
             className={cn(
-              'w-5 h-5 rounded-sm border transition-all',
+              'w-5 h-5 rounded-sm border p-0 min-w-0',
               isSelected(pos)
-                ? 'bg-primary border-primary'
+                ? 'bg-primary border-primary hover:bg-primary/90'
                 : 'bg-secondary border-input hover:border-primary',
             )}
             title={getPositionTitle(pos)}

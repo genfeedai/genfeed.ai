@@ -1,5 +1,6 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import {
   CAMERA_PRESETS,
   CATEGORY_LABELS,
@@ -10,6 +11,16 @@ import {
   SCENE_PRESETS,
   STYLE_PRESETS,
 } from '@genfeedai/types';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { X } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import { logger } from '@/lib/logger';
@@ -96,12 +107,13 @@ function CreatePromptModalComponent() {
           <h2 className="text-lg font-semibold text-[var(--foreground)]">
             {isEditing ? 'Edit Prompt' : 'Create New Prompt'}
           </h2>
-          <button
+          <Button
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
             onClick={closeCreateModal}
             className="p-2 hover:bg-[var(--secondary)] rounded transition"
-          >
-            <X className="w-5 h-5" />
-          </button>
+            icon={<X className="w-5 h-5" />}
+          />
         </div>
 
         {/* Content */}
@@ -110,7 +122,7 @@ function CreatePromptModalComponent() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium mb-1">Name *</label>
-              <input
+              <Input
                 type="text"
                 value={formData.name}
                 onChange={(e) => handleChange('name', e.target.value)}
@@ -120,26 +132,30 @@ function CreatePromptModalComponent() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Category</label>
-              <select
+              <Select
                 value={formData.category}
-                onChange={(e) =>
-                  handleChange('category', e.target.value as PromptCategory)
+                onValueChange={(value) =>
+                  handleChange('category', value as PromptCategory)
                 }
-                className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
               >
-                {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-                  <option key={key} value={key}>
-                    {label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full px-3 py-2 bg-[var(--background)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary)]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
+                    <SelectItem key={key} value={key}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           {/* Prompt Text */}
           <div>
             <label className="block text-sm font-medium mb-1">Prompt *</label>
-            <textarea
+            <Textarea
               value={formData.promptText}
               onChange={(e) => handleChange('promptText', e.target.value)}
               placeholder="Enter your prompt text..."
@@ -153,7 +169,7 @@ function CreatePromptModalComponent() {
             <label className="block text-sm font-medium mb-1">
               Description
             </label>
-            <textarea
+            <Textarea
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
               placeholder="Describe what this prompt is for..."
@@ -171,18 +187,22 @@ function CreatePromptModalComponent() {
                 <label className="block text-xs text-[var(--muted-foreground)] mb-1">
                   Mood
                 </label>
-                <select
+                <Select
                   value={formData.styleSettings?.mood ?? ''}
-                  onChange={(e) => handleStyleChange('mood', e.target.value)}
-                  className="w-full px-2 py-1.5 bg-[var(--background)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+                  onValueChange={(value) => handleStyleChange('mood', value)}
                 >
-                  <option value="">None</option>
-                  {MOOD_PRESETS.map((preset) => (
-                    <option key={preset} value={preset}>
-                      {preset}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full px-2 py-1.5 bg-[var(--background)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary)]">
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {MOOD_PRESETS.map((preset) => (
+                      <SelectItem key={preset} value={preset}>
+                        {preset}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Style */}
@@ -190,18 +210,22 @@ function CreatePromptModalComponent() {
                 <label className="block text-xs text-[var(--muted-foreground)] mb-1">
                   Style
                 </label>
-                <select
+                <Select
                   value={formData.styleSettings?.style ?? ''}
-                  onChange={(e) => handleStyleChange('style', e.target.value)}
-                  className="w-full px-2 py-1.5 bg-[var(--background)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+                  onValueChange={(value) => handleStyleChange('style', value)}
                 >
-                  <option value="">None</option>
-                  {STYLE_PRESETS.map((preset) => (
-                    <option key={preset} value={preset}>
-                      {preset}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full px-2 py-1.5 bg-[var(--background)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary)]">
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {STYLE_PRESETS.map((preset) => (
+                      <SelectItem key={preset} value={preset}>
+                        {preset}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Camera */}
@@ -209,18 +233,22 @@ function CreatePromptModalComponent() {
                 <label className="block text-xs text-[var(--muted-foreground)] mb-1">
                   Camera
                 </label>
-                <select
+                <Select
                   value={formData.styleSettings?.camera ?? ''}
-                  onChange={(e) => handleStyleChange('camera', e.target.value)}
-                  className="w-full px-2 py-1.5 bg-[var(--background)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+                  onValueChange={(value) => handleStyleChange('camera', value)}
                 >
-                  <option value="">None</option>
-                  {CAMERA_PRESETS.map((preset) => (
-                    <option key={preset} value={preset}>
-                      {preset}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full px-2 py-1.5 bg-[var(--background)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary)]">
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {CAMERA_PRESETS.map((preset) => (
+                      <SelectItem key={preset} value={preset}>
+                        {preset}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Lighting */}
@@ -228,20 +256,24 @@ function CreatePromptModalComponent() {
                 <label className="block text-xs text-[var(--muted-foreground)] mb-1">
                   Lighting
                 </label>
-                <select
+                <Select
                   value={formData.styleSettings?.lighting ?? ''}
-                  onChange={(e) =>
-                    handleStyleChange('lighting', e.target.value)
+                  onValueChange={(value) =>
+                    handleStyleChange('lighting', value)
                   }
-                  className="w-full px-2 py-1.5 bg-[var(--background)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
                 >
-                  <option value="">None</option>
-                  {LIGHTING_PRESETS.map((preset) => (
-                    <option key={preset} value={preset}>
-                      {preset}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full px-2 py-1.5 bg-[var(--background)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary)]">
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {LIGHTING_PRESETS.map((preset) => (
+                      <SelectItem key={preset} value={preset}>
+                        {preset}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Scene */}
@@ -249,18 +281,22 @@ function CreatePromptModalComponent() {
                 <label className="block text-xs text-[var(--muted-foreground)] mb-1">
                   Scene
                 </label>
-                <select
+                <Select
                   value={formData.styleSettings?.scene ?? ''}
-                  onChange={(e) => handleStyleChange('scene', e.target.value)}
-                  className="w-full px-2 py-1.5 bg-[var(--background)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+                  onValueChange={(value) => handleStyleChange('scene', value)}
                 >
-                  <option value="">None</option>
-                  {SCENE_PRESETS.map((preset) => (
-                    <option key={preset} value={preset}>
-                      {preset}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger className="w-full px-2 py-1.5 bg-[var(--background)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary)]">
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">None</SelectItem>
+                    {SCENE_PRESETS.map((preset) => (
+                      <SelectItem key={preset} value={preset}>
+                        {preset}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </div>
@@ -275,17 +311,18 @@ function CreatePromptModalComponent() {
                   className="px-2 py-1 bg-[var(--secondary)] rounded text-xs flex items-center gap-1"
                 >
                   {tag}
-                  <button
+                  <Button
+                    variant={ButtonVariant.UNSTYLED}
+                    withWrapper={false}
                     onClick={() => handleRemoveTag(tag)}
                     className="hover:text-red-400"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
+                    icon={<X className="w-3 h-3" />}
+                  />
                 </span>
               ))}
             </div>
             <div className="flex gap-2">
-              <input
+              <Input
                 type="text"
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
@@ -293,31 +330,37 @@ function CreatePromptModalComponent() {
                 placeholder="Add a tag..."
                 className="flex-1 px-3 py-2 bg-[var(--background)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
               />
-              <button
+              <Button
+                variant={ButtonVariant.SECONDARY}
+                withWrapper={false}
                 onClick={handleAddTag}
                 className="px-4 py-2 bg-[var(--secondary)] rounded text-sm hover:bg-[var(--border)] transition"
               >
                 Add
-              </button>
+              </Button>
             </div>
           </div>
         </div>
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-[var(--border)] flex justify-end gap-3">
-          <button
+          <Button
+            variant={ButtonVariant.SECONDARY}
+            withWrapper={false}
             onClick={closeCreateModal}
             className="px-4 py-2 bg-[var(--secondary)] rounded text-sm hover:bg-[var(--border)] transition"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={ButtonVariant.DEFAULT}
+            withWrapper={false}
             onClick={handleSubmit}
-            disabled={!formData.name || !formData.promptText || isLoading}
+            isDisabled={!formData.name || !formData.promptText || isLoading}
             className="px-4 py-2 bg-[var(--primary)] text-white rounded text-sm font-medium hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? 'Saving...' : isEditing ? 'Update' : 'Create'}
-          </button>
+          </Button>
         </div>
       </div>
     </>

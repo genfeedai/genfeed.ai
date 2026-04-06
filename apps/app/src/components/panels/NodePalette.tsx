@@ -1,11 +1,14 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import {
   getNodesByCategory,
   type NodeCategory,
   type NodeType,
 } from '@genfeedai/types';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
 import {
   ArrowLeftFromLine,
   ArrowRightToLine,
@@ -181,8 +184,10 @@ function CategorySection({
 
   return (
     <div className="border-b border-[var(--border)] last:border-0">
-      <button
+      <Button
         onClick={onToggle}
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
         className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-[var(--secondary)] transition cursor-pointer"
       >
         {isExpanded ? (
@@ -196,7 +201,7 @@ function CategorySection({
         <span className="text-xs text-[var(--muted-foreground)] ml-auto">
           {nodes.length}
         </span>
-      </button>
+      </Button>
 
       {isExpanded && (
         <div className="px-4 pb-4 space-y-2">
@@ -284,20 +289,22 @@ export function NodePalette() {
             Drag to canvas
           </p>
         </div>
-        <button
+        <Button
           onClick={togglePalette}
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
           className="p-1.5 hover:bg-[var(--secondary)] rounded-md transition-colors group"
-          title="Close sidebar (M)"
+          tooltip="Close sidebar (M)"
         >
           <PanelLeftClose className="w-4 h-4 text-[var(--muted-foreground)] group-hover:text-[var(--foreground)]" />
-        </button>
+        </Button>
       </div>
 
       {/* Search bar */}
       <div className="px-4 py-3 border-b border-[var(--border)]">
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
-          <input
+          <Input
             type="text"
             placeholder="Search nodes..."
             value={searchQuery}

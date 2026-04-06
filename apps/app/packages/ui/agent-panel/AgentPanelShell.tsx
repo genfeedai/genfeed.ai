@@ -114,30 +114,32 @@ function AgentPanelShell({
       >
         <div className="border-b border-white/[0.08] px-3 py-2">
           <div className="grid grid-cols-2 gap-2 rounded-xl bg-white/[0.03] p-1">
-            <button
-              type="button"
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
               onClick={() => handleTabChange('chat')}
               className={cn(
-                'rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+                'rounded-lg px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
                 activeTab === 'chat'
                   ? 'bg-white/[0.08] text-foreground'
                   : 'text-foreground/50 hover:text-foreground',
               )}
             >
               Chat
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
               onClick={() => handleTabChange('outputs')}
               className={cn(
-                'rounded-lg px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+                'rounded-lg px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
                 activeTab === 'outputs'
                   ? 'bg-white/[0.08] text-foreground'
                   : 'text-foreground/50 hover:text-foreground',
               )}
             >
               Outputs
-            </button>
+            </Button>
           </div>
         </div>
 

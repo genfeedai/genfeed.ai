@@ -2,6 +2,7 @@ import type { AgentProposedPlan } from '@genfeedai/agent/models/agent-chat.model
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Button from '@ui/buttons/base/Button';
+import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, type ReactNode, useMemo, useState } from 'react';
 
 interface AgentPlanReviewCardProps {
@@ -103,12 +104,12 @@ export function AgentPlanReviewCard({
       ) : null}
 
       <div className="mt-5 space-y-3">
-        <textarea
+        <Textarea
           value={revisionNote}
           onChange={(event) => setRevisionNote(event.target.value)}
           disabled={isBusy}
           placeholder="Add feedback if you want the plan revised"
-          className="min-h-24 w-full rounded-2xl border border-white/[0.08] bg-black/20 px-4 py-3 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/35 focus:border-primary/35"
+          className="min-h-24 rounded-2xl border-white/[0.08] bg-black/20 px-4 py-3 placeholder:text-foreground/35 focus:border-primary/35"
         />
         <div className="flex flex-wrap gap-2">
           <Button

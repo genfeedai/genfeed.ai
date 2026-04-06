@@ -24,6 +24,7 @@ import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import { Textarea } from '@ui/primitives/textarea';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
@@ -226,7 +227,7 @@ export default function ReviewDetailPanel({
                 <span className="text-xs font-medium uppercase tracking-[0.18em] text-foreground/45">
                   Reviewer notes
                 </span>
-                <textarea
+                <Textarea
                   value={feedback}
                   onChange={(event) => setFeedback(event.target.value)}
                   placeholder="Add revision guidance or rejection context"

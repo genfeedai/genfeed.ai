@@ -1,11 +1,15 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { OrganizationsService } from '@services/organization/organizations.service';
+import Button from '@ui/buttons/base/Button';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
 import { Modal } from '@ui/modals/compound/Modal';
+import { Input } from '@ui/primitives/input';
+import { Textarea } from '@ui/primitives/textarea';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { HiChevronDown, HiOutlineCog6Tooth } from 'react-icons/hi2';
@@ -174,12 +178,11 @@ export default function OrganizationSwitcher() {
                 <label className="text-xs font-medium text-white/70">
                   Name <span className="text-red-400">*</span>
                 </label>
-                <input
+                <Input
                   type="text"
                   value={newOrgLabel}
                   onChange={(e) => setNewOrgLabel(e.target.value)}
                   placeholder="My Organization"
-                  className="w-full rounded-lg border border-white/[0.12] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder-white/30 focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/50"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       void handleCreate();
@@ -191,12 +194,12 @@ export default function OrganizationSwitcher() {
                 <label className="text-xs font-medium text-white/70">
                   Description <span className="text-white/30">(optional)</span>
                 </label>
-                <textarea
+                <Textarea
                   value={newOrgDescription}
                   onChange={(e) => setNewOrgDescription(e.target.value)}
                   placeholder="What does this organization do?"
                   rows={2}
-                  className="w-full resize-none rounded-lg border border-white/[0.12] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder-white/30 focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                  className="resize-none"
                 />
               </div>
               {createError && (
@@ -207,26 +210,23 @@ export default function OrganizationSwitcher() {
 
           <Modal.Footer>
             <Modal.CloseButton asChild>
-              <button
-                type="button"
+              <Button
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
                 className="px-4 py-2 text-sm text-white/60 hover:text-white transition-colors"
               >
                 Cancel
-              </button>
+              </Button>
             </Modal.CloseButton>
-            <button
-              type="button"
-              disabled={isCreating || !newOrgLabel.trim()}
+            <Button
+              variant={ButtonVariant.DEFAULT}
+              withWrapper={false}
+              isDisabled={isCreating || !newOrgLabel.trim()}
               onClick={() => void handleCreate()}
-              className={cn(
-                'rounded-lg px-4 py-2 text-sm font-medium transition-colors',
-                'bg-primary text-white hover:bg-primary/90',
-                (isCreating || !newOrgLabel.trim()) &&
-                  'opacity-50 cursor-not-allowed',
-              )}
+              className="rounded-lg px-4 py-2 text-sm font-medium"
             >
               {isCreating ? 'Creating\u2026' : 'Create'}
-            </button>
+            </Button>
           </Modal.Footer>
         </Modal.Content>
       </Modal.Root>

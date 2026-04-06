@@ -1,4 +1,6 @@
 import type { IDesktopAnalytics } from '@genfeedai/desktop-contracts';
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useState } from 'react';
 
 type DaysRange = 7 | 30 | 90;
@@ -55,14 +57,15 @@ export const AnalyticsView = ({ workspaceId }: AnalyticsViewProps) => {
         <h2>Analytics</h2>
         <div className="pill-group">
           {([7, 30, 90] as const).map((d) => (
-            <button
+            <Button
               className={`pill-button ${days === d ? 'pill-active' : ''}`}
               key={d}
               onClick={() => setDays(d)}
               type="button"
+              variant={ButtonVariant.UNSTYLED}
             >
               {d}d
-            </button>
+            </Button>
           ))}
         </div>
       </div>

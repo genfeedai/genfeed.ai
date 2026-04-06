@@ -22,6 +22,7 @@ import FormControl from '@ui/forms/base/form-control/FormControl';
 import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Input } from '@ui/primitives/input';
 import { type ChangeEvent, useEffect } from 'react';
 import {
   FaInstagram,
@@ -221,10 +222,9 @@ export default function ModalMonitoredAccount({
           </FormControl>
 
           <FormControl label="Followers Count">
-            <input
+            <Input
               type="number"
               name="followersCount"
-              className="h-10 border border-input px-3 w-full"
               value={form.watch('followersCount') ?? 0}
               onChange={(e) =>
                 form.setValue('followersCount', parseInt(e.target.value, 10), {

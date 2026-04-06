@@ -13,6 +13,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useWorkflowStore } from '../stores/workflowStore';
 import type { GroupColor, NodeGroup } from '../types/groups';
 import { DEFAULT_GROUP_COLORS, GROUP_COLORS } from '../types/groups';
+import { Button } from '../ui/button';
 
 const HEADER_HEIGHT = 32;
 
@@ -301,30 +302,33 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
         <div className="flex items-center gap-1">
           {/* Color Picker */}
           <div className="relative" ref={colorPickerRef}>
-            <button
+            <Button
+              variant="ghost"
+              size="icon-sm"
               onClick={(e) => {
                 e.stopPropagation();
                 setShowColorPicker(!showColorPicker);
               }}
               className={clsx(
-                'p-1 rounded hover:bg-white/10 transition-colors',
+                'p-1 h-auto w-auto hover:bg-white/10',
                 colors.text,
               )}
               title="Change group color"
             >
               <Palette className="w-4 h-4" />
-            </button>
+            </Button>
             {showColorPicker && (
               <div className="absolute top-8 right-0 z-50 bg-card border border-border rounded-lg shadow-lg p-2 flex gap-1 flex-wrap w-[120px]">
                 {DEFAULT_GROUP_COLORS.map((color) => (
-                  <button
+                  <Button
                     key={color}
+                    variant="ghost"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleColorSelect(color);
                     }}
                     className={clsx(
-                      'w-6 h-6 rounded-md border-2 transition-transform hover:scale-110',
+                      'w-6 h-6 rounded-md border-2 transition-transform hover:scale-110 p-0 min-w-0',
                       GROUP_COLORS[color].bg,
                       color === group.color
                         ? 'border-white'
@@ -336,15 +340,14 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
               </div>
             )}
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={(e) => {
               e.stopPropagation();
               toggleGroupLock(group.id);
             }}
-            className={clsx(
-              'p-1 rounded hover:bg-white/10 transition-colors',
-              colors.text,
-            )}
+            className={clsx('p-1 h-auto w-auto hover:bg-white/10', colors.text)}
             title={group.isLocked ? 'Unlock group' : 'Lock group'}
           >
             {group.isLocked ? (
@@ -352,20 +355,19 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
             ) : (
               <Unlock className="w-4 h-4" />
             )}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={(e) => {
               e.stopPropagation();
               deleteGroup(group.id);
             }}
-            className={clsx(
-              'p-1 rounded hover:bg-white/10 transition-colors',
-              colors.text,
-            )}
+            className={clsx('p-1 h-auto w-auto hover:bg-white/10', colors.text)}
             title="Delete group"
           >
             <Trash2 className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
       </div>
 

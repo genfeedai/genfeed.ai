@@ -1,3 +1,5 @@
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 
 interface Template {
@@ -42,8 +44,9 @@ export function TemplateCard({
   const platformLabel = PLATFORM_LABELS[template.platform] ?? '';
 
   return (
-    <button
+    <Button
       type="button"
+      variant={ButtonVariant.UNSTYLED}
       onClick={onSelect}
       className={`flex flex-col items-start rounded-lg border p-3 text-left transition-colors hover:bg-secondary/50 ${borderColor}`}
     >
@@ -56,6 +59,6 @@ export function TemplateCard({
       <span className="mt-0.5 text-[10px] text-muted-foreground">
         {template.description}
       </span>
-    </button>
+    </Button>
   );
 }

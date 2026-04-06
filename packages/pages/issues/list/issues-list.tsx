@@ -1,5 +1,6 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -21,6 +22,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives';
+import { Button } from '@ui/primitives/button';
+import { Input } from '@ui/primitives/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   HiOutlineExclamationTriangle,
@@ -109,8 +120,8 @@ function IssueRow({
   onSelect: (issue: Issue) => void;
 }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant={ButtonVariant.UNSTYLED}
       className="flex w-full items-center gap-4 border-b border-white/5 px-4 py-3 text-left transition-colors hover:bg-white/[0.02]"
       onClick={() => onSelect(issue)}
     >
@@ -125,7 +136,7 @@ function IssueRow({
       <span className="w-28 shrink-0 text-right text-xs text-white/30">
         {getRelativeTime(issue.updatedAt)}
       </span>
-    </button>
+    </Button>
   );
 }
 
@@ -137,8 +148,8 @@ function IssueCard({
   onSelect: (issue: Issue) => void;
 }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant={ButtonVariant.UNSTYLED}
       className="block w-full rounded border border-white/5 bg-white/[0.02] p-3 text-left transition-colors hover:bg-white/[0.04]"
       onClick={() => onSelect(issue)}
     >
@@ -152,7 +163,7 @@ function IssueCard({
       {issue.assigneeUserId ? (
         <span className="text-[10px] text-white/30">Assigned</span>
       ) : null}
-    </button>
+    </Button>
   );
 }
 
@@ -286,30 +297,37 @@ export default function IssuesList() {
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-lg font-semibold text-white">Issues</h1>
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded bg-white/10 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/15"
+          <Button
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.SM}
+            className="inline-flex items-center gap-1.5"
             onClick={() => setShowCreateDialog(true)}
           >
             <HiOutlinePlusCircle className="h-3.5 w-3.5" />
             New Issue
-          </button>
-          <select
-            className="rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-white/70 outline-none focus:border-white/20"
-            onChange={(e) =>
-              setStatusFilter(e.target.value as IssueStatus | '')
-            }
+          </Button>
+          <Select
             value={statusFilter}
+            onValueChange={(value) =>
+              setStatusFilter(value as IssueStatus | '')
+            }
           >
-            <option value="">All Statuses</option>
-            {STATUS_ORDER.map((s) => (
-              <option key={s} value={s}>
-                {STATUS_LABELS[s]}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="w-auto text-xs">
+              <SelectValue placeholder="All Statuses" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Statuses</SelectItem>
+              {STATUS_ORDER.map((s) => (
+                <SelectItem key={s} value={s}>
+                  {STATUS_LABELS[s]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <div className="flex rounded border border-white/10">
-            <button
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
               className={cn(
                 'p-1.5 transition-colors',
                 viewMode === 'list'
@@ -317,11 +335,12 @@ export default function IssuesList() {
                   : 'text-white/40 hover:text-white/60',
               )}
               onClick={() => setViewMode('list')}
-              type="button"
             >
               <HiOutlineListBullet className="h-4 w-4" />
-            </button>
-            <button
+            </Button>
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
               className={cn(
                 'p-1.5 transition-colors',
                 viewMode === 'kanban'
@@ -329,10 +348,9 @@ export default function IssuesList() {
                   : 'text-white/40 hover:text-white/60',
               )}
               onClick={() => setViewMode('kanban')}
-              type="button"
             >
               <HiOutlineViewColumns className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -390,9 +408,8 @@ export default function IssuesList() {
               <label className="mb-1 block text-xs font-medium text-white/50">
                 Title
               </label>
-              <input
+              <Input
                 type="text"
-                className="w-full rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/90 outline-none placeholder:text-white/25 focus:border-white/20"
                 placeholder="Issue title"
                 value={createTitle}
                 onChange={(e) => setCreateTitle(e.target.value)}
@@ -403,7 +420,7 @@ export default function IssuesList() {
               <label className="mb-1 block text-xs font-medium text-white/50">
                 Description
               </label>
-              <textarea
+              <Textarea
                 className="w-full rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/90 outline-none placeholder:text-white/25 focus:border-white/20"
                 placeholder="Optional description"
                 rows={4}
@@ -415,39 +432,41 @@ export default function IssuesList() {
               <label className="mb-1 block text-xs font-medium text-white/50">
                 Priority
               </label>
-              <select
-                className="w-full rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/70 outline-none focus:border-white/20"
+              <Select
                 value={createPriority}
-                onChange={(e) =>
-                  setCreatePriority(e.target.value as IssuePriority)
+                onValueChange={(value) =>
+                  setCreatePriority(value as IssuePriority)
                 }
               >
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="critical">Critical</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="low">Low</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="critical">Critical</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
-            <button
-              type="button"
-              className="rounded px-3 py-1.5 text-xs text-white/50 transition-colors hover:text-white/70"
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
               onClick={() => setShowCreateDialog(false)}
             >
               Cancel
-            </button>
-            <button
-              type="button"
-              className={cn(
-                'rounded bg-white/10 px-4 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/15',
-                isCreating && 'cursor-not-allowed opacity-50',
-              )}
+            </Button>
+            <Button
+              variant={ButtonVariant.DEFAULT}
+              size={ButtonSize.SM}
+              className={cn(isCreating && 'cursor-not-allowed opacity-50')}
               disabled={isCreating || !createTitle.trim()}
               onClick={handleCreateIssue}
             >
               {isCreating ? 'Creating...' : 'Create Issue'}
-            </button>
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -69,8 +69,9 @@ export default function ReviewItemCard({
       )}
     >
       <div className="mb-3 flex items-start gap-3">
-        <button
-          type="button"
+        <Button
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           onClick={onSelect}
           className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-neutral-900"
         >
@@ -87,7 +88,7 @@ export default function ReviewItemCard({
               <HiPhoto className="h-6 w-6" />
             </div>
           )}
-        </button>
+        </Button>
 
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
@@ -139,15 +140,16 @@ export default function ReviewItemCard({
             )}
           </div>
 
-          <button
-            type="button"
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
             onClick={onSelect}
             className="mt-2 w-full text-left"
           >
             <p className="line-clamp-2 text-sm text-foreground/85">
               {item.caption ?? 'No caption generated'}
             </p>
-          </button>
+          </Button>
 
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-foreground/45">
             {formattedDate && <span>{formattedDate}</span>}

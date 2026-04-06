@@ -1,5 +1,6 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import {
   DefinitionDetail,
   DefinitionList,
@@ -21,6 +22,8 @@ import {
 } from '@services/management/issues.service';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
+import { Button } from '@ui/primitives/button';
+import { Textarea } from '@ui/primitives/textarea';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -416,28 +419,32 @@ export default function IssueDetail({
                 Comments ({comments.length})
               </h3>
               {comments.length > VISIBLE_COMMENT_COUNT && (
-                <button
+                <Button
                   type="button"
-                  className="flex items-center gap-1 text-[10px] text-blue-400 transition-colors hover:text-blue-300"
+                  variant={ButtonVariant.GHOST}
+                  size={ButtonSize.XS}
+                  className="flex items-center gap-1 text-[10px] text-blue-400 hover:text-blue-300"
                   onClick={scrollToLatestComment}
                 >
                   <HiOutlineChevronDoubleDown className="h-3 w-3" />
                   Jump to latest
-                </button>
+                </Button>
               )}
             </div>
             {comments.length > 0 ? (
               <>
                 {!showAllComments && hiddenCommentCount > 0 && (
-                  <button
+                  <Button
                     type="button"
-                    className="flex w-full items-center justify-center gap-1.5 border-b border-white/5 py-2 text-[11px] text-white/40 transition-colors hover:bg-white/[0.02] hover:text-white/60"
+                    variant={ButtonVariant.GHOST}
+                    size={ButtonSize.XS}
+                    className="flex w-full items-center justify-center gap-1.5 border-b border-white/5 py-2 text-[11px] text-white/40 hover:bg-white/[0.02] hover:text-white/60"
                     onClick={() => setShowAllComments(true)}
                   >
                     <HiChevronDown className="h-3 w-3" />
                     Show {hiddenCommentCount} earlier{' '}
                     {hiddenCommentCount === 1 ? 'comment' : 'comments'}
-                  </button>
+                  </Button>
                 )}
                 {visibleComments.map((comment, index) => (
                   <div
@@ -458,24 +465,22 @@ export default function IssueDetail({
               </div>
             )}
             <div className="border-t border-white/10 p-4">
-              <textarea
+              <Textarea
                 className="mb-2 w-full rounded border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/90 outline-none placeholder:text-white/25 focus:border-white/20"
                 onChange={(e) => setCommentBody(e.target.value)}
                 placeholder="Write a comment..."
                 rows={3}
                 value={commentBody}
               />
-              <button
-                className={cn(
-                  'rounded bg-white/10 px-3 py-1.5 text-xs font-medium text-white/80 transition-colors hover:bg-white/15',
-                  isSubmitting && 'cursor-not-allowed opacity-50',
-                )}
+              <Button
+                variant={ButtonVariant.SOFT}
+                size={ButtonSize.SM}
                 disabled={isSubmitting || !commentBody.trim()}
                 onClick={handleAddComment}
                 type="button"
               >
                 {isSubmitting ? 'Posting...' : 'Add Comment'}
-              </button>
+              </Button>
             </div>
           </Card>
         </div>
@@ -502,14 +507,16 @@ export default function IssueDetail({
                     {STATUS_TRANSITIONS[issue.status].length > 0 && (
                       <div className="mt-1.5 flex flex-wrap gap-1">
                         {STATUS_TRANSITIONS[issue.status].map((s) => (
-                          <button
+                          <Button
                             key={s}
                             type="button"
-                            className="border border-white/10 bg-white/5 px-1.5 py-0.5 text-[9px] text-white/50 transition-colors hover:bg-white/10 hover:text-white/70"
+                            variant={ButtonVariant.OUTLINE}
+                            size={ButtonSize.XS}
+                            className="px-1.5 py-0.5 text-[9px] text-white/50 hover:text-white/70"
                             onClick={() => handleStatusUpdate(s)}
                           >
                             {STATUS_LABELS[s]}
-                          </button>
+                          </Button>
                         ))}
                       </div>
                     )}

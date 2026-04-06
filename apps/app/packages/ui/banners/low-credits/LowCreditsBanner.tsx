@@ -1,9 +1,11 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import { useSubscription } from '@hooks/data/subscription/use-subscription/use-subscription';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import Button from '@ui/buttons/base/Button';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HiExclamationTriangle, HiXMark } from 'react-icons/hi2';
@@ -190,8 +192,9 @@ export default function LowCreditsBanner({
               Top up credits
             </Link>
 
-            <button
-              type="button"
+            <Button
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
               onClick={handleDismiss}
               className={cn(
                 'inline-flex items-center justify-center border transition-colors',
@@ -200,10 +203,9 @@ export default function LowCreditsBanner({
                   ? 'border-red-400/15 text-red-200 hover:bg-red-500/[0.12]'
                   : 'border-amber-400/15 text-amber-200 hover:bg-amber-500/[0.12]',
               )}
-              aria-label="Dismiss low credits banner"
-            >
-              <HiXMark className="h-4 w-4" />
-            </button>
+              ariaLabel="Dismiss low credits banner"
+              icon={<HiXMark className="h-4 w-4" />}
+            />
           </div>
         </div>
       </div>

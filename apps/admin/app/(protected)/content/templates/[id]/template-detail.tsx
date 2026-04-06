@@ -13,6 +13,11 @@ import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { VStack } from '@ui/layout/stack';
 import Breadcrumb from '@ui/navigation/breadcrumb/Breadcrumb';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@ui/primitives/collapsible';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { usePathname, useRouter } from 'next/navigation';
@@ -307,16 +312,16 @@ export default function TemplateDetail({ templateId }: TemplateDetailProps) {
                 </MetadataRow>
               )}
               {template.content.structure && (
-                <details className="rounded-lg border border-white/[0.08] bg-background/50">
-                  <summary className="cursor-pointer list-none px-4 py-3 text-sm font-medium">
+                <Collapsible className="rounded-lg border border-white/[0.08] bg-background/50">
+                  <CollapsibleTrigger className="w-full cursor-pointer list-none px-4 py-3 text-left text-sm font-medium">
                     Structure
-                  </summary>
-                  <div className="px-4 pb-4">
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="px-4 pb-4">
                     <Pre>
                       {JSON.stringify(template.content.structure, null, 2)}
                     </Pre>
-                  </div>
-                </details>
+                  </CollapsibleContent>
+                </Collapsible>
               )}
             </VStack>
           </DetailCard>

@@ -1,5 +1,7 @@
+import { ButtonVariant } from '@genfeedai/enums';
 import { Pre } from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Button from '@ui/buttons/base/Button';
 import {
   AlertCircle,
   CheckCircle2,
@@ -107,13 +109,14 @@ function VerificationPanelInner() {
       )}
 
       {canAdvance && (
-        <button
-          type="button"
+        <Button
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           onClick={() => advance('user')}
           className="w-full py-2.5 text-sm font-semibold bg-emerald-500 text-white rounded-lg hover:bg-emerald-400 transition-colors"
         >
           Accept & mark complete
-        </button>
+        </Button>
       )}
     </div>
   );

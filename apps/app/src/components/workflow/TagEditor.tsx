@@ -1,5 +1,8 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
 import { Plus, Tag, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { workflowsApi } from '@/lib/api';
@@ -88,18 +91,20 @@ export function TagEditor({ tags, onChange }: TagEditorProps) {
         >
           <Tag className="w-3 h-3" />
           {tag}
-          <button
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
             onClick={() => removeTag(tag)}
             className="opacity-0 group-hover:opacity-100 hover:text-[var(--foreground)] transition"
           >
             <X className="w-3 h-3" />
-          </button>
+          </Button>
         </span>
       ))}
 
       {isAdding ? (
         <div className="relative">
-          <input
+          <Input
             ref={inputRef}
             type="text"
             value={inputValue}
@@ -118,8 +123,10 @@ export function TagEditor({ tags, onChange }: TagEditorProps) {
           {suggestions.length > 0 && (
             <div className="absolute top-full left-0 mt-1 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg py-1 min-w-[120px] z-50">
               {suggestions.map((s) => (
-                <button
+                <Button
                   key={s}
+                  variant={ButtonVariant.GHOST}
+                  withWrapper={false}
                   onMouseDown={(e) => {
                     e.preventDefault();
                     addTag(s);
@@ -127,19 +134,21 @@ export function TagEditor({ tags, onChange }: TagEditorProps) {
                   className="w-full px-3 py-1.5 text-xs text-left text-[var(--foreground)] hover:bg-[var(--secondary)] transition"
                 >
                   {s}
-                </button>
+                </Button>
               ))}
             </div>
           )}
         </div>
       ) : (
-        <button
+        <Button
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
           onClick={() => setIsAdding(true)}
           className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-xs rounded-full text-[var(--muted-foreground)] hover:bg-[var(--secondary)] hover:text-[var(--foreground)] transition"
         >
           <Plus className="w-3 h-3" />
           Tag
-        </button>
+        </Button>
       )}
     </div>
   );

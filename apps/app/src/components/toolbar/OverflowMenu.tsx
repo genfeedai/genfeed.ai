@@ -1,5 +1,7 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import { MoreVertical } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -46,12 +48,13 @@ export function OverflowMenu({ items }: OverflowMenuProps) {
     <div ref={menuRef} className="relative">
       <Tooltip>
         <TooltipTrigger asChild>
-          <button
+          <Button
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
             onClick={() => setIsOpen(!isOpen)}
-            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground"
-          >
-            <MoreVertical className="h-4 w-4" />
-          </button>
+            className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground"
+            icon={<MoreVertical className="h-4 w-4" />}
+          />
         </TooltipTrigger>
         <TooltipContent side="bottom">
           <p>More options</p>
@@ -61,20 +64,22 @@ export function OverflowMenu({ items }: OverflowMenuProps) {
       {isOpen && (
         <div className="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-lg border border-border bg-card py-1 shadow-lg">
           {items.map((item) => (
-            <button
+            <Button
               key={item.id}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
               onClick={() => {
                 item.onClick?.();
                 setIsOpen(false);
               }}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground transition hover:bg-secondary"
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-secondary rounded-none justify-start"
             >
               <span className="h-4 w-4 shrink-0">{item.icon}</span>
               <span>{item.label}</span>
               {item.external && (
                 <span className="ml-auto text-xs text-muted-foreground">↗</span>
               )}
-            </button>
+</Button>
           ))}
         </div>
       )}

@@ -14,6 +14,7 @@ import { TagsService } from '@services/content/tags.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
 import TagBadge from '@ui/tags/badge/TagBadge';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -372,13 +373,12 @@ export default function DropdownTags({
       >
         {/* Search Input */}
         <div className="p-3 border-b border-white/[0.08]">
-          <input
+          <Input
             ref={searchInputRef}
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search or create tags..."
-            className="w-full px-3 py-2 text-sm bg-background border border-white/[0.08] focus:outline-none focus:border-primary"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && showCreateOption) {
                 handleCreateTag();

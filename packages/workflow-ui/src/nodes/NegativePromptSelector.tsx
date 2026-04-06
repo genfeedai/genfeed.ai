@@ -2,6 +2,7 @@
 
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
+import { Button } from '../ui/button';
 
 import { Checkbox } from '../ui/checkbox';
 
@@ -131,10 +132,11 @@ function NegativePromptSelectorComponent({
   return (
     <div className="flex flex-col gap-2">
       {/* Collapsible header */}
-      <button
+      <Button
+        variant="ghost"
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="flex items-center justify-between w-full text-left group"
+        className="flex items-center justify-between w-full text-left h-auto p-0 group"
       >
         <span className="text-xs text-muted-foreground">Negative Prompt</span>
         <div className="flex items-center gap-1.5">
@@ -149,7 +151,7 @@ function NegativePromptSelectorComponent({
             <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
           )}
         </div>
-      </button>
+      </Button>
 
       {/* Expandable content */}
       {isExpanded && (

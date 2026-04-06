@@ -16,6 +16,7 @@ import {
 } from '@xyflow/react';
 import { PanelLeft } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Button } from '../ui/button';
 import '@xyflow/react/dist/style.css';
 
 import type {
@@ -595,13 +596,15 @@ export function WorkflowCanvas({
       onDragOver={handleDragOver}
     >
       {!showPalette && (
-        <button
+        <Button
+          variant="outline"
+          size="icon-sm"
           onClick={togglePalette}
-          className="absolute top-3 left-3 z-10 p-1.5 bg-[var(--background)] border border-[var(--border)] rounded-md hover:bg-[var(--secondary)] transition-colors group"
+          className="absolute top-3 left-3 z-10"
           title="Open sidebar (M)"
         >
           <PanelLeft className="w-4 h-4 text-[var(--muted-foreground)] group-hover:text-[var(--foreground)]" />
-        </button>
+        </Button>
       )}
       <ReactFlow<WorkflowNode, WorkflowEdge>
         nodes={nodes}

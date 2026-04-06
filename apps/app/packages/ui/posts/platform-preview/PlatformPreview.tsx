@@ -1,7 +1,8 @@
 'use client';
 
-import { CredentialPlatform } from '@genfeedai/enums';
+import { ButtonVariant, CredentialPlatform } from '@genfeedai/enums';
 import type { IIngredient, IPost } from '@genfeedai/interfaces';
+import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import Image from 'next/image';
@@ -179,18 +180,19 @@ export default function PlatformPreview({
         {relevantPlatforms.length > 1 && (
           <div className="flex gap-1">
             {relevantPlatforms.map((p) => (
-              <button
+              <Button
                 key={p.key}
+                variant={ButtonVariant.GHOST}
                 onClick={() => setActivePlatform(p.key)}
-                className={`p-1.5 rounded transition-colors ${
+                className={`p-1.5 rounded ${
                   activePlatform === p.key
                     ? 'bg-primary/10 text-primary'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
-                title={p.label}
+                tooltip={p.label}
               >
                 {p.icon}
-              </button>
+              </Button>
             ))}
           </div>
         )}

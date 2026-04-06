@@ -1,4 +1,6 @@
 import type { IDesktopTrend } from '@genfeedai/desktop-contracts';
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useState } from 'react';
 
 const PLATFORMS = ['tiktok', 'twitter', 'instagram', 'linkedin'] as const;
@@ -53,14 +55,15 @@ export const TrendsView = ({ onGenerateFromTrend }: TrendsViewProps) => {
 
       <div className="pill-group" style={{ marginBottom: 20 }}>
         {PLATFORMS.map((p) => (
-          <button
+          <Button
             className={`pill-button ${platform === p ? 'pill-active' : ''}`}
             key={p}
             onClick={() => setPlatform(p)}
             type="button"
+            variant={ButtonVariant.UNSTYLED}
           >
             {PLATFORM_LABELS[p]}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -110,8 +113,8 @@ export const TrendsView = ({ onGenerateFromTrend }: TrendsViewProps) => {
                   <span className="score-value">{trend.engagementScore}</span>
                 </div>
               </div>
-              <button
-                className="ghost-button small"
+              <Button
+                className="small"
                 onClick={() =>
                   onGenerateFromTrend({
                     id: trend.id,
@@ -125,9 +128,10 @@ export const TrendsView = ({ onGenerateFromTrend }: TrendsViewProps) => {
                   })
                 }
                 type="button"
+                variant={ButtonVariant.GHOST}
               >
                 ✨ Generate from trend
-              </button>
+              </Button>
             </div>
           ))}
         </div>

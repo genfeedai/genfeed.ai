@@ -1,8 +1,20 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
-import { VoiceCloneStatus, VoiceProvider } from '@genfeedai/enums';
+import {
+  ButtonVariant,
+  VoiceCloneStatus,
+  VoiceProvider,
+} from '@genfeedai/enums';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
+import Button from '@ui/buttons/base/Button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import {
   type ReactElement,
   useCallback,
@@ -269,35 +281,39 @@ export function VoiceCloneCard({
           <p className="text-xs font-medium text-foreground">
             Use existing voice
           </p>
-          <select
+          <Select
             value={selectedVoiceId}
-            onChange={(e) => setSelectedVoiceId(e.target.value)}
-            className="w-full rounded border border-border bg-background px-3 py-2 text-xs text-foreground"
+            onValueChange={(value) => setSelectedVoiceId(value)}
             disabled={status === 'uploading' || status === 'cloning'}
           >
-            <option value="">Select a cloned voice</option>
-            {existingVoices.map((voice) => (
-              <option key={voice.id} value={voice.id}>
-                {voice.label} ({voice.provider ?? 'unknown'})
-              </option>
-            ))}
-          </select>
-          <button
-            type="button"
+            <SelectTrigger className="w-full text-xs">
+              <SelectValue placeholder="Select a cloned voice" />
+            </SelectTrigger>
+            <SelectContent>
+              {existingVoices.map((voice) => (
+                <SelectItem key={voice.id} value={voice.id}>
+                  {voice.label} ({voice.provider ?? 'unknown'})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Button
+            variant={ButtonVariant.OUTLINE}
             onClick={handleUseExisting}
-            disabled={!selectedVoiceId || status === 'uploading'}
-            className="flex w-full items-center justify-center gap-2 rounded border border-border px-4 py-2 text-sm font-black text-foreground transition-colors hover:bg-accent disabled:opacity-50"
+            isDisabled={!selectedVoiceId || status === 'uploading'}
+            className="w-full"
           >
             Use Selected Voice
-          </button>
+          </Button>
         </div>
       )}
 
       {canUpload && (
         <>
           {/* Audio dropzone */}
-          <button
-            type="button"
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onClick={() => fileInputRef.current?.click()}
@@ -333,18 +349,19 @@ export function VoiceCloneCard({
               onChange={handleFileChange}
               className="hidden"
             />
-          </button>
+          </Button>
 
           {/* Clone button */}
-          <button
-            type="button"
+          <Button
+            variant={ButtonVariant.DEFAULT}
             onClick={handleClone}
-            disabled={!file || status === 'uploading' || status === 'cloning'}
-            className="flex w-full items-center justify-center gap-2 rounded bg-primary px-4 py-2 text-sm font-black text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            isDisabled={!file || status === 'uploading' || status === 'cloning'}
+            isLoading={status === 'uploading'}
+            className="w-full"
           >
             <HiMicrophone className="h-4 w-4" />
             {status === 'uploading' ? 'Uploading…' : 'Clone New Voice'}
-          </button>
+          </Button>
         </>
       )}
 

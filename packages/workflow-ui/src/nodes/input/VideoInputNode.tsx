@@ -184,10 +184,11 @@ function VideoInputNodeComponent(props: NodeProps) {
           </div>
         </div>
       ) : (
-        <button
+        <Button
+          variant="ghost"
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
-          className="flex flex-1 min-h-16 w-full flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border/50 bg-secondary/20 transition-colors hover:border-primary/50 hover:bg-secondary/40 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex flex-1 min-h-16 w-full flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border/50 bg-secondary/20 hover:border-primary/50 hover:bg-secondary/40 h-auto"
         >
           {isUploading ? (
             <>
@@ -204,7 +205,7 @@ function VideoInputNodeComponent(props: NodeProps) {
               </span>
             </>
           )}
-        </button>
+        </Button>
       )}
     </BaseNode>
   );

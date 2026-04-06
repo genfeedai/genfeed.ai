@@ -44,6 +44,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@ui/primitives/table';
 import Link from 'next/link';
 import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
@@ -338,41 +346,41 @@ function AdTableRow({
   const metricValue = getMetricValue(item, metric);
 
   return (
-    <tr
+    <TableRow
       className={cn(
         'cursor-pointer border-b border-white/[0.06] transition-colors hover:bg-white/[0.03]',
         isSelected && 'bg-primary/5',
       )}
       onClick={() => onSelect(item)}
     >
-      <td className="px-4 py-3">
+      <TableCell className="px-4 py-3">
         <Badge variant="ghost">
           {item.platform === 'meta' ? 'Meta' : 'Google'}
         </Badge>
-      </td>
-      <td className="max-w-[300px] px-4 py-3">
+      </TableCell>
+      <TableCell className="max-w-[300px] px-4 py-3">
         <span className="line-clamp-1 text-sm font-medium text-foreground">
           {item.title}
         </span>
-      </td>
-      <td className="px-4 py-3">
+      </TableCell>
+      <TableCell className="px-4 py-3">
         <Badge variant={item.source === 'public' ? 'blue' : 'accent'}>
           {item.source === 'public' ? 'Public' : 'Connected'}
         </Badge>
-      </td>
-      <td className="px-4 py-3 text-sm text-foreground/60">
+      </TableCell>
+      <TableCell className="px-4 py-3 text-sm text-foreground/60">
         {formatMetric(metricValue)}
-      </td>
-      <td className="px-4 py-3 text-sm text-foreground/60">
+      </TableCell>
+      <TableCell className="px-4 py-3 text-sm text-foreground/60">
         {formatMetric(item.metrics.ctr)}
-      </td>
-      <td className="px-4 py-3 text-sm text-foreground/60">
+      </TableCell>
+      <TableCell className="px-4 py-3 text-sm text-foreground/60">
         {item.channel !== 'all' ? item.channel : '—'}
-      </td>
-      <td className="px-4 py-3 text-sm text-foreground/40">
+      </TableCell>
+      <TableCell className="px-4 py-3 text-sm text-foreground/40">
         {item.accountName || '—'}
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 }
 
@@ -1368,44 +1376,44 @@ export default function AdsResearchPageClient({
         )
       ) : (
         <div className="overflow-x-auto rounded-xl border border-white/[0.06]">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-white/[0.06] bg-card">
-                <th className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+          <Table className="w-full text-left">
+            <TableHeader>
+              <TableRow className="border-b border-white/[0.06] bg-card">
+                <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
                   Platform
-                </th>
-                <th className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+                </TableHead>
+                <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
                   Title
-                </th>
-                <th className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+                </TableHead>
+                <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
                   Source
-                </th>
-                <th className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+                </TableHead>
+                <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
                   {getMetricLabel(metric)}
-                </th>
-                <th className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+                </TableHead>
+                <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
                   CTR
-                </th>
-                <th className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+                </TableHead>
+                <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
                   Channel
-                </th>
-                <th className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
+                </TableHead>
+                <TableHead className="px-4 py-3 text-[10px] uppercase tracking-[0.18em] text-foreground/45">
                   Account
-                </th>
-              </tr>
-            </thead>
-            <tbody>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {allAds.length === 0 ? (
-                <tr>
-                  <td
+                <TableRow>
+                  <TableCell
                     colSpan={7}
                     className="px-4 py-8 text-center text-sm text-foreground/40"
                   >
                     {search.trim()
                       ? 'No ads match your search.'
                       : 'No ads match the current filters.'}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               ) : (
                 allAds.map((item) => {
                   const key =
@@ -1428,8 +1436,8 @@ export default function AdsResearchPageClient({
                   );
                 })
               )}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       )}
 

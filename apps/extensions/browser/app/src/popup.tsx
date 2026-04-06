@@ -1,4 +1,6 @@
 import { ClerkProvider, useAuth } from '@clerk/chrome-extension';
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import LoginPage from '~components/pages/LoginPage';
@@ -106,23 +108,25 @@ function PopupContent() {
             />
             <h1 className="text-xl font-bold text-foreground">Genfeed</h1>
           </div>
-          <button
+          <Button
             type="button"
+            variant={ButtonVariant.GHOST}
             onClick={handleLogout}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            className="text-xs text-muted-foreground hover:text-foreground"
           >
             Logout
-          </button>
+          </Button>
         </div>
 
         <div className="flex flex-col items-center gap-4 py-8">
           <p className="text-sm text-muted-foreground text-center">
             Open the side panel to chat with your AI content assistant.
           </p>
-          <button
+          <Button
             type="button"
+            variant={ButtonVariant.DEFAULT}
             onClick={handleOpenSidePanel}
-            className="flex items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="rounded-lg px-6 py-3"
           >
             <svg
               aria-hidden="true"
@@ -139,7 +143,7 @@ function PopupContent() {
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
             Open Side Panel
-          </button>
+          </Button>
         </div>
       </div>
     </div>

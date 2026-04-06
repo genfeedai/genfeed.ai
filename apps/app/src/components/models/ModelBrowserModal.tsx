@@ -1,5 +1,6 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type {
   ModelCapability,
   ModelUseCase,
@@ -11,6 +12,8 @@ import {
   ModelUseCaseEnum,
   ProviderTypeEnum,
 } from '@genfeedai/types';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
 import {
   AlertTriangle,
   Clock,
@@ -26,8 +29,7 @@ import {
 } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+
 import { logger } from '@/lib/logger';
 import { useSettingsStore } from '@/store/settingsStore';
 
@@ -81,11 +83,11 @@ function ProviderBadge({ provider }: { provider: ProviderType }) {
 
 function CapabilityBadge({ capability }: { capability: ModelCapability }) {
   const labels: Record<ModelCapability, string> = {
-    [ModelCapabilityEnum.TEXT_TO_IMAGE]: 'txt→img',
-    [ModelCapabilityEnum.IMAGE_TO_IMAGE]: 'img→img',
-    [ModelCapabilityEnum.TEXT_TO_VIDEO]: 'txt→vid',
-    [ModelCapabilityEnum.IMAGE_TO_VIDEO]: 'img→vid',
-    [ModelCapabilityEnum.TEXT_GENERATION]: 'txt→txt',
+    [ModelCapabilityEnum.TEXT_TO_IMAGE]: 'txt->img',
+    [ModelCapabilityEnum.IMAGE_TO_IMAGE]: 'img->img',
+    [ModelCapabilityEnum.TEXT_TO_VIDEO]: 'txt->vid',
+    [ModelCapabilityEnum.IMAGE_TO_VIDEO]: 'img->vid',
+    [ModelCapabilityEnum.TEXT_GENERATION]: 'txt->txt',
   };
 
   return (
@@ -144,7 +146,9 @@ function ModelCard({ model, onSelect, isRecent }: ModelCardProps) {
   const [imgError, setImgError] = useState(false);
 
   return (
-    <button
+    <Button
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
       onClick={() => onSelect(model)}
       className="group w-full rounded-lg border border-border bg-card text-left transition hover:border-primary overflow-hidden"
     >
@@ -207,7 +211,7 @@ function ModelCard({ model, onSelect, isRecent }: ModelCardProps) {
           )}
         </div>
       </div>
-    </button>
+    </Button>
   );
 }
 
@@ -388,9 +392,13 @@ function ModelBrowserModalComponent({
             <Sparkles className="h-5 w-5 text-primary" />
             <h2 className="text-lg font-semibold text-foreground">{title}</h2>
           </div>
-          <Button variant="ghost" size="icon-sm" onClick={onClose}>
-            <X className="h-5 w-5" />
-          </Button>
+          <Button
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-secondary transition"
+            icon={<X className="h-5 w-5" />}
+          />
         </div>
 
         {/* Filters */}
@@ -412,8 +420,10 @@ function ModelBrowserModalComponent({
             {configuredProviders.length > 0 && (
               <div className="flex items-center gap-2">
                 {(['all', ...configuredProviders] as const).map((provider) => (
-                  <button
+                  <Button
                     key={provider}
+                    variant={ButtonVariant.UNSTYLED}
+                    withWrapper={false}
                     onClick={() => setProviderFilter(provider)}
                     className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
                       providerFilter === provider
@@ -428,7 +438,7 @@ function ModelBrowserModalComponent({
                         : provider === 'fal'
                           ? 'fal.ai'
                           : 'Hugging Face'}
-                  </button>
+                  </Button>
                 ))}
               </div>
             )}
@@ -437,33 +447,37 @@ function ModelBrowserModalComponent({
           {/* Use-case filter chips */}
           {availableUseCases.length > 0 && (
             <div className="flex items-center gap-2 overflow-x-auto px-6 pb-4">
-              <button
+              <Button
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
                 onClick={() => setUseCaseFilter('all')}
                 className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
                   useCaseFilter === 'all'
                     ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
                     : 'bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-transparent'
                 }`}
+                icon={<Sparkles className="h-3 w-3" />}
               >
-                <Sparkles className="h-3 w-3" />
                 All
-              </button>
+              </Button>
               {availableUseCases.map((uc) => {
                 const config = USE_CASE_CONFIG[uc];
                 const Icon = config.icon;
                 return (
-                  <button
+                  <Button
                     key={uc}
+                    variant={ButtonVariant.UNSTYLED}
+                    withWrapper={false}
                     onClick={() => setUseCaseFilter(uc)}
                     className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
                       useCaseFilter === uc
                         ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
                         : 'bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-transparent'
                     }`}
+                    icon={<Icon className="h-3 w-3" />}
                   >
-                    <Icon className="h-3 w-3" />
                     {config.label}
-                  </button>
+                  </Button>
                 );
               })}
             </div>

@@ -1,6 +1,17 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import { Player } from '@remotion/player';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import {
   ArrowDown,
   ArrowUp,
@@ -135,32 +146,39 @@ export function EditorPageClient({ initialAssets }: EditorPageClientProps) {
             </h1>
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <select
+            <Select
               value={aspectPreset}
-              onChange={(event) =>
-                setAspectPreset(event.target.value as AspectPresetId)
+              onValueChange={(value) =>
+                setAspectPreset(value as AspectPresetId)
               }
-              className="rounded-full border border-[var(--border)] bg-[var(--secondary)] px-4 py-2 text-sm outline-none transition focus:border-white/50"
             >
-              {Object.entries(ASPECT_PRESETS).map(([id, preset]) => (
-                <option key={id} value={id}>
-                  {preset.label}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
+              <SelectTrigger className="rounded-full border border-[var(--border)] bg-[var(--secondary)] px-4 py-2 text-sm outline-none transition focus:border-white/50">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(ASPECT_PRESETS).map(([id, preset]) => (
+                  <SelectItem key={id} value={id}>
+                    {preset.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant={ButtonVariant.DEFAULT}
+              withWrapper={false}
               onClick={handleRender}
-              disabled={!composition.items.length || isRendering}
+              isDisabled={!composition.items.length || isRendering}
               className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
+              icon={
+                isRendering ? (
+                  <LoaderCircle className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )
+              }
             >
-              {isRendering ? (
-                <LoaderCircle className="h-4 w-4 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4" />
-              )}
               Export video
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -218,14 +236,15 @@ export function EditorPageClient({ initialAssets }: EditorPageClientProps) {
                 One main track, simple ordering, basic durations.
               </p>
             </div>
-            <button
-              type="button"
+            <Button
+              variant={ButtonVariant.OUTLINE}
+              withWrapper={false}
               onClick={addAssetFromPrompt}
               className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--muted-foreground)] transition hover:border-white hover:text-[var(--foreground)]"
+              icon={<Plus className="h-4 w-4" />}
             >
-              <Plus className="h-4 w-4" />
               Add asset
-            </button>
+            </Button>
           </div>
 
           <div className="mt-5 space-y-3">
@@ -250,33 +269,33 @@ export function EditorPageClient({ initialAssets }: EditorPageClientProps) {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button
-                        type="button"
+                      <Button
+                        variant={ButtonVariant.OUTLINE}
+                        withWrapper={false}
                         onClick={() => moveItem(index, -1)}
                         className="rounded-full border border-[var(--border)] p-2 text-[var(--muted-foreground)] transition hover:border-white hover:text-[var(--foreground)]"
-                      >
-                        <ArrowUp className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
+                        icon={<ArrowUp className="h-4 w-4" />}
+                      />
+                      <Button
+                        variant={ButtonVariant.OUTLINE}
+                        withWrapper={false}
                         onClick={() => moveItem(index, 1)}
                         className="rounded-full border border-[var(--border)] p-2 text-[var(--muted-foreground)] transition hover:border-white hover:text-[var(--foreground)]"
-                      >
-                        <ArrowDown className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
+                        icon={<ArrowDown className="h-4 w-4" />}
+                      />
+                      <Button
+                        variant={ButtonVariant.UNSTYLED}
+                        withWrapper={false}
                         onClick={() => removeItem(index)}
                         className="rounded-full border border-[var(--border)] p-2 text-red-300 transition hover:border-red-400/60"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                        icon={<Trash2 className="h-4 w-4" />}
+                      />
                     </div>
                   </div>
 
                   <label className="mt-4 grid gap-2 text-sm text-[var(--muted-foreground)]">
                     Duration (seconds)
-                    <input
+                    <Input
                       type="number"
                       min={1}
                       max={20}
@@ -301,7 +320,7 @@ export function EditorPageClient({ initialAssets }: EditorPageClientProps) {
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
             A single title overlay keeps v1 simple and render-safe.
           </p>
-          <textarea
+          <Textarea
             rows={4}
             value={composition.overlay?.text ?? ''}
             onChange={(event) =>

@@ -1,9 +1,11 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type { WorkflowNode } from '@genfeedai/types';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
 import { Kbd } from '@genfeedai/ui';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import Button from '@ui/buttons/base/Button';
 import { useReactFlow } from '@xyflow/react';
 import { Search } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -138,8 +140,10 @@ export function NodeSearch() {
               const comment = (node.data as { comment?: string }).comment;
 
               return (
-                <button
+                <Button
                   key={node.id}
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
                   onClick={() => handleSelectNode(node)}
                   className={`w-full flex items-center gap-3 p-2 rounded text-left transition-colors ${
                     index === selectedIndex
@@ -159,7 +163,7 @@ export function NodeSearch() {
                       {comment && ` · ${comment}`}
                     </div>
                   </div>
-                </button>
+                </Button>
               );
             })
           )}

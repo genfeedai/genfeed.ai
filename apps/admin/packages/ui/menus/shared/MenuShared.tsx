@@ -2,6 +2,7 @@
 
 import { UserButton, useAuth, useUser } from '@clerk/nextjs';
 import { useSidebarNavigation } from '@contexts/ui/sidebar-navigation-context';
+import { ButtonVariant } from '@genfeedai/enums';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import { Kbd } from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
@@ -10,6 +11,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
 import type { MenuSharedProps } from '@props/navigation/menu.props';
 import { EnvironmentService } from '@services/core/environment.service';
+import Button from '@ui/buttons/base/Button';
 import ProgressSidebarCard from '@ui/cards/progress-sidebar-card/ProgressSidebarCard';
 import MenuItem from '@ui/menus/item/MenuItem';
 import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';
@@ -356,11 +358,12 @@ export default function MenuShared({
   );
 
   const sharedCollapseControl = onToggleCollapse ? (
-    <button
-      type="button"
+    <Button
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
       onClick={onToggleCollapse}
       className="group w-8 h-8 rounded-lg flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/[0.06] transition-colors duration-200 flex-shrink-0 cursor-pointer"
-      aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+      ariaLabel={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
     >
       <span className="relative flex h-4 w-4 items-center justify-center">
         {logoUrl ? (
@@ -379,7 +382,7 @@ export default function MenuShared({
         )}
         <PiSidebarSimple className="absolute h-4 w-4 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
       </span>
-    </button>
+    </Button>
   ) : null;
 
   /* ── Single DOM tree: content fades out, parent clips via overflow:hidden ── */
@@ -503,9 +506,10 @@ export default function MenuShared({
                   </Kbd>
                 </Link>
               ) : (
-                <button
+                <Button
                   data-testid="sidebar-primary-action"
-                  type="button"
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
                   onClick={() => {
                     handleLinkClick();
                     config.primaryAction?.onClick?.();
@@ -529,7 +533,7 @@ export default function MenuShared({
                   >
                     {'\u2318'}N
                   </Kbd>
-                </button>
+                </Button>
               )}
             </div>
           ) : showPrimaryItems && primaryItems.length > 0 ? (
@@ -784,8 +788,9 @@ function CollapsibleGroup({
           headerClassName,
         )}
       >
-        <button
-          type="button"
+        <Button
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           onClick={handleToggle}
           className="flex items-center gap-1.5 hover:text-white/50 transition-colors duration-150 cursor-pointer"
         >
@@ -798,7 +803,7 @@ function CollapsibleGroup({
           <span className="text-[10px] font-bold uppercase tracking-[0.15em]">
             {label}
           </span>
-        </button>
+        </Button>
         {actions && !isCollapsed && <div className="ml-auto">{actions}</div>}
       </div>
       {!isCollapsed && <div className={contentClassName}>{children}</div>}
@@ -885,12 +890,13 @@ function DrillDownGroupRow({
   }
 
   return (
-    <button
-      type="button"
+    <Button
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
       onClick={handleClick}
       className={cn(rowClasses, 'cursor-pointer')}
     >
       {content}
-    </button>
+    </Button>
   );
 }

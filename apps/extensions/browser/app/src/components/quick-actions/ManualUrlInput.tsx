@@ -1,3 +1,10 @@
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@ui/primitives/collapsible';
 import type { ReactElement } from 'react';
 import { useState } from 'react';
 import { LoadingSpinner } from '~components/ui';
@@ -92,48 +99,37 @@ export function ManualUrlInput(): ReactElement {
   }
 
   return (
-    <details className="group border border-white/[0.08] bg-muted">
-      <summary className="flex cursor-pointer items-center justify-between px-4 py-3 text-sm font-medium list-none">
+    <Collapsible className="border border-white/[0.08] bg-muted">
+      <CollapsibleTrigger className="flex w-full cursor-pointer items-center justify-between px-4 py-3 text-sm font-medium">
         Manual URL Input
-        <svg
-          aria-hidden="true"
-          className="h-4 w-4 shrink-0 transition-transform duration-200 group-open:rotate-180"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M19 9l-7 7-7-7"
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <div className="px-4 pb-4">
+          <input
+            type="url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="Paste YouTube, Twitter, LinkedIn, Instagram, or TikTok URL..."
+            className="flex h-8 w-full border border-input bg-transparent px-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 mb-2"
           />
-        </svg>
-      </summary>
-      <div className="px-4 pb-4">
-        <input
-          type="url"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder="Paste YouTube, Twitter, LinkedIn, Instagram, or TikTok URL..."
-          className="flex h-8 w-full border border-input bg-transparent px-3 py-1 text-xs shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 mb-2"
-        />
-        <button
-          type="button"
-          onClick={handleProcess}
-          className="inline-flex items-center justify-center gap-2 h-8 px-3 w-full text-xs font-medium border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors disabled:pointer-events-none disabled:opacity-50"
-          disabled={!url || isProcessing}
-        >
-          {isProcessing ? (
-            <>
-              <LoadingSpinner size="sm" />
-              Processing...
-            </>
-          ) : (
-            'Process URL'
-          )}
-        </button>
-      </div>
-    </details>
+          <Button
+            type="button"
+            onClick={handleProcess}
+            variant={ButtonVariant.OUTLINE}
+            className="h-8 px-3 w-full text-xs font-medium"
+            disabled={!url || isProcessing}
+          >
+            {isProcessing ? (
+              <>
+                <LoadingSpinner size="sm" />
+                Processing...
+              </>
+            ) : (
+              'Process URL'
+            )}
+          </Button>
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }

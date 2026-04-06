@@ -1,3 +1,5 @@
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 
 import { usePlatformStore } from '~store/use-platform-store';
@@ -66,14 +68,15 @@ export function ChatActionChips({
   return (
     <div className="flex gap-1.5 overflow-x-auto px-3 pt-2 pb-1 scrollbar-none">
       {chips.map((chip) => (
-        <button
+        <Button
           key={chip.label}
           type="button"
+          variant={ButtonVariant.SECONDARY}
           onClick={() => onChipClick(chip.prompt)}
-          className="shrink-0 rounded-full border border-border bg-secondary px-3 py-1 text-xs text-secondary-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          className="shrink-0 rounded-full px-3 py-1 text-xs"
         >
           {chip.label}
-        </button>
+        </Button>
       ))}
     </div>
   );

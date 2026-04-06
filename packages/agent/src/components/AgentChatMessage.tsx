@@ -314,9 +314,10 @@ function PaymentCtaCard({
       </p>
       <div className="grid grid-cols-3 gap-2">
         {action.packs?.map((pack) => (
-          <button
+          <Button
             key={pack.label}
-            type="button"
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
             onClick={() => onSelect?.(pack)}
             className="rounded-lg border border-border p-2 text-center transition-colors hover:border-primary hover:bg-primary/5"
           >
@@ -325,7 +326,7 @@ function PaymentCtaCard({
             <p className="text-[10px] text-muted-foreground">
               {pack.credits} credits
             </p>
-          </button>
+          </Button>
         ))}
       </div>
     </div>
@@ -639,13 +640,14 @@ export function AgentChatMessage({
           </div>
         ) : null}
         {shouldRenderMessageContent && shouldTruncateContent && (
-          <button
-            type="button"
-            className="mt-2 text-[10px] font-semibold text-primary transition-colors hover:text-primary/80"
+          <Button
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+            className="mt-2 text-[10px] font-semibold text-primary hover:text-primary/80"
             onClick={() => setIsExpanded((prev) => !prev)}
           >
             {isExpanded ? 'Show less' : 'Show more'}
-          </button>
+          </Button>
         )}
 
         {isUser && userAttachments && userAttachments.length > 0 && (

@@ -1,4 +1,8 @@
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
+import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useMemo, useState } from 'react';
 import {
   HiOutlineBriefcase,
@@ -112,9 +116,10 @@ export function OnboardingConversationCard({
             const isSelected = type.id === accountType;
 
             return (
-              <button
+              <Button
                 key={type.id}
-                type="button"
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
                 onClick={() => setAccountType(type.id)}
                 className={cn(
                   'rounded-2xl border px-4 py-4 text-left transition-colors',
@@ -132,7 +137,7 @@ export function OnboardingConversationCard({
                 <p className="mt-2 text-xs leading-5 text-foreground/55">
                   {type.description}
                 </p>
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -143,11 +148,11 @@ export function OnboardingConversationCard({
           <span className="mb-2 block text-sm font-medium text-foreground">
             Website, X, or LinkedIn
           </span>
-          <input
+          <Input
             value={sourceUrl}
             onChange={(event) => setSourceUrl(event.target.value)}
             placeholder="https://your-site.com or https://x.com/yourhandle"
-            className="h-12 w-full rounded-2xl border border-white/[0.08] bg-white/[0.02] px-4 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/35 focus:border-foreground/25"
+            className="h-12 rounded-2xl border-white/[0.08] bg-white/[0.02] px-4 text-sm placeholder:text-foreground/35 focus:border-foreground/25"
           />
         </label>
 
@@ -167,11 +172,11 @@ export function OnboardingConversationCard({
         <span className="mb-2 block text-sm font-medium text-foreground">
           What do you create?
         </span>
-        <textarea
+        <Textarea
           value={context}
           onChange={(event) => setContext(event.target.value)}
           placeholder="Describe your niche, audience, style, offer, or what you want the first image to communicate."
-          className="min-h-32 w-full rounded-2xl border border-white/[0.08] bg-white/[0.02] px-4 py-3 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/35 focus:border-foreground/25"
+          className="min-h-32 rounded-2xl border-white/[0.08] bg-white/[0.02] px-4 py-3 text-sm placeholder:text-foreground/35 focus:border-foreground/25"
         />
       </label>
 
@@ -180,14 +185,15 @@ export function OnboardingConversationCard({
           You can skip the URL and just describe your business if that is
           easier.
         </p>
-        <button
-          type="button"
+        <Button
+          variant={ButtonVariant.DEFAULT}
+          withWrapper={false}
           onClick={handleStart}
-          disabled={!canSubmit}
-          className="inline-flex h-11 items-center justify-center rounded-full bg-primary px-5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-50"
+          isDisabled={!canSubmit}
+          className="inline-flex h-11 items-center justify-center rounded-full px-5 text-sm font-semibold"
         >
           Start with my first image
-        </button>
+        </Button>
       </div>
     </div>
   );

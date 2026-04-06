@@ -106,26 +106,30 @@ function AnimationNodeComponent(props: NodeProps) {
       <div className="space-y-3">
         {/* Curve Type Toggle */}
         <div className="flex gap-1 p-1 bg-[var(--background)] rounded">
-          <button
+          <Button
+            variant={nodeData.curveType === 'preset' ? 'default' : 'ghost'}
+            size="sm"
             onClick={() => handleCurveTypeChange('preset')}
-            className={`flex-1 py-1 px-2 text-xs rounded transition ${
+            className={`flex-1 text-xs h-auto py-1 px-2 ${
               nodeData.curveType === 'preset'
-                ? 'bg-[var(--primary)] text-white'
+                ? 'bg-[var(--primary)] text-white hover:bg-[var(--primary)]/90'
                 : 'text-[var(--muted-foreground)] hover:bg-[var(--border)]'
             }`}
           >
             Preset
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={nodeData.curveType === 'custom' ? 'default' : 'ghost'}
+            size="sm"
             onClick={() => handleCurveTypeChange('custom')}
-            className={`flex-1 py-1 px-2 text-xs rounded transition ${
+            className={`flex-1 text-xs h-auto py-1 px-2 ${
               nodeData.curveType === 'custom'
-                ? 'bg-[var(--primary)] text-white'
+                ? 'bg-[var(--primary)] text-white hover:bg-[var(--primary)]/90'
                 : 'text-[var(--muted-foreground)] hover:bg-[var(--border)]'
             }`}
           >
             Custom
-          </button>
+          </Button>
         </div>
 
         {/* Preset Selector */}

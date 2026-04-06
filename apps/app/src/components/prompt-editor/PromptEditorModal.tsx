@@ -1,6 +1,14 @@
 'use client';
 
 import { usePromptEditorStore } from '@genfeedai/workflow-ui/stores';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { memo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { useWorkflowStore } from '@/store/workflowStore';
@@ -52,27 +60,31 @@ function PromptEditorModalComponent() {
             Edit Prompt
           </h2>
           <div className="flex items-center gap-3">
-            <select
-              value={fontSize}
-              onChange={(e) => setFontSize(parseInt(e.target.value, 10))}
-              className="h-8 px-2 text-sm bg-[var(--background)] border border-[var(--border)] rounded-md text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+            <Select
+              value={String(fontSize)}
+              onValueChange={(val) => setFontSize(parseInt(val, 10))}
             >
-              {FONT_SIZES.map((size) => (
-                <option key={size} value={size}>
-                  {size}px
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="h-8 w-24">
+                <SelectValue placeholder="Font size" />
+              </SelectTrigger>
+              <SelectContent>
+                {FONT_SIZES.map((size) => (
+                  <SelectItem key={size} value={String(size)}>
+                    {size}px
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
         {/* Content */}
         <div className="flex-1 p-4 overflow-hidden">
-          <textarea
+          <Textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="Enter your prompt..."
-            className="w-full h-full min-h-[300px] p-4 bg-[var(--background)] border border-[var(--border)] rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-[var(--primary)] text-[var(--foreground)]"
+            className="w-full h-full min-h-[300px] resize-none"
             style={{ fontSize: `${fontSize}px` }}
           />
         </div>

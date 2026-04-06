@@ -4,6 +4,7 @@ import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.serv
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import {
   AgentThreadStatus,
+  ButtonSize,
   ButtonVariant,
   ComponentSize,
 } from '@genfeedai/enums';
@@ -16,6 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
+import { Input } from '@ui/primitives/input';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Link from 'next/link';
 import {
@@ -661,10 +663,12 @@ export function AgentThreadList({
       <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover/collapsible:opacity-100 focus-within:opacity-100">
         {!isArchivedView && (
           <SimpleTooltip label="Refresh conversations" position="bottom">
-            <button
-              type="button"
-              aria-label="Refresh conversations"
-              className="rounded p-1 text-white/35 transition-colors hover:bg-white/[0.08] hover:text-white/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
+              withWrapper={false}
+              ariaLabel="Refresh conversations"
+              className="rounded p-1 text-white/35 hover:bg-white/[0.08] hover:text-white/75"
               onClick={() => {
                 window.dispatchEvent(
                   new Event(AGENT_REFRESH_CONVERSATIONS_EVENT),
@@ -672,28 +676,32 @@ export function AgentThreadList({
               }}
             >
               <HiArrowPath className="h-3.5 w-3.5" />
-            </button>
+            </Button>
           </SimpleTooltip>
         )}
         {!isArchivedView && threads.length > 0 && (
           <SimpleTooltip label="Archive all threads" position="bottom">
-            <button
-              type="button"
-              aria-label="Archive all threads"
-              className="rounded p-1 text-white/35 transition-colors hover:bg-white/[0.08] hover:text-white/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
+              withWrapper={false}
+              ariaLabel="Archive all threads"
+              className="rounded p-1 text-white/35 hover:bg-white/[0.08] hover:text-white/75"
               onClick={() => {
                 handleArchiveAllThreads().catch(() => undefined);
               }}
             >
               <HiOutlineArchiveBoxXMark className="h-3.5 w-3.5" />
-            </button>
+            </Button>
           </SimpleTooltip>
         )}
         <SimpleTooltip label={toggleButtonLabel} position="bottom">
-          <button
-            type="button"
-            aria-label={toggleButtonLabel}
-            className="rounded p-1 text-white/35 transition-colors hover:bg-white/[0.08] hover:text-white/75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+          <Button
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
+            withWrapper={false}
+            ariaLabel={toggleButtonLabel}
+            className="rounded p-1 text-white/35 hover:bg-white/[0.08] hover:text-white/75"
             onClick={() => {
               setViewStatus((current) =>
                 current === AgentThreadStatus.ACTIVE
@@ -703,7 +711,7 @@ export function AgentThreadList({
             }}
           >
             <HiArchiveBox className="h-3.5 w-3.5" />
-          </button>
+          </Button>
         </SimpleTooltip>
       </div>
     );
@@ -782,10 +790,10 @@ export function AgentThreadList({
           {renamingThreadId === conv.id ? (
             <div className="flex h-full flex-1 items-center gap-2 px-3">
               {statusIndicator}
-              <input
+              <Input
                 ref={renameInputRef}
                 aria-label={`Rename ${conv.title || 'thread'}`}
-                className="min-w-0 flex-1 rounded-md border border-white/[0.08] bg-background px-2.5 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                className="min-w-0 flex-1"
                 value={renameDraft}
                 onBlur={() => {
                   handleSubmitRename(conv).catch(() => undefined);
@@ -853,15 +861,16 @@ export function AgentThreadList({
               }}
             >
               <DropdownMenuTrigger asChild>
-                <button
+                <Button
                   ref={(element) => {
                     menuButtonRefs.current[conv.id] = element;
                   }}
-                  type="button"
-                  aria-label={`Thread actions for ${conv.title || 'thread'}`}
-                  title="Thread actions"
+                  variant={ButtonVariant.GHOST}
+                  size={ButtonSize.ICON}
+                  withWrapper={false}
+                  ariaLabel={`Thread actions for ${conv.title || 'thread'}`}
                   className={cn(
-                    'rounded p-1 text-foreground/30 transition-all hover:bg-white/[0.08] hover:text-foreground/70 focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+                    'rounded p-1 text-foreground/30 hover:bg-white/[0.08] hover:text-foreground/70',
                     renamingThreadId === conv.id
                       ? 'opacity-100'
                       : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100',
@@ -871,7 +880,7 @@ export function AgentThreadList({
                   }}
                 >
                   <HiEllipsisHorizontal className="h-4 w-4" />
-                </button>
+                </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem

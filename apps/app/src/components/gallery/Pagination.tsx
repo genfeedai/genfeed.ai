@@ -1,5 +1,7 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface PaginationProps {
@@ -49,13 +51,15 @@ export function Pagination({
 
   return (
     <div className="flex items-center justify-center gap-1.5 mt-8">
-      <button
+      <Button
+        variant={ButtonVariant.SECONDARY}
+        withWrapper={false}
         onClick={() => onPageChange(page - 1)}
-        disabled={page <= 1}
+        isDisabled={page <= 1}
         className="p-2 rounded-lg bg-[var(--secondary)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition disabled:opacity-30 disabled:cursor-not-allowed"
       >
         <ChevronLeft className="w-4 h-4" />
-      </button>
+      </Button>
 
       {pages.map((p, i) =>
         p === 'ellipsis' ? (
@@ -66,8 +70,12 @@ export function Pagination({
             ...
           </span>
         ) : (
-          <button
+          <Button
             key={p}
+            variant={
+              p === page ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
+            }
+            withWrapper={false}
             onClick={() => onPageChange(p)}
             className={`min-w-[36px] h-9 px-2 rounded-lg text-sm font-medium transition ${
               p === page
@@ -76,17 +84,19 @@ export function Pagination({
             }`}
           >
             {p}
-          </button>
+</Button>
         ),
       )}
 
-      <button
+      <Button
+        variant={ButtonVariant.SECONDARY}
+        withWrapper={false}
         onClick={() => onPageChange(page + 1)}
-        disabled={page >= totalPages}
+        isDisabled={page >= totalPages}
         className="p-2 rounded-lg bg-[var(--secondary)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition disabled:opacity-30 disabled:cursor-not-allowed"
       >
         <ChevronRight className="w-4 h-4" />
-      </button>
+      </Button>
     </div>
   );
 }

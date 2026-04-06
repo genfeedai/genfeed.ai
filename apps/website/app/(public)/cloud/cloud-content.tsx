@@ -5,6 +5,14 @@ import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import PricingStrip from '@ui/marketing/PricingStrip';
 import { Button } from '@ui/primitives/button';
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@ui/primitives/table';
+import {
   CtaSection,
   NeuralGrid,
   NeuralGridItem,
@@ -218,47 +226,45 @@ export default function CloudContent() {
           </div>
 
           <div className="border border-edge/5 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-edge/5 bg-fill/[0.02]">
-                    <th className="text-left py-4 px-6 text-xs font-black uppercase tracking-widest text-surface/30">
-                      Feature
-                    </th>
-                    <th className="text-center py-4 px-6 text-xs font-black uppercase tracking-widest text-surface/30">
-                      <div className="flex items-center justify-center gap-2">
-                        <HiCpuChip className="h-4 w-4" />
-                        Core
-                      </div>
-                    </th>
-                    <th className="text-center py-4 px-6 text-xs font-black uppercase tracking-widest text-surface/30">
-                      <div className="flex items-center justify-center gap-2">
-                        <HiCloud className="h-4 w-4" />
-                        Cloud
-                      </div>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {COMPARISON_DATA.map((row) => (
-                    <tr
-                      key={row.feature}
-                      className="border-b border-edge/5 last:border-0 hover:bg-fill/[0.02] transition-colors"
-                    >
-                      <td className="py-4 px-6 font-medium text-sm">
-                        {row.feature}
-                      </td>
-                      <td className="py-4 px-6 text-center text-surface/50">
-                        <ComparisonValue value={row.core} />
-                      </td>
-                      <td className="py-4 px-6 text-center">
-                        <ComparisonValue value={row.cloud} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table className="w-full">
+              <TableHeader>
+                <TableRow className="border-b border-edge/5 bg-fill/[0.02]">
+                  <TableHead className="text-left py-4 px-6 text-xs font-black uppercase tracking-widest text-surface/30">
+                    Feature
+                  </TableHead>
+                  <TableHead className="text-center py-4 px-6 text-xs font-black uppercase tracking-widest text-surface/30">
+                    <div className="flex items-center justify-center gap-2">
+                      <HiCpuChip className="h-4 w-4" />
+                      Core
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-center py-4 px-6 text-xs font-black uppercase tracking-widest text-surface/30">
+                    <div className="flex items-center justify-center gap-2">
+                      <HiCloud className="h-4 w-4" />
+                      Cloud
+                    </div>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {COMPARISON_DATA.map((row) => (
+                  <TableRow
+                    key={row.feature}
+                    className="border-b border-edge/5 last:border-0 hover:bg-fill/[0.02] transition-colors"
+                  >
+                    <TableCell className="py-4 px-6 font-medium text-sm">
+                      {row.feature}
+                    </TableCell>
+                    <TableCell className="py-4 px-6 text-center text-surface/50">
+                      <ComparisonValue value={row.core} />
+                    </TableCell>
+                    <TableCell className="py-4 px-6 text-center">
+                      <ComparisonValue value={row.cloud} />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </div>
         </WebSection>
 

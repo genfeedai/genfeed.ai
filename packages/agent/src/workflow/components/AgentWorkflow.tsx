@@ -1,4 +1,6 @@
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Button from '@ui/buttons/base/Button';
 import {
   BookOpen,
   ChevronRight,
@@ -163,8 +165,9 @@ function AgentWorkflowInner() {
       {phase !== 'complete' && (
         <div className="flex items-center gap-2 justify-end">
           {showForceAdvance && (
-            <button
-              type="button"
+            <Button
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
               onClick={forceAdvance}
               className={cn(
                 'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium',
@@ -174,19 +177,20 @@ function AgentWorkflowInner() {
             >
               <ChevronRight className="size-3" />
               Force advance
-            </button>
+            </Button>
           )}
           {canAdvance &&
             phase !== 'awaiting_approval' &&
             phase !== 'verifying' && (
-              <button
-                type="button"
+              <Button
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
                 onClick={() => advance('user')}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-400 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/10 transition-colors"
               >
                 <ChevronRight className="size-3" />
                 Advance
-              </button>
+              </Button>
             )}
         </div>
       )}

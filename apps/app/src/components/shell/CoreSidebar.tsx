@@ -1,5 +1,7 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import {
   Boxes,
   CircleDot,
@@ -121,11 +123,12 @@ export default function CoreSidebar({
           className="flex h-16 flex-shrink-0 items-center gap-2 px-3 border-b border-white/[0.08]"
         >
           {onToggleCollapse ? (
-            <button
-              type="button"
+            <Button
               onClick={onToggleCollapse}
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
               className="group w-8 h-8 rounded-lg flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/[0.06] transition-colors duration-200 flex-shrink-0 cursor-pointer"
-              aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              ariaLabel={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
               <span className="relative flex h-4 w-4 items-center justify-center">
                 {isCollapsed ? (
@@ -135,7 +138,7 @@ export default function CoreSidebar({
                 )}
                 <PanelLeft className="absolute h-4 w-4 opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
               </span>
-            </button>
+            </Button>
           ) : null}
         </div>
 

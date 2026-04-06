@@ -1,4 +1,5 @@
-import { TranscriptStatus } from '@genfeedai/enums';
+import { ButtonVariant, TranscriptStatus } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import { useState } from 'react';
 import { ButtonSpinner } from '~components/ui';
 
@@ -93,10 +94,11 @@ export function TranscriptPage() {
         disabled={isProcessing}
       />
 
-      <button
+      <Button
         type="button"
+        variant={ButtonVariant.DEFAULT}
         onClick={handleSubmit}
-        className="inline-flex items-center justify-center h-9 px-4 py-2 w-full text-sm font-medium bg-primary text-primary-foreground shadow hover:bg-primary/90 transition-colors disabled:pointer-events-none disabled:opacity-50"
+        className="w-full shadow"
         disabled={!youtubeUrl || isProcessing}
       >
         {isProcessing ? (
@@ -104,7 +106,7 @@ export function TranscriptPage() {
         ) : (
           'Generate Article'
         )}
-      </button>
+      </Button>
 
       {status && (
         <div className="mt-4">

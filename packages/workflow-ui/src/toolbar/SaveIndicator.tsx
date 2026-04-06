@@ -3,6 +3,7 @@
 import { Check, Cloud, CloudOff, Loader2 } from 'lucide-react';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useWorkflowStore } from '../stores/workflowStore';
+import { Button } from '../ui/button';
 import type { SaveIndicatorProps } from './types';
 
 /**
@@ -23,14 +24,16 @@ export function SaveIndicator({
 
   if (!autoSaveEnabled) {
     return (
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={toggleAutoSave}
         title="Click to enable auto-save"
-        className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        className="text-xs text-muted-foreground hover:text-foreground h-auto p-0"
       >
         <CloudOff className="h-3.5 w-3.5" />
         <span>Auto-save off</span>
-      </button>
+      </Button>
     );
   }
 
@@ -65,17 +68,19 @@ export function SaveIndicator({
   }
 
   return (
-    <button
+    <Button
+      variant="ghost"
+      size="sm"
       onClick={toggleAutoSave}
       title="Click to disable auto-save"
       className={
         isPill
-          ? 'flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-400 transition-colors hover:text-emerald-300'
-          : 'flex items-center gap-1.5 text-xs text-green-500 transition-colors hover:text-green-400'
+          ? 'rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-400 hover:text-emerald-300'
+          : 'text-xs text-green-500 hover:text-green-400 h-auto p-0'
       }
     >
       <Check className="h-3.5 w-3.5" />
       <span>Saved</span>
-    </button>
+    </Button>
   );
 }

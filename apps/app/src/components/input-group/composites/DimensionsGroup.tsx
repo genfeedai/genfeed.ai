@@ -1,6 +1,16 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type { DimensionsValue } from '@genfeedai/types';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import { clsx } from 'clsx';
 import { Link, Unlink } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
@@ -115,7 +125,7 @@ function DimensionsGroupComponent({
         {/* Width */}
         <div className="flex items-center gap-1">
           <label className="text-xs text-[var(--muted-foreground)]">W</label>
-          <input
+          <Input
             type="number"
             value={value.width}
             onChange={(e) => handleWidthChange(Number(e.target.value))}
@@ -127,10 +137,11 @@ function DimensionsGroupComponent({
         </div>
 
         {/* Link Toggle */}
-        <button
-          type="button"
+        <Button
           onClick={() => setIsLinked(!isLinked)}
-          disabled={disabled}
+          isDisabled={disabled}
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           className={clsx(
             'p-1.5 rounded transition-colors',
             isLinked
@@ -138,7 +149,7 @@ function DimensionsGroupComponent({
               : 'hover:bg-[var(--border)] text-[var(--muted-foreground)]',
             disabled && 'opacity-50 cursor-not-allowed',
           )}
-          title={
+          tooltip={
             isLinked
               ? 'Unlink dimensions'
               : 'Link dimensions (maintain aspect ratio)'
@@ -149,12 +160,12 @@ function DimensionsGroupComponent({
           ) : (
             <Unlink className="w-4 h-4" />
           )}
-        </button>
+        </Button>
 
         {/* Height */}
         <div className="flex items-center gap-1">
           <label className="text-xs text-[var(--muted-foreground)]">H</label>
-          <input
+          <Input
             type="number"
             value={value.height}
             onChange={(e) => handleHeightChange(Number(e.target.value))}
@@ -167,25 +178,31 @@ function DimensionsGroupComponent({
 
         {/* Unit Selector */}
         {showUnit && (
-          <select
+          <Select
             value={value.unit || 'px'}
-            onChange={(e) =>
-              handleUnitChange(e.target.value as DimensionsValue['unit'])
+            onValueChange={(val) =>
+              handleUnitChange(val as DimensionsValue['unit'])
             }
             disabled={disabled}
-            className={clsx(
-              'px-2 py-1.5 text-sm',
-              'bg-[var(--background)] border border-[var(--border)] rounded',
-              'focus:outline-none focus:ring-1 focus:ring-[var(--primary)]',
-              disabled && 'opacity-50 cursor-not-allowed',
-            )}
           >
-            {UNIT_OPTIONS.map((unit) => (
-              <option key={unit} value={unit}>
-                {unit}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger
+              className={clsx(
+                'px-2 py-1.5 text-sm',
+                'bg-[var(--background)] border border-[var(--border)] rounded',
+                'focus:outline-none focus:ring-1 focus:ring-[var(--primary)]',
+                disabled && 'opacity-50 cursor-not-allowed',
+              )}
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {UNIT_OPTIONS.map((unit) => (
+                <SelectItem key={unit} value={unit}>
+                  {unit}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         )}
       </div>
 

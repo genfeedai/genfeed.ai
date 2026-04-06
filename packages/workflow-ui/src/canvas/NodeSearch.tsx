@@ -8,6 +8,7 @@ import { Search, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflowStore';
+import { Button } from '../ui/button';
 
 export function NodeSearch() {
   const { activeModal, closeModal } = useUIStore();
@@ -140,12 +141,9 @@ export function NodeSearch() {
             <Search className="w-4 h-4 text-[var(--muted-foreground)]" />
             <span className="text-sm font-medium">Find Node</span>
           </div>
-          <button
-            onClick={handleClose}
-            className="p-1 rounded hover:bg-[var(--secondary)] transition-colors"
-          >
+          <Button variant="ghost" size="icon-sm" onClick={handleClose}>
             <X className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
 
         {/* Content */}
@@ -179,10 +177,11 @@ export function NodeSearch() {
                 const comment = (node.data as { comment?: string }).comment;
 
                 return (
-                  <button
+                  <Button
                     key={node.id}
+                    variant="ghost"
                     onClick={() => handleSelectNode(node)}
-                    className={`w-full flex items-center gap-3 p-2 rounded text-left transition-colors ${
+                    className={`w-full flex items-center gap-3 p-2 rounded text-left h-auto justify-start ${
                       index === selectedIndex
                         ? 'bg-primary/10 border border-primary/30'
                         : 'hover:bg-secondary/50 border border-transparent'
@@ -200,7 +199,7 @@ export function NodeSearch() {
                         {comment && ` · ${comment}`}
                       </div>
                     </div>
-                  </button>
+                  </Button>
                 );
               })
             )}
