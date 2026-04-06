@@ -1,5 +1,6 @@
-import { ConfigService } from '@api/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { ConfigService } from '@api/config/config.service';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { parseRedisConnection } from '@libs/redis/redis-connection.utils';
 import {
   Injectable,
   type OnModuleDestroy,
@@ -19,8 +20,7 @@ export class CacheClientService implements OnModuleInit, OnModuleDestroy {
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
   ) {
-    const redisUrl =
-      this.configService.get('REDIS_URL') || 'redis://localhost:6379';
+    const config = parseRedisConnection(this.configService);
 
     this.client = createClient({
       socket: {
@@ -41,8 +41,9 @@ export class CacheClientService implements OnModuleInit, OnModuleDestroy {
           );
           return delay;
         },
+        ...(config.tls && { tls: true }),
       },
-      url: redisUrl,
+      url: config.url,
     });
 
     this.client.on('error', (error: Error) => {
