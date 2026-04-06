@@ -44,6 +44,7 @@ import type {
   AgentThreadEngineService,
   AppendAgentThreadEventParams,
 } from '@api/services/agent-threading/services/agent-thread-engine.service';
+import type { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
 import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type {
   OpenRouterMessage,
@@ -51,6 +52,14 @@ import type {
   OpenRouterTool,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import type { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
+import {
+  ActivitySource,
+  AgentAutonomyMode,
+  AgentExecutionTrigger,
+  AgentMessageRole,
+  type AgentType,
+  SubscriptionTier,
+} from '@genfeedai/enums';
 import {
   ActivitySource,
   AgentAutonomyMode,
@@ -425,6 +434,7 @@ export class AgentOrchestratorService {
     @Optional()
     private readonly agentProfileResolverService?: AgentProfileResolverService,
     @Optional()
+    private readonly threadContextCompressorService?: ThreadContextCompressorService,
     private readonly skillRuntimeService?: SkillRuntimeService,
   ) {}
 
@@ -722,13 +732,14 @@ export class AgentOrchestratorService {
         );
       }
 
-      const recentMessages =
-        await this.agentMessagesService.getRecentMessages(threadId);
+      const { messages: recentMessages, compressedContext } =
+        await this.resolveThreadMessages(threadId, context.organizationId);
       const history = this.buildMessageHistory(
         recentMessages,
         resolvedSystemPrompt,
         resolvedMemories,
         request.attachments,
+        compressedContext,
       );
       const typeConfig = request.agentType
         ? getAgentTypeConfig(request.agentType)
@@ -1416,13 +1427,16 @@ export class AgentOrchestratorService {
       } | null = null;
 
       // Build thread history from separate messages collection
-      const recentMessages =
-        await this.agentMessagesService.getRecentMessages(threadId);
+      const {
+        messages: recentMessages,
+        compressedContext: streamCompressedCtx,
+      } = await this.resolveThreadMessages(threadId, context.organizationId);
       const history = this.buildMessageHistory(
         recentMessages,
         systemPromptOverride,
         memoryEntries,
         attachments,
+        streamCompressedCtx,
       );
       const typeConfig = agentType ? getAgentTypeConfig(agentType) : null;
       // Merge skill tool overrides into the base tool set (additive)
@@ -2522,14 +2536,17 @@ export class AgentOrchestratorService {
     threadId: string;
     turnCost: number;
   }): Promise<AgentChatResult> {
-    const recentMessages = await this.agentMessagesService.getRecentMessages(
-      params.threadId,
-    );
+    const { messages: recentMessages, compressedContext: planCompressedCtx } =
+      await this.resolveThreadMessages(
+        params.threadId,
+        params.context.organizationId,
+      );
     const history = this.buildMessageHistory(
       recentMessages,
       params.systemPromptOverride,
       params.resolvedMemories,
       params.request.attachments,
+      planCompressedCtx,
     );
 
     const response = await this.llmDispatcher.chatCompletion(
@@ -3662,6 +3679,7 @@ export class AgentOrchestratorService {
     systemPromptOverride?: string,
     memories?: AgentMemoryDocument[],
     attachments?: AgentChatAttachment[],
+    compressedThreadContext?: string,
   ): OpenRouterMessage[] {
     const systemPrompt = (systemPromptOverride || SYSTEM_PROMPT).replace(
       '{{date}}',
@@ -3683,7 +3701,15 @@ export class AgentOrchestratorService {
       }
     }
 
-    // Messages are already limited to last 20 by getRecentMessages()
+    // Inject compressed thread context as a user message if available
+    if (compressedThreadContext) {
+      history.push({
+        content: compressedThreadContext,
+        role: 'user',
+      });
+    }
+
+    // Messages are already limited by getRecentMessages() or getMessagesAfter()
     const lastUserIndex = this.findLastUserMessageIndex(messages);
 
     for (let i = 0; i < messages.length; i++) {
@@ -3716,6 +3742,50 @@ export class AgentOrchestratorService {
     }
 
     return history;
+  }
+
+  /**
+   * Resolve messages and optional compressed context for a thread.
+   * If compaction is available, returns windowed messages + compressed context.
+   * Otherwise falls back to the standard getRecentMessages(20).
+   */
+  private async resolveThreadMessages(
+    threadId: string,
+    organizationId: string,
+  ): Promise<{
+    messages: AgentMessageDocument[];
+    compressedContext?: string;
+  }> {
+    if (!this.threadContextCompressorService) {
+      return {
+        messages: await this.agentMessagesService.getRecentMessages(threadId),
+      };
+    }
+
+    const state = await this.threadContextCompressorService.getStateOrCompact(
+      threadId,
+      organizationId,
+    );
+
+    if (!state) {
+      return {
+        messages: await this.agentMessagesService.getRecentMessages(threadId),
+      };
+    }
+
+    const windowMessages =
+      await this.threadContextCompressorService.getWindowMessages(
+        threadId,
+        state.lastIncorporatedMessageId,
+      );
+
+    const compressedContext =
+      this.threadContextCompressorService.renderStateAsUserMessage(
+        state,
+        windowMessages,
+      );
+
+    return { compressedContext, messages: windowMessages };
   }
 
   private findLastUserMessageIndex(messages: AgentMessageDocument[]): number {
