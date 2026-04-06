@@ -1,19 +1,19 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import type { ExecutionResult } from '@genfeedai/workflow';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import Button from '@ui/buttons/base/Button';
-import { createWorkflowApiService } from '@workflow-cloud/services/workflow-api';
-import { getExecutionEtaDisplayState } from '@workflow-cloud/utils/eta-display';
+import Link from 'next/link';
+import { useCallback, useEffect, useState } from 'react';
+import type { ExecutionResult } from '@/features/workflows/services/workflow-api';
+import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
+import { getExecutionEtaDisplayState } from '@/features/workflows/utils/eta-display';
 import {
   getStatusColor,
   getStatusIcon,
-} from '@workflow-cloud/utils/status-helpers';
-import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+} from '@/features/workflows/utils/status-helpers';
 
 const EXECUTIONS_PER_PAGE = 20;
 
@@ -100,7 +100,6 @@ export default function WorkflowExecutionsPage() {
             <div className="bg-muted/50 px-4 py-3 flex gap-8">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div
-                  // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton
                   key={i}
                   className="h-4 w-20 animate-pulse rounded bg-muted"
                 />
@@ -108,7 +107,6 @@ export default function WorkflowExecutionsPage() {
             </div>
             {Array.from({ length: 5 }).map((_, i) => (
               <div
-                // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton
                 key={i}
                 className="flex gap-8 border-t border-white/[0.08] px-4 py-3"
               >

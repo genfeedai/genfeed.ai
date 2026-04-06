@@ -6,13 +6,6 @@ import {
   IngredientStatus,
 } from '@genfeedai/enums';
 import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
-import {
-  type BatchItemStatus,
-  type BatchJobStatus,
-  type BatchJobSummary,
-  createWorkflowApiService,
-  type WorkflowSummary,
-} from '@genfeedai/workflow';
 import { downloadIngredient } from '@helpers/media/download/download.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { usePostModal } from '@providers/global-modals/global-modals.provider';
@@ -32,6 +25,13 @@ import {
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
+import {
+  type BatchItemStatus,
+  type BatchJobStatus,
+  type BatchJobSummary,
+  createWorkflowApiService,
+  type WorkflowSummary,
+} from '@/features/workflows/services/workflow-api';
 
 interface UploadedFile {
   file: File;
@@ -748,7 +748,6 @@ export default function BatchWorkflowPage() {
                           : 'border-amber-500/40'
                       } bg-background/60`}
                     >
-                      {/* biome-ignore lint/performance/noImgElement: dynamic blob preview URLs */}
                       <img
                         src={file.preview}
                         alt={file.file.name}
@@ -1021,7 +1020,6 @@ export default function BatchWorkflowPage() {
                 >
                   <div className="relative aspect-video bg-white/5">
                     {ingredient?.thumbnailUrl ? (
-                      // biome-ignore lint/performance/noImgElement: dynamic CDN thumbnail
                       <img
                         src={ingredient.thumbnailUrl}
                         alt={`Output ${ingredient.id}`}
@@ -1036,7 +1034,6 @@ export default function BatchWorkflowPage() {
                     )}
 
                     {ingredient && (
-                      // biome-ignore lint/a11y/noLabelWithoutControl: wraps Radix Checkbox component
                       <label className="absolute left-3 top-3 inline-flex items-center gap-2 rounded-full bg-black/60 px-3 py-1 text-xs text-white">
                         <Checkbox
                           aria-label={`Select output ${item._id}`}
