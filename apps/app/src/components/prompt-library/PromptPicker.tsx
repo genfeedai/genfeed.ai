@@ -1,6 +1,8 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IPrompt } from '@genfeedai/types';
+import Button from '@ui/buttons/base/Button';
 import {
   BookMarked,
   ChevronDown,
@@ -11,7 +13,6 @@ import {
 import Image from 'next/image';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Button } from '@/components/ui/button';
 import { usePromptLibraryStore } from '@/store/promptLibraryStore';
 
 interface PromptPickerProps {
@@ -96,9 +97,11 @@ function PromptPickerComponent({ onSelect, label }: PromptPickerProps) {
   return (
     <>
       {label ? (
-        <button
+        <Button
           ref={buttonRef}
           onClick={() => setIsOpen(!isOpen)}
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           className="flex flex-1 items-center gap-1 text-sm font-medium text-foreground hover:text-foreground/80 transition"
         >
           <span className="truncate">{label}</span>
@@ -107,14 +110,14 @@ function PromptPickerComponent({ onSelect, label }: PromptPickerProps) {
           ) : (
             <ChevronDown className="h-3 w-3 shrink-0" />
           )}
-        </button>
+        </Button>
       ) : (
         <Button
           ref={buttonRef}
-          variant="ghost"
-          size="sm"
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.SM}
           onClick={() => setIsOpen(!isOpen)}
-          title="Load from library"
+          tooltip="Load from library"
           className="gap-1 px-2"
         >
           <BookMarked className="h-3.5 w-3.5" />
@@ -151,9 +154,11 @@ function PromptPickerComponent({ onSelect, label }: PromptPickerProps) {
               ) : (
                 <div className="py-1">
                   {displayItems.map((item) => (
-                    <button
+                    <Button
                       key={item._id}
                       onClick={() => handleSelect(item)}
+                      variant={ButtonVariant.UNSTYLED}
+                      withWrapper={false}
                       className="w-full px-3 py-2 text-left transition hover:bg-secondary"
                     >
                       <div className="flex items-start gap-2">
@@ -185,7 +190,7 @@ function PromptPickerComponent({ onSelect, label }: PromptPickerProps) {
                           </span>
                         )}
                       </div>
-                    </button>
+                    </Button>
                   ))}
                 </div>
               )}

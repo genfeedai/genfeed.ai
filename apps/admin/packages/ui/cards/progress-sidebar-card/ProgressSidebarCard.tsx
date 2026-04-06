@@ -1,12 +1,13 @@
 'use client';
 
-import { CardVariant } from '@genfeedai/enums';
+import { ButtonVariant, CardVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useStreak } from '@hooks/data/streaks/use-streak/use-streak';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useSetupCard } from '@hooks/utils/use-setup-card/use-setup-card';
 import { useSidebarProgressCollapsedPreference } from '@hooks/utils/use-sidebar-progress-collapsed-preference/use-sidebar-progress-collapsed-preference';
 import { useSidebarProgressPreference } from '@hooks/utils/use-sidebar-progress-preference/use-sidebar-progress-preference';
+import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import { SCROLL_FOCUS_OUTER_SHADOW } from '@ui/styles/scroll-focus';
 import Link from 'next/link';
@@ -102,13 +103,14 @@ export default function ProgressSidebarCard() {
       data-testid="progress-sidebar-card"
     >
       <div className="flex items-start gap-2 px-3 py-3">
-        <button
-          type="button"
+        <Button
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           onClick={handleToggle}
           className="flex min-w-0 flex-1 items-start gap-3 text-left"
           aria-expanded={!isCollapsed}
           aria-controls="sidebar-progress-panel"
-          disabled={isSavingCollapsedPreference}
+          isDisabled={isSavingCollapsedPreference}
         >
           <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border border-orange-400/20 bg-orange-400/10 text-orange-200">
             <HiMiniSparkles className="h-4 w-4" />
@@ -141,17 +143,17 @@ export default function ProgressSidebarCard() {
               isCollapsed && '-rotate-90',
             )}
           />
-        </button>
+        </Button>
 
-        <button
-          type="button"
+        <Button
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           onClick={() => void hideProgress()}
           className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg text-white/35 transition-colors duration-150 hover:bg-white/[0.06] hover:text-white/70"
-          aria-label="Hide progress"
-          disabled={isSaving}
-        >
-          <HiXMark className="h-4 w-4" />
-        </button>
+          ariaLabel="Hide progress"
+          isDisabled={isSaving}
+          icon={<HiXMark className="h-4 w-4" />}
+        />
       </div>
 
       <div

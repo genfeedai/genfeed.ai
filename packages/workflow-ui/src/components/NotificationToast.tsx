@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { useUIStore } from '../stores/uiStore';
+import { Button } from '../ui/button';
 
 const typeStyles = {
   error: 'bg-red-900 border-red-700 text-red-100',
@@ -61,9 +62,11 @@ function NotificationItem({
             <p className="text-xs opacity-80 mt-0.5 break-words">{message}</p>
           )}
         </div>
-        <button
+        <Button
+          variant="ghost"
+          size="icon-sm"
           onClick={handleCopy}
-          className="p-1 rounded hover:bg-white/10 transition-colors shrink-0"
+          className="p-1 hover:bg-white/10 shrink-0 h-auto w-auto"
           title="Copy message"
         >
           {copied ? (
@@ -71,14 +74,16 @@ function NotificationItem({
           ) : (
             <Copy className="w-4 h-4" />
           )}
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
           onClick={() => removeNotification(id)}
-          className="p-1 rounded hover:bg-white/10 transition-colors shrink-0"
+          className="p-1 hover:bg-white/10 shrink-0 h-auto w-auto"
           title="Dismiss"
         >
           <X className="w-4 h-4" />
-        </button>
+        </Button>
       </div>
     </div>
   );

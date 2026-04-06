@@ -1,5 +1,7 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import { InfoBox, SettingsField } from '@/components/ui/settings-section';
 import { ToggleSwitch } from '@/components/ui/toggle-switch';
 import { type EdgeStyle, useSettingsStore } from '@/store/settingsStore';
@@ -42,9 +44,11 @@ export function AppearanceTab() {
       >
         <div className="mt-3 grid grid-cols-3 gap-3">
           {EDGE_STYLES.map((style) => (
-            <button
+            <Button
               key={style.value}
               onClick={() => setEdgeStyle(style.value)}
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
               className={`rounded-lg border p-3 text-left transition ${
                 edgeStyle === style.value
                   ? 'border-primary bg-primary/5'
@@ -57,7 +61,7 @@ export function AppearanceTab() {
               <div className="mt-0.5 text-xs text-muted-foreground">
                 {style.description}
               </div>
-            </button>
+</Button>
           ))}
         </div>
       </SettingsField>

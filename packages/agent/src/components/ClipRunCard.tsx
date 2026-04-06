@@ -3,6 +3,8 @@ import type {
   ClipRunModes,
   ClipRunStep,
 } from '@genfeedai/agent/models/clip-run-card.model';
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import type { ReactElement } from 'react';
 import {
   HiCheckCircle,
@@ -196,21 +198,23 @@ export function ClipRunCard({
               </span>
             </div>
             <div className="flex gap-2">
-              <button
-                type="button"
+              <Button
+                variant={ButtonVariant.DEFAULT}
+                withWrapper={false}
                 onClick={onConfirm}
-                className="flex items-center gap-1 rounded bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+                className="flex items-center gap-1 rounded px-3 py-1.5 text-xs font-medium"
               >
                 <HiCheckCircle className="h-3.5 w-3.5" />
                 Confirm
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant={ButtonVariant.OUTLINE}
+                withWrapper={false}
                 onClick={onCancel}
-                className="flex items-center gap-1 rounded border border-border px-3 py-1.5 text-xs font-medium text-foreground hover:bg-accent"
+                className="flex items-center gap-1 rounded px-3 py-1.5 text-xs font-medium"
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           </div>
         )}

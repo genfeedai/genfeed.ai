@@ -7,6 +7,7 @@ import { Plus, Search } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflowStore';
+import { Button } from '../ui/button';
 
 const CATEGORY_LABELS: Record<NodeCategory, string> = {
   ai: 'AI',
@@ -248,18 +249,19 @@ function ConnectionDropMenuComponent() {
                   {nodes.map((node) => {
                     const currentIndex = flatIndex++;
                     return (
-                      <button
+                      <Button
                         key={node.type}
+                        variant="ghost"
                         data-node-item
                         onClick={() => handleSelect(node.type)}
-                        className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${
+                        className={`w-full text-left px-2 py-1.5 rounded text-xs h-auto justify-start ${
                           currentIndex === selectedIndex
                             ? 'bg-[var(--primary)]/10 text-[var(--foreground)]'
                             : 'text-[var(--foreground)] hover:bg-[var(--secondary)]'
                         }`}
                       >
                         {node.label}
-                      </button>
+                      </Button>
                     );
                   })}
                 </div>

@@ -1,4 +1,6 @@
+import { ButtonVariant } from '@genfeedai/enums';
 import { Storage } from '@plasmohq/storage';
+import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useState } from 'react';
 import {
   CloseIcon,
@@ -73,13 +75,14 @@ export default function IdeasPage() {
         title="No saved ideas"
         description="Save interesting pages to use as video ideas later"
         action={
-          <button
+          <Button
             type="button"
+            variant={ButtonVariant.DEFAULT}
             onClick={saveCurrentTab}
-            className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm leading-4 font-medium shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+            className="shadow-sm"
           >
             Save current tab
-          </button>
+          </Button>
         }
       />
     );
@@ -91,13 +94,13 @@ export default function IdeasPage() {
         <h3 className="text-sm font-medium text-gray-700">
           Saved Ideas ({ideas.length})
         </h3>
-        <button
+        <Button
           type="button"
+          variant={ButtonVariant.DEFAULT}
           onClick={saveCurrentTab}
-          className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
         >
           Save current tab
-        </button>
+        </Button>
       </div>
       <div className="space-y-2 max-h-96 overflow-y-auto">
         {ideas.map((idea) => (
@@ -118,22 +121,24 @@ export default function IdeasPage() {
                 </p>
               </div>
               <div className="flex items-center gap-1">
-                <button
+                <Button
                   type="button"
+                  variant={ButtonVariant.GHOST}
                   onClick={() => chrome.tabs.create({ url: idea.url })}
                   className="p-1.5 text-gray-500 hover:bg-gray-50"
                   title="Open"
                 >
                   <ExternalLinkIcon />
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant={ButtonVariant.GHOST}
                   onClick={() => removeIdea(idea.id)}
                   className="p-1.5 text-red-500 hover:bg-red-50"
                   title="Remove"
                 >
                   <CloseIcon />
-                </button>
+                </Button>
               </div>
             </div>
           </div>

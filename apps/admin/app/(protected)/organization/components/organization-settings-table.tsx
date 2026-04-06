@@ -9,6 +9,14 @@ import { useOrganizationSettings } from '@protected/organization/hooks/use-organ
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@ui/primitives/table';
 import { Fragment, useCallback, useEffect, useState } from 'react';
 
 interface OrganizationSettingsTableProps {
@@ -198,31 +206,31 @@ export function OrganizationSettingsTable({
         data-testid="organization-settings-surface"
       >
         <div className="overflow-x-auto">
-          <table className="table table-zebra w-full">
-            <thead>
-              <tr className="border-b border-white/[0.08]">
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/40">
+          <Table className="table table-zebra w-full">
+            <TableHeader>
+              <TableRow className="border-b border-white/[0.08]">
+                <TableHead className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/40">
                   Setting
-                </th>
-                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/40">
+                </TableHead>
+                <TableHead className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/40">
                   Value
-                </th>
-                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/40">
+                </TableHead>
+                <TableHead className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/40">
                   Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               {SETTING_GROUPS.map((group) => (
                 <Fragment key={group.label}>
-                  <tr key={group.label} className="bg-background/50">
-                    <td
+                  <TableRow key={group.label} className="bg-background/50">
+                    <TableCell
                       colSpan={3}
                       className="px-4 py-2 font-semibold text-sm uppercase"
                     >
                       {group.label}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                   {group.settings.map((setting) => {
                     const value = settings[setting.key];
                     return (
@@ -244,8 +252,8 @@ export function OrganizationSettingsTable({
                   })}
                 </Fragment>
               ))}
-            </tbody>
-          </table>
+            </TableBody>
+          </Table>
         </div>
       </WorkspaceSurface>
       {selectedSetting && (

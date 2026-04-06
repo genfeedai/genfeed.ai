@@ -1,7 +1,9 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { WorkflowFile } from '@genfeedai/types';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import Button from '@ui/buttons/base/Button';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   getNodesBounds,
@@ -32,7 +34,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
+
 import {
   Tooltip,
   TooltipContent,
@@ -418,13 +420,15 @@ export function Toolbar() {
         {debugMode && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <button
+              <Button
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
                 onClick={() => openModal('settings')}
                 className="flex items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-sm text-amber-500 transition hover:bg-amber-500/20"
               >
                 <Bug className="h-4 w-4" />
                 <span className="font-medium">Debug</span>
-              </button>
+              </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
               <p>Debug mode active - API calls are mocked</p>
@@ -435,7 +439,11 @@ export function Toolbar() {
         {/* Auto-layout Button */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="sm" onClick={() => autoLayout('LR')}>
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
+              onClick={() => autoLayout('LR')}
+            >
               <LayoutGrid className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
@@ -448,10 +456,10 @@ export function Toolbar() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant="ghost"
-              size="sm"
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
               onClick={() => undo()}
-              disabled={!canUndo}
+              isDisabled={!canUndo}
             >
               <Undo2 className="h-4 w-4" />
             </Button>
@@ -463,10 +471,10 @@ export function Toolbar() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant="ghost"
-              size="sm"
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
               onClick={() => redo()}
-              disabled={!canRedo}
+              isDisabled={!canRedo}
             >
               <Redo2 className="h-4 w-4" />
             </Button>
@@ -482,7 +490,9 @@ export function Toolbar() {
         {/* Cost Indicator */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
+            <Button
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
               onClick={() => openModal('cost')}
               className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground transition hover:bg-secondary hover:text-foreground"
             >
@@ -492,7 +502,7 @@ export function Toolbar() {
                   ? actualCost.toFixed(2)
                   : estimatedCost.toFixed(2)}
               </span>
-            </button>
+            </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom">
             <p>
@@ -542,6 +552,7 @@ export function Toolbar() {
           </TooltipContent>
         </Tooltip>
 
+
         {/* Settings */}
         <Tooltip>
           <TooltipTrigger asChild>
@@ -582,8 +593,8 @@ export function Toolbar() {
                 </ul>
               </div>
               <Button
-                variant="ghost"
-                size="icon-sm"
+                variant={ButtonVariant.GHOST}
+                size={ButtonSize.ICON}
                 onClick={clearValidationErrors}
               >
                 <X className="h-4 w-4 text-destructive" />

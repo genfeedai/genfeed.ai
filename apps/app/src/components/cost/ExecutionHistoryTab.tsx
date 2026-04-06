@@ -1,5 +1,7 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import {
   AlertCircle,
   CheckCircle,
@@ -153,8 +155,10 @@ const ExecutionRow = memo(function ExecutionRow({
 
   return (
     <div className="rounded-lg border border-border">
-      <button
+      <Button
         onClick={handleExpand}
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
         className="flex w-full items-center justify-between p-3 text-left transition hover:bg-secondary/30"
       >
         <div className="flex items-center gap-3">
@@ -198,7 +202,7 @@ const ExecutionRow = memo(function ExecutionRow({
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
           )}
         </div>
-      </button>
+      </Button>
 
       {isExpanded && jobCosts && (
         <div className="border-t border-border">
@@ -285,7 +289,7 @@ function ExecutionHistoryTabComponent() {
   }, [workflowId]);
 
   // Clear cache when workflowId changes to prevent stale data
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset cache on workflowId change
+  // Reset cache when workflowId changes to prevent stale data
   useEffect(() => {
     costCacheRef.current = new Map();
   }, [workflowId]);

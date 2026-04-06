@@ -7,6 +7,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useShallow } from 'zustand/react/shallow';
 import { useWorkflowStore } from '../../stores/workflowStore';
+import { Button } from '../../ui/button';
 import { BaseNode } from '../BaseNode';
 
 function OutputGalleryNodeComponent(props: NodeProps) {
@@ -155,17 +156,18 @@ function OutputGalleryNodeComponent(props: NodeProps) {
           <div className="flex-1 overflow-y-auto nodrag nopan nowheel">
             <div className="grid grid-cols-3 gap-1.5 p-1">
               {displayImages.map((img, idx) => (
-                <button
+                <Button
                   key={img}
+                  variant="ghost"
                   onClick={() => openLightbox(idx)}
-                  className="aspect-square rounded border border-border hover:border-primary overflow-hidden transition-colors"
+                  className="aspect-square rounded border border-border hover:border-primary overflow-hidden p-0 h-auto"
                 >
                   <img
                     src={img}
                     alt={`Image ${idx + 1}`}
                     className="w-full h-full object-cover"
                   />
-                </button>
+                </Button>
               ))}
             </div>
           </div>
@@ -190,46 +192,56 @@ function OutputGalleryNodeComponent(props: NodeProps) {
                 className="max-w-full max-h-[90vh] object-contain rounded"
               />
 
-              <button
+              <Button
+                variant="ghost"
+                size="icon-sm"
                 onClick={closeLightbox}
-                className="absolute top-4 right-4 w-8 h-8 bg-white/10 hover:bg-white/20 rounded text-white text-sm transition-colors flex items-center justify-center"
+                className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white"
               >
                 <X className="w-4 h-4" />
-              </button>
+              </Button>
 
               <div className="absolute top-4 left-4 flex items-center gap-2">
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={downloadImage}
-                  className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded text-white text-xs font-medium transition-colors flex items-center gap-1.5"
+                  className="bg-white/10 hover:bg-white/20 text-white text-xs"
                 >
                   <Download className="w-3.5 h-3.5" />
                   Download
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={copyImage}
-                  className="px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded text-white text-xs font-medium transition-colors flex items-center gap-1.5"
+                  className="bg-white/10 hover:bg-white/20 text-white text-xs"
                 >
                   <Copy className="w-3.5 h-3.5" />
                   Copy
-                </button>
+                </Button>
               </div>
 
               {lightboxIndex > 0 && (
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => navigateLightbox('prev')}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors flex items-center justify-center"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full text-white"
                 >
                   <ChevronLeft className="w-5 h-5" />
-                </button>
+                </Button>
               )}
 
               {lightboxIndex < displayImages.length - 1 && (
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => navigateLightbox('next')}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors flex items-center justify-center"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/10 hover:bg-white/20 rounded-full text-white"
                 >
                   <ChevronRight className="w-5 h-5" />
-                </button>
+                </Button>
               )}
 
               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-black/50 rounded text-white text-xs font-medium">

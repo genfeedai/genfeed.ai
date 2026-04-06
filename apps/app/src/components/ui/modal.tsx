@@ -1,9 +1,10 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import type { LucideIcon } from 'lucide-react';
 import { X } from 'lucide-react';
 import { memo, type ReactNode, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
 
 interface ModalProps {
   isOpen: boolean;
@@ -56,7 +57,11 @@ function ModalComponent({
               {Icon && <Icon className="h-5 w-5 text-primary" />}
               <h2 className="text-lg font-semibold text-foreground">{title}</h2>
             </div>
-            <Button variant="ghost" size="icon-sm" onClick={onClose}>
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
+              onClick={onClose}
+            >
               <X className="h-5 w-5" />
             </Button>
           </div>
@@ -87,9 +92,11 @@ function ModalTabsComponent<T extends string>({
   return (
     <div className="flex border-b border-border px-6">
       {tabs.map((tab) => (
-        <button
+        <Button
           key={tab.id}
           onClick={() => onTabChange(tab.id)}
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           className={`relative px-4 py-3 text-sm font-medium transition ${
             activeTab === tab.id
               ? 'text-foreground'
@@ -100,7 +107,7 @@ function ModalTabsComponent<T extends string>({
           {activeTab === tab.id && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
           )}
-        </button>
+        </Button>
       ))}
     </div>
   );

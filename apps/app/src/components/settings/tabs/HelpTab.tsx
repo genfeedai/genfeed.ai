@@ -1,6 +1,8 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import Button from '@ui/buttons/base/Button';
 import { BookOpen, HelpCircle, MessageCircle, Store } from 'lucide-react';
 import { XIcon } from '@/components/toolbar/icons';
 import { InfoBox, LinkCard } from '@/components/ui/settings-section';
@@ -18,8 +20,10 @@ export function HelpTab() {
       {/* Welcome Screen */}
       <div className="space-y-3">
         <h3 className="text-sm font-medium text-foreground">Getting Started</h3>
-        <button
+        <Button
           onClick={handleShowWelcome}
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           className="flex w-full items-center gap-3 rounded-lg border border-border p-4 text-left transition hover:border-primary/50 hover:bg-secondary/30"
         >
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
@@ -33,7 +37,7 @@ export function HelpTab() {
               View the welcome modal with quick start options
             </p>
           </div>
-        </button>
+        </Button>
       </div>
 
       {/* External Links */}

@@ -1,3 +1,5 @@
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import { type ReactElement, useState } from 'react';
 
 import type { ChatMessage } from '~models/chat.model';
@@ -133,40 +135,43 @@ export function ContentPreview({ message }: ContentPreviewProps): ReactElement {
         )}
 
         <div className="mt-2 flex items-center gap-2">
-          <button
+          <Button
             type="button"
+            variant={ButtonVariant.SECONDARY}
             onClick={handleCopy}
-            className="rounded bg-secondary px-2.5 py-1 text-xs text-secondary-foreground transition-colors hover:bg-accent"
+            className="rounded px-2.5 py-1 text-xs"
           >
             {copied ? 'Copied!' : 'Copy'}
-          </button>
+          </Button>
 
           {composeBoxAvailable &&
             insertStatus !== 'inserted' &&
             insertStatus !== 'published' && (
-              <button
+              <Button
                 type="button"
+                variant={ButtonVariant.DEFAULT}
                 onClick={handleInsert}
                 disabled={
                   insertStatus === 'inserting' || insertStatus === 'publishing'
                 }
-                className="rounded bg-primary px-2.5 py-1 text-xs text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                className="rounded px-2.5 py-1 text-xs"
               >
                 {insertStatus === 'inserting' ? 'Inserting...' : 'Insert'}
-              </button>
+              </Button>
             )}
 
           {composeBoxAvailable && canSubmitFromComposer && (
-            <button
+            <Button
               type="button"
+              variant={ButtonVariant.DEFAULT}
               onClick={handleInsertAndPublish}
               disabled={
                 insertStatus === 'inserting' || insertStatus === 'publishing'
               }
-              className="rounded bg-primary/80 px-2.5 py-1 text-xs text-primary-foreground transition-colors hover:bg-primary disabled:opacity-50"
+              className="rounded bg-primary/80 px-2.5 py-1 text-xs hover:bg-primary"
             >
               {insertStatus === 'publishing' ? 'Posting...' : 'Insert + Post'}
-            </button>
+            </Button>
           )}
 
           {insertStatus === 'inserted' && (
@@ -181,13 +186,14 @@ export function ContentPreview({ message }: ContentPreviewProps): ReactElement {
             <span className="text-xs text-destructive">Insert failed</span>
           )}
 
-          <button
+          <Button
             type="button"
+            variant={ButtonVariant.SECONDARY}
             onClick={handleRegenerate}
-            className="rounded bg-secondary px-2.5 py-1 text-xs text-secondary-foreground transition-colors hover:bg-accent"
+            className="rounded px-2.5 py-1 text-xs"
           >
             Regenerate
-          </button>
+          </Button>
         </div>
       </div>
     </div>

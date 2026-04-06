@@ -1,12 +1,9 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.10/schema.json",
-  "assist": { "actions": { "source": { "organizeImports": "on" } } },
-  "linter": {
-    "enabled": true,
-    "rules": {
-      "recommended": true,
-      "a11y": {
-        "noLabelWithoutControl": "off"
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
       }
     }
   },
@@ -16,9 +13,6 @@
     "indentWidth": 2
   },
   "javascript": {
-    "parser": {
-      "unsafeParameterDecoratorsEnabled": true
-    },
     "formatter": {
       "quoteStyle": "single",
       "semicolons": "always",
@@ -28,14 +22,23 @@
       "unsafeParameterDecoratorsEnabled": true
     }
   },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "a11y": {
+        "noLabelWithoutControl": "off"
+      },
+      "recommended": true
+    }
+  },
   "overrides": [
     {
       "includes": ["apps/app/src/features/workflows/**"],
       "linter": {
         "rules": {
           "a11y": {
-            "noSvgWithoutTitle": "off",
             "noLabelWithoutControl": "off",
+            "noSvgWithoutTitle": "off",
             "useSemanticElements": "off"
           },
           "complexity": {
@@ -80,9 +83,9 @@
       "linter": {
         "rules": {
           "a11y": {
-            "noSvgWithoutTitle": "off",
             "noLabelWithoutControl": "off",
             "noStaticElementInteractions": "off",
+            "noSvgWithoutTitle": "off",
             "useButtonType": "off",
             "useKeyWithClickEvents": "off",
             "useSemanticElements": "off",

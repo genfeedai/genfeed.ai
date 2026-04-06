@@ -1,7 +1,9 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import { Kbd } from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Button from '@ui/buttons/base/Button';
 import { HiMagnifyingGlass } from 'react-icons/hi2';
 
 interface SidebarSearchTriggerProps {
@@ -14,10 +16,11 @@ export default function SidebarSearchTrigger({
   className,
 }: SidebarSearchTriggerProps) {
   return (
-    <button
-      type="button"
+    <Button
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
       onClick={onClick}
-      aria-label="Open search"
+      ariaLabel="Open search"
       className={cn(
         'flex h-9 w-full items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-sm text-white/40 transition-colors duration-150 hover:border-white/[0.12] hover:bg-white/[0.06] hover:text-white/60',
         className,
@@ -28,6 +31,6 @@ export default function SidebarSearchTrigger({
       <Kbd variant="subtle" size="xs">
         {'\u2318'}K
       </Kbd>
-    </button>
+    </Button>
   );
 }

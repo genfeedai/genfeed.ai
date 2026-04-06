@@ -13,6 +13,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
+import { Input } from '@ui/primitives/input';
 import TagsManager from '@ui/tags/manager/TagsManager';
 import { IngredientEndpoints } from '@utils/media/ingredients.util';
 import { useMemo, useState } from 'react';
@@ -198,10 +199,10 @@ export default function IngredientTabsTags({
             Create New Tag
           </label>
           <div className="flex gap-2">
-            <input
+            <Input
               type="text"
               placeholder="Enter tag name..."
-              className="h-10 border border-input px-3 flex-1"
+              className="flex-1"
               value={newTagName}
               onChange={(e) => setNewTagName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleCreateTag()}
@@ -230,10 +231,10 @@ export default function IngredientTabsTags({
           <label className="text-sm font-medium mb-1 block">
             Select Existing Tags
           </label>
-          <input
+          <Input
             type="text"
             placeholder="Search tags..."
-            className="h-10 border border-input px-3 w-full mb-3"
+            className="mb-3"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />

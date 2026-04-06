@@ -1,6 +1,7 @@
 'use client';
 
 import type { IPrompt, PromptNodeData } from '@genfeedai/types';
+import { Textarea } from '@ui/primitives/textarea';
 import type { NodeProps } from '@xyflow/react';
 import { Expand, Save } from 'lucide-react';
 import { memo, useCallback } from 'react';
@@ -90,11 +91,11 @@ function PromptNodeComponent(props: NodeProps) {
       titleElement={titleElement}
       headerActions={headerActions}
     >
-      <textarea
+      <Textarea
         value={nodeData.prompt || ''}
         onChange={handlePromptChange}
         placeholder="Enter your prompt..."
-        className="nodrag nopan w-full flex-1 min-h-[80px] px-2 py-1.5 text-sm bg-background border border-border rounded resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+        className="nodrag nopan w-full flex-1 min-h-[80px] resize-none"
       />
     </BaseNode>
   );

@@ -466,9 +466,10 @@ export default function NewslettersPage() {
                     selectedProposal?.angle === proposal.angle;
 
                   return (
-                    <button
+                    <Button
                       key={`${proposal.title}-${proposal.angle}`}
-                      type="button"
+                      variant={ButtonVariant.UNSTYLED}
+                      withWrapper={false}
                       className={`rounded-lg border p-4 text-left transition-colors ${
                         isSelected
                           ? 'border-primary bg-primary/5'
@@ -490,7 +491,7 @@ export default function NewslettersPage() {
                       <div className="mt-2 text-xs text-muted-foreground">
                         {proposal.reason}
                       </div>
-                    </button>
+                    </Button>
                   );
                 })}
               </div>
@@ -719,9 +720,10 @@ export default function NewslettersPage() {
               </div>
 
               {filteredNewsletters.map((newsletter) => (
-                <button
+                <Button
                   key={newsletter.id}
-                  type="button"
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
                   className={`w-full rounded-lg border p-4 text-left transition-colors ${
                     newsletter.id === selectedNewsletterId
                       ? 'border-primary bg-primary/5'
@@ -748,7 +750,7 @@ export default function NewslettersPage() {
                       {newsletter.summary}
                     </div>
                   ) : null}
-                </button>
+                </Button>
               ))}
             </div>
 

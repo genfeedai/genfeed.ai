@@ -1,6 +1,9 @@
+import { ButtonVariant } from '@genfeedai/enums';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
+import Button from '../buttons/base/Button';
 import { Modal } from '../modals/compound/Modal';
+import { Textarea } from '../primitives/textarea';
 import { type ContentType, ContentTypePresets } from './ContentTypePresets';
 
 interface TaskComposerModalProps {
@@ -90,7 +93,7 @@ export function TaskComposerModal({
             {children}
 
             {/* Prompt */}
-            <textarea
+            <Textarea
               className="min-h-32 w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -103,28 +106,30 @@ export function TaskComposerModal({
 
         <Modal.Footer>
           <Modal.CloseButton asChild>
-            <button
-              type="button"
+            <Button
+              variant={ButtonVariant.GHOST}
               className="px-4 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Cancel
-            </button>
+              label="Cancel"
+            />
           </Modal.CloseButton>
-          <button
-            type="button"
+          <Button
+            variant={ButtonVariant.OUTLINE}
             className="border border-foreground/20 bg-foreground/10 px-4 py-2 text-sm font-medium transition-colors hover:bg-foreground/20 disabled:opacity-50"
-            disabled={isSubmitting || !title.trim()}
+            isDisabled={isSubmitting || !title.trim()}
             onClick={handleSubmit}
-          >
-            {isSubmitting
-              ? 'Creating...'
-              : prompt.trim()
-                ? 'Create & Generate'
-                : 'Create Task'}
-            {!isSubmitting && (
-              <span className="ml-2 text-xs text-muted-foreground">⌘↵</span>
-            )}
-          </button>
+            label={
+              <>
+                {isSubmitting
+                  ? 'Creating...'
+                  : prompt.trim()
+                    ? 'Create & Generate'
+                    : 'Create Task'}
+                {!isSubmitting && (
+                  <span className="ml-2 text-xs text-muted-foreground">⌘↵</span>
+                )}
+              </>
+            }
+          />
         </Modal.Footer>
       </Modal.Content>
     </Modal.Root>

@@ -5,6 +5,7 @@ import { Pause, Play, Trash2 } from 'lucide-react';
 import { memo, useMemo } from 'react';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflowStore';
+import { Button } from '../ui/button';
 
 function EdgeToolbarComponent() {
   const { selectedEdgeId, selectEdge } = useUIStore();
@@ -63,25 +64,28 @@ function EdgeToolbarComponent() {
       }}
       onMouseDown={(e) => e.stopPropagation()}
     >
-      <button
+      <Button
+        variant="ghost"
+        size="icon-sm"
         onClick={handleTogglePause}
         title={hasPause ? 'Resume edge' : 'Pause edge'}
-        className="flex h-7 w-7 items-center justify-center rounded text-[var(--muted-foreground)] transition hover:bg-[var(--secondary)] hover:text-[var(--foreground)]"
       >
         {hasPause ? (
           <Play className="h-3.5 w-3.5" />
         ) : (
           <Pause className="h-3.5 w-3.5" />
         )}
-      </button>
+      </Button>
       <div className="h-4 w-px bg-[var(--border)]" />
-      <button
+      <Button
+        variant="ghost"
+        size="icon-sm"
         onClick={handleDelete}
         title="Delete edge"
-        className="flex h-7 w-7 items-center justify-center rounded text-[var(--muted-foreground)] transition hover:bg-red-500/10 hover:text-red-500"
+        className="hover:bg-red-500/10 hover:text-red-500"
       >
         <Trash2 className="h-3.5 w-3.5" />
-      </button>
+      </Button>
     </div>
   );
 }

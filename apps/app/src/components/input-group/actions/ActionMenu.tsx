@@ -1,6 +1,8 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type { ActionConfig, MenuAlign, MenuSide } from '@genfeedai/types';
+import Button from '@ui/buttons/base/Button';
 import { clsx } from 'clsx';
 import { MoreVertical } from 'lucide-react';
 import {
@@ -133,10 +135,11 @@ function ActionMenuComponent({
   return (
     <div ref={menuRef} className={clsx('relative', className)}>
       {/* Trigger Button */}
-      <button
+      <Button
         ref={triggerRef}
-        type="button"
         onClick={handleToggle}
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
         className={clsx(
           'p-1 rounded transition-colors',
           'hover:bg-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]',
@@ -144,10 +147,10 @@ function ActionMenuComponent({
         )}
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        aria-label={triggerLabel || 'Open menu'}
+        ariaLabel={triggerLabel || 'Open menu'}
       >
         {triggerIcon || <MoreVertical className="w-4 h-4" />}
-      </button>
+      </Button>
 
       {/* Menu Dropdown */}
       {isOpen && (
@@ -161,11 +164,12 @@ function ActionMenuComponent({
           role="menu"
         >
           {visibleActions.map((action, index) => (
-            <button
+            <Button
               key={action.id}
-              type="button"
               onClick={() => handleItemClick(action)}
-              disabled={action.disabled}
+              isDisabled={action.disabled}
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
               className={clsx(
                 'w-full flex items-center gap-2 px-3 py-1.5 text-sm text-left',
                 'transition-colors',
@@ -187,7 +191,7 @@ function ActionMenuComponent({
                   {action.shortcut}
                 </span>
               )}
-            </button>
+            </Button>
           ))}
         </div>
       )}

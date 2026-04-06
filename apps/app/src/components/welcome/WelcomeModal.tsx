@@ -1,6 +1,8 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import Button from '@ui/buttons/base/Button';
 import {
   BookOpen,
   FolderOpen,
@@ -32,7 +34,9 @@ function ActionCard({
   badge,
 }: ActionCardProps) {
   return (
-    <button
+    <Button
+      variant={ButtonVariant.GHOST}
+      withWrapper={false}
       onClick={onClick}
       className="flex w-full items-center gap-3 rounded-lg bg-secondary/50 p-3 text-left transition hover:bg-secondary"
     >
@@ -50,7 +54,7 @@ function ActionCard({
         </div>
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
-    </button>
+    </Button>
   );
 }
 
@@ -146,13 +150,15 @@ function WelcomeModalComponent() {
       {/* Modal */}
       <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-xl bg-card p-6 shadow-2xl">
         {/* Close button */}
-        <button
+        <Button
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
           onClick={handleClose}
           className="absolute right-3 top-3 rounded-md p-1.5 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
-          aria-label="Close"
+          ariaLabel="Close"
         >
           <X className="h-5 w-5" />
-        </button>
+        </Button>
 
         <div className="flex gap-8">
           {/* Left side - Branding */}

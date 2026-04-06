@@ -1,4 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import type { ReactElement } from 'react';
 import { HiArrowTrendingUp, HiFire, HiPencilSquare } from 'react-icons/hi2';
 
@@ -59,8 +61,9 @@ export function TrendingTopicsCard({
                   </div>
                 </div>
               </div>
-              <button
-                type="button"
+              <Button
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
                 onClick={() =>
                   onCreatePost?.({ id: trend.id, label: trend.label })
                 }
@@ -68,7 +71,7 @@ export function TrendingTopicsCard({
               >
                 <HiPencilSquare className="h-3 w-3" />
                 Create Post
-              </button>
+              </Button>
             </div>
           ))}
         </div>

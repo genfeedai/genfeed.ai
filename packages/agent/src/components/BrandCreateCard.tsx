@@ -1,4 +1,8 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
+import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useCallback, useState } from 'react';
 import { HiCheck, HiSparkles } from 'react-icons/hi2';
 
@@ -56,12 +60,11 @@ export function BrandCreateCard({
         <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
           Brand Name
         </label>
-        <input
+        <Input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder="Enter brand name..."
-          className="w-full rounded border border-border bg-background px-2.5 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
         />
       </div>
 
@@ -70,25 +73,25 @@ export function BrandCreateCard({
         <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
           Description
         </label>
-        <textarea
+        <Textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           rows={2}
           placeholder="Describe your brand..."
-          className="w-full resize-none rounded border border-border bg-background px-2.5 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+          className="resize-none"
         />
       </div>
 
       {/* Create button */}
-      <button
-        type="button"
+      <Button
+        variant={ButtonVariant.DEFAULT}
         onClick={handleCreate}
-        disabled={!name.trim()}
-        className="flex w-full items-center justify-center gap-2 rounded bg-primary px-4 py-2 text-sm font-black text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+        isDisabled={!name.trim()}
+        icon={<HiSparkles className="h-4 w-4" />}
+        className="w-full justify-center"
       >
-        <HiSparkles className="h-4 w-4" />
         Create Brand
-      </button>
+      </Button>
     </div>
   );
 }

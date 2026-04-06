@@ -1,6 +1,17 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { ProviderModel } from '@genfeedai/types';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import {
   ArrowRight,
   Clapperboard,
@@ -235,18 +246,19 @@ export default function StudioPage() {
         <div className="mt-8 grid gap-6">
           <div className="flex flex-wrap gap-3">
             {(['image', 'video'] as StudioMediaType[]).map((option) => (
-              <button
+              <Button
                 key={option}
-                type="button"
-                onClick={() => setMediaType(option)}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                variant={
                   mediaType === option
-                    ? 'bg-white text-black'
-                    : 'bg-[var(--secondary)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]'
-                }`}
+                    ? ButtonVariant.DEFAULT
+                    : ButtonVariant.SECONDARY
+                }
+                size={ButtonSize.SM}
+                onClick={() => setMediaType(option)}
+                className="rounded-full px-4 py-2 text-sm font-medium"
               >
                 {option === 'image' ? 'Images' : 'Video'}
-              </button>
+              </Button>
             ))}
           </div>
 
@@ -254,7 +266,7 @@ export default function StudioPage() {
             <span className="text-sm font-medium text-[var(--muted-foreground)]">
               Prompt
             </span>
-            <textarea
+            <Textarea
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
               rows={6}
@@ -268,34 +280,36 @@ export default function StudioPage() {
               <span className="text-sm font-medium text-[var(--muted-foreground)]">
                 Model
               </span>
-              <select
-                value={model}
-                onChange={(event) => setModel(event.target.value)}
-                className="rounded-2xl border border-[var(--border)] bg-[var(--secondary)] px-4 py-3 outline-none transition focus:border-white/50"
-              >
-                {availableModels.map((candidate) => (
-                  <option key={candidate.id} value={candidate.id}>
-                    {candidate.displayName}
-                  </option>
-                ))}
-              </select>
+              <Select value={model} onValueChange={setModel}>
+                <SelectTrigger className="rounded-2xl border border-[var(--border)] bg-[var(--secondary)] px-4 py-3 outline-none transition focus:border-white/50">
+                  <SelectValue placeholder="Select model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableModels.map((candidate) => (
+                    <SelectItem key={candidate.id} value={candidate.id}>
+                      {candidate.displayName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </label>
 
             <label className="grid gap-2">
               <span className="text-sm font-medium text-[var(--muted-foreground)]">
                 Aspect ratio
               </span>
-              <select
-                value={aspectRatio}
-                onChange={(event) => setAspectRatio(event.target.value)}
-                className="rounded-2xl border border-[var(--border)] bg-[var(--secondary)] px-4 py-3 outline-none transition focus:border-white/50"
-              >
-                {aspectChoices.map((choice) => (
-                  <option key={choice} value={choice}>
-                    {choice}
-                  </option>
-                ))}
-              </select>
+              <Select value={aspectRatio} onValueChange={setAspectRatio}>
+                <SelectTrigger className="rounded-2xl border border-[var(--border)] bg-[var(--secondary)] px-4 py-3 outline-none transition focus:border-white/50">
+                  <SelectValue placeholder="Select ratio" />
+                </SelectTrigger>
+                <SelectContent>
+                  {aspectChoices.map((choice) => (
+                    <SelectItem key={choice} value={choice}>
+                      {choice}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </label>
           </div>
 
@@ -304,7 +318,7 @@ export default function StudioPage() {
               <span className="text-sm font-medium text-[var(--muted-foreground)]">
                 Count
               </span>
-              <input
+              <Input
                 type="number"
                 min={1}
                 max={4}
@@ -318,7 +332,7 @@ export default function StudioPage() {
               <span className="text-sm font-medium text-[var(--muted-foreground)]">
                 Duration
               </span>
-              <input
+              <Input
                 type="number"
                 min={4}
                 max={12}
@@ -334,19 +348,16 @@ export default function StudioPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              disabled={!prompt.trim() || !model || isSubmitting}
+            <Button
+              variant={ButtonVariant.DEFAULT}
+              isDisabled={!prompt.trim() || !model || isSubmitting}
+              isLoading={isSubmitting}
               onClick={handleGenerate}
-              className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold"
+              icon={<Sparkles className="h-4 w-4" />}
             >
-              {isSubmitting ? (
-                <LoaderCircle className="h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4" />
-              )}
               Generate
-            </button>
+            </Button>
             <Link
               href="/workflows/new"
               className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] px-5 py-3 text-sm font-medium text-[var(--muted-foreground)] transition hover:border-white hover:text-[var(--foreground)]"

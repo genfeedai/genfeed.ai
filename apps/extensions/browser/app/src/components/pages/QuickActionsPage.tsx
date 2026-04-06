@@ -1,3 +1,5 @@
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import { type ComponentType, useCallback, useEffect, useState } from 'react';
 import {
   InstagramQuickAction,
@@ -99,15 +101,16 @@ export function QuickActionsPage() {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-bold">Quick Actions</h2>
-        <button
+        <Button
           type="button"
+          variant={ButtonVariant.GHOST}
           onClick={detectContent}
-          className="inline-flex items-center justify-center h-6 w-6 text-muted-foreground hover:text-foreground hover:bg-accent transition-colors disabled:opacity-50"
+          className="h-6 w-6"
           disabled={isLoading}
           title="Refresh detection"
         >
           <RefreshIcon className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
 
       {renderContent()}

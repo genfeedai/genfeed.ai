@@ -1,5 +1,6 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import {
   Background,
   BackgroundVariant,
@@ -28,6 +29,7 @@ import { NODE_DEFINITIONS } from '@genfeedai/types';
 import { useCanvasKeyboardShortcuts } from '@genfeedai/workflow-ui/hooks';
 import { NodeDetailModal, nodeTypes } from '@genfeedai/workflow-ui/nodes';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import Button from '@ui/buttons/base/Button';
 import { GroupOverlay } from '@/components/canvas/GroupOverlay';
 import { HelperLines } from '@/components/canvas/HelperLines';
 import { NodeSearch } from '@/components/canvas/NodeSearch';
@@ -461,13 +463,16 @@ export function WorkflowCanvas() {
       onDragOver={handleDragOver}
     >
       {!showPalette && (
-        <button
+        <Button
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           onClick={togglePalette}
           className="absolute top-3 left-3 z-10 p-1.5 bg-[var(--background)] border border-[var(--border)] rounded-md hover:bg-[var(--secondary)] transition-colors group"
-          title="Open sidebar (M)"
-        >
-          <PanelLeft className="w-4 h-4 text-[var(--muted-foreground)] group-hover:text-[var(--foreground)]" />
-        </button>
+          tooltip="Open sidebar (M)"
+          icon={
+            <PanelLeft className="w-4 h-4 text-[var(--muted-foreground)] group-hover:text-[var(--foreground)]" />
+          }
+        />
       )}
       <ReactFlow<WorkflowNode, WorkflowEdge>
         nodes={nodes}

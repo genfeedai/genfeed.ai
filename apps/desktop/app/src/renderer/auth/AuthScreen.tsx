@@ -1,3 +1,5 @@
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import { useState } from 'react';
 
 export const AuthScreen = () => {
@@ -40,14 +42,15 @@ export const AuthScreen = () => {
         {error && <div className="auth-error">{error}</div>}
 
         <div className="auth-actions">
-          <button
-            className="primary-button auth-btn"
+          <Button
+            className="auth-btn"
             disabled={isLoading}
             onClick={() => void handleBrowserLogin()}
             type="button"
+            variant={ButtonVariant.DEFAULT}
           >
             {isLoading ? 'Opening browser...' : 'Sign in with Browser'}
-          </button>
+          </Button>
         </div>
 
         <p className="auth-footer">

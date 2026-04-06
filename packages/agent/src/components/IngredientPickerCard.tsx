@@ -1,4 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import { type ReactElement, useCallback, useState } from 'react';
 import { HiCheck, HiPhoto } from 'react-icons/hi2';
 
@@ -22,8 +24,9 @@ function IngredientThumbnail({
   const src = ingredient.thumbnailUrl ?? ingredient.url;
 
   return (
-    <button
-      type="button"
+    <Button
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
       onClick={() => onPick(ingredient)}
       className={`group relative aspect-square overflow-hidden rounded border transition-all duration-150 ${
         isSelected
@@ -64,7 +67,7 @@ function IngredientThumbnail({
           <HiCheck className="h-2.5 w-2.5 text-primary-foreground" />
         </div>
       )}
-    </button>
+    </Button>
   );
 }
 
@@ -109,13 +112,14 @@ export function IngredientPickerCard({
             </span>
           </span>
         </div>
-        <button
-          type="button"
+        <Button
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.XS}
           onClick={handleChange}
-          className="text-xs text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
+          className="text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
         >
           Change
-        </button>
+        </Button>
       </div>
     );
   }
@@ -158,14 +162,15 @@ export function IngredientPickerCard({
       {/* Confirm button */}
       {selectedId && (
         <div className="border-t border-border px-2 py-2">
-          <button
-            type="button"
+          <Button
+            variant={ButtonVariant.DEFAULT}
+            size={ButtonSize.SM}
             onClick={handleConfirm}
-            className="flex w-full items-center justify-center gap-1.5 rounded bg-primary px-3 py-1.5 text-xs font-black text-primary-foreground transition-colors hover:bg-primary/90"
+            className="w-full"
           >
             <HiCheck className="h-3.5 w-3.5" />
             Use this ingredient
-          </button>
+          </Button>
         </div>
       )}
     </div>

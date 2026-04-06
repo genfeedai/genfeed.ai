@@ -1,5 +1,7 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import {
   ChevronUp,
   Minus,
@@ -163,23 +165,25 @@ export function BottomBar() {
         {/* Batch Counter */}
         <div className="flex items-center gap-0.5">
           <span className="mr-0.5 text-[11px] text-neutral-400">Batch</span>
-          <button
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
             onClick={decrementBatch}
-            disabled={batchCount <= MIN_BATCH || isActive}
+            isDisabled={batchCount <= MIN_BATCH || isActive}
             className="flex h-5 w-5 items-center justify-center rounded text-neutral-400 transition hover:bg-neutral-700 hover:text-white disabled:opacity-40 disabled:hover:bg-transparent"
-          >
-            <Minus className="h-2.5 w-2.5" />
-          </button>
+            icon={<Minus className="h-2.5 w-2.5" />}
+          />
           <span className="w-4 text-center text-xs font-medium tabular-nums text-white">
             {batchCount}
           </span>
-          <button
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
             onClick={incrementBatch}
-            disabled={batchCount >= MAX_BATCH || isActive}
+            isDisabled={batchCount >= MAX_BATCH || isActive}
             className="flex h-5 w-5 items-center justify-center rounded text-neutral-400 transition hover:bg-neutral-700 hover:text-white disabled:opacity-40 disabled:hover:bg-transparent"
-          >
-            <Plus className="h-2.5 w-2.5" />
-          </button>
+            icon={<Plus className="h-2.5 w-2.5" />}
+          />
         </div>
 
         {/* Divider */}
@@ -187,12 +191,14 @@ export function BottomBar() {
 
         {/* Run Button with Dropdown */}
         <div className="relative flex items-center">
-          <button
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
             onClick={(e) => {
               e.stopPropagation();
               handlePrimaryClick();
             }}
-            disabled={!isActive && !canRunWorkflow}
+            isDisabled={!isActive && !canRunWorkflow}
             className={`flex h-7 items-center gap-1.5 rounded-l px-3 text-xs font-medium transition ${
               isActive
                 ? 'bg-red-500/90 text-white hover:bg-red-500'
@@ -212,9 +218,11 @@ export function BottomBar() {
                 Run
               </>
             )}
-          </button>
-          <button
-            onPointerDown={(e) => {
+          </Button>
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
+            onMouseDown={(e) => {
               e.stopPropagation();
               e.preventDefault();
             }}
@@ -222,7 +230,7 @@ export function BottomBar() {
               e.stopPropagation();
               setDropdownOpen((prev) => !prev);
             }}
-            disabled={isActive}
+            isDisabled={isActive}
             className={`flex h-7 items-center rounded-r border-l px-1.5 transition ${
               isActive
                 ? 'border-red-400/30 bg-red-500/90 text-white'
@@ -230,9 +238,8 @@ export function BottomBar() {
                   ? 'border-neutral-300 bg-white text-black hover:bg-neutral-200'
                   : 'border-neutral-500 bg-neutral-600 text-neutral-400'
             } disabled:cursor-not-allowed`}
-          >
-            <ChevronUp className="h-3.5 w-3.5" />
-          </button>
+            icon={<ChevronUp className="h-3.5 w-3.5" />}
+          />
 
           {/* Dropdown Menu (opens upward) */}
           {dropdownOpen && (
@@ -248,35 +255,41 @@ export function BottomBar() {
                 onPointerDown={(e) => e.stopPropagation()}
                 className="absolute bottom-full left-0 z-50 mb-1.5 min-w-[180px] rounded-md border border-neutral-700 bg-neutral-800 py-0.5 shadow-xl"
               >
-                <button
+                <Button
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
                   onClick={() => {
                     requestConfirmation(() => executeWorkflow());
                     setDropdownOpen(false);
                   }}
-                  disabled={!canRunWorkflow}
+                  isDisabled={!canRunWorkflow}
                   className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-xs text-neutral-200 transition hover:bg-neutral-700 disabled:text-neutral-500 disabled:hover:bg-transparent"
+                  icon={<Play className="h-3 w-3" />}
                 >
-                  <Play className="h-3 w-3" />
                   Run Workflow
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
                   onClick={handleRunSelected}
-                  disabled={!hasSelection || isRunning}
+                  isDisabled={!hasSelection || isRunning}
                   className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-xs text-neutral-200 transition hover:bg-neutral-700 disabled:text-neutral-500 disabled:hover:bg-transparent"
+                  icon={<PlayCircle className="h-3 w-3" />}
                 >
-                  <PlayCircle className="h-3 w-3" />
                   Run Selected ({selectedNodeIds.length})
-                </button>
+                </Button>
                 {showResume && (
                   <>
                     <div className="mx-2 my-0.5 h-px bg-neutral-700" />
-                    <button
+                    <Button
+                      variant={ButtonVariant.UNSTYLED}
+                      withWrapper={false}
                       onClick={handleResume}
                       className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-xs text-neutral-200 transition hover:bg-neutral-700"
+                      icon={<RotateCcw className="h-3 w-3" />}
                     >
-                      <RotateCcw className="h-3 w-3" />
                       Resume from Failed
-                    </button>
+                    </Button>
                   </>
                 )}
               </div>

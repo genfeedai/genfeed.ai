@@ -1,13 +1,5 @@
 'use client';
 
-import { WorkflowNodeStatus } from '@genfeedai/enums';
-import { Code, Pre } from '@genfeedai/ui';
-import {
-  selectUpdateNodeData,
-  useWorkflowStore,
-} from '@genfeedai/workflow-ui/stores';
-import type { NodeProps } from '@xyflow/react';
-import { memo, useCallback, useState } from 'react';
 import { NodeBadge } from '@/features/workflows/components/ui/badge';
 import {
   NodeButton,
@@ -30,6 +22,19 @@ import { NodeSelect } from '@/features/workflows/components/ui/inputs';
 import { useNodeExecution } from '@/features/workflows/hooks/useNodeExecution';
 import { coerceNodeData } from '@/features/workflows/nodes/node-data';
 import type { WebhookTriggerNodeData } from '@/features/workflows/nodes/types';
+import { WorkflowNodeStatus } from '@genfeedai/enums';
+import { Code, Pre } from '@genfeedai/ui';
+import {
+  selectUpdateNodeData,
+  useWorkflowStore,
+} from '@genfeedai/workflow-ui/stores';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@ui/src/primitives/collapsible';
+import type { NodeProps } from '@xyflow/react';
+import { memo, useCallback, useState } from 'react';
 
 function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
   const { id } = props;
@@ -198,16 +203,21 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
           )}
 
           {/* Usage Example */}
-          <details className="text-xs">
-            <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+          <Collapsible className="text-xs">
+            <CollapsibleTrigger
+              showArrow={false}
+              className="cursor-pointer py-0 text-muted-foreground hover:text-foreground hover:no-underline"
+            >
               View example request
-            </summary>
-            <Pre size="xs" className="mt-2">
-              {`curl -X POST "${data.webhookUrl}" \\
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <Pre size="xs" className="mt-2">
+                {`curl -X POST "${data.webhookUrl}" \\
   -H "Content-Type: application/json" \\${curlAuthHeader}
   -d '{"key": "value"}'`}
-            </Pre>
-          </details>
+              </Pre>
+            </CollapsibleContent>
+          </Collapsible>
 
           {/* Stats */}
           <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-white/[0.08]">

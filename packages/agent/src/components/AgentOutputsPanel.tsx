@@ -230,9 +230,10 @@ export function AgentOutputsPanel({
         {selectedGroup && selectedGroup.variants.length > 1 ? (
           <div className="flex flex-wrap gap-2">
             {selectedGroup.variants.map((variant, index) => (
-              <button
+              <Button
                 key={variant.id}
-                type="button"
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
                 onClick={() => setSelectedVariantId(variant.id)}
                 className={cn(
                   'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
@@ -243,7 +244,7 @@ export function AgentOutputsPanel({
               >
                 <VariantIcon kind={variant.kind} />
                 {getVariantLabel(selectedGroup, variant, index)}
-              </button>
+              </Button>
             ))}
           </div>
         ) : null}
@@ -310,9 +311,10 @@ export function AgentOutputsPanel({
           {outputs.map((group) => {
             const previewVariant = group.variants[0];
             return (
-              <button
+              <Button
                 key={group.id}
-                type="button"
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
                 onClick={() => {
                   setSelectedGroupId(group.id);
                   setSelectedVariantId(group.variants[0]?.id ?? null);
@@ -348,7 +350,7 @@ export function AgentOutputsPanel({
                     {group.variants.length === 1 ? '' : 's'}
                   </p>
                 </div>
-              </button>
+              </Button>
             );
           })}
         </div>

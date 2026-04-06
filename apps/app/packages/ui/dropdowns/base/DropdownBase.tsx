@@ -1,7 +1,9 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import { BG_BLUR, BORDER_WHITE_30, cn } from '@helpers/formatting/cn/cn.util';
 import type { DropdownBaseProps } from '@props/components/dropdown-base.props';
+import Button from '@ui/buttons/base/Button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -195,14 +197,15 @@ export default function DropdownBase({
       }
 
       return (
-        <button
-          type="button"
+        <Button
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           {...manualHandlers}
           aria-expanded={isOpen}
           className={baseClassName}
         >
           {trigger}
-        </button>
+        </Button>
       );
     },
     [className, handleOpenChange, isOpen, setTriggerElement, trigger],

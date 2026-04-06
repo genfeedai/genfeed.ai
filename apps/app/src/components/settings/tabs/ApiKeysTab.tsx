@@ -1,6 +1,9 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import { Code, Pre } from '@genfeedai/ui';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
 import { Check, Code as CodeIcon, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { useCallback, useState } from 'react';
 import { InfoBox } from '@/components/ui/settings-section';
@@ -142,12 +145,14 @@ function LLMKeyInput({ provider }: { provider: LLMProviderType }) {
         </div>
         <div className="flex items-center gap-1.5">
           {hasKey && !isActive && (
-            <button
+            <Button
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
               onClick={handleActivate}
               className="text-xs text-primary hover:underline whitespace-nowrap"
             >
               Use this
-            </button>
+            </Button>
           )}
           <a
             href={info.docsUrl}
@@ -168,28 +173,32 @@ function LLMKeyInput({ provider }: { provider: LLMProviderType }) {
               <span className="truncate">
                 {showKey ? config.apiKey : maskedKey}
               </span>
-              <button
+              <Button
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
                 onClick={() => setShowKey(!showKey)}
                 className="shrink-0 text-muted-foreground hover:text-foreground transition"
-              >
-                {showKey ? (
-                  <EyeOff className="w-3.5 h-3.5" />
-                ) : (
-                  <Eye className="w-3.5 h-3.5" />
-                )}
-              </button>
+                icon={
+                  showKey ? (
+                    <EyeOff className="w-3.5 h-3.5" />
+                  ) : (
+                    <Eye className="w-3.5 h-3.5" />
+                  )
+                }
+              />
             </div>
-            <button
+            <Button
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
               onClick={handleClear}
               className="shrink-0 p-1.5 text-muted-foreground hover:text-destructive transition rounded hover:bg-destructive/10"
-              title="Remove key"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
+              tooltip="Remove key"
+              icon={<Trash2 className="w-3.5 h-3.5" />}
+            />
           </div>
         ) : (
           <div className="flex items-center gap-2">
-            <input
+            <Input
               type="password"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
@@ -197,14 +206,15 @@ function LLMKeyInput({ provider }: { provider: LLMProviderType }) {
               placeholder={info.keyPlaceholder}
               className="flex-1 px-3 py-1.5 text-xs font-mono bg-background border border-border rounded focus:outline-none focus:ring-1 focus:ring-primary"
             />
-            <button
+            <Button
+              variant={ButtonVariant.DEFAULT}
+              withWrapper={false}
               onClick={handleSave}
-              disabled={!inputValue.trim() || isSaving}
+              isDisabled={!inputValue.trim() || isSaving}
               className="shrink-0 p-1.5 bg-primary text-primary-foreground rounded hover:opacity-90 transition disabled:opacity-50"
-              title="Save key"
-            >
-              <Check className="w-3.5 h-3.5" />
-            </button>
+              tooltip="Save key"
+              icon={<Check className="w-3.5 h-3.5" />}
+            />
           </div>
         )}
       </div>

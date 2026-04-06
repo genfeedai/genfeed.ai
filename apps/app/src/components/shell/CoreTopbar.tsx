@@ -1,5 +1,7 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import { Menu, Moon, Sun, X } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -32,16 +34,16 @@ export default function CoreTopbar({
         <div className="flex items-center gap-2">
           {/* Mobile hamburger */}
           {onMenuToggle ? (
-            <button
-              type="button"
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
               onClick={onMenuToggle}
-              aria-label={
+              ariaLabel={
                 isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'
               }
-              className="inline-flex h-10 w-10 items-center justify-center text-muted-foreground hover:bg-white/[0.06] hover:text-foreground transition-colors md:hidden"
-            >
-              <ToggleIcon className="h-5 w-5" />
-            </button>
+              className="inline-flex h-10 w-10 items-center justify-center text-muted-foreground hover:bg-white/[0.06] hover:text-foreground md:hidden"
+              icon={<ToggleIcon className="h-5 w-5" />}
+            />
           ) : null}
 
           <Link
@@ -65,23 +67,25 @@ export default function CoreTopbar({
         </div>
 
         <div className="flex items-center gap-1">
-          <button
-            type="button"
-            aria-label="Toggle theme"
+          <Button
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
+            ariaLabel="Toggle theme"
             onClick={() => setTheme(isDark ? 'light' : 'dark')}
             className={cn(
               'flex h-8 w-8 items-center justify-center text-muted-foreground',
-              'transition-colors hover:bg-white/[0.06] hover:text-foreground',
+              'hover:bg-white/[0.06] hover:text-foreground',
             )}
-          >
-            {mounted ? (
-              isDark ? (
-                <Sun className="h-4 w-4" />
-              ) : (
-                <Moon className="h-4 w-4" />
-              )
-            ) : null}
-          </button>
+            icon={
+              mounted ? (
+                isDark ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )
+              ) : undefined
+            }
+          />
         </div>
       </div>
     </header>

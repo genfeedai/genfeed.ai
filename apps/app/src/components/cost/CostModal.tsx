@@ -1,6 +1,8 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import Button from '@ui/buttons/base/Button';
 import { DollarSign, X } from 'lucide-react';
 import { memo, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -64,7 +66,11 @@ function CostModalComponent() {
               Cost Analysis
             </h2>
           </div>
-          <Button variant="ghost" size="icon-sm" onClick={closeModal}>
+          <Button
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.SM}
+            onClick={closeModal}
+          >
             <X className="h-5 w-5" />
           </Button>
         </div>
@@ -72,10 +78,12 @@ function CostModalComponent() {
         {/* Tabs */}
         <div className="flex border-b border-border px-6">
           {TABS.map((tab) => (
-            <button
+            <Button
               key={tab.id}
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
               onClick={() => setActiveTab(tab.id)}
-              className={`relative px-4 py-3 text-sm font-medium transition ${
+              className={`relative px-4 py-3 text-sm font-medium rounded-none ${
                 activeTab === tab.id
                   ? 'text-foreground'
                   : 'text-muted-foreground hover:text-foreground'
@@ -85,7 +93,7 @@ function CostModalComponent() {
               {activeTab === tab.id && (
                 <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
               )}
-            </button>
+            </Button>
           ))}
         </div>
 

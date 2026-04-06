@@ -10,4 +10,5 @@ export * from './nodes/index';
 export * from './onboarding-journey';
 export * from './prompts';
 export * from './queue';
+export * from './streak';
 export * from './workflow';

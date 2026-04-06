@@ -1,4 +1,6 @@
 import type { IDesktopWorkflow } from '@genfeedai/desktop-contracts';
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useState } from 'react';
 
 function timeAgo(dateStr: string): string {
@@ -61,13 +63,14 @@ export const WorkflowsView = () => {
       <div className="view-header">
         <h2>Automations</h2>
         <span className="muted-text">{workflows.length} workflows</span>
-        <button
-          className="ghost-button small"
+        <Button
+          className="small"
           onClick={() => void loadWorkflows()}
           type="button"
+          variant={ButtonVariant.GHOST}
         >
           Refresh
-        </button>
+        </Button>
       </div>
 
       {loading && <p className="muted-text">Loading workflows...</p>}
@@ -114,23 +117,25 @@ export const WorkflowsView = () => {
             </div>
 
             <div className="workflow-card-actions">
-              <button
-                className="primary-button small"
+              <Button
+                className="small"
                 disabled={runningId === wf.id}
                 onClick={() => void handleRun(wf.id)}
                 type="button"
+                variant={ButtonVariant.DEFAULT}
               >
                 {runningId === wf.id ? 'Running...' : '▶ Run'}
-              </button>
+              </Button>
               {wf.supportsBatch && (
-                <button
-                  className="ghost-button small"
+                <Button
+                  className="small"
                   disabled={runningId === wf.id}
                   onClick={() => void handleRun(wf.id, true)}
                   type="button"
+                  variant={ButtonVariant.GHOST}
                 >
                   📦 Run Batch
-                </button>
+                </Button>
               )}
             </div>
           </div>

@@ -1,6 +1,9 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type { CubicBezier } from '@genfeedai/types';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
 import { useCallback, useRef, useState } from 'react';
 import { EASING_PRESETS } from '@/lib/easing/presets';
 
@@ -139,7 +142,7 @@ export function BezierCurveEditor({ value, onChange }: BezierCurveEditorProps) {
       <div className="grid grid-cols-4 gap-2 text-xs">
         <div>
           <label className="text-[var(--muted-foreground)]">X1</label>
-          <input
+          <Input
             type="number"
             min="0"
             max="1"
@@ -151,7 +154,7 @@ export function BezierCurveEditor({ value, onChange }: BezierCurveEditorProps) {
         </div>
         <div>
           <label className="text-[var(--muted-foreground)]">Y1</label>
-          <input
+          <Input
             type="number"
             min="0"
             max="1"
@@ -163,7 +166,7 @@ export function BezierCurveEditor({ value, onChange }: BezierCurveEditorProps) {
         </div>
         <div>
           <label className="text-[var(--muted-foreground)]">X2</label>
-          <input
+          <Input
             type="number"
             min="0"
             max="1"
@@ -175,7 +178,7 @@ export function BezierCurveEditor({ value, onChange }: BezierCurveEditorProps) {
         </div>
         <div>
           <label className="text-[var(--muted-foreground)]">Y2</label>
-          <input
+          <Input
             type="number"
             min="0"
             max="1"
@@ -196,13 +199,15 @@ export function BezierCurveEditor({ value, onChange }: BezierCurveEditorProps) {
           {Object.entries(EASING_PRESETS)
             .slice(0, 6)
             .map(([name, curve]) => (
-              <button
+              <Button
                 key={name}
                 onClick={() => onChange(curve)}
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
                 className="px-2 py-1 text-xs bg-[var(--card)] border border-[var(--border)] rounded hover:border-[var(--primary)] transition"
               >
                 {name.replace(/([A-Z])/g, ' $1').trim()}
-              </button>
+              </Button>
             ))}
         </div>
       </div>

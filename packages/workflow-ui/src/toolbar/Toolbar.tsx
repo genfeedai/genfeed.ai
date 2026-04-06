@@ -19,6 +19,7 @@ import { useExecutionStore } from '../stores/executionStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflowStore';
+import { Button } from '../ui/button';
 import { SaveAsDialog } from './SaveAsDialog';
 import { SaveIndicator } from './SaveIndicator';
 import { ToolbarDropdown } from './ToolbarDropdown';
@@ -240,44 +241,49 @@ export function Toolbar({
 
       {/* Debug Mode Badge */}
       {debugMode && (
-        <button
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => openModal('settings')}
           title="Debug mode active - API calls are mocked"
-          className="flex items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-sm text-amber-500 transition hover:bg-amber-500/20"
+          className="border-amber-500/30 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20"
         >
           <Bug className="h-4 w-4" />
           <span className="font-medium">Debug</span>
-        </button>
+        </Button>
       )}
 
       {/* Auto-layout Button */}
       {onAutoLayout && (
-        <button
+        <Button
+          variant="ghost"
+          size="icon-sm"
           onClick={() => onAutoLayout('LR')}
           title="Auto-layout nodes"
-          className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground"
         >
           <LayoutGrid className="h-4 w-4" />
-        </button>
+        </Button>
       )}
 
       {/* Undo/Redo Buttons */}
-      <button
+      <Button
+        variant="ghost"
+        size="icon-sm"
         onClick={() => undo()}
         disabled={!canUndo}
         title="Undo (Ctrl+Z)"
-        className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
       >
         <Undo2 className="h-4 w-4" />
-      </button>
-      <button
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon-sm"
         onClick={() => redo()}
         disabled={!canRedo}
         title="Redo (Ctrl+Shift+Z)"
-        className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
       >
         <Redo2 className="h-4 w-4" />
-      </button>
+      </Button>
 
       {/* Auto-Save Indicator */}
       {saveIndicator ?? <SaveIndicator />}
@@ -292,24 +298,26 @@ export function Toolbar({
 
       {/* Shortcut Help */}
       {showShortcutHelp && (
-        <button
+        <Button
+          variant="ghost"
+          size="icon-sm"
           onClick={() => openModal('shortcutHelp')}
           title="Keyboard shortcuts"
-          className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground"
         >
           <HelpCircle className="h-4 w-4" />
-        </button>
+        </Button>
       )}
 
       {/* Settings */}
       {showSettings && (
-        <button
+        <Button
+          variant="ghost"
+          size="icon-sm"
           onClick={() => openModal('settings')}
           title="Settings"
-          className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground"
         >
           <Settings className="h-4 w-4" />
-        </button>
+        </Button>
       )}
 
       {/* Validation Errors Toast */}
@@ -334,12 +342,15 @@ export function Toolbar({
                 )}
               </ul>
             </div>
-            <button
+            <Button
+              variant="ghost"
+              size="icon-sm"
               onClick={clearValidationErrors}
-              className="flex h-7 w-7 items-center justify-center rounded-md text-destructive transition hover:bg-destructive/20"
+              className="text-destructive hover:bg-destructive/20"
+              title="Dismiss validation errors"
             >
               <X className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
         </div>
       )}

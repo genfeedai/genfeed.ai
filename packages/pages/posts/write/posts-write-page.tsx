@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { track } from '@vercel/analytics';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
@@ -288,7 +289,7 @@ export default function PostsWritePage() {
 
           <label className="grid gap-2 text-sm text-foreground/75">
             <span>Prompt</span>
-            <textarea
+            <Textarea
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}
               placeholder="Describe the post you want to generate..."
@@ -298,7 +299,7 @@ export default function PostsWritePage() {
 
           <label className="grid gap-2 text-sm text-foreground/75">
             <span>Draft content</span>
-            <textarea
+            <Textarea
               value={localContent}
               onChange={(event) => setLocalContent(event.target.value)}
               placeholder="Write the post here if you just want a clean composer and a copy button."

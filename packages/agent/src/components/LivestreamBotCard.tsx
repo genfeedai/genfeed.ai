@@ -1,4 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import Link from 'next/link';
 import { type ReactElement, useCallback, useState } from 'react';
 import {
@@ -98,10 +100,11 @@ export function LivestreamBotCard({
               const isCompleted = completedAction === cta.action;
 
               return (
-                <button
+                <Button
                   key={`${action.id}-bot-action-${index}`}
-                  type="button"
-                  disabled={isPending || isCompleted}
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                  isDisabled={isPending || isCompleted}
                   onClick={() => {
                     void handleActionClick(cta.action!, cta.payload);
                   }}
@@ -114,7 +117,7 @@ export function LivestreamBotCard({
                         ? 'Done'
                         : cta.label}
                   </span>
-                </button>
+                </Button>
               );
             })}
           </div>

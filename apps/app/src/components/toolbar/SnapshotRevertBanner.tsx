@@ -1,8 +1,9 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import { Undo2, X } from 'lucide-react';
 import { memo } from 'react';
-import { Button } from '@/components/ui/button';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 function SnapshotRevertBannerComponent() {
@@ -21,19 +22,21 @@ function SnapshotRevertBannerComponent() {
         AI made changes to your workflow
       </span>
       <Button
-        variant="secondary"
-        size="sm"
+        variant={ButtonVariant.SECONDARY}
+        size={ButtonSize.SM}
         onClick={revertToSnapshot}
         className="h-7 text-xs"
       >
         Revert
       </Button>
-      <button
+      <Button
         onClick={clearSnapshot}
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
         className="p-1 hover:bg-white/20 rounded transition-colors"
       >
         <X className="w-3.5 h-3.5" />
-      </button>
+      </Button>
     </div>
   );
 }

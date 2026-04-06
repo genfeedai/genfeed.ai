@@ -1,5 +1,7 @@
 import type { CredentialMentionItem } from '@genfeedai/agent/services/agent-api.service';
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Button from '@ui/buttons/base/Button';
 import {
   forwardRef,
   type ReactElement,
@@ -55,8 +57,9 @@ export const CredentialMentionList = forwardRef<
   return (
     <div className="max-h-48 overflow-y-auto rounded-lg border border-white/[0.12] bg-popover shadow-lg">
       {items.map((item, index) => (
-        <button
-          type="button"
+        <Button
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           key={item.id}
           onClick={() => command(item)}
           className={cn(
@@ -82,7 +85,7 @@ export const CredentialMentionList = forwardRef<
           <span className="ml-auto text-[10px] text-muted-foreground capitalize">
             {item.platform}
           </span>
-        </button>
+        </Button>
       ))}
     </div>
   );

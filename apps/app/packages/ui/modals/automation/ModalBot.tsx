@@ -32,6 +32,14 @@ import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
 import FormTextarea from '@ui/forms/inputs/textarea/form-textarea/FormTextarea';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Input } from '@ui/primitives/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import { type ChangeEvent, useEffect, useMemo } from 'react';
 import { FaTwitch, FaXTwitter, FaYoutube } from 'react-icons/fa6';
 import {
@@ -148,9 +156,6 @@ const DEFAULT_PUBLISHING_SETTINGS: IPublishingBotSettings = {
   scheduledTimes: ['09:00', '12:00', '18:00'],
   timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
 };
-
-// Common number input class
-const NUMBER_INPUT_CLASS = 'h-10 border border-input px-3 w-full';
 
 export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
   const { form, formRef, isSubmitting, onSubmit, closeModal, handleDelete } =
@@ -411,19 +416,26 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
             </FormControl>
 
             <FormControl label="Bot Type">
-              <select
-                name="category"
-                className="h-10 border border-input px-3 w-full bg-background"
+              <Select
                 value={category}
-                onChange={handleCategoryChange}
+                onValueChange={(value) => {
+                  handleCategoryChange({
+                    target: { value },
+                  } as ChangeEvent<HTMLSelectElement>);
+                }}
                 disabled={isSubmitting}
               >
-                {BOT_CATEGORIES.map(({ value, label, description }) => (
-                  <option key={value} value={value}>
-                    {label} - {description}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {BOT_CATEGORIES.map(({ value, label, description }) => (
+                    <SelectItem key={value} value={value}>
+                      {label} - {description}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </FormControl>
 
             {selectedCategory && (
@@ -468,9 +480,8 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
               <h3 className="font-semibold text-lg">Chat Settings</h3>
 
               <FormControl label="Messages Per Minute">
-                <input
+                <Input
                   type="number"
-                  className={NUMBER_INPUT_CLASS}
                   value={settings.messagesPerMinute}
                   onChange={(e) =>
                     handleSettingChange(
@@ -485,9 +496,8 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
               </FormControl>
 
               <FormControl label="Response Delay (seconds)">
-                <input
+                <Input
                   type="number"
-                  className={NUMBER_INPUT_CLASS}
                   value={settings.responseDelaySeconds}
                   onChange={(e) =>
                     handleSettingChange(
@@ -610,9 +620,8 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
 
               <div className="grid grid-cols-2 gap-4">
                 <FormControl label="Actions Per Hour">
-                  <input
+                  <Input
                     type="number"
-                    className={NUMBER_INPUT_CLASS}
                     value={engagementSettings.actionsPerHour}
                     onChange={(e) =>
                       handleCategorySettingChange(
@@ -628,9 +637,8 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
                 </FormControl>
 
                 <FormControl label="Actions Per Day">
-                  <input
+                  <Input
                     type="number"
-                    className={NUMBER_INPUT_CLASS}
                     value={engagementSettings.actionsPerDay}
                     onChange={(e) =>
                       handleCategorySettingChange(
@@ -647,9 +655,8 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
               </div>
 
               <FormControl label="Delay Between Actions (seconds)">
-                <input
+                <Input
                   type="number"
-                  className={NUMBER_INPUT_CLASS}
                   value={engagementSettings.delayBetweenActions}
                   onChange={(e) =>
                     handleCategorySettingChange(
@@ -840,22 +847,26 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
               )}
 
               <FormControl label="Alert Frequency">
-                <select
-                  className="h-10 border border-input px-3 w-full bg-background"
+                <Select
                   value={monitoringSettings.alertFrequency}
-                  onChange={(e) =>
+                  onValueChange={(value) =>
                     handleCategorySettingChange(
                       'monitoringSettings',
                       'alertFrequency',
-                      e.target.value,
+                      value,
                     )
                   }
                   disabled={isSubmitting}
                 >
-                  <option value="instant">Instant</option>
-                  <option value="hourly">Hourly Digest</option>
-                  <option value="daily">Daily Digest</option>
-                </select>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="instant">Instant</SelectItem>
+                    <SelectItem value="hourly">Hourly Digest</SelectItem>
+                    <SelectItem value="daily">Daily Digest</SelectItem>
+                  </SelectContent>
+                </Select>
               </FormControl>
             </div>
           )}
@@ -866,22 +877,26 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
               <h3 className="font-semibold text-lg">Publishing Settings</h3>
 
               <FormControl label="Content Source">
-                <select
-                  className="h-10 border border-input px-3 w-full bg-background"
+                <Select
                   value={publishingSettings.contentSourceType}
-                  onChange={(e) =>
+                  onValueChange={(value) =>
                     handleCategorySettingChange(
                       'publishingSettings',
                       'contentSourceType',
-                      e.target.value,
+                      value,
                     )
                   }
                   disabled={isSubmitting}
                 >
-                  <option value="queue">Content Queue</option>
-                  <option value="template">Template</option>
-                  <option value="ai_generated">AI Generated</option>
-                </select>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="queue">Content Queue</SelectItem>
+                    <SelectItem value="template">Template</SelectItem>
+                    <SelectItem value="ai_generated">AI Generated</SelectItem>
+                  </SelectContent>
+                </Select>
               </FormControl>
 
               {publishingSettings.contentSourceType === 'ai_generated' && (
@@ -905,24 +920,28 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
               )}
 
               <FormControl label="Publishing Frequency">
-                <select
-                  className="h-10 border border-input px-3 w-full bg-background"
+                <Select
                   value={publishingSettings.frequency}
-                  onChange={(e) =>
+                  onValueChange={(value) =>
                     handleCategorySettingChange(
                       'publishingSettings',
                       'frequency',
-                      e.target.value,
+                      value,
                     )
                   }
                   disabled={isSubmitting}
                 >
-                  {PUBLISHING_FREQUENCIES.map(({ value, label }) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {PUBLISHING_FREQUENCIES.map(({ value, label }) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </FormControl>
 
               {publishingSettings.frequency === PublishingFrequency.CUSTOM && (
@@ -945,9 +964,8 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
               )}
 
               <FormControl label="Max Posts Per Day">
-                <input
+                <Input
                   type="number"
-                  className={NUMBER_INPUT_CLASS}
                   value={publishingSettings.maxPostsPerDay}
                   onChange={(e) =>
                     handleCategorySettingChange(
@@ -963,27 +981,39 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
               </FormControl>
 
               <FormControl label="Timezone">
-                <select
-                  className="h-10 border border-input px-3 w-full bg-background"
+                <Select
                   value={publishingSettings.timezone}
-                  onChange={(e) =>
+                  onValueChange={(value) =>
                     handleCategorySettingChange(
                       'publishingSettings',
                       'timezone',
-                      e.target.value,
+                      value,
                     )
                   }
                   disabled={isSubmitting}
                 >
-                  <option value="UTC">UTC</option>
-                  <option value="America/New_York">Eastern Time (ET)</option>
-                  <option value="America/Chicago">Central Time (CT)</option>
-                  <option value="America/Denver">Mountain Time (MT)</option>
-                  <option value="America/Los_Angeles">Pacific Time (PT)</option>
-                  <option value="Europe/London">London (GMT)</option>
-                  <option value="Europe/Paris">Paris (CET)</option>
-                  <option value="Asia/Tokyo">Tokyo (JST)</option>
-                </select>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="UTC">UTC</SelectItem>
+                    <SelectItem value="America/New_York">
+                      Eastern Time (ET)
+                    </SelectItem>
+                    <SelectItem value="America/Chicago">
+                      Central Time (CT)
+                    </SelectItem>
+                    <SelectItem value="America/Denver">
+                      Mountain Time (MT)
+                    </SelectItem>
+                    <SelectItem value="America/Los_Angeles">
+                      Pacific Time (PT)
+                    </SelectItem>
+                    <SelectItem value="Europe/London">London (GMT)</SelectItem>
+                    <SelectItem value="Europe/Paris">Paris (CET)</SelectItem>
+                    <SelectItem value="Asia/Tokyo">Tokyo (JST)</SelectItem>
+                  </SelectContent>
+                </Select>
               </FormControl>
 
               <FormControl label="Auto-Add Hashtags (comma separated)">

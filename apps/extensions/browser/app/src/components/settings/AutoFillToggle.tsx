@@ -1,3 +1,5 @@
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 
 import { useSettingsStore } from '~store/use-settings-store';
@@ -14,8 +16,9 @@ export function AutoFillToggle(): ReactElement {
           Automatically insert content after generation
         </p>
       </div>
-      <button
+      <Button
         type="button"
+        variant={ButtonVariant.UNSTYLED}
         role="switch"
         aria-checked={autoFill}
         onClick={() => setAutoFill(!autoFill)}
@@ -28,7 +31,7 @@ export function AutoFillToggle(): ReactElement {
             autoFill ? 'translate-x-4' : 'translate-x-0'
           }`}
         />
-      </button>
+      </Button>
     </label>
   );
 }

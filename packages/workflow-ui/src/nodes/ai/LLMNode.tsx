@@ -1,6 +1,7 @@
 'use client';
 
 import type { LLMNodeData, TextModel } from '@genfeedai/types';
+import { Textarea } from '@ui/primitives/textarea';
 import type { NodeProps } from '@xyflow/react';
 import { AlertCircle, Expand, RefreshCw } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
@@ -135,11 +136,11 @@ function LLMNodeComponent(props: NodeProps) {
           <label className="text-xs text-[var(--muted-foreground)]">
             System Prompt <span className="text-[var(--destructive)]">*</span>
           </label>
-          <textarea
+          <Textarea
             value={nodeData.systemPrompt}
             onChange={handleSystemPromptChange}
             placeholder="Define the AI's behavior..."
-            className={`w-full h-16 px-2 py-1.5 text-sm bg-[var(--background)] border rounded resize-none focus:outline-none focus:ring-1 focus:ring-[var(--primary)] ${!hasSystemPrompt ? 'border-[var(--destructive)]/50' : 'border-[var(--border)]'}`}
+            className={`w-full h-16 resize-none ${!hasSystemPrompt ? 'border-[var(--destructive)]/50' : ''}`}
             disabled={isProcessing}
           />
         </div>

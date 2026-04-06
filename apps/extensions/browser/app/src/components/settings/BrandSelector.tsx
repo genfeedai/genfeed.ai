@@ -1,3 +1,10 @@
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import { type ReactElement, useEffect } from 'react';
 
 import { useBrandVoice } from '~hooks/use-brand-voice';
@@ -13,9 +20,8 @@ export function BrandSelector(): ReactElement {
     fetchBrands();
   }, [fetchBrands]);
 
-  function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const id = e.target.value || null;
-    setActiveBrand(id);
+  function handleChange(value: string) {
+    setActiveBrand(value || null);
   }
 
   if (brands.length === 0) {
@@ -27,17 +33,17 @@ export function BrandSelector(): ReactElement {
   }
 
   return (
-    <select
-      value={activeBrandId ?? ''}
-      onChange={handleChange}
-      className="w-full rounded border border-border bg-input px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
-    >
-      <option value="">Select a brand...</option>
-      {brands.map((brand) => (
-        <option key={brand.id} value={brand.id}>
-          {brand.label}
-        </option>
-      ))}
-    </select>
+    <Select value={activeBrandId ?? ''} onValueChange={handleChange}>
+      <SelectTrigger className="w-full">
+        <SelectValue placeholder="Select a brand..." />
+      </SelectTrigger>
+      <SelectContent>
+        {brands.map((brand) => (
+          <SelectItem key={brand.id} value={brand.id}>
+            {brand.label}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 }

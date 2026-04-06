@@ -1,7 +1,9 @@
 import { TimelineWorkEntry } from '@genfeedai/agent/components/TimelineWorkEntry';
 import { AgentWorkEventStatus } from '@genfeedai/agent/models/agent-chat.model';
 import type { TimelineWorkGroup as TimelineWorkGroupEntry } from '@genfeedai/agent/utils/derive-timeline';
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Button from '@ui/buttons/base/Button';
 import { type ReactElement, useState } from 'react';
 import { HiCheckCircle, HiChevronDown, HiClock } from 'react-icons/hi2';
 
@@ -27,8 +29,9 @@ export function TimelineWorkGroup({
     <div className="mb-3 flex justify-start motion-reduce:animate-none animate-in fade-in slide-in-from-bottom-1 duration-200 ease-out">
       <div className="max-w-[85%] rounded-xl border border-border/40 bg-card/25 p-2 space-y-0.5">
         {isArchived ? (
-          <button
-            type="button"
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
             onClick={() => setIsExpanded((prev) => !prev)}
             aria-expanded={isExpanded}
             className="flex w-full items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/[0.03]"
@@ -60,7 +63,7 @@ export function TimelineWorkGroup({
                 isExpanded ? 'rotate-180' : '',
               )}
             />
-          </button>
+          </Button>
         ) : (
           <div className="px-1 pb-1 text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/60">
             ⚡ {entry.events.length} step{entry.events.length !== 1 ? 's' : ''}

@@ -1,7 +1,10 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type { WorkflowFile } from '@genfeedai/types';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import Button from '@ui/buttons/base/Button';
+import { Textarea } from '@ui/primitives/textarea';
 import {
   Bot,
   Loader2,
@@ -155,20 +158,24 @@ function AIGeneratorPanelComponent() {
         </div>
         <div className="flex items-center gap-1">
           {messages.length > 0 && (
-            <button
+            <Button
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
               onClick={handleClear}
               className="p-1.5 hover:bg-[var(--muted)] rounded transition"
-              title="Clear conversation"
-            >
-              <Trash2 className="w-4 h-4 text-[var(--muted-foreground)]" />
-            </button>
+              tooltip="Clear conversation"
+              icon={
+                <Trash2 className="w-4 h-4 text-[var(--muted-foreground)]" />
+              }
+            />
           )}
-          <button
+          <Button
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
             onClick={toggleAIGenerator}
             className="p-1.5 hover:bg-[var(--muted)] rounded transition"
-          >
-            <X className="w-4 h-4" />
-          </button>
+            icon={<X className="w-4 h-4" />}
+          />
         </div>
       </div>
 
@@ -184,7 +191,9 @@ function AIGeneratorPanelComponent() {
             </p>
             <div className="mt-4 space-y-2 text-xs text-left">
               <p className="font-medium text-[var(--foreground)]">Examples:</p>
-              <button
+              <Button
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
                 onClick={() =>
                   setInput(
                     'Create a workflow that generates an image and converts it to video',
@@ -193,8 +202,10 @@ function AIGeneratorPanelComponent() {
                 className="block w-full text-left p-2 bg-[var(--muted)] rounded hover:bg-[var(--muted)]/80 transition"
               >
                 "Generate an image and convert it to video"
-              </button>
-              <button
+              </Button>
+              <Button
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
                 onClick={() =>
                   setInput(
                     'Split an image into a 2x2 grid and make videos from each piece',
@@ -203,8 +214,10 @@ function AIGeneratorPanelComponent() {
                 className="block w-full text-left p-2 bg-[var(--muted)] rounded hover:bg-[var(--muted)]/80 transition"
               >
                 "Split image into 2x2 grid and make videos"
-              </button>
-              <button
+              </Button>
+              <Button
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
                 onClick={() =>
                   setInput(
                     'Create a 3-scene story with images and stitch into one video',
@@ -213,7 +226,7 @@ function AIGeneratorPanelComponent() {
                 className="block w-full text-left p-2 bg-[var(--muted)] rounded hover:bg-[var(--muted)]/80 transition"
               >
                 "3-scene story stitched into one video"
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -246,13 +259,15 @@ function AIGeneratorPanelComponent() {
                     <span className="mx-1">•</span>
                     <span>{msg.workflow.nodes.length} nodes</span>
                   </div>
-                  <button
+                  <Button
+                    variant={ButtonVariant.UNSTYLED}
+                    withWrapper={false}
                     onClick={() => handleLoadWorkflow(msg.workflow!)}
                     className="w-full py-2 bg-[var(--primary)] text-white rounded text-xs font-medium hover:opacity-90 transition flex items-center justify-center gap-2"
+                    icon={<Upload className="w-3 h-3" />}
                   >
-                    <Upload className="w-3 h-3" />
                     Load Workflow
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>
@@ -281,7 +296,7 @@ function AIGeneratorPanelComponent() {
       {/* Input */}
       <div className="p-3 border-t border-[var(--border)]">
         <div className="flex gap-2">
-          <textarea
+          <Textarea
             ref={textareaRef}
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -291,17 +306,20 @@ function AIGeneratorPanelComponent() {
             className="flex-1 px-3 py-2 text-sm bg-[var(--muted)] border border-[var(--border)] rounded-lg resize-none focus:outline-none focus:ring-1 focus:ring-[var(--primary)] disabled:opacity-50"
             rows={2}
           />
-          <button
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
             onClick={handleSend}
-            disabled={!input.trim() || isLoading}
+            isDisabled={!input.trim() || isLoading}
             className="px-3 bg-[var(--primary)] text-white rounded-lg hover:opacity-90 transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
-          </button>
+            icon={
+              isLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )
+            }
+          />
         </div>
         <p className="text-[10px] text-[var(--muted-foreground)] mt-2">
           Press Enter to send, Shift+Enter for new line

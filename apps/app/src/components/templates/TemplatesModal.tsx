@@ -1,13 +1,14 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { EdgeStyle } from '@genfeedai/types';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { ArrowLeft, ArrowRight, ExternalLink, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { WorkflowPreview } from '@/components/WorkflowPreview';
 import { type TemplateData, templatesApi } from '@/lib/api/templates';
 import {
@@ -101,11 +102,11 @@ function TemplateCard({
 
         {/* Use workflow button */}
         <Button
-          variant="ghost"
-          size="sm"
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.SM}
           className="mt-3 w-full justify-between text-primary hover:bg-primary/10 hover:text-primary"
           onClick={() => onSelect(template)}
-          disabled={isLoading}
+          isDisabled={isLoading}
         >
           Use workflow
           <ArrowRight className="h-4 w-4" />
@@ -319,13 +320,15 @@ function TemplatesModalComponent() {
         <div className="flex w-64 flex-shrink-0 flex-col border-r border-border bg-card">
           {/* Sidebar Header */}
           <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-            <button
+            <Button
               onClick={closeModal}
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
               className="flex items-center gap-1 text-sm text-muted-foreground transition hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4" />
               Back
-            </button>
+            </Button>
           </div>
 
           <div className="px-4 py-4">
@@ -432,7 +435,7 @@ function TemplatesModalComponent() {
             <div className="flex h-full flex-col items-center justify-center gap-2 text-destructive">
               <p>{error}</p>
               <Button
-                variant="secondary"
+                variant={ButtonVariant.SECONDARY}
                 onClick={() => window.location.reload()}
               >
                 Retry

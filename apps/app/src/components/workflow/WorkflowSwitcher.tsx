@@ -1,5 +1,8 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { ChevronDown, Loader2, Plus, Workflow } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -180,7 +183,7 @@ function WorkflowSwitcherComponent({ className }: WorkflowSwitcherProps) {
     <>
       <div ref={triggerRef} className={className}>
         {isEditing ? (
-          <input
+          <Input
             ref={inputRef}
             type="text"
             value={editedName}
@@ -190,9 +193,11 @@ function WorkflowSwitcherComponent({ className }: WorkflowSwitcherProps) {
             className="text-sm font-semibold bg-transparent border-b border-primary outline-none text-foreground w-full"
           />
         ) : (
-          <button
+          <Button
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
             onClick={() => setIsOpen(!isOpen)}
-            disabled={isSwitching}
+            isDisabled={isSwitching}
             className="flex items-center gap-1 text-sm font-semibold text-foreground hover:text-primary transition-colors group"
           >
             {isSwitching ? (
@@ -208,7 +213,7 @@ function WorkflowSwitcherComponent({ className }: WorkflowSwitcherProps) {
               {workflowName}
             </span>
             <ChevronDown className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary transition-colors" />
-          </button>
+          </Button>
         )}
       </div>
 
@@ -237,8 +242,10 @@ function WorkflowSwitcherComponent({ className }: WorkflowSwitcherProps) {
               ) : (
                 <div className="py-1">
                   {otherWorkflows.map((workflow) => (
-                    <button
+                    <Button
                       key={workflow._id}
+                      variant={ButtonVariant.GHOST}
+                      withWrapper={false}
                       onClick={() => handleWorkflowSelect(workflow)}
                       className="w-full px-3 py-2 text-left transition hover:bg-secondary"
                     >
@@ -255,7 +262,7 @@ function WorkflowSwitcherComponent({ className }: WorkflowSwitcherProps) {
                           </div>
                         </div>
                       </div>
-                    </button>
+                    </Button>
                   ))}
                 </div>
               )}
@@ -263,13 +270,15 @@ function WorkflowSwitcherComponent({ className }: WorkflowSwitcherProps) {
 
             {/* New Workflow Footer */}
             <div className="border-t border-border">
-              <button
+              <Button
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
                 onClick={handleNewWorkflow}
                 className="flex w-full items-center gap-2 px-3 py-2 text-sm text-muted-foreground transition hover:bg-secondary hover:text-foreground"
               >
                 <Plus className="h-4 w-4" />
                 <span>New Workflow</span>
-              </button>
+              </Button>
             </div>
           </div>,
           document.body,

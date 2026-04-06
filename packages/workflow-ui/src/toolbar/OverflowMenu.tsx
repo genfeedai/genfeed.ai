@@ -2,6 +2,7 @@
 
 import { MoreVertical } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { Button } from '../ui/button';
 import type { OverflowMenuProps } from './types';
 
 /**
@@ -39,31 +40,33 @@ export function OverflowMenu({ items }: OverflowMenuProps) {
 
   return (
     <div ref={menuRef} className="relative">
-      <button
+      <Button
+        variant="ghost"
+        size="icon-sm"
         onClick={() => setIsOpen(!isOpen)}
         title="More options"
-        className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground"
       >
         <MoreVertical className="h-4 w-4" />
-      </button>
+      </Button>
 
       {isOpen && (
         <div className="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-lg border border-border bg-card py-1 shadow-lg">
           {items.map((item) => (
-            <button
+            <Button
               key={item.id}
+              variant="ghost"
               onClick={() => {
                 item.onClick?.();
                 setIsOpen(false);
               }}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground transition hover:bg-secondary"
+              className="w-full justify-start gap-2.5 px-3 py-2 text-sm text-foreground rounded-none"
             >
               <span className="h-4 w-4 shrink-0">{item.icon}</span>
               <span>{item.label}</span>
               {item.external && (
                 <span className="ml-auto text-xs text-muted-foreground">↗</span>
               )}
-            </button>
+            </Button>
           ))}
         </div>
       )}

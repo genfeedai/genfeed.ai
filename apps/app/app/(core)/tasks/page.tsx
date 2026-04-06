@@ -1,5 +1,9 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
+import { Textarea } from '@ui/primitives/textarea';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -118,20 +122,21 @@ export default function TasksPage() {
         <h1 className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">
           Tasks
         </h1>
-        <button
-          type="button"
+        <Button
+          variant={ButtonVariant.OUTLINE}
+          size={ButtonSize.SM}
           onClick={() => setShowNewTask(true)}
-          className="flex items-center gap-1.5 border border-border px-3 py-1.5 text-sm transition-colors hover:bg-accent/50"
+          className="flex items-center gap-1.5 px-3 py-1.5 text-sm"
+          icon={<Plus className="h-3.5 w-3.5" />}
         >
-          <Plus className="h-3.5 w-3.5" />
           New Task
-        </button>
+        </Button>
       </div>
 
       {showNewTask && (
         <div className="mb-6 border border-border p-4">
-          <input
-            className="mb-3 w-full bg-transparent text-sm font-medium outline-none placeholder:text-muted-foreground"
+          <Input
+            className="mb-3 w-full bg-transparent text-sm font-medium outline-none placeholder:text-muted-foreground border-none shadow-none"
             onKeyDown={(e) => {
               if (e.key === 'Escape') setShowNewTask(false);
             }}
@@ -139,8 +144,8 @@ export default function TasksPage() {
             placeholder="Task title..."
             value={newTitle}
           />
-          <textarea
-            className="mb-3 w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+          <Textarea
+            className="mb-3 w-full resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground border-none shadow-none"
             onChange={(e) => setNewPrompt(e.target.value)}
             placeholder="Describe what to generate... (leave empty for a plain task)"
             rows={3}
@@ -149,26 +154,32 @@ export default function TasksPage() {
           {newPrompt.trim() && (
             <div className="mb-3 flex gap-1">
               {(['image', 'video', 'text'] as const).map((type) => (
-                <button
+                <Button
                   key={type}
-                  type="button"
+                  variant={
+                    newContentType === type
+                      ? ButtonVariant.OUTLINE
+                      : ButtonVariant.GHOST
+                  }
+                  size={ButtonSize.XS}
                   onClick={() => setNewContentType(type)}
-                  className={`px-3 py-1 text-xs capitalize transition-colors ${
+                  className={`px-3 py-1 text-xs capitalize ${
                     newContentType === type
                       ? 'border border-foreground/30 text-foreground'
                       : 'border border-border text-muted-foreground hover:text-foreground'
                   }`}
                 >
                   {type}
-                </button>
+                </Button>
               ))}
             </div>
           )}
           <div className="flex gap-2">
-            <button
-              type="button"
-              className="border border-border px-3 py-1 text-xs transition-colors hover:bg-accent/50 disabled:opacity-50"
-              disabled={isCreating || !newTitle.trim()}
+            <Button
+              variant={ButtonVariant.OUTLINE}
+              size={ButtonSize.XS}
+              className="px-3 py-1 text-xs"
+              isDisabled={isCreating || !newTitle.trim()}
               onClick={createTask}
             >
               {isCreating
@@ -176,14 +187,15 @@ export default function TasksPage() {
                 : newPrompt.trim()
                   ? 'Create & Generate'
                   : 'Create'}
-            </button>
-            <button
-              type="button"
-              className="px-3 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            </Button>
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.XS}
+              className="px-3 py-1 text-xs text-muted-foreground hover:text-foreground"
               onClick={() => setShowNewTask(false)}
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       )}

@@ -10,8 +10,14 @@ import {
   DEFAULT_AGENT_GENERATION_PRIORITY,
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
-import { ModelCategory, type RouterPriority } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  ModelCategory,
+  type RouterPriority,
+} from '@genfeedai/enums';
 import { resolveGenerationModelControls } from '@helpers/generation-controls.helper';
+import Button from '@ui/buttons/base/Button';
 import AspectRatioDropdown from '@ui/dropdowns/aspect-ratio/AspectRatioDropdown';
 import ModelSelectorPopover from '@ui/dropdowns/model-selector/ModelSelectorPopover';
 import {
@@ -26,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import {
   type ReactElement,
   useCallback,
@@ -117,14 +124,15 @@ function QualityBadge({
           <p className="text-xs text-muted-foreground">{feedback[0]}</p>
         )}
         {onRegenerate && (
-          <button
-            type="button"
+          <Button
+            variant={ButtonVariant.OUTLINE}
+            size={ButtonSize.XS}
             onClick={onRegenerate}
-            className="flex items-center gap-1 rounded border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200 dark:hover:bg-amber-900"
+            className="border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200 dark:hover:bg-amber-900"
           >
             <HiArrowPath className="h-3 w-3" />
             Regenerate
-          </button>
+          </Button>
         )}
       </div>
     );
@@ -359,25 +367,27 @@ export function GenerationActionCard({
     <div className="group/card relative mt-2 overflow-hidden rounded-lg border border-border bg-background">
       {/* Hover actions */}
       <div className="absolute right-2 top-2 z-10 flex items-center gap-1 rounded-full border border-white/[0.08] bg-background/80 px-1.5 py-1 opacity-0 shadow-sm backdrop-blur-sm transition-opacity group-hover/card:opacity-100">
-        <button
-          type="button"
+        <Button
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={handleCopyPrompt}
-          disabled={!prompt.trim()}
-          className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50"
-          title="Copy prompt"
+          isDisabled={!prompt.trim()}
+          ariaLabel="Copy prompt"
+          className="rounded p-1 text-muted-foreground hover:text-foreground"
         >
           <HiOutlineClipboard className="h-3.5 w-3.5" />
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.ICON}
           onClick={() => {
             void handleRetry();
           }}
-          className="rounded p-1 text-muted-foreground transition-colors hover:text-foreground"
-          title="Retry"
+          ariaLabel="Retry"
+          className="rounded p-1 text-muted-foreground hover:text-foreground"
         >
           <HiArrowPath className="h-3.5 w-3.5" />
-        </button>
+        </Button>
       </div>
 
       {/* Header */}
@@ -394,13 +404,13 @@ export function GenerationActionCard({
           <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             Prompt
           </label>
-          <textarea
+          <Textarea
             ref={textareaRef}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             disabled={isDisabled}
             rows={2}
-            className="w-full resize-none rounded border border-border bg-background px-2.5 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-50"
+            className="w-full resize-none"
             placeholder="Describe what you want to generate..."
           />
         </div>
@@ -507,15 +517,15 @@ export function GenerationActionCard({
 
         {/* Generate button */}
         {status === 'idle' && (
-          <button
-            type="button"
+          <Button
+            variant={ButtonVariant.DEFAULT}
             onClick={handleGenerate}
-            disabled={!prompt.trim()}
-            className="flex w-full items-center justify-center gap-2 rounded bg-primary px-4 py-2 text-sm font-black text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            isDisabled={!prompt.trim()}
+            className="w-full"
           >
             <HiPlay className="h-4 w-4" />
             Generate {isImage ? 'Image' : 'Video'}
-          </button>
+          </Button>
         )}
 
         {/* Generating state */}
@@ -532,16 +542,16 @@ export function GenerationActionCard({
             <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
               {error}
             </div>
-            <button
-              type="button"
+            <Button
+              variant={ButtonVariant.OUTLINE}
               onClick={() => {
                 void handleRetry();
               }}
-              className="flex w-full items-center justify-center gap-2 rounded border border-border px-4 py-2 text-sm font-black text-foreground transition-colors hover:bg-accent"
+              className="w-full"
             >
               <HiArrowPath className="h-4 w-4" />
               Try Again
-            </button>
+            </Button>
           </div>
         )}
 
@@ -578,16 +588,17 @@ export function GenerationActionCard({
               >
                 Open in Library
               </a>
-              <button
-                type="button"
+              <Button
+                variant={ButtonVariant.OUTLINE}
+                size={ButtonSize.SM}
                 onClick={() => {
                   void handleRetry();
                 }}
-                className="flex flex-1 items-center justify-center gap-1 rounded border border-border px-3 py-1.5 text-xs font-black text-foreground transition-colors hover:bg-accent"
+                className="flex-1"
               >
                 <HiArrowPath className="h-3 w-3" />
                 Regenerate
-              </button>
+              </Button>
             </div>
           </div>
         )}

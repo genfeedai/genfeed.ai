@@ -1,4 +1,6 @@
+import { ButtonVariant } from '@genfeedai/enums';
 import { Storage } from '@plasmohq/storage';
+import { Button } from '@ui/primitives/button';
 import { useEffect, useState } from 'react';
 import {
   CloseIcon,
@@ -113,13 +115,14 @@ export default function PostSaverPage() {
         title="No saved posts"
         description="Visit X.com and click the save button on any post"
         action={
-          <button
+          <Button
             type="button"
+            variant={ButtonVariant.LINK}
             onClick={() => chrome.tabs.create({ url: 'https://x.com' })}
-            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+            className="text-blue-600 hover:text-blue-700"
           >
             Go to X.com
-          </button>
+          </Button>
         }
       />
     );
@@ -155,38 +158,42 @@ export default function PostSaverPage() {
               </div>
 
               <div className="flex items-center gap-1">
-                <button
+                <Button
                   type="button"
+                  variant={ButtonVariant.GHOST}
                   onClick={() => generateReply(post)}
                   className="p-1.5 text-green-600 hover:bg-green-50"
                   title="Generate reply"
                 >
                   <ReplyIcon />
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant={ButtonVariant.GHOST}
                   onClick={() => createVideoFromPost(post)}
                   className="p-1.5 text-blue-600 hover:bg-blue-50"
                   title="Create"
                 >
                   <CreateIcon />
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant={ButtonVariant.GHOST}
                   onClick={() => chrome.tabs.create({ url: post.url })}
                   className="p-1.5 text-gray-500 hover:bg-gray-50"
                   title="View post"
                 >
                   <ViewIcon />
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant={ButtonVariant.GHOST}
                   onClick={() => removePost(post.id)}
                   className="p-1.5 text-red-500 hover:bg-red-50"
                   title="Remove"
                 >
                   <CloseIcon />
-                </button>
+                </Button>
               </div>
             </div>
           </div>

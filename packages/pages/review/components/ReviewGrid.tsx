@@ -190,9 +190,10 @@ export default function ReviewGrid({
 
           <div className="mt-4 flex flex-wrap gap-2">
             {REVIEW_FILTERS.map((filter) => (
-              <button
+              <Button
                 key={filter.filter}
-                type="button"
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
                 onClick={() => onFilterChange(filter.filter)}
                 className={cn(
                   'rounded-full border px-3 py-2 text-left transition-colors',
@@ -210,7 +211,7 @@ export default function ReviewGrid({
                 <div className="mt-0.5 text-[11px] text-foreground/40">
                   {filter.helper}
                 </div>
-              </button>
+              </Button>
             ))}
           </div>
 

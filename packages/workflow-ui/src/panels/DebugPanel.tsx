@@ -6,6 +6,7 @@ import { memo, useCallback, useState } from 'react';
 import type { DebugPayload } from '../stores/execution/types';
 import { useExecutionStore } from '../stores/executionStore';
 import { useUIStore } from '../stores/uiStore';
+import { Button } from '../ui/button';
 import { PanelContainer } from './PanelContainer';
 
 interface PayloadCardProps {
@@ -51,9 +52,10 @@ function PayloadCard({ payload }: PayloadCardProps) {
   return (
     <div className="border border-[var(--border)] rounded-lg overflow-hidden">
       {/* Header - always visible */}
-      <button
+      <Button
+        variant="ghost"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center gap-2 p-3 text-left hover:bg-[var(--muted)]/50 transition"
+        className="w-full flex items-center gap-2 p-3 text-left hover:bg-[var(--muted)]/50 h-auto rounded-none"
       >
         {isExpanded ? (
           <ChevronDown className="w-4 h-4 text-[var(--muted-foreground)] shrink-0" />
@@ -73,7 +75,7 @@ function PayloadCard({ payload }: PayloadCardProps) {
             {payload.model} &bull; {timestamp}
           </div>
         </div>
-      </button>
+      </Button>
 
       {/* Expanded content */}
       {isExpanded && (
@@ -82,13 +84,15 @@ function PayloadCard({ payload }: PayloadCardProps) {
             <span className="text-[10px] font-medium text-[var(--muted-foreground)] uppercase">
               Payload
             </span>
-            <button
+            <Button
+              variant="link"
+              size="sm"
               onClick={handleCopy}
-              className="flex items-center gap-1 text-[10px] text-[var(--primary)] hover:underline"
+              className="flex items-center gap-1 text-[10px] text-[var(--primary)] h-auto p-0"
             >
               <Copy className="w-3 h-3" />
               {copied ? 'Copied!' : 'Copy'}
-            </button>
+            </Button>
           </div>
           <Pre variant="debug" size="xs" className="text-[11px]">
             {JSON.stringify(payload.input, null, 2)}
@@ -123,20 +127,18 @@ function DebugPanelComponent() {
         </div>
         <div className="flex items-center gap-1">
           {debugPayloads.length > 0 && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon-sm"
               onClick={clearDebugPayloads}
-              className="p-1.5 hover:bg-[var(--muted)] rounded transition"
               title="Clear all payloads"
             >
               <Trash2 className="w-4 h-4 text-[var(--muted-foreground)]" />
-            </button>
+            </Button>
           )}
-          <button
-            onClick={handleClose}
-            className="p-1.5 hover:bg-[var(--muted)] rounded transition"
-          >
+          <Button variant="ghost" size="icon-sm" onClick={handleClose}>
             <X className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
       </div>
 

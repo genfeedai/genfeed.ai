@@ -1,6 +1,9 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type { WorkflowNode } from '@genfeedai/types';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
 import {
   useNodes,
   useReactFlow,
@@ -276,7 +279,7 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
       >
         {/* Editable Name */}
         {isEditing ? (
-          <input
+          <Input
             ref={inputRef}
             type="text"
             value={editName}
@@ -301,7 +304,9 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
         <div className="flex items-center gap-1">
           {/* Color Picker */}
           <div className="relative" ref={colorPickerRef}>
-            <button
+            <Button
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
               onClick={(e) => {
                 e.stopPropagation();
                 setShowColorPicker(!showColorPicker);
@@ -310,15 +315,16 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
                 'p-1 rounded hover:bg-white/10 transition-colors',
                 colors.text,
               )}
-              title="Change group color"
-            >
-              <Palette className="w-4 h-4" />
-            </button>
+              tooltip="Change group color"
+              icon={<Palette className="w-4 h-4" />}
+            />
             {showColorPicker && (
               <div className="absolute top-8 right-0 z-50 bg-card border border-border rounded-lg shadow-lg p-2 flex gap-1 flex-wrap w-[120px]">
                 {DEFAULT_GROUP_COLORS.map((color) => (
-                  <button
+                  <Button
                     key={color}
+                    variant={ButtonVariant.UNSTYLED}
+                    withWrapper={false}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleColorSelect(color);
@@ -330,13 +336,15 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
                         ? 'border-white'
                         : 'border-transparent',
                     )}
-                    title={color}
+                    tooltip={color}
                   />
                 ))}
               </div>
             )}
           </div>
-          <button
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
             onClick={(e) => {
               e.stopPropagation();
               toggleGroupLock(group.id);
@@ -345,15 +353,18 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
               'p-1 rounded hover:bg-white/10 transition-colors',
               colors.text,
             )}
-            title={group.isLocked ? 'Unlock group' : 'Lock group'}
-          >
-            {group.isLocked ? (
-              <Lock className="w-4 h-4" />
-            ) : (
-              <Unlock className="w-4 h-4" />
-            )}
-          </button>
-          <button
+            tooltip={group.isLocked ? 'Unlock group' : 'Lock group'}
+            icon={
+              group.isLocked ? (
+                <Lock className="w-4 h-4" />
+              ) : (
+                <Unlock className="w-4 h-4" />
+              )
+            }
+          />
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
             onClick={(e) => {
               e.stopPropagation();
               deleteGroup(group.id);
@@ -362,10 +373,9 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
               'p-1 rounded hover:bg-white/10 transition-colors',
               colors.text,
             )}
-            title="Delete group"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+            tooltip="Delete group"
+            icon={<Trash2 className="w-4 h-4" />}
+          />
         </div>
       </div>
 
@@ -399,7 +409,7 @@ function GroupBackgroundsPortalComponent() {
   const { groups } = useWorkflowStore();
   const nodes = useNodes() as WorkflowNode[];
 
-  // Create node lookup Map once - O(n) instead of O(n²) for all groups
+  // Create node lookup Map once - O(n) instead of O(n^2) for all groups
   const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
 
   // Pre-compute all bounds once
@@ -450,7 +460,7 @@ function GroupControlsOverlayComponent() {
   const nodes = useNodes() as WorkflowNode[];
   const { zoom } = useViewport();
 
-  // Create node lookup Map once - O(n) instead of O(n²) for all groups
+  // Create node lookup Map once - O(n) instead of O(n^2) for all groups
   const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
 
   // Pre-compute all bounds once

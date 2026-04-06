@@ -1,7 +1,9 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import { Pre } from '@genfeedai/ui';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import Button from '@ui/buttons/base/Button';
 import { Bug, ChevronDown, ChevronRight, Copy, Trash2, X } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import type { DebugPayload } from '@/store/execution';
@@ -51,7 +53,9 @@ function PayloadCard({ payload }: PayloadCardProps) {
   return (
     <div className="border border-[var(--border)] rounded-lg overflow-hidden">
       {/* Header - always visible */}
-      <button
+      <Button
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full flex items-center gap-2 p-3 text-left hover:bg-[var(--muted)]/50 transition"
       >
@@ -73,7 +77,7 @@ function PayloadCard({ payload }: PayloadCardProps) {
             {payload.model} • {timestamp}
           </div>
         </div>
-      </button>
+      </Button>
 
       {/* Expanded content */}
       {isExpanded && (
@@ -82,13 +86,15 @@ function PayloadCard({ payload }: PayloadCardProps) {
             <span className="text-[10px] font-medium text-[var(--muted-foreground)] uppercase">
               Payload
             </span>
-            <button
+            <Button
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
               onClick={handleCopy}
               className="flex items-center gap-1 text-[10px] text-[var(--primary)] hover:underline"
+              icon={<Copy className="w-3 h-3" />}
             >
-              <Copy className="w-3 h-3" />
               {copied ? 'Copied!' : 'Copy'}
-            </button>
+            </Button>
           </div>
           <Pre variant="debug" size="xs" className="text-[11px]">
             {JSON.stringify(payload.input, null, 2)}
@@ -123,20 +129,24 @@ function DebugPanelComponent() {
         </div>
         <div className="flex items-center gap-1">
           {debugPayloads.length > 0 && (
-            <button
+            <Button
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
               onClick={clearDebugPayloads}
               className="p-1.5 hover:bg-[var(--muted)] rounded transition"
-              title="Clear all payloads"
-            >
-              <Trash2 className="w-4 h-4 text-[var(--muted-foreground)]" />
-            </button>
+              tooltip="Clear all payloads"
+              icon={
+                <Trash2 className="w-4 h-4 text-[var(--muted-foreground)]" />
+              }
+            />
           )}
-          <button
+          <Button
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
             onClick={handleClose}
             className="p-1.5 hover:bg-[var(--muted)] rounded transition"
-          >
-            <X className="w-4 h-4" />
-          </button>
+            icon={<X className="w-4 h-4" />}
+          />
         </div>
       </div>
 

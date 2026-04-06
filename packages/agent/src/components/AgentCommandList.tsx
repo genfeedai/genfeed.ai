@@ -1,5 +1,7 @@
 import type { AgentSlashCommand } from '@genfeedai/agent/constants/agent-slash-commands.constant';
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Button from '@ui/buttons/base/Button';
 import {
   forwardRef,
   type ReactElement,
@@ -80,8 +82,9 @@ export const AgentCommandList = forwardRef<
   return (
     <div className="max-h-64 overflow-y-auto rounded-lg border border-white/[0.12] bg-popover shadow-lg">
       {items.map((item, index) => (
-        <button
-          type="button"
+        <Button
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           key={item.name}
           onClick={() => command(item)}
           className={cn(
@@ -100,7 +103,7 @@ export const AgentCommandList = forwardRef<
               {item.description}
             </span>
           </div>
-        </button>
+        </Button>
       ))}
     </div>
   );
