@@ -1,4 +1,4 @@
-import {
+import type {
   AgentAutonomyMode,
   AgentRunFrequency,
   AgentType,
@@ -23,6 +23,7 @@ export interface AgentStrategyFormState {
   minPostScore: string;
   monthlyCreditBudget: string;
   platforms: string[];
+  skillSlugs: string[];
   reserveTrendBudget: string;
   runFrequency: AgentRunFrequency;
   trendWatchersEnabled: boolean;
