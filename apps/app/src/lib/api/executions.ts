@@ -50,7 +50,11 @@ export const executionsApi = {
    * Start a workflow execution
    */
   create: (workflowId: string, signal?: AbortSignal): Promise<ExecutionData> =>
-    apiClient.post<ExecutionData>(`/workflows/${workflowId}/execute`, undefined, { signal }),
+    apiClient.post<ExecutionData>(
+      `/workflows/${workflowId}/execute`,
+      undefined,
+      { signal },
+    ),
 
   /**
    * Execute a partial set of nodes
@@ -58,12 +62,12 @@ export const executionsApi = {
   executePartial: (
     workflowId: string,
     nodeIds: string[],
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<ExecutionData> =>
     apiClient.post<ExecutionData>(
       `/workflows/${workflowId}/execute/partial`,
       { nodeIds },
-      { signal }
+      { signal },
     ),
 
   /**
@@ -75,13 +79,21 @@ export const executionsApi = {
   /**
    * Get all executions for a workflow
    */
-  getByWorkflow: (workflowId: string, signal?: AbortSignal): Promise<ExecutionData[]> =>
-    apiClient.get<ExecutionData[]>(`/workflows/${workflowId}/executions`, { signal }),
+  getByWorkflow: (
+    workflowId: string,
+    signal?: AbortSignal,
+  ): Promise<ExecutionData[]> =>
+    apiClient.get<ExecutionData[]>(`/workflows/${workflowId}/executions`, {
+      signal,
+    }),
 
   /**
    * Get a job by prediction ID
    */
-  getJobByPredictionId: (predictionId: string, signal?: AbortSignal): Promise<JobData> =>
+  getJobByPredictionId: (
+    predictionId: string,
+    signal?: AbortSignal,
+  ): Promise<JobData> =>
     apiClient.get<JobData>(`/jobs/${predictionId}`, { signal }),
 
   /**
@@ -102,15 +114,21 @@ export const executionsApi = {
   resumeFromFailed: (
     workflowId: string,
     runId: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<ExecutionData> =>
-    apiClient.post<ExecutionData>(`/workflows/${workflowId}/execute/resume/${runId}`, undefined, {
-      signal,
-    }),
+    apiClient.post<ExecutionData>(
+      `/workflows/${workflowId}/execute/resume/${runId}`,
+      undefined,
+      {
+        signal,
+      },
+    ),
 
   /**
    * Stop a running execution
    */
   stop: (id: string, signal?: AbortSignal): Promise<ExecutionData> =>
-    apiClient.post<ExecutionData>(`/executions/${id}/stop`, undefined, { signal }),
+    apiClient.post<ExecutionData>(`/executions/${id}/stop`, undefined, {
+      signal,
+    }),
 };

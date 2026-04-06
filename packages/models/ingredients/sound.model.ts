@@ -1,5 +1,5 @@
-import type { ISound } from '@genfeedai/interfaces';
 import { IngredientCategory } from '@genfeedai/enums';
+import type { ISound } from '@genfeedai/interfaces';
 import { Ingredient } from '@models/content/ingredient.model';
 
 export class Sound extends Ingredient implements ISound {

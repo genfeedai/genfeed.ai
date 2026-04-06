@@ -1,10 +1,10 @@
 import { useUser } from '@clerk/nextjs';
-import type { IElementScene } from '@genfeedai/interfaces';
 import {
   type ElementSimpleSchema,
   elementSimpleSchema,
 } from '@genfeedai/client/schemas';
 import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import type { IElementScene } from '@genfeedai/interfaces';
 import { getClerkPublicData } from '@helpers/auth/clerk.helper';
 import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
 import type { ModalCrudProps } from '@props/modals/modal.props';

@@ -13,6 +13,7 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject } from '@nestjs/common';
 import { Job } from 'bullmq';
@@ -264,7 +265,7 @@ export class VideoProcessor extends WorkerHost {
           progress,
           resultId,
           resultType: 'VIDEO' as const,
-          room: room || `user-${clerkUserId}`,
+          room: room || getUserRoomName(clerkUserId),
           status,
           taskId,
           timestamp: new Date().toISOString(),

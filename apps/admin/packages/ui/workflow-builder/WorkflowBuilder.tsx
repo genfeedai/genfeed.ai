@@ -1,10 +1,10 @@
 'use client';
 
+import { AlertCategory } from '@genfeedai/enums';
 import type {
   WorkflowEdge,
   WorkflowVisualNode,
 } from '@genfeedai/interfaces/automation/workflow-builder.interface';
-import { AlertCategory } from '@genfeedai/enums';
 import { useWorkflowBuilder } from '@hooks/automation/use-workflow-builder/use-workflow-builder';
 import type { WorkflowBuilderProps } from '@props/automation/workflow-builder.props';
 import Alert from '@ui/feedback/alert/Alert';

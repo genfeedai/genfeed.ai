@@ -181,7 +181,6 @@ function getMetricValue(
       return item.metrics.roas;
     case 'conversions':
       return item.metrics.conversions;
-    case 'spendEfficiency':
     default:
       return item.metrics.performanceScore ?? item.metricValue;
   }

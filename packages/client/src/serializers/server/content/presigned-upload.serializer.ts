@@ -1,4 +1,4 @@
-import { buildSingleSerializer, type BuiltSerializer } from '../../builders';
+import { type BuiltSerializer, buildSingleSerializer } from '../../builders';
 import { presignedUploadSerializerConfig } from '../../configs';
 
 export const PresignedUploadSerializer: BuiltSerializer = buildSingleSerializer(

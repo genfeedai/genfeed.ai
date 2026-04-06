@@ -45,7 +45,15 @@ All code outside of `ee/` is licensed under AGPL-3.0. Contributions are welcome 
 
 ## Contributing to Enterprise (`ee/`)
 
-Code in the `ee/` directory is under a commercial license. Contributing to `ee/` requires a Contributor License Agreement (CLA). Please contact us before submitting PRs to `ee/`.
+Code in the `ee/` directory is under a commercial license. Contributing to `ee/` requires a Contributor License Agreement (CLA).
+
+Before submitting PRs to `ee/`:
+
+1. Contact [cla@genfeed.ai](mailto:cla@genfeed.ai) to request the CLA
+2. Sign and return the agreement
+3. Wait for confirmation before opening your PR
+
+Core contributions (outside `ee/`) do not require a CLA — your contribution is accepted under the AGPL-3.0 license.
 
 ## Adding Integrations
 

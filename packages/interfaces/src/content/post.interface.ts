@@ -1,4 +1,4 @@
-import { CredentialPlatform, PostCategory } from '@genfeedai/enums';
+import type { CredentialPlatform, PostCategory } from '@genfeedai/enums';
 import type { IPostAnalyticsSummary } from '../analytics/analytics.interface';
 import type {
   IBaseEntity,

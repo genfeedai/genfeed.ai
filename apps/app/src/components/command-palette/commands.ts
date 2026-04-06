@@ -166,7 +166,12 @@ export const CATEGORY_LABELS: Record<CommandCategory, string> = {
   recent: 'Recent',
 };
 
-export const CATEGORY_ORDER: CommandCategory[] = ['recent', 'actions', 'nodes', 'navigation'];
+export const CATEGORY_ORDER: CommandCategory[] = [
+  'recent',
+  'actions',
+  'nodes',
+  'navigation',
+];
 
 // Fuse.js instance for fuzzy search (lazy-initialized)
 let fuseInstance: Fuse<Command> | null = null;
@@ -197,7 +202,7 @@ export function filterCommands(commands: Command[], query: string): Command[] {
 
 export function groupCommandsByCategory(
   commands: Command[],
-  recentIds: string[]
+  recentIds: string[],
 ): Map<CommandCategory, Command[]> {
   const groups = new Map<CommandCategory, Command[]>();
 
@@ -216,7 +221,9 @@ export function groupCommandsByCategory(
   for (const category of CATEGORY_ORDER) {
     if (category === 'recent') continue;
 
-    const categoryCommands = commands.filter((cmd) => cmd.category === category);
+    const categoryCommands = commands.filter(
+      (cmd) => cmd.category === category,
+    );
     if (categoryCommands.length > 0) {
       groups.set(category, categoryCommands);
     }

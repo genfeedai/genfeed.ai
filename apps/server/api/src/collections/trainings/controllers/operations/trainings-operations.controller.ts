@@ -28,7 +28,10 @@ import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
-import { IngredientSerializer, TrainingSerializer } from '@genfeedai/serializers';
+import {
+  IngredientSerializer,
+  TrainingSerializer,
+} from '@genfeedai/serializers';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

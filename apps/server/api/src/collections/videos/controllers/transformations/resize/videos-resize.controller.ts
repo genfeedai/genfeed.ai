@@ -31,6 +31,7 @@ import {
   WebSocketEventType,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Body, Controller, Param, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
@@ -97,7 +98,7 @@ export class VideosResizeController {
           inputPath: `${this.configService.ingredientsEndpoint}/videos/${videoId}`,
           width: resizeVideoDto.width,
         },
-        room: `user-${user.id}`,
+        room: getUserRoomName(user.id),
         type: 'resize',
         userId: publicMetadata.user,
         websocketUrl: `/videos/${ingredientData._id}`,
@@ -177,7 +178,7 @@ export class VideosResizeController {
           inputPath: `${this.configService.ingredientsEndpoint}/videos/${videoId}`,
           width: 1080,
         },
-        room: `user-${user.id}`,
+        room: getUserRoomName(user.id),
         type: 'convert-to-portrait',
         userId: publicMetadata.user,
         websocketUrl: `/videos/${ingredientData._id}`,
@@ -213,7 +214,7 @@ export class VideosResizeController {
             transformation: TransformationCategory.RESIZED,
           },
           user.id,
-          `user-${user.id}`,
+          getUserRoomName(user.id),
         );
       })
       .catch((error: unknown) => {

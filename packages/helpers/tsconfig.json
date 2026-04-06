@@ -31,7 +31,15 @@
     "strict": true,
     "target": "ES2022"
   },
-  "exclude": ["node_modules", "dist", "src/**/*.test.ts", "src/**/*.spec.ts", "src/voice-commands.helper.ts", "src/voice/**", "src/media/download/download.helper.ts"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts",
+    "src/voice-commands.helper.ts",
+    "src/voice/**",
+    "src/media/download/download.helper.ts"
+  ],
   "include": ["src/**/*.ts"],
   "references": [
     {

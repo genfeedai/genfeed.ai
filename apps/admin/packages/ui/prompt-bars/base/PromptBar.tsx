@@ -1,6 +1,5 @@
 'use client';
 
-import type { IAsset, IImage, IIngredient } from '@genfeedai/interfaces';
 import { useAssetSelection } from '@contexts/ui/asset-selection-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
@@ -17,6 +16,7 @@ import {
   type QualityTier,
   type SubscriptionTier,
 } from '@genfeedai/enums';
+import type { IAsset, IImage, IIngredient } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import {
   getDefaultVideoResolution,

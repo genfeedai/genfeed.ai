@@ -1,5 +1,5 @@
-import type { IModel } from '@genfeedai/interfaces';
 import type { CostTier, ModelCategory, RouterPriority } from '@genfeedai/enums';
+import type { IModel } from '@genfeedai/interfaces';
 import type { ReactNode, RefObject } from 'react';
 import type { IconType } from 'react-icons';
 

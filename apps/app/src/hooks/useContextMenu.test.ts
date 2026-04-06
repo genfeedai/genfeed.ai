@@ -33,8 +33,18 @@ vi.mock('@/store/workflowStore', () => {
       addNodesAndEdges: vi.fn(),
       createGroup: mockCreateGroup,
       nodes: [
-        { data: { locked: false }, id: 'node-1', position: { x: 0, y: 0 }, type: 'imageGen' },
-        { data: { locked: true }, id: 'node-2', position: { x: 100, y: 0 }, type: 'llm' },
+        {
+          data: { locked: false },
+          id: 'node-1',
+          position: { x: 0, y: 0 },
+          type: 'imageGen',
+        },
+        {
+          data: { locked: true },
+          id: 'node-2',
+          position: { x: 100, y: 0 },
+          type: 'llm',
+        },
       ],
       removeEdge: mockRemoveEdge,
       setSelectedNodeIds: vi.fn(),
@@ -91,10 +101,18 @@ vi.mock('@/lib/logger', () => ({
 }));
 
 vi.mock('@/components/context-menu/menus', () => ({
-  getEdgeMenuItems: vi.fn(() => [{ id: 'edge-menu-item', label: 'Edge Action' }]),
-  getNodeMenuItems: vi.fn(() => [{ id: 'node-menu-item', label: 'Node Action' }]),
-  getPaneMenuItems: vi.fn(() => [{ id: 'pane-menu-item', label: 'Pane Action' }]),
-  getSelectionMenuItems: vi.fn(() => [{ id: 'selection-menu-item', label: 'Selection Action' }]),
+  getEdgeMenuItems: vi.fn(() => [
+    { id: 'edge-menu-item', label: 'Edge Action' },
+  ]),
+  getNodeMenuItems: vi.fn(() => [
+    { id: 'node-menu-item', label: 'Node Action' },
+  ]),
+  getPaneMenuItems: vi.fn(() => [
+    { id: 'pane-menu-item', label: 'Pane Action' },
+  ]),
+  getSelectionMenuItems: vi.fn(() => [
+    { id: 'selection-menu-item', label: 'Selection Action' },
+  ]),
 }));
 
 import {
@@ -104,6 +122,7 @@ import {
   getSelectionMenuItems,
 } from '@/components/context-menu/menus';
 import { useContextMenuStore } from '@/store/contextMenuStore';
+
 const mockedUseContextMenuStore = vi.mocked(useContextMenuStore);
 const mockedGetNodeMenuItems = vi.mocked(getNodeMenuItems);
 const mockedGetEdgeMenuItems = vi.mocked(getEdgeMenuItems);

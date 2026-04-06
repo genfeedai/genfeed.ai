@@ -1,11 +1,11 @@
 'use client';
 
+import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import type {
   IBackgroundTask,
   IBackgroundTaskContextType,
   IBackgroundTaskUpdateEvent,
 } from '@genfeedai/interfaces';
-import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import {
   buildGenerationEtaSnapshot,
   type GenerationEtaSnapshot,

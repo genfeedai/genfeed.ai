@@ -65,8 +65,9 @@ function InputGroupRowComponent<T = Record<string, unknown>>({
         'group relative flex items-center gap-2 p-2 rounded',
         'border border-transparent hover:border-[var(--border)] hover:bg-[var(--card)]/50',
         'transition-all',
-        isDragging && 'opacity-50 border-[var(--primary)] bg-[var(--primary)]/10',
-        className
+        isDragging &&
+          'opacity-50 border-[var(--primary)] bg-[var(--primary)]/10',
+        className,
       )}
       data-index={index}
     >
@@ -77,7 +78,7 @@ function InputGroupRowComponent<T = Record<string, unknown>>({
           className={clsx(
             'cursor-grab active:cursor-grabbing p-0.5 rounded',
             'text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--border)]',
-            'opacity-0 group-hover:opacity-100 transition-opacity'
+            'opacity-0 group-hover:opacity-100 transition-opacity',
           )}
           aria-label="Drag to reorder"
         >
@@ -102,4 +103,6 @@ function InputGroupRowComponent<T = Record<string, unknown>>({
   );
 }
 
-export const InputGroupRow = memo(InputGroupRowComponent) as typeof InputGroupRowComponent;
+export const InputGroupRow = memo(
+  InputGroupRowComponent,
+) as typeof InputGroupRowComponent;

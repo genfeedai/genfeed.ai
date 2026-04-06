@@ -1279,7 +1279,7 @@ export const AGENT_SOURCE_TOOLS: AgentSourceTool[] = [
         },
         prompt: {
           description:
-            'The generation prompt — must go beyond the user\'s raw input. For images: include scene composition, subjects, lighting, style, and camera details. For videos: include action, camera movement, pacing, and mood. For audio/music: include genre, tempo, instruments, and structure. Always enhance with professional-grade detail appropriate to the medium.',
+            "The generation prompt — must go beyond the user's raw input. For images: include scene composition, subjects, lighting, style, and camera details. For videos: include action, camera movement, pacing, and mood. For audio/music: include genre, tempo, instruments, and structure. Always enhance with professional-grade detail appropriate to the medium.",
           type: 'string',
         },
       },

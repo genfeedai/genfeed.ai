@@ -362,7 +362,7 @@ export function useResource<T>(
         abortControllerRef.current.abort();
       }
     };
-  }, [fetchData, enabled, revalidateOnMount, _depsTrigger]);
+  }, [fetchData, enabled, revalidateOnMount, resolvedInitialData]);
 
   return {
     data,

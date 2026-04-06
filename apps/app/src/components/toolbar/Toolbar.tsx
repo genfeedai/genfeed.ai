@@ -211,20 +211,7 @@ export function Toolbar() {
     input.click();
   }, []);
 
-  const handleOpenFolder = useCallback(async () => {
-    if (!workflowId) return;
-    try {
-      await fetch('/api/open-folder', {
-        body: JSON.stringify({ workflowId }),
-        headers: { 'Content-Type': 'application/json' },
-        method: 'POST',
-      });
-    } catch (error) {
-      logger.error('Failed to open output folder', error, {
-        context: 'Toolbar',
-      });
-    }
-  }, [workflowId]);
+  // handleOpenFolder removed — desktop-only, not available in web
 
   const handleDuplicate = useCallback(async () => {
     if (!workflowId) return;
@@ -552,24 +539,6 @@ export function Toolbar() {
           </TooltipTrigger>
           <TooltipContent side="bottom">
             <p>Screenshot workflow</p>
-          </TooltipContent>
-        </Tooltip>
-
-        {/* Open Output Folder */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="text-muted-foreground"
-              onClick={handleOpenFolder}
-              disabled={!workflowId}
-            >
-              <FolderOpen className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            <p>Open output folder</p>
           </TooltipContent>
         </Tooltip>
 

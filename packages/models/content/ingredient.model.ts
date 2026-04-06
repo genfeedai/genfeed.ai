@@ -1,3 +1,9 @@
+import { Ingredient as BaseIngredient } from '@genfeedai/client/models';
+import {
+  IngredientCategory,
+  IngredientFormat,
+  IngredientStatus,
+} from '@genfeedai/enums';
 import type {
   IAsset,
   IBrand,
@@ -6,12 +12,6 @@ import type {
   IPrompt,
   ITag,
 } from '@genfeedai/interfaces';
-import { Ingredient as BaseIngredient } from '@genfeedai/client/models';
-import {
-  IngredientCategory,
-  IngredientFormat,
-  IngredientStatus,
-} from '@genfeedai/enums';
 import { User } from '@models/auth/user.model';
 import { Metadata } from '@models/content/metadata.model';
 import { Prompt } from '@models/content/prompt.model';

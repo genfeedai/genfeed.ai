@@ -1,16 +1,16 @@
 'use client';
 
-import type {
-  IIngredient,
-  ImageToVideoGenerationPayload,
-  ITag,
-} from '@genfeedai/interfaces';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import {
   IngredientFormat,
   IngredientStatus,
   ModalEnum,
 } from '@genfeedai/enums';
+import type {
+  IIngredient,
+  ImageToVideoGenerationPayload,
+  ITag,
+} from '@genfeedai/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';

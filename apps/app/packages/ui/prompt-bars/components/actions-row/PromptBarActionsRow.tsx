@@ -1,12 +1,12 @@
 'use client';
 
-import type { IAsset, IImage } from '@genfeedai/interfaces';
 import {
   AiActionType,
   ButtonVariant,
   ComponentSize,
   IngredientCategory,
 } from '@genfeedai/enums';
+import type { IAsset, IImage } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { Image as ImageModel } from '@models/ingredients/image.model';
 import type { PromptBarActionsRowProps } from '@props/prompt-bars/prompt-bar-layout.props';

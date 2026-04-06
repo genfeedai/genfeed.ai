@@ -33,6 +33,7 @@ import {
   WebSocketEventType,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   Body,
@@ -254,7 +255,7 @@ export class VideosLipSyncController {
           status: WebSocketEventStatus.PROCESSING,
         },
         user.id,
-        `user-${user.id}`,
+        getUserRoomName(user.id),
       );
 
       // 9. Return serialized ingredient for frontend subscription
@@ -270,7 +271,7 @@ export class VideosLipSyncController {
           ingredientId,
           websocketUrl,
           user.id,
-          `user-${user.id}`,
+          getUserRoomName(user.id),
         );
       }
 

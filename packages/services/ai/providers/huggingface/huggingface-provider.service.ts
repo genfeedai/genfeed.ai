@@ -1,5 +1,5 @@
-import type { IModel } from '@genfeedai/interfaces';
 import { ModelCategory, ModelKey, ModelProvider } from '@genfeedai/enums';
+import type { IModel } from '@genfeedai/interfaces';
 import { logger } from '@services/core/logger.service';
 
 /**

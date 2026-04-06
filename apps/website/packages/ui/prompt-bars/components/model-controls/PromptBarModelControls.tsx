@@ -1,11 +1,11 @@
 'use client';
 
-import type { IModel } from '@genfeedai/interfaces';
 import {
   IngredientFormat,
   type ModelKey,
   RouterPriority,
 } from '@genfeedai/enums';
+import type { IModel } from '@genfeedai/interfaces';
 import { isAspectRatioSupported } from '@helpers/aspect-ratio.helper';
 import {
   filterModelsByAspectRatio,

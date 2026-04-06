@@ -17,7 +17,7 @@ export function useBrandEnabledSkills(): UseBrandEnabledSkillsReturn {
   const { getToken } = useAuth();
   const { isReady, selectedBrand } = useBrand();
   const [enabledSlugs, setEnabledSlugs] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, _setIsLoading] = useState(false);
 
   useEffect(() => {
     if (!isReady || !selectedBrand) return;
@@ -32,8 +32,9 @@ export function useBrandEnabledSkills(): UseBrandEnabledSkillsReturn {
     async (slug: string) => {
       if (!selectedBrand) return;
 
-      const brandId = (selectedBrand as Record<string, unknown>).id as string
-        ?? (selectedBrand as Record<string, unknown>)._id as string;
+      const brandId =
+        ((selectedBrand as Record<string, unknown>).id as string) ??
+        ((selectedBrand as Record<string, unknown>)._id as string);
       if (!brandId) return;
 
       const nextSlugs = enabledSlugs.includes(slug)
@@ -60,7 +61,9 @@ export function useBrandEnabledSkills(): UseBrandEnabledSkillsReturn {
         );
 
         if (!response.ok) {
-          throw new Error(`Failed to update enabled skills: ${response.status}`);
+          throw new Error(
+            `Failed to update enabled skills: ${response.status}`,
+          );
         }
       } catch {
         // Revert on failure

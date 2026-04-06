@@ -1,7 +1,7 @@
 'use client';
 
-import type { IPost } from '@genfeedai/interfaces';
 import { EMPTY_STATES } from '@genfeedai/constants';
+import type { IPost } from '@genfeedai/interfaces';
 import {
   formatDateInTimezone,
   getBrowserTimezone,

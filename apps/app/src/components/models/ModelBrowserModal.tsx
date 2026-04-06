@@ -1,11 +1,16 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { logger } from '@/lib/logger';
-import { useSettingsStore } from '@/store/settingsStore';
-import { ModelCapabilityEnum, ModelUseCaseEnum, ProviderTypeEnum } from '@genfeedai/types';
-import type { ModelCapability, ModelUseCase, ProviderModel, ProviderType } from '@genfeedai/types';
+import type {
+  ModelCapability,
+  ModelUseCase,
+  ProviderModel,
+  ProviderType,
+} from '@genfeedai/types';
+import {
+  ModelCapabilityEnum,
+  ModelUseCaseEnum,
+  ProviderTypeEnum,
+} from '@genfeedai/types';
 import {
   AlertTriangle,
   Clock,
@@ -21,6 +26,10 @@ import {
 } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { logger } from '@/lib/logger';
+import { useSettingsStore } from '@/store/settingsStore';
 
 // =============================================================================
 // TYPES
@@ -39,10 +48,14 @@ interface ModelBrowserModalProps {
 // =============================================================================
 
 const PROVIDER_COLORS: Record<ProviderType, string> = {
-  [ProviderTypeEnum.REPLICATE]: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-  [ProviderTypeEnum.FAL]: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
-  [ProviderTypeEnum.HUGGINGFACE]: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
-  [ProviderTypeEnum.GENFEED_AI]: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+  [ProviderTypeEnum.REPLICATE]:
+    'bg-blue-500/10 text-blue-500 border-blue-500/20',
+  [ProviderTypeEnum.FAL]:
+    'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+  [ProviderTypeEnum.HUGGINGFACE]:
+    'bg-orange-500/10 text-orange-500 border-orange-500/20',
+  [ProviderTypeEnum.GENFEED_AI]:
+    'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
 };
 
 function ProviderBadge({ provider }: { provider: ProviderType }) {
@@ -86,10 +99,19 @@ function CapabilityBadge({ capability }: { capability: ModelCapability }) {
 // USE CASE CONFIG
 // =============================================================================
 
-const USE_CASE_CONFIG: Record<ModelUseCase, { label: string; icon: typeof Sparkles }> = {
+const USE_CASE_CONFIG: Record<
+  ModelUseCase,
+  { label: string; icon: typeof Sparkles }
+> = {
   [ModelUseCaseEnum.STYLE_TRANSFER]: { icon: Palette, label: 'Style Transfer' },
-  [ModelUseCaseEnum.CHARACTER_CONSISTENT]: { icon: User, label: 'Character Consistent' },
-  [ModelUseCaseEnum.IMAGE_VARIATION]: { icon: Repeat, label: 'Image Variation' },
+  [ModelUseCaseEnum.CHARACTER_CONSISTENT]: {
+    icon: User,
+    label: 'Character Consistent',
+  },
+  [ModelUseCaseEnum.IMAGE_VARIATION]: {
+    icon: Repeat,
+    label: 'Image Variation',
+  },
   [ModelUseCaseEnum.INPAINTING]: { icon: Layers, label: 'Inpainting' },
   [ModelUseCaseEnum.UPSCALE]: { icon: ZoomIn, label: 'Upscale' },
   [ModelUseCaseEnum.GENERAL]: { icon: Sparkles, label: 'General' },
@@ -144,12 +166,16 @@ function ModelCard({ model, onSelect, isRecent }: ModelCardProps) {
         <div className="min-w-0 flex-1 p-4">
           {/* Name and provider */}
           <div className="flex items-center gap-2">
-            <h3 className="truncate text-sm font-medium text-foreground">{model.displayName}</h3>
+            <h3 className="truncate text-sm font-medium text-foreground">
+              {model.displayName}
+            </h3>
             {isRecent && <Clock className="h-3 w-3 text-muted-foreground" />}
           </div>
 
           {/* Model ID */}
-          <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">{model.id}</p>
+          <p className="mt-0.5 truncate font-mono text-xs text-muted-foreground">
+            {model.id}
+          </p>
 
           {/* Badges */}
           <div className="mt-2 flex flex-wrap items-center gap-1.5">
@@ -168,10 +194,14 @@ function ModelCard({ model, onSelect, isRecent }: ModelCardProps) {
           {(model.description || model.pricing) && (
             <div className="mt-2 flex items-center justify-between gap-2">
               {model.description && (
-                <p className="line-clamp-1 text-xs text-muted-foreground">{model.description}</p>
+                <p className="line-clamp-1 text-xs text-muted-foreground">
+                  {model.description}
+                </p>
               )}
               {model.pricing && (
-                <span className="shrink-0 text-xs font-medium text-chart-2">{model.pricing}</span>
+                <span className="shrink-0 text-xs font-medium text-chart-2">
+                  {model.pricing}
+                </span>
               )}
             </div>
           )}
@@ -200,10 +230,16 @@ function ModelBrowserModalComponent({
   const hfKey = useSettingsStore((s) => s.providers.huggingface.apiKey);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [providerFilter, setProviderFilter] = useState<ProviderType | 'all'>('all');
-  const [useCaseFilter, setUseCaseFilter] = useState<ModelUseCase | 'all'>('all');
+  const [providerFilter, setProviderFilter] = useState<ProviderType | 'all'>(
+    'all',
+  );
+  const [useCaseFilter, setUseCaseFilter] = useState<ModelUseCase | 'all'>(
+    'all',
+  );
   const [models, setModels] = useState<ProviderModel[]>([]);
-  const [configuredProviders, setConfiguredProviders] = useState<ProviderType[]>([]);
+  const [configuredProviders, setConfiguredProviders] = useState<
+    ProviderType[]
+  >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasFetched, setHasFetched] = useState(false);
 
@@ -241,10 +277,13 @@ function ModelBrowserModalComponent({
           headers['X-HF-Key'] = hfKey;
         }
 
-        const response = await fetch(`/api/providers/models?${params.toString()}`, {
-          headers,
-          signal,
-        });
+        const response = await fetch(
+          `/v1/core/providers/models?${params.toString()}`,
+          {
+            headers,
+            signal,
+          },
+        );
 
         if (response.ok) {
           const data = await response.json();
@@ -253,14 +292,24 @@ function ModelBrowserModalComponent({
         }
       } catch (error) {
         if (error instanceof Error && error.name !== 'AbortError') {
-          logger.error('Failed to fetch models', error, { context: 'ModelBrowserModal' });
+          logger.error('Failed to fetch models', error, {
+            context: 'ModelBrowserModal',
+          });
         }
       } finally {
         setIsLoading(false);
         setHasFetched(true);
       }
     },
-    [searchQuery, providerFilter, useCaseFilter, capabilities, replicateKey, falKey, hfKey]
+    [
+      searchQuery,
+      providerFilter,
+      useCaseFilter,
+      capabilities,
+      replicateKey,
+      falKey,
+      hfKey,
+    ],
   );
 
   // Debounced search
@@ -291,7 +340,9 @@ function ModelBrowserModalComponent({
 
     return recentModels
       .filter((recent) => {
-        const model = models.find((m) => m.id === recent.id && m.provider === recent.provider);
+        const model = models.find(
+          (m) => m.id === recent.id && m.provider === recent.provider,
+        );
         if (!model) return true; // Keep if not in current list
         return model.capabilities.some((c) => capabilities.includes(c));
       })
@@ -319,7 +370,7 @@ function ModelBrowserModalComponent({
       onSelect(model);
       onClose();
     },
-    [addRecentModel, onSelect, onClose]
+    [addRecentModel, onSelect, onClose],
   );
 
   if (!isOpen) return null;
@@ -426,10 +477,13 @@ function ModelBrowserModalComponent({
             <div className="mb-6 flex items-start gap-3 rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-4">
               <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600" />
               <div>
-                <p className="text-sm font-medium text-yellow-600">No AI providers configured</p>
+                <p className="text-sm font-medium text-yellow-600">
+                  No AI providers configured
+                </p>
                 <p className="mt-1 text-xs text-yellow-600/80">
-                  Add API keys to your .env file to enable model selection. Supported providers:
-                  REPLICATE_API_TOKEN, FAL_API_KEY, HF_API_TOKEN
+                  Add API keys to your .env file to enable model selection.
+                  Supported providers: REPLICATE_API_TOKEN, FAL_API_KEY,
+                  HF_API_TOKEN
                 </p>
               </div>
             </div>
@@ -444,11 +498,14 @@ function ModelBrowserModalComponent({
               {/* Recent models */}
               {filteredRecentModels.length > 0 && !searchQuery && (
                 <div>
-                  <h3 className="mb-3 text-sm font-medium text-muted-foreground">Recently Used</h3>
+                  <h3 className="mb-3 text-sm font-medium text-muted-foreground">
+                    Recently Used
+                  </h3>
                   <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                     {filteredRecentModels.map((recent) => {
                       const model = models.find(
-                        (m) => m.id === recent.id && m.provider === recent.provider
+                        (m) =>
+                          m.id === recent.id && m.provider === recent.provider,
                       );
                       if (!model) return null;
                       return (
@@ -507,7 +564,7 @@ function ModelBrowserModalComponent({
         </div>
       </div>
     </>,
-    document.body
+    document.body,
   );
 }
 

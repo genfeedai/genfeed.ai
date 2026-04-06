@@ -1,8 +1,8 @@
 'use client';
 
-import { apiClient } from '@/lib/api/client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { apiClient } from '@/lib/api/client';
 
 interface ActivityEvent {
   _id: string;
@@ -26,7 +26,10 @@ function timeAgo(date: string): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-function formatVerb(action: string, details: Record<string, unknown> | null): string {
+function formatVerb(
+  action: string,
+  details: Record<string, unknown> | null,
+): string {
   if (action === 'task.updated' && details) {
     const prev = (details._previous as Record<string, unknown>) ?? {};
     if (details.status !== undefined) {
@@ -75,7 +78,9 @@ export default function WorkspaceInboxPage() {
       </h1>
 
       {isLoading ? (
-        <p className="py-20 text-center text-sm text-muted-foreground">Loading...</p>
+        <p className="py-20 text-center text-sm text-muted-foreground">
+          Loading...
+        </p>
       ) : activity.length === 0 ? (
         <p className="py-20 text-center text-sm text-muted-foreground">
           No activity yet. Create a task or run a workflow.
@@ -83,7 +88,8 @@ export default function WorkspaceInboxPage() {
       ) : (
         <div className="border border-border">
           {activity.map((event) => {
-            const link = event.entityType === 'task' ? `/tasks/${event.entityId}` : null;
+            const link =
+              event.entityType === 'task' ? `/tasks/${event.entityId}` : null;
             const verb = formatVerb(event.action, event.details);
             const inner = (
               <div className="flex gap-3">
@@ -92,11 +98,17 @@ export default function WorkspaceInboxPage() {
                     <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[9px] font-medium text-muted-foreground">
                       {(event.actorName ?? 'SY').slice(0, 2).toUpperCase()}
                     </span>
-                    <span className="text-sm font-medium">{event.actorName ?? 'System'}</span>
+                    <span className="text-sm font-medium">
+                      {event.actorName ?? 'System'}
+                    </span>
                   </span>
-                  <span className="ml-1 text-sm text-muted-foreground">{verb} </span>
+                  <span className="ml-1 text-sm text-muted-foreground">
+                    {verb}{' '}
+                  </span>
                   {event.entityName && (
-                    <span className="text-sm font-medium">{event.entityName}</span>
+                    <span className="text-sm font-medium">
+                      {event.entityName}
+                    </span>
                   )}
                 </p>
                 <span className="shrink-0 pt-0.5 text-xs text-muted-foreground">
@@ -117,7 +129,10 @@ export default function WorkspaceInboxPage() {
               );
             }
             return (
-              <div key={event._id} className="border-b border-border px-4 py-2.5 last:border-b-0">
+              <div
+                key={event._id}
+                className="border-b border-border px-4 py-2.5 last:border-b-0"
+              >
                 {inner}
               </div>
             );

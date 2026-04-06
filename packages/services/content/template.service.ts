@@ -5,6 +5,8 @@
  * NOTE: Different from Presets (saved PromptBar configurations).
  */
 
+import { TemplateSerializer } from '@genfeedai/client/serializers';
+import { API_ENDPOINTS } from '@genfeedai/constants';
 import type {
   ITemplateFilter,
   ITemplateGenerationRequest,
@@ -13,8 +15,6 @@ import type {
   ITemplateUsage,
 } from '@genfeedai/interfaces';
 import type { IContentTemplate } from '@genfeedai/interfaces/content/template-ui.interface';
-import { TemplateSerializer } from '@genfeedai/client/serializers';
-import { API_ENDPOINTS } from '@genfeedai/constants';
 import type { JsonApiResponseDocument } from '@helpers/data/json-api/json-api.helper';
 import { Template } from '@models/content/template.model';
 import { BaseService } from '@services/core/base.service';

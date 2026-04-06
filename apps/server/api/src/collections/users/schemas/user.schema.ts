@@ -17,11 +17,12 @@ export class User {
   _id!: string;
 
   @Prop({
-    required: true,
+    required: false,
+    sparse: true,
     type: String,
     unique: true,
   })
-  clerkId!: string;
+  clerkId?: string;
 
   @Prop({
     required: true,
@@ -41,6 +42,9 @@ export class User {
 
   @Prop({ required: false, type: String })
   avatar?: string;
+
+  @Prop({ default: false, type: Boolean, index: true })
+  isDefault!: boolean;
 
   @Prop({ default: false, type: Boolean })
   isDeleted!: boolean;

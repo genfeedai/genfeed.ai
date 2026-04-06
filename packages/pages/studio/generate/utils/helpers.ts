@@ -1,9 +1,9 @@
+import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import type { IArticle, IIngredient, IPost } from '@genfeedai/interfaces';
 import type {
   AvatarVoiceOption,
   ProviderVariant,
 } from '@genfeedai/interfaces/studio/studio-generate.interface';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 
 export const IMAGE_OR_VIDEO_CATEGORIES = new Set([
   IngredientCategory.IMAGE,

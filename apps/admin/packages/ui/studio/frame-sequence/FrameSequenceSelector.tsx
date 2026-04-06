@@ -1,12 +1,12 @@
 'use client';
 
-import type { IImage } from '@genfeedai/interfaces';
 import {
   ButtonSize,
   ButtonVariant,
   IngredientCategory,
   IngredientFormat,
 } from '@genfeedai/enums';
+import type { IImage } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { FrameSequenceSelectorProps } from '@props/studio/frame-sequence.props';
 import { useGalleryModal } from '@providers/global-modals/global-modals.provider';

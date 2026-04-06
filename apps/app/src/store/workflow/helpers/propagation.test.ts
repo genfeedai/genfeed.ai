@@ -1,13 +1,18 @@
+import type {
+  NodeType,
+  WorkflowEdge,
+  WorkflowNode,
+  WorkflowNodeData,
+} from '@genfeedai/types';
 import { describe, expect, it, vi } from 'vitest';
-import type { WorkflowEdge, WorkflowNode, WorkflowNodeData, NodeType } from '@genfeedai/types';
 import {
-  getNodeOutput,
-  getOutputType,
-  mapOutputToInput,
+  applyNodeUpdates,
   collectGalleryUpdate,
   computeDownstreamUpdates,
+  getNodeOutput,
+  getOutputType,
   hasStateChanged,
-  applyNodeUpdates,
+  mapOutputToInput,
   propagateExistingOutputs,
 } from './propagation';
 
@@ -15,7 +20,11 @@ import {
 // Test helpers
 // ---------------------------------------------------------------------------
 
-function makeNode(id: string, type: string, data: Record<string, unknown> = {}): WorkflowNode {
+function makeNode(
+  id: string,
+  type: string,
+  data: Record<string, unknown> = {},
+): WorkflowNode {
   return {
     data: { label: type, status: 'idle', ...data } as WorkflowNodeData,
     id,
@@ -38,7 +47,9 @@ function makeEdge(source: string, target: string, id?: string): WorkflowEdge {
 
 describe('getNodeOutput', () => {
   it('returns first element of outputImages array when present', () => {
-    const node = makeNode('1', 'imageGen', { outputImages: ['img1.png', 'img2.png'] });
+    const node = makeNode('1', 'imageGen', {
+      outputImages: ['img1.png', 'img2.png'],
+    });
     expect(getNodeOutput(node)).toBe('img1.png');
   });
 
@@ -51,7 +62,10 @@ describe('getNodeOutput', () => {
   });
 
   it('returns outputImage when outputImages is empty', () => {
-    const node = makeNode('1', 'imageGen', { outputImage: 'single.png', outputImages: [] });
+    const node = makeNode('1', 'imageGen', {
+      outputImage: 'single.png',
+      outputImages: [],
+    });
     expect(getNodeOutput(node)).toBe('single.png');
   });
 
@@ -117,15 +131,21 @@ describe('getOutputType', () => {
 
 describe('mapOutputToInput', () => {
   it('maps text → imageGen as inputPrompt', () => {
-    expect(mapOutputToInput('hello', 'prompt', 'imageGen')).toEqual({ inputPrompt: 'hello' });
+    expect(mapOutputToInput('hello', 'prompt', 'imageGen')).toEqual({
+      inputPrompt: 'hello',
+    });
   });
 
   it('maps text → textToSpeech as inputText', () => {
-    expect(mapOutputToInput('hello', 'llm', 'textToSpeech')).toEqual({ inputText: 'hello' });
+    expect(mapOutputToInput('hello', 'llm', 'textToSpeech')).toEqual({
+      inputText: 'hello',
+    });
   });
 
   it('maps text → subtitle as inputText', () => {
-    expect(mapOutputToInput('sub', 'llm', 'subtitle')).toEqual({ inputText: 'sub' });
+    expect(mapOutputToInput('sub', 'llm', 'subtitle')).toEqual({
+      inputText: 'sub',
+    });
   });
 
   it('maps image → upscale with inputType', () => {
@@ -137,7 +157,9 @@ describe('mapOutputToInput', () => {
   });
 
   it('maps image → videoGen as inputImage', () => {
-    expect(mapOutputToInput('img.png', 'image', 'videoGen')).toEqual({ inputImage: 'img.png' });
+    expect(mapOutputToInput('img.png', 'image', 'videoGen')).toEqual({
+      inputImage: 'img.png',
+    });
   });
 
   it('maps image → imageGen as inputImages array', () => {
@@ -193,7 +215,7 @@ describe('collectGalleryUpdate', () => {
       { outputImages: ['a.png', 'b.png'] },
       'fallback.png',
       [],
-      []
+      [],
     );
     expect(result).toEqual({ images: ['a.png', 'b.png'] });
   });
@@ -208,7 +230,7 @@ describe('collectGalleryUpdate', () => {
       { outputImages: ['a.png', 'b.png'] },
       'fallback.png',
       ['a.png', 'c.png'],
-      ['b.png', 'd.png']
+      ['b.png', 'd.png'],
     );
     expect(result).toEqual({ images: ['a.png', 'c.png', 'b.png', 'd.png'] });
   });
@@ -223,7 +245,7 @@ describe('collectGalleryUpdate', () => {
       { outputImages: [] },
       undefined as unknown as string,
       [],
-      []
+      [],
     );
     expect(result).toBeNull();
   });
@@ -344,7 +366,12 @@ describe('computeDownstreamUpdates', () => {
     ];
     const edges = [makeEdge('audio1', 'img1')];
 
-    const updates = computeDownstreamUpdates('audio1', 'speech.mp3', nodes, edges);
+    const updates = computeDownstreamUpdates(
+      'audio1',
+      'speech.mp3',
+      nodes,
+      edges,
+    );
     // textToSpeech → imageGen is incompatible
     expect(updates.size).toBe(0);
   });
@@ -406,7 +433,9 @@ describe('hasStateChanged', () => {
   });
 
   it('returns false when arrays are identical', () => {
-    const nodes = [makeNode('1', 'outputGallery', { images: ['a.png', 'b.png'] })];
+    const nodes = [
+      makeNode('1', 'outputGallery', { images: ['a.png', 'b.png'] }),
+    ];
     const updates = new Map([['1', { images: ['a.png', 'b.png'] }]]);
     expect(hasStateChanged(updates, nodes)).toBe(false);
   });
@@ -452,14 +481,19 @@ describe('applyNodeUpdates', () => {
 
 describe('integration: full propagation pipeline', () => {
   it('prompt → imageGen: computes and detects change', () => {
-    const nodes = [makeNode('p1', 'prompt', { prompt: 'sunset' }), makeNode('ig1', 'imageGen')];
+    const nodes = [
+      makeNode('p1', 'prompt', { prompt: 'sunset' }),
+      makeNode('ig1', 'imageGen'),
+    ];
     const edges = [makeEdge('p1', 'ig1')];
 
     const updates = computeDownstreamUpdates('p1', 'sunset', nodes, edges);
     expect(hasStateChanged(updates, nodes)).toBe(true);
 
     const result = applyNodeUpdates(nodes, updates);
-    expect((result[1].data as Record<string, unknown>).inputPrompt).toBe('sunset');
+    expect((result[1].data as Record<string, unknown>).inputPrompt).toBe(
+      'sunset',
+    );
   });
 
   it('skips no-op when values already match', () => {
@@ -519,7 +553,9 @@ describe('integration: full propagation pipeline', () => {
 describe('propagateExistingOutputs', () => {
   it('calls propagateFn for nodes with outputImages', () => {
     const propagateFn = vi.fn();
-    const nodes = [makeNode('1', 'imageGen', { outputImages: ['a.png', 'b.png'] })];
+    const nodes = [
+      makeNode('1', 'imageGen', { outputImages: ['a.png', 'b.png'] }),
+    ];
 
     propagateExistingOutputs(nodes, propagateFn);
 
@@ -549,7 +585,9 @@ describe('propagateExistingOutputs', () => {
 
   it('calls propagateFn for nodes with prompt (prompt node)', () => {
     const propagateFn = vi.fn();
-    const nodes = [makeNode('1', 'prompt', { prompt: 'a sunset over the ocean' })];
+    const nodes = [
+      makeNode('1', 'prompt', { prompt: 'a sunset over the ocean' }),
+    ];
 
     propagateExistingOutputs(nodes, propagateFn);
 
@@ -559,7 +597,9 @@ describe('propagateExistingOutputs', () => {
 
   it('calls propagateFn for nodes with extractedTweet', () => {
     const propagateFn = vi.fn();
-    const nodes = [makeNode('1', 'tweetExtractor', { extractedTweet: 'tweet content' })];
+    const nodes = [
+      makeNode('1', 'tweetExtractor', { extractedTweet: 'tweet content' }),
+    ];
 
     propagateExistingOutputs(nodes, propagateFn);
 

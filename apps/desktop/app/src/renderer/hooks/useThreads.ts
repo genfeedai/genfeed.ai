@@ -1,4 +1,7 @@
-import type { IDesktopMessage, IDesktopThread } from '@genfeedai/desktop-contracts';
+import type {
+  IDesktopMessage,
+  IDesktopThread,
+} from '@genfeedai/desktop-contracts';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const THREADS_PATH = '.genfeed/threads.json';

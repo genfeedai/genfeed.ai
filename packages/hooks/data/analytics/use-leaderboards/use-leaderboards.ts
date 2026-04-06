@@ -1,7 +1,7 @@
 'use client';
 
-import type { DateRange } from '@genfeedai/interfaces';
 import { AnalyticsMetric } from '@genfeedai/enums';
+import type { DateRange } from '@genfeedai/interfaces';
 import {
   createCacheKey,
   createLocalStorageCache,
@@ -198,7 +198,7 @@ export function useLeaderboards(
     } finally {
       setIsLeaderboardLoading(false);
     }
-  }, [brandsCacheKey, dateRange, getAnalyticsService, orgsCacheKey]);
+  }, [brandsCacheKey, dateRange, getAnalyticsService, orgsCacheKey, scope]);
 
   useEffect(() => {
     if (

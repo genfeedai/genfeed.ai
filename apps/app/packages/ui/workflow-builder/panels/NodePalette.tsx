@@ -1,7 +1,7 @@
 'use client';
 
-import type { NodeDefinition } from '@genfeedai/interfaces/automation/workflow-builder.interface';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type { NodeDefinition } from '@genfeedai/interfaces/automation/workflow-builder.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { NodePaletteProps } from '@props/automation/workflow-builder.props';
 import Button from '@ui/buttons/base/Button';

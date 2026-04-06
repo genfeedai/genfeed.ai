@@ -1,12 +1,12 @@
 'use client';
 
-import type { IAgentRun } from '@genfeedai/interfaces';
-import type { AgentRunStats, AgentRunTrendPoint } from '@genfeedai/types';
 import {
   AgentExecutionStatus,
   ButtonSize,
   ButtonVariant,
 } from '@genfeedai/enums';
+import type { IAgentRun } from '@genfeedai/interfaces';
+import type { AgentRunStats, AgentRunTrendPoint } from '@genfeedai/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
 import AppLink from '@ui/navigation/link/Link';

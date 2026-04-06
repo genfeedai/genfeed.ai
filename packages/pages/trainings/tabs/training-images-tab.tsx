@@ -2,12 +2,12 @@
 
 import { useTraining } from '@contexts/content/training-context/training-context';
 import { TrainingStatus } from '@genfeedai/enums';
+import { Code } from '@genfeedai/ui';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Image } from '@models/ingredients/image.model';
 import { TrainingsService } from '@services/ai/trainings.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { Code } from '@genfeedai/ui';
 import MasonryGrid from '@ui/masonry/grid/MasonryGrid';
 import { PageScope } from '@ui-constants/misc.constant';
 import { useEffect, useRef, useState } from 'react';
@@ -98,9 +98,7 @@ export default function TrainingImagesTab({
 
         {training?.status === TrainingStatus.COMPLETED && (
           <p className="text-sm text-muted-foreground mt-2">
-            Use the trigger word{' '}
-            <Code>{training.trigger}</Code> in
-            your prompts
+            Use the trigger word <Code>{training.trigger}</Code> in your prompts
           </p>
         )}
       </div>

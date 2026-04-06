@@ -1,4 +1,3 @@
-import type { IModel } from '@genfeedai/interfaces';
 import {
   getModelMaxReferences,
   hasAnyAudioToggle,
@@ -13,6 +12,7 @@ import {
   supportsMultipleReferences as modelSupportsMultipleReferences,
 } from '@genfeedai/constants';
 import type { ModelKey } from '@genfeedai/enums';
+import type { IModel } from '@genfeedai/interfaces';
 import type {
   UsePromptBarModelsOptions,
   UsePromptBarModelsReturn,

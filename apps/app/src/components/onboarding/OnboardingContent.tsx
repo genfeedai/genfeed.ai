@@ -1,14 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import {
+  ArrowRight,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Loader2,
+  XCircle,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, CheckCircle2, Eye, EyeOff, Loader2, XCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import type { DetectedTools } from '@/lib/api/setup';
 import { setupApi } from '@/lib/api/setup';
 import { logger } from '@/lib/logger';
-import type { DetectedTools } from '@/lib/api/setup';
 
 // =============================================================================
 // TYPES
@@ -33,9 +40,13 @@ function OnboardingContent() {
   const [showKey, setShowKey] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [keyValid, setKeyValid] = useState<boolean | null>(null);
-  const [validationMessage, setValidationMessage] = useState<string | null>(null);
+  const [validationMessage, setValidationMessage] = useState<string | null>(
+    null,
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [detectedTools, setDetectedTools] = useState<DetectedTools | null>(null);
+  const [detectedTools, setDetectedTools] = useState<DetectedTools | null>(
+    null,
+  );
 
   // Fetch detected tools on mount
   useEffect(() => {
@@ -44,8 +55,11 @@ function OnboardingContent() {
       .detectTools(controller.signal)
       .then(setDetectedTools)
       .catch((error: unknown) => {
-        if (error instanceof DOMException && error.name === 'AbortError') return;
-        logger.error('Failed to detect tools', error, { context: 'OnboardingContent' });
+        if (error instanceof DOMException && error.name === 'AbortError')
+          return;
+        logger.error('Failed to detect tools', error, {
+          context: 'OnboardingContent',
+        });
       });
     return () => controller.abort();
   }, []);
@@ -63,11 +77,17 @@ function OnboardingContent() {
         provider: 'replicate',
       });
       setKeyValid(result.valid);
-      setValidationMessage(result.message ?? (result.valid ? 'Key is valid' : 'Key is invalid'));
+      setValidationMessage(
+        result.message ?? (result.valid ? 'Key is valid' : 'Key is invalid'),
+      );
     } catch (error: unknown) {
       setKeyValid(false);
-      setValidationMessage('Validation failed. Check your connection and try again.');
-      logger.error('Key validation failed', error, { context: 'OnboardingContent' });
+      setValidationMessage(
+        'Validation failed. Check your connection and try again.',
+      );
+      logger.error('Key validation failed', error, {
+        context: 'OnboardingContent',
+      });
     } finally {
       setIsValidating(false);
     }
@@ -86,7 +106,9 @@ function OnboardingContent() {
           provider: 'replicate',
         });
         setKeyValid(result.valid);
-        setValidationMessage(result.message ?? (result.valid ? 'Key is valid' : 'Key is invalid'));
+        setValidationMessage(
+          result.message ?? (result.valid ? 'Key is valid' : 'Key is invalid'),
+        );
 
         if (!result.valid) {
           setIsSubmitting(false);
@@ -101,12 +123,16 @@ function OnboardingContent() {
 
       // Sync to settings store
       const { useSettingsStore } = await import('@/store/settingsStore');
-      useSettingsStore.getState().setProviderKey('replicate', replicateApiKey.trim());
+      useSettingsStore
+        .getState()
+        .setProviderKey('replicate', replicateApiKey.trim());
       useSettingsStore.getState().setHasSeenWelcome(true);
 
       router.push('/');
     } catch (error: unknown) {
-      logger.error('Setup completion failed', error, { context: 'OnboardingContent' });
+      logger.error('Setup completion failed', error, {
+        context: 'OnboardingContent',
+      });
       setValidationMessage('Setup failed. Please try again.');
       setIsSubmitting(false);
     }
@@ -164,10 +190,15 @@ function OnboardingContent() {
       {/* Replicate Key Section */}
       <div className="space-y-3">
         <div className="flex items-baseline justify-between">
-          <label htmlFor="replicate-key" className="text-sm font-medium text-[var(--foreground)]">
+          <label
+            htmlFor="replicate-key"
+            className="text-sm font-medium text-[var(--foreground)]"
+          >
             Replicate API Key
           </label>
-          <span className="text-xs text-[var(--muted-foreground)]">(required)</span>
+          <span className="text-xs text-[var(--muted-foreground)]">
+            (required)
+          </span>
         </div>
 
         <div className="relative">
@@ -186,7 +217,11 @@ function OnboardingContent() {
             className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[var(--muted-foreground)] transition hover:text-[var(--foreground)]"
             aria-label={showKey ? 'Hide API key' : 'Show API key'}
           >
-            {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {showKey ? (
+              <EyeOff className="h-4 w-4" />
+            ) : (
+              <Eye className="h-4 w-4" />
+            )}
           </button>
         </div>
 
@@ -259,7 +294,8 @@ function OnboardingContent() {
         )}
 
         <p className="mt-3 text-xs text-[var(--muted-foreground)]">
-          These enable AI-assisted workflow building. No action needed if installed.
+          These enable AI-assisted workflow building. No action needed if
+          installed.
         </p>
       </div>
 

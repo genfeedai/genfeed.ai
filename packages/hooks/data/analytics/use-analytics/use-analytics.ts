@@ -1,3 +1,4 @@
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import type { IAnalytics } from '@genfeedai/interfaces';
 import type { ContentScope } from '@genfeedai/interfaces/common/content-scope.interface';
 import type {
@@ -5,7 +6,6 @@ import type {
   AnalyticsScopedOptions,
   AnalyticsScopedReturn,
 } from '@genfeedai/interfaces/hooks/hooks.interface';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   createCacheKey,
   createLocalStorageCache,

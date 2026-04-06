@@ -1,5 +1,8 @@
 import { ConfigService } from '@api/config/config.service';
-import type { IFleetHealthResponse, IFleetInstance } from '@genfeedai/interfaces';
+import type {
+  IFleetHealthResponse,
+  IFleetInstance,
+} from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

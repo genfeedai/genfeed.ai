@@ -15,7 +15,7 @@ import { memo, useCallback, useState } from 'react';
 export type { RssFeedItem, RssInputNodeData, RssInputNodeProps };
 
 function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
-  const [isFetching, setIsFetching] = useState(false);
+  const [isFetching, _setIsFetching] = useState(false);
 
   const handleModeChange = useCallback(
     (mode: 'url' | 'text') => {
@@ -38,6 +38,7 @@ function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
     [id, onUpdate],
   );
 
+  // TODO: migrate RSS fetching to NestJS backend endpoint
   const handleFetchFeed = useCallback(async () => {
     const url = data.inputMode === 'url' ? data.feedUrl : null;
     const xml = data.inputMode === 'text' ? data.rawXml : null;
@@ -46,34 +47,11 @@ function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
       return;
     }
 
-    setIsFetching(true);
-    try {
-      const response = await fetch('/api/rss/fetch', {
-        body: JSON.stringify({ url, xml }),
-        headers: { 'Content-Type': 'application/json' },
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to fetch feed');
-      }
-
-      const { feedTitle, items } = await response.json();
-      onUpdate(id, {
-        feedItems: items,
-        feedTitle,
-        selectedItemIndex: 0,
-        status: WorkflowNodeStatus.COMPLETE,
-      });
-    } catch (error) {
-      onUpdate(id, {
-        error: error instanceof Error ? error.message : 'Failed to fetch',
-        status: WorkflowNodeStatus.ERROR,
-      });
-    } finally {
-      setIsFetching(false);
-    }
+    onUpdate(id, {
+      error:
+        'RSS feed fetching is not yet available. Please use XML mode instead.',
+      status: WorkflowNodeStatus.ERROR,
+    });
   }, [id, data.feedUrl, data.rawXml, data.inputMode, onUpdate]);
 
   const handlePrevItem = useCallback(() => {

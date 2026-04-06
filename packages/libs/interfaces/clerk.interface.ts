@@ -1,4 +1,4 @@
-import { MemberRole } from '@genfeedai/enums';
+import type { MemberRole } from '@genfeedai/enums';
 
 export interface IClerkPublicMetadata {
   user: string;

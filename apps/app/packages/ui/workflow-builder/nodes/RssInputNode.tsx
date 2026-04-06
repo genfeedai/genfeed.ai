@@ -48,7 +48,7 @@ function RssInputNodeComponent({ id, data, onUpdate }: RssInputNodeProps) {
 
     setIsFetching(true);
     try {
-      const response = await fetch('/api/rss/fetch', {
+      const response = await fetch('/v1/core/rss/fetch', {
         body: JSON.stringify({ url, xml }),
         headers: { 'Content-Type': 'application/json' },
         method: 'POST',

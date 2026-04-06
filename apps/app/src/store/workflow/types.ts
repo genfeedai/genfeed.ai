@@ -7,11 +7,16 @@ import type {
   WorkflowNode,
   WorkflowNodeData,
 } from '@genfeedai/types';
-import type { ChatSlice } from './slices/chatSlice';
-import type { SnapshotSlice } from './slices/snapshotSlice';
-import type { Connection, EdgeChange, NodeChange, XYPosition } from '@xyflow/react';
+import type {
+  Connection,
+  EdgeChange,
+  NodeChange,
+  XYPosition,
+} from '@xyflow/react';
 import type { WorkflowData } from '@/lib/api';
 import type { GroupColor, NodeGroup } from '@/types/groups';
+import type { ChatSlice } from './slices/chatSlice';
+import type { SnapshotSlice } from './slices/snapshotSlice';
 
 // =============================================================================
 // STATE TYPES
@@ -40,10 +45,16 @@ export interface WorkflowState {
 export interface NodeActions {
   addNode: (type: NodeType, position: XYPosition) => string;
   addNodesAndEdges: (nodes: WorkflowNode[], edges: WorkflowEdge[]) => void;
-  updateNodeData: <T extends WorkflowNodeData>(nodeId: string, data: Partial<T>) => void;
+  updateNodeData: <T extends WorkflowNodeData>(
+    nodeId: string,
+    data: Partial<T>,
+  ) => void;
   removeNode: (nodeId: string) => void;
   duplicateNode: (nodeId: string) => string | null;
-  propagateOutputsDownstream: (sourceNodeId: string, outputValue?: string) => void;
+  propagateOutputsDownstream: (
+    sourceNodeId: string,
+    outputValue?: string,
+  ) => void;
 }
 
 export interface ReactFlowActions {
@@ -59,7 +70,10 @@ export interface EdgeActions {
 }
 
 export interface LockingActions {
-  _setNodeLockState: (predicate: (nodeId: string) => boolean, lock: boolean) => void;
+  _setNodeLockState: (
+    predicate: (nodeId: string) => boolean,
+    lock: boolean,
+  ) => void;
   toggleNodeLock: (nodeId: string) => void;
   lockNode: (nodeId: string) => void;
   unlockNode: (nodeId: string) => void;
@@ -99,7 +113,10 @@ export interface ApiActions {
   loadWorkflowById: (id: string, signal?: AbortSignal) => Promise<void>;
   listWorkflows: (signal?: AbortSignal) => Promise<WorkflowData[]>;
   deleteWorkflow: (id: string, signal?: AbortSignal) => Promise<void>;
-  duplicateWorkflowApi: (id: string, signal?: AbortSignal) => Promise<WorkflowData>;
+  duplicateWorkflowApi: (
+    id: string,
+    signal?: AbortSignal,
+  ) => Promise<WorkflowData>;
   createNewWorkflow: (signal?: AbortSignal) => Promise<string>;
   setWorkflowName: (name: string) => void;
   setWorkflowTags: (tags: string[]) => void;
@@ -114,7 +131,7 @@ export interface HelperActions {
   findCompatibleHandle: (
     sourceNodeId: string,
     sourceHandleId: string | null,
-    targetNodeId: string
+    targetNodeId: string,
   ) => string | null;
   setDirty: (dirty: boolean) => void;
 }

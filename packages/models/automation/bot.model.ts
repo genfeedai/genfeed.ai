@@ -1,10 +1,10 @@
-import type { IBot, IBotSettings, IBotTarget } from '@genfeedai/interfaces';
 import { Bot as BaseBot } from '@genfeedai/client/models';
 import {
-  BotLivestreamMessageType,
+  type BotLivestreamMessageType,
   BotLivestreamTargetAudience,
-  BotPlatform,
+  type BotPlatform,
 } from '@genfeedai/enums';
+import type { IBot, IBotSettings, IBotTarget } from '@genfeedai/interfaces';
 
 export interface BotLivestreamLink {
   id: string;

@@ -67,7 +67,9 @@ describe('OnboardingContent', () => {
       render(<OnboardingContent />);
 
       expect(screen.getByText('Get started')).toBeInTheDocument();
-      expect(screen.getByText(/Add your Replicate API key/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/Add your Replicate API key/),
+      ).toBeInTheDocument();
       expect(screen.getByPlaceholderText('r8_...')).toBeInTheDocument();
       expect(screen.getByText('Validate')).toBeInTheDocument();
       expect(screen.getByText('Start Creating')).toBeInTheDocument();
@@ -84,7 +86,10 @@ describe('OnboardingContent', () => {
       render(<OnboardingContent />);
 
       const link = screen.getByText(/Get your key/);
-      expect(link).toHaveAttribute('href', 'https://replicate.com/account/api-tokens');
+      expect(link).toHaveAttribute(
+        'href',
+        'https://replicate.com/account/api-tokens',
+      );
       expect(link).toHaveAttribute('target', '_blank');
     });
   });
@@ -109,7 +114,10 @@ describe('OnboardingContent', () => {
 
   describe('validation', () => {
     it('should call setupApi.validateKey on validate button click', async () => {
-      mockValidateKey.mockResolvedValueOnce({ message: 'Key is valid', valid: true });
+      mockValidateKey.mockResolvedValueOnce({
+        message: 'Key is valid',
+        valid: true,
+      });
       render(<OnboardingContent />);
 
       const input = screen.getByPlaceholderText('r8_...');
@@ -127,7 +135,10 @@ describe('OnboardingContent', () => {
     });
 
     it('should show success status after valid key', async () => {
-      mockValidateKey.mockResolvedValueOnce({ message: 'Key is valid', valid: true });
+      mockValidateKey.mockResolvedValueOnce({
+        message: 'Key is valid',
+        valid: true,
+      });
       render(<OnboardingContent />);
 
       const input = screen.getByPlaceholderText('r8_...');
@@ -141,7 +152,10 @@ describe('OnboardingContent', () => {
     });
 
     it('should show error status after invalid key', async () => {
-      mockValidateKey.mockResolvedValueOnce({ message: 'Invalid API key', valid: false });
+      mockValidateKey.mockResolvedValueOnce({
+        message: 'Invalid API key',
+        valid: false,
+      });
       render(<OnboardingContent />);
 
       const input = screen.getByPlaceholderText('r8_...');
@@ -165,7 +179,9 @@ describe('OnboardingContent', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText('Validation failed. Check your connection and try again.')
+          screen.getByText(
+            'Validation failed. Check your connection and try again.',
+          ),
         ).toBeInTheDocument();
       });
     });
@@ -178,7 +194,10 @@ describe('OnboardingContent', () => {
     });
 
     it('should reset validation when key changes after validation', async () => {
-      mockValidateKey.mockResolvedValueOnce({ message: 'Key is valid', valid: true });
+      mockValidateKey.mockResolvedValueOnce({
+        message: 'Key is valid',
+        valid: true,
+      });
       render(<OnboardingContent />);
 
       const input = screen.getByPlaceholderText('r8_...');
@@ -205,7 +224,10 @@ describe('OnboardingContent', () => {
     });
 
     it('should call setupApi.complete and sync to settings store', async () => {
-      mockValidateKey.mockResolvedValue({ message: 'Key is valid', valid: true });
+      mockValidateKey.mockResolvedValue({
+        message: 'Key is valid',
+        valid: true,
+      });
       mockComplete.mockResolvedValueOnce({ hasCompletedSetup: true });
       render(<OnboardingContent />);
 
@@ -222,18 +244,26 @@ describe('OnboardingContent', () => {
       fireEvent.click(screen.getByText('Start Creating'));
 
       await waitFor(() => {
-        expect(mockComplete).toHaveBeenCalledWith({ replicateApiKey: 'r8_test_key' });
+        expect(mockComplete).toHaveBeenCalledWith({
+          replicateApiKey: 'r8_test_key',
+        });
       });
 
       await waitFor(() => {
-        expect(mockSetProviderKey).toHaveBeenCalledWith('replicate', 'r8_test_key');
+        expect(mockSetProviderKey).toHaveBeenCalledWith(
+          'replicate',
+          'r8_test_key',
+        );
         expect(mockSetHasSeenWelcome).toHaveBeenCalledWith(true);
         expect(mockPush).toHaveBeenCalledWith('/');
       });
     });
 
     it('should auto-validate before submit if not yet validated', async () => {
-      mockValidateKey.mockResolvedValueOnce({ message: 'Key is valid', valid: true });
+      mockValidateKey.mockResolvedValueOnce({
+        message: 'Key is valid',
+        valid: true,
+      });
       mockComplete.mockResolvedValueOnce({ hasCompletedSetup: true });
       render(<OnboardingContent />);
 
@@ -256,7 +286,10 @@ describe('OnboardingContent', () => {
     });
 
     it('should not complete setup if auto-validation fails', async () => {
-      mockValidateKey.mockResolvedValueOnce({ message: 'Invalid key', valid: false });
+      mockValidateKey.mockResolvedValueOnce({
+        message: 'Invalid key',
+        valid: false,
+      });
       render(<OnboardingContent />);
 
       const input = screen.getByPlaceholderText('r8_...');
@@ -290,7 +323,9 @@ describe('OnboardingContent', () => {
       fireEvent.click(screen.getByText('Start Creating'));
 
       await waitFor(() => {
-        expect(screen.getByText('Setup failed. Please try again.')).toBeInTheDocument();
+        expect(
+          screen.getByText('Setup failed. Please try again.'),
+        ).toBeInTheDocument();
       });
     });
   });

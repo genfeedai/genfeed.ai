@@ -3,6 +3,12 @@ title = "Gitleaks config"
 [extend]
 useDefault = true
 
+[[rules]]
+id = "genfeedai-api-key"
+description = "Genfeed.ai API Key"
+regex = '''gf_(live|test)_[A-Za-z0-9_\-]{20,}'''
+keywords = ["gf_live_", "gf_test_"]
+
 [allowlist]
 description = "Global allowlist"
 paths = [

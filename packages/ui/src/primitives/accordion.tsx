@@ -1,10 +1,10 @@
 'use client';
 
-import { cn } from '../lib/utils';
-import { useMounted } from '../lib/hooks';
 import * as AccordionPrimitive from '@radix-ui/react-accordion';
 import { ChevronDown } from 'lucide-react';
 import { type ComponentPropsWithoutRef, forwardRef } from 'react';
+import { useMounted } from '../lib/hooks';
+import { cn } from '../lib/utils';
 
 const Accordion = forwardRef<
   React.ElementRef<typeof AccordionPrimitive.Root>,

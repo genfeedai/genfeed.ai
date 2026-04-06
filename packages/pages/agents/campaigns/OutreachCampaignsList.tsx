@@ -10,7 +10,7 @@ import {
 } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
-  OutreachCampaign,
+  type OutreachCampaign,
   OutreachCampaignsService,
 } from '@services/automation/outreach-campaigns.service';
 import { logger } from '@services/core/logger.service';
@@ -106,7 +106,7 @@ export default function OutreachCampaignsList() {
     if (organizationId) {
       loadCampaigns();
     }
-  }, [brandId, organizationId, loadCampaigns]);
+  }, [organizationId, loadCampaigns]);
 
   const handleStartCampaign = useCallback(
     async (campaign: OutreachCampaign) => {

@@ -53,6 +53,9 @@ export class Organization {
   @Prop({ default: false, type: Boolean })
   isSelected!: boolean;
 
+  @Prop({ default: false, type: Boolean, index: true })
+  isDefault!: boolean;
+
   @Prop({ default: false, type: Boolean })
   isDeleted!: boolean;
 

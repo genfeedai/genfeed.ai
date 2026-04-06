@@ -29,13 +29,13 @@ describe('GridPositionSelector', () => {
       render(<GridPositionSelector {...defaultProps} />);
 
       expect(
-        screen.getByText('Where original content appears in the new frame')
+        screen.getByText('Where original content appears in the new frame'),
       ).toBeInTheDocument();
     });
 
     it('should apply custom className', () => {
       const { container } = render(
-        <GridPositionSelector {...defaultProps} className="custom-class" />
+        <GridPositionSelector {...defaultProps} className="custom-class" />,
       );
 
       const wrapper = container.firstChild as HTMLElement;
@@ -45,7 +45,12 @@ describe('GridPositionSelector', () => {
 
   describe('position selection', () => {
     it('should highlight the selected position', () => {
-      render(<GridPositionSelector {...defaultProps} position={{ x: 0.5, y: 0.5 }} />);
+      render(
+        <GridPositionSelector
+          {...defaultProps}
+          position={{ x: 0.5, y: 0.5 }}
+        />,
+      );
 
       const buttons = screen.getAllByRole('button');
       // Center position is index 4 (row 1, col 1)
@@ -53,21 +58,30 @@ describe('GridPositionSelector', () => {
     });
 
     it('should highlight top-left when position is 0,0', () => {
-      render(<GridPositionSelector {...defaultProps} position={{ x: 0, y: 0 }} />);
+      render(
+        <GridPositionSelector {...defaultProps} position={{ x: 0, y: 0 }} />,
+      );
 
       const buttons = screen.getAllByRole('button');
       expect(buttons[0]).toHaveClass('bg-primary');
     });
 
     it('should highlight bottom-right when position is 1,1', () => {
-      render(<GridPositionSelector {...defaultProps} position={{ x: 1, y: 1 }} />);
+      render(
+        <GridPositionSelector {...defaultProps} position={{ x: 1, y: 1 }} />,
+      );
 
       const buttons = screen.getAllByRole('button');
       expect(buttons[8]).toHaveClass('bg-primary');
     });
 
     it('should not highlight unselected positions', () => {
-      render(<GridPositionSelector {...defaultProps} position={{ x: 0.5, y: 0.5 }} />);
+      render(
+        <GridPositionSelector
+          {...defaultProps}
+          position={{ x: 0.5, y: 0.5 }}
+        />,
+      );
 
       const buttons = screen.getAllByRole('button');
       // First position (top-left) should not be highlighted
@@ -164,7 +178,12 @@ describe('GridPositionSelector', () => {
   describe('edge case - floating point comparison', () => {
     it('should handle floating point precision', () => {
       // Position close to center but with floating point error
-      render(<GridPositionSelector {...defaultProps} position={{ x: 0.500001, y: 0.499999 }} />);
+      render(
+        <GridPositionSelector
+          {...defaultProps}
+          position={{ x: 0.500001, y: 0.499999 }}
+        />,
+      );
 
       const buttons = screen.getAllByRole('button');
       // Should still highlight center position

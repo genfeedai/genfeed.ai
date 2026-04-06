@@ -1,9 +1,12 @@
-import path from 'node:path';
-import { mkdir, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import { MIME_TYPES } from '@/lib/gallery/types';
 
-export const CORE_DATA_DIR = path.resolve(process.cwd(), '../../data/workflows');
+export const CORE_DATA_DIR = path.resolve(
+  process.cwd(),
+  '../../data/workflows',
+);
 export const STUDIO_WORKFLOW_ID = 'studio';
 export const EDITOR_WORKFLOW_ID = 'editor';
 
@@ -24,11 +27,15 @@ export function ensurePathInsideDataDir(targetPath: string): string {
   return resolved;
 }
 
-export function inferExtensionFromContentType(contentType: string | null): string {
+export function inferExtensionFromContentType(
+  contentType: string | null,
+): string {
   if (!contentType) return '.bin';
 
   const normalized = contentType.split(';')[0]?.trim().toLowerCase();
-  const match = Object.entries(MIME_TYPES).find(([, mime]) => mime === normalized);
+  const match = Object.entries(MIME_TYPES).find(
+    ([, mime]) => mime === normalized,
+  );
   return match?.[0] ?? '.bin';
 }
 
@@ -66,7 +73,8 @@ export async function persistRemoteAsset(options: {
 
   const contentType = response.headers.get('content-type');
   const extension = sanitizeExtension(
-    inferExtensionFromContentType(contentType) || inferExtensionFromUrl(remoteUrl)
+    inferExtensionFromContentType(contentType) ||
+      inferExtensionFromUrl(remoteUrl),
   );
   const filename = `${prefix}-${randomUUID()}${extension}`;
   const outputPath = ensurePathInsideDataDir(path.join(outputDir, filename));

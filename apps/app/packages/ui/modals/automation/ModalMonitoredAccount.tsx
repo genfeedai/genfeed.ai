@@ -1,4 +1,3 @@
-import type { IMonitoredAccount } from '@genfeedai/interfaces';
 import {
   type MonitoredAccountSchema,
   monitoredAccountSchema,
@@ -9,6 +8,7 @@ import {
   ModalEnum,
   ReplyBotPlatform,
 } from '@genfeedai/enums';
+import type { IMonitoredAccount } from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,

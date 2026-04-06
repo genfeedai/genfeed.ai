@@ -1,9 +1,9 @@
-import type { IAsset } from '@genfeedai/interfaces';
 import type {
   ArticleCategory,
   ArticleStatus,
   AssetScope,
 } from '@genfeedai/enums';
+import type { IAsset } from '@genfeedai/interfaces';
 
 export interface ArticlePageProps {
   params: Promise<{

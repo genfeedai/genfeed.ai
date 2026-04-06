@@ -238,7 +238,9 @@ function createAbortAwareValue<T>(value: T, signal?: AbortSignal): Promise<T> {
 
 describe('AgentFullPage', () => {
   beforeEach(async () => {
-    ({ AgentFullPage } = await import('@genfeedai/agent/components/AgentFullPage'));
+    ({ AgentFullPage } = await import(
+      '@genfeedai/agent/components/AgentFullPage'
+    ));
 
     storeState.setActiveRun.mockReset();
     storeState.setActiveThread.mockReset();
@@ -273,7 +275,7 @@ describe('AgentFullPage', () => {
     ];
     const apiService = createApiService({
       getMessages: vi.fn(
-        (threadId: string, _params: unknown, signal?: AbortSignal) =>
+        (_threadId: string, _params: unknown, signal?: AbortSignal) =>
           createAbortAwareValue(messages, signal),
       ),
       getThread: vi.fn((threadId: string, signal?: AbortSignal) =>
@@ -358,7 +360,7 @@ describe('AgentFullPage', () => {
     ];
     const apiService = createApiService({
       getMessages: vi.fn(
-        (threadId: string, _params: unknown, signal?: AbortSignal) =>
+        (_threadId: string, _params: unknown, signal?: AbortSignal) =>
           createAbortAwareValue(messages, signal),
       ),
       getThread: vi.fn((threadId: string, signal?: AbortSignal) =>
@@ -516,7 +518,7 @@ describe('AgentFullPage', () => {
 
     const apiService = createApiService({
       getMessages: vi.fn(
-        (threadId: string, _params: unknown, signal?: AbortSignal) =>
+        (_threadId: string, _params: unknown, signal?: AbortSignal) =>
           createAbortAwareValue(storeState.messages, signal),
       ),
       getThread: vi.fn((threadId: string, signal?: AbortSignal) =>
@@ -579,7 +581,7 @@ describe('AgentFullPage', () => {
 
     const apiService = createApiService({
       getMessages: vi.fn(
-        (threadId: string, _params: unknown, signal?: AbortSignal) =>
+        (_threadId: string, _params: unknown, signal?: AbortSignal) =>
           createAbortAwareValue(persistedMessages, signal),
       ),
       getThread: vi.fn((threadId: string, signal?: AbortSignal) =>

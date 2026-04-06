@@ -1,4 +1,4 @@
-import { WorkflowNodeStatus } from '@genfeedai/enums';
+import type { WorkflowNodeStatus } from '@genfeedai/enums';
 
 export interface RssFeedItem {
   title: string;

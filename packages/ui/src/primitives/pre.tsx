@@ -1,6 +1,6 @@
-import { cn } from '../lib/utils';
 import { cva, type VariantProps } from 'class-variance-authority';
 import type { HTMLAttributes } from 'react';
+import { cn } from '../lib/utils';
 
 const preVariants = cva(
   'overflow-x-auto whitespace-pre-wrap break-words font-mono',
@@ -31,10 +31,7 @@ export interface PreProps
 
 function Pre({ className, variant, size, ...props }: PreProps) {
   return (
-    <pre
-      className={cn(preVariants({ variant, size }), className)}
-      {...props}
-    />
+    <pre className={cn(preVariants({ variant, size }), className)} {...props} />
   );
 }
 

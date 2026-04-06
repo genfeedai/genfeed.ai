@@ -1,5 +1,5 @@
-import type { IAgentRun } from '@genfeedai/interfaces';
 import { AgentExecutionStatus, AgentExecutionTrigger } from '@genfeedai/enums';
+import type { IAgentRun } from '@genfeedai/interfaces';
 import AgentRunCard from '@pages/mission-control/components/AgentRunCard';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';

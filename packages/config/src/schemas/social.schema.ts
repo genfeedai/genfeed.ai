@@ -1,55 +1,57 @@
 import Joi from 'joi';
 
+import { conditionalRequired } from '../helpers';
+
 /**
- * YouTube OAuth (required - core integration)
+ * YouTube OAuth (required in cloud, optional in self-hosted)
  */
 export const youtubeSchema = {
   YOUTUBE_API_KEY: Joi.string().optional().allow(''),
-  YOUTUBE_CLIENT_ID: Joi.string().required(),
-  YOUTUBE_CLIENT_SECRET: Joi.string().required(),
-  YOUTUBE_REDIRECT_URI: Joi.string().uri().required(),
+  YOUTUBE_CLIENT_ID: conditionalRequired(),
+  YOUTUBE_CLIENT_SECRET: conditionalRequired(),
+  YOUTUBE_REDIRECT_URI: conditionalRequired(Joi.string().uri()),
 };
 
 /**
- * TikTok OAuth (required - core integration)
+ * TikTok OAuth (required in cloud, optional in self-hosted)
  */
 export const tiktokSchema = {
-  TIKTOK_CLIENT_KEY: Joi.string().required(),
-  TIKTOK_CLIENT_SECRET: Joi.string().required(),
+  TIKTOK_CLIENT_KEY: conditionalRequired(),
+  TIKTOK_CLIENT_SECRET: conditionalRequired(),
 };
 
 /**
- * Instagram Graph API (required - core integration)
+ * Instagram Graph API (required in cloud, optional in self-hosted)
  */
 export const instagramSchema = {
-  INSTAGRAM_API_VERSION: Joi.string().required(),
-  INSTAGRAM_APP_ID: Joi.string().required(),
-  INSTAGRAM_APP_SECRET: Joi.string().required(),
-  INSTAGRAM_GRAPH_URL: Joi.string().uri().required(),
-  INSTAGRAM_REDIRECT_URI: Joi.string().uri().required(),
+  INSTAGRAM_API_VERSION: conditionalRequired(),
+  INSTAGRAM_APP_ID: conditionalRequired(),
+  INSTAGRAM_APP_SECRET: conditionalRequired(),
+  INSTAGRAM_GRAPH_URL: conditionalRequired(Joi.string().uri()),
+  INSTAGRAM_REDIRECT_URI: conditionalRequired(Joi.string().uri()),
 };
 
 /**
- * Facebook Graph API (required - core integration)
+ * Facebook Graph API (required in cloud, optional in self-hosted)
  */
 export const facebookSchema = {
-  FACEBOOK_API_VERSION: Joi.string().required(),
-  FACEBOOK_APP_ID: Joi.string().required(),
-  FACEBOOK_APP_SECRET: Joi.string().required(),
-  FACEBOOK_GRAPH_URL: Joi.string().uri().required(),
-  FACEBOOK_REDIRECT_URI: Joi.string().uri().required(),
+  FACEBOOK_API_VERSION: conditionalRequired(),
+  FACEBOOK_APP_ID: conditionalRequired(),
+  FACEBOOK_APP_SECRET: conditionalRequired(),
+  FACEBOOK_GRAPH_URL: conditionalRequired(Joi.string().uri()),
+  FACEBOOK_REDIRECT_URI: conditionalRequired(Joi.string().uri()),
 };
 
 /**
- * Twitter/X API (required - core integration)
+ * Twitter/X API (required in cloud, optional in self-hosted)
  */
 export const twitterSchema = {
-  TWITTER_BEARER_TOKEN: Joi.string().required(),
-  TWITTER_CLIENT_ID: Joi.string().required(),
-  TWITTER_CLIENT_SECRET: Joi.string().required(),
-  TWITTER_CONSUMER_KEY: Joi.string().required(),
-  TWITTER_CONSUMER_SECRET: Joi.string().required(),
-  TWITTER_REDIRECT_URI: Joi.string().uri().required(),
+  TWITTER_BEARER_TOKEN: conditionalRequired(),
+  TWITTER_CLIENT_ID: conditionalRequired(),
+  TWITTER_CLIENT_SECRET: conditionalRequired(),
+  TWITTER_CONSUMER_KEY: conditionalRequired(),
+  TWITTER_CONSUMER_SECRET: conditionalRequired(),
+  TWITTER_REDIRECT_URI: conditionalRequired(Joi.string().uri()),
 };
 
 /**

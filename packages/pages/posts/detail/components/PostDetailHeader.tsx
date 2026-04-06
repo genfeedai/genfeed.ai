@@ -1,12 +1,12 @@
 'use client';
 
-import type { IPost } from '@genfeedai/interfaces';
 import {
   ButtonSize,
   ButtonVariant,
   CredentialPlatform,
   PostStatus,
 } from '@genfeedai/enums';
+import type { IPost } from '@genfeedai/interfaces';
 import {
   getPostsPlatformLabel,
   getPublisherPostsHref,

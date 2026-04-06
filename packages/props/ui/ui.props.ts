@@ -1,4 +1,3 @@
-import type { NavigationTab } from '@genfeedai/interfaces/ui/navigation.interface';
 import type {
   AlertCategory,
   ButtonSize,
@@ -11,6 +10,7 @@ import {
   BentoVariant,
   CardVariant,
 } from '@genfeedai/enums';
+import type { NavigationTab } from '@genfeedai/interfaces/ui/navigation.interface';
 import type { TabItem, TabsProps } from '@props/ui/navigation/tabs.props';
 import type { ComponentType, MouseEvent, ReactNode } from 'react';
 

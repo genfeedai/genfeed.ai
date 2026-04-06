@@ -66,6 +66,7 @@ import {
   TransformationCategory,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   Body,
@@ -150,7 +151,7 @@ export class ImagesTransformationsController {
           sourceId: imageId,
           width: body.width || 1080,
         },
-        room: `user-${user.id}`,
+        room: getUserRoomName(user.id),
         type: 'resize',
         userId: publicMetadata.user,
       });
@@ -322,7 +323,7 @@ export class ImagesTransformationsController {
       activityId: activity._id.toString(),
       label: 'Image Reframe',
       progress: 0,
-      room: `user-${user.id}`,
+      room: getUserRoomName(user.id),
       status: 'processing',
       taskId: ingredientData._id.toString(),
       userId: user.id,
@@ -372,7 +373,7 @@ export class ImagesTransformationsController {
           ingredientData._id,
           websocketUrl,
           publicMetadata,
-          `user-${user.id}`,
+          getUserRoomName(user.id),
         );
       }
     } catch (error: unknown) {
@@ -384,7 +385,7 @@ export class ImagesTransformationsController {
         ingredientData._id,
         websocketUrl,
         publicMetadata,
-        `user-${user.id}`,
+        getUserRoomName(user.id),
         errorMessage,
       );
     }
@@ -489,7 +490,7 @@ export class ImagesTransformationsController {
       activityId: activity._id.toString(),
       label: 'Image Upscale',
       progress: 0,
-      room: `user-${user.id}`,
+      room: getUserRoomName(user.id),
       status: 'processing',
       taskId: ingredientData._id.toString(),
       userId: user.id,
@@ -543,7 +544,7 @@ export class ImagesTransformationsController {
           ingredientData._id,
           websocketUrl,
           publicMetadata,
-          `user-${user.id}`,
+          getUserRoomName(user.id),
         );
       }
     } catch (error: unknown) {
@@ -555,7 +556,7 @@ export class ImagesTransformationsController {
         ingredientData._id,
         websocketUrl,
         publicMetadata,
-        `user-${user.id}`,
+        getUserRoomName(user.id),
         errorMessage,
       );
     }

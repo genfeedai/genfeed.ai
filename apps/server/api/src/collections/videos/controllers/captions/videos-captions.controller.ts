@@ -28,7 +28,10 @@ import { SharedService } from '@api/shared/services/shared/shared.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import type { User } from '@clerk/backend';
 import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
-import { CaptionSerializer, IngredientSerializer } from '@genfeedai/serializers';
+import {
+  CaptionSerializer,
+  IngredientSerializer,
+} from '@genfeedai/serializers';
 import {
   AssetScope,
   FileInputType,
@@ -40,6 +43,7 @@ import {
   WebSocketEventType,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
   Body,
   Controller,
@@ -214,7 +218,7 @@ export class VideosCaptionsController {
           captionContent: caption.content,
           inputPath: `${this.configService.ingredientsEndpoint}/videos/${videoId}`,
         },
-        room: `user-${user.id}`,
+        room: getUserRoomName(user.id),
         type: 'add-captions',
         userId: publicMetadata.user,
         websocketUrl: `/videos/${ingredientData._id}`,
@@ -256,7 +260,7 @@ export class VideosCaptionsController {
                 status: WebSocketEventStatus.COMPLETED,
               },
               user.id,
-              `user-${user.id}`,
+              getUserRoomName(user.id),
             );
 
             if (this.configService.isProduction) {

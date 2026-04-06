@@ -11,5 +11,9 @@ export type {
 export { settingsApi } from './settings';
 export type { CreateTemplateInput, TemplateData } from './templates';
 export { templatesApi } from './templates';
-export type { CreateWorkflowInput, UpdateWorkflowInput, WorkflowData } from './workflows';
+export type {
+  CreateWorkflowInput,
+  UpdateWorkflowInput,
+  WorkflowData,
+} from './workflows';
 export { workflowsApi } from './workflows';

@@ -1,4 +1,4 @@
-import { buildSingleSerializer, type BuiltSerializer } from '../../builders';
+import { type BuiltSerializer, buildSingleSerializer } from '../../builders';
 import { elementSceneSerializerConfig } from '../../configs';
 
 export const ElementSceneSerializer: BuiltSerializer = buildSingleSerializer(

@@ -31,7 +31,10 @@ module.exports = function createWebpackConfig({
       'integration-common/src',
     ),
     '@genfeedai/interfaces': path.resolve(cloudPackagesRoot, 'interfaces/src'),
-    '@genfeedai/serializers': path.resolve(cloudPackagesRoot, 'serializers/src'),
+    '@genfeedai/serializers': path.resolve(
+      cloudPackagesRoot,
+      'serializers/src',
+    ),
     '@genfeedai/workflow-engine': path.resolve(
       cloudPackagesRoot,
       'workflow-engine/src',

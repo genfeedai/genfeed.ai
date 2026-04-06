@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import CoreTopbar from '../CoreTopbar';
 
@@ -10,7 +10,14 @@ vi.mock('next-themes', () => ({
 }));
 
 vi.mock('next/link', () => ({
-  default: ({ href, children, ...props }: { href: string; children: React.ReactNode }) => (
+  default: ({
+    href,
+    children,
+    ...props
+  }: {
+    href: string;
+    children: React.ReactNode;
+  }) => (
     <a href={href} {...props}>
       {children}
     </a>
@@ -40,7 +47,9 @@ describe('CoreTopbar', () => {
 
   it('renders theme toggle button', () => {
     render(<CoreTopbar />);
-    expect(screen.getByRole('button', { name: 'Toggle theme' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Toggle theme' }),
+    ).toBeInTheDocument();
   });
 
   it('calls setTheme with light when currently dark', () => {
@@ -60,7 +69,9 @@ describe('CoreTopbar', () => {
   it('renders mobile hamburger when onMenuToggle provided', () => {
     const onMenuToggle = vi.fn();
     render(<CoreTopbar onMenuToggle={onMenuToggle} />);
-    const hamburger = screen.getByRole('button', { name: 'Open navigation menu' });
+    const hamburger = screen.getByRole('button', {
+      name: 'Open navigation menu',
+    });
     expect(hamburger).toBeInTheDocument();
     fireEvent.click(hamburger);
     expect(onMenuToggle).toHaveBeenCalled();
@@ -68,6 +79,8 @@ describe('CoreTopbar', () => {
 
   it('shows close icon when menu is open', () => {
     render(<CoreTopbar isMenuOpen onMenuToggle={vi.fn()} />);
-    expect(screen.getByRole('button', { name: 'Close navigation menu' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Close navigation menu' }),
+    ).toBeInTheDocument();
   });
 });

@@ -1,9 +1,8 @@
 'use client';
 
-import { useAgentDashboardStore } from '@genfeedai/agent/stores/agent-dashboard.store';
-import type { DashboardScopePreferences, IAnalytics } from '@genfeedai/interfaces';
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { useOptionalUser } from '@contexts/user/user-context/user-context';
+import { useAgentDashboardStore } from '@genfeedai/agent/stores/agent-dashboard.store';
 import {
   AlertCategory,
   AnalyticsMetric,
@@ -11,6 +10,10 @@ import {
   ButtonVariant,
   CardVariant,
 } from '@genfeedai/enums';
+import type {
+  DashboardScopePreferences,
+  IAnalytics,
+} from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { formatCompactNumberIntl } from '@helpers/formatting/format/format.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';

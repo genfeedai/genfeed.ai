@@ -10,7 +10,7 @@ import { useWorkflowStore } from '@/store/workflowStore';
  */
 export function useOptimalHandleOrder(
   nodeId: string,
-  inputs: HandleDefinition[]
+  inputs: HandleDefinition[],
 ): HandleDefinition[] {
   const edges = useWorkflowStore(selectEdges);
   const { getNode } = useReactFlow();
@@ -32,7 +32,10 @@ export function useOptimalHandleOrder(
         // If multiple edges connect to same handle, use the average Y
         const existingY = handleYPositions.get(edge.targetHandle);
         if (existingY !== undefined) {
-          handleYPositions.set(edge.targetHandle, (existingY + sourceNode.position.y) / 2);
+          handleYPositions.set(
+            edge.targetHandle,
+            (existingY + sourceNode.position.y) / 2,
+          );
         } else {
           handleYPositions.set(edge.targetHandle, sourceNode.position.y);
         }
@@ -40,8 +43,12 @@ export function useOptimalHandleOrder(
     }
 
     // Sort inputs: connected handles by Y position, unconnected handles keep relative order
-    const connectedInputs = inputs.filter((input) => handleYPositions.has(input.id));
-    const unconnectedInputs = inputs.filter((input) => !handleYPositions.has(input.id));
+    const connectedInputs = inputs.filter((input) =>
+      handleYPositions.has(input.id),
+    );
+    const unconnectedInputs = inputs.filter(
+      (input) => !handleYPositions.has(input.id),
+    );
 
     // Sort connected inputs by their source node Y positions
     connectedInputs.sort((a, b) => {

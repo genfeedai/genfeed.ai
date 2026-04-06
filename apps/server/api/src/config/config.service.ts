@@ -6,6 +6,7 @@ import {
   // Base
   baseSchema,
   clerkSchema,
+  conditionalRequired,
   darkroomSchema,
   elevenlabsSchema,
   falSchema,
@@ -93,7 +94,7 @@ const apiSchema = Joi.object({
   ...trainingPricingSchema,
   ...allSocialSchema,
   ...apiSpecificSchema,
-  ELEVENLABS_API_KEY: Joi.string().required(),
+  ELEVENLABS_API_KEY: conditionalRequired(),
 });
 
 @Injectable()

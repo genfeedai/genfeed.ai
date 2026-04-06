@@ -1,6 +1,5 @@
 'use client';
 
-import type { IExtractedBrandData } from '@genfeedai/interfaces';
 import {
   AlertCategory,
   ButtonSize,
@@ -8,6 +7,7 @@ import {
   ModalEnum,
   OnboardingStep,
 } from '@genfeedai/enums';
+import type { IExtractedBrandData } from '@genfeedai/interfaces';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useModalAutoOpen } from '@hooks/ui/use-modal-auto-open/use-modal-auto-open';

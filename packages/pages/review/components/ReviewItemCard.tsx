@@ -1,11 +1,11 @@
 'use client';
 
-import type { IBatchItem } from '@genfeedai/interfaces';
 import {
   BatchItemStatus,
   ButtonVariant,
   ComponentSize,
 } from '@genfeedai/enums';
+import type { IBatchItem } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import {
   formatDateInTimezone,

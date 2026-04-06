@@ -57,7 +57,7 @@ describe('UGC Factory Workflow v3', () => {
     const edgeMap = new Map<string, string[]>();
     for (const edge of workflow.edges) {
       if (!edgeMap.has(edge.source)) edgeMap.set(edge.source, []);
-      edgeMap.get(edge.source)!.push(edge.target);
+      edgeMap.get(edge.source)?.push(edge.target);
     }
 
     // script → TTS

@@ -2,9 +2,9 @@
 
 import { useUser } from '@clerk/nextjs';
 import type { UserResource } from '@clerk/types';
+import { ButtonVariant } from '@genfeedai/enums';
 import type { AppLink } from '@genfeedai/interfaces/ui/navigation.interface';
 import { Kbd } from '@genfeedai/ui';
-import { ButtonVariant } from '@genfeedai/enums';
 import { getClerkPublicData } from '@helpers/auth/clerk.helper';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import { BG_BLUR, BORDER_WHITE_30, cn } from '@helpers/formatting/cn/cn.util';

@@ -1,16 +1,23 @@
 'use client';
 
 import { Player } from '@remotion/player';
-import { ArrowDown, ArrowUp, Download, LoaderCircle, Plus, Trash2 } from 'lucide-react';
+import {
+  ArrowDown,
+  ArrowUp,
+  Download,
+  LoaderCircle,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { EditorComposition } from '@/components/editor/EditorComposition';
 
 import {
   ASPECT_PRESETS,
+  type AspectPresetId,
   createCompositionFromLaunchContext,
   createTimelineItem,
-  type AspectPresetId,
   getCompositionDurationInFrames,
 } from '@/lib/editor/composition';
 import type { EditorComposition as EditorCompositionType } from '@/lib/editor/types';
@@ -21,7 +28,7 @@ interface EditorPageClientProps {
 
 export function EditorPageClient({ initialAssets }: EditorPageClientProps) {
   const [composition, setComposition] = useState<EditorCompositionType>(() =>
-    createCompositionFromLaunchContext({ assetPaths: initialAssets })
+    createCompositionFromLaunchContext({ assetPaths: initialAssets }),
   );
   const [aspectPreset, setAspectPreset] = useState<AspectPresetId>('landscape');
   const [isRendering, setIsRendering] = useState(false);
@@ -29,12 +36,17 @@ export function EditorPageClient({ initialAssets }: EditorPageClientProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setComposition(createCompositionFromLaunchContext({ assetPaths: initialAssets }, aspectPreset));
+    setComposition(
+      createCompositionFromLaunchContext(
+        { assetPaths: initialAssets },
+        aspectPreset,
+      ),
+    );
   }, [initialAssets, aspectPreset]);
 
   const durationInFrames = useMemo(
     () => getCompositionDurationInFrames(composition),
-    [composition]
+    [composition],
   );
 
   function moveItem(index: number, direction: -1 | 1) {
@@ -59,7 +71,7 @@ export function EditorPageClient({ initialAssets }: EditorPageClientProps) {
               ...item,
               durationInFrames: Math.max(30, Math.round(seconds * current.fps)),
             }
-          : item
+          : item,
       ),
     }));
   }
@@ -72,7 +84,9 @@ export function EditorPageClient({ initialAssets }: EditorPageClientProps) {
   }
 
   function addAssetFromPrompt() {
-    const input = window.prompt('Paste a gallery asset path, for example "studio/output/file.jpg"');
+    const input = window.prompt(
+      'Paste a gallery asset path, for example "studio/output/file.jpg"',
+    );
     if (!input) return;
 
     setComposition((current) => ({
@@ -87,7 +101,7 @@ export function EditorPageClient({ initialAssets }: EditorPageClientProps) {
     setRenderedPath(null);
 
     try {
-      const response = await fetch('/api/editor/render', {
+      const response = await fetch('/v1/core/editor/render', {
         body: JSON.stringify({ composition }),
         headers: { 'Content-Type': 'application/json' },
         method: 'POST',
@@ -100,7 +114,9 @@ export function EditorPageClient({ initialAssets }: EditorPageClientProps) {
 
       setRenderedPath(body.path);
     } catch (renderError) {
-      setError(renderError instanceof Error ? renderError.message : 'Render failed');
+      setError(
+        renderError instanceof Error ? renderError.message : 'Render failed',
+      );
     } finally {
       setIsRendering(false);
     }
@@ -121,7 +137,9 @@ export function EditorPageClient({ initialAssets }: EditorPageClientProps) {
           <div className="flex flex-wrap items-center gap-3">
             <select
               value={aspectPreset}
-              onChange={(event) => setAspectPreset(event.target.value as AspectPresetId)}
+              onChange={(event) =>
+                setAspectPreset(event.target.value as AspectPresetId)
+              }
               className="rounded-full border border-[var(--border)] bg-[var(--secondary)] px-4 py-2 text-sm outline-none transition focus:border-white/50"
             >
               {Object.entries(ASPECT_PRESETS).map(([id, preset]) => (
@@ -157,7 +175,10 @@ export function EditorPageClient({ initialAssets }: EditorPageClientProps) {
             loop
             autoPlay={false}
             inputProps={{ composition }}
-            style={{ aspectRatio: `${composition.width}/${composition.height}`, width: '100%' }}
+            style={{
+              aspectRatio: `${composition.width}/${composition.height}`,
+              width: '100%',
+            }}
           />
         </div>
 
@@ -210,8 +231,8 @@ export function EditorPageClient({ initialAssets }: EditorPageClientProps) {
           <div className="mt-5 space-y-3">
             {composition.items.length === 0 ? (
               <div className="rounded-3xl border border-dashed border-[var(--border)] bg-[var(--secondary)]/60 p-6 text-sm text-[var(--muted-foreground)]">
-                Launch Editor with an `asset` query param from Studio or Gallery to seed the
-                composition.
+                Launch Editor with an `asset` query param from Studio or Gallery
+                to seed the composition.
               </div>
             ) : (
               composition.items.map((item, index) => (
@@ -221,8 +242,12 @@ export function EditorPageClient({ initialAssets }: EditorPageClientProps) {
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="font-medium">{item.path.split('/').pop()}</p>
-                      <p className="text-sm text-[var(--muted-foreground)]">{item.mediaType}</p>
+                      <p className="font-medium">
+                        {item.path.split('/').pop()}
+                      </p>
+                      <p className="text-sm text-[var(--muted-foreground)]">
+                        {item.mediaType}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -256,8 +281,12 @@ export function EditorPageClient({ initialAssets }: EditorPageClientProps) {
                       min={1}
                       max={20}
                       step={1}
-                      value={Math.round(item.durationInFrames / composition.fps)}
-                      onChange={(event) => updateDuration(index, Number(event.target.value) || 1)}
+                      value={Math.round(
+                        item.durationInFrames / composition.fps,
+                      )}
+                      onChange={(event) =>
+                        updateDuration(index, Number(event.target.value) || 1)
+                      }
                       className="rounded-2xl border border-[var(--border)] bg-[var(--card)] px-3 py-2 text-[var(--foreground)] outline-none transition focus:border-white/50"
                     />
                   </label>

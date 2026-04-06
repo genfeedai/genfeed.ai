@@ -1,10 +1,10 @@
-import type { ICredential } from '@genfeedai/interfaces';
 import {
   BaseCredential,
   BaseCredentialInstagram,
   BaseCredentialOAuth,
 } from '@genfeedai/client/models';
 import { CredentialPlatform } from '@genfeedai/enums';
+import type { ICredential } from '@genfeedai/interfaces';
 import { User } from '@models/auth/user.model';
 
 export class CredentialInstagram extends BaseCredentialInstagram {}

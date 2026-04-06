@@ -61,8 +61,7 @@ export const statusBadge: Record<string, string> = {
   rejected: 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300',
   revision_requested:
     'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300',
-  running:
-    'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300',
+  running: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/50 dark:text-cyan-300',
   succeeded:
     'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300',
   terminated: 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300',

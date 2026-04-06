@@ -17,7 +17,7 @@ describe('ConfigService', () => {
     env.AWS_S3_BUCKET = 'test-bucket';
     env.AWS_ACCESS_KEY_ID = 'test-key';
     env.AWS_SECRET_ACCESS_KEY = 'test-secret';
-    env.MONGODB_URL = 'mongodb://mongo.internal:27017/test-db';
+    env.MONGODB_URI = 'mongodb://mongo.internal:27017/test-db';
     delete env.DB_MODE;
     env.PORT = '3001';
     env.CLERK_PUBLISHABLE_KEY = 'pk_test_test';

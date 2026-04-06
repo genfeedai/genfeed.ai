@@ -1,11 +1,11 @@
 'use client';
 
-import { InfoBox } from '@/components/ui/settings-section';
-import { LLM_PROVIDERS, useSettingsStore } from '@/store/settingsStore';
-import type { LLMProviderType } from '@/store/settingsStore';
 import { Code, Pre } from '@genfeedai/ui';
 import { Check, Code as CodeIcon, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { useCallback, useState } from 'react';
+import { InfoBox } from '@/components/ui/settings-section';
+import type { LLMProviderType } from '@/store/settingsStore';
+import { LLM_PROVIDERS, useSettingsStore } from '@/store/settingsStore';
 
 const TTS_ENABLED = process.env.NEXT_PUBLIC_TTS_ENABLED === 'true';
 
@@ -20,7 +20,8 @@ interface ApiKeyStatus {
 
 const API_KEYS: ApiKeyStatus[] = [
   {
-    description: 'Required for image/video generation (Nano Banana, Veo, Kling)',
+    description:
+      'Required for image/video generation (Nano Banana, Veo, Kling)',
     docsUrl: 'https://replicate.com/account/api-tokens',
     envVar: 'REPLICATE_API_TOKEN',
     isConfigured: null,
@@ -54,9 +55,18 @@ const API_KEYS: ApiKeyStatus[] = [
 ];
 
 function StatusDot({ status }: { status: boolean | null }) {
-  const color = status === true ? 'bg-green-500' : status === false ? 'bg-red-500' : 'bg-gray-400';
+  const color =
+    status === true
+      ? 'bg-green-500'
+      : status === false
+        ? 'bg-red-500'
+        : 'bg-gray-400';
   const label =
-    status === true ? 'Configured' : status === false ? 'Not configured' : 'Status unknown';
+    status === true
+      ? 'Configured'
+      : status === false
+        ? 'Not configured'
+        : 'Status unknown';
 
   return <div className={`h-2.5 w-2.5 rounded-full ${color}`} title={label} />;
 }
@@ -100,7 +110,7 @@ function LLMKeyInput({ provider }: { provider: LLMProviderType }) {
         handleSave();
       }
     },
-    [handleSave]
+    [handleSave],
   );
 
   const maskedKey = config.apiKey
@@ -117,14 +127,18 @@ function LLMKeyInput({ provider }: { provider: LLMProviderType }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <StatusDot status={hasKey} />
-            <span className="font-medium text-sm text-foreground">{info.name}</span>
+            <span className="font-medium text-sm text-foreground">
+              {info.name}
+            </span>
             {isActive && (
               <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded font-medium">
                 Active
               </span>
             )}
           </div>
-          <p className="text-xs text-muted-foreground mt-0.5">{info.description}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {info.description}
+          </p>
         </div>
         <div className="flex items-center gap-1.5">
           {hasKey && !isActive && (
@@ -151,12 +165,18 @@ function LLMKeyInput({ provider }: { provider: LLMProviderType }) {
         {hasKey ? (
           <div className="flex items-center gap-2">
             <div className="flex-1 flex items-center gap-2 bg-secondary/50 rounded px-3 py-1.5 text-xs font-mono text-muted-foreground">
-              <span className="truncate">{showKey ? config.apiKey : maskedKey}</span>
+              <span className="truncate">
+                {showKey ? config.apiKey : maskedKey}
+              </span>
               <button
                 onClick={() => setShowKey(!showKey)}
                 className="shrink-0 text-muted-foreground hover:text-foreground transition"
               >
-                {showKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                {showKey ? (
+                  <EyeOff className="w-3.5 h-3.5" />
+                ) : (
+                  <Eye className="w-3.5 h-3.5" />
+                )}
               </button>
             </div>
             <button
@@ -197,10 +217,12 @@ export function ApiKeysTab() {
     <div className="space-y-6">
       {/* LLM BYOK Section */}
       <div className="space-y-2">
-        <h4 className="text-sm font-medium text-foreground">AI Assistant (BYOK)</h4>
+        <h4 className="text-sm font-medium text-foreground">
+          AI Assistant (BYOK)
+        </h4>
         <p className="text-xs text-muted-foreground">
-          Bring your own API key to power the Workflow Assistant with Claude, GPT, or open-source
-          models. Keys are stored in your browser only.
+          Bring your own API key to power the Workflow Assistant with Claude,
+          GPT, or open-source models. Keys are stored in your browser only.
         </p>
         <div className="space-y-2">
           {(Object.keys(LLM_PROVIDERS) as LLMProviderType[]).map((provider) => (
@@ -214,10 +236,15 @@ export function ApiKeysTab() {
 
       {/* Server-side API Keys */}
       <div className="space-y-2">
-        <h4 className="text-sm font-medium text-foreground">Content Generation (Server)</h4>
-        <InfoBox variant="warning" title="Configured via .env files on the server">
-          These keys power image, video, and audio generation. Edit your server&apos;s .env files to
-          configure them.
+        <h4 className="text-sm font-medium text-foreground">
+          Content Generation (Server)
+        </h4>
+        <InfoBox
+          variant="warning"
+          title="Configured via .env files on the server"
+        >
+          These keys power image, video, and audio generation. Edit your
+          server&apos;s .env files to configure them.
         </InfoBox>
         <div className="space-y-2">
           {API_KEYS.map((key) => (
@@ -230,15 +257,22 @@ export function ApiKeysTab() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm text-foreground">{key.name}</span>
+                  <span className="font-medium text-sm text-foreground">
+                    {key.name}
+                  </span>
                   <Code className="text-[10px] bg-secondary text-muted-foreground">
                     {key.envVar}
                   </Code>
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">{key.description}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {key.description}
+                </p>
                 {key.isConfigured === false && (
                   <p className="text-xs text-red-500 mt-1">
-                    Add to apps/{key.location === 'both' ? 'api/.env & web/.env' : 'api/.env'}
+                    Add to apps/
+                    {key.location === 'both'
+                      ? 'api/.env & web/.env'
+                      : 'api/.env'}
                   </p>
                 )}
               </div>
@@ -258,7 +292,9 @@ export function ApiKeysTab() {
       </div>
 
       <InfoBox title="ElevenLabs Setup" icon={CodeIcon}>
-        <p className="text-xs text-muted-foreground">To enable Text-to-Speech, add both:</p>
+        <p className="text-xs text-muted-foreground">
+          To enable Text-to-Speech, add both:
+        </p>
         <Pre variant="debug" className="mt-2">
           {`# apps/api/.env
 ELEVENLABS_API_KEY=your_key_here

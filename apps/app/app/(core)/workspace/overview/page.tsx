@@ -1,9 +1,16 @@
 'use client';
 
-import { apiClient } from '@/lib/api/client';
-import { Boxes, CheckCircle2, CircleDot, Clock, Clapperboard, Sparkles } from 'lucide-react';
+import {
+  Boxes,
+  CheckCircle2,
+  CircleDot,
+  Clapperboard,
+  Clock,
+  Sparkles,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { apiClient } from '@/lib/api/client';
 
 interface Task {
   _id: string;
@@ -60,7 +67,9 @@ export default function WorkspaceOverviewPage() {
   useEffect(() => {
     const ctrl = new AbortController();
     Promise.all([
-      apiClient.get('/api/tasks/stats').catch(() => ({ byStatus: {}, total: 0 })),
+      apiClient
+        .get('/api/tasks/stats')
+        .catch(() => ({ byStatus: {}, total: 0 })),
       apiClient.get('/api/tasks').catch(() => []),
       apiClient.get('/api/activity?limit=15').catch(() => []),
     ]).then(([s, t, a]) => {
@@ -85,7 +94,12 @@ export default function WorkspaceOverviewPage() {
 
       <div className="mb-8 grid grid-cols-2 gap-px border border-border lg:grid-cols-4">
         {[
-          { icon: CircleDot, label: 'Total Tasks', sub: null, value: stats?.total ?? 0 },
+          {
+            icon: CircleDot,
+            label: 'Total Tasks',
+            sub: null,
+            value: stats?.total ?? 0,
+          },
           { icon: Clock, label: 'In Progress', sub: `${open} open`, value: ip },
           { icon: CheckCircle2, label: 'Completed', sub: null, value: done },
           { icon: Boxes, label: 'Pending Review', sub: null, value: 0 },
@@ -95,7 +109,11 @@ export default function WorkspaceOverviewPage() {
               <div>
                 <p className="text-3xl font-semibold tabular-nums">{c.value}</p>
                 <p className="mt-1 text-sm text-muted-foreground">{c.label}</p>
-                {c.sub && <p className="mt-1 text-xs text-muted-foreground/70">{c.sub}</p>}
+                {c.sub && (
+                  <p className="mt-1 text-xs text-muted-foreground/70">
+                    {c.sub}
+                  </p>
+                )}
               </div>
               <c.icon className="h-4 w-4 text-muted-foreground/50" />
             </div>
@@ -120,11 +138,15 @@ export default function WorkspaceOverviewPage() {
                   className="flex gap-3 border-b border-border px-4 py-2.5 text-sm last:border-b-0"
                 >
                   <p className="min-w-0 flex-1 truncate">
-                    <span className="font-medium">{e.actorName ?? 'System'}</span>
+                    <span className="font-medium">
+                      {e.actorName ?? 'System'}
+                    </span>
                     <span className="ml-1 text-muted-foreground">
                       {VERBS[e.action] ?? e.action.replace(/[._]/g, ' ')}{' '}
                     </span>
-                    {e.entityName && <span className="font-medium">{e.entityName}</span>}
+                    {e.entityName && (
+                      <span className="font-medium">{e.entityName}</span>
+                    )}
                   </p>
                   <span className="shrink-0 text-xs text-muted-foreground">
                     {timeAgo(e.createdAt)}
@@ -141,7 +163,9 @@ export default function WorkspaceOverviewPage() {
           </h2>
           <div className="border border-border">
             {tasks.length === 0 ? (
-              <p className="px-4 py-8 text-center text-sm text-muted-foreground">No tasks yet.</p>
+              <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+                No tasks yet.
+              </p>
             ) : (
               tasks.map((t) => (
                 <Link
@@ -169,9 +193,24 @@ export default function WorkspaceOverviewPage() {
         </h2>
         <div className="grid gap-px border border-border md:grid-cols-3">
           {[
-            { d: 'Build node-based AI pipelines', h: '/workflows', i: Boxes, l: 'Workflows' },
-            { d: 'Quick generation with prompt bar', h: '/studio', i: Sparkles, l: 'Studio' },
-            { d: 'Compose and export media', h: '/editor', i: Clapperboard, l: 'Editor' },
+            {
+              d: 'Build node-based AI pipelines',
+              h: '/workflows',
+              i: Boxes,
+              l: 'Workflows',
+            },
+            {
+              d: 'Quick generation with prompt bar',
+              h: '/studio',
+              i: Sparkles,
+              l: 'Studio',
+            },
+            {
+              d: 'Compose and export media',
+              h: '/editor',
+              i: Clapperboard,
+              l: 'Editor',
+            },
           ].map((a) => (
             <Link
               key={a.h}

@@ -1,5 +1,5 @@
-import type { IIngredient } from '@genfeedai/interfaces';
 import { IngredientCategory } from '@genfeedai/enums';
+import type { IIngredient } from '@genfeedai/interfaces';
 import { useIngredientsList } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-list';
 import { act, renderHook } from '@testing-library/react';
 import { PageScope } from '@ui-constants/misc.constant';
