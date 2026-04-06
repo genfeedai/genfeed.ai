@@ -1,3 +1,10 @@
+import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
+import {
+  ContentTemplateKey,
+  IngredientCategory,
+  IngredientFormat,
+  RouterPriority,
+} from '@genfeedai/enums';
 import type { IIngredient, IModel } from '@genfeedai/interfaces';
 import type {
   AvatarGenerationPayload,
@@ -6,13 +13,6 @@ import type {
   MusicGenerationPayload,
   VideoGenerationPayload,
 } from '@genfeedai/interfaces/content/generation-payload.interface';
-import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import {
-  ContentTemplateKey,
-  IngredientCategory,
-  IngredientFormat,
-  RouterPriority,
-} from '@genfeedai/enums';
 
 export const PRESET_TO_TEMPLATE_MAP: Record<string, ContentTemplateKey> = {
   'article-banner': ContentTemplateKey.IMAGE_BANNER,

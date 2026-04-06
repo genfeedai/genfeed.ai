@@ -262,7 +262,7 @@ export default function LivestreamChatBotPage({
             setSession(currentSession);
           });
         }
-      } catch (error) {
+      } catch (_error) {
         notificationsService.error(
           'Failed to load livestream bot configuration',
         );
@@ -331,7 +331,7 @@ export default function LivestreamChatBotPage({
 
       await refreshSession(savedBot.id);
       notificationsService.success('Livestream bot configuration saved');
-    } catch (error) {
+    } catch (_error) {
       notificationsService.error('Failed to save livestream bot configuration');
     } finally {
       setIsSaving(false);
@@ -362,7 +362,7 @@ export default function LivestreamChatBotPage({
         setSession(nextSession);
       });
       notificationsService.success(`Session ${action}ed`);
-    } catch (error) {
+    } catch (_error) {
       notificationsService.error(`Failed to ${action} livestream session`);
     }
   }
@@ -383,7 +383,7 @@ export default function LivestreamChatBotPage({
         setSession(nextSession);
       });
       notificationsService.success('Manual override applied');
-    } catch (error) {
+    } catch (_error) {
       notificationsService.error('Failed to apply manual override');
     }
   }
@@ -412,7 +412,7 @@ export default function LivestreamChatBotPage({
         setTranscriptChunk('');
       });
       notificationsService.success('Transcript chunk processed');
-    } catch (error) {
+    } catch (_error) {
       notificationsService.error('Failed to process transcript chunk');
     }
   }
@@ -434,7 +434,7 @@ export default function LivestreamChatBotPage({
         setSendNowMessage('');
       });
       notificationsService.success('Livestream message sent');
-    } catch (error) {
+    } catch (_error) {
       notificationsService.error('Failed to send livestream message');
     }
   }

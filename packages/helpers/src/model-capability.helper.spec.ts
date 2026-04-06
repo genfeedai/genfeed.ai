@@ -43,10 +43,10 @@ describe('getModelCapabilityFromDoc', () => {
     const result = getModelCapabilityFromDoc(model);
 
     expect(result).not.toBeNull();
-    expect(result!.category).toBe(ModelCategory.IMAGE);
-    expect(result!.maxOutputs).toBe(8);
-    expect(result!.isBatchSupported).toBe(true);
-    expect(result!.maxReferences).toBe(5);
+    expect(result?.category).toBe(ModelCategory.IMAGE);
+    expect(result?.maxOutputs).toBe(8);
+    expect(result?.isBatchSupported).toBe(true);
+    expect(result?.maxReferences).toBe(5);
 
     const imageResult = result as ImageModelCapability;
     expect(imageResult.aspectRatios).toEqual(['1:1', '16:9']);
@@ -74,9 +74,9 @@ describe('getModelCapabilityFromDoc', () => {
     const result = getModelCapabilityFromDoc(model);
 
     expect(result).not.toBeNull();
-    expect(result!.maxOutputs).toBe(2);
-    expect(result!.isBatchSupported).toBe(false);
-    expect(result!.maxReferences).toBe(1);
+    expect(result?.maxOutputs).toBe(2);
+    expect(result?.isBatchSupported).toBe(false);
+    expect(result?.maxReferences).toBe(1);
 
     const imageResult = result as ImageModelCapability;
     expect(imageResult.aspectRatios).toBeUndefined();
@@ -107,7 +107,7 @@ describe('getModelCapabilityFromDoc', () => {
     const result = getModelCapabilityFromDoc(model);
 
     expect(result).not.toBeNull();
-    expect(result!.category).toBe(ModelCategory.VIDEO);
+    expect(result?.category).toBe(ModelCategory.VIDEO);
 
     const videoResult = result as VideoModelCapability;
     expect(videoResult.hasEndFrame).toBe(true);
@@ -146,9 +146,9 @@ describe('getModelCapability', () => {
     const result = getModelCapability(model);
 
     expect(result).not.toBeNull();
-    expect(result!.maxOutputs).toBe(10);
-    expect(result!.isBatchSupported).toBe(true);
-    expect(result!.maxReferences).toBe(3);
+    expect(result?.maxOutputs).toBe(10);
+    expect(result?.isBatchSupported).toBe(true);
+    expect(result?.maxReferences).toBe(3);
   });
 
   it('should fall back to constant when DB fields are missing', () => {
@@ -188,9 +188,9 @@ describe('getModelCapability', () => {
     const result = getModelCapability(model);
 
     expect(result).not.toBeNull();
-    expect(result!.maxOutputs).toBe(99);
-    expect(result!.isBatchSupported).toBe(true);
-    expect(result!.maxReferences).toBe(50);
+    expect(result?.maxOutputs).toBe(99);
+    expect(result?.isBatchSupported).toBe(true);
+    expect(result?.maxReferences).toBe(50);
   });
 });
 
@@ -209,8 +209,8 @@ describe('getModelCapabilityByKey', () => {
     );
 
     expect(result).not.toBeNull();
-    expect(result!.maxOutputs).toBe(20);
-    expect(result!.isBatchSupported).toBe(true);
+    expect(result?.maxOutputs).toBe(20);
+    expect(result?.isBatchSupported).toBe(true);
   });
 
   it('should fall back to constant when no model is provided', () => {
@@ -243,6 +243,6 @@ describe('getModelCapabilityByKey', () => {
     );
 
     expect(result).not.toBeNull();
-    expect(result!.maxOutputs).toBe(15);
+    expect(result?.maxOutputs).toBe(15);
   });
 });

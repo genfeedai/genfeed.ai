@@ -12,10 +12,13 @@ export function usePaneActions() {
 
   const addNodeAtPosition = useCallback(
     (type: string, screenX: number, screenY: number) => {
-      const position = reactFlow.screenToFlowPosition({ x: screenX, y: screenY });
+      const position = reactFlow.screenToFlowPosition({
+        x: screenX,
+        y: screenY,
+      });
       addNode(type as NodeType, position);
     },
-    [addNode, reactFlow]
+    [addNode, reactFlow],
   );
 
   const selectAll = useCallback(() => {
@@ -23,7 +26,7 @@ export function usePaneActions() {
       nds.map((node) => ({
         ...node,
         selected: true,
-      }))
+      })),
     );
   }, [reactFlow]);
 
@@ -37,7 +40,9 @@ export function usePaneActions() {
       // Use React Flow's internal nodes which have measured dimensions populated
       const currentNodes = reactFlow.getNodes();
       const currentEdges = reactFlow.getEdges();
-      const layoutedNodes = getLayoutedNodes(currentNodes, currentEdges, { direction });
+      const layoutedNodes = getLayoutedNodes(currentNodes, currentEdges, {
+        direction,
+      });
       reactFlow.setNodes(layoutedNodes);
 
       // Normalize all edges to use consistent style
@@ -45,7 +50,7 @@ export function usePaneActions() {
         eds.map((edge) => ({
           ...edge,
           type: edgeStyle,
-        }))
+        })),
       );
 
       // Fit view after layout with a small delay to allow DOM update
@@ -53,7 +58,7 @@ export function usePaneActions() {
         reactFlow.fitView({ padding: 0.2 });
       }, 50);
     },
-    [reactFlow]
+    [reactFlow],
   );
 
   return {

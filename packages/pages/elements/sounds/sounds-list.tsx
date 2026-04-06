@@ -1,9 +1,9 @@
 'use client';
 
-import type { IQueryParams, ISound } from '@genfeedai/interfaces';
-import type { IElementContentProps } from '@genfeedai/interfaces/ui/elements-content.interface';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { ComponentSize, ModalEnum } from '@genfeedai/enums';
+import type { IQueryParams, ISound } from '@genfeedai/interfaces';
+import type { IElementContentProps } from '@genfeedai/interfaces/ui/elements-content.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Sound } from '@models/ingredients/sound.model';

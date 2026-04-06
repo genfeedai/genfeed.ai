@@ -33,9 +33,7 @@ export default function XArticleSectionCard({
         />
 
         {section.pullQuote && (
-          <Blockquote className="mt-4">
-            {section.pullQuote}
-          </Blockquote>
+          <Blockquote className="mt-4">{section.pullQuote}</Blockquote>
         )}
       </div>
     </Card>

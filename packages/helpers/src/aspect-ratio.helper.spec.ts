@@ -1,8 +1,11 @@
-import { ASPECT_RATIOS,
+import {
+  ASPECT_RATIOS,
   type ImageModelCapability,
+  MODEL_KEYS,
   MODEL_OUTPUT_CAPABILITIES,
   type ModelOutputCapability,
-  type VideoModelCapability,, MODEL_KEYS } from '@genfeedai/constants';
+  type VideoModelCapability,
+} from '@genfeedai/constants';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 

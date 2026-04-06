@@ -6,7 +6,10 @@ import type {
   WebsiteScrapingResult,
   XProfileScrapedData,
 } from '@api/services/brand-scraper/interfaces/brand-scraper.interfaces';
-import type { IExtractedBrandData, IScrapedBrandData } from '@genfeedai/interfaces';
+import type {
+  IExtractedBrandData,
+  IScrapedBrandData,
+} from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

@@ -363,7 +363,7 @@ function WorkflowRefNodeComponent(props: NodeProps) {
                         <span className="text-destructive">*</span>
                       )}
                     </span>
-                    {i < nodeData.cachedInterface!.inputs.length - 1 && ', '}
+                    {i < nodeData.cachedInterface?.inputs.length - 1 && ', '}
                   </span>
                 ))}
               </div>
@@ -381,7 +381,7 @@ function WorkflowRefNodeComponent(props: NodeProps) {
                         :{output.type}
                       </span>
                     </span>
-                    {i < nodeData.cachedInterface!.outputs.length - 1 && ', '}
+                    {i < nodeData.cachedInterface?.outputs.length - 1 && ', '}
                   </span>
                 ))}
               </div>

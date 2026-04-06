@@ -4,7 +4,7 @@ import {
   buildLensEffectsFilterChain,
   createLensEffectsExecutor,
   type LensEffectsConfig,
-  LensEffectsExecutor,
+  type LensEffectsExecutor,
   type LensEffectsProcessor,
 } from '@workflow-engine/executors/saas/lens-effects-executor';
 import type { ExecutableNode } from '@workflow-engine/types';

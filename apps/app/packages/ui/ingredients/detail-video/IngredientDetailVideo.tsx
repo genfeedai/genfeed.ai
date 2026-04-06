@@ -1,6 +1,5 @@
 'use client';
 
-import type { ITag, IVideo } from '@genfeedai/interfaces';
 import type { IEvaluation } from '@genfeedai/client/models';
 import {
   ButtonSize,
@@ -11,6 +10,7 @@ import {
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/enums';
+import type { ITag, IVideo } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useEvaluation } from '@hooks/ui/evaluation/use-evaluation/use-evaluation';

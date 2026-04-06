@@ -15,6 +15,7 @@ export class RedisIoAdapter extends IoAdapter {
     app: INestApplicationContext | undefined,
     private readonly redisUrl: string,
     private readonly loggerService: LoggerService,
+    private readonly redisTls: boolean = false,
   ) {
     // Don't pass app to parent - we'll handle server creation ourselves
     super();
@@ -22,7 +23,15 @@ export class RedisIoAdapter extends IoAdapter {
   }
 
   async connectToRedis(): Promise<void> {
-    const pubClient = createClient({ url: this.redisUrl });
+    const tlsFromUrl = this.redisUrl.startsWith('rediss://');
+    const useTls = this.redisTls || tlsFromUrl;
+
+    const pubClient = createClient({
+      socket: {
+        ...(useTls && { tls: true }),
+      },
+      url: this.redisUrl,
+    });
     const subClient = pubClient.duplicate();
 
     try {

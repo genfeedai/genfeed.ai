@@ -46,7 +46,10 @@ describe('webhook-store', () => {
       const predictionId = 'pred-789';
 
       setWebhookResult(predictionId, { output: null, status: 'processing' });
-      setWebhookResult(predictionId, { output: 'final-output', status: 'succeeded' });
+      setWebhookResult(predictionId, {
+        output: 'final-output',
+        status: 'succeeded',
+      });
 
       const stored = getWebhookResult(predictionId);
       expect(stored?.status).toBe('succeeded');
@@ -62,7 +65,10 @@ describe('webhook-store', () => {
 
     it('should return stored result', () => {
       const predictionId = 'pred-get-test';
-      setWebhookResult(predictionId, { output: 'test-output', status: 'succeeded' });
+      setWebhookResult(predictionId, {
+        output: 'test-output',
+        status: 'succeeded',
+      });
 
       const result = getWebhookResult(predictionId);
       expect(result).toBeDefined();
@@ -99,7 +105,10 @@ describe('webhook-store', () => {
       vi.advanceTimersByTime(30 * 60 * 1000);
 
       // Trigger cleanup by setting another result
-      setWebhookResult('another-pred', { output: 'other', status: 'succeeded' });
+      setWebhookResult('another-pred', {
+        output: 'other',
+        status: 'succeeded',
+      });
 
       // Original result should still exist
       expect(getWebhookResult(predictionId)).toBeDefined();

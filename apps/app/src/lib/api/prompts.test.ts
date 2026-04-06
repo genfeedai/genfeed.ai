@@ -1,5 +1,13 @@
 import type { IPrompt } from '@genfeedai/types';
-import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mock,
+  vi,
+} from 'vitest';
 import { apiClient } from './client';
 import { promptsApi } from './prompts';
 
@@ -62,7 +70,9 @@ describe('promptsApi', () => {
 
       const result = await promptsApi.getAll();
 
-      expect(apiClient.get).toHaveBeenCalledWith('/prompts', { signal: undefined });
+      expect(apiClient.get).toHaveBeenCalledWith('/prompts', {
+        signal: undefined,
+      });
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe('Test Prompt');
     });
@@ -78,7 +88,7 @@ describe('promptsApi', () => {
 
       expect(apiClient.get).toHaveBeenCalledWith(
         '/prompts?category=landscape&search=sunset&limit=10',
-        { signal: undefined }
+        { signal: undefined },
       );
     });
 
@@ -97,9 +107,12 @@ describe('promptsApi', () => {
         sortOrder: 'desc',
       });
 
-      expect(apiClient.get).toHaveBeenCalledWith('/prompts?sortBy=useCount&sortOrder=desc', {
-        signal: undefined,
-      });
+      expect(apiClient.get).toHaveBeenCalledWith(
+        '/prompts?sortBy=useCount&sortOrder=desc',
+        {
+          signal: undefined,
+        },
+      );
     });
   });
 
@@ -110,7 +123,9 @@ describe('promptsApi', () => {
 
       const result = await promptsApi.getFeatured();
 
-      expect(apiClient.get).toHaveBeenCalledWith('/prompts/featured', { signal: undefined });
+      expect(apiClient.get).toHaveBeenCalledWith('/prompts/featured', {
+        signal: undefined,
+      });
       expect(result).toHaveLength(1);
       expect(result[0].isFeatured).toBe(true);
     });
@@ -132,7 +147,9 @@ describe('promptsApi', () => {
 
       const result = await promptsApi.getById('prompt-1');
 
-      expect(apiClient.get).toHaveBeenCalledWith('/prompts/prompt-1', { signal: undefined });
+      expect(apiClient.get).toHaveBeenCalledWith('/prompts/prompt-1', {
+        signal: undefined,
+      });
       expect(result._id).toBe('prompt-1');
     });
   });
@@ -171,23 +188,35 @@ describe('promptsApi', () => {
 
       const result = await promptsApi.use('prompt-1');
 
-      expect(apiClient.post).toHaveBeenCalledWith('/prompts/prompt-1/use', undefined, {
-        signal: undefined,
-      });
+      expect(apiClient.post).toHaveBeenCalledWith(
+        '/prompts/prompt-1/use',
+        undefined,
+        {
+          signal: undefined,
+        },
+      );
       expect(result.useCount).toBe(6);
     });
   });
 
   describe('duplicate', () => {
     it('should duplicate a prompt item', async () => {
-      const duplicatedItem = { ...mockPromptItem, _id: 'prompt-2', name: 'Test Prompt (Copy)' };
+      const duplicatedItem = {
+        ...mockPromptItem,
+        _id: 'prompt-2',
+        name: 'Test Prompt (Copy)',
+      };
       (apiClient.post as Mock).mockResolvedValueOnce(duplicatedItem);
 
       const result = await promptsApi.duplicate('prompt-1');
 
-      expect(apiClient.post).toHaveBeenCalledWith('/prompts/prompt-1/duplicate', undefined, {
-        signal: undefined,
-      });
+      expect(apiClient.post).toHaveBeenCalledWith(
+        '/prompts/prompt-1/duplicate',
+        undefined,
+        {
+          signal: undefined,
+        },
+      );
       expect(result._id).toBe('prompt-2');
       expect(result.name).toBe('Test Prompt (Copy)');
     });

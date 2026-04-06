@@ -1,3 +1,4 @@
+import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { IS_PUBLIC_KEY } from '@libs/decorators/public.decorator';
 import {
   type ExecutionContext,
@@ -23,7 +24,7 @@ export class ClerkGuard extends AuthGuard('clerk') {
   }
 
   canActivate(context: ExecutionContext) {
-    if (this.isPublicRoute(context)) {
+    if (IS_SELF_HOSTED || this.isPublicRoute(context)) {
       return true;
     }
     return super.canActivate(context);

@@ -21,17 +21,17 @@ import type {
   WorkflowStep,
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
-import type { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
-import type { ConfigService } from '@api/config/config.service';
-import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import type { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import type { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
-import type { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
-import type { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
-import type { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
-import type { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import type { WhisperService } from '@api/services/whisper/whisper.service';
-import type { SharedService } from '@api/shared/services/shared/shared.service';
+import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
+import { ConfigService } from '@api/config/config.service';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
+import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { WhisperService } from '@api/services/whisper/whisper.service';
+import { SharedService } from '@api/shared/services/shared/shared.service';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   CaptionFormat,
@@ -72,7 +72,8 @@ import {
   type NodeExecutor,
   WorkflowEngine,
 } from '@genfeedai/workflow-engine';
-import type { LoggerService } from '@libs/logger/logger.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable, Optional } from '@nestjs/common';
 import { Types } from 'mongoose';
 
@@ -764,7 +765,7 @@ export class WorkflowEngineAdapterService {
             captionContent,
             inputPath: `${this.configService.ingredientsEndpoint}/videos/${sourceIngredientId}`,
           },
-          room: `user-${context.userId}`,
+          room: getUserRoomName(context.userId),
           type: 'add-captions',
           userId: context.userId,
           websocketUrl: `/videos/${ingredientId}`,

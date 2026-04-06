@@ -87,7 +87,8 @@ import type {
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
 import { VideoSerializer } from '@genfeedai/serializers';
-import type { LoggerService } from '@libs/logger/logger.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
   Body,
   Controller,
@@ -1005,7 +1006,7 @@ export class VideosController {
       activityId: activity._id.toString(),
       label: 'Video Generation',
       progress: 0,
-      room: `user-${user.id}`,
+      room: getUserRoomName(user.id),
       status: 'processing',
       taskId: ingredientData._id.toString(),
       userId: user.id,
@@ -1215,7 +1216,7 @@ export class VideosController {
                     activityId: newActivity._id.toString(),
                     label: 'Video Generation',
                     progress: 0,
-                    room: `user-${user.id}`,
+                    room: getUserRoomName(user.id),
                     status: 'processing',
                     taskId: addIngredient._id.toString(),
                     userId: user.id,
@@ -1345,7 +1346,7 @@ export class VideosController {
               activityId: additionalActivity._id.toString(),
               label: 'Video Generation',
               progress: 0,
-              room: `user-${user.id}`,
+              room: getUserRoomName(user.id),
               status: 'processing',
               taskId: additionalIngredient._id.toString(),
               userId: user.id,
@@ -1377,7 +1378,7 @@ export class VideosController {
           ingredientData._id,
           websocketUrl,
           user.id,
-          `user-${user.id}`,
+          getUserRoomName(user.id),
           {
             brand: brand._id.toString(),
             key: ActivityKey.VIDEO_FAILED,
@@ -1403,7 +1404,7 @@ export class VideosController {
             pendingId,
             wsUrl,
             user.id,
-            `user-${user.id}`,
+            getUserRoomName(user.id),
             {
               brand: brand._id.toString(),
               key: ActivityKey.VIDEO_FAILED,

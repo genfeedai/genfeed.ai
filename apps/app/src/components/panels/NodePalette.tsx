@@ -1,6 +1,11 @@
 'use client';
 
-import { getNodesByCategory, type NodeCategory, type NodeType } from '@genfeedai/types';
+import {
+  getNodesByCategory,
+  type NodeCategory,
+  type NodeType,
+} from '@genfeedai/types';
+import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import {
   ArrowLeftFromLine,
   ArrowRightToLine,
@@ -19,8 +24,8 @@ import {
   GitBranch,
   Grid3X3,
   Image,
-  LayoutGrid,
   Layers,
+  LayoutGrid,
   Maximize,
   Maximize2,
   MessageSquare,
@@ -38,7 +43,6 @@ import {
   Wand2,
 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
-import { useUIStore } from '@genfeedai/workflow-ui/stores';
 
 // Icon mapping
 const ICONS: Record<string, typeof Image> = {
@@ -87,7 +91,10 @@ const CATEGORY_LABELS: Record<NodeCategory, string> = {
   processing: 'Processing',
 };
 
-const CATEGORY_COLORS: Record<NodeCategory, { icon: string; hover: string; cssVar: string }> = {
+const CATEGORY_COLORS: Record<
+  NodeCategory,
+  { icon: string; hover: string; cssVar: string }
+> = {
   ai: {
     cssVar: 'var(--category-ai)',
     hover: 'hover:border-[var(--category-ai)]',
@@ -131,7 +138,7 @@ function NodeCard({ type, label, description, icon, category }: NodeCardProps) {
       event.dataTransfer.setData('nodeType', type);
       event.dataTransfer.effectAllowed = 'move';
     },
-    [type]
+    [type],
   );
 
   const colors = CATEGORY_COLORS[category];
@@ -147,7 +154,9 @@ function NodeCard({ type, label, description, icon, category }: NodeCardProps) {
           <Icon className="w-4 h-4" />
         </div>
         <div className="flex-1 min-w-0">
-          <div className="font-medium text-sm text-[var(--foreground)] truncate">{label}</div>
+          <div className="font-medium text-sm text-[var(--foreground)] truncate">
+            {label}
+          </div>
           <div className="text-xs text-[var(--muted-foreground)] mt-0.5 line-clamp-2">
             {description}
           </div>
@@ -163,7 +172,11 @@ interface CategorySectionProps {
   onToggle: () => void;
 }
 
-function CategorySection({ category, isExpanded, onToggle }: CategorySectionProps) {
+function CategorySection({
+  category,
+  isExpanded,
+  onToggle,
+}: CategorySectionProps) {
   const nodes = getNodesByCategory()[category];
 
   return (
@@ -180,7 +193,9 @@ function CategorySection({ category, isExpanded, onToggle }: CategorySectionProp
         <span className="font-medium text-sm text-[var(--foreground)]">
           {CATEGORY_LABELS[category]}
         </span>
-        <span className="text-xs text-[var(--muted-foreground)] ml-auto">{nodes.length}</span>
+        <span className="text-xs text-[var(--muted-foreground)] ml-auto">
+          {nodes.length}
+        </span>
       </button>
 
       {isExpanded && (
@@ -204,9 +219,9 @@ function CategorySection({ category, isExpanded, onToggle }: CategorySectionProp
 export function NodePalette() {
   const { togglePalette } = useUIStore();
   const [searchQuery, setSearchQuery] = useState('');
-  const [expandedCategories, setExpandedCategories] = useState<Set<NodeCategory>>(
-    new Set(['input'])
-  );
+  const [expandedCategories, setExpandedCategories] = useState<
+    Set<NodeCategory>
+  >(new Set(['input']));
 
   const nodesByCategory = useMemo(() => getNodesByCategory(), []);
 
@@ -252,18 +267,22 @@ export function NodePalette() {
   // Filter out categories with no nodes (e.g., deprecated 'output' category)
   const categories = useMemo(
     () =>
-      (['input', 'ai', 'processing', 'output', 'composition'] as NodeCategory[]).filter(
-        (cat) => nodesByCategory[cat].length > 0
-      ),
-    [nodesByCategory]
+      (
+        ['input', 'ai', 'processing', 'output', 'composition'] as NodeCategory[]
+      ).filter((cat) => nodesByCategory[cat].length > 0),
+    [nodesByCategory],
   );
 
   return (
     <div className="w-64 min-w-64 h-full bg-[var(--background)] border-r border-[var(--border)] flex flex-col overflow-hidden">
       <div className="px-4 py-3 border-b border-[var(--border)] flex items-start justify-between gap-2">
         <div>
-          <h2 className="font-semibold text-sm text-[var(--foreground)]">Nodes</h2>
-          <p className="text-xs text-[var(--muted-foreground)] mt-1">Drag to canvas</p>
+          <h2 className="font-semibold text-sm text-[var(--foreground)]">
+            Nodes
+          </h2>
+          <p className="text-xs text-[var(--muted-foreground)] mt-1">
+            Drag to canvas
+          </p>
         </div>
         <button
           onClick={togglePalette}

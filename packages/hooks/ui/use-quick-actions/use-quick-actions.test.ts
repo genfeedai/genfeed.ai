@@ -16,93 +16,93 @@ function createAction(id: string, label: string, showInMenu = true) {
 }
 
 vi.mock('@ui/quick-actions/config/quick-actions.config', () => ({
-  createCaptionsAction: vi.fn((ingredient, handler) =>
+  createCaptionsAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('captions', 'Add Captions') : null,
   ),
-  createCloneAction: vi.fn((ingredient, handler) =>
+  createCloneAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('clone', 'Clone') : null,
   ),
-  createConvertToPresetAction: vi.fn((ingredient, handler) =>
+  createConvertToPresetAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('convert-to-preset', 'Convert to Preset') : null,
   ),
-  createDeleteAction: vi.fn((ingredient, handler) =>
+  createDeleteAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('delete', 'Delete') : null,
   ),
-  createDownloadAction: vi.fn((ingredient, handler) =>
+  createDownloadAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('download', 'Download') : null,
   ),
-  createEditAction: vi.fn((ingredient, handler) =>
+  createEditAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('edit', 'Edit') : null,
   ),
-  createFavoriteAction: vi.fn((ingredient, handler) =>
+  createFavoriteAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('favorite', 'Favorite') : null,
   ),
-  createGifAction: vi.fn((ingredient, handler) =>
+  createGifAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('gif', 'Transform to GIF') : null,
   ),
-  createLandscapeAction: vi.fn((ingredient, handler) =>
+  createLandscapeAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('landscape', 'Landscape') : null,
   ),
-  createMirrorAction: vi.fn((ingredient, handler) =>
+  createMirrorAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('mirror', 'Mirror') : null,
   ),
-  createMoreOptionsAction: vi.fn((ingredient, handler) =>
+  createMoreOptionsAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('more-options', 'More', false) : null,
   ),
-  createPortraitAction: vi.fn((ingredient, handler) =>
+  createPortraitAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('portrait', 'Portrait') : null,
   ),
   createPromptAction: vi.fn((ingredient, handler) =>
     handler && ingredient.promptText ? createAction('prompt', 'Prompt') : null,
   ),
-  createPublishAction: vi.fn((ingredient, handler) =>
+  createPublishAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('publish', 'Publish') : null,
   ),
-  createReverseAction: vi.fn((ingredient, handler) =>
+  createReverseAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('reverse', 'Reverse') : null,
   ),
-  createSeeDetailsAction: vi.fn((ingredient, handler) =>
+  createSeeDetailsAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('see-details', 'Open') : null,
   ),
-  createSetAsBannerAction: vi.fn((ingredient, handler) =>
+  createSetAsBannerAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('set-as-banner', 'Set as Banner') : null,
   ),
-  createSetAsLogoAction: vi.fn((ingredient, handler) =>
+  createSetAsLogoAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('set-as-logo', 'Set as Logo') : null,
   ),
-  createShareAction: vi.fn((ingredient, handler) =>
+  createShareAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('share', 'Share') : null,
   ),
-  createSquareAction: vi.fn((ingredient, handler) =>
+  createSquareAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('square', 'Square') : null,
   ),
-  createTagsAction: vi.fn((ingredient, handler) =>
+  createTagsAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('manage-tags', 'Tags') : null,
   ),
-  createTextOverlayAction: vi.fn((ingredient, handler) =>
+  createTextOverlayAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('text-overlay', 'Add Text Overlay') : null,
   ),
-  createTrimAction: vi.fn((ingredient, handler) =>
+  createTrimAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('trim', 'Trim') : null,
   ),
-  createUpscaleAction: vi.fn((ingredient, handler) =>
+  createUpscaleAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('upscale', 'Upscale') : null,
   ),
-  createUseAsVideoReferenceAction: vi.fn((ingredient, handler) =>
+  createUseAsVideoReferenceAction: vi.fn((_ingredient, handler) =>
     handler
       ? createAction('use-as-video-reference', 'Set as Video Reference')
       : null,
   ),
-  createUsePromptAction: vi.fn((ingredient, handler) =>
+  createUsePromptAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('use-prompt', 'Use Prompt') : null,
   ),
-  createVariationAction: vi.fn((ingredient, handler) =>
+  createVariationAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('create-variation', 'Create Variation') : null,
   ),
-  createVideoAction: vi.fn((ingredient, handler) =>
+  createVideoAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('convert-to-video', 'Convert to Video') : null,
   ),
-  createVoteAction: vi.fn((ingredient, handler) =>
+  createVoteAction: vi.fn((_ingredient, handler) =>
     handler ? createAction('vote', 'Vote') : null,
   ),
 }));

@@ -1,4 +1,4 @@
-import { buildSingleSerializer, type BuiltSerializer } from '../../builders';
+import { type BuiltSerializer, buildSingleSerializer } from '../../builders';
 import {
   credentialFullSerializerConfig,
   credentialInstagramPagesSerializerConfig,
@@ -23,7 +23,5 @@ export const CredentialOAuthSerializer: BuiltSerializer = buildSingleSerializer(
   credentialOAuthSerializerConfig,
 );
 
-export const CredentialInstagramPagesSerializer: BuiltSerializer = buildSingleSerializer(
-  'server',
-  credentialInstagramPagesSerializerConfig,
-);
+export const CredentialInstagramPagesSerializer: BuiltSerializer =
+  buildSingleSerializer('server', credentialInstagramPagesSerializerConfig);

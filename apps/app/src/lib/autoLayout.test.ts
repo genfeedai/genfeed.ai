@@ -44,12 +44,19 @@ describe('getLayoutedNodes', () => {
       const node2 = result.find((n) => n.id === 'node-2');
       expect(node1).toBeDefined();
       expect(node2).toBeDefined();
-      expect(node2!.position.x).toBeGreaterThan(node1!.position.x);
+      expect(node2?.position.x).toBeGreaterThan(node1?.position.x);
     });
 
     it('should layout multiple connected nodes in a chain', () => {
-      const nodes = [createNode('node-1'), createNode('node-2'), createNode('node-3')];
-      const edges = [createEdge('node-1', 'node-2'), createEdge('node-2', 'node-3')];
+      const nodes = [
+        createNode('node-1'),
+        createNode('node-2'),
+        createNode('node-3'),
+      ];
+      const edges = [
+        createEdge('node-1', 'node-2'),
+        createEdge('node-2', 'node-3'),
+      ];
 
       const result = getLayoutedNodes(nodes, edges);
 
@@ -70,7 +77,7 @@ describe('getLayoutedNodes', () => {
 
       const node1 = result.find((n) => n.id === 'node-1');
       const node2 = result.find((n) => n.id === 'node-2');
-      expect(node2!.position.x).toBeGreaterThan(node1!.position.x);
+      expect(node2?.position.x).toBeGreaterThan(node1?.position.x);
     });
 
     it('should layout nodes top to bottom with TB direction', () => {
@@ -81,7 +88,7 @@ describe('getLayoutedNodes', () => {
 
       const node1 = result.find((n) => n.id === 'node-1');
       const node2 = result.find((n) => n.id === 'node-2');
-      expect(node2!.position.y).toBeGreaterThan(node1!.position.y);
+      expect(node2?.position.y).toBeGreaterThan(node1?.position.y);
     });
 
     it('should layout nodes right to left with RL direction', () => {
@@ -92,7 +99,7 @@ describe('getLayoutedNodes', () => {
 
       const node1 = result.find((n) => n.id === 'node-1');
       const node2 = result.find((n) => n.id === 'node-2');
-      expect(node1!.position.x).toBeGreaterThan(node2!.position.x);
+      expect(node1?.position.x).toBeGreaterThan(node2?.position.x);
     });
 
     it('should layout nodes bottom to top with BT direction', () => {
@@ -103,7 +110,7 @@ describe('getLayoutedNodes', () => {
 
       const node1 = result.find((n) => n.id === 'node-1');
       const node2 = result.find((n) => n.id === 'node-2');
-      expect(node1!.position.y).toBeGreaterThan(node2!.position.y);
+      expect(node1?.position.y).toBeGreaterThan(node2?.position.y);
     });
   });
 
@@ -114,8 +121,12 @@ describe('getLayoutedNodes', () => {
       const smallSpacing = getLayoutedNodes(nodes, [], { nodeSpacing: 10 });
       const largeSpacing = getLayoutedNodes(nodes, [], { nodeSpacing: 200 });
 
-      const smallDiff = Math.abs(smallSpacing[0].position.y - smallSpacing[1].position.y);
-      const largeDiff = Math.abs(largeSpacing[0].position.y - largeSpacing[1].position.y);
+      const smallDiff = Math.abs(
+        smallSpacing[0].position.y - smallSpacing[1].position.y,
+      );
+      const largeDiff = Math.abs(
+        largeSpacing[0].position.y - largeSpacing[1].position.y,
+      );
 
       expect(largeDiff).toBeGreaterThan(smallDiff);
     });
@@ -127,8 +138,12 @@ describe('getLayoutedNodes', () => {
       const smallRank = getLayoutedNodes(nodes, edges, { rankSpacing: 50 });
       const largeRank = getLayoutedNodes(nodes, edges, { rankSpacing: 300 });
 
-      const smallDiff = Math.abs(smallRank[0].position.x - smallRank[1].position.x);
-      const largeDiff = Math.abs(largeRank[0].position.x - largeRank[1].position.x);
+      const smallDiff = Math.abs(
+        smallRank[0].position.x - smallRank[1].position.x,
+      );
+      const largeDiff = Math.abs(
+        largeRank[0].position.x - largeRank[1].position.x,
+      );
 
       expect(largeDiff).toBeGreaterThan(smallDiff);
     });
@@ -207,7 +222,10 @@ describe('getLayoutedNodes', () => {
         createNode('group-2-a'),
         createNode('group-2-b'),
       ];
-      const edges = [createEdge('group-1-a', 'group-1-b'), createEdge('group-2-a', 'group-2-b')];
+      const edges = [
+        createEdge('group-1-a', 'group-1-b'),
+        createEdge('group-2-a', 'group-2-b'),
+      ];
 
       const result = getLayoutedNodes(nodes, edges);
 

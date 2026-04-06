@@ -1,7 +1,7 @@
 'use client';
 
-import type { IErrorDebugInfo } from '@genfeedai/interfaces/modals/error-debug.interface';
 import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import type { IErrorDebugInfo } from '@genfeedai/interfaces/modals/error-debug.interface';
 import { Pre } from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
@@ -152,7 +152,9 @@ export default function ModalErrorDebug() {
                 </Button>
 
                 {isStackExpanded && (
-                  <Pre variant="debug" size="xs" className={preClassName}>{errorInfo.stack}</Pre>
+                  <Pre variant="debug" size="xs" className={preClassName}>
+                    {errorInfo.stack}
+                  </Pre>
                 )}
               </div>
             )}

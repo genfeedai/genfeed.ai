@@ -1,5 +1,6 @@
 'use client';
 
+import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import {
   BookOpen,
   FolderOpen,
@@ -9,11 +10,10 @@ import {
   Sparkles,
   X,
 } from 'lucide-react';
-import { XIcon } from '@/components/toolbar/icons';
 import { memo, useCallback, useRef } from 'react';
+import { XIcon } from '@/components/toolbar/icons';
 import { logger } from '@/lib/logger';
 import { useSettingsStore } from '@/store/settingsStore';
-import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 interface ActionCardProps {
@@ -24,7 +24,13 @@ interface ActionCardProps {
   badge?: string;
 }
 
-function ActionCard({ icon, title, description, onClick, badge }: ActionCardProps) {
+function ActionCard({
+  icon,
+  title,
+  description,
+  onClick,
+  badge,
+}: ActionCardProps) {
   return (
     <button
       onClick={onClick}
@@ -105,14 +111,18 @@ function WelcomeModalComponent() {
 
           // Basic validation
           if (!data.nodes || !data.edges || !data.name) {
-            logger.error('Invalid workflow file', null, { context: 'WelcomeModal' });
+            logger.error('Invalid workflow file', null, {
+              context: 'WelcomeModal',
+            });
             return;
           }
 
           useWorkflowStore.getState().loadWorkflow(data);
           handleClose();
         } catch (error) {
-          logger.error('Failed to parse workflow file', error, { context: 'WelcomeModal' });
+          logger.error('Failed to parse workflow file', error, {
+            context: 'WelcomeModal',
+          });
         }
       };
       reader.readAsText(file);
@@ -120,7 +130,7 @@ function WelcomeModalComponent() {
       // Reset input
       e.target.value = '';
     },
-    [handleClose]
+    [handleClose],
   );
 
   const handleAIGenerator = useCallback(() => {
@@ -159,8 +169,8 @@ function WelcomeModalComponent() {
 
             {/* Description */}
             <p className="mb-8 text-sm leading-relaxed text-muted-foreground">
-              A node-based workflow editor for AI content generation. Connect nodes to build
-              pipelines that generate images and videos.
+              A node-based workflow editor for AI content generation. Connect
+              nodes to build pipelines that generate images and videos.
             </p>
 
             {/* Links */}
@@ -198,7 +208,9 @@ function WelcomeModalComponent() {
               onClick={handleImport}
             />
             <ActionCard
-              icon={<LayoutTemplate className="h-5 w-5 text-muted-foreground" />}
+              icon={
+                <LayoutTemplate className="h-5 w-5 text-muted-foreground" />
+              }
               title="Templates"
               description="Pre-built workflows"
               onClick={handleTemplates}

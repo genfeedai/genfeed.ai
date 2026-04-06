@@ -1,12 +1,12 @@
 'use client';
 
-import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
 import {
   ButtonSize,
   ButtonVariant,
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/enums';
+import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { IngredientParentsManagerProps } from '@props/content/ingredient.props';
 import { IngredientsService } from '@services/content/ingredients.service';

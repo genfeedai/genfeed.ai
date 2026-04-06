@@ -1,4 +1,4 @@
-import { CrudAction, UploadStatus } from '@genfeedai/enums';
+import type { CrudAction, UploadStatus } from '@genfeedai/enums';
 
 export interface ISocketEventData<T = unknown> {
   event: string;

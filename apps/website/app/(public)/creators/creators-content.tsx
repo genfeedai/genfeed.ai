@@ -88,7 +88,7 @@ const TESTIMONIALS = [
   },
 ];
 
-const PLATFORMS = [
+const _PLATFORMS = [
   { icon: FaYoutube, name: 'YouTube' },
   { icon: FaTiktok, name: 'TikTok' },
   { icon: FaInstagram, name: 'Instagram' },

@@ -250,7 +250,7 @@ function normalizeExecution(
       creditsUsed: execution.status === 'completed' ? 18 : 7,
       logs: execution.logs,
     },
-    nodeResults: execution.logs.map((log, index) => ({
+    nodeResults: execution.logs.map((_log, index) => ({
       completedAt:
         index < execution.logs.length - 1 || execution.status !== 'running'
           ? execution.completedAt || new Date().toISOString()

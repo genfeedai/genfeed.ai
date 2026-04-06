@@ -1,12 +1,12 @@
 'use client';
 
+import Button from '@components/buttons/base/Button';
+import { ButtonVariant, ProactiveOnboardingStatus } from '@genfeedai/enums';
 import type {
   ICrmCompany,
   ICrmLead,
   IProactivePreparationStatus,
 } from '@genfeedai/interfaces';
-import Button from '@components/buttons/base/Button';
-import { ButtonVariant, ProactiveOnboardingStatus } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { AdminCrmService } from '@services/admin/crm.service';
 import { logger } from '@services/core/logger.service';

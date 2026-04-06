@@ -1,12 +1,12 @@
 'use client';
 
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type {
   IBrandAgentPlatformOverride,
   IBrandAgentStrategy,
   IBrandAgentVoice,
 } from '@genfeedai/interfaces';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import type { BrandDetailAgentProfileCardProps } from '@props/pages/brand-detail.props';

@@ -54,7 +54,10 @@ import { generateLabel } from '@api/shared/utils/label/label.util';
 import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
 import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
-import type { JsonApiCollectionResponse, SortObject } from '@genfeedai/interfaces';
+import type {
+  JsonApiCollectionResponse,
+  SortObject,
+} from '@genfeedai/interfaces';
 import {
   ActivitySerializer,
   BrandSerializer,

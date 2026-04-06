@@ -51,10 +51,12 @@ vi.mock('@/store/settingsStore', () => {
 // Mock autoLayout
 vi.mock('@/lib/autoLayout', () => ({
   getLayoutedNodes: vi.fn((nodes) =>
-    nodes.map((n: { id: string; position: { x: number; y: number } }, i: number) => ({
-      ...n,
-      position: { x: i * 200, y: 0 },
-    }))
+    nodes.map(
+      (n: { id: string; position: { x: number; y: number } }, i: number) => ({
+        ...n,
+        position: { x: i * 200, y: 0 },
+      }),
+    ),
   ),
 }));
 

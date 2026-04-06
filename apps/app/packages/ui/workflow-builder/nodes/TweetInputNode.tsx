@@ -47,7 +47,7 @@ function TweetInputNodeComponent({ id, data, onUpdate }: TweetInputNodeProps) {
 
     setIsFetching(true);
     try {
-      const response = await fetch('/api/tweet/fetch', {
+      const response = await fetch('/v1/core/tweet/fetch', {
         body: JSON.stringify({ url: data.tweetUrl }),
         headers: { 'Content-Type': 'application/json' },
         method: 'POST',

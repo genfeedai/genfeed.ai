@@ -29,9 +29,9 @@ import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
-import type { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
-import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import type { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import {
   ArticleCategory,
   ArticleStatus,
@@ -47,7 +47,7 @@ import type {
   ArticleGenerationResponse,
   GeneratedArticleData,
 } from '@genfeedai/interfaces/content/article.interface';
-import type { LoggerService } from '@libs/logger/logger.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
 import { Types } from 'mongoose';
 

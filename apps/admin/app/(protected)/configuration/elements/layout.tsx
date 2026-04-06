@@ -1,8 +1,8 @@
 'use client';
 
-import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import { ButtonVariant, IngredientCategory, ModalEnum } from '@genfeedai/enums';
+import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import type { LayoutProps } from '@props/layout/layout.props';
 import ElementsProvider from '@providers/elements/elements.provider';

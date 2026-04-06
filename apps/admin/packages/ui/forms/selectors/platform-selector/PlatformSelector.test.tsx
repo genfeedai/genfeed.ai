@@ -1,5 +1,5 @@
-import type { ICredential } from '@genfeedai/interfaces';
 import { CredentialPlatform } from '@genfeedai/enums';
+import type { ICredential } from '@genfeedai/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import PlatformSelector from '@ui/forms/selectors/platform-selector/PlatformSelector';
 import { describe, expect, it, vi } from 'vitest';

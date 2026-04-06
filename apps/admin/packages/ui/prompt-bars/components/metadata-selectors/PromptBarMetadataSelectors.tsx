@@ -1,5 +1,6 @@
 'use client';
 
+import { ModelCategory, Platform } from '@genfeedai/enums';
 import type {
   IElementCamera,
   IElementCameraMovement,
@@ -11,7 +12,6 @@ import type {
   IFontFamily,
   IPreset,
 } from '@genfeedai/interfaces';
-import { ModelCategory, Platform } from '@genfeedai/enums';
 import type { PromptBarMetadataSelectorsProps } from '@props/prompt-bars/prompt-bar-metadata-selectors.props';
 import FormDropdown from '@ui/forms/selectors/dropdown/form-dropdown/FormDropdown';
 import type { ChangeEvent } from 'react';

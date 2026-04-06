@@ -71,7 +71,9 @@ function collectHints(files) {
 
   if (hasDocsOnly) {
     hints.length = 0;
-    hints.push('bun run check:pr-governance -- --body-file <path-to-pr-body.md>');
+    hints.push(
+      'bun run check:pr-governance -- --body-file <path-to-pr-body.md>',
+    );
     hints.push('Review docs/workflow diffs manually for policy accuracy');
   }
 
@@ -137,7 +139,9 @@ function main() {
   console.log('- Why this fits this repo:');
   console.log('- Evidence actually run:');
   console.log('- Measurement evidence or `Not applicable`:');
-  console.log('- Regressions checked: multi-tenancy, serializers, TypeScript strictness, behavior:');
+  console.log(
+    '- Regressions checked: multi-tenancy, serializers, TypeScript strictness, behavior:',
+  );
   console.log('- Residual risks / confidence:');
 }
 

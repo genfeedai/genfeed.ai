@@ -1,15 +1,30 @@
 'use client';
 
-import { ArrowLeft, Film, ImageIcon, Music, RefreshCw, Trash2 } from 'lucide-react';
+import {
+  ArrowLeft,
+  Film,
+  ImageIcon,
+  Music,
+  RefreshCw,
+  Trash2,
+} from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { GalleryGrid } from '@/components/gallery/GalleryGrid';
 import { LightboxModal } from '@/components/gallery/LightboxModal';
 import { Pagination } from '@/components/gallery/Pagination';
-import type { GalleryFilterType, GalleryItem, GalleryResponse } from '@/lib/gallery/types';
+import type {
+  GalleryFilterType,
+  GalleryItem,
+  GalleryResponse,
+} from '@/lib/gallery/types';
 
-const FILTERS: { type: GalleryFilterType; label: string; icon: typeof ImageIcon }[] = [
+const FILTERS: {
+  type: GalleryFilterType;
+  label: string;
+  icon: typeof ImageIcon;
+}[] = [
   { icon: ImageIcon, label: 'All', type: 'all' },
   { icon: ImageIcon, label: 'Images', type: 'image' },
   { icon: Film, label: 'Videos', type: 'video' },
@@ -37,14 +52,18 @@ export default function GalleryPage() {
   const selectedItem = selectedIndex !== null ? items[selectedIndex] : null;
 
   const fetchGallery = useCallback(
-    async (targetPage: number, targetFilter: GalleryFilterType, signal?: AbortSignal) => {
+    async (
+      targetPage: number,
+      targetFilter: GalleryFilterType,
+      signal?: AbortSignal,
+    ) => {
       try {
         const params = new URLSearchParams({
           page: String(targetPage),
           pageSize: '30',
           type: targetFilter,
         });
-        const response = await fetch(`/api/gallery?${params}`, { signal });
+        const response = await fetch(`/v1/core/gallery?${params}`, { signal });
         if (!response.ok) throw new Error('Failed to load gallery');
         const data: GalleryResponse = await response.json();
         setItems(data.items);
@@ -58,7 +77,7 @@ export default function GalleryPage() {
         setError(err instanceof Error ? err.message : 'Failed to load gallery');
       }
     },
-    []
+    [],
   );
 
   useEffect(() => {
@@ -87,7 +106,7 @@ export default function GalleryPage() {
       await fetchGallery(1, newFilter);
       setIsRefreshing(false);
     },
-    [fetchGallery]
+    [fetchGallery],
   );
 
   const handlePageChange = useCallback(
@@ -98,7 +117,7 @@ export default function GalleryPage() {
       setIsRefreshing(false);
       window.scrollTo({ behavior: 'smooth', top: 0 });
     },
-    [fetchGallery, filter]
+    [fetchGallery, filter],
   );
 
   const handleSelect = useCallback(
@@ -106,7 +125,7 @@ export default function GalleryPage() {
       const index = items.findIndex((i) => i.id === item.id);
       setSelectedIndex(index >= 0 ? index : null);
     },
-    [items]
+    [items],
   );
 
   const handlePrev = useCallback(() => {
@@ -122,7 +141,7 @@ export default function GalleryPage() {
   const handleDelete = useCallback(
     async (item: GalleryItem) => {
       try {
-        const response = await fetch(`/api/gallery/${item.path}`, {
+        const response = await fetch(`/v1/core/gallery/${item.path}`, {
           method: 'DELETE',
         });
         if (!response.ok) throw new Error('Failed to delete file');
@@ -147,7 +166,7 @@ export default function GalleryPage() {
         alert(err instanceof Error ? err.message : 'Failed to delete file');
       }
     },
-    [items, selectedIndex, page, filter, fetchGallery]
+    [items, selectedIndex, page, filter, fetchGallery],
   );
 
   const handleClose = useCallback(() => {
@@ -170,12 +189,15 @@ export default function GalleryPage() {
         pageSize: String(count),
         type: filter,
       });
-      const allResponse = await fetch(`/api/gallery?${params}`);
-      if (!allResponse.ok) throw new Error('Failed to fetch items for deletion');
+      const allResponse = await fetch(`/v1/core/gallery?${params}`);
+      if (!allResponse.ok)
+        throw new Error('Failed to fetch items for deletion');
       const allData: GalleryResponse = await allResponse.json();
 
       await Promise.all(
-        allData.items.map((item) => fetch(`/api/gallery/${item.path}`, { method: 'DELETE' }))
+        allData.items.map((item) =>
+          fetch(`/v1/core/gallery/${item.path}`, { method: 'DELETE' }),
+        ),
       );
 
       setSelectedIndex(null);
@@ -208,7 +230,9 @@ export default function GalleryPage() {
               className="h-8 w-auto"
               unoptimized
             />
-            <h1 className="text-xl font-semibold text-[var(--foreground)]">Gallery</h1>
+            <h1 className="text-xl font-semibold text-[var(--foreground)]">
+              Gallery
+            </h1>
           </div>
           <div className="flex items-center gap-3">
             <p className="text-sm text-[var(--muted-foreground)]">
@@ -245,7 +269,9 @@ export default function GalleryPage() {
                 >
                   <Icon className="w-4 h-4" />
                   {label}
-                  {type !== 'all' && <span className="text-xs opacity-60">({counts[type]})</span>}
+                  {type !== 'all' && (
+                    <span className="text-xs opacity-60">({counts[type]})</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -255,7 +281,9 @@ export default function GalleryPage() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-red-500/10 text-red-500 hover:bg-red-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Trash2 className="w-4 h-4" />
-              {isDeleting ? 'Deleting...' : `Delete ${filter === 'all' ? 'All' : `${filter}s`}`}
+              {isDeleting
+                ? 'Deleting...'
+                : `Delete ${filter === 'all' ? 'All' : `${filter}s`}`}
             </button>
           </div>
         )}
@@ -264,7 +292,9 @@ export default function GalleryPage() {
         {isLoading && (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            <p className="text-sm text-[var(--muted-foreground)]">Loading gallery...</p>
+            <p className="text-sm text-[var(--muted-foreground)]">
+              Loading gallery...
+            </p>
           </div>
         )}
 
@@ -287,7 +317,9 @@ export default function GalleryPage() {
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--secondary)] flex items-center justify-center">
               <ImageIcon className="w-8 h-8 text-[var(--muted-foreground)]" />
             </div>
-            <h3 className="text-lg font-medium text-[var(--foreground)] mb-2">No assets yet</h3>
+            <h3 className="text-lg font-medium text-[var(--foreground)] mb-2">
+              No assets yet
+            </h3>
             <p className="text-[var(--muted-foreground)] mb-6">
               Generated images, videos, and audio will appear here
             </p>
@@ -311,7 +343,11 @@ export default function GalleryPage() {
         {!isLoading && !error && items.length > 0 && (
           <>
             <GalleryGrid items={items} onSelect={handleSelect} />
-            <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+            />
           </>
         )}
       </main>

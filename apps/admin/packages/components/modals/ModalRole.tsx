@@ -1,9 +1,9 @@
-import type { IRole } from '@genfeedai/interfaces';
 import FormControl from '@components/forms/base/form-control/FormControl';
 import ModalActions from '@components/modals/actions/ModalActions';
 import Modal from '@components/modals/modal/Modal';
 import { type RoleSchema, roleSchema } from '@genfeedai/client/schemas';
 import { AlertCategory, ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import type { IRole } from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,

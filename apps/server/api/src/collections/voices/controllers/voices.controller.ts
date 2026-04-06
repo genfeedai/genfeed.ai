@@ -35,11 +35,6 @@ import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
-import type {
-  JsonApiCollectionResponse,
-  JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
-import { VoiceCloneSerializer, VoiceSerializer } from '@genfeedai/serializers';
 import {
   ActivitySource,
   AssetScope,
@@ -50,6 +45,11 @@ import {
   VoiceCloneStatus,
   VoiceProvider,
 } from '@genfeedai/enums';
+import type {
+  JsonApiCollectionResponse,
+  JsonApiSingleResponse,
+} from '@genfeedai/interfaces';
+import { VoiceCloneSerializer, VoiceSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {

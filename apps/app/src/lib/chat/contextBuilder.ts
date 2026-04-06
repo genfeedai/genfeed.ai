@@ -71,7 +71,10 @@ export interface WorkflowContext {
 /**
  * Formats a binary field placeholder with metadata.
  */
-function formatBinaryPlaceholder(value: string | string[], fieldName: string): string {
+function formatBinaryPlaceholder(
+  value: string | string[],
+  fieldName: string,
+): string {
   if (Array.isArray(value)) {
     if (value.length === 0) return '[no media]';
     return `[${value.length} item(s)]`;
@@ -106,7 +109,10 @@ export function stripBinaryData(nodes: WorkflowNode[]): StrippedNode[] {
         if (value === null || value === undefined) {
           strippedData[key] = value;
         } else {
-          strippedData[key] = formatBinaryPlaceholder(value as string | string[], key);
+          strippedData[key] = formatBinaryPlaceholder(
+            value as string | string[],
+            key,
+          );
         }
       } else {
         strippedData[key] = value;
@@ -127,7 +133,7 @@ export function stripBinaryData(nodes: WorkflowNode[]): StrippedNode[] {
  */
 export function buildWorkflowContext(
   nodes: WorkflowNode[],
-  edges: WorkflowEdge[]
+  edges: WorkflowEdge[],
 ): WorkflowContext {
   const isEmpty = nodes.length === 0;
   const strippedNodes = stripBinaryData(nodes);

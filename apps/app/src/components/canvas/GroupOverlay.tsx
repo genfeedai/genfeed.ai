@@ -1,7 +1,12 @@
 'use client';
 
 import type { WorkflowNode } from '@genfeedai/types';
-import { useNodes, useReactFlow, useViewport, ViewportPortal } from '@xyflow/react';
+import {
+  useNodes,
+  useReactFlow,
+  useViewport,
+  ViewportPortal,
+} from '@xyflow/react';
 import { clsx } from 'clsx';
 import { Lock, Palette, Trash2, Unlock } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -24,7 +29,7 @@ export interface GroupBounds {
  */
 function calculateGroupBounds(
   nodeIds: string[],
-  nodeMap: Map<string, WorkflowNode>
+  nodeMap: Map<string, WorkflowNode>,
 ): GroupBounds | null {
   if (nodeIds.length === 0) return null;
 
@@ -77,7 +82,7 @@ function GroupBackground({ group, bounds }: GroupBackgroundProps) {
         'absolute rounded-lg border-2 border-dashed',
         colors.bg,
         colors.border,
-        group.isLocked && 'opacity-60'
+        group.isLocked && 'opacity-60',
       )}
       style={{
         height: bounds.height,
@@ -102,7 +107,8 @@ interface GroupControlsProps {
  */
 function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
   const { setNodes } = useReactFlow();
-  const { toggleGroupLock, deleteGroup, setGroupColor, setDirty, renameGroup } = useWorkflowStore();
+  const { toggleGroupLock, deleteGroup, setGroupColor, setDirty, renameGroup } =
+    useWorkflowStore();
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(group.name);
@@ -112,7 +118,9 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
   // Drag state
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef<{ x: number; y: number } | null>(null);
-  const nodeStartPositionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  const nodeStartPositionsRef = useRef<Map<string, { x: number; y: number }>>(
+    new Map(),
+  );
 
   // Update edit name when group name changes externally
   useEffect(() => {
@@ -132,7 +140,10 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
   // Close color picker when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (colorPickerRef.current && !colorPickerRef.current.contains(e.target as Node)) {
+      if (
+        colorPickerRef.current &&
+        !colorPickerRef.current.contains(e.target as Node)
+      ) {
         setShowColorPicker(false);
       }
     };
@@ -161,7 +172,7 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
         setIsEditing(false);
       }
     },
-    [handleNameSubmit, group.name]
+    [handleNameSubmit, group.name],
   );
 
   // Handle drag start on group header
@@ -191,7 +202,7 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
       }
       nodeStartPositionsRef.current = positions;
     },
-    [group.isLocked, group.nodeIds, nodeMap]
+    [group.isLocked, group.nodeIds, nodeMap],
   );
 
   // Handle drag move and end
@@ -216,7 +227,7 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
               y: startPos.y + deltaY,
             },
           };
-        })
+        }),
       );
     };
 
@@ -254,7 +265,7 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
           'border-2 border-b-0 border-dashed',
           !group.isLocked && 'cursor-grab',
           isDragging && 'cursor-grabbing',
-          group.isLocked && 'opacity-60'
+          group.isLocked && 'opacity-60',
         )}
         style={{
           height: HEADER_HEIGHT,
@@ -274,7 +285,7 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
             onKeyDown={handleKeyDown}
             className={clsx(
               'flex-1 bg-transparent border-none outline-none text-sm font-medium px-0 py-0',
-              colors.text
+              colors.text,
             )}
             style={{ minWidth: 0 }}
           />
@@ -295,7 +306,10 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
                 e.stopPropagation();
                 setShowColorPicker(!showColorPicker);
               }}
-              className={clsx('p-1 rounded hover:bg-white/10 transition-colors', colors.text)}
+              className={clsx(
+                'p-1 rounded hover:bg-white/10 transition-colors',
+                colors.text,
+              )}
               title="Change group color"
             >
               <Palette className="w-4 h-4" />
@@ -312,7 +326,9 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
                     className={clsx(
                       'w-6 h-6 rounded-md border-2 transition-transform hover:scale-110',
                       GROUP_COLORS[color].bg,
-                      color === group.color ? 'border-white' : 'border-transparent'
+                      color === group.color
+                        ? 'border-white'
+                        : 'border-transparent',
                     )}
                     title={color}
                   />
@@ -325,17 +341,27 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
               e.stopPropagation();
               toggleGroupLock(group.id);
             }}
-            className={clsx('p-1 rounded hover:bg-white/10 transition-colors', colors.text)}
+            className={clsx(
+              'p-1 rounded hover:bg-white/10 transition-colors',
+              colors.text,
+            )}
             title={group.isLocked ? 'Unlock group' : 'Lock group'}
           >
-            {group.isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+            {group.isLocked ? (
+              <Lock className="w-4 h-4" />
+            ) : (
+              <Unlock className="w-4 h-4" />
+            )}
           </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
               deleteGroup(group.id);
             }}
-            className={clsx('p-1 rounded hover:bg-white/10 transition-colors', colors.text)}
+            className={clsx(
+              'p-1 rounded hover:bg-white/10 transition-colors',
+              colors.text,
+            )}
             title="Delete group"
           >
             <Trash2 className="w-4 h-4" />
@@ -349,7 +375,7 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
           className={clsx(
             'absolute px-2 py-0.5 rounded text-xs font-medium pointer-events-none',
             colors.bg,
-            colors.text
+            colors.text,
           )}
           style={{
             left: bounds.x + 12,
@@ -392,11 +418,21 @@ function GroupBackgroundsPortalComponent() {
 
   return (
     <ViewportPortal>
-      <div style={{ left: 0, pointerEvents: 'none', position: 'absolute', top: 0, zIndex: -1 }}>
+      <div
+        style={{
+          left: 0,
+          pointerEvents: 'none',
+          position: 'absolute',
+          top: 0,
+          zIndex: -1,
+        }}
+      >
         {groups.map((group) => {
           const bounds = groupBounds.get(group.id);
           if (!bounds) return null;
-          return <GroupBackground key={group.id} group={group} bounds={bounds} />;
+          return (
+            <GroupBackground key={group.id} group={group} bounds={bounds} />
+          );
         })}
       </div>
     </ViewportPortal>
@@ -433,7 +469,15 @@ function GroupControlsOverlayComponent() {
 
   return (
     <ViewportPortal>
-      <div style={{ left: 0, pointerEvents: 'none', position: 'absolute', top: 0, zIndex: 1000 }}>
+      <div
+        style={{
+          left: 0,
+          pointerEvents: 'none',
+          position: 'absolute',
+          top: 0,
+          zIndex: 1000,
+        }}
+      >
         {groups.map((group) => {
           const bounds = groupBounds.get(group.id);
           if (!bounds) return null;

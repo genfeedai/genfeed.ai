@@ -7,7 +7,10 @@ export interface JobSlice {
   getJobByNodeId: (nodeId: string) => Job | undefined;
 }
 
-export const createJobSlice: StateCreator<ExecutionStore, [], [], JobSlice> = (set, get) => ({
+export const createJobSlice: StateCreator<ExecutionStore, [], [], JobSlice> = (
+  set,
+  get,
+) => ({
   addJob: (nodeId, predictionId) => {
     set((state) => {
       const newJobs = new Map(state.jobs);

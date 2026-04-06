@@ -1,6 +1,6 @@
+import type { WorkflowNodeData } from '@genfeedai/types';
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { WorkflowNodeData } from '@genfeedai/types';
 import { useNodeFieldUpdater } from './useNodeFieldUpdater';
 
 const mockUpdateNodeData = vi.fn();
@@ -24,13 +24,17 @@ describe('useNodeFieldUpdater', () => {
   });
 
   it('returns a factory function', () => {
-    const { result } = renderHook(() => useNodeFieldUpdater<TestNodeData>('node-1'));
+    const { result } = renderHook(() =>
+      useNodeFieldUpdater<TestNodeData>('node-1'),
+    );
 
     expect(typeof result.current).toBe('function');
   });
 
   it('calls updateNodeData with correct field and raw value when no transform', () => {
-    const { result } = renderHook(() => useNodeFieldUpdater<TestNodeData>('node-1'));
+    const { result } = renderHook(() =>
+      useNodeFieldUpdater<TestNodeData>('node-1'),
+    );
 
     const handler = result.current('model');
     handler('flux-pro');
@@ -41,7 +45,9 @@ describe('useNodeFieldUpdater', () => {
   });
 
   it('calls updateNodeData with transform applied', () => {
-    const { result } = renderHook(() => useNodeFieldUpdater<TestNodeData>('node-1'));
+    const { result } = renderHook(() =>
+      useNodeFieldUpdater<TestNodeData>('node-1'),
+    );
 
     const handler = result.current('scale', (v) => Number(v));
     handler('4');
@@ -52,7 +58,9 @@ describe('useNodeFieldUpdater', () => {
   });
 
   it('uses the nodeId passed to the hook', () => {
-    const { result } = renderHook(() => useNodeFieldUpdater<TestNodeData>('node-42'));
+    const { result } = renderHook(() =>
+      useNodeFieldUpdater<TestNodeData>('node-42'),
+    );
 
     const handler = result.current('model');
     handler('sd-xl');
@@ -63,7 +71,9 @@ describe('useNodeFieldUpdater', () => {
   });
 
   it('returns a stable factory reference when nodeId does not change', () => {
-    const { result, rerender } = renderHook(() => useNodeFieldUpdater<TestNodeData>('node-1'));
+    const { result, rerender } = renderHook(() =>
+      useNodeFieldUpdater<TestNodeData>('node-1'),
+    );
 
     const first = result.current;
     rerender();

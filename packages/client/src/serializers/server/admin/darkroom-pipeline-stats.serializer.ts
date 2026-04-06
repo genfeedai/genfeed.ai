@@ -1,7 +1,5 @@
-import { buildSingleSerializer, type BuiltSerializer } from '../../builders';
+import { type BuiltSerializer, buildSingleSerializer } from '../../builders';
 import { darkroomPipelineStatsSerializerConfig } from '../../configs';
 
-export const DarkroomPipelineStatsSerializer: BuiltSerializer = buildSingleSerializer(
-  'server',
-  darkroomPipelineStatsSerializerConfig,
-);
+export const DarkroomPipelineStatsSerializer: BuiltSerializer =
+  buildSingleSerializer('server', darkroomPipelineStatsSerializerConfig);

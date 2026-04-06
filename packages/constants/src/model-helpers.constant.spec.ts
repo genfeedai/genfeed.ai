@@ -1,10 +1,10 @@
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ModelCategory } from '@genfeedai/enums';
-import {
-  type ImageModelCapability,
-  MODEL_OUTPUT_CAPABILITIES,
-  type ModelOutputCapability,
-  type VideoModelCapability,
+
+import type {
+  ImageModelCapability,
+  ModelOutputCapability,
+  VideoModelCapability,
 } from './model-capabilities.constant';
 import {
   getModelDefaultDuration,

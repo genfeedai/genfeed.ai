@@ -16,11 +16,11 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { ThreadsService } from '@api/services/integrations/threads/services/threads.service';
 import type { User } from '@clerk/backend';
+import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
 } from '@genfeedai/serializers';
-import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';

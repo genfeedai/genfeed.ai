@@ -136,7 +136,7 @@ function buildExplainPrompt(
     'Include what the code does, why it matters, and any interesting patterns or techniques used.',
     `Tailor the tone and length for ${platform}.`,
     '',
-    '```' + language,
+    `\`\`\`${language}`,
     code,
     '```',
   ].join('\n');
@@ -158,7 +158,7 @@ function extractGeneratedText(
   }
 
   // Nested: output.data.text or output.data.content
-  const data = output['data'];
+  const data = output.data;
   if (data && typeof data === 'object') {
     const dataObj = data as Record<string, unknown>;
     for (const key of ['text', 'content', 'result', 'post', 'body']) {

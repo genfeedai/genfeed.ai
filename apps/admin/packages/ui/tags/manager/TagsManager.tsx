@@ -1,13 +1,13 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import type { ITag } from '@genfeedai/interfaces';
 import {
   ButtonSize,
   ButtonVariant,
   ComponentSize,
   TagCategory,
 } from '@genfeedai/enums';
+import type { ITag } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type { TagsManagerComponentProps } from '@props/content/tags-manager.props';

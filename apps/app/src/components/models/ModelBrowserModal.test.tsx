@@ -1,5 +1,11 @@
 import type { ProviderModel } from '@genfeedai/types';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ModelBrowserModal } from './ModelBrowserModal';
 
@@ -19,11 +25,15 @@ vi.mock('@/store/settingsStore', () => {
       huggingface: { apiKey: null },
       replicate: { apiKey: 'test-key' },
     },
-    recentModels: [{ displayName: 'FLUX.1-dev', id: 'flux-dev', provider: 'replicate' }],
+    recentModels: [
+      { displayName: 'FLUX.1-dev', id: 'flux-dev', provider: 'replicate' },
+    ],
   };
 
   return {
-    useSettingsStore: vi.fn((selector: (s: unknown) => unknown) => selector(state)),
+    useSettingsStore: vi.fn((selector: (s: unknown) => unknown) =>
+      selector(state),
+    ),
   };
 });
 
@@ -52,7 +62,9 @@ vi.mock('@/components/ui/button', () => ({
 }));
 
 vi.mock('@/components/ui/input', () => ({
-  Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
+  Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => (
+    <input {...props} />
+  ),
 }));
 
 describe('ModelBrowserModal', () => {
@@ -99,7 +111,9 @@ describe('ModelBrowserModal', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    global.fetch = vi.fn().mockResolvedValue(mockFetchResponse) as unknown as typeof fetch;
+    global.fetch = vi
+      .fn()
+      .mockResolvedValue(mockFetchResponse) as unknown as typeof fetch;
   });
 
   afterEach(() => {
@@ -108,7 +122,9 @@ describe('ModelBrowserModal', () => {
 
   describe('rendering', () => {
     it('should not render when not open', () => {
-      const { container } = render(<ModelBrowserModal {...defaultProps} isOpen={false} />);
+      const { container } = render(
+        <ModelBrowserModal {...defaultProps} isOpen={false} />,
+      );
 
       expect(container.firstChild).toBeNull();
     });
@@ -120,7 +136,9 @@ describe('ModelBrowserModal', () => {
     });
 
     it('should render custom title', () => {
-      render(<ModelBrowserModal {...defaultProps} title="Select Image Model" />);
+      render(
+        <ModelBrowserModal {...defaultProps} title="Select Image Model" />,
+      );
 
       expect(screen.getByText('Select Image Model')).toBeInTheDocument();
     });
@@ -128,7 +146,9 @@ describe('ModelBrowserModal', () => {
     it('should render search input', () => {
       render(<ModelBrowserModal {...defaultProps} />);
 
-      expect(screen.getByPlaceholderText('Search models...')).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText('Search models...'),
+      ).toBeInTheDocument();
     });
 
     it('should render provider filter buttons after fetch', async () => {
@@ -157,7 +177,9 @@ describe('ModelBrowserModal', () => {
       render(<ModelBrowserModal {...defaultProps} />);
 
       await waitFor(() => {
-        expect(screen.getAllByText('FLUX.1-dev').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('FLUX.1-dev').length).toBeGreaterThanOrEqual(
+          1,
+        );
       });
 
       expect(screen.getByText('Stable Diffusion XL')).toBeInTheDocument();
@@ -169,7 +191,7 @@ describe('ModelBrowserModal', () => {
         () =>
           new Promise((resolve) => {
             resolveFetch = resolve;
-          })
+          }),
       ) as unknown as typeof fetch;
 
       render(<ModelBrowserModal {...defaultProps} />);
@@ -183,7 +205,9 @@ describe('ModelBrowserModal', () => {
       });
 
       await waitFor(() => {
-        expect(screen.getAllByText('FLUX.1-dev').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('FLUX.1-dev').length).toBeGreaterThanOrEqual(
+          1,
+        );
       });
     });
   });
@@ -203,7 +227,7 @@ describe('ModelBrowserModal', () => {
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
           expect.stringContaining('query=flux'),
-          expect.any(Object)
+          expect.any(Object),
         );
       });
     });
@@ -223,7 +247,7 @@ describe('ModelBrowserModal', () => {
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
           expect.stringContaining('provider=fal'),
-          expect.any(Object)
+          expect.any(Object),
         );
       });
     });
@@ -234,7 +258,9 @@ describe('ModelBrowserModal', () => {
       render(<ModelBrowserModal {...defaultProps} />);
 
       await waitFor(() => {
-        expect(screen.getAllByText('FLUX.1-dev').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('FLUX.1-dev').length).toBeGreaterThanOrEqual(
+          1,
+        );
       });
 
       const fluxElements = screen.getAllByText('FLUX.1-dev');
@@ -248,7 +274,9 @@ describe('ModelBrowserModal', () => {
       render(<ModelBrowserModal {...defaultProps} />);
 
       await waitFor(() => {
-        expect(screen.getAllByText('FLUX.1-dev').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('FLUX.1-dev').length).toBeGreaterThanOrEqual(
+          1,
+        );
       });
 
       const fluxElements = screen.getAllByText('FLUX.1-dev');
@@ -266,7 +294,9 @@ describe('ModelBrowserModal', () => {
       render(<ModelBrowserModal {...defaultProps} />);
 
       await waitFor(() => {
-        expect(screen.getAllByText('FLUX.1-dev').length).toBeGreaterThanOrEqual(1);
+        expect(screen.getAllByText('FLUX.1-dev').length).toBeGreaterThanOrEqual(
+          1,
+        );
       });
 
       const fluxElements = screen.getAllByText('FLUX.1-dev');
@@ -304,13 +334,18 @@ describe('ModelBrowserModal', () => {
   describe('capability filtering', () => {
     it('should pass capabilities to API', async () => {
       render(
-        <ModelBrowserModal {...defaultProps} capabilities={['text-to-image', 'image-to-image']} />
+        <ModelBrowserModal
+          {...defaultProps}
+          capabilities={['text-to-image', 'image-to-image']}
+        />,
       );
 
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
-          expect.stringContaining('capabilities=text-to-image%2Cimage-to-image'),
-          expect.any(Object)
+          expect.stringContaining(
+            'capabilities=text-to-image%2Cimage-to-image',
+          ),
+          expect.any(Object),
         );
       });
     });

@@ -166,7 +166,8 @@ describe('contextMenuStore', () => {
     });
 
     it('should switch from pane menu to selection menu', () => {
-      const { openPaneMenu, openSelectionMenu } = useContextMenuStore.getState();
+      const { openPaneMenu, openSelectionMenu } =
+        useContextMenuStore.getState();
 
       openPaneMenu(100, 100);
       openSelectionMenu(['node-1'], 200, 200);
@@ -177,7 +178,8 @@ describe('contextMenuStore', () => {
     });
 
     it('should switch from selection menu to node menu', () => {
-      const { openSelectionMenu, openNodeMenu } = useContextMenuStore.getState();
+      const { openSelectionMenu, openNodeMenu } =
+        useContextMenuStore.getState();
 
       openSelectionMenu(['node-1', 'node-2'], 100, 100);
       openNodeMenu('node-3', 300, 300);

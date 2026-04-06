@@ -1,9 +1,9 @@
-import type { ICredential } from '@genfeedai/interfaces';
 import {
   type CredentialSchema,
   credentialSchema,
 } from '@genfeedai/client/schemas';
 import { AlertCategory, ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import type { ICredential } from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,

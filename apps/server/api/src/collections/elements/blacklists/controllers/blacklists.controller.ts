@@ -21,9 +21,9 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
 import type { User } from '@clerk/backend';
+import { MemberRole } from '@genfeedai/enums';
 import type { SortObject } from '@genfeedai/interfaces';
 import { BlacklistSerializer } from '@genfeedai/serializers';
-import { MemberRole } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,

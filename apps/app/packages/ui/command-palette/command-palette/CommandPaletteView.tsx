@@ -86,22 +86,13 @@ export function CommandPaletteView({
         <div className="flex-shrink-0 flex items-center justify-between border-t border-white/[0.08] px-4 py-2 text-xs text-foreground/60">
           <div className="flex gap-4">
             <span>
-              <Kbd>
-                ↑↓
-              </Kbd>{' '}
-              Navigate
+              <Kbd>↑↓</Kbd> Navigate
             </span>
             <span>
-              <Kbd>
-                ↵
-              </Kbd>{' '}
-              Execute
+              <Kbd>↵</Kbd> Execute
             </span>
             <span>
-              <Kbd>
-                Esc
-              </Kbd>{' '}
-              Close
+              <Kbd>Esc</Kbd> Close
             </span>
           </div>
           <span>

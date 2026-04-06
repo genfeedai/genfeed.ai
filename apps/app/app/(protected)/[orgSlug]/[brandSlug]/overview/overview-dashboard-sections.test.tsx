@@ -1,5 +1,5 @@
-import type { IAgentRun } from '@genfeedai/interfaces';
 import { AgentExecutionStatus, AgentExecutionTrigger } from '@genfeedai/enums';
+import type { IAgentRun } from '@genfeedai/interfaces';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import { render, screen } from '@testing-library/react';
 import type { Key, ReactNode } from 'react';

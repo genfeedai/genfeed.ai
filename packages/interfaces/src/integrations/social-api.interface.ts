@@ -3,7 +3,10 @@
  * Used by TikTok, Instagram, Facebook, LinkedIn services
  */
 
-import { InstagramMediaStatus, TikTokPublishStatus } from '@genfeedai/enums';
+import type {
+  InstagramMediaStatus,
+  TikTokPublishStatus,
+} from '@genfeedai/enums';
 
 // TikTok interfaces
 export interface ITikTokCreatorInfo {

@@ -1,4 +1,3 @@
-import type { IOrganizationSetting } from '@genfeedai/interfaces';
 import FormControl from '@components/forms/base/form-control/FormControl';
 import ModalActions from '@components/modals/actions/ModalActions';
 import Modal from '@components/modals/modal/Modal';
@@ -7,6 +6,7 @@ import {
   subscriptionSchema,
 } from '@genfeedai/client/schemas';
 import { AlertCategory, ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import type { IOrganizationSetting } from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,

@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import React, { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 

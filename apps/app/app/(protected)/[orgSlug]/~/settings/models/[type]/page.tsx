@@ -1,6 +1,6 @@
-import ModelsTypePageClientContent from './page-content';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
+import ModelsTypePageClientContent from './page-content';
 
 export default function ModelsTypePage({
   params,

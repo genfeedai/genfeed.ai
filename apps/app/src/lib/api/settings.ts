@@ -68,20 +68,25 @@ export const settingsApi = {
    */
   addRecentModel: async (
     model: Omit<RecentModelData, 'timestamp'>,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<RecentModelData[]> => {
     return apiClient.post<RecentModelData[]>(
       '/settings/recent-models',
       model,
-      withSession({ signal })
+      withSession({ signal }),
     );
   },
 
   /**
    * Clear recent models
    */
-  clearRecentModels: async (signal?: AbortSignal): Promise<RecentModelData[]> => {
-    return apiClient.delete<RecentModelData[]>('/settings/recent-models', withSession({ signal }));
+  clearRecentModels: async (
+    signal?: AbortSignal,
+  ): Promise<RecentModelData[]> => {
+    return apiClient.delete<RecentModelData[]>(
+      '/settings/recent-models',
+      withSession({ signal }),
+    );
   },
   /**
    * Get all settings for current user
@@ -101,10 +106,17 @@ export const settingsApi = {
    * Update multiple settings at once
    */
   update: async (
-    data: { nodeDefaults?: NodeDefaultsData; uiPreferences?: UiPreferencesData },
-    signal?: AbortSignal
+    data: {
+      nodeDefaults?: NodeDefaultsData;
+      uiPreferences?: UiPreferencesData;
+    },
+    signal?: AbortSignal,
   ): Promise<SettingsData> => {
-    return apiClient.put<SettingsData>('/settings', data, withSession({ signal }));
+    return apiClient.put<SettingsData>(
+      '/settings',
+      data,
+      withSession({ signal }),
+    );
   },
 
   /**
@@ -112,12 +124,12 @@ export const settingsApi = {
    */
   updateNodeDefaults: async (
     defaults: NodeDefaultsData,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<NodeDefaultsData> => {
     return apiClient.put<NodeDefaultsData>(
       '/settings/node-defaults',
       defaults,
-      withSession({ signal })
+      withSession({ signal }),
     );
   },
 
@@ -126,12 +138,12 @@ export const settingsApi = {
    */
   updateUiPreferences: async (
     preferences: UiPreferencesData,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<UiPreferencesData> => {
     return apiClient.put<UiPreferencesData>(
       '/settings/ui-preferences',
       preferences,
-      withSession({ signal })
+      withSession({ signal }),
     );
   },
 };

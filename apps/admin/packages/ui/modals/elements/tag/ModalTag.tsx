@@ -1,4 +1,3 @@
-import type { ITag } from '@genfeedai/interfaces';
 import { type TagSchema, tagSchema } from '@genfeedai/client/schemas';
 import {
   AlertCategory,
@@ -6,6 +5,7 @@ import {
   ModalEnum,
   TagCategory,
 } from '@genfeedai/enums';
+import type { ITag } from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,

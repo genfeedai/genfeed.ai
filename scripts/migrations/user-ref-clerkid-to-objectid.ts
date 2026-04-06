@@ -33,9 +33,9 @@ config({
   path: resolve(__dirname, `../../apps/server/api/.env.${envSuffix}`),
 });
 
-const MONGODB_URL = process.env.MONGODB_URL;
-if (!MONGODB_URL) {
-  throw new Error(`MONGODB_URL is required (loaded from .env.${envSuffix})`);
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+  throw new Error(`MONGODB_URI is required (loaded from .env.${envSuffix})`);
 }
 
 const DRY_RUN = !process.argv.includes('--live');
@@ -74,7 +74,7 @@ async function main() {
   logger.log(`Mode: ${DRY_RUN ? 'DRY RUN' : 'LIVE'}`);
   logger.log('='.repeat(70));
 
-  const client = new MongoClient(MONGODB_URL);
+  const client = new MongoClient(MONGODB_URI);
   await client.connect();
   logger.log('Connected to MongoDB');
 

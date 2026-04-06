@@ -1,5 +1,3 @@
-import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
-import type { MasonryActionStates } from '@genfeedai/interfaces/hooks/hooks.interface';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AssetCategory,
@@ -8,6 +6,8 @@ import {
   IngredientStatus,
   ModalEnum,
 } from '@genfeedai/enums';
+import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
+import type { MasonryActionStates } from '@genfeedai/interfaces/hooks/hooks.interface';
 import { downloadIngredient } from '@helpers/media/download/download.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -795,7 +795,7 @@ export function useIngredientActions({
         return await onShare(ingredient);
       }
 
-      if (!ingredient || !ingredient.category) {
+      if (!ingredient?.category) {
         return;
       }
 
@@ -900,7 +900,7 @@ export function useIngredientActions({
         return await onUpdateMetadata(ingredient, field, value);
       }
 
-      if (!ingredient || !ingredient.metadata) {
+      if (!ingredient?.metadata) {
         return;
       }
       if (typeof ingredient.metadata !== 'object') {

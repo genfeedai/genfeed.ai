@@ -1,7 +1,7 @@
 'use client';
 
-import type { SocketResult } from '@genfeedai/interfaces/content/generation-payload.interface';
 import type { IngredientCategory } from '@genfeedai/enums';
+import type { SocketResult } from '@genfeedai/interfaces/content/generation-payload.interface';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';

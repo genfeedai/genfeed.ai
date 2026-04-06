@@ -1,6 +1,6 @@
 'use client';
 
-import { IngredientCategory } from '@genfeedai/enums';
+import type { IngredientCategory } from '@genfeedai/enums';
 import {
   categoryToParam,
   paramToCategory,
@@ -46,7 +46,7 @@ function StudioPageContentInner() {
   // Reset redirect flag on URL change
   useEffect(() => {
     hasRedirectedRef.current = false;
-  }, [category]);
+  }, []);
 
   const handleCategoryChange = useCallback(
     (newCategory: IngredientCategory) => {

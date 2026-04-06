@@ -1,7 +1,7 @@
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
-import type { CreditsConfig } from '@genfeedai/interfaces';
 import { ActivitySource } from '@genfeedai/enums';
+import type { CreditsConfig } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { CallHandler, ExecutionContext } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';

@@ -1,5 +1,5 @@
-import type { IModel } from '@genfeedai/interfaces';
 import { ModelCategory, ModelProvider, RouterPriority } from '@genfeedai/enums';
+import type { IModel } from '@genfeedai/interfaces';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ModelSelectorPopover from '@ui/dropdowns/model-selector/ModelSelectorPopover';

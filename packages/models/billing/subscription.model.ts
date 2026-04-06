@@ -1,5 +1,5 @@
-import type { ISubscriptionPreview } from '@genfeedai/interfaces';
 import { Subscription as BaseSubscription } from '@genfeedai/client/models';
+import type { ISubscriptionPreview } from '@genfeedai/interfaces';
 import { User } from '@models/auth/user.model';
 import { Brand } from '@models/organization/brand.model';
 import { Organization } from '@models/organization/organization.model';

@@ -88,7 +88,9 @@ function validateTestingSection(lines) {
 
   const hasMeasurementEvidence =
     joined.includes('measurement evidence') &&
-    !joined.includes('measurement evidence (required only for performance, cost, or bundle-size claims):\n- ``');
+    !joined.includes(
+      'measurement evidence (required only for performance, cost, or bundle-size claims):\n- ``',
+    );
 
   return hasVerificationEvidence && hasMeasurementEvidence;
 }
@@ -174,7 +176,10 @@ function validateReleasePullRequestBody(body) {
     joined.includes(phrase),
   );
 
-  return hasLegacySummary || requiredReleaseSections.every((heading) => getSectionContent(markdown, heading) !== null)
+  return hasLegacySummary ||
+    requiredReleaseSections.every(
+      (heading) => getSectionContent(markdown, heading) !== null,
+    )
     ? []
     : [
         'Release PR body must summarize the promotion scope and validation performed.',

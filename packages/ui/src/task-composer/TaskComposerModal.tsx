@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Modal } from '../modals/compound/Modal';
-import { ContentTypePresets, type ContentType } from './ContentTypePresets';
+import { type ContentType, ContentTypePresets } from './ContentTypePresets';
 
 interface TaskComposerModalProps {
   isOpen: boolean;
@@ -54,7 +54,12 @@ export function TaskComposerModal({
   }
 
   return (
-    <Modal.Root open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
+    <Modal.Root
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) handleClose();
+      }}
+    >
       <Modal.Content size="lg" aria-describedby="task-composer-desc">
         <Modal.Header>
           <Modal.Title>Start a task</Modal.Title>
@@ -111,7 +116,11 @@ export function TaskComposerModal({
             disabled={isSubmitting || !title.trim()}
             onClick={handleSubmit}
           >
-            {isSubmitting ? 'Creating...' : prompt.trim() ? 'Create & Generate' : 'Create Task'}
+            {isSubmitting
+              ? 'Creating...'
+              : prompt.trim()
+                ? 'Create & Generate'
+                : 'Create Task'}
             {!isSubmitting && (
               <span className="ml-2 text-xs text-muted-foreground">⌘↵</span>
             )}

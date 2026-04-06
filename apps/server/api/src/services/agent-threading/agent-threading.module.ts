@@ -27,11 +27,17 @@ import {
   AgentThreadSnapshot,
   AgentThreadSnapshotSchema,
 } from '@api/services/agent-threading/schemas/agent-thread-snapshot.schema';
+import {
+  ThreadContextState,
+  ThreadContextStateSchema,
+} from '@api/services/agent-threading/schemas/thread-context-state.schema';
 import { AgentExecutionLaneService } from '@api/services/agent-threading/services/agent-execution-lane.service';
 import { AgentProfileResolverService } from '@api/services/agent-threading/services/agent-profile-resolver.service';
 import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { AgentThreadProjectorService } from '@api/services/agent-threading/services/agent-thread-projector.service';
+import { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
+import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { forwardRef, Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -44,6 +50,7 @@ import { MongooseModule } from '@nestjs/mongoose';
     AgentRuntimeSessionService,
     AgentThreadEngineService,
     AgentThreadProjectorService,
+    ThreadContextCompressorService,
   ],
   imports: [
     AgentThreadsModule,
@@ -51,6 +58,7 @@ import { MongooseModule } from '@nestjs/mongoose';
     AgentMessagesModule,
     UsersModule,
     forwardRef(() => AgentOrchestratorModule),
+    forwardRef(() => LlmDispatcherModule),
     LoggerModule,
     MongooseModule.forFeatureAsync(
       [
@@ -84,6 +92,12 @@ import { MongooseModule } from '@nestjs/mongoose';
           name: AgentProfileSnapshot.name,
           useFactory: () => AgentProfileSnapshotSchema,
         },
+        {
+          imports: [ConfigModule],
+          inject: [ConfigService],
+          name: ThreadContextState.name,
+          useFactory: () => ThreadContextStateSchema,
+        },
       ],
       DB_CONNECTIONS.AGENT,
     ),
@@ -94,6 +108,7 @@ import { MongooseModule } from '@nestjs/mongoose';
     AgentRuntimeSessionService,
     AgentThreadEngineService,
     AgentThreadProjectorService,
+    ThreadContextCompressorService,
   ],
 })
 export class AgentThreadingModule {}

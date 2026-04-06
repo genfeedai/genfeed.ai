@@ -2,7 +2,7 @@ import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
   createUpscaleExecutor,
-  UpscaleExecutor,
+  type UpscaleExecutor,
   type UpscaleResolver,
 } from '@workflow-engine/executors/saas/upscale-executor';
 import type { ExecutableNode } from '@workflow-engine/types';

@@ -1,6 +1,5 @@
 'use client';
 
-import type { IImage, IModel } from '@genfeedai/interfaces';
 import { VIDEO_FORMAT_DIMENSIONS } from '@genfeedai/constants';
 import {
   ButtonVariant,
@@ -12,6 +11,7 @@ import {
   ModelCategory,
   Platform,
 } from '@genfeedai/enums';
+import type { IImage, IModel } from '@genfeedai/interfaces';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useModalAutoOpen } from '@hooks/ui/use-modal-auto-open/use-modal-auto-open';
@@ -359,7 +359,7 @@ export default function ModalGenerateIllustration({
     return models.find((m) => m.key === defaultModelKey);
   }, [models, defaultModelKey]);
 
-  const modelCost = useMemo(() => {
+  const _modelCost = useMemo(() => {
     return defaultModel?.cost || 0;
   }, [defaultModel]);
 

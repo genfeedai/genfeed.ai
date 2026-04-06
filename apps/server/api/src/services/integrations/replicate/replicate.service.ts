@@ -1,6 +1,7 @@
-import type { ConfigService } from '@api/config/config.service';
+import { ConfigService } from '@api/config/config.service';
+import { IS_CLOUD } from '@genfeedai/config';
 import { MODEL_KEYS } from '@genfeedai/constants';
-import type { LoggerService } from '@libs/logger/logger.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import Replicate from 'replicate';
@@ -68,11 +69,17 @@ export class ReplicateService {
       this.loggerService.log(`${url} started`, { input, version });
 
       const client = this.getClientForRequest(apiKeyOverride);
+      const webhookUrl = IS_CLOUD
+        ? `${this.configService.get('GENFEEDAI_WEBHOOKS_URL')}/v1/webhooks/replicate/callback`
+        : undefined;
+
       const res = await client.predictions.create({
         input,
         version,
-        webhook: `${this.configService.get('GENFEEDAI_WEBHOOKS_URL')}/v1/webhooks/replicate/callback`,
-        webhook_events_filter: ['completed'],
+        ...(webhookUrl && {
+          webhook: webhookUrl,
+          webhook_events_filter: ['completed'],
+        }),
       });
 
       return res.id;
@@ -117,12 +124,18 @@ export class ReplicateService {
       });
 
       const client = this.getClientForRequest(apiKeyOverride);
+      const webhookUrl = IS_CLOUD
+        ? `${this.configService.get('GENFEEDAI_WEBHOOKS_URL')}/v1/webhooks/replicate/callback`
+        : undefined;
+
       const attempt = async () =>
         client.trainings.create(owner, model, version, {
           destination,
           input,
-          webhook: `${this.configService.get('GENFEEDAI_WEBHOOKS_URL')}/v1/webhooks/replicate/callback`,
-          webhook_events_filter: ['completed'],
+          ...(webhookUrl && {
+            webhook: webhookUrl,
+            webhook_events_filter: ['completed'],
+          }),
         });
 
       try {

@@ -24,6 +24,7 @@ import {
   MetadataExtension,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
 import { Types } from 'mongoose';
 
@@ -128,7 +129,7 @@ export class ActivityUpdateService {
         resultId: ingredientId,
         // @ts-expect-error TS2322
         resultType,
-        room: room || `user-${userId}`,
+        room: room || getUserRoomName(userId),
         status: 'completed',
         taskId: ingredientId,
         userId,
@@ -214,7 +215,7 @@ export class ActivityUpdateService {
         activityId: activity._id.toString(),
         error: errorMessage || 'Generation failed',
         label: getActivityLabel(activityKey),
-        room: room || `user-${userId}`,
+        room: room || getUserRoomName(userId),
         status: 'failed',
         taskId: ingredientId,
         userId,

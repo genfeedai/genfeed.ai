@@ -1,11 +1,11 @@
-import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vitest/config';
 import {
   createVitestWarningLogger,
   installVitestWarningFilter,
 } from '../../configs/vitest-warning-filter';
-import { defineConfig } from 'vitest/config';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 installVitestWarningFilter();
@@ -40,16 +40,34 @@ export default defineConfig({
         replacement: path.join(SERIALIZERS_SRC, '$1'),
       },
       { find: '@components', replacement: path.resolve(__dirname, '../ui') },
-      { find: '@ui-constants', replacement: path.resolve(__dirname, '../ui/constants') },
-      { find: '@contexts', replacement: path.resolve(__dirname, '../contexts') },
+      {
+        find: '@ui-constants',
+        replacement: path.resolve(__dirname, '../ui/constants'),
+      },
+      {
+        find: '@contexts',
+        replacement: path.resolve(__dirname, '../contexts'),
+      },
       { find: '@helpers', replacement: HELPERS_SRC },
       { find: /^@helpers\/(.*)$/, replacement: path.join(HELPERS_SRC, '$1') },
       { find: '@hooks', replacement: path.resolve(__dirname, '.') },
       { find: '@models', replacement: path.resolve(__dirname, '../models') },
       { find: '@props', replacement: path.resolve(__dirname, '../props') },
-      { find: '@providers', replacement: path.resolve(__dirname, '../providers') },
-      { find: '@services/core/logger.service', replacement: path.resolve(__dirname, './tests/__mocks__/logger.service.ts') },
-      { find: '@services', replacement: path.resolve(__dirname, '../services') },
+      {
+        find: '@providers',
+        replacement: path.resolve(__dirname, '../providers'),
+      },
+      {
+        find: '@services/core/logger.service',
+        replacement: path.resolve(
+          __dirname,
+          './tests/__mocks__/logger.service.ts',
+        ),
+      },
+      {
+        find: '@services',
+        replacement: path.resolve(__dirname, '../services'),
+      },
       { find: '@ui', replacement: path.resolve(__dirname, '../ui') },
       { find: '@utils', replacement: path.resolve(__dirname, '../utils') },
     ],

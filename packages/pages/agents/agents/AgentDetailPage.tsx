@@ -1,6 +1,11 @@
 'use client';
 
 import { AgentType, ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import {
+  DefinitionDetail,
+  DefinitionList,
+  DefinitionTerm,
+} from '@genfeedai/ui';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentRuns } from '@hooks/data/agent-runs/use-agent-runs';
 import { useAgentStrategy } from '@hooks/data/agent-strategies/use-agent-strategy';
@@ -15,11 +20,6 @@ import {
 } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import {
-  DefinitionDetail,
-  DefinitionList,
-  DefinitionTerm,
-} from '@genfeedai/ui';
 import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
@@ -318,10 +318,16 @@ export default function AgentDetailPage({ agentId }: AgentDetailPageProps) {
               </Badge>
             </div>
 
-            <DefinitionList variant="grid" className="mt-4 gap-3 text-sm md:grid-cols-2">
+            <DefinitionList
+              variant="grid"
+              className="mt-4 gap-3 text-sm md:grid-cols-2"
+            >
               <InsetSurface className="p-3" density="compact" tone="contrast">
                 <DefinitionTerm>Opportunity</DefinitionTerm>
-                <DefinitionDetail variant="inline" className="mt-1 text-foreground/85">
+                <DefinitionDetail
+                  variant="inline"
+                  className="mt-1 text-foreground/85"
+                >
                   {selectedOpportunity?.topic ??
                     (isOpportunitiesLoading
                       ? 'Loading opportunity...'
@@ -330,20 +336,29 @@ export default function AgentDetailPage({ agentId }: AgentDetailPageProps) {
               </InsetSurface>
               <InsetSurface className="p-3" density="compact" tone="contrast">
                 <DefinitionTerm>Status</DefinitionTerm>
-                <DefinitionDetail variant="inline" className="mt-1 capitalize text-foreground/85">
+                <DefinitionDetail
+                  variant="inline"
+                  className="mt-1 capitalize text-foreground/85"
+                >
                   {selectedOpportunity?.status ??
                     (isOpportunitiesLoading ? 'Loading' : 'Unavailable')}
                 </DefinitionDetail>
               </InsetSurface>
               <InsetSurface className="p-3" density="compact" tone="contrast">
                 <DefinitionTerm>Reason</DefinitionTerm>
-                <DefinitionDetail variant="inline" className="mt-1 text-foreground/85">
+                <DefinitionDetail
+                  variant="inline"
+                  className="mt-1 text-foreground/85"
+                >
                   {selectedOpportunity?.decisionReason ?? 'Not recorded'}
                 </DefinitionDetail>
               </InsetSurface>
               <InsetSurface className="p-3" density="compact" tone="contrast">
                 <DefinitionTerm>Expected traffic</DefinitionTerm>
-                <DefinitionDetail variant="inline" className="mt-1 text-foreground/85">
+                <DefinitionDetail
+                  variant="inline"
+                  className="mt-1 text-foreground/85"
+                >
                   {selectedOpportunity?.expectedTrafficScore ?? 'Not recorded'}
                 </DefinitionDetail>
               </InsetSurface>

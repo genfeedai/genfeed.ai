@@ -1,8 +1,8 @@
 'use client';
 
-import type { IImage, IMetadata, ITag } from '@genfeedai/interfaces';
 import type { IEvaluation } from '@genfeedai/client/models';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
+import type { IImage, IMetadata, ITag } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useEvaluation } from '@hooks/ui/evaluation/use-evaluation/use-evaluation';

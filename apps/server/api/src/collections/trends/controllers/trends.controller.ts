@@ -33,8 +33,8 @@ import {
   GetViralVideosDto,
 } from '@api/services/integrations/apify/dto/apify-trend.dto';
 import type { User } from '@clerk/backend';
-import { TrendSerializer } from '@genfeedai/serializers';
 import { ActivitySource, Timeframe } from '@genfeedai/enums';
+import { TrendSerializer } from '@genfeedai/serializers';
 import {
   Body,
   Controller,

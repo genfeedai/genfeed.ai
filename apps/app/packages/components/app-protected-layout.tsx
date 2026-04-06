@@ -23,7 +23,8 @@ import {
   STUDIO_LOGO_HREF,
   STUDIO_MENU_ITEMS,
 } from '@app-config/studio-menu-items.config';
-import { useAuth } from '@clerk/nextjs';
+import { CommandPaletteProvider } from '@contexts/features/command-palette.context';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AGENT_PANEL_OPEN_KEY,
   AgentApiService,
@@ -31,8 +32,6 @@ import {
   useAgentPageContext,
 } from '@genfeedai/agent';
 import { Kbd } from '@genfeedai/ui';
-import { CommandPaletteProvider } from '@contexts/features/command-palette.context';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { useUserRole } from '@hooks/auth/use-user-role';
 import { useAgentThreadCommands } from '@hooks/commands/use-agent-thread-commands/use-agent-thread-commands';
@@ -77,6 +76,7 @@ import {
   useState,
 } from 'react';
 import { HiPlus } from 'react-icons/hi2';
+import { useOptionalAuth } from '@/hooks/useOptionalAuth';
 
 type AgentPanelProps = {
   apiService: AgentApiService;
@@ -161,7 +161,10 @@ function ChatSidebarContent({
           >
             <HiPlus className="h-4 w-4 text-white/80 group-hover:text-white" />
             <span className="text-sm font-medium text-white/90">New Chat</span>
-            <Kbd variant="ghost" className="ml-auto text-[11px] opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+            <Kbd
+              variant="ghost"
+              className="ml-auto text-[11px] opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+            >
               ⌘⇧N
             </Kbd>
           </Link>
@@ -249,7 +252,7 @@ function AppLayoutWithDynamicMenu({
   const shouldInitAgentApiService = shouldMountAgentPanel || isChatRoute;
 
   const router = useRouter();
-  const { getToken } = useAuth();
+  const { getToken } = useOptionalAuth();
   const getTokenRef = useRef(getToken);
   useEffect(() => {
     getTokenRef.current = getToken;

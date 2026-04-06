@@ -1,4 +1,4 @@
-import { buildSingleSerializer, type BuiltSerializer } from '../../builders';
+import { type BuiltSerializer, buildSingleSerializer } from '../../builders';
 import { avatarSerializerConfig } from '../../configs';
 
 const SERVER_AVATAR_ATTRIBUTES = [

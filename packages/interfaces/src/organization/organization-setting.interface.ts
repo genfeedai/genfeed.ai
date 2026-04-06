@@ -1,5 +1,5 @@
-import type { AgentAutonomyMode } from '@genfeedai/enums';
 import type { IOnboardingJourneyMissionState } from '@genfeedai/constants';
+import type { AgentAutonomyMode } from '@genfeedai/enums';
 import type { IBaseEntity } from '../index';
 
 export type AgentPolicyQualityTier = 'budget' | 'balanced' | 'high_quality';

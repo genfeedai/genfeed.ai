@@ -45,8 +45,9 @@ import {
 } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
-import type { LoggerService } from '@libs/logger/logger.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Body, Controller, Param, Post, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
 import { Types } from 'mongoose';
@@ -162,7 +163,7 @@ export class VideosUpscaleController {
         activityId: activity._id.toString(),
         label: 'Video Upscale',
         progress: 0,
-        room: `user-${user.id}`,
+        room: getUserRoomName(user.id),
         status: 'processing',
         taskId: ingredientData._id.toString(),
         userId: user.id,
@@ -179,7 +180,7 @@ export class VideosUpscaleController {
               status: WebSocketEventStatus.COMPLETED,
             },
             user.id,
-            `user-${user.id}`,
+            getUserRoomName(user.id),
           );
         }, 2_000);
 
@@ -238,7 +239,7 @@ export class VideosUpscaleController {
           ingredientId,
           websocketUrl,
           user.id,
-          `user-${user.id}`,
+          getUserRoomName(user.id),
         );
       }
 

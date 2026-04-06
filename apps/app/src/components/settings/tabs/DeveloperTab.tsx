@@ -1,9 +1,9 @@
 'use client';
 
+import { AlertTriangle, Bug, Code } from 'lucide-react';
 import { InfoBox, SettingsField } from '@/components/ui/settings-section';
 import { ToggleSwitch } from '@/components/ui/toggle-switch';
 import { useSettingsStore } from '@/store/settingsStore';
-import { AlertTriangle, Bug, Code } from 'lucide-react';
 
 export function DeveloperTab() {
   const { debugMode, setDebugMode } = useSettingsStore();
@@ -29,9 +29,14 @@ export function DeveloperTab() {
         />
 
         {debugMode && (
-          <InfoBox variant="warning" icon={AlertTriangle} title="Debug mode is active">
-            Use <strong>&quot;Run Selected&quot;</strong> to test nodes with mocked API calls. Full
-            workflow execution (&quot;Run Workflow&quot;) will still make real API calls.
+          <InfoBox
+            variant="warning"
+            icon={AlertTriangle}
+            title="Debug mode is active"
+          >
+            Use <strong>&quot;Run Selected&quot;</strong> to test nodes with
+            mocked API calls. Full workflow execution (&quot;Run Workflow&quot;)
+            will still make real API calls.
           </InfoBox>
         )}
       </div>
@@ -44,15 +49,21 @@ export function DeveloperTab() {
           </li>
           <li className="flex items-start gap-2">
             <span className="text-primary mt-0.5">&#8226;</span>
-            <span>Returns placeholder images/videos with &quot;DEBUG&quot; watermark</span>
+            <span>
+              Returns placeholder images/videos with &quot;DEBUG&quot; watermark
+            </span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-primary mt-0.5">&#8226;</span>
-            <span>Opens debug panel showing exact payloads that would be sent</span>
+            <span>
+              Opens debug panel showing exact payloads that would be sent
+            </span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-primary mt-0.5">&#8226;</span>
-            <span>Works with &quot;Run Selected&quot; for testing individual nodes</span>
+            <span>
+              Works with &quot;Run Selected&quot; for testing individual nodes
+            </span>
           </li>
         </ul>
       </InfoBox>

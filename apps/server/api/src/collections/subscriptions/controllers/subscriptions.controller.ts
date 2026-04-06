@@ -12,12 +12,12 @@ import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import type { User } from '@clerk/backend';
+import { SubscriptionPlan } from '@genfeedai/enums';
 import type {
   IChangePriceBodyParams,
   JsonApiCollectionResponse,
 } from '@genfeedai/interfaces';
 import { SubscriptionSerializer } from '@genfeedai/serializers';
-import { SubscriptionPlan } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,

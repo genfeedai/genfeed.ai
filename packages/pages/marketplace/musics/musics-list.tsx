@@ -1,12 +1,12 @@
 'use client';
 
-import type { IMetadata } from '@genfeedai/interfaces';
 import {
   GALLERY_EMPTY_MESSAGES,
   GALLERY_EMPTY_SIZE,
   GALLERY_GRID_CLASS,
 } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type { IMetadata } from '@genfeedai/interfaces';
 import { useGalleryList } from '@hooks/data/gallery/use-gallery-list/use-gallery-list';
 import type { Music } from '@models/ingredients/music.model';
 import { EnvironmentService } from '@services/core/environment.service';

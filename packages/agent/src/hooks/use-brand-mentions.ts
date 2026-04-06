@@ -1,5 +1,5 @@
-import type { BrandMentionItem } from '@genfeedai/agent/types/mention.types';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import type { BrandMentionItem } from '@genfeedai/agent/types/mention.types';
 import { useMemo } from 'react';
 
 interface UseBrandMentionsReturn {

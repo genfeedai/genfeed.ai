@@ -1,9 +1,9 @@
-import type { IListing, IPurchase, ISeller } from '@genfeedai/interfaces';
 import type {
   ListingStatus,
   ListingType,
   SellerStatus,
 } from '@genfeedai/enums';
+import type { IListing, IPurchase, ISeller } from '@genfeedai/interfaces';
 import {
   deserializeCollection,
   deserializeResource,

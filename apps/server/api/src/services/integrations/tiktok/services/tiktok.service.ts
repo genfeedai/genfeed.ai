@@ -4,6 +4,11 @@ import { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { ConfigService } from '@api/config/config.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
+import {
+  CredentialPlatform,
+  OAuthGrantType,
+  TikTokPublishStatus,
+} from '@genfeedai/enums';
 import type {
   ISocialTrend,
   ITikTokCreatorInfo,
@@ -12,11 +17,6 @@ import type {
   ITikTokPublishStatusData,
   ITikTokVideo,
 } from '@genfeedai/interfaces';
-import {
-  CredentialPlatform,
-  OAuthGrantType,
-  TikTokPublishStatus,
-} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';

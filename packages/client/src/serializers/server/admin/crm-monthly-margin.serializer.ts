@@ -1,7 +1,5 @@
-import { buildSingleSerializer, type BuiltSerializer } from '../../builders';
+import { type BuiltSerializer, buildSingleSerializer } from '../../builders';
 import { crmMonthlyMarginSerializerConfig } from '../../configs';
 
-export const CrmMonthlyMarginSerializer: BuiltSerializer = buildSingleSerializer(
-  'server',
-  crmMonthlyMarginSerializerConfig,
-);
+export const CrmMonthlyMarginSerializer: BuiltSerializer =
+  buildSingleSerializer('server', crmMonthlyMarginSerializerConfig);

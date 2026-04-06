@@ -1,6 +1,6 @@
-import type { IModel } from '@genfeedai/interfaces';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import { applyMargin } from '@genfeedai/helpers';
+import type { IModel } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';

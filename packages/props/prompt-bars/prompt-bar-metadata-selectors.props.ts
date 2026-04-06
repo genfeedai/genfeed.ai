@@ -1,3 +1,4 @@
+import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import type {
   IElementCamera,
   IElementCameraMovement,
@@ -9,7 +10,6 @@ import type {
   IFontFamily,
   IPreset,
 } from '@genfeedai/interfaces';
-import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import type { PromptBarConfig } from '@props/studio/prompt-bar.props';
 import type { UseFormReturn } from 'react-hook-form';
 

@@ -40,7 +40,7 @@ for (const file of attrFiles) {
     const name = match[1];
     const importPath = `../src/attributes/${file.replace('.ts', '')}`;
     attrImports.push(`import { ${name} } from '${importPath}';`);
-    const category = file.split('/')[0];
+    const _category = file.split('/')[0];
     attrTests.push(`
   describe('${name}', () => {
     it('should be a non-empty array of strings', () => {
@@ -59,7 +59,7 @@ for (const file of attrFiles) {
   }
 }
 
-attrTestContent += attrImports.join('\n') + '\n\n';
+attrTestContent += `${attrImports.join('\n')}\n\n`;
 attrTestContent += `describe('Serializer Attributes', () => {\n${attrTests.join('\n')}\n});\n`;
 fs.writeFileSync(path.join(testDir, 'attributes.test.ts'), attrTestContent);
 
@@ -110,7 +110,7 @@ for (const file of configFiles) {
   }
 }
 
-configTestContent += configImports.join('\n') + '\n\n';
+configTestContent += `${configImports.join('\n')}\n\n`;
 configTestContent += `describe('Serializer Configs', () => {\n${configTests.join('\n')}\n});\n`;
 fs.writeFileSync(path.join(testDir, 'all-configs.test.ts'), configTestContent);
 
@@ -142,7 +142,7 @@ for (const file of serverFiles) {
   }
 }
 
-serverTestContent += serverImports.join('\n') + '\n\n';
+serverTestContent += `${serverImports.join('\n')}\n\n`;
 serverTestContent += `describe('Server Serializers', () => {\n${serverTests.join('\n')}\n});\n`;
 fs.writeFileSync(
   path.join(testDir, 'server-serializers.test.ts'),

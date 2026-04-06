@@ -38,17 +38,17 @@ import { OpenRouterService } from '@api/services/integrations/openrouter/service
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
-import type {
-  JsonApiCollectionResponse,
-  JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
-import { PromptSerializer } from '@genfeedai/serializers';
 import {
   ActivitySource,
   PromptStatus,
   Status,
   SystemPromptKey,
 } from '@genfeedai/enums';
+import type {
+  JsonApiCollectionResponse,
+  JsonApiSingleResponse,
+} from '@genfeedai/interfaces';
+import { PromptSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {

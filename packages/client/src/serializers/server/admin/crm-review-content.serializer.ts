@@ -1,7 +1,5 @@
-import { buildSingleSerializer, type BuiltSerializer } from '../../builders';
+import { type BuiltSerializer, buildSingleSerializer } from '../../builders';
 import { crmReviewContentSerializerConfig } from '../../configs';
 
-export const CrmReviewContentSerializer: BuiltSerializer = buildSingleSerializer(
-  'server',
-  crmReviewContentSerializerConfig,
-);
+export const CrmReviewContentSerializer: BuiltSerializer =
+  buildSingleSerializer('server', crmReviewContentSerializerConfig);

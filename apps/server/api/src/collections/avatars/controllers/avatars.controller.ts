@@ -21,12 +21,12 @@ import { HedraService } from '@api/services/integrations/hedra/services/hedra.se
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
 import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
+import { ActivitySource } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
 import { AvatarSerializer, IngredientSerializer } from '@genfeedai/serializers';
-import { ActivitySource } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {

@@ -1,9 +1,9 @@
 'use client';
 
-import { Modal, ModalTabs } from '@/components/ui/modal';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { Settings } from 'lucide-react';
 import { memo, useState } from 'react';
+import { Modal, ModalTabs } from '@/components/ui/modal';
 import { ApiKeysTab } from './tabs/ApiKeysTab';
 import { AppearanceTab } from './tabs/AppearanceTab';
 import { DefaultsTab } from './tabs/DefaultsTab';

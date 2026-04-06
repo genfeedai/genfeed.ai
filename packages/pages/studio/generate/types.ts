@@ -1,15 +1,20 @@
-import type { IFolder, IIngredient, IModel, IPreset } from '@genfeedai/interfaces';
+import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
+import type {
+  IngredientCategory,
+  IngredientFormat,
+  ViewType,
+} from '@genfeedai/enums';
+import type {
+  IFolder,
+  IIngredient,
+  IModel,
+  IPreset,
+} from '@genfeedai/interfaces';
 import type {
   AvatarVoiceData,
   AvatarVoiceOption,
 } from '@genfeedai/interfaces/studio/studio-generate.interface';
 import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
-import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import {
-  type IngredientCategory,
-  type IngredientFormat,
-  ViewType,
-} from '@genfeedai/enums';
 import type { MutableRefObject } from 'react';
 
 export interface UseAssetLoadingParams {

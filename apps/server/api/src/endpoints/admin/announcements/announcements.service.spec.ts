@@ -3,8 +3,8 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { AdminAnnouncementsService } from '@api/endpoints/admin/announcements/announcements.service';
 import type { BroadcastAnnouncementDto } from '@api/endpoints/admin/announcements/dto/broadcast-announcement.dto';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
-import { REDIS_EVENTS } from '@genfeedai/integrations';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { REDIS_EVENTS } from '@genfeedai/integrations';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { BadRequestException } from '@nestjs/common';
