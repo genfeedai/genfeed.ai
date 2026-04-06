@@ -17,8 +17,8 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import type { User } from '@clerk/backend';
-import { StripeUrlSerializer } from '@genfeedai/serializers';
 import { OrganizationCategory } from '@genfeedai/enums';
+import { StripeUrlSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {

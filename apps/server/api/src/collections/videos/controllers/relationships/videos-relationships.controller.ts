@@ -39,11 +39,6 @@ import { WhisperService } from '@api/services/whisper/whisper.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
-import {
-  IngredientSerializer,
-  PostSerializer,
-  VideoSerializer,
-} from '@genfeedai/serializers';
 import { JOB_TYPES } from '@files/queues/queue.constants';
 import {
   ActivityEntityModel,
@@ -59,6 +54,11 @@ import {
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/enums';
+import {
+  IngredientSerializer,
+  PostSerializer,
+  VideoSerializer,
+} from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {

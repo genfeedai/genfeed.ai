@@ -1,6 +1,6 @@
-import { OrgIntegration, REDIS_EVENTS } from '@genfeedai/integrations';
 import { ConfigService } from '@discord/config/config.service';
 import { DiscordBotManager } from '@discord/services/discord-bot-manager.service';
+import { OrgIntegration, REDIS_EVENTS } from '@genfeedai/integrations';
 import { RedisService } from '@libs/redis/redis.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';

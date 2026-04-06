@@ -10,6 +10,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AnalyticsMetric } from '@genfeedai/enums';
 import type {
   IAnalyticsMatchStage,
   IPlatformComparisonProjectedResult,
@@ -19,7 +20,6 @@ import type {
   IViralHookAggResult,
   IViralHookPlatformAggResult,
 } from '@genfeedai/interfaces';
-import { AnalyticsMetric } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { type PipelineStage, Types } from 'mongoose';

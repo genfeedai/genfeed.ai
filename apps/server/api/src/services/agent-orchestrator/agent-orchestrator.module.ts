@@ -34,13 +34,13 @@ import { AgentOrchestratorController } from '@api/services/agent-orchestrator/ag
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { SkillRuntimeModule } from '@api/services/skill-runtime/skill-runtime.module';
 import { AgentSpawnModule } from '@api/services/agent-spawn/agent-spawn.module';
 import { AgentThreadingModule } from '@api/services/agent-threading/agent-threading.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { ContentQualityModule } from '@api/services/content-quality/content-quality.module';
 import { ClerkModule } from '@api/services/integrations/clerk/clerk.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
+import { SkillRuntimeModule } from '@api/services/skill-runtime/skill-runtime.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';

@@ -33,7 +33,6 @@ import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builde
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { User } from '@clerk/backend';
-import { BatchInterpolationSerializer } from '@genfeedai/serializers';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -47,6 +46,7 @@ import {
   PromptCategory,
   PromptStatus,
 } from '@genfeedai/enums';
+import { BatchInterpolationSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {

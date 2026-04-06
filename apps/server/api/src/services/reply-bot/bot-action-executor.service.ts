@@ -1,13 +1,13 @@
 import { ConfigService } from '@api/config/config.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
+import { ReplyBotPlatform } from '@genfeedai/enums';
 import type {
   IReplyBotContentData,
   IReplyBotCredentialData,
   IReplyBotDmResult,
   IReplyBotReplyResult,
 } from '@genfeedai/interfaces';
-import { ReplyBotPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

@@ -19,8 +19,8 @@ import { InputValidationUtil } from '@api/helpers/utils/input-validation/input-v
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import type { User } from '@clerk/backend';
-import { SpeechTranscriptionSerializer } from '@genfeedai/serializers';
 import { FileInputType } from '@genfeedai/enums';
+import { SpeechTranscriptionSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {

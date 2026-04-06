@@ -40,7 +40,6 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import type { User } from '@clerk/backend';
-import { PromptSerializer } from '@genfeedai/serializers';
 import {
   ActivityKey,
   ActivitySource,
@@ -54,6 +53,7 @@ import {
   Status,
   SystemPromptKey,
 } from '@genfeedai/enums';
+import { PromptSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';

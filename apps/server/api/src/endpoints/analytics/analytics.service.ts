@@ -32,16 +32,16 @@ import type {
   AggregatePaginateModel,
   AggregatePaginateResult,
 } from '@api/types/mongoose-aggregate-paginate-v2';
-import type {
-  IAggregatedAnalyticsResult,
-  IAggregatedEngagementResult,
-  IEntityAnalyticsStats,
-} from '@genfeedai/interfaces';
 import {
   AnalyticsMetric,
   CredentialPlatform,
   PublishStatus,
 } from '@genfeedai/enums';
+import type {
+  IAggregatedAnalyticsResult,
+  IAggregatedEngagementResult,
+  IEntityAnalyticsStats,
+} from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';

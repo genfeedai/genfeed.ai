@@ -8,8 +8,8 @@ import {
   getMinimumTextCredits,
 } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
-import type { IExtractedBrandData, IMasterPrompt } from '@genfeedai/interfaces';
 import { ActivitySource } from '@genfeedai/enums';
+import type { IExtractedBrandData, IMasterPrompt } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

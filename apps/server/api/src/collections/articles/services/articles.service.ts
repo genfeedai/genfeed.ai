@@ -49,7 +49,6 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { AggregationCacheUtil } from '@api/shared/utils/aggregation-cache/aggregation-cache.util';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
-import type { PopulateOption } from '@genfeedai/interfaces';
 import {
   ActivitySource,
   ArticleCategory,
@@ -59,6 +58,7 @@ import {
   PromptTemplateKey,
   SystemPromptKey,
 } from '@genfeedai/enums';
+import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, NotFoundException, Optional } from '@nestjs/common';
