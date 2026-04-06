@@ -156,6 +156,7 @@ const DEFAULT_FORM_STATE: AgentStrategyFormState = {
   minPostScore: '70',
   monthlyCreditBudget: '500',
   platforms: ['twitter'],
+  skillSlugs: [],
   reserveTrendBudget: '125',
   runFrequency: AgentRunFrequency.DAILY,
   topics: '',
@@ -210,6 +211,7 @@ function buildFormState(
       strategy.budgetPolicy?.monthlyCreditBudget ?? 500,
     ),
     platforms: strategy.platforms ?? [],
+    skillSlugs: strategy.skillSlugs ?? [],
     reserveTrendBudget: String(
       strategy.budgetPolicy?.reserveTrendBudget ?? 125,
     ),
@@ -244,6 +246,7 @@ function buildPayload(form: AgentStrategyFormState): AgentStrategyPayload {
       trendWatchersEnabled: form.trendWatchersEnabled,
     },
     platforms: form.platforms,
+    skillSlugs: form.skillSlugs,
     publishPolicy: {
       autoPublishEnabled: form.autoPublishEnabled,
       minImageScore: Number(form.minImageScore) || 0,
@@ -482,6 +485,27 @@ function AgentStrategyDialog({
                 );
               })}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">Skill Slugs</p>
+            <Input
+              placeholder="e.g. content-writing, image-generation"
+              value={form.skillSlugs.join(', ')}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                setForm((prev) => ({
+                  ...prev,
+                  skillSlugs: event.target.value
+                    .split(',')
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+                }))
+              }
+            />
+            <p className="text-xs text-foreground/50">
+              Comma-separated skill slugs. Leave empty to use all brand-enabled
+              skills.
+            </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
@@ -944,6 +968,17 @@ export default function AgentStrategiesPage() {
           <span className="text-sm">
             {strategy.platforms.length > 0
               ? strategy.platforms.join(', ')
+              : '—'}
+          </span>
+        ),
+      },
+      {
+        header: 'Skills',
+        key: 'skillSlugs',
+        render: (strategy) => (
+          <span className="text-sm">
+            {strategy.skillSlugs.length > 0
+              ? strategy.skillSlugs.join(', ')
               : '—'}
           </span>
         ),
