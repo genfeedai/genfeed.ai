@@ -9,18 +9,24 @@ import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   HiOutlineBolt,
   HiOutlineDocumentDuplicate,
+  HiOutlineEllipsisVertical,
+  HiOutlineMagnifyingGlass,
   HiOutlinePlus,
   HiOutlineSparkles,
+  HiOutlineTrash,
 } from 'react-icons/hi2';
 import {
   createWorkflowApiService,
   type WorkflowSummary,
 } from '@/features/workflows/services/workflow-api';
 import { getLifecycleBadgeClass } from '@/features/workflows/utils/status-helpers';
+
+const SEARCH_DEBOUNCE_MS = 300;
 
 const DEFAULT_WORKFLOW_CARD_CDN =
   process.env.NEXT_PUBLIC_CDN_URL || 'https://cdn.genfeed.ai';
@@ -31,6 +37,25 @@ function isVideoUrl(url: string): boolean {
   const lowerUrl = url.toLowerCase();
   return videoExtensions.some((ext) => lowerUrl.includes(ext));
 }
+
+function formatRelativeTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
+
+// ---------------------------------------------------------------------------
+// WorkflowCardPreview
+// ---------------------------------------------------------------------------
 
 function WorkflowCardPreview({
   name,
@@ -44,7 +69,6 @@ function WorkflowCardPreview({
     if (!thumbnail || hasAssetError) {
       return DEFAULT_WORKFLOW_CARD_IMAGE;
     }
-
     return thumbnail;
   }, [hasAssetError, thumbnail]);
 
@@ -78,6 +102,86 @@ function WorkflowCardPreview({
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// WorkflowCardDropdown
+// ---------------------------------------------------------------------------
+
+function WorkflowCardDropdown({
+  onDuplicate,
+  onDelete,
+}: {
+  onDuplicate: () => void;
+  onDelete: () => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
+  return (
+    <div ref={dropdownRef} className="relative">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
+        className="rounded p-1 text-foreground/40 transition-colors hover:bg-white/[0.06] hover:text-foreground"
+      >
+        <HiOutlineEllipsisVertical className="size-4" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 top-7 z-20 min-w-[140px] rounded-lg border border-white/10 bg-card py-1 shadow-lg">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onDuplicate();
+              setIsOpen(false);
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-foreground transition-colors hover:bg-white/[0.06]"
+          >
+            <HiOutlineDocumentDuplicate className="size-4" />
+            Duplicate
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onDelete();
+              setIsOpen(false);
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-400 transition-colors hover:bg-white/[0.06]"
+          >
+            <HiOutlineTrash className="size-4" />
+            Delete
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// EmptyWorkflowState
+// ---------------------------------------------------------------------------
 
 function EmptyWorkflowState() {
   const { href } = useOrgUrl();
@@ -114,17 +218,39 @@ function EmptyWorkflowState() {
   );
 }
 
+// ---------------------------------------------------------------------------
+// WorkflowLibraryPage
+// ---------------------------------------------------------------------------
+
 /**
- * Workflow Library - List of saved workflows
+ * Workflow Library - List of saved workflows with search, cards, and actions
  */
 export default function WorkflowLibraryPage() {
   const { href } = useOrgUrl();
+  const router = useRouter();
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
+  );
 
   const getService = useAuthedService(createWorkflowApiService);
 
+  // Debounced search
+  useEffect(() => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    };
+  }, [searchInput]);
+
+  // Load workflows
   const loadWorkflows = useCallback(
     async (signal: AbortSignal) => {
       setIsLoading(true);
@@ -132,20 +258,17 @@ export default function WorkflowLibraryPage() {
 
       try {
         const service = await getService();
-        if (signal.aborted) {
-          return;
-        }
+        if (signal.aborted) return;
 
-        const data = await service.list();
-        if (signal.aborted) {
-          return;
-        }
+        const params: Record<string, unknown> = {};
+        if (debouncedSearch) params.search = debouncedSearch;
+
+        const data = await service.list(params);
+        if (signal.aborted) return;
 
         setWorkflows(data);
       } catch (err) {
-        if (signal.aborted) {
-          return;
-        }
+        if (signal.aborted) return;
         const message =
           err instanceof Error ? err.message : 'Failed to load workflows';
         logger.error('Failed to load workflows', { error: err });
@@ -156,7 +279,7 @@ export default function WorkflowLibraryPage() {
         }
       }
     },
-    [getService],
+    [getService, debouncedSearch],
   );
 
   useEffect(() => {
@@ -165,7 +288,52 @@ export default function WorkflowLibraryPage() {
     return () => controller.abort();
   }, [loadWorkflows]);
 
-  if (isLoading) {
+  // Actions
+  const handleDuplicate = useCallback(
+    async (id: string) => {
+      try {
+        const service = await getService();
+        const duplicated = await service.duplicate(id);
+        router.push(href(`/workflows/${duplicated._id}`));
+      } catch (err) {
+        logger.error('Failed to duplicate workflow', {
+          error: err,
+          workflowId: id,
+        });
+      }
+    },
+    [getService, router, href],
+  );
+
+  const handleDelete = useCallback(
+    async (id: string) => {
+      try {
+        const service = await getService();
+        await service.remove(id);
+        setWorkflows((prev) => prev.filter((w) => w._id !== id));
+      } catch (err) {
+        logger.error('Failed to delete workflow', {
+          error: err,
+          workflowId: id,
+        });
+      }
+    },
+    [getService],
+  );
+
+  // Filter client-side for instant feedback during debounce
+  const filteredWorkflows = useMemo(() => {
+    if (!searchInput || searchInput === debouncedSearch) return workflows;
+    const query = searchInput.toLowerCase();
+    return workflows.filter(
+      (w) =>
+        w.name.toLowerCase().includes(query) ||
+        w.description?.toLowerCase().includes(query),
+    );
+  }, [workflows, searchInput, debouncedSearch]);
+
+  // Loading skeleton
+  if (isLoading && workflows.length === 0) {
     return (
       <Container
         label="Workflows"
@@ -183,7 +351,7 @@ export default function WorkflowLibraryPage() {
             (skeletonId) => (
               <div
                 key={skeletonId}
-                className="h-48 animate-pulse rounded-lg border border-white/[0.06] bg-card"
+                className="h-64 animate-pulse rounded-lg border border-white/[0.06] bg-card"
               />
             ),
           )}
@@ -192,6 +360,7 @@ export default function WorkflowLibraryPage() {
     );
   }
 
+  // Error state
   if (error) {
     return (
       <Container
@@ -238,23 +407,64 @@ export default function WorkflowLibraryPage() {
         </>
       }
     >
+      {/* Search bar */}
+      <div className="mb-4 flex items-center gap-3">
+        <div className="relative flex-1 max-w-md">
+          <HiOutlineMagnifyingGlass className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground/40" />
+          <input
+            type="text"
+            placeholder="Search workflows..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="w-full rounded-lg border border-white/10 bg-white/[0.03] py-2 pl-9 pr-3 text-sm text-foreground placeholder:text-foreground/40 focus:border-white/20 focus:outline-none"
+          />
+        </div>
+        {isLoading && workflows.length > 0 && (
+          <div className="size-4 animate-spin rounded-full border-2 border-foreground/20 border-t-foreground/60" />
+        )}
+      </div>
+
+      {/* Contextual info */}
       <div className="mb-4 rounded-lg border border-white/10 bg-white/[0.03] p-4 text-sm text-foreground/70">
         <span className="font-medium text-foreground">Workflows</span> are
         explicit automation graphs. Schedule a workflow when the steps should be
-        predictable and repeatable. For adaptive agent behavior, use
+        predictable and repeatable. For adaptive agent behavior, use{' '}
         <Link
           href={href('/orchestration/autopilot')}
-          className="ml-1 underline underline-offset-2"
+          className="underline underline-offset-2"
         >
           Autopilot
         </Link>
         .
       </div>
-      {workflows.length === 0 ? (
+
+      {filteredWorkflows.length === 0 && !searchInput ? (
         <EmptyWorkflowState />
+      ) : filteredWorkflows.length === 0 && searchInput ? (
+        <div className="flex min-h-[200px] flex-col items-center justify-center gap-2 text-center">
+          <p className="text-sm text-foreground/50">
+            No workflows matching &ldquo;{searchInput}&rdquo;
+          </p>
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {workflows.map((workflow) => (
+          {/* New Workflow card */}
+          <Link
+            href={href('/workflows/new')}
+            className="group flex items-center justify-center rounded-lg border-2 border-dashed border-white/10 bg-card/40 p-4 transition-all duration-200 hover:border-white/20 hover:bg-card/60"
+          >
+            <div className="flex flex-col items-center gap-3 py-8">
+              <div className="flex size-14 items-center justify-center rounded-full bg-foreground/5 transition-all duration-300 group-hover:scale-110 group-hover:bg-foreground/10">
+                <HiOutlinePlus className="size-7 text-foreground/50" />
+              </div>
+              <span className="text-sm font-medium text-foreground/70">
+                New Workflow
+              </span>
+            </div>
+          </Link>
+
+          {/* Workflow cards */}
+          {filteredWorkflows.map((workflow) => (
             <Link key={workflow._id} href={href(`/workflows/${workflow._id}`)}>
               <Card
                 className="h-full hover:-translate-y-0.5"
@@ -264,13 +474,19 @@ export default function WorkflowLibraryPage() {
                   'Reusable automation workflow for content operations.'
                 }
                 headerAction={
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs ${getLifecycleBadgeClass(
-                      workflow.lifecycle,
-                    )}`}
-                  >
-                    {workflow.lifecycle}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs ${getLifecycleBadgeClass(
+                        workflow.lifecycle,
+                      )}`}
+                    >
+                      {workflow.lifecycle}
+                    </span>
+                    <WorkflowCardDropdown
+                      onDuplicate={() => handleDuplicate(workflow._id)}
+                      onDelete={() => handleDelete(workflow._id)}
+                    />
+                  </div>
                 }
                 bodyClassName="h-full justify-between"
               >
@@ -279,18 +495,13 @@ export default function WorkflowLibraryPage() {
                     name={workflow.name}
                     thumbnail={workflow.thumbnail}
                   />
-                  <div className="rounded border border-white/5 bg-background/40 px-3 py-2">
-                    <p className="text-xs uppercase tracking-[0.18em] text-foreground/40">
-                      Created
-                    </p>
-                    <p className="mt-1 text-sm text-foreground/70">
-                      {new Date(workflow.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
                   <div className="flex items-center justify-between text-xs text-foreground/50">
-                    <span>Open workflow</span>
-                    <span className="underline underline-offset-2">
-                      View details
+                    <span>
+                      Updated {formatRelativeTime(workflow.updatedAt)}
+                    </span>
+                    <span>
+                      Created{' '}
+                      {new Date(workflow.createdAt).toLocaleDateString()}
                     </span>
                   </div>
                 </div>
