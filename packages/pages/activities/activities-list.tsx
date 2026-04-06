@@ -1,6 +1,5 @@
 'use client';
 
-import type { IActivity, IIngredient } from '@genfeedai/interfaces';
 import {
   ActivityKey,
   ActivitySource,
@@ -9,6 +8,7 @@ import {
   IngredientCategory,
   Platform,
 } from '@genfeedai/enums';
+import type { IActivity, IIngredient } from '@genfeedai/interfaces';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import type { ActivitiesListProps } from '@props/content/activities.props';

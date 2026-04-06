@@ -1,5 +1,5 @@
-import { cn } from '@/lib/utils';
 import { forwardRef } from 'react';
+import { cn } from '@/lib/utils';
 
 export interface ToggleSwitchProps {
   checked: boolean;
@@ -10,7 +10,10 @@ export interface ToggleSwitchProps {
 }
 
 const ToggleSwitch = forwardRef<HTMLButtonElement, ToggleSwitchProps>(
-  ({ checked, onCheckedChange, activeColor = 'bg-primary', className }, ref) => (
+  (
+    { checked, onCheckedChange, activeColor = 'bg-primary', className },
+    ref,
+  ) => (
     <button
       ref={ref}
       type="button"
@@ -20,17 +23,17 @@ const ToggleSwitch = forwardRef<HTMLButtonElement, ToggleSwitchProps>(
       className={cn(
         'relative h-6 w-11 rounded-full transition-colors',
         checked ? activeColor : 'bg-border',
-        className
+        className,
       )}
     >
       <span
         className={cn(
           'absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform',
-          checked ? 'translate-x-5' : 'translate-x-0'
+          checked ? 'translate-x-5' : 'translate-x-0',
         )}
       />
     </button>
-  )
+  ),
 );
 ToggleSwitch.displayName = 'ToggleSwitch';
 

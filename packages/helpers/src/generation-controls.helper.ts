@@ -1,13 +1,13 @@
-import type { IModel } from '@genfeedai/interfaces';
 import {
   getModelDefaultDuration,
   getModelDurations,
 } from '@genfeedai/constants';
 import {
   IngredientFormat,
-  ModelCategory,
+  type ModelCategory,
   type ModelKey,
 } from '@genfeedai/enums';
+import type { IModel } from '@genfeedai/interfaces';
 
 import {
   getAspectRatiosFromModel,

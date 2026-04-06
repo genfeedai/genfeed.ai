@@ -1,5 +1,5 @@
-import type { ICredential, IPost } from '@genfeedai/interfaces';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import type { ICredential, IPost } from '@genfeedai/interfaces';
 import { usePostDetail } from '@hooks/pages/use-post-detail/use-post-detail';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { PageScope } from '@ui-constants/misc.constant';

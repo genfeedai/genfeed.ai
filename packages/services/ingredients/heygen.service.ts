@@ -1,6 +1,6 @@
-import type { IHeyGen } from '@genfeedai/interfaces';
 import { HeyGenServiceSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import type { IHeyGen } from '@genfeedai/interfaces';
 import { HeyGen } from '@models/integrations/heygen.model';
 import { BaseService } from '@services/core/base.service';
 import { EnvironmentService } from '@services/core/environment.service';

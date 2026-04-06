@@ -36,7 +36,11 @@ describe('BottomBar', () => {
         },
       ],
       selectedNodeIds: [],
-      validateWorkflow: vi.fn(() => ({ errors: [], isValid: true, warnings: [] })),
+      validateWorkflow: vi.fn(() => ({
+        errors: [],
+        isValid: true,
+        warnings: [],
+      })),
     });
   });
 
@@ -48,7 +52,7 @@ describe('BottomBar', () => {
       <>
         <BottomBar />
         <RunWorkflowConfirmationModal />
-      </>
+      </>,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /^run$/i }));
@@ -71,7 +75,7 @@ describe('BottomBar', () => {
       <>
         <BottomBar />
         <RunWorkflowConfirmationModal />
-      </>
+      </>,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /^run$/i }));
@@ -90,7 +94,7 @@ describe('BottomBar', () => {
       <>
         <BottomBar />
         <RunWorkflowConfirmationModal />
-      </>
+      </>,
     );
 
     fireEvent.click(screen.getAllByRole('button')[3]);
@@ -108,7 +112,7 @@ describe('BottomBar', () => {
       <>
         <BottomBar />
         <RunWorkflowConfirmationModal />
-      </>
+      </>,
     );
 
     fireEvent.click(screen.getAllByRole('button')[1]);

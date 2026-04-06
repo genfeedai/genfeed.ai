@@ -1,7 +1,7 @@
 import '@styles/globals.scss';
 
-import { fontVariables } from '@genfeedai/fonts';
 import { THEME_STORAGE_KEY } from '@genfeedai/constants';
+import { fontVariables } from '@genfeedai/fonts';
 import { metadata as metadataHelper } from '@helpers/media/metadata/metadata.helper';
 import { resolveRequestTheme } from '@helpers/ui/theme/theme.helper';
 import type { LayoutProps } from '@props/layout/layout.props';

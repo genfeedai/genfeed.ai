@@ -1,4 +1,4 @@
-import { WorkflowStatus } from '@genfeedai/enums';
+import type { WorkflowStatus } from '@genfeedai/enums';
 import type { IBaseEntity } from '../index';
 
 export interface IWorkflow extends IBaseEntity {

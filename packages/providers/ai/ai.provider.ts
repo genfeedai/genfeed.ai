@@ -3,16 +3,11 @@ export interface AIRequest {
   text: string;
 }
 
-interface AIResponse {
-  result: string;
-}
-
+// TODO: migrate to NestJS backend AI endpoint
 export async function requestAI({ action, text }: AIRequest): Promise<string> {
-  const response = await fetch('/api/ai', {
-    body: JSON.stringify({ action, text }),
-    headers: { 'Content-Type': 'application/json' },
-    method: 'POST',
-  });
-  const data: AIResponse = await response.json();
-  return data.result;
+  void action;
+  void text;
+  throw new Error(
+    'AI provider is not yet migrated to the NestJS backend. Use the server API directly.',
+  );
 }

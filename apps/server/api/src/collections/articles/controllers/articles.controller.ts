@@ -58,6 +58,7 @@ import {
   ModelCategory,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
   Body,
   Controller,
@@ -318,7 +319,7 @@ export class ArticlesController extends BaseCRUDController<
       activityId: activity._id.toString(),
       label: isXArticle ? 'X Article Generation' : 'Article Generation',
       progress: 0,
-      room: `user-${user.id}`,
+      room: getUserRoomName(user.id),
       status: 'processing',
       taskId: activity._id.toString(),
       userId: user.id,
@@ -374,7 +375,7 @@ export class ArticlesController extends BaseCRUDController<
           label: isXArticle ? 'X Article Generation' : 'Article Generation',
           progress: 100,
           resultId: article._id.toString(),
-          room: `user-${user.id}`,
+          room: getUserRoomName(user.id),
           status: 'completed',
           taskId: article._id.toString(),
           userId: user.id,
@@ -405,7 +406,7 @@ export class ArticlesController extends BaseCRUDController<
         activityId: activity._id.toString(),
         error: errorMessage,
         label: isXArticle ? 'X Article Generation' : 'Article Generation',
-        room: `user-${user.id}`,
+        room: getUserRoomName(user.id),
         status: 'failed',
         taskId: activity._id.toString(),
         userId: user.id,

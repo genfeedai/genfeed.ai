@@ -99,7 +99,7 @@ export function AgentStrategyStatus({
     } catch {
       // Silently ignore aborted/failed requests
     }
-  }, [strategy, apiService, setStrategy]);
+  }, [strategy, apiService]);
 
   if (!strategy) {
     return (

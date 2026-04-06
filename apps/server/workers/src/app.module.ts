@@ -63,7 +63,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
         dbName: DB_CONNECTIONS.CLOUD,
         maxPoolSize: 20,
         serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URL'),
+        uri: config.get('MONGODB_URI'),
       }),
     }),
     MongooseModule.forRootAsync({
@@ -75,7 +75,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
         dbName: DB_CONNECTIONS.AUTH,
         maxPoolSize: 10,
         serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URL'),
+        uri: config.get('MONGODB_URI'),
       }),
     }),
     MongooseModule.forRootAsync({
@@ -87,7 +87,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
         dbName: DB_CONNECTIONS.AGENT,
         maxPoolSize: 5,
         serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URL'),
+        uri: config.get('MONGODB_URI'),
       }),
     }),
     MongooseModule.forRootAsync({
@@ -99,7 +99,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
         dbName: DB_CONNECTIONS.MARKETPLACE,
         maxPoolSize: 5,
         serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URL'),
+        uri: config.get('MONGODB_URI'),
       }),
     }),
     MongooseModule.forRootAsync({
@@ -111,7 +111,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
         dbName: DB_CONNECTIONS.FANVUE,
         maxPoolSize: 5,
         serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URL'),
+        uri: config.get('MONGODB_URI'),
       }),
     }),
     MongooseModule.forRootAsync({
@@ -123,7 +123,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
         dbName: DB_CONNECTIONS.ANALYTICS,
         maxPoolSize: 10,
         serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URL'),
+        uri: config.get('MONGODB_URI'),
       }),
     }),
     MongooseModule.forRootAsync({
@@ -135,7 +135,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
         dbName: DB_CONNECTIONS.CLIPS,
         maxPoolSize: 5,
         serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URL'),
+        uri: config.get('MONGODB_URI'),
       }),
     }),
     MongooseModule.forRootAsync({
@@ -147,7 +147,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
         dbName: DB_CONNECTIONS.CRM,
         maxPoolSize: 5,
         serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URL'),
+        uri: config.get('MONGODB_URI'),
       }),
     }),
 

@@ -1,8 +1,8 @@
 'use client';
 
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import type { AnalyticsContextType } from '@genfeedai/interfaces/analytics/analytics-context.interface';
 import type { DateRange } from '@genfeedai/interfaces/utils/date.interface';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import type { LayoutProps } from '@props/layout/layout.props';
 import { subDays } from 'date-fns';
 import {

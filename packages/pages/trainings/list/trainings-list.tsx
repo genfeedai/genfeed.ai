@@ -1,14 +1,15 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { ButtonVariant, ModalEnum, TrainingStatus } from '@genfeedai/enums';
 import type {
   IBrand,
   IOrganization,
   ITraining,
   IUser,
 } from '@genfeedai/interfaces';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant, ModalEnum, TrainingStatus } from '@genfeedai/enums';
+import { Code } from '@genfeedai/ui';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -34,7 +35,6 @@ import {
   LazyModalTraining,
   LazyModalTrainingNew,
 } from '@ui/lazy/modal/LazyModal';
-import { Code } from '@genfeedai/ui';
 import { PageScope } from '@ui-constants/misc.constant';
 import { getErrorMessage } from '@utils/error/error-handler.util';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -329,9 +329,7 @@ export default function TrainingsList({
         header: 'Trigger Word',
         key: 'trigger_word',
         render: (training: ITraining) => (
-          <Code size="md">
-            {training.trigger}
-          </Code>
+          <Code size="md">{training.trigger}</Code>
         ),
       },
       {

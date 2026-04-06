@@ -21,6 +21,7 @@ import type { PopulateOption } from '@genfeedai/interfaces';
 import type { IOnboardingJourneyMissionState } from '@genfeedai/types';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
@@ -393,7 +394,7 @@ export class PostsService extends BaseService<
         ingredientId: ingredient._id.toString(),
         organizationId: post.organization.toString(),
         postId,
-        room: clerkUserId ? `user-${clerkUserId}` : undefined,
+        room: clerkUserId ? getUserRoomName(clerkUserId) : undefined,
         scheduledDate: post.scheduledDate,
         status: originalStatus, // Send original status so completion handler can restore it
         tags:

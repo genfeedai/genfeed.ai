@@ -1,5 +1,13 @@
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import {
+  Organization,
+  type OrganizationDocument,
+} from '@api/collections/organizations/schemas/organization.schema';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
+import {
+  User as UserSchema,
+  type UserDocument,
+} from '@api/collections/users/schemas/user.schema';
 import {
   buildRcKey,
   buildRcKeysSetKey,
@@ -8,11 +16,15 @@ import {
 } from '@api/common/constants/request-context-cache.constants';
 import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
 import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import type { User } from '@clerk/backend';
+import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { Injectable, type NestMiddleware } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
 import type { NextFunction, Request, Response } from 'express';
+import type { Model } from 'mongoose';
 
 export interface RequestWithContext extends Request {
   user?: User;
@@ -28,6 +40,10 @@ export class RequestContextMiddleware implements NestMiddleware {
     private readonly logger: LoggerService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly subscriptionsService: SubscriptionsService,
+    @InjectModel(Organization.name, DB_CONNECTIONS.AUTH)
+    private readonly organizationModel: Model<OrganizationDocument>,
+    @InjectModel(UserSchema.name, DB_CONNECTIONS.AUTH)
+    private readonly userModel: Model<UserDocument>,
   ) {}
 
   async use(
@@ -35,6 +51,39 @@ export class RequestContextMiddleware implements NestMiddleware {
     _res: Response,
     next: NextFunction,
   ): Promise<void> {
+    if (IS_SELF_HOSTED) {
+      try {
+        const [defaultOrg, defaultUser] = await Promise.all([
+          this.organizationModel.findOne({ isDefault: true }).lean(),
+          this.userModel.findOne({ isDefault: true }).lean(),
+        ]);
+
+        if (defaultOrg && defaultUser) {
+          const settings = await this.organizationSettingsService.findOne({
+            organization: defaultOrg._id,
+          });
+
+          req.context = {
+            brandId: undefined,
+            hydratedAt: Date.now(),
+            isSuperAdmin: true,
+            organizationId: String(defaultOrg._id),
+            stripeSubscriptionStatus: 'active',
+            subscriptionTier: settings?.subscriptionTier || 'free',
+            userId: String(defaultUser._id),
+          };
+        }
+      } catch (error: unknown) {
+        this.logger.error(
+          'Self-hosted context hydration failed',
+          error,
+          this.context,
+        );
+      }
+
+      return next();
+    }
+
     const user = req.user;
 
     if (!user) {

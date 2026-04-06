@@ -1,9 +1,9 @@
 'use client';
 
-import { apiClient } from '@/lib/api/client';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { apiClient } from '@/lib/api/client';
 
 interface Task {
   _id: string;
@@ -56,7 +56,9 @@ export default function TasksPage() {
   const [showNewTask, setShowNewTask] = useState(false);
   const [newTitle, setNewTitle] = useState('');
   const [newPrompt, setNewPrompt] = useState('');
-  const [newContentType, setNewContentType] = useState<'image' | 'video' | 'text'>('image');
+  const [newContentType, setNewContentType] = useState<
+    'image' | 'video' | 'text'
+  >('image');
   const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
@@ -90,7 +92,9 @@ export default function TasksPage() {
         setTasks((prev) => [result.task, ...prev]);
       } else {
         // Plain task — no execution
-        const task = (await apiClient.post('/api/tasks', { title: newTitle.trim() })) as Task;
+        const task = (await apiClient.post('/api/tasks', {
+          title: newTitle.trim(),
+        })) as Task;
         setTasks((prev) => [task, ...prev]);
       }
       setNewTitle('');
@@ -167,7 +171,11 @@ export default function TasksPage() {
               disabled={isCreating || !newTitle.trim()}
               onClick={createTask}
             >
-              {isCreating ? 'Creating...' : newPrompt.trim() ? 'Create & Generate' : 'Create'}
+              {isCreating
+                ? 'Creating...'
+                : newPrompt.trim()
+                  ? 'Create & Generate'
+                  : 'Create'}
             </button>
             <button
               type="button"
@@ -181,7 +189,9 @@ export default function TasksPage() {
       )}
 
       {isLoading ? (
-        <p className="py-20 text-center text-sm text-muted-foreground">Loading...</p>
+        <p className="py-20 text-center text-sm text-muted-foreground">
+          Loading...
+        </p>
       ) : tasks.length === 0 ? (
         <p className="py-20 text-center text-sm text-muted-foreground">
           No tasks yet. Create one to get started.
@@ -197,7 +207,9 @@ export default function TasksPage() {
                 <span className="text-xs font-medium uppercase tracking-wide">
                   {statusLabel(status)}
                 </span>
-                <span className="text-xs text-muted-foreground">{statusTasks.length}</span>
+                <span className="text-xs text-muted-foreground">
+                  {statusTasks.length}
+                </span>
               </div>
               {statusTasks.map((task) => (
                 <Link

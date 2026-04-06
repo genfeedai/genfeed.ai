@@ -1,4 +1,3 @@
-import type { IBrand, IWatchlist } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   type WatchlistSchema,
@@ -10,6 +9,7 @@ import {
   ModalEnum,
   Platform,
 } from '@genfeedai/enums';
+import type { IBrand, IWatchlist } from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,

@@ -1,3 +1,5 @@
+import { TrendSerializer } from '@genfeedai/client/serializers';
+import { API_ENDPOINTS } from '@genfeedai/constants';
 import type {
   ILeaderboardOptions,
   ITrend,
@@ -9,8 +11,6 @@ import type {
   ITrendVideo,
   IViralVideoOptions,
 } from '@genfeedai/interfaces';
-import { TrendSerializer } from '@genfeedai/client/serializers';
-import { API_ENDPOINTS } from '@genfeedai/constants';
 import { deserializeCollection } from '@helpers/data/json-api/json-api.helper';
 import { Trend } from '@models/analytics/trend.model';
 import type {

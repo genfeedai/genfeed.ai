@@ -1,7 +1,7 @@
 'use client';
 
-import type { IQueryParams } from '@genfeedai/interfaces';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
+import type { IQueryParams } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { ElementScene } from '@models/elements/scene.model';
 import type { TableColumn } from '@props/ui/display/table.props';

@@ -1,13 +1,5 @@
 'use client';
 
-import type {
-  IArticle,
-  IBrand,
-  ICredential,
-  IImage,
-  ILink,
-  IVideo,
-} from '@genfeedai/interfaces';
 import {
   ArticleStatus,
   AssetCategory,
@@ -17,6 +9,14 @@ import {
   IngredientStatus,
   ModalEnum,
 } from '@genfeedai/enums';
+import type {
+  IArticle,
+  IBrand,
+  ICredential,
+  IImage,
+  ILink,
+  IVideo,
+} from '@genfeedai/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';

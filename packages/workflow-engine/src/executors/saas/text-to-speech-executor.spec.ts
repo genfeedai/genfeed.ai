@@ -2,7 +2,7 @@ import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
   createTextToSpeechExecutor,
-  TextToSpeechExecutor,
+  type TextToSpeechExecutor,
   type TtsResolver,
 } from '@workflow-engine/executors/saas/text-to-speech-executor';
 import type { ExecutableNode } from '@workflow-engine/types';

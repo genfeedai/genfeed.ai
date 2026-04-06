@@ -1,5 +1,5 @@
-import type { IPost } from '@genfeedai/interfaces';
 import { PostStatus } from '@genfeedai/enums';
+import type { IPost } from '@genfeedai/interfaces';
 import type { ModalProps } from '@props/modals/modal.props';
 import type { BaseButtonProps } from '@props/ui/forms/button.props';
 import { render, screen } from '@testing-library/react';

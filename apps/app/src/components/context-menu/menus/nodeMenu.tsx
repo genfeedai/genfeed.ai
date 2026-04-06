@@ -1,6 +1,21 @@
-import { Copy, Image, Lock, LockOpen, Palette, Scissors, Trash2 } from 'lucide-react';
-import { type ContextMenuItemConfig, createSeparator } from '@/components/context-menu/ContextMenu';
-import { NODE_COLORS, NODE_COLOR_LABELS, NODE_COLOR_VALUES } from '@/lib/constants/colors';
+import {
+  Copy,
+  Image,
+  Lock,
+  LockOpen,
+  Palette,
+  Scissors,
+  Trash2,
+} from 'lucide-react';
+import {
+  type ContextMenuItemConfig,
+  createSeparator,
+} from '@/components/context-menu/ContextMenu';
+import {
+  NODE_COLOR_LABELS,
+  NODE_COLOR_VALUES,
+  NODE_COLORS,
+} from '@/lib/constants/colors';
 
 interface NodeMenuOptions {
   nodeId: string;
@@ -55,7 +70,8 @@ export function getNodeMenuItems({
   if (onSetColor) {
     const colorSubmenu: ContextMenuItemConfig[] = NODE_COLORS.map((color) => {
       const colorValue = NODE_COLOR_VALUES[color];
-      const isSelected = colorValue === currentColor || (color === 'none' && !currentColor);
+      const isSelected =
+        colorValue === currentColor || (color === 'none' && !currentColor);
       return {
         icon: (
           <div
@@ -94,7 +110,7 @@ export function getNodeMenuItems({
           label: 'Lock Node',
           onClick: () => onLock(nodeId),
           shortcut: 'L',
-        }
+        },
   );
 
   items.push(createSeparator('separator-2'));
@@ -113,7 +129,7 @@ export function getNodeMenuItems({
       label: 'Copy',
       onClick: () => onCopy(nodeId),
       shortcut: '⌘C',
-    }
+    },
   );
 
   items.push(createSeparator('separator-3'));

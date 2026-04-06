@@ -1,4 +1,3 @@
-import type { IPreset } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   type PresetElementSchema,
@@ -10,6 +9,7 @@ import {
   ModelCategory,
   SystemPromptKey,
 } from '@genfeedai/enums';
+import type { IPreset } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';

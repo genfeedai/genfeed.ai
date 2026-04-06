@@ -20,9 +20,9 @@ import type {
   ContentMentionItem,
   TeamMentionItem,
 } from '@genfeedai/agent/types/mention.types';
-import type { IModel } from '@genfeedai/interfaces';
 import { AgentThreadStatus } from '@genfeedai/enums';
-import { type JsonApiResponseDocument } from '@helpers/data/json-api/json-api.helper';
+import type { IModel } from '@genfeedai/interfaces';
+import type { JsonApiResponseDocument } from '@helpers/data/json-api/json-api.helper';
 import { Effect } from 'effect';
 
 export type { AgentApiConfig } from '@genfeedai/agent/services/agent-base-api.service';

@@ -49,7 +49,7 @@ function KeyValueListComponent({
             'bg-[var(--background)] border border-[var(--border)] rounded',
             'focus:outline-none focus:ring-1 focus:ring-[var(--primary)] focus:border-[var(--primary)]',
             'placeholder:text-[var(--muted-foreground)]',
-            disabled && 'opacity-50 cursor-not-allowed'
+            disabled && 'opacity-50 cursor-not-allowed',
           )}
         />
         <span className="text-[var(--muted-foreground)] text-sm">=</span>
@@ -64,12 +64,12 @@ function KeyValueListComponent({
             'bg-[var(--background)] border border-[var(--border)] rounded',
             'focus:outline-none focus:ring-1 focus:ring-[var(--primary)] focus:border-[var(--primary)]',
             'placeholder:text-[var(--muted-foreground)]',
-            disabled && 'opacity-50 cursor-not-allowed'
+            disabled && 'opacity-50 cursor-not-allowed',
           )}
         />
       </div>
     ),
-    [keyPlaceholder, valuePlaceholder, disabled]
+    [keyPlaceholder, valuePlaceholder, disabled],
   );
 
   const handleChange = useCallback(
@@ -81,11 +81,13 @@ function KeyValueListComponent({
       }));
       onChange(itemsWithIds);
     },
-    [onChange]
+    [onChange],
   );
 
   return (
-    <div className={clsx(disabled && 'opacity-50 pointer-events-none', className)}>
+    <div
+      className={clsx(disabled && 'opacity-50 pointer-events-none', className)}
+    >
       <DynamicList
         items={items}
         defaultItem={defaultItem}

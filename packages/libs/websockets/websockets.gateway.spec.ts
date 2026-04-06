@@ -1,6 +1,6 @@
 import { verifyToken } from '@clerk/backend';
-import { LoggerService } from '@libs/logger/logger.service';
-import { RedisService } from '@libs/redis/redis.service';
+import type { LoggerService } from '@libs/logger/logger.service';
+import type { RedisService } from '@libs/redis/redis.service';
 import { WebSocketGateway } from '@libs/websockets/websockets.gateway';
 import type { Server, Socket } from 'socket.io';
 import {

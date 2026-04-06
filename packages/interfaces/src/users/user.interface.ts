@@ -1,4 +1,4 @@
-import { ISetting } from '../automation';
+import type { ISetting } from '../automation';
 import type { IBaseEntity } from '../core/base.interface';
 
 export type OnboardingType = 'creator' | 'organization';

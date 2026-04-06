@@ -1,6 +1,6 @@
 export {
-  getSchemaDefaults,
   extractEnumValues,
+  getSchemaDefaults,
 } from '@genfeedai/workflow-ui/lib';
 
 /**
@@ -10,7 +10,9 @@ export {
  * `image_url` and `image_urls` — used by FAL nano-banana-2/edit and similar models.
  * Permissive default: returns true when schema is absent.
  */
-export function supportsImageInput(schema: Record<string, unknown> | undefined): boolean {
+export function supportsImageInput(
+  schema: Record<string, unknown> | undefined,
+): boolean {
   if (!schema) return true;
   const properties = schema.properties as Record<string, unknown> | undefined;
   if (!properties) return true;

@@ -3,7 +3,7 @@ import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
   createKeywordTriggerExecutor,
   type KeywordChecker,
-  KeywordTriggerExecutor,
+  type KeywordTriggerExecutor,
 } from '@workflow-engine/executors/saas/keyword-trigger-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

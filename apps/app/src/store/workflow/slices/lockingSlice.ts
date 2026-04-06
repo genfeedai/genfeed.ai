@@ -3,7 +3,10 @@ import { getNodeOutput } from '../helpers/propagation';
 import type { WorkflowStore } from '../types';
 
 export interface LockingSlice {
-  _setNodeLockState: (predicate: (nodeId: string) => boolean, lock: boolean) => void;
+  _setNodeLockState: (
+    predicate: (nodeId: string) => boolean,
+    lock: boolean,
+  ) => void;
   toggleNodeLock: (nodeId: string) => void;
   lockNode: (nodeId: string) => void;
   unlockNode: (nodeId: string) => void;
@@ -13,10 +16,12 @@ export interface LockingSlice {
   isNodeLocked: (nodeId: string) => boolean;
 }
 
-export const createLockingSlice: StateCreator<WorkflowStore, [], [], LockingSlice> = (
-  set,
-  get
-) => ({
+export const createLockingSlice: StateCreator<
+  WorkflowStore,
+  [],
+  [],
+  LockingSlice
+> = (set, get) => ({
   _setNodeLockState: (predicate, lock) => {
     set((state) => ({
       isDirty: true,
@@ -32,7 +37,7 @@ export const createLockingSlice: StateCreator<WorkflowStore, [], [], LockingSlic
               },
               draggable: !lock,
             }
-          : n
+          : n,
       ),
     }));
   },
@@ -44,7 +49,9 @@ export const createLockingSlice: StateCreator<WorkflowStore, [], [], LockingSlic
 
     if (node.data.isLocked) return true;
 
-    return groups.some((group) => group.isLocked && group.nodeIds.includes(nodeId));
+    return groups.some(
+      (group) => group.isLocked && group.nodeIds.includes(nodeId),
+    );
   },
 
   lockMultipleNodes: (nodeIds) => {

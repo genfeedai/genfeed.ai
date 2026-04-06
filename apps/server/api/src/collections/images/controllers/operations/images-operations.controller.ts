@@ -82,6 +82,7 @@ import {
   TagKey,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
   Body,
   Controller,
@@ -477,7 +478,7 @@ export class ImagesOperationsController {
       activityId: activity._id.toString(),
       label: 'Image Generation',
       progress: 0,
-      room: `user-${user.id}`,
+      room: getUserRoomName(user.id),
       status: 'processing',
       taskId: ingredientData._id.toString(),
       userId: user.id,
@@ -533,7 +534,7 @@ export class ImagesOperationsController {
               status: 'completed',
             },
             user.id,
-            `user-${user.id}`,
+            getUserRoomName(user.id),
           ),
         ]);
 
@@ -547,7 +548,7 @@ export class ImagesOperationsController {
           ingredientData._id,
           websocketUrl,
           publicMetadata,
-          `user-${user.id}`,
+          getUserRoomName(user.id),
           errorMessage,
         );
         throw error;
@@ -615,7 +616,7 @@ export class ImagesOperationsController {
             ingredientData._id,
             websocketUrl,
             publicMetadata,
-            `user-${user.id}`,
+            getUserRoomName(user.id),
             errorMessage,
           );
           throw error;
@@ -759,7 +760,7 @@ export class ImagesOperationsController {
             activityId: additionalActivity._id.toString(),
             label: 'Image Generation',
             progress: 0,
-            room: `user-${user.id}`,
+            room: getUserRoomName(user.id),
             status: 'processing',
             taskId: additionalIngredient._id.toString(),
             userId: user.id,
@@ -778,7 +779,7 @@ export class ImagesOperationsController {
           ingredientData._id,
           websocketUrl,
           publicMetadata,
-          `user-${user.id}`,
+          getUserRoomName(user.id),
           errorMessage,
         );
         throw error;
@@ -824,7 +825,7 @@ export class ImagesOperationsController {
             ingredientData._id,
             websocketUrl,
             publicMetadata,
-            `user-${user.id}`,
+            getUserRoomName(user.id),
             errorMessage,
           );
           throw error;
@@ -1021,7 +1022,7 @@ export class ImagesOperationsController {
                       activityId: newActivity._id.toString(),
                       label: 'Image Generation',
                       progress: 0,
-                      room: `user-${user.id}`,
+                      room: getUserRoomName(user.id),
                       status: 'processing',
                       taskId: addIngredient._id.toString(),
                       userId: user.id,
@@ -1112,7 +1113,7 @@ export class ImagesOperationsController {
                 activityId: additionalActivity._id.toString(),
                 label: 'Image Generation',
                 progress: 0,
-                room: `user-${user.id}`,
+                room: getUserRoomName(user.id),
                 status: 'processing',
                 taskId: additionalIngredient._id.toString(),
                 userId: user.id,
@@ -1153,7 +1154,7 @@ export class ImagesOperationsController {
             ingredientData._id,
             websocketUrl,
             publicMetadata,
-            `user-${user.id}`,
+            getUserRoomName(user.id),
             errorMessage,
           );
           throw error;

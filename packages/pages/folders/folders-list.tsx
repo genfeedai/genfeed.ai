@@ -1,13 +1,13 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
+import { ITEMS_PER_PAGE } from '@genfeedai/constants';
+import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
 import type { IFolder, IQueryParams } from '@genfeedai/interfaces';
 import type {
   IFilters,
   IFiltersState,
 } from '@genfeedai/interfaces/utils/filters.interface';
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';

@@ -1,7 +1,7 @@
 'use client';
 
-import type { IIngredient } from '@genfeedai/interfaces';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import type { IIngredient } from '@genfeedai/interfaces';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import type { PostDetailCardProps } from '@props/components/post-detail-card.props';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';

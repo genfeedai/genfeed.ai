@@ -109,9 +109,7 @@ export class SkillRuntimeService {
 
     const slugSet = new Set(strategySkillSlugs);
 
-    return brandSkills.filter((resolved) =>
-      slugSet.has(resolved.skill.slug),
-    );
+    return brandSkills.filter((resolved) => slugSet.has(resolved.skill.slug));
   }
 
   private toRuntimeSkill(resolved: ResolvedBrandSkill): ResolvedRuntimeSkill {

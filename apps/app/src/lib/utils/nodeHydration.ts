@@ -37,7 +37,9 @@ function lookupModelSchema(model: string): SelectedModel | null {
   const replicateId = MODEL_TO_REPLICATE_ID[model];
   if (!replicateId) return null;
 
-  const schemaEntry = (replicateSchemas as SchemaEntry[]).find((s) => s.modelId === replicateId);
+  const schemaEntry = (replicateSchemas as SchemaEntry[]).find(
+    (s) => s.modelId === replicateId,
+  );
   if (!schemaEntry) return null;
 
   return {
@@ -72,7 +74,9 @@ export function hydrateWorkflowNodes(nodes: WorkflowNode[]): WorkflowNode[] {
     }
 
     // Look up schema
-    const selectedModel = lookupModelSchema(data.model as ImageModel | VideoModel);
+    const selectedModel = lookupModelSchema(
+      data.model as ImageModel | VideoModel,
+    );
     if (!selectedModel) {
       return node;
     }

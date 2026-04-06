@@ -11,29 +11,30 @@ interface RunWorkflowConfirmationStore {
   reset: () => void;
 }
 
-export const useRunWorkflowConfirmationStore = create<RunWorkflowConfirmationStore>((set, get) => ({
-  cancel: () => {
-    set({ isOpen: false, pendingAction: null });
-  },
+export const useRunWorkflowConfirmationStore =
+  create<RunWorkflowConfirmationStore>((set, get) => ({
+    cancel: () => {
+      set({ isOpen: false, pendingAction: null });
+    },
 
-  confirm: async () => {
-    const { pendingAction } = get();
+    confirm: async () => {
+      const { pendingAction } = get();
 
-    set({ isOpen: false, pendingAction: null });
+      set({ isOpen: false, pendingAction: null });
 
-    if (pendingAction) {
-      await pendingAction();
-    }
-  },
+      if (pendingAction) {
+        await pendingAction();
+      }
+    },
 
-  isOpen: false,
-  pendingAction: null,
+    isOpen: false,
+    pendingAction: null,
 
-  requestConfirmation: (action) => {
-    set({ isOpen: true, pendingAction: action });
-  },
+    requestConfirmation: (action) => {
+      set({ isOpen: true, pendingAction: action });
+    },
 
-  reset: () => {
-    set({ isOpen: false, pendingAction: null });
-  },
-}));
+    reset: () => {
+      set({ isOpen: false, pendingAction: null });
+    },
+  }));

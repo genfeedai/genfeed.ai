@@ -1,6 +1,6 @@
-import type { IActivity } from '@genfeedai/interfaces';
 import { Activity as BaseActivity } from '@genfeedai/client/models';
 import { ActivityKey } from '@genfeedai/enums';
+import type { IActivity } from '@genfeedai/interfaces';
 import { User } from '@models/auth/user.model';
 
 export class Activity extends BaseActivity {

@@ -1,9 +1,9 @@
+import { forwardRef, type InputHTMLAttributes } from 'react';
 import { cn } from '../lib/utils';
 import {
   fieldControlClassName,
   fieldControlInputClassName,
 } from './field-control';
-import { forwardRef, type InputHTMLAttributes } from 'react';
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;

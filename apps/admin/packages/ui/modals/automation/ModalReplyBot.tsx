@@ -1,4 +1,3 @@
-import type { IReplyBotConfig, IReplyBotRateLimits } from '@genfeedai/interfaces';
 import {
   type ReplyBotConfigSchema,
   replyBotConfigSchema,
@@ -11,6 +10,10 @@ import {
   ReplyBotPlatform,
   ReplyBotType,
 } from '@genfeedai/enums';
+import type {
+  IReplyBotConfig,
+  IReplyBotRateLimits,
+} from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,

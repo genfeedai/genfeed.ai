@@ -1,7 +1,7 @@
+import { Code } from '@genfeedai/ui';
 import type { ReactElement, ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Code } from '@genfeedai/ui';
 
 function isSafeHref(href?: string): boolean {
   if (!href) {
@@ -53,11 +53,7 @@ export function SafeMarkdown({
               codeClassName.includes('language-');
 
             if (!isBlockCode) {
-              return (
-                <Code className="text-[0.9em]">
-                  {children}
-                </Code>
-              );
+              return <Code className="text-[0.9em]">{children}</Code>;
             }
 
             return (

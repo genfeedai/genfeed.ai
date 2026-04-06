@@ -7,6 +7,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { Observable } from 'rxjs';
 
 /**
@@ -15,8 +16,9 @@ import { Observable } from 'rxjs';
  *
  * Order of checks:
  *  1. @Public() routes → allow immediately
- *  2. Bearer token starting with `gf_` → delegate to ApiKeyAuthGuard
- *  3. Everything else → delegate to ClerkGuard (Clerk JWT)
+ *  2. Self-hosted edition → allow immediately (skip all auth)
+ *  3. Bearer token starting with `gf_` → delegate to ApiKeyAuthGuard
+ *  4. Everything else → delegate to ClerkGuard (Clerk JWT)
  */
 @Injectable()
 export class CombinedAuthGuard implements CanActivate {
@@ -57,16 +59,21 @@ export class CombinedAuthGuard implements CanActivate {
       return true;
     }
 
+    // 2. Self-hosted edition bypasses all auth
+    if (IS_SELF_HOSTED) {
+      return true;
+    }
+
     const request = context.switchToHttp().getRequest();
     const authHeader = request.headers.authorization;
     const token = authHeader?.split(' ')[1];
 
-    // 2. API key authentication (token starts with gf_)
+    // 3. API key authentication (token starts with gf_)
     if (token?.startsWith('gf_')) {
       return this.apiKeyAuthGuard.canActivate(context);
     }
 
-    // 3. Clerk JWT authentication (or no auth header - let Clerk handle the error)
+    // 4. Clerk JWT authentication (or no auth header - let Clerk handle the error)
     const result = await this.clerkGuard.canActivate(context);
     return this.resolveGuardResult(result);
   }

@@ -73,6 +73,7 @@ import {
   TransformationCategory,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable, Optional } from '@nestjs/common';
 import { Types } from 'mongoose';
 
@@ -764,7 +765,7 @@ export class WorkflowEngineAdapterService {
             captionContent,
             inputPath: `${this.configService.ingredientsEndpoint}/videos/${sourceIngredientId}`,
           },
-          room: `user-${context.userId}`,
+          room: getUserRoomName(context.userId),
           type: 'add-captions',
           userId: context.userId,
           websocketUrl: `/videos/${ingredientId}`,

@@ -31,7 +31,7 @@ function SidePanelContent() {
   // Pending data from keyboard shortcuts / context menu
   const [pendingContent, setPendingContent] = useState('');
   const [pendingUrl, setPendingUrl] = useState('');
-  const [pendingAuthor, setPendingAuthor] = useState('');
+  const [pendingAuthor, _setPendingAuthor] = useState('');
 
   // Listen for OPEN_MODE messages from the background/content scripts
   useEffect(() => {

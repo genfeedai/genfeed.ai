@@ -3,9 +3,9 @@ import type {
   IDesktopSyncJob,
   IDesktopSyncState,
 } from '@genfeedai/desktop-contracts';
-import {
+import type {
   CloudDatabaseService,
-  type SyncJobRow,
+  SyncJobRow,
 } from './cloud-database.service';
 
 const toIso = (): string => new Date().toISOString();

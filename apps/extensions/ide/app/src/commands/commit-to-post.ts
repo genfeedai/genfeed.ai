@@ -218,7 +218,7 @@ function extractGeneratedText(
     }
   }
 
-  const data = output['data'];
+  const data = output.data;
   if (data && typeof data === 'object') {
     const dataObj = data as Record<string, unknown>;
     for (const key of ['text', 'content', 'result', 'post', 'body']) {

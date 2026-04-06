@@ -2,7 +2,7 @@ import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
   createVoiceChangeExecutor,
-  VoiceChangeExecutor,
+  type VoiceChangeExecutor,
   type VoiceChangeResolver,
 } from '@workflow-engine/executors/saas/voice-change-executor';
 import type { ExecutableNode } from '@workflow-engine/types';

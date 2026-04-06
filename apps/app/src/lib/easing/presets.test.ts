@@ -1,6 +1,11 @@
 import type { CubicBezier, EasingPreset } from '@genfeedai/types';
 import { describe, expect, it } from 'vitest';
-import { applySpeedCurve, EASING_PRESETS, evaluateBezier, getEasingDisplayName } from './presets';
+import {
+  applySpeedCurve,
+  EASING_PRESETS,
+  evaluateBezier,
+  getEasingDisplayName,
+} from './presets';
 
 describe('EASING_PRESETS', () => {
   it('should have linear preset', () => {
@@ -224,7 +229,9 @@ describe('getEasingDisplayName', () => {
   it('should return display name for exponential easing', () => {
     expect(getEasingDisplayName('easeInExpo')).toBe('Ease In Exponential');
     expect(getEasingDisplayName('easeOutExpo')).toBe('Ease Out Exponential');
-    expect(getEasingDisplayName('easeInOutExpo')).toBe('Ease In Out Exponential');
+    expect(getEasingDisplayName('easeInOutExpo')).toBe(
+      'Ease In Out Exponential',
+    );
   });
 
   it('should return the preset name for unknown presets', () => {

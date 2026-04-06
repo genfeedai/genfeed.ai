@@ -2,7 +2,11 @@
 
 import { MoreVertical } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type { OverflowMenuProps } from './types';
 
 /**
@@ -67,7 +71,9 @@ export function OverflowMenu({ items }: OverflowMenuProps) {
             >
               <span className="h-4 w-4 shrink-0">{item.icon}</span>
               <span>{item.label}</span>
-              {item.external && <span className="ml-auto text-xs text-muted-foreground">↗</span>}
+              {item.external && (
+                <span className="ml-auto text-xs text-muted-foreground">↗</span>
+              )}
             </button>
           ))}
         </div>

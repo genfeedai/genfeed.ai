@@ -1,8 +1,8 @@
 import { nanoid } from 'nanoid';
 import type {
   EditorComposition,
-  EditorTimelineItem,
   EditorLaunchContext,
+  EditorTimelineItem,
 } from '@/lib/editor/types';
 
 export const EDITOR_FPS = 30;
@@ -17,7 +17,11 @@ export type AspectPresetId = keyof typeof ASPECT_PRESETS;
 
 export function detectEditorMediaType(assetPath: string): 'image' | 'video' {
   const normalized = assetPath.toLowerCase();
-  if (normalized.endsWith('.mp4') || normalized.endsWith('.webm') || normalized.endsWith('.mov')) {
+  if (
+    normalized.endsWith('.mp4') ||
+    normalized.endsWith('.webm') ||
+    normalized.endsWith('.mov')
+  ) {
     return 'video';
   }
 
@@ -26,7 +30,8 @@ export function detectEditorMediaType(assetPath: string): 'image' | 'video' {
 
 export function createTimelineItem(assetPath: string): EditorTimelineItem {
   return {
-    durationInFrames: EDITOR_FPS * (detectEditorMediaType(assetPath) === 'video' ? 5 : 3),
+    durationInFrames:
+      EDITOR_FPS * (detectEditorMediaType(assetPath) === 'video' ? 5 : 3),
     id: nanoid(),
     mediaType: detectEditorMediaType(assetPath),
     path: assetPath,
@@ -37,7 +42,7 @@ export function createTimelineItem(assetPath: string): EditorTimelineItem {
 
 export function createCompositionFromLaunchContext(
   context: EditorLaunchContext,
-  aspectPreset: AspectPresetId = 'landscape'
+  aspectPreset: AspectPresetId = 'landscape',
 ): EditorComposition {
   const preset = ASPECT_PRESETS[aspectPreset];
 
@@ -51,9 +56,14 @@ export function createCompositionFromLaunchContext(
   };
 }
 
-export function getCompositionDurationInFrames(composition: EditorComposition): number {
+export function getCompositionDurationInFrames(
+  composition: EditorComposition,
+): number {
   return Math.max(
     composition.fps,
-    composition.items.reduce((total, item) => total + Math.max(1, item.durationInFrames), 0)
+    composition.items.reduce(
+      (total, item) => total + Math.max(1, item.durationInFrames),
+      0,
+    ),
   );
 }

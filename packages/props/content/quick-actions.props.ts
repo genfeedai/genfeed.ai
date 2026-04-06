@@ -1,5 +1,5 @@
-import type { IQuickAction } from '@genfeedai/interfaces/ui/quick-actions.interface';
 import type { ComponentSize } from '@genfeedai/enums';
+import type { IQuickAction } from '@genfeedai/interfaces/ui/quick-actions.interface';
 import type { ReactNode } from 'react';
 
 export interface QuickActionsContainerProps {

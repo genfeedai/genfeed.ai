@@ -1,8 +1,8 @@
 'use client';
 
-import type { IModel } from '@genfeedai/interfaces';
 import { getBrandConfig } from '@genfeedai/constants/model-brands.constant';
 import { RouterPriority } from '@genfeedai/enums';
+import type { IModel } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { ModelSelectorPopoverProps } from '@props/ui/model-selector/model-selector.props';
 import ModelSelectorFamilyItem from '@ui/dropdowns/model-selector/ModelSelectorFamilyItem';

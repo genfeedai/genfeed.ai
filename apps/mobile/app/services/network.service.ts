@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
+import NetInfo, { type NetInfoState } from '@react-native-community/netinfo';
 
 export type NetworkStatus = 'online' | 'offline' | 'unknown';
 

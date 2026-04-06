@@ -1,5 +1,5 @@
-import type { IMember } from '@genfeedai/interfaces';
 import { Member as BaseMember } from '@genfeedai/client/models';
+import type { IMember } from '@genfeedai/interfaces';
 import { Role } from '@models/auth/role.model';
 import { User } from '@models/auth/user.model';
 import { Organization } from '@models/organization/organization.model';

@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://local.genfeed.ai:4001/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/v1';
 
 interface FetchOptions extends RequestInit {
   signal?: AbortSignal;
@@ -8,14 +8,17 @@ class ApiError extends Error {
   constructor(
     public statusCode: number,
     message: string,
-    public data?: unknown
+    public data?: unknown,
   ) {
     super(message);
     this.name = 'ApiError';
   }
 }
 
-async function request<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
+async function request<T>(
+  endpoint: string,
+  options: FetchOptions = {},
+): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
 
   const config: RequestInit = {
@@ -33,7 +36,7 @@ async function request<T>(endpoint: string, options: FetchOptions = {}): Promise
     throw new ApiError(
       response.status,
       errorData.message || `HTTP error ${response.status}`,
-      errorData
+      errorData,
     );
   }
 
@@ -43,7 +46,11 @@ async function request<T>(endpoint: string, options: FetchOptions = {}): Promise
 /**
  * Upload a file using FormData
  */
-async function uploadFile<T>(endpoint: string, file: File, options: FetchOptions = {}): Promise<T> {
+async function uploadFile<T>(
+  endpoint: string,
+  file: File,
+  options: FetchOptions = {},
+): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
   const formData = new FormData();
   formData.append('file', file);
@@ -62,7 +69,7 @@ async function uploadFile<T>(endpoint: string, file: File, options: FetchOptions
     throw new ApiError(
       response.status,
       errorData.message || `HTTP error ${response.status}`,
-      errorData
+      errorData,
     );
   }
 

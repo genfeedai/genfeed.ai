@@ -1,6 +1,5 @@
 'use client';
 
-import type { IIngredient } from '@genfeedai/interfaces';
 import { useIngredientsContext } from '@contexts/content/ingredients-context/ingredients-context';
 import { useIngredientsHeaderContext } from '@contexts/content/ingredients-header-context/ingredients-header-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
@@ -11,6 +10,7 @@ import {
   IngredientCategory,
   ModalEnum,
 } from '@genfeedai/enums';
+import type { IIngredient } from '@genfeedai/interfaces';
 import { useIngredientsList } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-list';
 import type { IngredientsListProps } from '@props/pages/ingredients-list.props';
 import { usePostModal } from '@providers/global-modals/global-modals.provider';

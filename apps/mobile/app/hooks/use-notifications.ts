@@ -1,5 +1,5 @@
 import { useAuth } from '@clerk/clerk-expo';
-import * as Notifications from 'expo-notifications';
+import type * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { notificationsService } from '@/services/notifications.service';

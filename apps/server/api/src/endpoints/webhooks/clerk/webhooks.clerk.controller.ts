@@ -2,11 +2,19 @@ import { ConfigService } from '@api/config/config.service';
 import { ClerkWebhookService } from '@api/endpoints/webhooks/clerk/webhooks.clerk.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { WebhookEvent } from '@clerk/express/webhooks';
+import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { Public } from '@libs/decorators/public.decorator';
 import type { ClerkWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Body, Controller, HttpCode, Post, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  NotFoundException,
+  Post,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { Webhook } from 'svix';
 
@@ -28,6 +36,8 @@ export class ClerkWebhookController {
     @Req() request: Request,
     @Body() payload: ClerkWebhookPayload,
   ) {
+    if (IS_SELF_HOSTED) throw new NotFoundException();
+
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {

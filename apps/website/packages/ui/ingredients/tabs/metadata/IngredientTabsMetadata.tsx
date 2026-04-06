@@ -1,8 +1,8 @@
 'use client';
 
+import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IUser } from '@genfeedai/interfaces';
 import type { IngredientTabsMetadataProps } from '@genfeedai/interfaces/components/ingredient-tabs.interface';
-import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';

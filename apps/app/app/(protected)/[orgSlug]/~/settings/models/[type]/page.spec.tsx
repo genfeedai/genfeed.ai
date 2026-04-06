@@ -1,5 +1,5 @@
-import * as PageModule from './page';
 import { runPageModuleTests } from '@shared/pages/pageTestUtils';
+import * as PageModule from './page';
 
 runPageModuleTests(
   'apps/app/app/(protected)/settings/models/[type]/page',

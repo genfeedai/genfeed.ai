@@ -1,12 +1,12 @@
 'use client';
 
-import type { ICredential } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   ButtonVariant,
   CredentialPlatform,
   PostStatus,
 } from '@genfeedai/enums';
+import type { ICredential } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { PostsService } from '@services/content/posts.service';

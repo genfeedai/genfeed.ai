@@ -1,6 +1,6 @@
 import { LoggerService } from '@libs/logger/logger.service';
-import { Test, TestingModule } from '@nestjs/testing';
-import { Logger as winstonLogger } from 'winston';
+import { Test, type TestingModule } from '@nestjs/testing';
+import type { Logger as winstonLogger } from 'winston';
 
 describe('LoggerService', () => {
   let service: LoggerService;

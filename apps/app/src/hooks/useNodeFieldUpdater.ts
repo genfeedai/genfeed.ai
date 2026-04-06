@@ -1,5 +1,5 @@
-import { useCallback } from 'react';
 import type { WorkflowNodeData } from '@genfeedai/types';
+import { useCallback } from 'react';
 import { selectUpdateNodeData } from '@/store/workflow/selectors';
 import { useWorkflowStore } from '@/store/workflowStore';
 
@@ -17,7 +17,9 @@ import { useWorkflowStore } from '@/store/workflowStore';
  * should wrap each `createUpdater(...)` call in its own `useMemo`/`useCallback`
  * or call it at render time to produce stable handlers.
  */
-export function useNodeFieldUpdater<T extends WorkflowNodeData>(nodeId: string) {
+export function useNodeFieldUpdater<T extends WorkflowNodeData>(
+  nodeId: string,
+) {
   const updateNodeData = useWorkflowStore(selectUpdateNodeData);
 
   return useCallback(
@@ -27,6 +29,6 @@ export function useNodeFieldUpdater<T extends WorkflowNodeData>(nodeId: string) 
           [field]: transform ? transform(value) : value,
         } as Partial<T>);
       },
-    [nodeId, updateNodeData]
+    [nodeId, updateNodeData],
   );
 }

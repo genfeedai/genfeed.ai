@@ -56,6 +56,7 @@ import {
 } from '@genfeedai/enums';
 import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
   BadRequestException,
   Body,
@@ -252,7 +253,7 @@ export class PromptsOperationsController {
       activityId: activity._id.toString(),
       label: 'Prompt Remix',
       progress: 0,
-      room: `user-${user.id}`,
+      room: getUserRoomName(user.id),
       status: 'processing',
       taskId: data._id.toString(),
       userId: user.id,
@@ -419,7 +420,7 @@ export class PromptsOperationsController {
       activityId: activity._id.toString(),
       label: 'Prompt Enhance',
       progress: 0,
-      room: `user-${user.id}`,
+      room: getUserRoomName(user.id),
       status: 'processing',
       taskId: promptId,
       userId: user.id,

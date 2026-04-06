@@ -1,11 +1,11 @@
 'use client';
 
-import type { IAsset, IImage } from '@genfeedai/interfaces';
 import {
   IngredientCategory,
   IngredientFormat,
   ModalEnum,
 } from '@genfeedai/enums';
+import type { IAsset, IImage } from '@genfeedai/interfaces';
 import { useModalAutoOpen } from '@hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import type { ModalGalleryProps } from '@props/modals/modal.props';
 import { PagesService } from '@services/content/pages.service';

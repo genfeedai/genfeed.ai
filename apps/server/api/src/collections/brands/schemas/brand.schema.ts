@@ -302,6 +302,9 @@ export class Brand {
   @Prop({ default: true, type: Boolean })
   isActive!: boolean;
 
+  @Prop({ default: false, type: Boolean, index: true })
+  isDefault!: boolean;
+
   @Prop({ default: false, type: Boolean })
   isDeleted!: boolean;
 

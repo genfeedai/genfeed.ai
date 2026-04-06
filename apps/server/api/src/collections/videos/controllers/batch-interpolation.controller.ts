@@ -48,6 +48,7 @@ import {
   PromptStatus,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
   Body,
   Controller,
@@ -326,7 +327,7 @@ export class BatchInterpolationController {
           activityId: activity._id.toString(),
           label,
           progress: 0,
-          room: `user-${user.id}`,
+          room: getUserRoomName(user.id),
           status: 'processing',
           taskId: ingredientId,
           userId: user.id,
@@ -385,7 +386,7 @@ export class BatchInterpolationController {
             ingredientId,
             websocketUrl,
             user.id,
-            `user-${user.id}`,
+            getUserRoomName(user.id),
           );
 
           jobs.push({

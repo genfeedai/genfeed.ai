@@ -4,7 +4,9 @@ import { calculateCost, MODELS, PRICING } from './client';
 // Mock Replicate client - we only test the constants and calculateCost function
 // The API functions are integration tests that require mocking Replicate SDK
 vi.mock('replicate', () => ({
-  default: vi.fn().mockImplementation(function replicateConstructor(this: unknown) {
+  default: vi.fn().mockImplementation(function replicateConstructor(
+    this: unknown,
+  ) {
     return {
       predictions: {
         cancel: vi.fn(),
@@ -68,31 +70,66 @@ describe('Replicate Client', () => {
   describe('calculateCost', () => {
     describe('image costs', () => {
       it('should calculate cost for nano-banana images', () => {
-        const cost = calculateCost(3, 'nano-banana', '2K', 0, 'veo-3.1-fast', false);
+        const cost = calculateCost(
+          3,
+          'nano-banana',
+          '2K',
+          0,
+          'veo-3.1-fast',
+          false,
+        );
 
         expect(cost).toBe(3 * 0.039);
       });
 
       it('should calculate cost for nano-banana-pro at 1K resolution', () => {
-        const cost = calculateCost(2, 'nano-banana-pro', '1K', 0, 'veo-3.1-fast', false);
+        const cost = calculateCost(
+          2,
+          'nano-banana-pro',
+          '1K',
+          0,
+          'veo-3.1-fast',
+          false,
+        );
 
         expect(cost).toBe(2 * 0.15);
       });
 
       it('should calculate cost for nano-banana-pro at 2K resolution', () => {
-        const cost = calculateCost(2, 'nano-banana-pro', '2K', 0, 'veo-3.1-fast', false);
+        const cost = calculateCost(
+          2,
+          'nano-banana-pro',
+          '2K',
+          0,
+          'veo-3.1-fast',
+          false,
+        );
 
         expect(cost).toBe(2 * 0.2);
       });
 
       it('should calculate cost for nano-banana-pro at 4K resolution', () => {
-        const cost = calculateCost(1, 'nano-banana-pro', '4K', 0, 'veo-3.1-fast', false);
+        const cost = calculateCost(
+          1,
+          'nano-banana-pro',
+          '4K',
+          0,
+          'veo-3.1-fast',
+          false,
+        );
 
         expect(cost).toBe(1 * 0.3);
       });
 
       it('should default to 2K pricing for unknown resolution', () => {
-        const cost = calculateCost(1, 'nano-banana-pro', 'unknown', 0, 'veo-3.1-fast', false);
+        const cost = calculateCost(
+          1,
+          'nano-banana-pro',
+          'unknown',
+          0,
+          'veo-3.1-fast',
+          false,
+        );
 
         expect(cost).toBe(0.2);
       });
@@ -100,13 +137,27 @@ describe('Replicate Client', () => {
 
     describe('video costs', () => {
       it('should calculate cost for veo-3.1-fast with audio', () => {
-        const cost = calculateCost(0, 'nano-banana', '2K', 10, 'veo-3.1-fast', true);
+        const cost = calculateCost(
+          0,
+          'nano-banana',
+          '2K',
+          10,
+          'veo-3.1-fast',
+          true,
+        );
 
         expect(cost).toBe(10 * 0.15);
       });
 
       it('should calculate cost for veo-3.1-fast without audio', () => {
-        const cost = calculateCost(0, 'nano-banana', '2K', 10, 'veo-3.1-fast', false);
+        const cost = calculateCost(
+          0,
+          'nano-banana',
+          '2K',
+          10,
+          'veo-3.1-fast',
+          false,
+        );
 
         expect(cost).toBe(10 * 0.1);
       });
@@ -126,7 +177,14 @@ describe('Replicate Client', () => {
 
     describe('combined costs', () => {
       it('should calculate combined image and video cost', () => {
-        const cost = calculateCost(2, 'nano-banana', '2K', 10, 'veo-3.1-fast', true);
+        const cost = calculateCost(
+          2,
+          'nano-banana',
+          '2K',
+          10,
+          'veo-3.1-fast',
+          true,
+        );
 
         const expectedImageCost = 2 * 0.039;
         const expectedVideoCost = 10 * 0.15;
@@ -134,7 +192,14 @@ describe('Replicate Client', () => {
       });
 
       it('should calculate combined nano-banana-pro and veo-3.1 cost', () => {
-        const cost = calculateCost(3, 'nano-banana-pro', '4K', 8, 'veo-3.1', true);
+        const cost = calculateCost(
+          3,
+          'nano-banana-pro',
+          '4K',
+          8,
+          'veo-3.1',
+          true,
+        );
 
         const expectedImageCost = 3 * 0.3;
         const expectedVideoCost = 8 * 0.4;
@@ -142,7 +207,14 @@ describe('Replicate Client', () => {
       });
 
       it('should return 0 for empty workflow', () => {
-        const cost = calculateCost(0, 'nano-banana', '2K', 0, 'veo-3.1-fast', false);
+        const cost = calculateCost(
+          0,
+          'nano-banana',
+          '2K',
+          0,
+          'veo-3.1-fast',
+          false,
+        );
 
         expect(cost).toBe(0);
       });

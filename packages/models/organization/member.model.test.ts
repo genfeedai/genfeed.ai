@@ -143,7 +143,7 @@ const createRole = (partial: Partial<IRole> = {}): IRole => ({
   ...partial,
 });
 
-const createBrand = (partial: Partial<IBrand> = {}): IBrand => ({
+const _createBrand = (partial: Partial<IBrand> = {}): IBrand => ({
   ...createBaseEntity<IBrand>(partial),
   backgroundColor: '#000000',
   credentials: [],

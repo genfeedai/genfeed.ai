@@ -1,6 +1,7 @@
 import type { ConfigService } from '@files/config/config.service';
 import type { JobProgress } from '@files/shared/interfaces/job.interface';
 import { parseRedisConnection } from '@libs/redis/redis-connection.utils';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable, Logger } from '@nestjs/common';
 import { createClient, type RedisClientType } from 'redis';
 
@@ -53,7 +54,7 @@ export class WebSocketService {
       const message = {
         path: websocketUrl,
         progress,
-        room: room || (userId ? `user-${userId}` : undefined),
+        room: room || (userId ? getUserRoomName(userId) : undefined),
         userId: userId || this.extractUserIdFromPath(websocketUrl),
       };
 
@@ -84,7 +85,7 @@ export class WebSocketService {
       const message = {
         path: websocketUrl,
         result,
-        room: room || (userId ? `user-${userId}` : undefined),
+        room: room || (userId ? getUserRoomName(userId) : undefined),
         userId: userId || this.extractUserIdFromPath(websocketUrl),
       };
 
@@ -115,7 +116,7 @@ export class WebSocketService {
       const message = {
         error,
         path: websocketUrl,
-        room: room || (userId ? `user-${userId}` : undefined),
+        room: room || (userId ? getUserRoomName(userId) : undefined),
         userId: userId || this.extractUserIdFromPath(websocketUrl),
       };
 

@@ -53,7 +53,7 @@ function loadEnvFile(): void {
 
 loadEnvFile();
 
-const DEFAULT_URI = process.env.MONGODB_URL;
+const DEFAULT_URI = process.env.MONGODB_URI;
 const DEFAULT_DATABASE = process.env.MONGODB_DATABASE || 'cloud';
 
 let client: MongoClient | null = null;
@@ -69,7 +69,7 @@ export async function connect(options: ConnectionOptions = {}): Promise<Db> {
 
   if (!uri) {
     throw new Error(
-      'MongoDB URI is not configured. Set MONGODB_URL or pass --uri=<mongodb-uri>.',
+      'MongoDB URI is not configured. Set MONGODB_URI or pass --uri=<mongodb-uri>.',
     );
   }
 

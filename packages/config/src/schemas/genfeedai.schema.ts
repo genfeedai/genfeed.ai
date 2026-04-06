@@ -1,22 +1,30 @@
 import Joi from 'joi';
 
+import { conditionalRequired, IS_SELF_HOSTED } from '../helpers';
+
 /**
  * Genfeed internal URLs and services
  */
 export const genfeedaiUrlsSchema = {
-  GENFEEDAI_API_URL: Joi.string().uri().required(),
-  GENFEEDAI_APP_URL: Joi.string().uri().required(),
-  GENFEEDAI_CDN_URL: Joi.string().uri().required(),
-  GENFEEDAI_WEBHOOKS_URL: Joi.string().uri().required(),
+  GENFEEDAI_API_URL: conditionalRequired(Joi.string().uri()),
+  GENFEEDAI_APP_URL: conditionalRequired(Joi.string().uri()),
+  GENFEEDAI_CDN_URL: conditionalRequired(Joi.string().uri()),
+  GENFEEDAI_WEBHOOKS_URL: conditionalRequired(Joi.string().uri()),
 };
 
 /**
- * Microservices URLs (optional - only needed by API gateway)
+ * Microservices URLs (optional in cloud, localhost defaults in self-hosted)
  */
 export const microservicesSchema = {
-  GENFEEDAI_MICROSERVICES_FILES_URL: Joi.string().uri().optional(),
-  GENFEEDAI_MICROSERVICES_MCP_URL: Joi.string().uri().optional(),
-  GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL: Joi.string().uri().optional(),
+  GENFEEDAI_MICROSERVICES_FILES_URL: IS_SELF_HOSTED
+    ? Joi.string().default('http://localhost:3005')
+    : Joi.string().uri().optional(),
+  GENFEEDAI_MICROSERVICES_MCP_URL: IS_SELF_HOSTED
+    ? Joi.string().default('http://localhost:3006')
+    : Joi.string().uri().optional(),
+  GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL: IS_SELF_HOSTED
+    ? Joi.string().default('http://localhost:3007')
+    : Joi.string().uri().optional(),
 };
 
 /**
@@ -29,6 +37,11 @@ export const internalAuthSchema = {
   GENFEEDAI_API_KEY: Joi.string()
     .optional()
     .description('API key for internal service-to-service authentication'),
+  GITHUB_WEBHOOK_SECRET: Joi.string()
+    .optional()
+    .description(
+      'HMAC secret for GitHub Secret Scanning Partner Program webhooks',
+    ),
   TOKEN_ENCRYPTION_KEY: Joi.string()
     .min(32)
     .required()
@@ -41,5 +54,5 @@ export const internalAuthSchema = {
  * Minimal Genfeed config for microservices (just API URL)
  */
 export const genfeedaiMinimalSchema = {
-  GENFEEDAI_API_URL: Joi.string().uri().required(),
+  GENFEEDAI_API_URL: conditionalRequired(Joi.string().uri()),
 };

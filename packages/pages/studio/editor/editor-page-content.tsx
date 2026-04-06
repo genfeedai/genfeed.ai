@@ -1,10 +1,5 @@
 'use client';
 
-import type {
-  IEditorProject,
-  IEditorTrack,
-  IIngredient,
-} from '@genfeedai/interfaces';
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import {
   ButtonVariant,
@@ -12,6 +7,11 @@ import {
   IngredientCategory,
   IngredientFormat,
 } from '@genfeedai/enums';
+import type {
+  IEditorProject,
+  IEditorTrack,
+  IIngredient,
+} from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { EditorEffectsPanel } from '@pages/studio/editor/EditorEffectsPanel';
@@ -69,7 +69,7 @@ interface EditorPageContentProps {
 export default function EditorPageContent({
   projectId,
 }: EditorPageContentProps) {
-  const brandId = useBrandId();
+  const _brandId = useBrandId();
   const router = useRouter();
   const { href } = useOrgUrl();
   const { openGallery } = useGalleryModal();
@@ -126,7 +126,7 @@ export default function EditorPageContent({
     loadProject();
 
     return () => controller.abort();
-  }, [brandId, projectId, notificationsService, getEditorService]);
+  }, [projectId, notificationsService, getEditorService]);
 
   // Auto-save effect
   useEffect(() => {
@@ -540,7 +540,7 @@ export default function EditorPageContent({
       return;
     }
     router.push(href('/editor'));
-  }, [state.isDirty, router, openConfirm]);
+  }, [state.isDirty, router, openConfirm, href]);
 
   const handleFrameChange = useCallback((frame: number) => {
     setState((prev) => ({ ...prev, currentFrame: frame }));

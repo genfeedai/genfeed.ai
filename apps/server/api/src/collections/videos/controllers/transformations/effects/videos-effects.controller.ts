@@ -30,6 +30,7 @@ import {
   WebSocketEventType,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Controller, Param, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
@@ -90,7 +91,7 @@ export class VideosEffectsController {
         params: {
           inputPath: videoUrl,
         },
-        room: `user-${user.id}`,
+        room: getUserRoomName(user.id),
         type: 'reverse-video',
         userId: publicMetadata.user,
         websocketUrl: `/videos/${ingredientData._id}`,
@@ -125,7 +126,7 @@ export class VideosEffectsController {
             status: WebSocketEventStatus.COMPLETED,
           },
           user.id,
-          `user-${user.id}`,
+          getUserRoomName(user.id),
         );
       })
       .catch((error: unknown) => {
@@ -174,7 +175,7 @@ export class VideosEffectsController {
           params: {
             inputPath: videoUrl,
           },
-          room: `user-${user.id}`,
+          room: getUserRoomName(user.id),
           type: 'mirror-video',
           userId: publicMetadata.user,
           websocketUrl: `/videos/${ingredientData._id}`,
@@ -215,7 +216,7 @@ export class VideosEffectsController {
               status: WebSocketEventStatus.COMPLETED,
             },
             user.id,
-            `user-${user.id}`,
+            getUserRoomName(user.id),
           );
 
           try {
@@ -235,7 +236,7 @@ export class VideosEffectsController {
             websocketUrl,
             'Failed to mirror video',
             user.id,
-            `user-${user.id}`,
+            getUserRoomName(user.id),
           );
         });
 

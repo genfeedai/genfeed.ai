@@ -1,6 +1,10 @@
 'use client';
 
-import { ModalEnum, QualityTier, SubscriptionTier } from '@genfeedai/enums';
+import {
+  ModalEnum,
+  type QualityTier,
+  type SubscriptionTier,
+} from '@genfeedai/enums';
 import {
   DEFAULT_QUALITY_TIER,
   hasQualityAccess,

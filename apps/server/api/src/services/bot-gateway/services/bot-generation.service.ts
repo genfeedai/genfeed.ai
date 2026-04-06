@@ -7,7 +7,10 @@ import { ConfigService } from '@api/config/config.service';
 import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { User } from '@clerk/backend';
-import type { IBotCallbackContext, IBotResolvedUser } from '@genfeedai/interfaces';
+import type {
+  IBotCallbackContext,
+  IBotResolvedUser,
+} from '@genfeedai/interfaces';
 import {
   ActivitySource,
   BotCommandType,

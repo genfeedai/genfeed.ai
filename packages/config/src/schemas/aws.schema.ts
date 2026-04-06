@@ -1,14 +1,16 @@
 import Joi from 'joi';
 
+import { conditionalRequired } from '../helpers';
+
 /**
  * AWS / S3 config
  */
 export const awsSchema = {
-  AWS_ACCESS_KEY_ID: Joi.string().required(),
+  AWS_ACCESS_KEY_ID: conditionalRequired(),
   AWS_IMAGE_COMPRESSION: Joi.number().default(50),
   AWS_REGION: Joi.string().default('us-west-1'),
   AWS_S3_BUCKET: Joi.string().default('cdn.genfeed.ai'),
-  AWS_SECRET_ACCESS_KEY: Joi.string().required(),
+  AWS_SECRET_ACCESS_KEY: conditionalRequired(),
 };
 
 /**

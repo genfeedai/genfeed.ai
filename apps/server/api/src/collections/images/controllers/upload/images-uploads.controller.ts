@@ -36,6 +36,7 @@ import {
   MetadataExtension,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
@@ -238,7 +239,7 @@ export class ImagesUploadsController {
       // @ts-expect-error TS2345
       ingredient._id.toString(),
       user.id,
-      `user-${user.id}`,
+      getUserRoomName(user.id),
     );
 
     return serializeSingle(request, IngredientSerializer, ingredient);

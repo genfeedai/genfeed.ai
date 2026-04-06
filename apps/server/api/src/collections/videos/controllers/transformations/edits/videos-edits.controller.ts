@@ -31,6 +31,7 @@ import {
   WebSocketEventType,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   Body,
@@ -118,7 +119,7 @@ export class VideosEditsController {
             inputPath: videoUrl,
             startTime: trimParams.startTime,
           },
-          room: `user-${user.id}`,
+          room: getUserRoomName(user.id),
           type: 'trim-video',
           userId: publicMetadata.user,
           websocketUrl: `/videos/${ingredientData._id}`,
@@ -158,7 +159,7 @@ export class VideosEditsController {
               status: WebSocketEventStatus.COMPLETED,
             },
             user.id,
-            `user-${user.id}`,
+            getUserRoomName(user.id),
           );
 
           try {
@@ -178,7 +179,7 @@ export class VideosEditsController {
             websocketUrl,
             'Failed to trim video',
             user.id,
-            `user-${user.id}`,
+            getUserRoomName(user.id),
           );
         });
 
@@ -259,7 +260,7 @@ export class VideosEditsController {
             text: createVideoDto.text,
             width: originalMetadata.width,
           },
-          room: `user-${user.id}`,
+          room: getUserRoomName(user.id),
           type: 'add-text-overlay',
           userId: publicMetadata.user,
           websocketUrl: `/videos/${ingredientData._id}`,
@@ -300,7 +301,7 @@ export class VideosEditsController {
               status: WebSocketEventStatus.COMPLETED,
             },
             user.id,
-            `user-${user.id}`,
+            getUserRoomName(user.id),
           );
 
           try {

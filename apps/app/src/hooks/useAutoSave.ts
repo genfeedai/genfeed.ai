@@ -28,7 +28,9 @@ export function useAutoSave(enabled = true): UseAutoSaveReturn {
 
   // Create a stable hash of nodes to detect any data changes (not just length)
   // This ensures we re-debounce when node data (like schemaParams) changes
-  const _nodesHash = JSON.stringify(nodes.map((n) => ({ data: n.data, id: n.id })));
+  const _nodesHash = JSON.stringify(
+    nodes.map((n) => ({ data: n.data, id: n.id })),
+  );
 
   useEffect(() => {
     // Don't save if disabled, not dirty, already saving, or empty workflow

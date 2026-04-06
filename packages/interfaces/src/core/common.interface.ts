@@ -1,4 +1,4 @@
-import { IngredientCategory } from '@genfeedai/enums';
+import type { IngredientCategory } from '@genfeedai/enums';
 
 export interface IFieldOption {
   value: IngredientCategory | string;

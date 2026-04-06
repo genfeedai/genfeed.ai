@@ -1,8 +1,8 @@
 'use client';
 
-import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
 import type { IngredientCategory } from '@genfeedai/enums';
 import { IngredientFormat, IngredientStatus, ViewType } from '@genfeedai/enums';
+import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FiltersBar from '@ui/content/filters-bar/FiltersBar';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';

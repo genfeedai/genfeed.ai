@@ -47,6 +47,7 @@ import {
   PromptCategory,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   Body,
@@ -205,7 +206,7 @@ export class MusicsOperationsController {
       activityId: activity._id.toString(),
       label: 'Music Generation',
       progress: 0,
-      room: `user-${user.id}`,
+      room: getUserRoomName(user.id),
       status: 'processing',
       taskId: ingredientData._id.toString(),
       userId: user.id,
@@ -253,7 +254,7 @@ export class MusicsOperationsController {
             ingredientId.toString(),
             websocketPath,
             user.id,
-            `user-${user.id}`,
+            getUserRoomName(user.id),
             {
               brand: publicMetadata.brand,
               key: ActivityKey.MUSIC_FAILED,
@@ -285,7 +286,7 @@ export class MusicsOperationsController {
           ingredientId.toString(),
           websocketPath,
           user.id,
-          `user-${user.id}`,
+          getUserRoomName(user.id),
           {
             brand: publicMetadata.brand,
             key: ActivityKey.MUSIC_FAILED,
@@ -395,7 +396,7 @@ export class MusicsOperationsController {
                   additionalIngredientId.toString(),
                   WebSocketPaths.music(additionalIngredientId.toString()),
                   user.id,
-                  `user-${user.id}`,
+                  getUserRoomName(user.id),
                   {
                     brand: publicMetadata.brand,
                     key: ActivityKey.MUSIC_FAILED,
@@ -426,7 +427,7 @@ export class MusicsOperationsController {
         ingredientData._id,
         primaryWebsocketUrl,
         user.id,
-        `user-${user.id}`,
+        getUserRoomName(user.id),
         {
           brand: publicMetadata.brand,
           key: ActivityKey.MUSIC_FAILED,

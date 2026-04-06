@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('useUIStore', () => {
   beforeEach(() => {
@@ -256,12 +256,16 @@ describe('useUIStore', () => {
 
       const notifications = useUIStore.getState().notifications;
       expect(notifications).toHaveLength(2);
-      expect(notifications.find((n) => n.id === 'notification-2')).toBeUndefined();
+      expect(
+        notifications.find((n) => n.id === 'notification-2'),
+      ).toBeUndefined();
     });
 
     it('should do nothing for non-existent notification', () => {
       useUIStore.setState({
-        notifications: [{ id: 'notification-1', title: 'First', type: 'success' }],
+        notifications: [
+          { id: 'notification-1', title: 'First', type: 'success' },
+        ],
       });
 
       const { removeNotification } = useUIStore.getState();

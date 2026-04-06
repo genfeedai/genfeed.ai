@@ -2,7 +2,7 @@ import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
   createPublishExecutor,
-  PublishExecutor,
+  type PublishExecutor,
   type PublishResolver,
 } from '@workflow-engine/executors/saas/publish-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
