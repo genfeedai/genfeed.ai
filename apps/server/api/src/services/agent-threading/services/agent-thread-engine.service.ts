@@ -1,5 +1,5 @@
-import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
-import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import type { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
+import type { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import {
   fromPromiseEffect,
@@ -26,14 +26,16 @@ import {
   AgentThreadSnapshot,
   type AgentThreadSnapshotDocument,
 } from '@api/services/agent-threading/schemas/agent-thread-snapshot.schema';
-import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
-import { AgentThreadProjectorService } from '@api/services/agent-threading/services/agent-thread-projector.service';
+import type { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
+import type { AgentThreadProjectorService } from '@api/services/agent-threading/services/agent-thread-projector.service';
+import type { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
 import type { AgentThreadEventType } from '@api/services/agent-threading/types/agent-thread.types';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Effect } from 'effect';
@@ -78,6 +80,8 @@ export class AgentThreadEngineService {
     private readonly runtimeSessionService: AgentRuntimeSessionService,
     private readonly projectorService: AgentThreadProjectorService,
     private readonly loggerService: LoggerService,
+    @Optional()
+    private readonly threadContextCompressorService?: ThreadContextCompressorService,
   ) {}
 
   appendEventEffect(
@@ -597,6 +601,21 @@ export class AgentThreadEngineService {
       event.type === 'assistant.finalized' ||
       event.type === 'work.completed'
     ) {
+      // Trigger async context compression on turn completion
+      if (
+        event.type === 'assistant.finalized' &&
+        this.threadContextCompressorService
+      ) {
+        this.threadContextCompressorService
+          .compressIfNeeded(threadId, organizationId)
+          .catch((err) =>
+            this.loggerService.warn(
+              'AgentThreadEngineService: Context compression failed',
+              { err, threadId },
+            ),
+          );
+      }
+
       return this.upsertRuntimeBindingEffect({
         organizationId,
         runId: event.runId,

@@ -6,6 +6,13 @@ import { conditionalRequired } from '../helpers';
  * General AI config
  */
 export const generalAiSchema = {
+  AGENT_CONTEXT_COMPRESSION_ENABLED: Joi.string()
+    .valid('true', 'false')
+    .default('true'),
+  AGENT_CONTEXT_COMPRESSION_MODEL: Joi.string().default(
+    'deepseek/deepseek-chat',
+  ),
+  AGENT_CONTEXT_WINDOW_SIZE: Joi.number().integer().min(1).default(5),
   MAX_TOKENS: Joi.number().default(4000),
 };
 
