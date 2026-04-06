@@ -21,9 +21,11 @@
   },
   "description": "Genfeed API Service",
   "devDependencies": {
+    "@nestjs/testing": "^11.1.18",
     "@types/rss": "0.0.32",
     "mongodb": "7.1.1",
-    "unplugin-swc": "1.4.2"
+    "unplugin-swc": "1.5.5",
+    "vitest": "4.1.2"
   },
   "main": "../dist/apps/api/main.js",
   "name": "@genfeedai/api",
