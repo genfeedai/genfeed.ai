@@ -3,11 +3,14 @@
 import { useAuth } from '@clerk/nextjs';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
-import { Skill, SkillsService } from '@services/content/skills.service';
+import { useBrandEnabledSkills } from '@hooks/data/skills/use-brand-enabled-skills';
+import { type Skill, SkillsService } from '@services/content/skills.service';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { Input } from '@ui/primitives/input';
+import { Switch } from '@ui/primitives/switch';
+import { Textarea } from '@ui/primitives/textarea';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -17,7 +20,6 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { useBrandEnabledSkills } from '@hooks/data/skills/use-brand-enabled-skills';
 import {
   HiOutlineArrowPath,
   HiOutlineBeaker,
@@ -55,6 +57,7 @@ type SkillDraft = {
   defaultInstructions: string;
   description: string;
   name: string;
+  systemPromptTemplate: string;
 };
 
 function buildSkillTestPrompt(skill: Skill): string {
@@ -115,6 +118,7 @@ export default function OrchestrationSkillsPage() {
     defaultInstructions: '',
     description: '',
     name: '',
+    systemPromptTemplate: '',
   });
 
   const getSkillsService = useCallback(async () => {
@@ -140,7 +144,7 @@ export default function OrchestrationSkillsPage() {
       startTransition(() => {
         setSkills(catalogSkills);
       });
-    } catch (refreshError) {
+    } catch {
       setError('Failed to load the agent skill catalog.');
     } finally {
       setLoading(false);
@@ -187,11 +191,12 @@ export default function OrchestrationSkillsPage() {
       defaultInstructions: selectedSkill?.defaultInstructions ?? '',
       description: selectedSkill?.description ?? '',
       name: selectedSkill?.name ?? '',
+      systemPromptTemplate: selectedSkill?.systemPromptTemplate ?? '',
     });
   }, [selectedSkill]);
 
   const handleSaveSkill = useCallback(async () => {
-    if (!(selectedSkill && selectedSkill.organization)) {
+    if (!selectedSkill?.organization) {
       return;
     }
 
@@ -204,9 +209,11 @@ export default function OrchestrationSkillsPage() {
         defaultInstructions: skillDraft.defaultInstructions.trim() || undefined,
         description: skillDraft.description.trim(),
         name: skillDraft.name.trim(),
+        systemPromptTemplate:
+          skillDraft.systemPromptTemplate.trim() || undefined,
       });
       await refreshCatalog();
-    } catch (saveError) {
+    } catch {
       setError('Failed to update the selected skill variant.');
     } finally {
       setSavingSkill(false);
@@ -218,6 +225,7 @@ export default function OrchestrationSkillsPage() {
     skillDraft.defaultInstructions,
     skillDraft.description,
     skillDraft.name,
+    skillDraft.systemPromptTemplate,
   ]);
 
   const handleCustomize = useCallback(async () => {
@@ -235,7 +243,7 @@ export default function OrchestrationSkillsPage() {
       });
       await refreshCatalog();
       setSelectedSkillId(customizedSkill.id);
-    } catch (customizeError) {
+    } catch {
       setError('Failed to create a brand-editable skill variant.');
     } finally {
       setCustomizing(false);
@@ -407,27 +415,12 @@ export default function OrchestrationSkillsPage() {
                     >
                       {skill.workflowStage}
                     </Badge>
-                    <span
-                      aria-label={isEnabled ? 'Disable skill' : 'Enable skill'}
-                      className={`ml-auto inline-flex h-6 w-10 shrink-0 cursor-pointer items-center rounded-full border transition ${
-                        isEnabled
-                          ? 'border-emerald-500/40 bg-emerald-500/25'
-                          : 'border-white/10 bg-white/5'
-                      }`}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        void toggleSkill(skill.slug);
-                      }}
-                      role="switch"
-                    >
-                      <span
-                        className={`block h-4 w-4 rounded-full transition-transform ${
-                          isEnabled
-                            ? 'translate-x-5 bg-emerald-400'
-                            : 'translate-x-0.5 bg-white/40'
-                        }`}
-                      />
-                    </span>
+                    <Switch
+                      checked={isEnabled}
+                      className="ml-auto"
+                      onClick={(event) => event.stopPropagation()}
+                      onCheckedChange={() => void toggleSkill(skill.slug)}
+                    />
                   </div>
 
                   <p className="mb-3 text-sm text-foreground/65">
@@ -557,7 +550,7 @@ export default function OrchestrationSkillsPage() {
 
                 <label className="grid gap-2 text-sm text-foreground/70">
                   Description
-                  <textarea
+                  <Textarea
                     className="min-h-24 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-foreground outline-none"
                     disabled={!selectedSkill.organization}
                     onChange={(event) =>
@@ -572,8 +565,8 @@ export default function OrchestrationSkillsPage() {
 
                 <label className="grid gap-2 text-sm text-foreground/70">
                   Default instructions
-                  <textarea
-                    className="min-h-28 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-foreground outline-none"
+                  <Textarea
+                    className="min-h-28 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm font-mono text-foreground outline-none"
                     disabled={!selectedSkill.organization}
                     onChange={(event) =>
                       setSkillDraft((current) => ({
@@ -584,6 +577,30 @@ export default function OrchestrationSkillsPage() {
                     value={skillDraft.defaultInstructions}
                   />
                 </label>
+
+                <details className="group">
+                  <summary className="cursor-pointer text-sm font-medium text-foreground/50 transition hover:text-foreground/70">
+                    Advanced: System Prompt Template
+                  </summary>
+                  <div className="mt-2 space-y-2">
+                    <p className="text-xs text-foreground/40">
+                      The exact text injected into the agent system prompt at
+                      runtime. Falls back to Default Instructions if empty.
+                    </p>
+                    <Textarea
+                      className="min-h-32 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm font-mono text-foreground outline-none"
+                      disabled={!selectedSkill.organization}
+                      onChange={(event) =>
+                        setSkillDraft((current) => ({
+                          ...current,
+                          systemPromptTemplate: event.target.value,
+                        }))
+                      }
+                      placeholder="Leave empty to use Default Instructions above"
+                      value={skillDraft.systemPromptTemplate}
+                    />
+                  </div>
+                </details>
 
                 {selectedSkill.organization ? (
                   <button
