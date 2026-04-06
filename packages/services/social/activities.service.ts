@@ -1,9 +1,12 @@
-import type { IBulkOperationResult, IBulkPatchData } from '@genfeedai/interfaces';
 import {
   ActivityBulkPatchSerializer,
   ActivitySerializer,
 } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import type {
+  IBulkOperationResult,
+  IBulkPatchData,
+} from '@genfeedai/interfaces';
 import { Activity } from '@models/analytics/activity.model';
 import { BaseService } from '@services/core/base.service';
 

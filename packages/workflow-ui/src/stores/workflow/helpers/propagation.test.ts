@@ -416,7 +416,7 @@ describe('computeDownstreamUpdates', () => {
     const updates = computeDownstreamUpdates('A', 'a.jpg', nodes, edges);
     const galleryUpdate = updates.get('G');
     expect(galleryUpdate).toBeDefined();
-    expect(galleryUpdate!.images).toEqual(['existing.jpg', 'a.jpg', 'b.jpg']);
+    expect(galleryUpdate?.images).toEqual(['existing.jpg', 'a.jpg', 'b.jpg']);
   });
 
   it('skips missing nodes gracefully', () => {

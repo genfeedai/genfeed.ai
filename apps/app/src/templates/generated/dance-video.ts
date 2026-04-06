@@ -74,7 +74,8 @@ export const DANCE_VIDEO_TEMPLATE: WorkflowTemplate = {
     {
       data: {
         label: 'Enhancement Prompt',
-        prompt: 'Professional dance performance, smooth motion, high quality, detailed',
+        prompt:
+          'Professional dance performance, smooth motion, high quality, detailed',
         status: 'idle',
         variables: {},
       },

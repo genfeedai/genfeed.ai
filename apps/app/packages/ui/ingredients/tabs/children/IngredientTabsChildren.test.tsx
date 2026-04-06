@@ -1,5 +1,5 @@
-import type { IIngredient } from '@genfeedai/interfaces';
 import { IngredientCategory } from '@genfeedai/enums';
+import type { IIngredient } from '@genfeedai/interfaces';
 import { render } from '@testing-library/react';
 import IngredientTabsChildren from '@ui/ingredients/tabs/children/IngredientTabsChildren';
 import { describe, expect, it, vi } from 'vitest';

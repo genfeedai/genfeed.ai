@@ -1,4 +1,4 @@
-import { TaskCategory } from '@genfeedai/enums';
+import type { TaskCategory } from '@genfeedai/enums';
 import type { IBaseEntity } from '../index';
 
 export interface ITask extends IBaseEntity {

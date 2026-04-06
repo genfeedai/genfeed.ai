@@ -1,7 +1,10 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import type { IAgentRunContent, IAgentRunContentItem } from '@genfeedai/interfaces';
+import type {
+  IAgentRunContent,
+  IAgentRunContentItem,
+} from '@genfeedai/interfaces';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import type { AgentRunContentGridProps } from '@props/automation/agent-strategy.props';
 import { AgentRunsService } from '@services/ai/agent-runs.service';

@@ -1,5 +1,5 @@
-import type { IPostPlatformConfig } from '@genfeedai/interfaces';
 import type { MultiPostSchema } from '@genfeedai/client/schemas';
+import type { IPostPlatformConfig } from '@genfeedai/interfaces';
 import { render, screen } from '@testing-library/react';
 import ModalPostContent from '@ui/modals/content/post/ModalPostContent';
 import type { UseFormReturn } from 'react-hook-form';

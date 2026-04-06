@@ -32,6 +32,7 @@ import { YoutubeService } from '@api/services/integrations/youtube/services/yout
 import { QuotaService } from '@api/services/quota/quota.service';
 import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
+import { CredentialPlatform } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -40,7 +41,6 @@ import {
   CredentialInstagramPagesSerializer,
   CredentialSerializer,
 } from '@genfeedai/serializers';
-import { CredentialPlatform } from '@genfeedai/enums';
 import {
   Body,
   Controller,

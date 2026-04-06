@@ -19,12 +19,12 @@ import { BatchGenerationService } from '@api/services/batch-generation/batch-gen
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
+import { ProactiveOnboardingStatus } from '@genfeedai/enums';
 import type {
   IExtractedBrandData,
   IProactivePreparationStatus,
   IScrapedBrandData,
 } from '@genfeedai/interfaces';
-import { ProactiveOnboardingStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

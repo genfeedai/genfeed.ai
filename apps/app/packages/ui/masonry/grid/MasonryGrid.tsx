@@ -1,8 +1,8 @@
 'use client';
 
-import type { IImage, IIngredient, IVideo } from '@genfeedai/interfaces';
 import { EMPTY_STATES } from '@genfeedai/constants';
 import { IngredientFormat, MediaType, TagCategory } from '@genfeedai/enums';
+import type { IImage, IIngredient, IVideo } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useTags } from '@hooks/data/tags/use-tags/use-tags';
 import { useMasonryHoverController } from '@hooks/ui/use-masonry-hover-controller/use-masonry-hover-controller';

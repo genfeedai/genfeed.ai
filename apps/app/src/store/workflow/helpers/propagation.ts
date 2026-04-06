@@ -57,14 +57,22 @@ export function getNodeOutput(node: WorkflowNode): string | null {
  *
  * @returns The media type ('text' | 'image' | 'video' | 'audio') or null for unknown types.
  */
-export function getOutputType(sourceType: string): 'text' | 'image' | 'video' | 'audio' | null {
+export function getOutputType(
+  sourceType: string,
+): 'text' | 'image' | 'video' | 'audio' | null {
   if (['prompt', 'llm', 'tweetParser', 'transcribe'].includes(sourceType)) {
     return 'text';
   }
   if (
-    ['imageGen', 'image', 'imageInput', 'upscale', 'resize', 'reframe', 'imageGridSplit'].includes(
-      sourceType
-    )
+    [
+      'imageGen',
+      'image',
+      'imageInput',
+      'upscale',
+      'resize',
+      'reframe',
+      'imageGridSplit',
+    ].includes(sourceType)
   ) {
     return 'image';
   }
@@ -101,7 +109,7 @@ export function getOutputType(sourceType: string): 'text' | 'image' | 'video' | 
 export function mapOutputToInput(
   output: string,
   sourceType: string,
-  targetType: string
+  targetType: string,
 ): Record<string, unknown> | null {
   const outputType = getOutputType(sourceType);
 
@@ -130,9 +138,14 @@ export function mapOutputToInput(
       return { inputImage: output, inputType: 'image', inputVideo: null };
     }
     if (
-      ['videoGen', 'lipSync', 'voiceChange', 'motionControl', 'resize', 'animation'].includes(
-        targetType
-      )
+      [
+        'videoGen',
+        'lipSync',
+        'voiceChange',
+        'motionControl',
+        'resize',
+        'animation',
+      ].includes(targetType)
     ) {
       return { inputImage: output };
     }
@@ -184,7 +197,7 @@ export function collectGalleryUpdate(
   sourceData: Record<string, unknown>,
   currentOutput: string,
   existingGalleryImages: string[],
-  pendingUpdateImages: string[]
+  pendingUpdateImages: string[],
 ): Record<string, unknown> | null {
   const allImages: string[] = [];
 
@@ -198,7 +211,13 @@ export function collectGalleryUpdate(
   if (allImages.length === 0) return null;
 
   return {
-    images: [...new Set([...existingGalleryImages, ...pendingUpdateImages, ...allImages])],
+    images: [
+      ...new Set([
+        ...existingGalleryImages,
+        ...pendingUpdateImages,
+        ...allImages,
+      ]),
+    ],
   };
 }
 
@@ -213,7 +232,7 @@ export function computeDownstreamUpdates(
   sourceNodeId: string,
   initialOutput: string,
   nodes: WorkflowNode[],
-  edges: WorkflowEdge[]
+  edges: WorkflowEdge[],
 ): Map<string, Record<string, unknown>> {
   const updates: Map<string, Record<string, unknown>> = new Map();
   const visited = new Set<string>();
@@ -250,7 +269,7 @@ export function computeDownstreamUpdates(
           sourceData,
           current.output,
           galleryExisting,
-          pendingImages
+          pendingImages,
         );
 
         if (galleryUpdate) {
@@ -260,7 +279,11 @@ export function computeDownstreamUpdates(
       }
 
       // --- Type-aware routing ---
-      const inputUpdate = mapOutputToInput(current.output, currentNode.type, targetNode.type);
+      const inputUpdate = mapOutputToInput(
+        current.output,
+        currentNode.type,
+        targetNode.type,
+      );
       if (inputUpdate) {
         const existing = updates.get(edge.target) ?? {};
         updates.set(edge.target, { ...existing, ...inputUpdate });
@@ -285,7 +308,7 @@ export function computeDownstreamUpdates(
  */
 export function hasStateChanged(
   updates: Map<string, Record<string, unknown>>,
-  nodes: WorkflowNode[]
+  nodes: WorkflowNode[],
 ): boolean {
   for (const [nodeId, update] of updates) {
     const existingNode = nodes.find((n) => n.id === nodeId);
@@ -294,7 +317,10 @@ export function hasStateChanged(
     for (const [key, value] of Object.entries(update)) {
       const prev = existingData[key];
       if (Array.isArray(prev) && Array.isArray(value)) {
-        if (prev.length !== value.length || prev.some((v, i) => v !== value[i])) {
+        if (
+          prev.length !== value.length ||
+          prev.some((v, i) => v !== value[i])
+        ) {
           return true;
         }
       } else if (prev !== value) {
@@ -312,7 +338,7 @@ export function hasStateChanged(
  */
 export function applyNodeUpdates(
   nodes: WorkflowNode[],
-  updates: Map<string, Record<string, unknown>>
+  updates: Map<string, Record<string, unknown>>,
 ): WorkflowNode[] {
   return nodes.map((n) => {
     const update = updates.get(n.id);
@@ -332,7 +358,7 @@ export function applyNodeUpdates(
  */
 export function propagateExistingOutputs(
   nodes: WorkflowNode[],
-  propagateFn: (nodeId: string) => void
+  propagateFn: (nodeId: string) => void,
 ): void {
   for (const node of nodes) {
     if (getNodeOutput(node) !== null) {

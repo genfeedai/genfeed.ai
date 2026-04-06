@@ -1,17 +1,22 @@
+import type { EdgeStyle, ProviderType } from '@genfeedai/types';
+import { ProviderTypeEnum } from '@genfeedai/types';
 import { create } from 'zustand';
+import type {
+  LLMProviderConfig,
+  LLMProviderType,
+} from '@/lib/ai/llm-providers';
+import {
+  DEFAULT_LLM_MODEL,
+  DEFAULT_LLM_PROVIDER,
+} from '@/lib/ai/llm-providers';
 import { settingsApi } from '@/lib/api/settings';
 import { logger } from '@/lib/logger';
-import { ProviderTypeEnum } from '@genfeedai/types';
-import type { EdgeStyle, ProviderType } from '@genfeedai/types';
-import type { LLMProviderType, LLMProviderConfig } from '@/lib/ai/llm-providers';
-import { DEFAULT_LLM_PROVIDER, DEFAULT_LLM_MODEL } from '@/lib/ai/llm-providers';
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
-export type { EdgeStyle, ProviderType };
-export type { LLMProviderType, LLMProviderConfig };
+export type { EdgeStyle, LLMProviderConfig, LLMProviderType, ProviderType };
 
 export interface LLMSettings {
   providers: Record<LLMProviderType, LLMProviderConfig>;
@@ -82,7 +87,11 @@ interface SettingsStore {
   setDebugMode: (enabled: boolean) => void;
   setProviderKey: (provider: ProviderType, key: string | null) => void;
   setProviderEnabled: (provider: ProviderType, enabled: boolean) => void;
-  setDefaultModel: (type: 'image' | 'video', model: string, provider: ProviderType) => void;
+  setDefaultModel: (
+    type: 'image' | 'video',
+    model: string,
+    provider: ProviderType,
+  ) => void;
   setEdgeStyle: (style: EdgeStyle) => Promise<void>;
   setShowMinimap: (show: boolean) => void;
   addRecentModel: (model: Omit<RecentModel, 'timestamp'>) => void;
@@ -122,9 +131,17 @@ const DEFAULT_SETTINGS = {
     activeModel: DEFAULT_LLM_MODEL,
     activeProvider: DEFAULT_LLM_PROVIDER as LLMProviderType,
     providers: {
-      anthropic: { apiKey: null, defaultModel: 'claude-sonnet-4-6', enabled: false },
+      anthropic: {
+        apiKey: null,
+        defaultModel: 'claude-sonnet-4-6',
+        enabled: false,
+      },
       openai: { apiKey: null, defaultModel: 'gpt-4.1-mini', enabled: false },
-      replicate: { apiKey: null, defaultModel: 'meta/meta-llama-3.1-405b-instruct', enabled: true },
+      replicate: {
+        apiKey: null,
+        defaultModel: 'meta/meta-llama-3.1-405b-instruct',
+        enabled: true,
+      },
     },
   } as LLMSettings,
   providers: {
@@ -160,7 +177,10 @@ function loadFromStorage(): Partial<typeof DEFAULT_SETTINGS> {
         llm: {
           ...DEFAULT_SETTINGS.llm,
           ...parsed.llm,
-          providers: { ...DEFAULT_SETTINGS.llm.providers, ...parsed.llm?.providers },
+          providers: {
+            ...DEFAULT_SETTINGS.llm.providers,
+            ...parsed.llm?.providers,
+          },
         },
         providers: { ...DEFAULT_SETTINGS.providers, ...parsed.providers },
         recentModels: parsed.recentModels ?? [],
@@ -246,10 +266,14 @@ const initialState = { ...DEFAULT_SETTINGS, ...loadFromStorage() };
 
 export const useSettingsStore = create<SettingsStore>((set, get) => {
   // Helper to set state and persist in one call
-  const setAndPersist = (updater: (state: SettingsStore) => Partial<SettingsStore>) => {
+  const setAndPersist = (
+    updater: (state: SettingsStore) => Partial<SettingsStore>,
+  ) => {
     set((state) => {
       const newState = updater(state);
-      saveToStorage({ ...state, ...newState } as Parameters<typeof saveToStorage>[0]);
+      saveToStorage({ ...state, ...newState } as Parameters<
+        typeof saveToStorage
+      >[0]);
       return newState;
     });
   };
@@ -259,13 +283,13 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
       setAndPersist((state) => {
         // Remove existing entry for same model
         const filtered = state.recentModels.filter(
-          (m) => !(m.id === model.id && m.provider === model.provider)
+          (m) => !(m.id === model.id && m.provider === model.provider),
         );
         // Add to front with timestamp
-        const newRecentModels = [{ ...model, timestamp: Date.now() }, ...filtered].slice(
-          0,
-          MAX_RECENT_MODELS
-        );
+        const newRecentModels = [
+          { ...model, timestamp: Date.now() },
+          ...filtered,
+        ].slice(0, MAX_RECENT_MODELS);
         return { recentModels: newRecentModels };
       });
     },
@@ -276,8 +300,16 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
         llm: {
           ...state.llm,
           providers: {
-            anthropic: { ...state.llm.providers.anthropic, apiKey: null, enabled: false },
-            openai: { ...state.llm.providers.openai, apiKey: null, enabled: false },
+            anthropic: {
+              ...state.llm.providers.anthropic,
+              apiKey: null,
+              enabled: false,
+            },
+            openai: {
+              ...state.llm.providers.openai,
+              apiKey: null,
+              enabled: false,
+            },
             replicate: { ...state.llm.providers.replicate, apiKey: null },
           },
         },
@@ -296,7 +328,11 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
           ...state.llm,
           providers: {
             ...state.llm.providers,
-            [provider]: { ...state.llm.providers[provider], apiKey: null, enabled: false },
+            [provider]: {
+              ...state.llm.providers[provider],
+              apiKey: null,
+              enabled: false,
+            },
           },
         },
       }));
@@ -468,29 +504,40 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
           const merged = {
             defaults: {
               ...state.defaults,
-              imageModel: serverSettings.nodeDefaults.imageModel || state.defaults.imageModel,
+              imageModel:
+                serverSettings.nodeDefaults.imageModel ||
+                state.defaults.imageModel,
               imageProvider:
                 (serverSettings.nodeDefaults.imageProvider as ProviderType) ||
                 state.defaults.imageProvider,
-              videoModel: serverSettings.nodeDefaults.videoModel || state.defaults.videoModel,
+              videoModel:
+                serverSettings.nodeDefaults.videoModel ||
+                state.defaults.videoModel,
               videoProvider:
                 (serverSettings.nodeDefaults.videoProvider as ProviderType) ||
                 state.defaults.videoProvider,
             },
-            edgeStyle: (serverSettings.uiPreferences.edgeStyle as EdgeStyle) || state.edgeStyle,
-            hasSeenWelcome: serverSettings.uiPreferences.hasSeenWelcome ?? state.hasSeenWelcome,
+            edgeStyle:
+              (serverSettings.uiPreferences.edgeStyle as EdgeStyle) ||
+              state.edgeStyle,
+            hasSeenWelcome:
+              serverSettings.uiPreferences.hasSeenWelcome ??
+              state.hasSeenWelcome,
             recentModels: serverSettings.recentModels.map((m) => ({
               ...m,
               provider: m.provider as ProviderType,
               timestamp: m.timestamp || Date.now(),
             })),
-            showMinimap: serverSettings.uiPreferences.showMinimap ?? state.showMinimap,
+            showMinimap:
+              serverSettings.uiPreferences.showMinimap ?? state.showMinimap,
           };
           saveToStorage({ ...state, ...merged });
           return { ...merged, isSyncing: false };
         });
       } catch (error) {
-        logger.error('Failed to sync settings from server', error, { context: 'SettingsStore' });
+        logger.error('Failed to sync settings from server', error, {
+          context: 'SettingsStore',
+        });
         set({ isSyncing: false });
       }
     },
@@ -518,7 +565,9 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
 
         set({ isSyncing: false });
       } catch (error) {
-        logger.error('Failed to sync settings to server', error, { context: 'SettingsStore' });
+        logger.error('Failed to sync settings to server', error, {
+          context: 'SettingsStore',
+        });
         set({ isSyncing: false });
       }
     },

@@ -42,9 +42,9 @@ config({
   path: resolve(__dirname, `../../apps/server/api/.env.${envSuffix}`),
 });
 
-const MONGODB_URL = process.env.MONGODB_URL;
-if (!MONGODB_URL) {
-  throw new Error(`MONGODB_URL is required (loaded from .env.${envSuffix})`);
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+  throw new Error(`MONGODB_URI is required (loaded from .env.${envSuffix})`);
 }
 
 const DRY_RUN = !process.argv.includes('--live');
@@ -117,7 +117,7 @@ async function main() {
   );
   logger.log('='.repeat(70));
 
-  const client = new MongoClient(MONGODB_URL as string);
+  const client = new MongoClient(MONGODB_URI as string);
   await client.connect();
   logger.log('Connected to MongoDB\n');
 
@@ -221,7 +221,7 @@ async function main() {
       .collection(TARGET_COLLECTION)
       .countDocuments();
 
-    logger.log('\n' + '='.repeat(70));
+    logger.log(`\n${'='.repeat(70)}`);
     logger.log('VERIFICATION');
     logger.log('='.repeat(70));
     logger.log(`Source (${SOURCE_DB}.${SOURCE_COLLECTION}): ${sourceCount}`);

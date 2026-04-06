@@ -1,12 +1,12 @@
 'use client';
 
-import type { IAsset, IImage, IMusic, IVideo } from '@genfeedai/interfaces';
 import {
   ButtonVariant,
   ComponentSize,
   IngredientCategory,
   IngredientFormat,
 } from '@genfeedai/enums';
+import type { IAsset, IImage, IMusic, IVideo } from '@genfeedai/interfaces';
 import type { ModalGalleryContentProps } from '@props/modals/modal-gallery.props';
 import { useUploadModal } from '@providers/global-modals/global-modals.provider';
 import Button from '@ui/buttons/base/Button';

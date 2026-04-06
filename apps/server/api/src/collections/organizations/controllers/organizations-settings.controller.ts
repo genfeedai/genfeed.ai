@@ -22,6 +22,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
+import { ByokProvider, MemberRole } from '@genfeedai/enums';
 import type {
   IByokProviderStatus,
   JsonApiSingleResponse,
@@ -31,7 +32,6 @@ import {
   OrganizationSettingSerializer,
   SubscriptionSerializer,
 } from '@genfeedai/serializers';
-import { ByokProvider, MemberRole } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

@@ -20,16 +20,19 @@ import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
 import type { User } from '@clerk/backend';
-import type { IExtractedBrandData, IScrapedBrandData } from '@genfeedai/interfaces';
-import {
-  type IOnboardingJourneyMissionState,
-  ONBOARDING_JOURNEY_MISSIONS,
-} from '@genfeedai/types';
 import {
   FileInputType,
   ModelKey,
   OrganizationCategory,
 } from '@genfeedai/enums';
+import type {
+  IExtractedBrandData,
+  IScrapedBrandData,
+} from '@genfeedai/interfaces';
+import {
+  type IOnboardingJourneyMissionState,
+  ONBOARDING_JOURNEY_MISSIONS,
+} from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';

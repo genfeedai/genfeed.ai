@@ -6,8 +6,8 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import type { User } from '@clerk/backend';
-import { ContentRunSerializer } from '@genfeedai/serializers';
 import { ContentRunStatus } from '@genfeedai/enums';
+import { ContentRunSerializer } from '@genfeedai/serializers';
 import { Controller, Get, Param, Query, Req } from '@nestjs/common';
 import { ApiQuery } from '@nestjs/swagger';
 import type { Request } from 'express';

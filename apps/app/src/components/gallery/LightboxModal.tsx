@@ -1,7 +1,15 @@
 'use client';
 
+import {
+  ChevronLeft,
+  ChevronRight,
+  Download,
+  Music,
+  Pencil,
+  Trash2,
+  X,
+} from 'lucide-react';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Download, Music, Pencil, Trash2, X } from 'lucide-react';
 import { useCallback, useEffect } from 'react';
 import type { GalleryItem } from '@/lib/gallery/types';
 
@@ -13,14 +21,20 @@ interface LightboxModalProps {
   onDelete?: (item: GalleryItem) => void;
 }
 
-export function LightboxModal({ item, onClose, onPrev, onNext, onDelete }: LightboxModalProps) {
+export function LightboxModal({
+  item,
+  onClose,
+  onPrev,
+  onNext,
+  onDelete,
+}: LightboxModalProps) {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
       if (e.key === 'ArrowLeft' && onPrev) onPrev();
       if (e.key === 'ArrowRight' && onNext) onNext();
     },
-    [onClose, onPrev, onNext]
+    [onClose, onPrev, onNext],
   );
 
   useEffect(() => {
@@ -137,7 +151,9 @@ export function LightboxModal({ item, onClose, onPrev, onNext, onDelete }: Light
 
         {/* Filename */}
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 px-4 py-2 bg-[var(--card)] border border-[var(--border)] rounded-lg pointer-events-auto">
-          <p className="text-sm text-[var(--foreground)] truncate max-w-[300px]">{item.name}</p>
+          <p className="text-sm text-[var(--foreground)] truncate max-w-[300px]">
+            {item.name}
+          </p>
         </div>
       </div>
     </>

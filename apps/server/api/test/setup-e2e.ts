@@ -15,7 +15,7 @@ let mongoServer: MongoMemoryServer;
 beforeAll(async () => {
   // Start in-memory MongoDB
   mongoServer = await MongoMemoryServer.create();
-  process.env.MONGODB_URL = mongoServer.getUri();
+  process.env.MONGODB_URI = mongoServer.getUri();
 
   // Set test environment
   process.env.NODE_ENV = 'test';

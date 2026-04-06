@@ -1,5 +1,5 @@
-import type { IArticle, IIngredient } from '@genfeedai/interfaces';
 import type { AssetScope } from '@genfeedai/enums';
+import type { IArticle, IIngredient } from '@genfeedai/interfaces';
 
 export interface ScopeDropdownProps {
   item: IIngredient | IArticle;

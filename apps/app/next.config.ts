@@ -52,9 +52,46 @@ const workflowUiAliases = {
   '@genfeedai/workflow-ui/ui': path.join(workflowUiRoot, 'src/ui/index.ts'),
 };
 
+const IS_SELF_HOSTED = !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const DEFAULT_ORG = 'default';
+const DEFAULT_BRAND = 'default';
+
+const selfHostedRewrites = IS_SELF_HOSTED
+  ? [
+      'workspace',
+      'studio',
+      'posts',
+      'compose',
+      'analytics',
+      'workflows',
+      'library',
+      'editor',
+      'research',
+      'orchestration',
+    ].map((segment) => ({
+      destination: `/${DEFAULT_ORG}/${DEFAULT_BRAND}/${segment}/:path*`,
+      source: `/${segment}/:path*`,
+    }))
+  : [];
+
+const selfHostedOrgRewrites = IS_SELF_HOSTED
+  ? ['chat', 'settings'].map((segment) => ({
+      destination: `/${DEFAULT_ORG}/~/${segment}/:path*`,
+      source: `/${segment}/:path*`,
+    }))
+  : [];
+
 const config = createAppNextConfig({
   appName: 'app',
   pwa: { enabled: true },
+  rewrites: async () => [
+    {
+      destination: `${process.env.API_URL || 'http://localhost:4001'}/v1/:path*`,
+      source: '/v1/:path*',
+    },
+    ...selfHostedRewrites,
+    ...selfHostedOrgRewrites,
+  ],
   redirects: async () => [
     {
       destination: '/workspace/inbox/unread',

@@ -4,17 +4,17 @@ import { SlackBotAdapter } from '@api/services/bot-gateway/adapters/slack-bot.ad
 import { TelegramBotAdapter } from '@api/services/bot-gateway/adapters/telegram-bot.adapter';
 import { BotGenerationService } from '@api/services/bot-gateway/services/bot-generation.service';
 import { BotUserResolverService } from '@api/services/bot-gateway/services/bot-user-resolver.service';
+import {
+  BotCommandType,
+  BotResponseType,
+  CredentialPlatform,
+} from '@genfeedai/enums';
 import type {
   IBotCallbackContext,
   IBotMessage,
   IBotPlatformAdapter,
   IBotResponse,
 } from '@genfeedai/interfaces';
-import {
-  BotCommandType,
-  BotResponseType,
-  CredentialPlatform,
-} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';

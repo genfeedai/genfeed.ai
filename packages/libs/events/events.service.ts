@@ -1,6 +1,6 @@
-import { LoggerService } from '@libs/logger/logger.service';
-import { RedisService } from '@libs/redis/redis.service';
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import type { LoggerService } from '@libs/logger/logger.service';
+import type { RedisService } from '@libs/redis/redis.service';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 @Injectable()
 export class EventsService implements OnModuleInit {

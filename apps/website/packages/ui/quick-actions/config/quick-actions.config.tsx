@@ -1,9 +1,9 @@
+import { IngredientStatus } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import type {
   IActionHandlers,
   IQuickAction,
 } from '@genfeedai/interfaces/ui/quick-actions.interface';
-import { IngredientStatus } from '@genfeedai/enums';
 import {
   HiArrowDownTray,
   HiArrowPath,

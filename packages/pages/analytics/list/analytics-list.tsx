@@ -1,7 +1,6 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import type { IAnalytics } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AnalyticsMetric,
@@ -9,6 +8,7 @@ import {
   IngredientCategory,
   Status,
 } from '@genfeedai/enums';
+import type { IAnalytics } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Video } from '@models/ingredients/video.model';
 import type { ContentProps } from '@props/layout/content.props';

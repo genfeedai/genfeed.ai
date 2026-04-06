@@ -2,7 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import {
-  CreditPackTier,
+  type CreditPackTier,
   creditPackPrice,
   creditPackTotalCredits,
   WEBSITE_CREDIT_PACKS,

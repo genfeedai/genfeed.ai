@@ -55,7 +55,8 @@ export function useContextMenu() {
     duplicateMultipleNodes,
     getPasteData,
   } = useNodeActions();
-  const { addNodeAtPosition, selectAll, fitView, autoLayout } = usePaneActions();
+  const { addNodeAtPosition, selectAll, fitView, autoLayout } =
+    usePaneActions();
   const reactFlow = useReactFlow();
 
   // Stable reference for handlers that don't need to change
@@ -95,7 +96,7 @@ export function useContextMenu() {
         toggleNodeLock(nodeId);
       }
     },
-    [nodes, toggleNodeLock]
+    [nodes, toggleNodeLock],
   );
 
   const unlockNode = useCallback(
@@ -105,7 +106,7 @@ export function useContextMenu() {
         toggleNodeLock(nodeId);
       }
     },
-    [nodes, toggleNodeLock]
+    [nodes, toggleNodeLock],
   );
 
   const groupNodes = useCallback(
@@ -114,7 +115,7 @@ export function useContextMenu() {
         createGroup(nodeIds);
       }
     },
-    [createGroup]
+    [createGroup],
   );
 
   const lockAllNodes = useCallback(
@@ -126,7 +127,7 @@ export function useContextMenu() {
         }
       }
     },
-    [nodes, toggleNodeLock]
+    [nodes, toggleNodeLock],
   );
 
   const unlockAllNodes = useCallback(
@@ -138,7 +139,7 @@ export function useContextMenu() {
         }
       }
     },
-    [nodes, toggleNodeLock]
+    [nodes, toggleNodeLock],
   );
 
   const alignNodesHorizontally = useCallback(
@@ -149,16 +150,20 @@ export function useContextMenu() {
       if (selectedNodes.length < 2) return;
 
       // Calculate average Y position
-      const avgY = selectedNodes.reduce((sum, n) => sum + n.position.y, 0) / selectedNodes.length;
+      const avgY =
+        selectedNodes.reduce((sum, n) => sum + n.position.y, 0) /
+        selectedNodes.length;
 
       // Update all selected nodes to the same Y position
       reactFlow.setNodes((nds) =>
         nds.map((node) =>
-          nodeIds.includes(node.id) ? { ...node, position: { ...node.position, y: avgY } } : node
-        )
+          nodeIds.includes(node.id)
+            ? { ...node, position: { ...node.position, y: avgY } }
+            : node,
+        ),
       );
     },
-    [nodes, reactFlow]
+    [nodes, reactFlow],
   );
 
   const alignNodesVertically = useCallback(
@@ -169,16 +174,20 @@ export function useContextMenu() {
       if (selectedNodes.length < 2) return;
 
       // Calculate average X position
-      const avgX = selectedNodes.reduce((sum, n) => sum + n.position.x, 0) / selectedNodes.length;
+      const avgX =
+        selectedNodes.reduce((sum, n) => sum + n.position.x, 0) /
+        selectedNodes.length;
 
       // Update all selected nodes to the same X position
       reactFlow.setNodes((nds) =>
         nds.map((node) =>
-          nodeIds.includes(node.id) ? { ...node, position: { ...node.position, x: avgX } } : node
-        )
+          nodeIds.includes(node.id)
+            ? { ...node, position: { ...node.position, x: avgX } }
+            : node,
+        ),
       );
     },
-    [nodes, reactFlow]
+    [nodes, reactFlow],
   );
 
   const pasteNodes = useCallback(() => {
@@ -198,13 +207,20 @@ export function useContextMenu() {
 
     // Select the pasted nodes
     setSelectedNodeIds(pasteData.nodes.map((n) => n.id));
-  }, [clipboard, position, reactFlow, getPasteData, addNodesAndEdges, setSelectedNodeIds]);
+  }, [
+    clipboard,
+    position,
+    reactFlow,
+    getPasteData,
+    addNodesAndEdges,
+    setSelectedNodeIds,
+  ]);
 
   const setNodeColor = useCallback(
     (nodeId: string, color: string | null) => {
       updateNodeData(nodeId, { color: color || undefined });
     },
-    [updateNodeData]
+    [updateNodeData],
   );
 
   const setAsThumbnail = useCallback(
@@ -229,7 +245,7 @@ export function useContextMenu() {
         logger.error('Failed to set thumbnail', error, { nodeId, workflowId });
       }
     },
-    [workflowId, nodes]
+    [workflowId, nodes],
   );
 
   const hasMediaOutput = useCallback(
@@ -244,7 +260,7 @@ export function useContextMenu() {
 
       return Boolean(data.outputVideo || data.outputImage);
     },
-    [nodes]
+    [nodes],
   );
 
   const getMenuItems = useCallback((): ContextMenuItemConfig[] => {

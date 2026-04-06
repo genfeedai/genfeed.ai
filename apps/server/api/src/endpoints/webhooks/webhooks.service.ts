@@ -22,13 +22,14 @@ import { FilesClientService } from '@api/services/files-microservice/client/file
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import type { IIngredientNotificationData } from '@genfeedai/interfaces';
 import {
   FileInputType,
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/enums';
+import type { IIngredientNotificationData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
 import { Types } from 'mongoose';
 
@@ -207,7 +208,7 @@ export class WebhooksService {
         if (fullUser?.clerkId) {
           clerkUserId = fullUser.clerkId;
           userId = clerkUserId;
-          userRoom = `user-${clerkUserId}`;
+          userRoom = getUserRoomName(clerkUserId);
           this.loggerService.debug(
             `${logContext} found clerkId by fetching full user document`,
             { clerkUserId, dbUserId },
@@ -254,7 +255,7 @@ export class WebhooksService {
         dbUserId,
         ingredientId,
         userId,
-        userRoom: userRoom || `user-${userId} (fallback)`,
+        userRoom: userRoom || `${getUserRoomName(userId)} (fallback)`,
         websocketUrl,
       });
 

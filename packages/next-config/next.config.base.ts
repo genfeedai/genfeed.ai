@@ -12,6 +12,7 @@ interface AppNextConfigOptions {
   output?: NextConfig['output'];
   pwa?: PWAOptions;
   redirects?: NextConfig['redirects'];
+  rewrites?: NextConfig['rewrites'];
   sentryProject?: string;
 }
 
@@ -22,6 +23,7 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
     headers,
     output,
     redirects,
+    rewrites,
     sentryProject,
   } = options;
 
@@ -111,6 +113,10 @@ export function createAppNextConfig(options: AppNextConfigOptions): NextConfig {
 
   if (redirects) {
     config.redirects = redirects;
+  }
+
+  if (rewrites) {
+    config.rewrites = rewrites;
   }
 
   // Only enable Sentry in production with auth token

@@ -1,10 +1,10 @@
-import type { IAsset, IImage } from '@genfeedai/interfaces';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import {
   IngredientCategory,
   IngredientFormat,
   ModelCategory,
 } from '@genfeedai/enums';
+import type { IAsset, IImage } from '@genfeedai/interfaces';
 import type {
   UsePromptBarSyncOptions,
   UsePromptBarSyncReturn,

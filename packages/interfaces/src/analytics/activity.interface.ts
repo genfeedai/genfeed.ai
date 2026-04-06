@@ -1,4 +1,4 @@
-import { ActivityStatus } from '@genfeedai/enums';
+import type { ActivityStatus } from '@genfeedai/enums';
 import type { IBaseEntity, IIngredient, IPost, IUser } from '../index';
 
 export interface IActivity extends IBaseEntity {

@@ -57,7 +57,9 @@ export function extractProviders(nodes: WorkflowNode[]): ProviderName[] {
     // Check for model-specific providers in node data
     const data = node.data as Record<string, unknown>;
     const model = data?.model as string | undefined;
-    const selectedModel = data?.selectedModel as { provider?: string } | undefined;
+    const selectedModel = data?.selectedModel as
+      | { provider?: string }
+      | undefined;
 
     // Check selected model provider
     if (selectedModel?.provider) {

@@ -1,5 +1,7 @@
 'use client';
 
+import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
+import { ButtonVariant, type IngredientCategory } from '@genfeedai/enums';
 import type {
   IElementBlacklist,
   IElementCamera,
@@ -15,8 +17,6 @@ import type {
   ITraining,
 } from '@genfeedai/interfaces';
 import type { AvatarVoiceOption } from '@genfeedai/interfaces/studio/studio-generate.interface';
-import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import { ButtonVariant, type IngredientCategory } from '@genfeedai/enums';
 import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
 import Button from '@ui/buttons/base/Button';
 import PromptBar from '@ui/prompt-bars/base/PromptBar';

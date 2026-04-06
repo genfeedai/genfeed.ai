@@ -1,4 +1,4 @@
-import { AnalyticsMetric } from '@genfeedai/enums';
+import type { AnalyticsMetric } from '@genfeedai/enums';
 import type { IconType } from 'react-icons';
 
 export interface AnalyticsStat {

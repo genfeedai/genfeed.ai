@@ -1,9 +1,9 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import type { ISound } from '@genfeedai/interfaces';
 import { soundElementSchema } from '@genfeedai/client/schemas';
 import { ButtonVariant, ModalEnum, ModelCategory } from '@genfeedai/enums';
+import type { ISound } from '@genfeedai/interfaces';
 import { getClerkPublicData } from '@helpers/auth/clerk.helper';
 import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
 import type { ModalSoundProps } from '@props/modals/modal.props';

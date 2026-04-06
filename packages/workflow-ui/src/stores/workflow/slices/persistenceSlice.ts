@@ -1,5 +1,4 @@
 import type {
-  EdgeStyle,
   NodeType,
   ValidationResult,
   WorkflowEdge,

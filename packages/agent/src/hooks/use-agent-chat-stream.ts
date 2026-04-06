@@ -535,6 +535,9 @@ export function useAgentChatStream(
       setActiveRunStatus,
       setError,
       setMessages,
+      isThreadVisible,
+      updateThreadSummary,
+      scheduleCompletionWatchdog,
     ],
   );
 
@@ -1035,8 +1038,6 @@ export function useAgentChatStream(
       subscribe,
       addMessage,
       setError,
-      setIsGenerating,
-      setMessages,
       setCreditsRemaining,
       addWorkEvent,
       setWorkEvents,
@@ -1054,7 +1055,6 @@ export function useAgentChatStream(
       completeOnboardingIfNeeded,
       flushBufferedEvents,
       getSocketManager,
-      resolveStreamFromMessages,
       scheduleCompletionWatchdog,
       setActiveRun,
       setActiveRunStatus,

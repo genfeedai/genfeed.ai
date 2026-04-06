@@ -10,17 +10,17 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import type {
-  JsonApiCollectionResponse,
-  JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
-import { IngredientSerializer, PostSerializer } from '@genfeedai/serializers';
 import {
   AssetScope,
   IngredientCategory,
   IngredientStatus,
   PostStatus,
 } from '@genfeedai/enums';
+import type {
+  JsonApiCollectionResponse,
+  JsonApiSingleResponse,
+} from '@genfeedai/interfaces';
+import { IngredientSerializer, PostSerializer } from '@genfeedai/serializers';
 import { Public } from '@libs/decorators/public.decorator';
 import { MongoMatchQuery } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';

@@ -1,5 +1,5 @@
-import type { ITag } from '@genfeedai/interfaces';
 import { Tag as BaseTag } from '@genfeedai/client/models';
+import type { ITag } from '@genfeedai/interfaces';
 import { User } from '@models/auth/user.model';
 import { Brand } from '@models/organization/brand.model';
 import { Organization } from '@models/organization/organization.model';

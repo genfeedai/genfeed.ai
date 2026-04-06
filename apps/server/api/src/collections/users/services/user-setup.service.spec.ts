@@ -7,8 +7,8 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
-import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
 import { OrganizationCategory } from '@genfeedai/enums';
+import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Types } from 'mongoose';
 

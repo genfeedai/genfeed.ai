@@ -1,11 +1,16 @@
 'use client';
 
-import type { IBatchItem } from '@genfeedai/interfaces';
 import {
   BatchItemStatus,
   ButtonVariant,
   ComponentSize,
 } from '@genfeedai/enums';
+import type { IBatchItem } from '@genfeedai/interfaces';
+import {
+  DefinitionDetail,
+  DefinitionList,
+  DefinitionTerm,
+} from '@genfeedai/ui';
 import {
   formatDateInTimezone,
   getBrowserTimezone,
@@ -15,11 +20,6 @@ import {
   isChangesRequested,
   isReadyToReview,
 } from '@pages/review/components/review-state';
-import {
-  DefinitionDetail,
-  DefinitionList,
-  DefinitionTerm,
-} from '@genfeedai/ui';
 import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
@@ -105,7 +105,7 @@ export default function ReviewDetailPanel({
 
   useEffect(() => {
     setFeedback(item?.reviewFeedback ?? '');
-  }, [item?.id, item?.reviewFeedback]);
+  }, [item?.reviewFeedback]);
 
   if (!item) {
     return (
@@ -320,7 +320,9 @@ export default function ReviewDetailPanel({
               </div>
               <div className="flex items-start justify-between gap-4">
                 <DefinitionTerm>Review state</DefinitionTerm>
-                <DefinitionDetail variant="value">{statusLabel}</DefinitionDetail>
+                <DefinitionDetail variant="value">
+                  {statusLabel}
+                </DefinitionDetail>
               </div>
             </DefinitionList>
           </InsetSurface>

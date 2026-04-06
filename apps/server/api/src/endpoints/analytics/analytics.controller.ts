@@ -46,6 +46,12 @@ import { TwitterService } from '@api/services/integrations/twitter/services/twit
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import type { User } from '@clerk/backend';
 import {
+  CredentialPlatform,
+  IngredientCategory,
+  PostStatus,
+  WorkflowStatus,
+} from '@genfeedai/enums';
+import {
   AnalyticSerializer,
   AnalyticsBrandLeaderboardSerializer,
   AnalyticsBrandStatsSerializer,
@@ -61,12 +67,6 @@ import {
   AnalyticsTrendSerializer,
   BusinessAnalyticsSerializer,
 } from '@genfeedai/serializers';
-import {
-  CredentialPlatform,
-  IngredientCategory,
-  PostStatus,
-  WorkflowStatus,
-} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {

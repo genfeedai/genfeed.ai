@@ -8,12 +8,12 @@ import {
   authService,
   EnvironmentService,
   generatePostReply,
-  Image,
+  type Image,
   ImagesService,
-  Music,
+  type Music,
   MusicsService,
   PromptsService,
-  Video,
+  type Video,
   VideosService,
 } from '~services';
 

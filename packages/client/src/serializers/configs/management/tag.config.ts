@@ -1,9 +1,5 @@
 import { tagAttributes } from '../../attributes/management/tag.attributes';
-import {
-  BRAND_REL,
-  ORGANIZATION_REL,
-  USER_REL,
-} from '../../relationships';
+import { BRAND_REL, ORGANIZATION_REL, USER_REL } from '../../relationships';
 
 export const tagSerializerConfig = {
   attributes: tagAttributes,

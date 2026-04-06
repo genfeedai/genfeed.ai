@@ -1,4 +1,4 @@
-import { TrendDirection } from '@genfeedai/enums';
+import type { TrendDirection } from '@genfeedai/enums';
 
 export interface IAnalytics {
   totalPosts: number;

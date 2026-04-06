@@ -1,10 +1,10 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { Code } from '@genfeedai/ui';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import Button from '@ui/buttons/base/Button';
-import { Code } from '@genfeedai/ui';
 import {
   createContext,
   type ReactNode,
@@ -171,7 +171,11 @@ export default function ApiStatusProvider({
               <p className="text-sm font-medium text-foreground/70">
                 Trying to connect to:
               </p>
-              <Code display="block" size="sm" className="text-foreground/80 break-all">
+              <Code
+                display="block"
+                size="sm"
+                className="text-foreground/80 break-all"
+              >
                 {EnvironmentService.apiEndpoint}
               </Code>
               {error && (

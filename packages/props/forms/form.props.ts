@@ -1,10 +1,10 @@
-import type { DateRange } from '@genfeedai/interfaces/utils/date.interface';
-import {
+import type {
   ButtonSize,
   ButtonVariant,
   ComponentSize,
   Timeframe,
 } from '@genfeedai/enums';
+import type { DateRange } from '@genfeedai/interfaces/utils/date.interface';
 import type {
   ChangeEvent,
   FocusEvent,

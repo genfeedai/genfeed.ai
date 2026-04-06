@@ -239,12 +239,12 @@ function loadMongoUri(
 
     const key = trimmed.slice(0, eqIndex).trim();
     const value = trimmed.slice(eqIndex + 1).trim();
-    if (key === 'MONGODB_URL' && value) {
+    if (key === 'MONGODB_URI' && value) {
       return value;
     }
   }
 
-  throw new Error(`MONGODB_URL not found in ${envPath}`);
+  throw new Error(`MONGODB_URI not found in ${envPath}`);
 }
 
 function maskMongoUri(uri: string): string {

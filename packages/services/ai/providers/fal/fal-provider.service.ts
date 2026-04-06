@@ -1,6 +1,6 @@
-import type { IModel } from '@genfeedai/interfaces';
 import { ModelCategory, ModelKey, ModelProvider } from '@genfeedai/enums';
 import { applyMargin } from '@genfeedai/helpers';
+import type { IModel } from '@genfeedai/interfaces';
 import { logger } from '@services/core/logger.service';
 
 interface FalCatalogItem {

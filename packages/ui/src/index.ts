@@ -1,17 +1,11 @@
 import type { SemanticColorRole } from '@ui/core/colors';
-import {
-  semanticColorRoles,
-  semanticColorTokens,
-} from '@ui/core/colors';
+import { semanticColorRoles, semanticColorTokens } from '@ui/core/colors';
 import { motionTokens } from '@ui/core/motion';
 import { radiusTokens } from '@ui/core/radius';
 import { spacingTokens } from '@ui/core/spacing';
 import { typographyTokens } from '@ui/core/typography';
 import { generateNativeTokens } from '@ui/generators/native-ts';
-import {
-  generateWebTokenCss,
-  webTokenCss,
-} from '@ui/generators/web-css';
+import { generateWebTokenCss, webTokenCss } from '@ui/generators/web-css';
 import {
   generateWebviewTokenCss,
   webviewTokenCss,
@@ -67,30 +61,29 @@ export {
 export const semanticColorRoleList: readonly SemanticColorRole[] =
   semanticColorRoles;
 
-// Utilities
-export { cn } from './lib/utils';
-export { useMounted } from './lib/hooks';
-
-// Primitives (Radix UI based)
-export * from './primitives';
-
-// Compound Modal
-export { Modal } from './modals/compound/Modal';
-export type { ModalContentProps, ModalSize } from './modals/compound/Modal';
-
-// Task Composer
-export { ContentTypePresets, type ContentType } from './task-composer/ContentTypePresets';
-export { TaskComposerModal } from './task-composer/TaskComposerModal';
-
-// Shared UI components (Paperclip design system)
-export { SidebarNavItem } from './sidebar/SidebarNavItem';
-export { SidebarSection } from './sidebar/SidebarSection';
 export { ActivityRow } from './dashboard/ActivityRow';
 export { MetricCard } from './dashboard/MetricCard';
+export { Identity } from './identity/Identity';
 export { IssueRow } from './issues/IssueRow';
 export { PriorityIcon } from './issues/PriorityIcon';
 export { StatusIcon } from './issues/StatusIcon';
-export { Identity } from './identity/Identity';
+export { useMounted } from './lib/hooks';
+// Utilities
+export { cn } from './lib/utils';
+export type { ModalContentProps, ModalSize } from './modals/compound/Modal';
+// Compound Modal
+export { Modal } from './modals/compound/Modal';
+// Primitives (Radix UI based)
+export * from './primitives';
+// Shared UI components (Paperclip design system)
+export { SidebarNavItem } from './sidebar/SidebarNavItem';
+export { SidebarSection } from './sidebar/SidebarSection';
+// Task Composer
+export {
+  type ContentType,
+  ContentTypePresets,
+} from './task-composer/ContentTypePresets';
+export { TaskComposerModal } from './task-composer/TaskComposerModal';
 
 // Status & priority color tokens
 export {

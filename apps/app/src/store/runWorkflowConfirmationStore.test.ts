@@ -10,7 +10,9 @@ describe('useRunWorkflowConfirmationStore', () => {
     useRunWorkflowConfirmationStore.getState().requestConfirmation(() => {});
 
     expect(useRunWorkflowConfirmationStore.getState().isOpen).toBe(true);
-    expect(useRunWorkflowConfirmationStore.getState().pendingAction).toBeTypeOf('function');
+    expect(useRunWorkflowConfirmationStore.getState().pendingAction).toBeTypeOf(
+      'function',
+    );
   });
 
   it('clears pending state on cancel', () => {
@@ -24,7 +26,9 @@ describe('useRunWorkflowConfirmationStore', () => {
 
   it('runs pending action once on confirm', async () => {
     const pendingAction = vi.fn();
-    useRunWorkflowConfirmationStore.getState().requestConfirmation(pendingAction);
+    useRunWorkflowConfirmationStore
+      .getState()
+      .requestConfirmation(pendingAction);
 
     await useRunWorkflowConfirmationStore.getState().confirm();
 

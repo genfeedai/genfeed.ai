@@ -37,9 +37,9 @@
 
 .react-flow__node {
   font-size: 12px;
-  background: transparent !important;
-  border: none !important;
-  padding: 0 !important;
+  background: transparent;
+  border: none;
+  padding: 0;
 }
 
 .react-flow__handle {
@@ -147,27 +147,27 @@
 }
 
 .react-flow__controls {
-  background: var(--card) !important;
-  border-radius: 8px !important;
-  border: 1px solid var(--border) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
+  background: var(--card);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .react-flow__controls-button {
-  background: var(--card) !important;
-  border-bottom: 1px solid var(--border) !important;
-  fill: var(--muted-foreground) !important;
-  color: var(--muted-foreground) !important;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  fill: var(--muted-foreground);
+  color: var(--muted-foreground);
 }
 
 .react-flow__controls-button:hover {
-  background: var(--secondary) !important;
-  fill: var(--foreground) !important;
-  color: var(--foreground) !important;
+  background: var(--secondary);
+  fill: var(--foreground);
+  color: var(--foreground);
 }
 
 .react-flow__controls-button svg {
-  fill: inherit !important;
+  fill: inherit;
 }
 
 /* ==========================================================================
@@ -175,22 +175,22 @@
    ========================================================================== */
 
 .handle-image {
-  background: var(--handle-image) !important;
+  background: var(--handle-image);
 }
 .handle-video {
-  background: var(--handle-video) !important;
+  background: var(--handle-video);
 }
 .handle-text {
-  background: var(--handle-text) !important;
+  background: var(--handle-text);
 }
 .handle-number {
-  background: var(--handle-number) !important;
+  background: var(--handle-number);
 }
 .handle-audio {
-  background: var(--handle-audio) !important;
+  background: var(--handle-audio);
 }
 .handle-output {
-  background: var(--handle-output) !important;
+  background: var(--handle-output);
 }
 
 /* ==========================================================================

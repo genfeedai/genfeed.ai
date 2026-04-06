@@ -363,7 +363,10 @@ export class CreateAgentStrategyDto {
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
-  @ApiProperty({ description: 'Skill slugs assigned to this strategy', required: false })
+  @ApiProperty({
+    description: 'Skill slugs assigned to this strategy',
+    required: false,
+  })
   skillSlugs?: string[];
 
   @ValidateNested()

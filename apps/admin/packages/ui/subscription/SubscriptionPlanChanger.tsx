@@ -1,7 +1,7 @@
 'use client';
 
-import type { SubscriptionChangePreview } from '@genfeedai/interfaces';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type { SubscriptionChangePreview } from '@genfeedai/interfaces';
 import type { SubscriptionPlanChangerProps } from '@props/content/subscription.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';

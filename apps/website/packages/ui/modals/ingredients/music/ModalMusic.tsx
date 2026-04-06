@@ -1,6 +1,5 @@
 'use client';
 
-import type { IMetadata } from '@genfeedai/interfaces';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import {
   ButtonSize,
@@ -8,6 +7,7 @@ import {
   IngredientCategory,
   ModalEnum,
 } from '@genfeedai/enums';
+import type { IMetadata } from '@genfeedai/interfaces';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Music } from '@models/ingredients/music.model';

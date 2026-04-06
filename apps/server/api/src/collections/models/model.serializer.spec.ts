@@ -1,5 +1,5 @@
-import { ModelSerializer } from '@genfeedai/serializers';
 import { IngredientCategory } from '@genfeedai/enums';
+import { ModelSerializer } from '@genfeedai/serializers';
 
 describe('ModelSerializer', () => {
   it('serializes model with cost, isActive and isDefault attributes', () => {

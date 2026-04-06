@@ -1,5 +1,5 @@
-import type { IBatchItem } from '@genfeedai/interfaces';
 import { BatchItemStatus } from '@genfeedai/enums';
+import type { IBatchItem } from '@genfeedai/interfaces';
 
 export function isApproved(item: IBatchItem): boolean {
   return item.reviewDecision === 'approved';

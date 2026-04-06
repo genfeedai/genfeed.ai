@@ -9,12 +9,12 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ArticleStatus } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
 import { ArticleSerializer } from '@genfeedai/serializers';
-import { ArticleStatus } from '@genfeedai/enums';
 import { Public } from '@libs/decorators/public.decorator';
 import { MongoMatchQuery } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';

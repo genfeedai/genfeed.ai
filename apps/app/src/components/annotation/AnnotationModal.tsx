@@ -1,9 +1,9 @@
 'use client';
 
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
-import { Button } from '@/components/ui/button';
 import type { AnnotationShape } from '@genfeedai/workflow-ui/stores';
 import { useAnnotationStore } from '@genfeedai/workflow-ui/stores';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { useWorkflowStore } from '@/store/workflowStore';
 import { AnnotationOptionsPanel } from './AnnotationOptionsPanel';
 import { AnnotationToolbar } from './AnnotationToolbar';
@@ -46,7 +46,10 @@ function AnnotationModalComponent() {
   });
   const [imageLoaded, setImageLoaded] = useState(false);
   const [textInput, setTextInput] = useState('');
-  const [textPosition, setTextPosition] = useState<{ x: number; y: number } | null>(null);
+  const [textPosition, setTextPosition] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
 
   // Load image and initialize canvas
   useEffect(() => {
@@ -63,7 +66,11 @@ function AnnotationModalComponent() {
 
       const containerWidth = container.clientWidth;
       const containerHeight = container.clientHeight;
-      const scale = Math.min(containerWidth / img.width, containerHeight / img.height, 1);
+      const scale = Math.min(
+        containerWidth / img.width,
+        containerHeight / img.height,
+        1,
+      );
       const offsetX = (containerWidth - img.width * scale) / 2;
       const offsetY = (containerHeight - img.height * scale) / 2;
 
@@ -107,7 +114,14 @@ function AnnotationModalComponent() {
     }
 
     ctx.restore();
-  }, [shapes, selectedShapeId, isDrawing, drawingShape, canvasState, imageLoaded]);
+  }, [
+    shapes,
+    selectedShapeId,
+    isDrawing,
+    drawingShape,
+    canvasState,
+    imageLoaded,
+  ]);
 
   // Convert screen coordinates to image coordinates
   const screenToImage = useCallback(
@@ -118,7 +132,7 @@ function AnnotationModalComponent() {
       const y = (clientY - rect.top - canvasState.offsetY) / canvasState.scale;
       return { x, y };
     },
-    [canvasState]
+    [canvasState],
   );
 
   // Mouse handlers
@@ -151,7 +165,14 @@ function AnnotationModalComponent() {
 
       switch (currentTool) {
         case 'rectangle':
-          startDrawing({ ...baseShape, height: 0, type: 'rectangle', width: 0, x, y });
+          startDrawing({
+            ...baseShape,
+            height: 0,
+            type: 'rectangle',
+            width: 0,
+            x,
+            y,
+          });
           break;
         case 'circle':
           startDrawing({ ...baseShape, radius: 0, type: 'circle', x, y });
@@ -164,7 +185,14 @@ function AnnotationModalComponent() {
           break;
       }
     },
-    [currentTool, toolOptions, shapes, screenToImage, startDrawing, selectShape]
+    [
+      currentTool,
+      toolOptions,
+      shapes,
+      screenToImage,
+      startDrawing,
+      selectShape,
+    ],
   );
 
   const handleMouseMove = useCallback(
@@ -198,7 +226,7 @@ function AnnotationModalComponent() {
         }
       }
     },
-    [isDrawing, drawingShape, screenToImage, updateDrawing]
+    [isDrawing, drawingShape, screenToImage, updateDrawing],
   );
 
   const handleMouseUp = useCallback(() => {
@@ -245,7 +273,11 @@ function AnnotationModalComponent() {
         redo();
       }
 
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selectedShapeId && !textPosition) {
+      if (
+        (e.key === 'Delete' || e.key === 'Backspace') &&
+        selectedShapeId &&
+        !textPosition
+      ) {
         e.preventDefault();
         deleteShape(selectedShapeId);
       }
@@ -262,7 +294,15 @@ function AnnotationModalComponent() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, selectedShapeId, textPosition, undo, redo, deleteShape, selectShape]);
+  }, [
+    isOpen,
+    selectedShapeId,
+    textPosition,
+    undo,
+    redo,
+    deleteShape,
+    selectShape,
+  ]);
 
   // Handle save
   const handleSave = useCallback(() => {
@@ -281,7 +321,9 @@ function AnnotationModalComponent() {
     <div className="fixed inset-0 z-50 flex flex-col bg-black">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3">
-        <h2 className="text-lg font-semibold text-foreground">Edit Annotations</h2>
+        <h2 className="text-lg font-semibold text-foreground">
+          Edit Annotations
+        </h2>
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={closeAnnotation}>
             Cancel
@@ -304,7 +346,10 @@ function AnnotationModalComponent() {
         />
 
         {/* Canvas */}
-        <div ref={containerRef} className="relative flex-1 overflow-hidden bg-neutral-900">
+        <div
+          ref={containerRef}
+          className="relative flex-1 overflow-hidden bg-neutral-900"
+        >
           <canvas
             ref={canvasRef}
             className="cursor-crosshair"

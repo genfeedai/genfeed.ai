@@ -1,8 +1,8 @@
 'use client';
 
+import type { AnnotationTool } from '@genfeedai/workflow-ui/stores';
 import { clsx } from 'clsx';
 import { Redo, Trash2, Undo } from 'lucide-react';
-import type { AnnotationTool } from '@genfeedai/workflow-ui/stores';
 import { TOOLS } from './drawing/constants';
 
 interface AnnotationToolbarProps {
@@ -40,7 +40,7 @@ export function AnnotationToolbar({
             'flex h-10 w-10 items-center justify-center rounded-lg transition',
             currentTool === tool
               ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+              : 'text-muted-foreground hover:bg-secondary hover:text-foreground',
           )}
           title={label}
         >

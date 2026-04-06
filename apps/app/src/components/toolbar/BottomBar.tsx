@@ -1,6 +1,14 @@
 'use client';
 
-import { ChevronUp, Minus, Play, PlayCircle, Plus, RotateCcw, Square } from 'lucide-react';
+import {
+  ChevronUp,
+  Minus,
+  Play,
+  PlayCircle,
+  Plus,
+  RotateCcw,
+  Square,
+} from 'lucide-react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useExecutionStore } from '@/store/executionStore';
 import { useRunWorkflowConfirmationStore } from '@/store/runWorkflowConfirmationStore';
@@ -23,7 +31,9 @@ export function BottomBar() {
   const resumeFromFailed = useExecutionStore((s) => s.resumeFromFailed);
   const canResumeFromFailed = useExecutionStore((s) => s.canResumeFromFailed);
   const stopExecution = useExecutionStore((s) => s.stopExecution);
-  const requestConfirmation = useRunWorkflowConfirmationStore((s) => s.requestConfirmation);
+  const requestConfirmation = useRunWorkflowConfirmationStore(
+    (s) => s.requestConfirmation,
+  );
   const _lastFailedNodeId = useExecutionStore((s) => s.lastFailedNodeId);
 
   const selectedNodeIds = useWorkflowStore((s) => s.selectedNodeIds);
@@ -87,7 +97,8 @@ export function BottomBar() {
       if (useExecutionStore.getState().lastFailedNodeId) break;
 
       // Accumulate outputImages from imageGen nodes across batch runs
-      const { nodes: currentNodes, updateNodeData } = useWorkflowStore.getState();
+      const { nodes: currentNodes, updateNodeData } =
+        useWorkflowStore.getState();
       for (const node of currentNodes) {
         if (node.type !== 'imageGen') continue;
         const nodeData = node.data as Record<string, unknown>;
@@ -227,7 +238,10 @@ export function BottomBar() {
           {dropdownOpen && (
             <>
               {/* Backdrop */}
-              <div className="fixed inset-0 z-40" onClick={() => setDropdownOpen(false)} />
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setDropdownOpen(false)}
+              />
               <div
                 ref={dropdownRef}
                 onClick={(e) => e.stopPropagation()}

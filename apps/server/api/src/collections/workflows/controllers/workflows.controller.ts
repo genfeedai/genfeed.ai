@@ -55,6 +55,7 @@ import { ListingsService } from '@api/marketplace/listings/services/listings.ser
 import { SellersService } from '@api/marketplace/sellers/services/sellers.service';
 import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
+import { ListingType, WorkflowTrigger } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -64,7 +65,6 @@ import {
   WorkflowSerializer,
 } from '@genfeedai/serializers';
 import type { CreditEstimate } from '@genfeedai/workflow-engine';
-import { ListingType, WorkflowTrigger } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,

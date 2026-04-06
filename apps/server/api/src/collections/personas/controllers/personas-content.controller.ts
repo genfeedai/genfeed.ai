@@ -10,8 +10,8 @@ import { PersonaContentService } from '@api/services/persona-content/persona-con
 import { PersonaContentPlanService } from '@api/services/persona-content/persona-content-plan.service';
 import { PersonaPublisherService } from '@api/services/persona-content/persona-publisher.service';
 import type { User } from '@clerk/backend';
-import { PostSerializer } from '@genfeedai/serializers';
 import { PostCategory } from '@genfeedai/enums';
+import { PostSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,

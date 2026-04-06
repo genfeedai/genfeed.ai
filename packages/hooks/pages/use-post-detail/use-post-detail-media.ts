@@ -1,11 +1,11 @@
 'use client';
 
-import type { IIngredient, IPost } from '@genfeedai/interfaces';
 import {
-  CredentialPlatform,
+  type CredentialPlatform,
   IngredientCategory,
-  Platform,
+  type Platform,
 } from '@genfeedai/enums';
+import type { IIngredient, IPost } from '@genfeedai/interfaces';
 import { getFormatForPlatform } from '@hooks/pages/use-post-detail/use-post-detail-state';
 import type { Post } from '@models/content/post.model';
 import {
@@ -13,7 +13,7 @@ import {
   useGalleryModal,
   useGenerateIllustrationModal,
 } from '@providers/global-modals/global-modals.provider';
-import { PostsService } from '@services/content/posts.service';
+import type { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
 import type { NotificationsService } from '@services/core/notifications.service';
 import { getCarouselLimits } from '@utils/carousel-validation';

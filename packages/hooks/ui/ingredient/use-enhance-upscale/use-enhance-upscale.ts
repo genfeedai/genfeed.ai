@@ -1,6 +1,6 @@
+import { IngredientCategory, ModelKey } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import type { MasonryActionStates } from '@genfeedai/interfaces/hooks/hooks.interface';
-import { IngredientCategory, ModelKey } from '@genfeedai/enums';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import {

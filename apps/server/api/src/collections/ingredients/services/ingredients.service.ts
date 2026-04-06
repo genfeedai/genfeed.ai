@@ -18,13 +18,13 @@ import type {
   AggregatePaginateModel,
   AggregatePaginateResult,
 } from '@api/types/mongoose-aggregate-paginate-v2';
-import type { PopulateOption } from '@genfeedai/interfaces';
 import {
   DarkroomReviewStatus,
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/enums';
+import type { PopulateOption } from '@genfeedai/interfaces';
 import { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

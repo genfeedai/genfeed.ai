@@ -71,7 +71,7 @@ describe('generateHandlesFromSchema', () => {
     const result = generateHandlesFromSchema(schema, staticHandles);
     const refHandle = result.find((h) => h.id === 'reference_images');
     expect(refHandle).toBeDefined();
-    expect(refHandle!.multiple).toBe(true);
+    expect(refHandle?.multiple).toBe(true);
   });
 
   it('marks field as required when in schema.required array', () => {
@@ -84,7 +84,7 @@ describe('generateHandlesFromSchema', () => {
     const result = generateHandlesFromSchema(schema, staticHandles);
     const handle = result.find((h) => h.id === 'start_image');
     expect(handle).toBeDefined();
-    expect(handle!.required).toBe(true);
+    expect(handle?.required).toBe(true);
   });
 
   it('uses title from schema property as label when available', () => {
@@ -95,7 +95,7 @@ describe('generateHandlesFromSchema', () => {
     };
     const result = generateHandlesFromSchema(schema, staticHandles);
     const handle = result.find((h) => h.id === 'start_image');
-    expect(handle!.label).toBe('Custom Title');
+    expect(handle?.label).toBe('Custom Title');
   });
 
   it('falls back to formatted field name when title is missing', () => {
@@ -106,7 +106,7 @@ describe('generateHandlesFromSchema', () => {
     };
     const result = generateHandlesFromSchema(schema, staticHandles);
     const handle = result.find((h) => h.id === 'start_image');
-    expect(handle!.label).toBe('Start Image');
+    expect(handle?.label).toBe('Start Image');
   });
 
   it('marks all dynamic handles with fromSchema: true', () => {

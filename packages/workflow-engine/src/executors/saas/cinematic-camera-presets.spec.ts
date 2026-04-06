@@ -13,7 +13,7 @@ describe('cinematic-camera-presets', () => {
   it('gets preset by id', () => {
     const preset = getCinematicCameraPreset('hollywood_blockbuster');
     expect(preset).toBeDefined();
-    expect(preset!.camera).toBe('ARRI Alexa Mini LF');
+    expect(preset?.camera).toBe('ARRI Alexa Mini LF');
   });
 
   it('returns undefined for unknown id', () => {

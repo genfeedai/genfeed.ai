@@ -29,7 +29,7 @@ export interface IEnvConfig {
   BULL_BOARD_AUTH_TOKEN?: string;
 
   // === MongoDB ===
-  MONGODB_URL?: string; // Base connection string — all named DBs derived at runtime
+  MONGODB_URI?: string; // Base connection string — all named DBs derived at runtime
 
   // === Redis ===
   REDIS_URL?: string;

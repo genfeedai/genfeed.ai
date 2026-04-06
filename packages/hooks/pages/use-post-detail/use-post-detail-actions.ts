@@ -1,10 +1,10 @@
 'use client';
 
-import type { IPost } from '@genfeedai/interfaces';
 import { PostStatus } from '@genfeedai/enums';
+import type { IPost } from '@genfeedai/interfaces';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useConfirmDeleteModal } from '@providers/global-modals/global-modals.provider';
-import { PostsService } from '@services/content/posts.service';
+import type { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
 import type { NotificationsService } from '@services/core/notifications.service';
 import type { PostQuickActionKey } from '@ui/posts/quick-actions/post-quick-actions/PostQuickActions';
@@ -184,7 +184,14 @@ export function usePostDetailActions({
         }
       },
     });
-  }, [post, openConfirmDelete, getPostsService, notificationsService, router]);
+  }, [
+    post,
+    openConfirmDelete,
+    getPostsService,
+    notificationsService,
+    router,
+    href,
+  ]);
 
   // Quick action handler
   const handleQuickAction = useCallback(

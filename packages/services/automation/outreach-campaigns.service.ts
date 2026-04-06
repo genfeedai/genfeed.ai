@@ -1,10 +1,10 @@
-import type { IServiceSerializer } from '@genfeedai/interfaces/utils/error.interface';
-import {
+import type {
   CampaignPlatform,
   CampaignStatus,
   CampaignTargetType,
   CampaignType,
 } from '@genfeedai/enums';
+import type { IServiceSerializer } from '@genfeedai/interfaces/utils/error.interface';
 import {
   BaseService,
   type JsonApiResponseDocument,

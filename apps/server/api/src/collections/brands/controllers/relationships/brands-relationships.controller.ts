@@ -56,6 +56,11 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
+import {
+  ArticleCategory,
+  AssetScope,
+  IngredientCategory,
+} from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -73,11 +78,6 @@ import {
   PostSerializer,
   VideoSerializer,
 } from '@genfeedai/serializers';
-import {
-  ArticleCategory,
-  AssetScope,
-  IngredientCategory,
-} from '@genfeedai/enums';
 import {
   Controller,
   Get,

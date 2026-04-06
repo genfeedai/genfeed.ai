@@ -12,7 +12,6 @@ function getSeverityClass(severity: AgentRunAnomaly['severity']): string {
       return 'border-red-500/40 bg-red-500/10 text-red-300';
     case 'warning':
       return 'border-amber-500/40 bg-amber-500/10 text-amber-300';
-    case 'info':
     default:
       return 'border-sky-500/40 bg-sky-500/10 text-sky-300';
   }

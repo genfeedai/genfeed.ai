@@ -26,7 +26,8 @@ const mockState = () => ({
 });
 
 vi.mock('@/store/workflowStore', () => {
-  const store = (selector: (state: unknown) => unknown) => selector(mockState());
+  const store = (selector: (state: unknown) => unknown) =>
+    selector(mockState());
   store.getState = () => mockState();
   return { useWorkflowStore: store };
 });

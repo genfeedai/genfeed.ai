@@ -3,8 +3,8 @@ import { ArticlesService } from '@api/collections/articles/services/articles.ser
 import { STRATEGY_TEMPLATES } from '@api/collections/brands/constants/strategy-templates.constant';
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
 import { GenerateBrandVoiceDto } from '@api/collections/brands/dto/generate-brand-voice.dto';
-import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { ToggleBrandSkillDto } from '@api/collections/brands/dto/toggle-brand-skill.dto';
+import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
 import {
   Brand,

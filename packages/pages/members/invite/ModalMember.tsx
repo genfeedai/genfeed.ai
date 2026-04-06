@@ -1,6 +1,5 @@
 'use client';
 
-import { IBrand, IRole } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   type InviteMemberSchema,
@@ -9,6 +8,7 @@ import {
   memberEditSchema,
 } from '@genfeedai/client/schemas';
 import { AlertCategory, ModalEnum } from '@genfeedai/enums';
+import type { IBrand, IRole } from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
@@ -18,8 +18,8 @@ import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useFocusFirstInput } from '@hooks/ui/use-focus-first-input/use-focus-first-input';
 import { useFormSubmitWithState } from '@hooks/utils/use-form-submit/use-form-submit';
-import { Brand } from '@models/organization/brand.model';
-import { ModalMemberProps } from '@props/modals/modal.props';
+import type { Brand } from '@models/organization/brand.model';
+import type { ModalMemberProps } from '@props/modals/modal.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';

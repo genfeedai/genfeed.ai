@@ -1,5 +1,5 @@
-import type { IIngredient } from '@genfeedai/interfaces';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
+import type { IIngredient } from '@genfeedai/interfaces';
 import type { StatusDropdownProps } from '@props/social/status-dropdown.props';
 import { render } from '@testing-library/react';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';

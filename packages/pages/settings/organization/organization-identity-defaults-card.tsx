@@ -1,7 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant, VoiceProvider } from '@genfeedai/enums';
+import { ButtonVariant, type VoiceProvider } from '@genfeedai/enums';
 import {
   buildDefaultVoiceRefFromVoice,
   type DefaultVoiceRef,
@@ -103,7 +103,12 @@ export default function OrganizationIdentityDefaultsCard() {
     }
 
     return 'No organization default voice';
-  }, [catalog, settings?.defaultVoiceId, orgDefaultVoiceRef]);
+  }, [
+    catalog,
+    settings?.defaultVoiceId,
+    orgDefaultVoiceRef,
+    settings?.defaultVoiceRef,
+  ]);
 
   const selectedAvatar = useMemo(
     () => avatars.find((avatar) => avatar.id === selectedAvatarId) ?? null,

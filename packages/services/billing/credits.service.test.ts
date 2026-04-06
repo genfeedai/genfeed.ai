@@ -22,8 +22,6 @@ vi.mock('@services/core/interceptor.service', () => {
       get: mockGet,
     };
 
-    constructor(_baseUrl: string, _token: string) {}
-
     static getBaseServiceInstance<T>(
       ServiceClass: new (...args: unknown[]) => T,
       ...args: unknown[]

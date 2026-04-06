@@ -37,6 +37,17 @@ export { Checkbox } from './checkbox';
 export { Code, type CodeProps, codeVariants } from './code';
 export { ColorInput, type ColorInputProps } from './color-input';
 export {
+  DefinitionDetail,
+  type DefinitionDetailProps,
+  DefinitionList,
+  type DefinitionListProps,
+  DefinitionTerm,
+  type DefinitionTermProps,
+  ddVariants,
+  dlVariants,
+  dtVariants,
+} from './definition-list';
+export {
   Dialog,
   DialogClose,
   DialogContent,
@@ -48,17 +59,6 @@ export {
   DialogTitle,
   DialogTrigger,
 } from './dialog';
-export {
-  ddVariants,
-  DefinitionDetail,
-  type DefinitionDetailProps,
-  DefinitionList,
-  type DefinitionListProps,
-  DefinitionTerm,
-  type DefinitionTermProps,
-  dlVariants,
-  dtVariants,
-} from './definition-list';
 export {
   Drawer,
   DrawerClose,

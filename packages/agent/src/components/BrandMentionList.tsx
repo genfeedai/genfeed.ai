@@ -21,7 +21,7 @@ export const BrandMentionList = forwardRef<
 
   useEffect(() => {
     setSelectedIndex(0);
-  }, [items]);
+  }, []);
 
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }: { event: KeyboardEvent }) => {

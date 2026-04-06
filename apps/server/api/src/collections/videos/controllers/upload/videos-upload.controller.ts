@@ -20,7 +20,6 @@ import { FilesClientService } from '@api/services/files-microservice/client/file
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { User } from '@clerk/backend';
-import { IngredientUploadSerializer } from '@genfeedai/serializers';
 import {
   AssetScope,
   FileInputType,
@@ -28,6 +27,7 @@ import {
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/enums';
+import { IngredientUploadSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Controller,

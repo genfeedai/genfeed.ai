@@ -25,24 +25,24 @@ import type {
   WorkflowNode,
 } from '@genfeedai/types';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
+import { useCanvasKeyboardShortcuts } from '@genfeedai/workflow-ui/hooks';
+import { NodeDetailModal, nodeTypes } from '@genfeedai/workflow-ui/nodes';
+import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { GroupOverlay } from '@/components/canvas/GroupOverlay';
 import { HelperLines } from '@/components/canvas/HelperLines';
 import { NodeSearch } from '@/components/canvas/NodeSearch';
 import { ShortcutHelpModal } from '@/components/canvas/ShortcutHelpModal';
 import { ContextMenu } from '@/components/context-menu';
-import { nodeTypes, NodeDetailModal } from '@genfeedai/workflow-ui/nodes';
-import { useCanvasKeyboardShortcuts } from '@genfeedai/workflow-ui/hooks';
 import { useContextMenu } from '@/hooks/useContextMenu';
 import { DEFAULT_NODE_COLOR } from '@/lib/constants/colors';
 import { supportsImageInput } from '@/lib/utils/schemaUtils';
 import { useExecutionStore } from '@/store/executionStore';
 import { useSettingsStore } from '@/store/settingsStore';
-import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 function getEdgeDataType(
   edge: WorkflowEdge,
-  nodeMap: Map<string, WorkflowNode>
+  nodeMap: Map<string, WorkflowNode>,
 ): HandleType | null {
   const sourceNode = nodeMap.get(edge.source);
   if (!sourceNode) return null;
@@ -87,8 +87,12 @@ export function WorkflowCanvas() {
   const isRunning = useExecutionStore((state) => state.isRunning);
   const currentNodeId = useExecutionStore((state) => state.currentNodeId);
   const executingNodeIds = useExecutionStore((state) => state.executingNodeIds);
-  const activeNodeExecutions = useExecutionStore((state) => state.activeNodeExecutions);
-  const hasActiveNodeExecutions = useExecutionStore((state) => state.activeNodeExecutions.size > 0);
+  const activeNodeExecutions = useExecutionStore(
+    (state) => state.activeNodeExecutions,
+  );
+  const hasActiveNodeExecutions = useExecutionStore(
+    (state) => state.activeNodeExecutions.size > 0,
+  );
 
   const [isMinimapVisible, setIsMinimapVisible] = useState(false);
   const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
@@ -106,8 +110,14 @@ export function WorkflowCanvas() {
     close: closeContextMenu,
   } = useContextMenu();
 
-  const openShortcutHelp = useCallback(() => openModal('shortcutHelp'), [openModal]);
-  const openNodeSearch = useCallback(() => openModal('nodeSearch'), [openModal]);
+  const openShortcutHelp = useCallback(
+    () => openModal('shortcutHelp'),
+    [openModal],
+  );
+  const openNodeSearch = useCallback(
+    () => openModal('nodeSearch'),
+    [openModal],
+  );
 
   const { removeNode, removeEdge } = useWorkflowStore();
 
@@ -156,26 +166,35 @@ export function WorkflowCanvas() {
 
       if (targetNode.type === 'imageGen' && edge.targetHandle === 'images') {
         const nodeData = targetNode.data as ImageGenNodeData;
-        const hasImageSupport = supportsImageInput(nodeData?.selectedModel?.inputSchema);
+        const hasImageSupport = supportsImageInput(
+          nodeData?.selectedModel?.inputSchema,
+        );
         return !hasImageSupport;
       }
 
       if (targetNode.type === 'videoGen') {
-        if (edge.targetHandle === 'image' || edge.targetHandle === 'lastFrame') {
+        if (
+          edge.targetHandle === 'image' ||
+          edge.targetHandle === 'lastFrame'
+        ) {
           const nodeData = targetNode.data as VideoGenNodeData;
-          const hasImageSupport = supportsImageInput(nodeData?.selectedModel?.inputSchema);
+          const hasImageSupport = supportsImageInput(
+            nodeData?.selectedModel?.inputSchema,
+          );
           return !hasImageSupport;
         }
       }
 
       return false;
     },
-    [nodeMap]
+    [nodeMap],
   );
 
   const styledEdges = useMemo(() => {
-    const executionScope = executingNodeIds.length > 0 ? new Set(executingNodeIds) : null;
-    const highlightedSet = highlightedNodeIds.length > 0 ? new Set(highlightedNodeIds) : null;
+    const executionScope =
+      executingNodeIds.length > 0 ? new Set(executingNodeIds) : null;
+    const highlightedSet =
+      highlightedNodeIds.length > 0 ? new Set(highlightedNodeIds) : null;
 
     return edges.map((edge) => {
       const dataType = getEdgeDataType(edge, nodeMap);
@@ -184,7 +203,8 @@ export function WorkflowCanvas() {
 
       if (!isRunning && hasActiveNodeExecutions) {
         const isActiveEdge =
-          activeNodeExecutions.has(edge.source) || activeNodeExecutions.has(edge.target);
+          activeNodeExecutions.has(edge.source) ||
+          activeNodeExecutions.has(edge.target);
 
         if (isActiveEdge && !isDisabledTarget) {
           return {
@@ -197,9 +217,12 @@ export function WorkflowCanvas() {
 
       if (isRunning) {
         const isInExecutionScope =
-          !executionScope || executionScope.has(edge.source) || executionScope.has(edge.target);
+          !executionScope ||
+          executionScope.has(edge.source) ||
+          executionScope.has(edge.target);
         const isExecutingEdge =
-          currentNodeId && (edge.source === currentNodeId || edge.target === currentNodeId);
+          currentNodeId &&
+          (edge.source === currentNodeId || edge.target === currentNodeId);
 
         if (isDisabledTarget) {
           return {
@@ -220,7 +243,8 @@ export function WorkflowCanvas() {
         return {
           ...edge,
           animated: false,
-          className: `${typeClass} ${isExecutingEdge ? 'executing' : 'active-pipe'}`.trim(),
+          className:
+            `${typeClass} ${isExecutingEdge ? 'executing' : 'active-pipe'}`.trim(),
         };
       }
 
@@ -232,10 +256,12 @@ export function WorkflowCanvas() {
       }
 
       if (highlightedSet) {
-        const isConnected = highlightedSet.has(edge.source) && highlightedSet.has(edge.target);
+        const isConnected =
+          highlightedSet.has(edge.source) && highlightedSet.has(edge.target);
         return {
           ...edge,
-          className: `${typeClass} ${isConnected ? 'highlighted' : 'dimmed'}`.trim(),
+          className:
+            `${typeClass} ${isConnected ? 'highlighted' : 'dimmed'}`.trim(),
         };
       }
 
@@ -260,7 +286,7 @@ export function WorkflowCanvas() {
     (_event: React.MouseEvent, node: WorkflowNode) => {
       selectNode(node.id);
     },
-    [selectNode]
+    [selectNode],
   );
 
   const handlePaneClick = useCallback(() => {
@@ -272,7 +298,7 @@ export function WorkflowCanvas() {
     ({ nodes: selectedNodes }: { nodes: WorkflowNode[] }) => {
       setSelectedNodeIds(selectedNodes.map((n) => n.id));
     },
-    [setSelectedNodeIds]
+    [setSelectedNodeIds],
   );
 
   const handleNodeContextMenu = useCallback(
@@ -284,7 +310,7 @@ export function WorkflowCanvas() {
         openNodeMenu(node.id, event.clientX, event.clientY);
       }
     },
-    [selectedNodeIds, openNodeMenu, openSelectionMenu]
+    [selectedNodeIds, openNodeMenu, openSelectionMenu],
   );
 
   const handleEdgeContextMenu = useCallback(
@@ -292,7 +318,7 @@ export function WorkflowCanvas() {
       event.preventDefault();
       openEdgeMenu(edge.id, event.clientX, event.clientY);
     },
-    [openEdgeMenu]
+    [openEdgeMenu],
   );
 
   const handlePaneContextMenu = useCallback(
@@ -300,7 +326,7 @@ export function WorkflowCanvas() {
       event.preventDefault();
       openPaneMenu(event.clientX, event.clientY);
     },
-    [openPaneMenu]
+    [openPaneMenu],
   );
 
   const handleSelectionContextMenu = useCallback(
@@ -309,7 +335,7 @@ export function WorkflowCanvas() {
       const nodeIds = selectedNodes.map((n) => n.id);
       openSelectionMenu(nodeIds, event.clientX, event.clientY);
     },
-    [openSelectionMenu]
+    [openSelectionMenu],
   );
 
   const handleDrop = useCallback(
@@ -326,7 +352,7 @@ export function WorkflowCanvas() {
 
       addNode(nodeType, position);
     },
-    [addNode, reactFlow]
+    [addNode, reactFlow],
   );
 
   const handleDragOver = useCallback((event: React.DragEvent) => {
@@ -334,9 +360,12 @@ export function WorkflowCanvas() {
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
-  const handleNodeDragStart = useCallback((_event: React.MouseEvent, node: Node) => {
-    setDraggingNodeId(node.id);
-  }, []);
+  const handleNodeDragStart = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      setDraggingNodeId(node.id);
+    },
+    [],
+  );
 
   const handleNodeDrag = useCallback((_event: React.MouseEvent, node: Node) => {
     // Update dragging node ID to trigger helper lines recalculation
@@ -367,7 +396,11 @@ export function WorkflowCanvas() {
       const droppedOnHandle = target.closest('.react-flow__handle');
       if (droppedOnHandle) return;
 
-      const compatibleHandle = findCompatibleHandle(sourceNodeId, sourceHandleId, targetNodeId);
+      const compatibleHandle = findCompatibleHandle(
+        sourceNodeId,
+        sourceHandleId,
+        targetNodeId,
+      );
       if (!compatibleHandle) return;
 
       onConnect({
@@ -377,7 +410,7 @@ export function WorkflowCanvas() {
         targetHandle: compatibleHandle,
       });
     },
-    [findCompatibleHandle, onConnect]
+    [findCompatibleHandle, onConnect],
   );
 
   const checkValidConnection = useCallback(
@@ -390,7 +423,7 @@ export function WorkflowCanvas() {
       };
       return isValidConnection(conn);
     },
-    [isValidConnection]
+    [isValidConnection],
   );
 
   const handleMoveStart = useCallback(() => {
@@ -422,7 +455,11 @@ export function WorkflowCanvas() {
   }, []);
 
   return (
-    <div className="w-full h-full relative" onDrop={handleDrop} onDragOver={handleDragOver}>
+    <div
+      className="w-full h-full relative"
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
+    >
       {!showPalette && (
         <button
           onClick={togglePalette}

@@ -1,8 +1,8 @@
 'use client';
 
-import type { IAgentCampaignStatusResponse } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type { IAgentCampaignStatusResponse } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
 import { AgentCampaignsService } from '@services/automation/agent-campaigns.service';

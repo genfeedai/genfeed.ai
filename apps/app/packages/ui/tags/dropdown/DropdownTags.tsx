@@ -1,12 +1,12 @@
 'use client';
 
-import type { ITag } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   ButtonVariant,
   DropdownDirection,
   TagCategory,
 } from '@genfeedai/enums';
+import type { ITag } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { DropdownTagsProps } from '@props/tags/dropdown-tags.props';

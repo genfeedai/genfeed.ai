@@ -1,7 +1,7 @@
 'use client';
 
-import type { IAsset, IImage } from '@genfeedai/interfaces';
 import { IngredientCategory } from '@genfeedai/enums';
+import type { IAsset, IImage } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { PromptBarFrameControlsProps } from '@props/studio/prompt-bar.props';
 import { EnvironmentService } from '@services/core/environment.service';

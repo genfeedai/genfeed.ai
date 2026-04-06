@@ -10,11 +10,11 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import type { User } from '@clerk/backend';
+import { AgentMessageRole, AgentThreadStatus } from '@genfeedai/enums';
 import {
   AgentThreadSerializer,
   ThreadMessageSerializer,
 } from '@genfeedai/serializers';
-import { AgentMessageRole, AgentThreadStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,

@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/vitest';
-import type { IPost } from '@genfeedai/interfaces';
 import { Platform, PostStatus } from '@genfeedai/enums';
+import type { IPost } from '@genfeedai/interfaces';
 import PostsGrid, {
   type PostCardAction,
 } from '@pages/posts/list/components/PostsGrid';

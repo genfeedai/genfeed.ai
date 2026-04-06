@@ -1,6 +1,9 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { ITEMS_PER_PAGE } from '@genfeedai/constants';
+import { IngredientCategory } from '@genfeedai/enums';
 import type {
   IFontFamily,
   IModel,
@@ -8,9 +11,6 @@ import type {
   ITag,
   ITraining,
 } from '@genfeedai/interfaces';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { IngredientCategory } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { LayoutProps } from '@props/layout/layout.props';
 import { ModelsService } from '@services/ai/models.service';
