@@ -1,7 +1,7 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import WorkflowTemplatesPage from '@pages/workflows/templates/WorkflowTemplatesPage';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
+import WorkflowTemplatesPage from '@/features/workflows/pages/templates/WorkflowTemplatesPage';
 
 export const generateMetadata = createPageMetadata('Agent Workflow Templates');
 
