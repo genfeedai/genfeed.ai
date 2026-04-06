@@ -11,6 +11,7 @@ coverage/
 .vercel
 out/
 *.log
+next-env.d.ts
 apps/desktop/app/release/
 *.dmg
 *.zip
