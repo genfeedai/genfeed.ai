@@ -1,4 +1,10 @@
-import type { WorkflowEdge, WorkflowFile, WorkflowInterface, WorkflowNode } from '@genfeedai/types';
+import type {
+  WorkflowEdge,
+  WorkflowFile,
+  WorkflowInterface,
+  WorkflowNode,
+} from '@genfeedai/types';
+import type { WorkflowListItem } from '@/features/workflows/types/workflow-list-item';
 import type { NodeGroup } from '@/types/groups';
 import { apiClient } from './client';
 
@@ -47,7 +53,10 @@ export const workflowsApi = {
   /**
    * Create a new workflow
    */
-  create: (data: CreateWorkflowInput, signal?: AbortSignal): Promise<WorkflowData> =>
+  create: (
+    data: CreateWorkflowInput,
+    signal?: AbortSignal,
+  ): Promise<WorkflowData> =>
     apiClient.post<WorkflowData>('/workflows', data, { signal }),
 
   /**
@@ -61,7 +70,9 @@ export const workflowsApi = {
    */
   downloadAsFile: async (id: string, signal?: AbortSignal): Promise<void> => {
     const workflow = await workflowsApi.export(id, signal);
-    const blob = new Blob([JSON.stringify(workflow, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(workflow, null, 2)], {
+      type: 'application/json',
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -76,7 +87,9 @@ export const workflowsApi = {
    * Duplicate a workflow
    */
   duplicate: (id: string, signal?: AbortSignal): Promise<WorkflowData> =>
-    apiClient.post<WorkflowData>(`/workflows/${id}/duplicate`, undefined, { signal }),
+    apiClient.post<WorkflowData>(`/workflows/${id}/duplicate`, undefined, {
+      signal,
+    }),
 
   // Export/Import endpoints
 
@@ -90,13 +103,16 @@ export const workflowsApi = {
    */
   getAll: (
     params?: { search?: string; tag?: string },
-    signal?: AbortSignal
-  ): Promise<WorkflowData[]> => {
+    signal?: AbortSignal,
+  ): Promise<WorkflowListItem[]> => {
     const searchParams = new URLSearchParams();
     if (params?.search) searchParams.set('search', params.search);
     if (params?.tag) searchParams.set('tag', params.tag);
     const qs = searchParams.toString();
-    return apiClient.get<WorkflowData[]>(`/workflows${qs ? `?${qs}` : ''}`, { signal });
+    return apiClient.get<WorkflowListItem[]>(
+      `/workflows${qs ? `?${qs}` : ''}`,
+      { signal },
+    );
   },
 
   /**
@@ -116,7 +132,10 @@ export const workflowsApi = {
   /**
    * Get the interface of a workflow (inputs/outputs defined by boundary nodes)
    */
-  getInterface: (id: string, signal?: AbortSignal): Promise<WorkflowInterface> =>
+  getInterface: (
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<WorkflowInterface> =>
     apiClient.get<WorkflowInterface>(`/workflows/${id}/interface`, { signal }),
 
   /**
@@ -124,11 +143,11 @@ export const workflowsApi = {
    */
   getReferencable: (
     excludeWorkflowId?: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<Array<WorkflowData & { interface: WorkflowInterface }>> =>
     apiClient.get<Array<WorkflowData & { interface: WorkflowInterface }>>(
       `/workflows/referencable${excludeWorkflowId ? `?exclude=${excludeWorkflowId}` : ''}`,
-      { signal }
+      { signal },
     ),
 
   /**
@@ -140,7 +159,10 @@ export const workflowsApi = {
   /**
    * Import workflow from file (client-side helper)
    */
-  importFromFile: async (file: File, signal?: AbortSignal): Promise<WorkflowData> => {
+  importFromFile: async (
+    file: File,
+    signal?: AbortSignal,
+  ): Promise<WorkflowData> => {
     const text = await file.text();
     const data = JSON.parse(text) as WorkflowExport;
     return workflowsApi.import(data, signal);
@@ -153,14 +175,22 @@ export const workflowsApi = {
     id: string,
     thumbnailUrl: string,
     nodeId: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<WorkflowData> =>
-    apiClient.put<WorkflowData>(`/workflows/${id}/thumbnail`, { nodeId, thumbnailUrl }, { signal }),
+    apiClient.put<WorkflowData>(
+      `/workflows/${id}/thumbnail`,
+      { nodeId, thumbnailUrl },
+      { signal },
+    ),
 
   /**
    * Update an existing workflow
    */
-  update: (id: string, data: UpdateWorkflowInput, signal?: AbortSignal): Promise<WorkflowData> =>
+  update: (
+    id: string,
+    data: UpdateWorkflowInput,
+    signal?: AbortSignal,
+  ): Promise<WorkflowData> =>
     apiClient.put<WorkflowData>(`/workflows/${id}`, data, { signal }),
 
   /**
@@ -170,11 +200,11 @@ export const workflowsApi = {
   validateReference: (
     parentWorkflowId: string,
     childWorkflowId: string,
-    signal?: AbortSignal
+    signal?: AbortSignal,
   ): Promise<WorkflowInterface> =>
     apiClient.post<WorkflowInterface>(
       `/workflows/${parentWorkflowId}/validate-reference`,
       { childWorkflowId },
-      { signal }
+      { signal },
     ),
 };
