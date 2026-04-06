@@ -1,4 +1,7 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
 import { type ReactElement, useCallback, useState } from 'react';
 import {
   HiCalendarDays,
@@ -89,11 +92,10 @@ export function SchedulePostCard({
           <HiClock className="mr-1 inline h-3 w-3" />
           Date & Time
         </label>
-        <input
+        <Input
           type="datetime-local"
           value={dateTime}
           onChange={(e) => setDateTime(e.target.value)}
-          className="w-full rounded border border-border bg-background px-2.5 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
         />
       </div>
 
@@ -133,15 +135,15 @@ export function SchedulePostCard({
       )}
 
       {/* Schedule button */}
-      <button
-        type="button"
+      <Button
+        variant={ButtonVariant.DEFAULT}
         onClick={handleSchedule}
-        disabled={!dateTime || selectedPlatforms.size === 0}
-        className="flex w-full items-center justify-center gap-2 rounded bg-primary px-4 py-2 text-sm font-black text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+        isDisabled={!dateTime || selectedPlatforms.size === 0}
+        icon={<HiCalendarDays className="h-4 w-4" />}
+        className="w-full justify-center"
       >
-        <HiCalendarDays className="h-4 w-4" />
         Schedule
-      </button>
+      </Button>
     </div>
   );
 }

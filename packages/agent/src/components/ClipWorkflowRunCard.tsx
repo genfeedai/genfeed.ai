@@ -5,7 +5,18 @@ import {
   buildAgentGenerationRequestBody,
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
 import {
@@ -345,8 +356,8 @@ export function ClipWorkflowRunCard({
       <div className="space-y-3 p-3">
         <label className="flex flex-col gap-1 text-xs">
           <span className="text-muted-foreground">Prompt</span>
-          <textarea
-            className="min-h-[72px] rounded border border-border bg-background p-2 text-sm text-foreground"
+          <Textarea
+            className="min-h-[72px]"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
           />
@@ -383,7 +394,7 @@ export function ClipWorkflowRunCard({
           </label>
           <label className="flex items-center gap-2 rounded border border-border p-2">
             <span>Duration (s)</span>
-            <input
+            <Input
               type="number"
               min={5}
               max={60}
@@ -393,7 +404,7 @@ export function ClipWorkflowRunCard({
                   Math.max(5, Math.min(60, Number(e.target.value || 30))),
                 )
               }
-              className="w-16 rounded border border-border bg-background px-1.5 py-0.5 text-right"
+              className="w-16 px-1.5 py-0.5 text-right"
             />
           </label>
         </div>
@@ -401,22 +412,26 @@ export function ClipWorkflowRunCard({
         {action.workflows != null && action.workflows.length > 0 && (
           <label className="flex flex-col gap-1 text-xs">
             <span className="text-muted-foreground">Workflow</span>
-            <select
+            <Select
               value={workflowId ?? ''}
-              onChange={(e) => {
-                const nextId = e.target.value || undefined;
+              onValueChange={(value) => {
+                const nextId = value || undefined;
                 setWorkflowId(nextId);
                 setStep('trigger_workflow', nextId ? 'pending' : 'skipped');
               }}
-              className="rounded border border-border bg-background px-2 py-1.5 text-sm"
             >
-              <option value="">No workflow binding</option>
-              {action.workflows.map((wf) => (
-                <option key={wf.id} value={wf.id}>
-                  {wf.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="No workflow binding" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">No workflow binding</SelectItem>
+                {action.workflows.map((wf) => (
+                  <SelectItem key={wf.id} value={wf.id}>
+                    {wf.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </label>
         )}
 
@@ -443,48 +458,48 @@ export function ClipWorkflowRunCard({
         )}
 
         <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
+          <Button
+            variant={ButtonVariant.DEFAULT}
+            size={ButtonSize.SM}
             onClick={runNext}
-            disabled={!nextNonPublishStep}
-            className="flex items-center gap-1.5 rounded bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+            isDisabled={!nextNonPublishStep}
           >
             <HiOutlinePlay className="h-3.5 w-3.5" />
             {nextNonPublishStep ? 'Run Next Step' : 'Pipeline Ready'}
-          </button>
+          </Button>
 
-          <button
-            type="button"
+          <Button
+            variant={ButtonVariant.OUTLINE}
+            size={ButtonSize.SM}
             onClick={addAnotherClip}
-            className="flex items-center gap-1.5 rounded border border-border px-3 py-1.5 text-xs font-medium"
           >
             <HiOutlineBolt className="h-3.5 w-3.5" />
             Generate Another Clip
-          </button>
+          </Button>
 
           {canMerge && (
-            <button
-              type="button"
+            <Button
+              variant={ButtonVariant.OUTLINE}
+              size={ButtonSize.SM}
               onClick={() => runOneStep('merge_clips')}
-              className="flex items-center gap-1.5 rounded border border-border px-3 py-1.5 text-xs font-medium"
             >
               <HiOutlineArrowPathRoundedSquare className="h-3.5 w-3.5" />
               Merge Now
-            </button>
+            </Button>
           )}
 
-          <button
-            type="button"
+          <Button
+            variant={ButtonVariant.OUTLINE}
+            size={ButtonSize.SM}
             onClick={() => runOneStep('supervised_review')}
-            disabled={
+            isDisabled={
               steps.reframe_portrait !== 'completed' ||
               steps.supervised_review === 'completed'
             }
-            className="flex items-center gap-1.5 rounded border border-border px-3 py-1.5 text-xs font-medium disabled:opacity-50"
           >
             <HiOutlineSparkles className="h-3.5 w-3.5" />
             Open Supervised Review
-          </button>
+          </Button>
         </div>
 
         <div className="space-y-1 text-xs text-muted-foreground">

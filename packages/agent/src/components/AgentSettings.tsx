@@ -3,6 +3,7 @@ import type { AgentApiConfig } from '@genfeedai/agent/services/agent-api.service
 import { ButtonSize, ButtonVariant, CostTier } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Button from '@ui/buttons/base/Button';
+import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useCallback, useEffect, useState } from 'react';
 import {
   HiOutlineBolt,
@@ -207,9 +208,10 @@ export function AgentSettings({
         </p>
         <div className="grid gap-2 sm:grid-cols-2">
           {GENERATION_PRIORITY_OPTIONS.map((option) => (
-            <button
-              type="button"
+            <Button
               key={option.key}
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
               onClick={() => setGenerationPriority(option.key)}
               className={cn(
                 'flex items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors',
@@ -239,7 +241,7 @@ export function AgentSettings({
               {generationPriority === option.key && (
                 <HiOutlineCheck className="h-4 w-4 shrink-0 text-primary" />
               )}
-            </button>
+            </Button>
           ))}
         </div>
       </section>
@@ -255,9 +257,10 @@ export function AgentSettings({
         </p>
         <div className="grid gap-2">
           {AGENT_MODELS.map((model) => (
-            <button
-              type="button"
+            <Button
               key={model.key}
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
               onClick={() => setSelectedModel(model.key)}
               className={cn(
                 'flex items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors',
@@ -292,7 +295,7 @@ export function AgentSettings({
               {selectedModel === model.key && (
                 <HiOutlineCheck className="h-4 w-4 text-primary" />
               )}
-            </button>
+            </Button>
           ))}
         </div>
       </section>
@@ -305,13 +308,13 @@ export function AgentSettings({
           use the default.
         </p>
         <div className="relative">
-          <textarea
+          <Textarea
             value={persona}
             onChange={(e) => setPersona(e.target.value)}
             placeholder="Customize your agent's personality and instructions..."
             maxLength={5000}
             rows={6}
-            className="w-full resize-y rounded-lg border border-white/[0.12] bg-white/[0.03] px-4 py-3 text-sm text-foreground placeholder:text-foreground/30 focus:border-primary/40 focus:outline-none"
+            className="resize-y rounded-lg border-white/[0.12] bg-white/[0.03] px-4 py-3 text-sm placeholder:text-foreground/30 focus:border-primary/40"
           />
           <div className="mt-1 text-right text-[10px] text-muted-foreground">
             {persona.length}/5000

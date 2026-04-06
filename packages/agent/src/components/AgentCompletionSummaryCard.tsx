@@ -98,23 +98,19 @@ function CompletionActionButton({
   }
 
   return (
-    <button
-      type="button"
+    <Button
+      variant={isPrimary ? ButtonVariant.DEFAULT : ButtonVariant.OUTLINE}
+      withWrapper={false}
       onClick={() => {
         if (!cta.action) {
           return;
         }
         void onUiAction?.(cta.action, cta.payload);
       }}
-      className={cn(
-        'inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-        isPrimary
-          ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-          : 'border border-border bg-background text-foreground hover:bg-accent',
-      )}
+      className="inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium"
     >
       {cta.label}
-    </button>
+    </Button>
   );
 }
 
@@ -231,24 +227,24 @@ export function AgentCompletionSummaryCard({
         >
           Retry
         </Button>
-        <button
-          type="button"
-          aria-label="Mark result helpful"
-          className="inline-flex h-8 items-center gap-1 rounded px-2 transition-colors hover:bg-accent"
+        <Button
+          variant={ButtonVariant.GHOST}
+          ariaLabel="Mark result helpful"
+          className="h-8 px-2 text-xs"
           onClick={() => setFeedbackState('positive')}
         >
-          <HiOutlineHandThumbUp className="h-3.5 w-3.5" />
+          <HiOutlineHandThumbUp className="mr-1 h-3.5 w-3.5" />
           Good
-        </button>
-        <button
-          type="button"
-          aria-label="Mark result not helpful"
-          className="inline-flex h-8 items-center gap-1 rounded px-2 transition-colors hover:bg-accent"
+        </Button>
+        <Button
+          variant={ButtonVariant.GHOST}
+          ariaLabel="Mark result not helpful"
+          className="h-8 px-2 text-xs"
           onClick={() => setFeedbackState('negative')}
         >
-          <HiOutlineHandThumbDown className="h-3.5 w-3.5" />
+          <HiOutlineHandThumbDown className="mr-1 h-3.5 w-3.5" />
           Bad
-        </button>
+        </Button>
         {feedbackState ? (
           <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground/80">
             {feedbackState === 'positive' ? (

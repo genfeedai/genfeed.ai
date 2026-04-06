@@ -1,4 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import Link from 'next/link';
 import { type ReactElement, useCallback, useState } from 'react';
 import {
@@ -112,17 +114,18 @@ export function WorkflowCreatedCard({
                   : cta.label;
 
               return (
-                <button
+                <Button
                   key={`${action.id}-workflow-created-action-${index}`}
-                  type="button"
-                  disabled={isPending || isCompleted}
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
+                  isDisabled={isPending || isCompleted}
                   onClick={() => {
                     void handleActionClick(actionName, cta.payload);
                   }}
                   className="inline-flex items-center gap-1.5 rounded bg-emerald-500 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <span>{buttonLabel}</span>
-                </button>
+                </Button>
               );
             })}
           </div>

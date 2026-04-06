@@ -1,4 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import type { ReactElement } from 'react';
 import { HiCalendar, HiPlus } from 'react-icons/hi2';
 
@@ -61,14 +63,15 @@ export function ContentCalendarCard({
                   {dayNum}
                 </span>
                 {isEmpty ? (
-                  <button
-                    type="button"
+                  <Button
+                    variant={ButtonVariant.UNSTYLED}
+                    withWrapper={false}
                     onClick={() => onFillGap?.(day.date)}
                     className="mt-1 flex h-5 w-5 items-center justify-center rounded-full bg-teal-50 text-teal-600 transition-colors hover:bg-teal-100 dark:bg-teal-900/30 dark:text-teal-400"
-                    title="Fill Gap"
+                    tooltip="Fill Gap"
                   >
                     <HiPlus className="h-3 w-3" />
-                  </button>
+                  </Button>
                 ) : (
                   <span className="mt-1 flex h-5 w-5 items-center justify-center rounded-full bg-teal-500/10 text-[10px] font-medium text-teal-600 dark:text-teal-400">
                     {day.postCount}

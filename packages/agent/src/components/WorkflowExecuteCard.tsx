@@ -5,6 +5,17 @@ import type {
   WorkflowInterfaceSchema,
 } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import {
   type ChangeEvent,
   type ReactElement,
@@ -230,8 +241,6 @@ export function WorkflowExecuteCard({
             {inputEntries.map(([key, field]) => {
               const label = field.label ?? key;
               const value = formValues[key];
-              const commonClassName =
-                'w-full rounded border border-border bg-background px-2.5 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary';
 
               return (
                 <div key={key}>
@@ -257,22 +266,30 @@ export function WorkflowExecuteCard({
                     </label>
                   ) : field.type === 'select' &&
                     Array.isArray(field.validation?.options) ? (
-                    <select
+                    <Select
                       value={typeof value === 'string' ? value : ''}
-                      onChange={(event) =>
-                        handleChange(key, event.target.value)
-                      }
-                      className={commonClassName}
+                      onValueChange={(val) => handleChange(key, val)}
                     >
-                      {!field.required && <option value="">Optional</option>}
-                      {field.validation.options.map((option) => (
-                        <option key={option} value={option}>
-                          {option}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={
+                            !field.required ? 'Optional' : `Select ${label}`
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {!field.required && (
+                          <SelectItem value="">Optional</SelectItem>
+                        )}
+                        {field.validation.options.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   ) : field.type === 'number' ? (
-                    <input
+                    <Input
                       type="number"
                       value={
                         typeof value === 'number' || typeof value === 'string'
@@ -282,22 +299,20 @@ export function WorkflowExecuteCard({
                       onChange={(event) =>
                         handleChange(key, event.target.value)
                       }
-                      className={commonClassName}
                     />
                   ) : field.type === 'text' &&
                     key.toLowerCase().includes('script') ? (
-                    <textarea
+                    <Textarea
                       rows={3}
                       value={typeof value === 'string' ? value : ''}
                       onChange={handleTextChange(key)}
-                      className={`${commonClassName} resize-none`}
+                      className="resize-none"
                     />
                   ) : (
-                    <input
+                    <Input
                       type="text"
                       value={typeof value === 'string' ? value : ''}
                       onChange={handleTextChange(key)}
-                      className={commonClassName}
                       placeholder={
                         field.type === 'image' || field.type === 'audio'
                           ? 'https://...'
@@ -312,15 +327,16 @@ export function WorkflowExecuteCard({
         )}
 
         {status === 'idle' && (
-          <button
-            type="button"
+          <Button
+            variant={ButtonVariant.DEFAULT}
+            withWrapper={false}
             onClick={handleExecute}
-            disabled={!workflowId || isLoadingInterface}
-            className="flex w-full items-center justify-center gap-2 rounded bg-primary px-4 py-2 text-sm font-black text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            isDisabled={!workflowId || isLoadingInterface}
+            className="flex w-full items-center justify-center gap-2 rounded px-4 py-2 text-sm font-black"
           >
             <HiOutlineBolt className="h-4 w-4" />
             Execute
-          </button>
+          </Button>
         )}
 
         {status === 'executing' && (
@@ -359,13 +375,14 @@ export function WorkflowExecuteCard({
                 {error}
               </span>
             </div>
-            <button
-              type="button"
+            <Button
+              variant={ButtonVariant.OUTLINE}
+              withWrapper={false}
               onClick={handleRetry}
-              className="flex w-full items-center justify-center rounded border border-border px-4 py-2 text-sm font-black text-foreground transition-colors hover:bg-accent"
+              className="flex w-full items-center justify-center rounded px-4 py-2 text-sm font-black"
             >
               Try Again
-            </button>
+            </Button>
           </div>
         )}
       </div>

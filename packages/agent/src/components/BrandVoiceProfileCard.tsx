@@ -1,4 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
 import { HiCheckCircle, HiMegaphone, HiSparkles } from 'react-icons/hi2';
 
@@ -155,17 +157,18 @@ export function BrandVoiceProfileCard({
       </div>
 
       {approveCta?.action ? (
-        <button
-          type="button"
-          disabled={isSaving}
+        <Button
+          variant={ButtonVariant.DEFAULT}
+          isDisabled={isSaving}
+          isLoading={isSaving}
           onClick={() => {
             void handleApprove();
           }}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded bg-primary px-4 py-2 text-sm font-black text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+          icon={<HiSparkles className="h-4 w-4" />}
+          className="mt-4 w-full justify-center"
         >
-          <HiSparkles className="h-4 w-4" />
           {isSaving ? 'Saving...' : approveCta.label}
-        </button>
+        </Button>
       ) : null}
     </div>
   );

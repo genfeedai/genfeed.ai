@@ -1,4 +1,6 @@
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Button from '@ui/buttons/base/Button';
 import { Check, ChevronRight, Circle, Lock } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import { getPhaseIndex } from '../machine';
@@ -22,16 +24,17 @@ function PhaseStep({
   const canRollback = isComplete && currentPhase !== 'complete';
 
   return (
-    <button
-      type="button"
+    <Button
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
       onClick={() => canRollback && onRollback(phase)}
-      disabled={!canRollback}
+      isDisabled={!canRollback}
       className={cn(
         'flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all',
         isComplete &&
           'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 cursor-pointer',
         isCurrent && 'bg-white/10 text-white ring-1 ring-white/20',
-        isFuture && 'text-white/30 cursor-not-allowed',
+        isFuture && 'text-white/30',
         canRollback && 'hover:ring-1 hover:ring-emerald-500/30',
       )}
     >
@@ -52,7 +55,7 @@ function PhaseStep({
         )}
       </span>
       <span className="hidden sm:inline">{PHASE_LABELS[phase]}</span>
-    </button>
+    </Button>
   );
 }
 
@@ -108,20 +111,21 @@ function PhaseProgressInner() {
             re-advance through gates.
           </p>
           <div className="flex gap-2">
-            <button
-              type="button"
+            <Button
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
               onClick={confirmRollback}
               className="px-3 py-1.5 text-sm font-medium bg-amber-500/20 text-amber-400 rounded-md hover:bg-amber-500/30 transition-colors"
             >
               Confirm rollback
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              variant={ButtonVariant.GHOST}
               onClick={() => setConfirmTarget(null)}
-              className="px-3 py-1.5 text-sm text-white/50 hover:text-white/70 transition-colors"
+              className="px-3 py-1.5 text-sm text-white/50 hover:text-white/70"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       )}

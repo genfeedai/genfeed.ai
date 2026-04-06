@@ -1,6 +1,7 @@
 import type { AgentInputRequest } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
 import Button from '@ui/buttons/base/Button';
+import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useMemo, useState } from 'react';
 
 interface AgentInputRequestOverlayProps {
@@ -85,7 +86,7 @@ export function AgentInputRequestOverlay({
 
         {request.allowFreeText !== false ? (
           <div className="mt-4">
-            <textarea
+            <Textarea
               value={freeTextAnswer}
               onChange={(event) => setFreeTextAnswer(event.target.value)}
               placeholder={
@@ -93,7 +94,7 @@ export function AgentInputRequestOverlay({
                   ? `Type your own answer, or leave this blank to use "${recommendedLabel}"`
                   : 'Type your answer'
               }
-              className="min-h-28 w-full rounded-2xl border border-white/[0.08] bg-transparent px-4 py-3 text-sm text-foreground outline-none transition-colors placeholder:text-foreground/35 focus:border-primary/50"
+              className="min-h-28 rounded-2xl border-white/[0.08] bg-transparent px-4 py-3 placeholder:text-foreground/35 focus:border-primary/50"
             />
           </div>
         ) : null}

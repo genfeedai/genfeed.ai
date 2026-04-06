@@ -1,4 +1,6 @@
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Button from '@ui/buttons/base/Button';
 import { Check, MessageSquare, ShieldCheck } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { useAgentWorkflowStore } from '../store';
@@ -44,10 +46,11 @@ function ApprovalPanelInner() {
 
       {selectedApproach && (
         <div className="flex items-center gap-3 pt-2 border-t border-white/10">
-          <button
-            type="button"
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
             onClick={handleApprove}
-            disabled={isLocked}
+            isDisabled={isLocked}
             className={cn(
               'inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold rounded-lg transition-all',
               'bg-emerald-500 text-white hover:bg-emerald-400',
@@ -56,21 +59,21 @@ function ApprovalPanelInner() {
           >
             <Check className="size-4" />
             Approve & proceed
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant={ButtonVariant.GHOST}
             onClick={() =>
               addMessage(
                 'user',
                 'Requesting changes to the proposed approaches.',
               )
             }
-            disabled={isLocked}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white/60 hover:text-white/80 transition-colors disabled:opacity-40"
+            isDisabled={isLocked}
+            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white/60 hover:text-white/80"
           >
             <MessageSquare className="size-4" />
             Request changes
-          </button>
+          </Button>
         </div>
       )}
     </div>

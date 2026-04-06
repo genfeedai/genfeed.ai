@@ -1,4 +1,6 @@
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Button from '@ui/buttons/base/Button';
 import {
   ArrowRight,
   ChevronDown,
@@ -40,8 +42,9 @@ function PhaseTransitionLogInner() {
 
   return (
     <div className="rounded-xl border border-white/10 bg-white/5 overflow-hidden">
-      <button
-        type="button"
+      <Button
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
         onClick={() => setIsExpanded(!isExpanded)}
         className="flex items-center justify-between w-full px-3 py-2 text-sm text-white/60 hover:text-white/80 transition-colors"
       >
@@ -56,7 +59,7 @@ function PhaseTransitionLogInner() {
         ) : (
           <ChevronDown className="size-4" />
         )}
-      </button>
+      </Button>
 
       {isExpanded && (
         <div className="border-t border-white/10 divide-y divide-white/5">

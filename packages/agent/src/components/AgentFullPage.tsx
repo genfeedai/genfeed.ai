@@ -16,8 +16,9 @@ import {
 import { extractThreadOutputs } from '@genfeedai/agent/utils/extract-thread-outputs';
 import { filterActionsByRole } from '@genfeedai/agent/utils/filter-actions-by-role';
 import type { MemberRole } from '@genfeedai/enums';
-import { AgentThreadStatus } from '@genfeedai/enums';
+import { AgentThreadStatus, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Button from '@ui/buttons/base/Button';
 import {
   Drawer,
   DrawerContent,
@@ -462,24 +463,26 @@ export function AgentFullPage({
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <div className="flex items-center gap-2 border-b border-white/[0.08] px-4 py-3 xl:hidden">
           {showThreadSidebar ? (
-            <button
-              type="button"
+            <Button
+              variant={ButtonVariant.OUTLINE}
+              withWrapper={false}
               onClick={() => setMobileThreadsOpen(true)}
-              className="inline-flex items-center gap-2 rounded-lg border border-white/[0.12] bg-white/[0.03] px-3 py-2 text-sm font-medium text-foreground/75 transition-colors hover:bg-white/[0.06] hover:text-foreground"
+              className="inline-flex items-center gap-2 rounded-lg border-white/[0.12] bg-white/[0.03] px-3 py-2 text-sm font-medium text-foreground/75 hover:bg-white/[0.06] hover:text-foreground"
             >
               <HiOutlineChatBubbleLeftRight className="h-4 w-4" />
               Threads
-            </button>
+            </Button>
           ) : null}
           {hasThreadOutputs ? (
-            <button
-              type="button"
+            <Button
+              variant={ButtonVariant.OUTLINE}
+              withWrapper={false}
               onClick={() => setMobileOutputsOpen(true)}
-              className="inline-flex items-center gap-2 rounded-lg border border-white/[0.12] bg-white/[0.03] px-3 py-2 text-sm font-medium text-foreground/75 transition-colors hover:bg-white/[0.06] hover:text-foreground"
+              className="inline-flex items-center gap-2 rounded-lg border-white/[0.12] bg-white/[0.03] px-3 py-2 text-sm font-medium text-foreground/75 hover:bg-white/[0.06] hover:text-foreground"
             >
               <HiOutlinePhoto className="h-4 w-4" />
               Outputs
-            </button>
+            </Button>
           ) : null}
         </div>
 
@@ -545,8 +548,9 @@ export function AgentFullPage({
       {/* Onboarding checklist — mobile bottom bar + drawer */}
       {showOnboardingChecklistChrome && onboardingMode && (
         <>
-          <button
-            type="button"
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
             className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-between border-t border-white/[0.06] bg-background/95 px-4 py-3 backdrop-blur-sm md:hidden"
             onClick={() => setMobileChecklistOpen(true)}
           >
@@ -559,7 +563,7 @@ export function AgentFullPage({
             <span className="text-xs text-muted-foreground">
               {onboardingEarnedCredits}/{onboardingTotalJourneyCredits} credits
             </span>
-          </button>
+          </Button>
 
           <Drawer
             open={mobileChecklistOpen}

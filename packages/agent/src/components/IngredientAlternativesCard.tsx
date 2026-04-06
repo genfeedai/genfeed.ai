@@ -5,6 +5,8 @@ import {
   buildAgentGenerationRequestBody,
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import { type ReactElement, useCallback, useRef, useState } from 'react';
 import {
   HiArrowPath,
@@ -120,10 +122,11 @@ export function IngredientAlternativesCard({
             const isDimmed = status === 'generating' && !isSelected;
 
             return (
-              <button
+              <Button
                 key={`alt-${index}`}
-                type="button"
-                disabled={status === 'generating'}
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
+                isDisabled={status === 'generating'}
                 onClick={() => handleSelect(index)}
                 className={`relative rounded-lg border p-2.5 text-left transition-all disabled:cursor-not-allowed ${
                   isSelected && status !== 'idle'
@@ -142,7 +145,7 @@ export function IngredientAlternativesCard({
                 <p className="line-clamp-2 text-[11px] leading-relaxed text-muted-foreground">
                   {alt.prompt}
                 </p>
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -153,14 +156,14 @@ export function IngredientAlternativesCard({
             <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
               {error}
             </div>
-            <button
-              type="button"
+            <Button
+              variant={ButtonVariant.OUTLINE}
               onClick={handleRetry}
-              className="flex w-full items-center justify-center gap-2 rounded border border-border px-4 py-2 text-sm font-black text-foreground transition-colors hover:bg-accent"
+              className="w-full"
             >
               <HiArrowPath className="h-4 w-4" />
               Try Again
-            </button>
+            </Button>
           </div>
         )}
 
@@ -185,14 +188,15 @@ export function IngredientAlternativesCard({
               >
                 Open in Library
               </a>
-              <button
-                type="button"
+              <Button
+                variant={ButtonVariant.OUTLINE}
+                size={ButtonSize.SM}
                 onClick={handleRetry}
-                className="flex flex-1 items-center justify-center gap-1 rounded border border-border px-3 py-1.5 text-xs font-black text-foreground transition-colors hover:bg-accent"
+                className="flex-1"
               >
                 <HiArrowPath className="h-3 w-3" />
                 Try Another
-              </button>
+              </Button>
             </div>
           </div>
         )}
