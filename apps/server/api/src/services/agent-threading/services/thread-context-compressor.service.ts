@@ -1,15 +1,20 @@
 import type { AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
-import type { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
-import type { ConfigService } from '@api/config/config.service';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { ConfigService } from '@api/config/config.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import {
   ThreadContextState,
   type ThreadContextStateDocument,
 } from '@api/services/agent-threading/schemas/thread-context-state.schema';
-import type { CacheService } from '@api/services/cache/services/cache.service';
-import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { CacheService } from '@api/services/cache/services/cache.service';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
-import type { LoggerService } from '@libs/logger/logger.service';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { type Model, Types } from 'mongoose';
