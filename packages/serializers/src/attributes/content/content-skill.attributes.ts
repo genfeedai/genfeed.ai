@@ -18,6 +18,8 @@ export const skillAttributes = createEntityAttributes([
   'source',
   'status',
   'baseSkill',
+  'systemPromptTemplate',
+  'toolOverrides',
   'isBuiltIn',
   'isEnabled',
 ]);

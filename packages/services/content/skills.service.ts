@@ -34,6 +34,8 @@ export interface SkillInput {
   slug: string;
   source?: SkillSource;
   status?: SkillStatus;
+  systemPromptTemplate?: string;
+  toolOverrides?: string[];
   workflowStage: SkillWorkflowStage;
 }
 
@@ -62,6 +64,8 @@ export class Skill {
   slug!: string;
   source!: SkillSource;
   status!: SkillStatus;
+  systemPromptTemplate?: string;
+  toolOverrides?: string[];
   workflowStage!: SkillWorkflowStage;
 
   constructor(partial: Partial<Skill>) {
