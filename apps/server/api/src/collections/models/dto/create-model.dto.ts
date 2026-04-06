@@ -27,8 +27,7 @@ export class CreateModelDto {
   @IsString()
   @ApiProperty({
     description: 'The unique identifier key for the model',
-    enum: string,
-    enumName: 'ModelKey',
+    type: String,
     required: true,
   })
   readonly key!: string;
