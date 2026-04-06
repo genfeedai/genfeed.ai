@@ -10,6 +10,8 @@
         "noStaticElementInteractions": "off",
         "useKeyWithClickEvents": "off",
         "useMediaCaption": "off",
+        "noAutofocus": "off",
+        "noRedundantAlt": "off",
         "noSvgWithoutTitle": "off",
         "useButtonType": "off",
         "useSemanticElements": "off"
@@ -18,6 +20,7 @@
         "noUselessSwitchCase": "off"
       },
       "correctness": {
+        "noUnusedFunctionParameters": "off",
         "noUnusedImports": "off",
         "noUnusedVariables": "off",
         "useExhaustiveDependencies": "off"

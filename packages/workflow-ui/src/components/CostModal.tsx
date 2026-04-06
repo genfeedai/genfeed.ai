@@ -1,11 +1,20 @@
 'use client';
 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@ui/primitives/table';
 import { DollarSign, X } from 'lucide-react';
 import { useMemo, useRef } from 'react';
 import { calculateWorkflowCost, formatCost } from '../lib/costCalculator';
 import { useExecutionStore } from '../stores/executionStore';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflowStore';
+import { Button } from '../ui/button';
 
 export function CostModal() {
   const { activeModal, closeModal } = useUIStore();
@@ -57,12 +66,9 @@ export function CostModal() {
             <DollarSign className="w-4 h-4 text-[var(--muted-foreground)]" />
             <span className="text-sm font-medium">Cost Breakdown</span>
           </div>
-          <button
-            onClick={handleClose}
-            className="p-1 rounded hover:bg-[var(--secondary)] transition-colors"
-          >
+          <Button variant="ghost" size="icon-sm" onClick={handleClose}>
             <X className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
 
         {/* Content */}
@@ -75,41 +81,39 @@ export function CostModal() {
             <>
               {/* Table */}
               <div className="max-h-[40vh] overflow-y-auto">
-                {/* TODO: migrate to @ui/primitives/table */}
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-xs text-[var(--muted-foreground)] border-b border-[var(--border)]">
-                      <th className="pb-2 font-medium">Node</th>
-                      <th className="pb-2 font-medium">Model</th>
-                      <th className="pb-2 font-medium">Unit</th>
-                      <th className="pb-2 font-medium text-right">Cost</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+                <Table className="w-full text-sm">
+                  <TableHeader>
+                    <TableRow className="text-left text-xs text-[var(--muted-foreground)]">
+                      <TableHead className="pb-2 font-medium">Node</TableHead>
+                      <TableHead className="pb-2 font-medium">Model</TableHead>
+                      <TableHead className="pb-2 font-medium">Unit</TableHead>
+                      <TableHead className="pb-2 font-medium text-right">
+                        Cost
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                     {breakdown.items.map((estimate) => (
-                      <tr
-                        key={estimate.nodeId}
-                        className="border-b border-[var(--border)] last:border-0"
-                      >
-                        <td
+                      <TableRow key={estimate.nodeId}>
+                        <TableCell
                           className="py-2 truncate max-w-[120px]"
                           title={estimate.nodeLabel}
                         >
                           {estimate.nodeLabel}
-                        </td>
-                        <td className="py-2 text-[var(--muted-foreground)] font-mono text-xs">
+                        </TableCell>
+                        <TableCell className="py-2 text-[var(--muted-foreground)] font-mono text-xs">
                           {estimate.model}
-                        </td>
-                        <td className="py-2 text-[var(--muted-foreground)] text-xs">
+                        </TableCell>
+                        <TableCell className="py-2 text-[var(--muted-foreground)] text-xs">
                           {estimate.unit}
-                        </td>
-                        <td className="py-2 text-right font-mono">
+                        </TableCell>
+                        <TableCell className="py-2 text-right font-mono">
                           {formatCost(estimate.subtotal)}
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
 
               {/* Summary */}

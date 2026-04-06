@@ -2,6 +2,7 @@
 
 import { ChevronDown } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { Button } from '../ui/button';
 import type { ToolbarDropdownProps } from './types';
 
 /**
@@ -39,13 +40,15 @@ export function ToolbarDropdown({ label, items }: ToolbarDropdownProps) {
 
   return (
     <div ref={menuRef} className="relative">
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition hover:bg-secondary hover:text-foreground"
+        className="text-muted-foreground hover:text-foreground"
       >
         {label}
         <ChevronDown className="h-3.5 w-3.5" />
-      </button>
+      </Button>
 
       {isOpen && (
         <div className="absolute left-0 top-full z-50 mt-1 min-w-[180px] rounded-lg border border-border bg-card py-1 shadow-lg whitespace-nowrap">
@@ -55,15 +58,16 @@ export function ToolbarDropdown({ label, items }: ToolbarDropdownProps) {
             }
 
             return (
-              <button
+              <Button
                 key={item.id}
+                variant="ghost"
                 onClick={() => {
                   if (item.disabled || !item.onClick) return;
                   item.onClick();
                   setIsOpen(false);
                 }}
                 disabled={item.disabled}
-                className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground transition hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                className="w-full justify-start gap-2.5 px-3 py-2 text-sm text-foreground rounded-none"
               >
                 <span className="h-4 w-4 shrink-0">{item.icon}</span>
                 <span>{item.label}</span>
@@ -72,7 +76,7 @@ export function ToolbarDropdown({ label, items }: ToolbarDropdownProps) {
                     ↗
                   </span>
                 )}
-              </button>
+              </Button>
             );
           })}
         </div>

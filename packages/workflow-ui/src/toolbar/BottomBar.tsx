@@ -12,6 +12,7 @@ import {
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useExecutionStore } from '../stores/executionStore';
 import { useWorkflowStore } from '../stores/workflowStore';
+import { Button } from '../ui/button';
 
 const MIN_BATCH = 1;
 const MAX_BATCH = 10;
@@ -158,23 +159,27 @@ export function BottomBar() {
         {/* Batch Counter */}
         <div className="flex items-center gap-0.5">
           <span className="mr-0.5 text-[11px] text-neutral-400">Batch</span>
-          <button
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={decrementBatch}
             disabled={batchCount <= MIN_BATCH || isActive}
-            className="flex h-5 w-5 items-center justify-center rounded text-neutral-400 transition hover:bg-neutral-700 hover:text-white disabled:opacity-40 disabled:hover:bg-transparent"
+            className="h-5 w-5 text-neutral-400 hover:bg-neutral-700 hover:text-white"
           >
             <Minus className="h-2.5 w-2.5" />
-          </button>
+          </Button>
           <span className="w-4 text-center text-xs font-medium tabular-nums text-white">
             {batchCount}
           </span>
-          <button
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={incrementBatch}
             disabled={batchCount >= MAX_BATCH || isActive}
-            className="flex h-5 w-5 items-center justify-center rounded text-neutral-400 transition hover:bg-neutral-700 hover:text-white disabled:opacity-40 disabled:hover:bg-transparent"
+            className="h-5 w-5 text-neutral-400 hover:bg-neutral-700 hover:text-white"
           >
             <Plus className="h-2.5 w-2.5" />
-          </button>
+          </Button>
         </div>
 
         {/* Divider */}
@@ -182,19 +187,27 @@ export function BottomBar() {
 
         {/* Run Button with Dropdown */}
         <div className="relative flex items-center">
-          <button
+          <Button
+            variant={
+              isActive
+                ? 'destructive'
+                : canRunWorkflow
+                  ? 'default'
+                  : 'secondary'
+            }
+            size="sm"
             onClick={(e) => {
               e.stopPropagation();
               handlePrimaryClick();
             }}
             disabled={!isActive && !canRunWorkflow}
-            className={`flex h-7 items-center gap-1.5 rounded-l px-3 text-xs font-medium transition ${
+            className={`rounded-l rounded-r-none px-3 text-xs font-medium ${
               isActive
-                ? 'bg-red-500/90 text-white hover:bg-red-500'
+                ? 'bg-red-500/90 hover:bg-red-500'
                 : canRunWorkflow
-                  ? 'bg-white text-black hover:bg-neutral-200'
+                  ? ''
                   : 'bg-neutral-600 text-neutral-400'
-            } disabled:cursor-not-allowed`}
+            }`}
           >
             {isActive ? (
               <>
@@ -207,8 +220,16 @@ export function BottomBar() {
                 Run
               </>
             )}
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={
+              isActive
+                ? 'destructive'
+                : canRunWorkflow
+                  ? 'default'
+                  : 'secondary'
+            }
+            size="sm"
             onPointerDown={(e) => {
               e.stopPropagation();
               e.preventDefault();
@@ -218,16 +239,16 @@ export function BottomBar() {
               setDropdownOpen((prev) => !prev);
             }}
             disabled={isActive}
-            className={`flex h-7 items-center rounded-r border-l px-1.5 transition ${
+            className={`rounded-l-none rounded-r border-l px-1.5 ${
               isActive
-                ? 'border-red-400/30 bg-red-500/90 text-white'
+                ? 'border-red-400/30 bg-red-500/90'
                 : canRunWorkflow
-                  ? 'border-neutral-300 bg-white text-black hover:bg-neutral-200'
+                  ? 'border-neutral-300'
                   : 'border-neutral-500 bg-neutral-600 text-neutral-400'
-            } disabled:cursor-not-allowed`}
+            }`}
           >
             <ChevronUp className="h-3.5 w-3.5" />
-          </button>
+          </Button>
 
           {/* Dropdown Menu (opens upward) */}
           {dropdownOpen && (
@@ -243,35 +264,41 @@ export function BottomBar() {
                 onPointerDown={(e) => e.stopPropagation()}
                 className="absolute bottom-full left-0 z-50 mb-1.5 min-w-[180px] rounded-md border border-neutral-700 bg-neutral-800 py-0.5 shadow-xl"
               >
-                <button
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={() => {
                     executeWorkflow();
                     setDropdownOpen(false);
                   }}
                   disabled={!canRunWorkflow}
-                  className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-xs text-neutral-200 transition hover:bg-neutral-700 disabled:text-neutral-500 disabled:hover:bg-transparent"
+                  className="w-full justify-start gap-1.5 px-2.5 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700"
                 >
                   <Play className="h-3 w-3" />
                   Run Workflow
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={handleRunSelected}
                   disabled={!hasSelection || isRunning}
-                  className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-xs text-neutral-200 transition hover:bg-neutral-700 disabled:text-neutral-500 disabled:hover:bg-transparent"
+                  className="w-full justify-start gap-1.5 px-2.5 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700"
                 >
                   <PlayCircle className="h-3 w-3" />
                   Run Selected ({selectedNodeIds.length})
-                </button>
+                </Button>
                 {showResume && (
                   <>
                     <div className="mx-2 my-0.5 h-px bg-neutral-700" />
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={handleResume}
-                      className="flex w-full items-center gap-1.5 px-2.5 py-1.5 text-left text-xs text-neutral-200 transition hover:bg-neutral-700"
+                      className="w-full justify-start gap-1.5 px-2.5 py-1.5 text-xs text-neutral-200 hover:bg-neutral-700"
                     >
                       <RotateCcw className="h-3 w-3" />
                       Resume from Failed
-                    </button>
+                    </Button>
                   </>
                 )}
               </div>

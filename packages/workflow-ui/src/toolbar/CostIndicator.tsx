@@ -6,6 +6,7 @@ import { calculateWorkflowCost, formatCost } from '../lib/costCalculator';
 import { useExecutionStore } from '../stores/executionStore';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflowStore';
+import { Button } from '../ui/button';
 
 export function CostIndicator() {
   const nodes = useWorkflowStore((state) => state.nodes);
@@ -21,16 +22,18 @@ export function CostIndicator() {
   if (breakdown.items.length === 0) return null;
 
   return (
-    <button
+    <Button
+      variant="outline"
+      size="sm"
       onClick={() => openModal('cost')}
       title="View cost breakdown"
-      className="flex items-center gap-1.5 rounded-md border border-[var(--border)] px-2 py-1 text-sm text-[var(--muted-foreground)] transition hover:bg-[var(--secondary)] hover:text-[var(--foreground)]"
+      className="text-[var(--muted-foreground)] hover:text-[var(--foreground)]"
     >
       <DollarSign className="h-3.5 w-3.5" />
       <span className="font-mono text-xs">{formatCost(displayCost)}</span>
       {isRunning && actualCost > 0 && (
         <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
       )}
-    </button>
+    </Button>
   );
 }

@@ -43,6 +43,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { useUIStore } from '../stores/uiStore';
+import { Button } from '../ui/button';
 
 // Icon mapping
 const ICONS: Record<string, typeof Image> = {
@@ -181,9 +182,10 @@ function CategorySection({
 
   return (
     <div className="border-b border-[var(--border)] last:border-0">
-      <button
+      <Button
+        variant="ghost"
         onClick={onToggle}
-        className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-[var(--secondary)] transition cursor-pointer"
+        className="w-full flex items-center gap-2 px-4 py-3 text-left rounded-none h-auto justify-start"
       >
         {isExpanded ? (
           <ChevronDown className="w-4 h-4 text-[var(--muted-foreground)]" />
@@ -196,7 +198,7 @@ function CategorySection({
         <span className="text-xs text-[var(--muted-foreground)] ml-auto">
           {nodes.length}
         </span>
-      </button>
+      </Button>
 
       {isExpanded && (
         <div className="px-4 pb-4 space-y-2">
@@ -284,13 +286,14 @@ export function NodePalette() {
             Drag to canvas
           </p>
         </div>
-        <button
+        <Button
+          variant="ghost"
+          size="icon-sm"
           onClick={togglePalette}
-          className="p-1.5 hover:bg-[var(--secondary)] rounded-md transition-colors group"
           title="Close sidebar (M)"
         >
           <PanelLeftClose className="w-4 h-4 text-[var(--muted-foreground)] group-hover:text-[var(--foreground)]" />
-        </button>
+        </Button>
       </div>
 
       {/* Search bar */}

@@ -57,8 +57,7 @@ for file in "$@"; do
   [[ "$file" == *.spec.* ]] && continue
   [[ "$file" == *.stories.* ]] && continue
 
-  # Skip workflow packages (standalone UI systems, separate migration scope)
-  [[ "$file" == *packages/workflow-ui/* ]] && continue
+  # Skip workflow-cloud (being absorbed into apps/app by PR #119)
   [[ "$file" == *packages/workflow-cloud/* ]] && continue
 
   # Skip local UI wrappers (e.g. src/components/ui/textarea.tsx)
