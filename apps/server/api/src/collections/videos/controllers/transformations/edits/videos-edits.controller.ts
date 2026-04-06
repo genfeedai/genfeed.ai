@@ -17,11 +17,6 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { User } from '@clerk/backend';
-import type {
-  ITextOverlayBodyParams,
-  ITrimVideoBodyParams,
-} from '@genfeedai/interfaces';
-import { IngredientSerializer } from '@genfeedai/serializers';
 import {
   FileInputType,
   IngredientCategory,
@@ -30,8 +25,14 @@ import {
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/enums';
+import type {
+  ITextOverlayBodyParams,
+  ITrimVideoBodyParams,
+} from '@genfeedai/interfaces';
+import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
   Body,
   Controller,
@@ -118,7 +119,7 @@ export class VideosEditsController {
             inputPath: videoUrl,
             startTime: trimParams.startTime,
           },
-          room: `user-${user.id}`,
+          room: getUserRoomName(user.id),
           type: 'trim-video',
           userId: publicMetadata.user,
           websocketUrl: `/videos/${ingredientData._id}`,
@@ -158,7 +159,7 @@ export class VideosEditsController {
               status: WebSocketEventStatus.COMPLETED,
             },
             user.id,
-            `user-${user.id}`,
+            getUserRoomName(user.id),
           );
 
           try {
@@ -178,7 +179,7 @@ export class VideosEditsController {
             websocketUrl,
             'Failed to trim video',
             user.id,
-            `user-${user.id}`,
+            getUserRoomName(user.id),
           );
         });
 
@@ -259,7 +260,7 @@ export class VideosEditsController {
             text: createVideoDto.text,
             width: originalMetadata.width,
           },
-          room: `user-${user.id}`,
+          room: getUserRoomName(user.id),
           type: 'add-text-overlay',
           userId: publicMetadata.user,
           websocketUrl: `/videos/${ingredientData._id}`,
@@ -300,7 +301,7 @@ export class VideosEditsController {
               status: WebSocketEventStatus.COMPLETED,
             },
             user.id,
-            `user-${user.id}`,
+            getUserRoomName(user.id),
           );
 
           try {

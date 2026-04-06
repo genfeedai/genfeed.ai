@@ -1,13 +1,21 @@
-import type { PromptNodeData, WorkflowEdge, WorkflowFile } from '@genfeedai/types';
+import type {
+  PromptNodeData,
+  WorkflowEdge,
+  WorkflowFile,
+} from '@genfeedai/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useWorkflowStore } from './workflowStore';
 
 // Mock the API
 vi.mock('@/lib/api', () => ({
   workflowsApi: {
-    create: vi.fn().mockResolvedValue({ _id: 'new-workflow-id', name: 'Test Workflow' }),
+    create: vi
+      .fn()
+      .mockResolvedValue({ _id: 'new-workflow-id', name: 'Test Workflow' }),
     delete: vi.fn().mockResolvedValue({}),
-    duplicate: vi.fn().mockResolvedValue({ _id: 'duplicate-id', name: 'Workflow (Copy)' }),
+    duplicate: vi
+      .fn()
+      .mockResolvedValue({ _id: 'duplicate-id', name: 'Workflow (Copy)' }),
     getAll: vi.fn().mockResolvedValue([]),
     getById: vi.fn().mockResolvedValue({
       _id: 'workflow-id',
@@ -16,7 +24,9 @@ vi.mock('@/lib/api', () => ({
       name: 'Loaded Workflow',
       nodes: [],
     }),
-    update: vi.fn().mockResolvedValue({ _id: 'workflow-id', name: 'Updated Workflow' }),
+    update: vi
+      .fn()
+      .mockResolvedValue({ _id: 'workflow-id', name: 'Updated Workflow' }),
   },
 }));
 
@@ -109,7 +119,12 @@ describe('useWorkflowStore', () => {
       useWorkflowStore.setState((state) => ({
         edges: [
           ...state.edges,
-          { id: 'edge-1', source: node1Id, target: node2Id, type: 'bezier' } as WorkflowEdge,
+          {
+            id: 'edge-1',
+            source: node1Id,
+            target: node2Id,
+            type: 'bezier',
+          } as WorkflowEdge,
         ],
       }));
 
@@ -149,7 +164,12 @@ describe('useWorkflowStore', () => {
     it('should remove an edge', () => {
       useWorkflowStore.setState({
         edges: [
-          { id: 'edge-1', source: 'node-1', target: 'node-2', type: 'bezier' } as WorkflowEdge,
+          {
+            id: 'edge-1',
+            source: 'node-1',
+            target: 'node-2',
+            type: 'bezier',
+          } as WorkflowEdge,
         ],
       });
 
@@ -166,8 +186,18 @@ describe('useWorkflowStore', () => {
     it('should update edge style', () => {
       useWorkflowStore.setState({
         edges: [
-          { id: 'edge-1', source: 'node-1', target: 'node-2', type: 'bezier' } as WorkflowEdge,
-          { id: 'edge-2', source: 'node-2', target: 'node-3', type: 'bezier' } as WorkflowEdge,
+          {
+            id: 'edge-1',
+            source: 'node-1',
+            target: 'node-2',
+            type: 'bezier',
+          } as WorkflowEdge,
+          {
+            id: 'edge-2',
+            source: 'node-2',
+            target: 'node-3',
+            type: 'bezier',
+          } as WorkflowEdge,
         ],
       });
 
@@ -193,7 +223,12 @@ describe('useWorkflowStore', () => {
         name: 'Loaded Workflow',
         nodes: [
           {
-            data: { label: 'Prompt', prompt: '', status: 'idle', variables: {} },
+            data: {
+              label: 'Prompt',
+              prompt: '',
+              status: 'idle',
+              variables: {},
+            },
             id: 'node-1',
             position: { x: 0, y: 0 },
             type: 'prompt',
@@ -282,7 +317,9 @@ describe('useWorkflowStore', () => {
       const result = validateWorkflow();
 
       expect(result.isValid).toBe(false);
-      expect(result.errors.some((e) => e.message.includes('Missing required input'))).toBe(true);
+      expect(
+        result.errors.some((e) => e.message.includes('Missing required input')),
+      ).toBe(true);
     });
   });
 

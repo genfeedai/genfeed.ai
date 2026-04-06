@@ -1,4 +1,3 @@
-import type { IWorkflow } from '@genfeedai/interfaces';
 import { type WorkflowSchema, workflowSchema } from '@genfeedai/client/schemas';
 import {
   AlertCategory,
@@ -6,6 +5,7 @@ import {
   ButtonVariant,
   ModalEnum,
 } from '@genfeedai/enums';
+import type { IWorkflow } from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,

@@ -43,7 +43,9 @@ describe('templatesApi', () => {
 
       const result = await templatesApi.getAll();
 
-      expect(apiClient.get).toHaveBeenCalledWith('/templates', { signal: undefined });
+      expect(apiClient.get).toHaveBeenCalledWith('/templates', {
+        signal: undefined,
+      });
       expect(result).toHaveLength(1);
       expect(result[0].name).toBe('Test Template');
     });
@@ -62,7 +64,9 @@ describe('templatesApi', () => {
       const { apiClient } = await import('./client');
       vi.mocked(apiClient.get).mockResolvedValueOnce([mockTemplate]);
 
-      const result = await templatesApi.getByCategory(WorkflowTemplateCategory.IMAGE);
+      const result = await templatesApi.getByCategory(
+        WorkflowTemplateCategory.IMAGE,
+      );
 
       expect(apiClient.get).toHaveBeenCalledWith('/templates?category=image', {
         signal: undefined,
@@ -73,7 +77,10 @@ describe('templatesApi', () => {
 
     it('should filter video templates', async () => {
       const { apiClient } = await import('./client');
-      const videoTemplate = { ...mockTemplate, category: WorkflowTemplateCategory.VIDEO };
+      const videoTemplate = {
+        ...mockTemplate,
+        category: WorkflowTemplateCategory.VIDEO,
+      };
       vi.mocked(apiClient.get).mockResolvedValueOnce([videoTemplate]);
 
       const result = await templatesApi.getByCategory('video');
@@ -88,7 +95,9 @@ describe('templatesApi', () => {
 
       const result = await templatesApi.getById('template-1');
 
-      expect(apiClient.get).toHaveBeenCalledWith('/templates/template-1', { signal: undefined });
+      expect(apiClient.get).toHaveBeenCalledWith('/templates/template-1', {
+        signal: undefined,
+      });
       expect(result._id).toBe('template-1');
       expect(result.name).toBe('Test Template');
     });
@@ -108,7 +117,9 @@ describe('templatesApi', () => {
 
       const result = await templatesApi.create(createData);
 
-      expect(apiClient.post).toHaveBeenCalledWith('/templates', createData, { signal: undefined });
+      expect(apiClient.post).toHaveBeenCalledWith('/templates', createData, {
+        signal: undefined,
+      });
       expect(result.name).toBe('Test Template');
     });
 
@@ -138,7 +149,9 @@ describe('templatesApi', () => {
 
       await templatesApi.delete('template-1');
 
-      expect(apiClient.delete).toHaveBeenCalledWith('/templates/template-1', { signal: undefined });
+      expect(apiClient.delete).toHaveBeenCalledWith('/templates/template-1', {
+        signal: undefined,
+      });
     });
   });
 
@@ -151,9 +164,13 @@ describe('templatesApi', () => {
 
       const result = await templatesApi.seed();
 
-      expect(apiClient.post).toHaveBeenCalledWith('/templates/seed', undefined, {
-        signal: undefined,
-      });
+      expect(apiClient.post).toHaveBeenCalledWith(
+        '/templates/seed',
+        undefined,
+        {
+          signal: undefined,
+        },
+      );
       expect(result.message).toBe('System templates seeded successfully');
     });
   });
@@ -166,7 +183,9 @@ describe('templatesApi', () => {
       const controller = new AbortController();
       await templatesApi.getAll(controller.signal);
 
-      expect(apiClient.get).toHaveBeenCalledWith('/templates', { signal: controller.signal });
+      expect(apiClient.get).toHaveBeenCalledWith('/templates', {
+        signal: controller.signal,
+      });
     });
   });
 });

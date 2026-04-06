@@ -1,6 +1,7 @@
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
+
 import {
   DEFAULT_VIDEO_DURATION_OPTIONS,
   filterModelsByAspectRatio,

@@ -1,13 +1,26 @@
 'use client';
 
-import { CATEGORY_LABELS, type IPrompt, type PromptCategory } from '@genfeedai/types';
-import { BookMarked, Copy, MoreVertical, Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
+import {
+  CATEGORY_LABELS,
+  type IPrompt,
+  type PromptCategory,
+} from '@genfeedai/types';
+import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import {
+  BookMarked,
+  Copy,
+  MoreVertical,
+  Plus,
+  Search,
+  Sparkles,
+  Trash2,
+  X,
+} from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePromptLibraryStore } from '@/store/promptLibraryStore';
-import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { CreatePromptModal } from './CreatePromptModal';
 
 interface PromptCardProps {
@@ -18,7 +31,13 @@ interface PromptCardProps {
   onDelete: (id: string) => void;
 }
 
-function PromptCard({ item, onSelect, onEdit, onDuplicate, onDelete }: PromptCardProps) {
+function PromptCard({
+  item,
+  onSelect,
+  onEdit,
+  onDuplicate,
+  onDelete,
+}: PromptCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const menuId = `prompt-menu-${item._id}`;
@@ -55,8 +74,12 @@ function PromptCard({ item, onSelect, onEdit, onDuplicate, onDelete }: PromptCar
       )}
 
       {/* Content */}
-      <h3 className="truncate text-sm font-medium text-foreground">{item.name}</h3>
-      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.promptText}</p>
+      <h3 className="truncate text-sm font-medium text-foreground">
+        {item.name}
+      </h3>
+      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+        {item.promptText}
+      </p>
 
       {/* Category badge */}
       <div className="mt-2 flex items-center gap-2">
@@ -172,21 +195,21 @@ function PromptLibraryModalComponent() {
       // Just close modal for now - integration will handle applying to node
       closeModal();
     },
-    [closeModal]
+    [closeModal],
   );
 
   const handleEdit = useCallback(
     (item: IPrompt) => {
       openCreateModal(item);
     },
-    [openCreateModal]
+    [openCreateModal],
   );
 
   const handleDuplicate = useCallback(
     async (id: string) => {
       await duplicateItem(id);
     },
-    [duplicateItem]
+    [duplicateItem],
   );
 
   const handleDelete = useCallback(
@@ -195,7 +218,7 @@ function PromptLibraryModalComponent() {
         await deleteItem(id);
       }
     },
-    [deleteItem]
+    [deleteItem],
   );
 
   if (!isOpen) return null;
@@ -208,7 +231,9 @@ function PromptLibraryModalComponent() {
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-3">
             <BookMarked className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-semibold text-foreground">Prompt Library</h2>
+            <h2 className="text-lg font-semibold text-foreground">
+              Prompt Library
+            </h2>
           </div>
           <Button variant="ghost" size="icon-sm" onClick={closeModal}>
             <X className="h-5 w-5" />
@@ -233,7 +258,9 @@ function PromptLibraryModalComponent() {
           <select
             value={categoryFilter ?? ''}
             onChange={(e) =>
-              setCategoryFilter(e.target.value ? (e.target.value as PromptCategory) : null)
+              setCategoryFilter(
+                e.target.value ? (e.target.value as PromptCategory) : null,
+              )
             }
             className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >

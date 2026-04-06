@@ -11,8 +11,8 @@ import {
 } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
-  CampaignTarget,
-  OutreachCampaign,
+  type CampaignTarget,
+  type OutreachCampaign,
   OutreachCampaignsService,
 } from '@services/automation/outreach-campaigns.service';
 import { logger } from '@services/core/logger.service';
@@ -121,14 +121,14 @@ export default function OutreachCampaignDetail() {
         setIsRefreshing(false);
       }
     },
-    [brandId, organizationId, campaignId, getService, notificationsService],
+    [organizationId, campaignId, getService, notificationsService],
   );
 
   useEffect(() => {
     if (organizationId && campaignId) {
       loadCampaign();
     }
-  }, [brandId, organizationId, campaignId, loadCampaign]);
+  }, [organizationId, campaignId, loadCampaign]);
 
   const handleAddUrls = useCallback(async () => {
     if (!urlInput.trim() || !campaignId) {

@@ -1,8 +1,9 @@
 'use client';
 
-import type { IBackgroundTaskUpdateEvent } from '@genfeedai/interfaces';
 import { useBackgroundTaskContext } from '@contexts/ui/background-task-context';
+import type { IBackgroundTaskUpdateEvent } from '@genfeedai/interfaces';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { NotificationsService } from '@services/core/notifications.service';
 import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
@@ -80,6 +81,7 @@ export function useBackgroundTasks() {
   const { upsertTaskFromEvent } = useBackgroundTaskContext();
   const { isReady, subscribe } = useSocketManager();
   const router = useRouter();
+  const { href } = useOrgUrl();
   const notifiedTaskIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -107,7 +109,7 @@ export function useBackgroundTasks() {
               description: 'Track progress from the linked task view.',
               duration: START_TOAST_DURATION_MS,
               onAction: () => {
-                router.push(buildBackgroundTaskHref(event));
+                router.push(href(buildBackgroundTaskHref(event)));
               },
             },
           );
@@ -120,5 +122,5 @@ export function useBackgroundTasks() {
     return () => {
       unsubscribe();
     };
-  }, [isReady, router, subscribe, upsertTaskFromEvent]);
+  }, [isReady, router, href, subscribe, upsertTaskFromEvent]);
 }

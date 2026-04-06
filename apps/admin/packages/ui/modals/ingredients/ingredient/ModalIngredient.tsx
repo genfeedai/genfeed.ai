@@ -1,7 +1,6 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AlertCategory,
@@ -12,6 +11,7 @@ import {
   IngredientStatus,
   ModalEnum,
 } from '@genfeedai/enums';
+import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -144,7 +144,7 @@ export default function IngredientOverlay({
       }
     },
     onShare: async (ingredient: IIngredient) => {
-      if (!ingredient || !ingredient.category) {
+      if (!ingredient?.category) {
         return;
       }
 
@@ -158,7 +158,7 @@ export default function IngredientOverlay({
       field: string,
       value: string,
     ) => {
-      if (!localIngredient || !localIngredient.metadata) {
+      if (!localIngredient?.metadata) {
         return;
       }
 

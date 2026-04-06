@@ -1,11 +1,11 @@
 'use client';
 
-import type { StudioEditTopbarProps } from '@genfeedai/interfaces/studio/studio-edit-topbar.interface';
 import {
   ButtonSize,
   ButtonVariant,
   IngredientCategory,
 } from '@genfeedai/enums';
+import type { StudioEditTopbarProps } from '@genfeedai/interfaces/studio/studio-edit-topbar.interface';
 import Button from '@ui/buttons/base/Button';
 import type { ReactNode } from 'react';
 import { HiChevronDown, HiPhoto, HiVideoCamera } from 'react-icons/hi2';

@@ -1,7 +1,7 @@
 'use client';
 
-import type { CameraMovementPreset } from '@genfeedai/interfaces/studio/camera-movement.interface';
 import { ButtonVariant } from '@genfeedai/enums';
+import type { CameraMovementPreset } from '@genfeedai/interfaces/studio/camera-movement.interface';
 import type { CameraMovementPromptBarProps } from '@props/studio/camera-movement-prompt-bar.props';
 import Card from '@ui/card/Card';
 import FormInput from '@ui/forms/inputs/input/form-input/FormInput';

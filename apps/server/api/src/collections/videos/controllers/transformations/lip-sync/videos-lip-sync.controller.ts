@@ -32,8 +32,9 @@ import {
 } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
-import type { LoggerService } from '@libs/logger/logger.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
   Body,
   Controller,
@@ -254,7 +255,7 @@ export class VideosLipSyncController {
           status: WebSocketEventStatus.PROCESSING,
         },
         user.id,
-        `user-${user.id}`,
+        getUserRoomName(user.id),
       );
 
       // 9. Return serialized ingredient for frontend subscription
@@ -270,7 +271,7 @@ export class VideosLipSyncController {
           ingredientId,
           websocketUrl,
           user.id,
-          `user-${user.id}`,
+          getUserRoomName(user.id),
         );
       }
 

@@ -113,7 +113,9 @@ describe('supportsImageInput', () => {
   });
 
   it('returns true when schema has image_url property', () => {
-    const schema = { properties: { image_url: { type: 'string', format: 'uri' } } };
+    const schema = {
+      properties: { image_url: { type: 'string', format: 'uri' } },
+    };
     expect(supportsImageInput(schema)).toBe(true);
   });
 

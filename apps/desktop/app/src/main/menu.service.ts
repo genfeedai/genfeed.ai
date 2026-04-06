@@ -1,5 +1,5 @@
 import { DESKTOP_IPC_CHANNELS } from '@genfeedai/desktop-contracts';
-import { BrowserWindow, Menu } from 'electron';
+import { type BrowserWindow, Menu } from 'electron';
 
 export const buildDesktopMenu = (
   window: BrowserWindow,

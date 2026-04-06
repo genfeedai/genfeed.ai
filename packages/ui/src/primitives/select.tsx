@@ -1,14 +1,14 @@
 'use client';
 
-import { cn } from '../lib/utils';
 import * as SelectPrimitive from '@radix-ui/react-select';
+import { Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { type ComponentPropsWithoutRef, forwardRef } from 'react';
+import { cn } from '../lib/utils';
 import {
   fieldControlClassName,
   fieldControlPopoverClassName,
   fieldControlTriggerClassName,
 } from './field-control';
-import { Check, ChevronDown, ChevronUp } from 'lucide-react';
-import { type ComponentPropsWithoutRef, forwardRef } from 'react';
 
 const Select = SelectPrimitive.Root;
 

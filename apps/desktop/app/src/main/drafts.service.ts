@@ -4,7 +4,7 @@ import {
   buildWorkspaceDraftsPath,
   buildWorkspaceMetadataDir,
 } from '@genfeedai/desktop-core';
-import { DesktopWorkspaceService } from './workspace.service';
+import type { DesktopWorkspaceService } from './workspace.service';
 
 export class DesktopDraftsService {
   constructor(private readonly workspaceService: DesktopWorkspaceService) {}

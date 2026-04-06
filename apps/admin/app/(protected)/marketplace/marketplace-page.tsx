@@ -1,6 +1,5 @@
 'use client';
 
-import type { IListing, IPurchase, ISeller } from '@genfeedai/interfaces';
 import Button from '@components/buttons/base/Button';
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import {
@@ -10,6 +9,7 @@ import {
   ListingType,
   SellerStatus,
 } from '@genfeedai/enums';
+import type { IListing, IPurchase, ISeller } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type { BadgeProps } from '@props/ui/display/badge.props';

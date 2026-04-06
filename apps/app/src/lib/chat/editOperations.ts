@@ -1,4 +1,9 @@
-import type { NodeType, WorkflowEdge, WorkflowNode, WorkflowNodeData } from '@genfeedai/types';
+import type {
+  NodeType,
+  WorkflowEdge,
+  WorkflowNode,
+  WorkflowNodeData,
+} from '@genfeedai/types';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
 
 /**
@@ -40,7 +45,7 @@ export interface ApplyEditResult {
  */
 export function applyEditOperations(
   operations: EditOperation[],
-  storeState: { nodes: WorkflowNode[]; edges: WorkflowEdge[] }
+  storeState: { nodes: WorkflowNode[]; edges: WorkflowEdge[] },
 ): ApplyEditResult {
   let nodes = [...storeState.nodes];
   let edges = [...storeState.edges];
@@ -83,7 +88,9 @@ export function applyEditOperations(
         }
 
         nodes = nodes.filter((n) => n.id !== operation.nodeId);
-        edges = edges.filter((e) => e.source !== operation.nodeId && e.target !== operation.nodeId);
+        edges = edges.filter(
+          (e) => e.source !== operation.nodeId && e.target !== operation.nodeId,
+        );
         applied++;
         break;
       }
@@ -104,7 +111,7 @@ export function applyEditOperations(
                   ...operation.data,
                 } as WorkflowNodeData,
               }
-            : n
+            : n,
         );
         applied++;
         break;
@@ -123,7 +130,9 @@ export function applyEditOperations(
           break;
         }
 
-        const handleSuffix = operation.sourceHandle ? `-${operation.sourceHandle}` : '';
+        const handleSuffix = operation.sourceHandle
+          ? `-${operation.sourceHandle}`
+          : '';
         const edgeId = `edge-ai-${operation.source}-${operation.target}${handleSuffix}`;
 
         const newEdge: WorkflowEdge = {

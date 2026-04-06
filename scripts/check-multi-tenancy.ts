@@ -579,7 +579,7 @@ function printReport(result: ScanResult, baselinedCount: number = 0): void {
     }
   }
 
-  process.stdout.write('─'.repeat(50) + '\n');
+  process.stdout.write(`${'─'.repeat(50)}\n`);
   process.stdout.write(
     `  ${violations.length} violation(s). Fix or suppress before merging.\n`,
   );

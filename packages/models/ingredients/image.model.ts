@@ -1,5 +1,5 @@
-import type { IImage } from '@genfeedai/interfaces';
 import { IngredientCategory } from '@genfeedai/enums';
+import type { IImage } from '@genfeedai/interfaces';
 import { Ingredient } from '@models/content/ingredient.model';
 
 export class Image extends Ingredient {

@@ -12,7 +12,12 @@ export function RunWorkflowConfirmationModal() {
   const confirm = useRunWorkflowConfirmationStore((state) => state.confirm);
 
   return (
-    <Modal isOpen={isOpen} onClose={cancel} title="Run entire workflow?" maxWidth="max-w-md">
+    <Modal
+      isOpen={isOpen}
+      onClose={cancel}
+      title="Run entire workflow?"
+      maxWidth="max-w-md"
+    >
       <div className="flex flex-col gap-6 px-6 py-5">
         <p className="text-sm text-muted-foreground">
           This will execute all runnable nodes in the current workflow.

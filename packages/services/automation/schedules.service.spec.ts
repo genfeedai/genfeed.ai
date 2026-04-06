@@ -259,7 +259,7 @@ describe('SmartSchedulerService', () => {
     await svc.getSchedules();
 
     const init = (mockFetch.mock.calls[0] as [string, RequestInit])[1];
-    expect((init.headers as Record<string, string>)['Authorization']).toBe(
+    expect((init.headers as Record<string, string>).Authorization).toBe(
       `Bearer ${token}`,
     );
   });

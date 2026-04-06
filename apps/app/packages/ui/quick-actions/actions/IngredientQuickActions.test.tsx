@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
-import type { IIngredient } from '@genfeedai/interfaces';
 import { IngredientCategory } from '@genfeedai/enums';
+import type { IIngredient } from '@genfeedai/interfaces';
 import { render, screen } from '@testing-library/react';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
 import { describe, expect, it, vi } from 'vitest';

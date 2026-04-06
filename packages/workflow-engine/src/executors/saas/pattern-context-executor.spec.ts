@@ -2,7 +2,7 @@ import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
   createPatternContextExecutor,
-  PatternContextExecutor,
+  type PatternContextExecutor,
   type PatternContextResolver,
 } from '@workflow-engine/executors/saas/pattern-context-executor';
 import type { ExecutableNode } from '@workflow-engine/types';

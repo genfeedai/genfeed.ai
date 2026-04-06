@@ -244,7 +244,6 @@ export default function ContentTeamOrchestratorPage() {
       }
     },
     [
-      form.blueprintId,
       form.brandId,
       form.campaignBrief,
       form.campaignLabel,

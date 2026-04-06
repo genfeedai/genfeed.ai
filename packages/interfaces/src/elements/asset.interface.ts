@@ -1,4 +1,4 @@
-import { AssetCategory, AssetParent } from '@genfeedai/enums';
+import type { AssetCategory, AssetParent } from '@genfeedai/enums';
 import type { IBaseEntity } from '../core/base.interface';
 import type { IUser } from '../users/user.interface';
 

@@ -1,15 +1,22 @@
 'use client';
 
+import { usePromptEditorStore } from '@genfeedai/workflow-ui/stores';
 import { memo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { usePromptEditorStore } from '@genfeedai/workflow-ui/stores';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 const FONT_SIZES = [12, 14, 16, 18, 20, 24];
 
 function PromptEditorModalComponent() {
-  const { isOpen, prompt, fontSize, closeEditor, setPrompt, setFontSize, saveAndClose } =
-    usePromptEditorStore();
+  const {
+    isOpen,
+    prompt,
+    fontSize,
+    closeEditor,
+    setPrompt,
+    setFontSize,
+    saveAndClose,
+  } = usePromptEditorStore();
   const { updateNodeData } = useWorkflowStore();
 
   const handleSave = useCallback(() => {
@@ -28,7 +35,7 @@ function PromptEditorModalComponent() {
         handleSave();
       }
     },
-    [closeEditor, handleSave]
+    [closeEditor, handleSave],
   );
 
   if (!isOpen) return null;
@@ -41,7 +48,9 @@ function PromptEditorModalComponent() {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
-          <h2 className="text-lg font-semibold text-[var(--foreground)]">Edit Prompt</h2>
+          <h2 className="text-lg font-semibold text-[var(--foreground)]">
+            Edit Prompt
+          </h2>
           <div className="flex items-center gap-3">
             <select
               value={fontSize}

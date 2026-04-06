@@ -16,8 +16,8 @@ import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
 import type { User } from '@clerk/backend';
-import { SceneSerializer } from '@genfeedai/serializers';
 import { MemberRole } from '@genfeedai/enums';
+import { SceneSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,

@@ -21,8 +21,12 @@ if (!fs.existsSync(bunRoot)) {
  */
 
 function compareVersions(left, right) {
-  const leftParts = left.split(/[.-]/).map((part) => Number.parseInt(part, 10) || 0);
-  const rightParts = right.split(/[.-]/).map((part) => Number.parseInt(part, 10) || 0);
+  const leftParts = left
+    .split(/[.-]/)
+    .map((part) => Number.parseInt(part, 10) || 0);
+  const rightParts = right
+    .split(/[.-]/)
+    .map((part) => Number.parseInt(part, 10) || 0);
   const maxLength = Math.max(leftParts.length, rightParts.length);
 
   for (let index = 0; index < maxLength; index += 1) {
@@ -56,7 +60,11 @@ function listFilesRecursive(directoryPath) {
 }
 
 function findBuiltJavaScript(tempRoot) {
-  return listFilesRecursive(tempRoot).find((entryPath) => entryPath.endsWith('.js')) ?? null;
+  return (
+    listFilesRecursive(tempRoot).find((entryPath) =>
+      entryPath.endsWith('.js'),
+    ) ?? null
+  );
 }
 
 function normalizeExportTarget(exportTarget, field) {
@@ -88,7 +96,11 @@ function normalizeTypesTarget(exportTarget, field) {
     return typesTarget;
   }
 
-  if (typesTarget && typeof typesTarget === 'object' && typeof typesTarget[field] === 'string') {
+  if (
+    typesTarget &&
+    typeof typesTarget === 'object' &&
+    typeof typesTarget[field] === 'string'
+  ) {
     return typesTarget[field];
   }
 
@@ -118,7 +130,10 @@ function writeRelativeRequire(outputPath, targetPath) {
     ? relativeTargetPath
     : `./${relativeTargetPath}`;
 
-  fs.writeFileSync(outputPath, `module.exports = require('${normalizedTargetPath}')\n`);
+  fs.writeFileSync(
+    outputPath,
+    `module.exports = require('${normalizedTargetPath}')\n`,
+  );
 }
 
 function sourceHasDefaultExport(sourceEntry) {
@@ -239,7 +254,9 @@ async function buildExportEntry({
     const builtImportFile = findBuiltJavaScript(tempEsmRoot);
 
     if (!builtImportFile) {
-      throw new Error(`Expected ESM output missing for ${packageName}${exportPath}`);
+      throw new Error(
+        `Expected ESM output missing for ${packageName}${exportPath}`,
+      );
     }
 
     const importOutputPath = path.join(realPackageRoot, importTarget);
@@ -270,7 +287,9 @@ async function buildExportEntry({
     const builtRequireFile = findBuiltJavaScript(tempCjsRoot);
 
     if (!builtRequireFile) {
-      throw new Error(`Expected CJS output missing for ${packageName}${exportPath}`);
+      throw new Error(
+        `Expected CJS output missing for ${packageName}${exportPath}`,
+      );
     }
 
     const requireOutputPath = path.join(realPackageRoot, requireTarget);
@@ -294,8 +313,16 @@ async function buildExportEntry({
   return builtFiles.length > 0;
 }
 
-function repairProxyExport({ exportTarget, exportPath, packageJson, realPackageRoot }) {
-  if (packageJson.name !== '@tiptap/core' || exportPath !== './jsx-dev-runtime') {
+function repairProxyExport({
+  exportTarget,
+  exportPath,
+  packageJson,
+  realPackageRoot,
+}) {
+  if (
+    packageJson.name !== '@tiptap/core' ||
+    exportPath !== './jsx-dev-runtime'
+  ) {
     return false;
   }
 
@@ -303,25 +330,53 @@ function repairProxyExport({ exportTarget, exportPath, packageJson, realPackageR
   const requireTarget = normalizeExportTarget(exportTarget, 'require');
   const importTypesTarget = normalizeTypesTarget(exportTarget, 'import');
   const requireTypesTarget = normalizeTypesTarget(exportTarget, 'require');
-  const runtimeImportTarget = path.join(realPackageRoot, 'jsx-runtime', 'index.js');
-  const runtimeRequireTarget = path.join(realPackageRoot, 'jsx-runtime', 'index.cjs');
-  const runtimeTypesTarget = path.join(realPackageRoot, 'jsx-runtime', 'index.d.ts');
-  const runtimeRequireTypesTarget = path.join(realPackageRoot, 'jsx-runtime', 'index.d.cts');
+  const runtimeImportTarget = path.join(
+    realPackageRoot,
+    'jsx-runtime',
+    'index.js',
+  );
+  const runtimeRequireTarget = path.join(
+    realPackageRoot,
+    'jsx-runtime',
+    'index.cjs',
+  );
+  const runtimeTypesTarget = path.join(
+    realPackageRoot,
+    'jsx-runtime',
+    'index.d.ts',
+  );
+  const runtimeRequireTypesTarget = path.join(
+    realPackageRoot,
+    'jsx-runtime',
+    'index.d.cts',
+  );
 
   if (importTarget) {
-    writeRelativeExport(path.join(realPackageRoot, importTarget), runtimeImportTarget);
+    writeRelativeExport(
+      path.join(realPackageRoot, importTarget),
+      runtimeImportTarget,
+    );
   }
 
   if (requireTarget) {
-    writeRelativeRequire(path.join(realPackageRoot, requireTarget), runtimeRequireTarget);
+    writeRelativeRequire(
+      path.join(realPackageRoot, requireTarget),
+      runtimeRequireTarget,
+    );
   }
 
   if (importTypesTarget) {
-    writeRelativeExport(path.join(realPackageRoot, importTypesTarget), runtimeTypesTarget);
+    writeRelativeExport(
+      path.join(realPackageRoot, importTypesTarget),
+      runtimeTypesTarget,
+    );
   }
 
   if (requireTypesTarget) {
-    writeRelativeExport(path.join(realPackageRoot, requireTypesTarget), runtimeRequireTypesTarget);
+    writeRelativeExport(
+      path.join(realPackageRoot, requireTypesTarget),
+      runtimeRequireTypesTarget,
+    );
   }
 
   return true;
@@ -354,7 +409,10 @@ function getTiptapCachePackages() {
 
       if (
         !existing ||
-        compareVersions(packageJson.version ?? '0.0.0', existing.packageJson.version ?? '0.0.0') > 0
+        compareVersions(
+          packageJson.version ?? '0.0.0',
+          existing.packageJson.version ?? '0.0.0',
+        ) > 0
       ) {
         packagesByName.set(packageJson.name, {
           packageDir,
@@ -390,11 +448,20 @@ async function repairPackage(packageInfo) {
 
   const rebuiltExports = [];
 
-  for (const [exportPath, exportTarget] of Object.entries(packageJson.exports ?? {})) {
+  for (const [exportPath, exportTarget] of Object.entries(
+    packageJson.exports ?? {},
+  )) {
     const sourceEntry = findSourceEntry(realPackageRoot, exportPath);
 
     if (!sourceEntry) {
-      if (repairProxyExport({ exportTarget, exportPath, packageJson, realPackageRoot })) {
+      if (
+        repairProxyExport({
+          exportTarget,
+          exportPath,
+          packageJson,
+          realPackageRoot,
+        })
+      ) {
         rebuiltExports.push(exportPath);
       }
 
@@ -431,8 +498,12 @@ for (const packageInfo of tiptapPackages.values()) {
   repairResults.push(await repairPackage(packageInfo));
 }
 
-const linkedPackages = repairResults.filter((result) => result.linked).map((result) => result.packageName);
-const rebuiltPackages = repairResults.filter((result) => result.rebuiltExports.length > 0);
+const linkedPackages = repairResults
+  .filter((result) => result.linked)
+  .map((result) => result.packageName);
+const rebuiltPackages = repairResults.filter(
+  (result) => result.rebuiltExports.length > 0,
+);
 
 if (linkedPackages.length === 0 && rebuiltPackages.length === 0) {
   console.log('TipTap install already looks repaired; no changes needed.');
@@ -447,7 +518,9 @@ if (linkedPackages.length > 0) {
 }
 
 if (rebuiltPackages.length > 0) {
-  console.log(`Rebuilt TipTap export entrypoints for ${rebuiltPackages.length} package(s):`);
+  console.log(
+    `Rebuilt TipTap export entrypoints for ${rebuiltPackages.length} package(s):`,
+  );
   for (const result of rebuiltPackages) {
     console.log(`- ${result.packageName}: ${result.rebuiltExports.join(', ')}`);
   }

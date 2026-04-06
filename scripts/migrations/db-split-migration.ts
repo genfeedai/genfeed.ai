@@ -14,7 +14,7 @@
  * - Final summary table
  *
  * Prerequisites:
- * - MONGODB_URL in cloud/apps/server/api/.env.{local|production}
+ * - MONGODB_URI in cloud/apps/server/api/.env.{local|production}
  *
  * Usage:
  *   bun run cloud/scripts/migrations/db-split-migration.ts                        # dry-run (default)
@@ -43,9 +43,9 @@ const envArg = process.argv.find((a) => a.startsWith('--env='))?.split('=')[1];
 const envSuffix = envArg || 'local';
 config({ path: resolve(__dirname, `../../apps/server/api/.env.${envSuffix}`) });
 
-const MONGODB_URL = process.env.MONGODB_URL;
-if (!MONGODB_URL) {
-  throw new Error(`MONGODB_URL is required (loaded from .env.${envSuffix})`);
+const MONGODB_URI = process.env.MONGODB_URI;
+if (!MONGODB_URI) {
+  throw new Error(`MONGODB_URI is required (loaded from .env.${envSuffix})`);
 }
 
 const DRY_RUN = !process.argv.includes('--live');
@@ -405,7 +405,7 @@ async function migrateCollection(
 // ---------------------------------------------------------------------------
 
 async function main() {
-  const sourceDbName = getSourceDbName(MONGODB_URL);
+  const sourceDbName = getSourceDbName(MONGODB_URI);
   const totalCollections = Object.values(DB_MAPPING).reduce(
     (sum, cols) => sum + cols.length,
     0,
@@ -427,7 +427,7 @@ async function main() {
   }
 
   // Connect to source
-  const sourceClient = new MongoClient(MONGODB_URL);
+  const sourceClient = new MongoClient(MONGODB_URI);
   await sourceClient.connect();
   logger.log('Connected to source cluster\n');
 

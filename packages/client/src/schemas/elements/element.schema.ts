@@ -109,16 +109,18 @@ export type ElementSchema =
   | ElementBlacklistSchema
   | ElementSoundSchema;
 
+export type {
+  ElementBlacklistSchema as BlacklistElementSchema,
+  ElementPresetSchema as PresetElementSchema,
+  ElementSimpleSchema as SimpleElementSchema,
+  ElementSoundSchema as SoundElementSchema,
+  ElementStyleSchema as StyleElementSchema,
+};
 // External alias exports.
 export {
-  elementPresetSchema as presetElementSchema,
-  elementStyleSchema as styleElementSchema,
-  elementSimpleSchema as simpleElementSchema,
   elementBlacklistSchema as blacklistElementSchema,
+  elementPresetSchema as presetElementSchema,
+  elementSimpleSchema as simpleElementSchema,
   elementSoundSchema as soundElementSchema,
+  elementStyleSchema as styleElementSchema,
 };
-export type { ElementPresetSchema as PresetElementSchema };
-export type { ElementStyleSchema as StyleElementSchema };
-export type { ElementSimpleSchema as SimpleElementSchema };
-export type { ElementBlacklistSchema as BlacklistElementSchema };
-export type { ElementSoundSchema as SoundElementSchema };

@@ -11,13 +11,19 @@ vi.mock('./workflowStore', () => ({
       isNodeLocked: vi.fn(() => false),
       nodes: [],
       updateNodeData: vi.fn(),
-      validateWorkflow: vi.fn(() => ({ errors: [], isValid: true, warnings: [] })),
+      validateWorkflow: vi.fn(() => ({
+        errors: [],
+        isValid: true,
+        warnings: [],
+      })),
     })),
   },
 }));
 
 // Mock fetch with preconnect
-const mockFetch = Object.assign(vi.fn(), { preconnect: vi.fn() }) as typeof fetch;
+const mockFetch = Object.assign(vi.fn(), {
+  preconnect: vi.fn(),
+}) as typeof fetch;
 global.fetch = mockFetch;
 
 describe('useExecutionStore', () => {

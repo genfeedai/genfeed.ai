@@ -1,13 +1,19 @@
-import { logger } from '@/lib/logger';
-import { useUIStore } from '@genfeedai/workflow-ui/stores';
-import { useWorkflowStore } from '@/store/workflowStore';
-import { NodeStatusEnum } from '@genfeedai/types';
 import type { NodeStatus } from '@genfeedai/types';
+import { NodeStatusEnum } from '@genfeedai/types';
+import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import type { StoreApi } from 'zustand';
-import type { DebugPayload, ExecutionData, ExecutionStore, Job } from '../types';
+import { logger } from '@/lib/logger';
+import { useWorkflowStore } from '@/store/workflowStore';
+import type {
+  DebugPayload,
+  ExecutionData,
+  ExecutionStore,
+  Job,
+} from '../types';
 import { getOutputUpdate } from './outputHelpers';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://local.genfeed.ai:4001/api';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'http://local.genfeed.ai:4001/api';
 
 /**
  * Status map for converting execution statuses to node statuses
@@ -25,7 +31,7 @@ function applyJobUpdates(
   workflowStore: ReturnType<typeof useWorkflowStore.getState>,
   debugMode: boolean | undefined,
   set: StoreApi<ExecutionStore>['setState'],
-  filterNodeId?: string
+  filterNodeId?: string,
 ): void {
   if (!jobs || jobs.length === 0) return;
 
@@ -91,7 +97,10 @@ function applyJobUpdates(
         newDebugPayloads.length > 0
           ? [
               ...state.debugPayloads.filter(
-                (existing) => !newDebugPayloads.some((newP) => newP.nodeId === existing.nodeId)
+                (existing) =>
+                  !newDebugPayloads.some(
+                    (newP) => newP.nodeId === existing.nodeId,
+                  ),
               ),
               ...newDebugPayloads,
             ]
@@ -115,7 +124,8 @@ async function reconcileNodeStatuses(executionId: string): Promise<void> {
 
     for (const nodeResult of execution.nodeResults || []) {
       const nodeStatus = statusMap[nodeResult.status] ?? NodeStatusEnum.IDLE;
-      const isSuccess = nodeResult.status === 'complete' || nodeResult.status === 'succeeded';
+      const isSuccess =
+        nodeResult.status === 'complete' || nodeResult.status === 'succeeded';
 
       workflowStore.updateNodeData(nodeResult.nodeId, {
         error: isSuccess ? undefined : nodeResult.error,
@@ -138,9 +148,11 @@ async function reconcileNodeStatuses(executionId: string): Promise<void> {
  */
 export function createExecutionSubscription(
   executionId: string,
-  set: StoreApi<ExecutionStore>['setState']
+  set: StoreApi<ExecutionStore>['setState'],
 ): EventSource {
-  const eventSource = new EventSource(`${API_BASE_URL}/executions/${executionId}/stream`);
+  const eventSource = new EventSource(
+    `${API_BASE_URL}/executions/${executionId}/stream`,
+  );
 
   // Track nodes that have already propagated to prevent duplicate cascades
   const propagatedNodeIds = new Set<string>();
@@ -157,21 +169,29 @@ export function createExecutionSubscription(
         // Only process changed nodeResults if delta updates are available
         const nodeResults = data.nodeResults || [];
         for (const nodeResult of nodeResults) {
-          const nodeStatus = statusMap[nodeResult.status] ?? NodeStatusEnum.IDLE;
-          const isSuccess = nodeResult.status === 'complete' || nodeResult.status === 'succeeded';
+          const nodeStatus =
+            statusMap[nodeResult.status] ?? NodeStatusEnum.IDLE;
+          const isSuccess =
+            nodeResult.status === 'complete' ||
+            nodeResult.status === 'succeeded';
 
           workflowStore.updateNodeData(nodeResult.nodeId, {
             // Clear error on success, otherwise pass the error
             error: isSuccess ? undefined : nodeResult.error,
             status: nodeStatus,
             ...(nodeResult.output &&
-              getOutputUpdate(nodeResult.nodeId, nodeResult.output, workflowStore)),
+              getOutputUpdate(
+                nodeResult.nodeId,
+                nodeResult.output,
+                workflowStore,
+              )),
           });
 
           // Propagate output to downstream nodes when complete
           // Only propagate if this node hasn't been propagated yet in this execution
           if (
-            (nodeResult.status === 'complete' || nodeResult.status === 'succeeded') &&
+            (nodeResult.status === 'complete' ||
+              nodeResult.status === 'succeeded') &&
             nodeResult.output &&
             !propagatedNodeIds.has(nodeResult.nodeId)
           ) {
@@ -188,15 +208,26 @@ export function createExecutionSubscription(
         applyJobUpdates(data.jobs, workflowStore, data.debugMode, set);
 
         // Check if execution is complete (support multiple status formats)
-        const isComplete = ['completed', 'failed', 'cancelled', 'error'].includes(data.status);
+        const isComplete = [
+          'completed',
+          'failed',
+          'cancelled',
+          'error',
+        ].includes(data.status);
 
         // Also check if any node failed and no more nodes are pending
-        const hasFailedNode = (data.nodeResults || []).some((r) => r.status === 'error');
+        const hasFailedNode = (data.nodeResults || []).some(
+          (r) => r.status === 'error',
+        );
         const hasPendingNodes = (data.pendingNodes || []).length > 0;
-        const hasProcessingNodes = (data.nodeResults || []).some((r) => r.status === 'processing');
+        const hasProcessingNodes = (data.nodeResults || []).some(
+          (r) => r.status === 'processing',
+        );
 
         // Execution is done when: explicitly complete OR (has failed node with nothing pending/processing)
-        const isDone = isComplete || (hasFailedNode && !hasPendingNodes && !hasProcessingNodes);
+        const isDone =
+          isComplete ||
+          (hasFailedNode && !hasPendingNodes && !hasProcessingNodes);
 
         if (isDone) {
           // Clear propagated nodes tracking when execution completes
@@ -206,16 +237,27 @@ export function createExecutionSubscription(
           // Reconcile final state to catch any missed SSE deltas
           await reconcileNodeStatuses(executionId);
 
-          set({ currentNodeId: null, eventSource: null, isRunning: false, jobs: new Map() });
+          set({
+            currentNodeId: null,
+            eventSource: null,
+            isRunning: false,
+            jobs: new Map(),
+          });
 
           if (data.status === 'failed' || hasFailedNode) {
-            logger.error('Workflow execution failed', new Error('Execution failed'), {
-              context: 'ExecutionStore',
-            });
+            logger.error(
+              'Workflow execution failed',
+              new Error('Execution failed'),
+              {
+                context: 'ExecutionStore',
+              },
+            );
           }
         }
       } catch (error) {
-        logger.error('Failed to parse SSE message', error, { context: 'ExecutionStore' });
+        logger.error('Failed to parse SSE message', error, {
+          context: 'ExecutionStore',
+        });
       }
     })();
   };
@@ -241,9 +283,11 @@ export function createNodeExecutionSubscription(
   executionId: string,
   nodeId: string,
   set: StoreApi<ExecutionStore>['setState'],
-  get: StoreApi<ExecutionStore>['getState']
+  _get: StoreApi<ExecutionStore>['getState'],
 ): EventSource {
-  const eventSource = new EventSource(`${API_BASE_URL}/executions/${executionId}/stream`);
+  const eventSource = new EventSource(
+    `${API_BASE_URL}/executions/${executionId}/stream`,
+  );
   const propagatedNodeIds = new Set<string>();
 
   eventSource.onmessage = (event) => {
@@ -254,18 +298,26 @@ export function createNodeExecutionSubscription(
 
         const nodeResults = data.nodeResults || [];
         for (const nodeResult of nodeResults) {
-          const nodeStatus = statusMap[nodeResult.status] ?? NodeStatusEnum.IDLE;
-          const isSuccess = nodeResult.status === 'complete' || nodeResult.status === 'succeeded';
+          const nodeStatus =
+            statusMap[nodeResult.status] ?? NodeStatusEnum.IDLE;
+          const isSuccess =
+            nodeResult.status === 'complete' ||
+            nodeResult.status === 'succeeded';
 
           workflowStore.updateNodeData(nodeResult.nodeId, {
             error: isSuccess ? undefined : nodeResult.error,
             status: nodeStatus,
             ...(nodeResult.output &&
-              getOutputUpdate(nodeResult.nodeId, nodeResult.output, workflowStore)),
+              getOutputUpdate(
+                nodeResult.nodeId,
+                nodeResult.output,
+                workflowStore,
+              )),
           });
 
           if (
-            (nodeResult.status === 'complete' || nodeResult.status === 'succeeded') &&
+            (nodeResult.status === 'complete' ||
+              nodeResult.status === 'succeeded') &&
             nodeResult.output &&
             !propagatedNodeIds.has(nodeResult.nodeId)
           ) {
@@ -280,11 +332,22 @@ export function createNodeExecutionSubscription(
 
         applyJobUpdates(data.jobs, workflowStore, data.debugMode, set, nodeId);
 
-        const isComplete = ['completed', 'failed', 'cancelled', 'error'].includes(data.status);
-        const hasFailedNode = (data.nodeResults || []).some((r) => r.status === 'error');
+        const isComplete = [
+          'completed',
+          'failed',
+          'cancelled',
+          'error',
+        ].includes(data.status);
+        const hasFailedNode = (data.nodeResults || []).some(
+          (r) => r.status === 'error',
+        );
         const hasPendingNodes = (data.pendingNodes || []).length > 0;
-        const hasProcessingNodes = (data.nodeResults || []).some((r) => r.status === 'processing');
-        const isDone = isComplete || (hasFailedNode && !hasPendingNodes && !hasProcessingNodes);
+        const hasProcessingNodes = (data.nodeResults || []).some(
+          (r) => r.status === 'processing',
+        );
+        const isDone =
+          isComplete ||
+          (hasFailedNode && !hasPendingNodes && !hasProcessingNodes);
 
         if (isDone) {
           propagatedNodeIds.clear();
@@ -308,7 +371,9 @@ export function createNodeExecutionSubscription(
   };
 
   eventSource.onerror = (error) => {
-    logger.error('SSE connection error (node execution)', error, { context: 'ExecutionStore' });
+    logger.error('SSE connection error (node execution)', error, {
+      context: 'ExecutionStore',
+    });
     eventSource.close();
     void reconcileNodeStatuses(executionId).then(() => {
       set((state) => {

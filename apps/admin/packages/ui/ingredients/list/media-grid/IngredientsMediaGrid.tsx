@@ -1,7 +1,7 @@
 'use client';
 
-import type { IImage, IIngredient, IVideo } from '@genfeedai/interfaces';
 import { IngredientFormat } from '@genfeedai/enums';
+import type { IImage, IIngredient, IVideo } from '@genfeedai/interfaces';
 import { Video } from '@models/ingredients/video.model';
 import type { IngredientsMediaGridProps } from '@props/content/ingredient.props';
 import { Skeleton } from '@ui/display/skeleton/skeleton';

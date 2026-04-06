@@ -1,6 +1,10 @@
 'use client';
 
-import type { ActionConfig, ActionUIPattern, InputGroupVariant } from '@genfeedai/types';
+import type {
+  ActionConfig,
+  ActionUIPattern,
+  InputGroupVariant,
+} from '@genfeedai/types';
 import { clsx } from 'clsx';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { memo, type ReactNode, useState } from 'react';
@@ -73,7 +77,7 @@ function InputGroupComponent({
         'relative',
         VARIANT_STYLES[variant],
         disabled && 'opacity-50 pointer-events-none',
-        className
+        className,
       )}
     >
       {/* Loading Overlay */}

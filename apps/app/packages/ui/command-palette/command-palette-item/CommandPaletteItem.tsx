@@ -1,8 +1,8 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type { ICommandPaletteItemProps } from '@genfeedai/interfaces/ui/command-palette.interface';
 import { Kbd } from '@genfeedai/ui';
-import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Button from '@ui/buttons/base/Button';
 import type { ReactNode } from 'react';

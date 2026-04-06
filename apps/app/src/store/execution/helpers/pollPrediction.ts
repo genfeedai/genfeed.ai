@@ -13,7 +13,7 @@ export async function pollPrediction(
   nodeId: string,
   workflowStore: ReturnType<typeof useWorkflowStore.getState>,
   executionStore: ReturnType<typeof useExecutionStore.getState>,
-  signal?: AbortSignal
+  signal?: AbortSignal,
 ): Promise<void> {
   const maxAttempts = 120; // 10 minutes max
   const pollInterval = 5000; // 5 seconds
@@ -24,7 +24,9 @@ export async function pollPrediction(
     if (signal?.aborted) return;
 
     // Pass workflowId and nodeId so backend can save output to local storage
-    const queryParams = workflowId ? `?workflowId=${workflowId}&nodeId=${nodeId}` : '';
+    const queryParams = workflowId
+      ? `?workflowId=${workflowId}&nodeId=${nodeId}`
+      : '';
     const data = await apiClient.get<{
       id: string;
       status: string;
@@ -48,7 +50,7 @@ export async function pollPrediction(
       const outputUpdate = getOutputUpdate(
         nodeId,
         data.output as Record<string, unknown>,
-        workflowStore
+        workflowStore,
       );
       // Clear error on success
       workflowStore.updateNodeData(nodeId, {
@@ -78,7 +80,7 @@ export async function pollPrediction(
             clearTimeout(timeout);
             reject(new DOMException('Aborted', 'AbortError'));
           },
-          { once: true }
+          { once: true },
         );
       }
     }).catch((error) => {

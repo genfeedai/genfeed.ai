@@ -1,10 +1,10 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import type { ICredential } from '@genfeedai/interfaces';
-import type { QuotaStatus } from '@genfeedai/interfaces/organization/quota-status.interface';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant, ComponentSize, ModalEnum } from '@genfeedai/enums';
+import type { ICredential } from '@genfeedai/interfaces';
+import type { QuotaStatus } from '@genfeedai/interfaces/organization/quota-status.interface';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

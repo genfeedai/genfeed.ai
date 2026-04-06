@@ -1,4 +1,4 @@
-import { AgentApiDecodeError } from '@genfeedai/agent/services/agent-api-error';
+import type { AgentApiDecodeError } from '@genfeedai/agent/services/agent-api-error';
 import { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';
 import { Effect } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

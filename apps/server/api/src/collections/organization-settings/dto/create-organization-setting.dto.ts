@@ -3,11 +3,11 @@ import {
   type AgentPolicyQualityTier,
 } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import { DefaultVoiceRefDto } from '@api/shared/default-voice-ref/default-voice-ref.dto';
+import { AgentAutonomyMode, AgentReplyStyle } from '@genfeedai/enums';
 import {
   ONBOARDING_JOURNEY_MISSIONS,
   type OnboardingJourneyMissionId,
 } from '@genfeedai/types';
-import { AgentAutonomyMode, AgentReplyStyle } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {

@@ -7,6 +7,7 @@ import type {
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { ContentDraft } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Queue } from 'bullmq';
@@ -196,7 +197,7 @@ export class BatchContentQueueService {
     await this.notificationsPublisherService.publishBackgroundTaskUpdate({
       label: `Batch content ${tracker.status.completed}/${tracker.status.total}`,
       progress,
-      room: `user-${tracker.userId}`,
+      room: getUserRoomName(tracker.userId),
       status,
       taskId: tracker.status.batchId,
       userId: tracker.userId,

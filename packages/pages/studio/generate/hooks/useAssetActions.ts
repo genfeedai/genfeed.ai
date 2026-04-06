@@ -1,7 +1,7 @@
 'use client';
 
-import type { IIngredient } from '@genfeedai/interfaces';
 import { IngredientFormat, IngredientStatus } from '@genfeedai/enums';
+import type { IIngredient } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
@@ -125,7 +125,7 @@ export function useAssetActions({
       setSelectedAsset(ingredient);
       router.push(href(`/studio/${ingredient.category}/${ingredient.id}`));
     },
-    [router, setSelectedAsset],
+    [router, setSelectedAsset, href],
   );
 
   const navigateWithImageReference = useCallback(
@@ -145,7 +145,7 @@ export function useAssetActions({
         ),
       );
     },
-    [notificationsService, router],
+    [notificationsService, router, href],
   );
 
   const handleConvertImageToVideo = useCallback(

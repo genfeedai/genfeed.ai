@@ -1,9 +1,9 @@
-import type { IArticle, IIngredient, IPost } from '@genfeedai/interfaces';
 import type {
   ArticleStatus,
   IngredientStatus,
   PostStatus,
 } from '@genfeedai/enums';
+import type { IArticle, IIngredient, IPost } from '@genfeedai/interfaces';
 
 export interface StatusDropdownProps {
   entity: IIngredient | IArticle | IPost;

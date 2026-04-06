@@ -8,6 +8,7 @@ import { useAgentCampaigns } from '@hooks/data/agent-campaigns/use-agent-campaig
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
 import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { AgentCampaign } from '@services/automation/agent-campaigns.service';
 import {
   type AgentGoal,
@@ -191,6 +192,7 @@ function resolveApprovalPolicy(
 }
 
 export default function ContentTeamPage() {
+  const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
   const { brands } = useBrand();
   const {
@@ -622,7 +624,7 @@ export default function ContentTeamPage() {
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
           <SummaryCard
             accent={`${workflows.length} workflow${workflows.length === 1 ? '' : 's'} available for repeatable content ops.`}
-            href="/workflows"
+            href={href('/workflows')}
             label="Workflow Templates"
             tone="Fixed Graphs"
             value={String(workflows.length)}

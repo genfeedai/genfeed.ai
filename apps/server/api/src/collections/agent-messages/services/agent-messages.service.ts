@@ -6,7 +6,7 @@ import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { AgentMessageRole } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
@@ -117,6 +117,72 @@ export class AgentMessagesService extends BaseService<AgentMessageDocument> {
 
     // Reverse to chronological order for LLM context
     return (messages as AgentMessageDocument[]).reverse();
+  }
+
+  /**
+   * Get the latest N messages after a compaction boundary for the sliding window.
+   * Uses _id as a monotonic cursor — same boundary as ThreadContextState.
+   * Returns messages in chronological order (oldest first).
+   */
+  async getMessagesAfter(
+    roomId: string,
+    afterMessageId: Types.ObjectId,
+    limit = 5,
+  ): Promise<AgentMessageDocument[]> {
+    // Sort descending to get the LATEST N, then reverse to chronological
+    const messages = await (
+      this.model as unknown as {
+        find: (filter: Record<string, unknown>) => {
+          sort: (sort: Record<string, number>) => {
+            limit: (limit: number) => {
+              lean: () => Promise<AgentMessageDocument[]>;
+            };
+          };
+        };
+      }
+    )
+      .find({
+        _id: { $gt: afterMessageId },
+        isDeleted: false,
+        room: new Types.ObjectId(roomId),
+      })
+      .sort({ _id: -1 })
+      .limit(limit)
+      .lean();
+
+    return (messages as AgentMessageDocument[]).reverse();
+  }
+
+  /**
+   * Count all non-deleted messages in a thread.
+   */
+  async countMessages(roomId: string): Promise<number> {
+    return (
+      this.model as unknown as {
+        countDocuments: (filter: Record<string, unknown>) => Promise<number>;
+      }
+    ).countDocuments({
+      isDeleted: false,
+      room: new Types.ObjectId(roomId),
+    });
+  }
+
+  /**
+   * Count messages after a compaction boundary.
+   */
+  async countMessagesAfter(
+    roomId: string,
+    afterMessageId: Types.ObjectId,
+  ): Promise<number> {
+    return (
+      this.model as unknown as {
+        countDocuments: (filter: Record<string, unknown>) => Promise<number>;
+      }
+    ).countDocuments({
+      _id: { $gt: afterMessageId },
+      isDeleted: false,
+      room: new Types.ObjectId(roomId),
+    });
   }
 
   async copyMessages(

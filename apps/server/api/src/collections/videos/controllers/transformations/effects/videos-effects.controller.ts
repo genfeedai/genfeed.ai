@@ -19,7 +19,6 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { User } from '@clerk/backend';
-import { IngredientSerializer } from '@genfeedai/serializers';
 import {
   FileInputType,
   IngredientCategory,
@@ -29,8 +28,10 @@ import {
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/enums';
+import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Controller, Param, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { Types } from 'mongoose';
@@ -90,7 +91,7 @@ export class VideosEffectsController {
         params: {
           inputPath: videoUrl,
         },
-        room: `user-${user.id}`,
+        room: getUserRoomName(user.id),
         type: 'reverse-video',
         userId: publicMetadata.user,
         websocketUrl: `/videos/${ingredientData._id}`,
@@ -125,7 +126,7 @@ export class VideosEffectsController {
             status: WebSocketEventStatus.COMPLETED,
           },
           user.id,
-          `user-${user.id}`,
+          getUserRoomName(user.id),
         );
       })
       .catch((error: unknown) => {
@@ -174,7 +175,7 @@ export class VideosEffectsController {
           params: {
             inputPath: videoUrl,
           },
-          room: `user-${user.id}`,
+          room: getUserRoomName(user.id),
           type: 'mirror-video',
           userId: publicMetadata.user,
           websocketUrl: `/videos/${ingredientData._id}`,
@@ -215,7 +216,7 @@ export class VideosEffectsController {
               status: WebSocketEventStatus.COMPLETED,
             },
             user.id,
-            `user-${user.id}`,
+            getUserRoomName(user.id),
           );
 
           try {
@@ -235,7 +236,7 @@ export class VideosEffectsController {
             websocketUrl,
             'Failed to mirror video',
             user.id,
-            `user-${user.id}`,
+            getUserRoomName(user.id),
           );
         });
 

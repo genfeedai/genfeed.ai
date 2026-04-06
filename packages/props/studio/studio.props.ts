@@ -1,3 +1,10 @@
+import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
+import type {
+  AssetScope,
+  ComponentSize,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/enums';
 import type {
   IElementBlacklist,
   IElementCamera,
@@ -13,13 +20,6 @@ import type {
   ITraining,
   ITrainingConfig,
 } from '@genfeedai/interfaces';
-import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import type {
-  AssetScope,
-  ComponentSize,
-  IngredientCategory,
-  IngredientStatus,
-} from '@genfeedai/enums';
 import type { FormEvent, ReactNode, RefObject } from 'react';
 
 export interface StudioLayoutProps {

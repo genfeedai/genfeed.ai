@@ -1,7 +1,7 @@
 'use client';
 
-import type { ITextOverlayErrors } from '@genfeedai/interfaces/ui/text-overlay-errors.interface';
 import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import type { ITextOverlayErrors } from '@genfeedai/interfaces/ui/text-overlay-errors.interface';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { ModalTextOverlayProps } from '@props/modals/modal.props';

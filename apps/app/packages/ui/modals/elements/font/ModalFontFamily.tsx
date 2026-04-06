@@ -1,9 +1,9 @@
-import type { IFontFamily } from '@genfeedai/interfaces';
 import {
   type ElementSimpleSchema,
   elementSimpleSchema,
 } from '@genfeedai/client/schemas';
 import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import type { IFontFamily } from '@genfeedai/interfaces';
 import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
 import type { ModalCrudProps } from '@props/modals/modal.props';
 import { FontFamiliesService } from '@services/elements/font-families.service';

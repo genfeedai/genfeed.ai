@@ -19,7 +19,10 @@ export interface SnapshotSlice {
   revertToSnapshot: () => void;
   clearSnapshot: () => void;
   incrementManualChangeCount: () => void;
-  applyEditOperations: (operations: EditOperation[]) => { applied: number; skipped: string[] };
+  applyEditOperations: (operations: EditOperation[]) => {
+    applied: number;
+    skipped: string[];
+  };
 }
 
 export const createSnapshotSlice: StateCreator<

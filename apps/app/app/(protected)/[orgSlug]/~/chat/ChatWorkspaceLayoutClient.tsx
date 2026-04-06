@@ -1,12 +1,12 @@
 'use client';
 
 import { useAuth, useSession } from '@clerk/nextjs';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AgentApiService,
   useAgentChatStore,
   useAgentChatStream,
 } from '@genfeedai/agent';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   getPlaywrightAuthState,
   resolveClerkToken,

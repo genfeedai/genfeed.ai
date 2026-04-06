@@ -72,10 +72,7 @@ config.transpilePackages = [
   '@genfeedai/interfaces',
 ];
 
-const serializersRoot = path.resolve(
-  __dirname,
-  '../../packages/serializers',
-);
+const serializersRoot = path.resolve(__dirname, '../../packages/serializers');
 const existingWebpack = config.webpack;
 
 config.webpack = ((webpackConfig, options) => {

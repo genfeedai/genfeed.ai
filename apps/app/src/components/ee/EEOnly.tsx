@@ -1,7 +1,7 @@
 'use client';
 
-import { isEEEnabled } from '@/lib/config/edition';
 import type { ReactNode } from 'react';
+import { isEEEnabled } from '@/lib/config/edition';
 
 interface EEOnlyProps {
   children: ReactNode;

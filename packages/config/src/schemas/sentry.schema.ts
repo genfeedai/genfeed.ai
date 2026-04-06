@@ -1,12 +1,14 @@
 import Joi from 'joi';
 
+import { conditionalRequired } from '../helpers';
+
 /**
- * Sentry error tracking - required
+ * Sentry error tracking - required in cloud, optional in self-hosted
  */
 export const sentrySchema = {
   SENTRY_AUTH_TOKEN_API: Joi.string().optional().allow(''),
-  SENTRY_DSN: Joi.string().uri().required(),
-  SENTRY_ENVIRONMENT: Joi.string().required(),
+  SENTRY_DSN: conditionalRequired(Joi.string().uri()),
+  SENTRY_ENVIRONMENT: conditionalRequired(),
 };
 
 /**

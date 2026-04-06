@@ -234,7 +234,12 @@ export interface WorkflowRefJobData extends NodeJobData {
     referencedWorkflowId: string;
     inputMappings: Record<string, string | null>;
     cachedInterface: {
-      inputs: Array<{ nodeId: string; name: string; type: string; required: boolean }>;
+      inputs: Array<{
+        nodeId: string;
+        name: string;
+        type: string;
+        required: boolean;
+      }>;
       outputs: Array<{ nodeId: string; name: string; type: string }>;
     };
   };

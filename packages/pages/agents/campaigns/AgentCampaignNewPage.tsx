@@ -1,7 +1,7 @@
 'use client';
 
-import type { ICreateAgentCampaignDto } from '@genfeedai/interfaces';
 import { ButtonVariant } from '@genfeedai/enums';
+import type { ICreateAgentCampaignDto } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
 import { AgentCampaignsService } from '@services/automation/agent-campaigns.service';

@@ -162,7 +162,7 @@ function generateAttributeTests() {
   }
 
   let tc = `import { describe, expect, it } from 'vitest';\n`;
-  tc += imports.join('\n') + '\n\n';
+  tc += `${imports.join('\n')}\n\n`;
   tc += `describe('Serializer Attributes', () => {\n`;
   for (const name of names) {
     tc += `  describe('${name}', () => {\n`;
@@ -204,7 +204,7 @@ function generateConfigTests() {
   }
 
   let tc = `import { describe, expect, it } from 'vitest';\n`;
-  tc += imports.join('\n') + '\n\n';
+  tc += `${imports.join('\n')}\n\n`;
   tc += `describe('Serializer Configs', () => {\n`;
   for (const name of names) {
     tc += `  describe('${name}', () => {\n`;
@@ -259,7 +259,7 @@ function generateConfigPkgTests() {
   }
 
   let tc = `import Joi from 'joi';\nimport { describe, expect, it } from 'vitest';\n`;
-  tc += schemaImports.join('\n') + '\n\n';
+  tc += `${schemaImports.join('\n')}\n\n`;
   tc += `describe('Config Schemas', () => {\n`;
   for (const s of schemas) {
     tc += `  describe('${s.name}', () => {\n`;

@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
-import type { IAnalytics } from '@genfeedai/interfaces';
 import { PostStatus } from '@genfeedai/enums';
+import type { IAnalytics } from '@genfeedai/interfaces';
 import type { Post } from '@models/content/post.model';
 import AnalyticsBrandOverview from '@pages/analytics/brand-overview/analytics-brand-overview';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';

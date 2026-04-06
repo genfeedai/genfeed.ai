@@ -6,8 +6,8 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { encodeJwtToken } from '@api/helpers/utils/jwt/jwt.util';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
-import type { IByokKeyEntry, IByokProviderStatus } from '@genfeedai/interfaces';
 import { ByokBillingStatus, ByokProvider } from '@genfeedai/enums';
+import type { IByokKeyEntry, IByokProviderStatus } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';

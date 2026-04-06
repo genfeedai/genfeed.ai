@@ -4,9 +4,9 @@ import {
   getServerAuthToken,
   loadProtectedBootstrap,
 } from '@app-server/protected-bootstrap.server';
-import type { IPost, IPreset, IQueryParams } from '@genfeedai/interfaces';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { ModelCategory, PostStatus } from '@genfeedai/enums';
+import type { IPost, IPreset, IQueryParams } from '@genfeedai/interfaces';
 import { logger } from '@services/core/logger.service';
 import { PresetsService } from '@services/elements/presets.service';
 import { OrganizationsService } from '@services/organization/organizations.service';

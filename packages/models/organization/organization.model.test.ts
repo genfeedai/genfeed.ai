@@ -139,7 +139,7 @@ describe('Organization', () => {
         credits: createCredit({ balance: 1000 }),
       });
       expect(org.credits).toBeDefined();
-      expect(org.credits!.balance).toBe(1000);
+      expect(org.credits?.balance).toBe(1000);
     });
 
     it('should not wrap settings when not an object', () => {

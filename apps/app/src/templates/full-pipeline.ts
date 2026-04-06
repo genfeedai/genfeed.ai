@@ -2,7 +2,8 @@ import type { WorkflowTemplate } from '@genfeedai/types';
 
 export const FULL_PIPELINE_TEMPLATE: WorkflowTemplate = {
   createdAt: new Date().toISOString(),
-  description: 'Complete workflow: concept → images → videos → animation → stitched output',
+  description:
+    'Complete workflow: concept → images → videos → animation → stitched output',
   edgeStyle: 'smoothstep',
   edges: [
     // Concept → LLM

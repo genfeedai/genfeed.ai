@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { buildWorkspaceAssetsDir } from '@genfeedai/desktop-core';
 import { dialog, shell } from 'electron';
-import { DesktopWorkspaceService } from './workspace.service';
+import type { DesktopWorkspaceService } from './workspace.service';
 
 export class DesktopFilesService {
   constructor(private readonly workspaceService: DesktopWorkspaceService) {}

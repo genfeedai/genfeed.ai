@@ -2,7 +2,7 @@
  * Props and interfaces for insights analytics pages
  */
 
-import {
+import type {
   AnomalySeverity,
   ContentSuggestionType,
   InsightCategory,

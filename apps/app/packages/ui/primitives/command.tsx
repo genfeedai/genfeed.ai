@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@helpers/formatting/cn/cn.util';
-import { type DialogProps } from '@radix-ui/react-dialog';
+import type { DialogProps } from '@radix-ui/react-dialog';
 import { Dialog, DialogContent } from '@ui/primitives/dialog';
 import { Command as CommandPrimitive } from 'cmdk';
 import { Search } from 'lucide-react';

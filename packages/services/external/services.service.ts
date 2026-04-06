@@ -1,8 +1,8 @@
-import type { ICredential, ICredentialOAuth } from '@genfeedai/interfaces';
 import {
   CredentialOAuthSerializer,
   ServiceSerializer,
 } from '@genfeedai/client/serializers';
+import type { ICredential, ICredentialOAuth } from '@genfeedai/interfaces';
 import { Credential, CredentialOAuth } from '@models/auth/credential.model';
 import {
   BaseService,

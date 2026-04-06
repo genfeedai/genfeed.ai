@@ -10,12 +10,12 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { GhostService } from '@api/services/integrations/ghost/services/ghost.service';
 import type { User } from '@clerk/backend';
+import { CredentialPlatform } from '@genfeedai/enums';
 import type {
   GhostConnectPayload,
   GhostCreatePostPayload,
 } from '@genfeedai/interfaces';
 import { CredentialSerializer } from '@genfeedai/serializers';
-import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Body, Controller, HttpException, Post, Req } from '@nestjs/common';

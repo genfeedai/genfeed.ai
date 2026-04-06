@@ -1,9 +1,9 @@
+import type { AnalyticsMetric } from '@genfeedai/enums';
 import type { IAnalytics, IQueryParams } from '@genfeedai/interfaces';
 import type {
   IViralHookAnalysis,
   IViralHookVideo,
 } from '@genfeedai/interfaces/analytics/viral-hooks.interface';
-import type { AnalyticsMetric } from '@genfeedai/enums';
 import {
   deserializeCollection,
   deserializeResource,

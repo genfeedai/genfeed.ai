@@ -10,7 +10,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
-import { PageScope } from '@ui-constants/misc.constant';
+import type { PageScope } from '@ui-constants/misc.constant';
 import { format } from 'date-fns';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 

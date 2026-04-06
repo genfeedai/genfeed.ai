@@ -1,4 +1,4 @@
-import { buildSingleSerializer, type BuiltSerializer } from '../../builders';
+import { type BuiltSerializer, buildSingleSerializer } from '../../builders';
 import { costRecordSerializerConfig } from '../../configs';
 
 export const CostRecordSerializer: BuiltSerializer = buildSingleSerializer(

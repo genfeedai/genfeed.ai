@@ -168,7 +168,6 @@ export function ShortcutHelpModal() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-3 py-2 text-sm bg-[var(--secondary)] border border-[var(--border)] rounded-md outline-none focus:ring-1 focus:ring-[var(--ring)]"
-              autoFocus
             />
           </div>
 
@@ -185,7 +184,10 @@ export function ShortcutHelpModal() {
                       className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-secondary/50"
                     >
                       <span className="text-sm">{shortcut.description}</span>
-                      <Kbd variant="muted" className="px-2 py-1 border border-border">
+                      <Kbd
+                        variant="muted"
+                        className="px-2 py-1 border border-border"
+                      >
                         {shortcut.keys}
                       </Kbd>
                     </div>

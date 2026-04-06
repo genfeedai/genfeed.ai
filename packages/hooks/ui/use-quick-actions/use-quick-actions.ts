@@ -1,14 +1,14 @@
+import {
+  IngredientCategory,
+  IngredientFormat,
+  IngredientStatus,
+} from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import type {
   IActionHandlers,
   ILoadingStates,
   IQuickAction,
 } from '@genfeedai/interfaces/ui/quick-actions.interface';
-import {
-  IngredientCategory,
-  IngredientFormat,
-  IngredientStatus,
-} from '@genfeedai/enums';
 import {
   createCaptionsAction,
   createCloneAction,

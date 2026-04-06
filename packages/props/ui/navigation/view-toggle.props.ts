@@ -1,4 +1,4 @@
-import { ComponentSize, ViewType } from '@genfeedai/enums';
+import type { ComponentSize, ViewType } from '@genfeedai/enums';
 import type { ReactNode } from 'react';
 
 export interface ViewOption {

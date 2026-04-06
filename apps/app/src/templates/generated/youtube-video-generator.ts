@@ -197,7 +197,8 @@ Ensure visual continuity between scenes. Total runtime: 10 minutes (20 × 30 sec
         label: `Scene ${i + 1} Video`,
         lastFrame: null,
         model: 'veo-3.1' as const,
-        negativePrompt: 'blurry, distorted, low quality, watermark, text overlay',
+        negativePrompt:
+          'blurry, distorted, low quality, watermark, text overlay',
         outputVideo: null,
         referenceImages: [],
         resolution: '1080p' as const,

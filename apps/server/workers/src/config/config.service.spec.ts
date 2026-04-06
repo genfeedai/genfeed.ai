@@ -9,7 +9,7 @@ describe('ConfigService (Workers)', () => {
     process.env.PORT = '3000';
     process.env.SENTRY_ENVIRONMENT = 'test';
     process.env.SENTRY_DSN = 'https://test@sentry.io/test';
-    process.env.MONGODB_URL = 'mongodb://mongo.internal:27017/test-db';
+    process.env.MONGODB_URI = 'mongodb://mongo.internal:27017/test-db';
     process.env.REDIS_URL = 'redis://localhost:6379';
     process.env.PORT = '3000';
 
@@ -34,7 +34,7 @@ describe('ConfigService (Workers)', () => {
 
   describe('get', () => {
     it('should return environment variable value', () => {
-      const mongoUrl = configService.get('MONGODB_URL');
+      const mongoUrl = configService.get('MONGODB_URI');
       expect(mongoUrl).toBe('mongodb://mongo.internal:27017/test-db');
     });
 

@@ -2,7 +2,7 @@ import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
   createPostReplyExecutor,
-  PostReplyExecutor,
+  type PostReplyExecutor,
   type ReplyPublisher,
 } from '@workflow-engine/executors/saas/post-reply-executor';
 import type { ExecutableNode } from '@workflow-engine/types';

@@ -1,12 +1,5 @@
 'use client';
 
-import type {
-  IAsset,
-  IImage,
-  IMusic,
-  IQueryParams,
-  IVideo,
-} from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import {
@@ -15,6 +8,13 @@ import {
   type IngredientFormat,
   IngredientStatus,
 } from '@genfeedai/enums';
+import type {
+  IAsset,
+  IImage,
+  IMusic,
+  IQueryParams,
+  IVideo,
+} from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
   UseModalGalleryProps,

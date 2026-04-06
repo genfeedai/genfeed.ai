@@ -1,5 +1,5 @@
-import { cn } from '@/lib/utils';
 import type { ReactNode } from 'react';
+import { cn } from '@/lib/utils';
 
 /* ─── SettingsField ─── */
 
@@ -30,7 +30,9 @@ export function SettingsField({
             {Icon && <Icon className="h-4 w-4" />}
             {label}
           </label>
-          {description && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
+          {description && (
+            <p className="text-xs text-muted-foreground mt-1">{description}</p>
+          )}
         </div>
         {action}
       </div>
@@ -62,8 +64,10 @@ export function InfoBox({
     <div
       className={cn(
         'rounded-lg border p-4',
-        isWarning ? 'border-amber-500/30 bg-amber-500/10' : 'border-border bg-secondary/30',
-        className
+        isWarning
+          ? 'border-amber-500/30 bg-amber-500/10'
+          : 'border-border bg-secondary/30',
+        className,
       )}
     >
       {(Icon || title) && (
@@ -72,7 +76,7 @@ export function InfoBox({
             <Icon
               className={cn(
                 'h-5 w-5 shrink-0 mt-0.5',
-                isWarning ? 'text-amber-500' : 'text-muted-foreground'
+                isWarning ? 'text-amber-500' : 'text-muted-foreground',
               )}
             />
           )}
@@ -81,7 +85,9 @@ export function InfoBox({
               <h4
                 className={cn(
                   'font-medium text-sm',
-                  isWarning ? 'text-amber-600 dark:text-amber-400' : 'text-foreground'
+                  isWarning
+                    ? 'text-amber-600 dark:text-amber-400'
+                    : 'text-foreground',
                 )}
               >
                 {title}
@@ -91,7 +97,9 @@ export function InfoBox({
               className={cn(
                 'text-sm',
                 title && 'mt-1',
-                isWarning ? 'text-amber-600/80 dark:text-amber-400/80' : 'text-muted-foreground'
+                isWarning
+                  ? 'text-amber-600/80 dark:text-amber-400/80'
+                  : 'text-muted-foreground',
               )}
             >
               {children}
@@ -116,7 +124,13 @@ export interface LinkCardProps {
 }
 
 /** Clickable external link card */
-export function LinkCard({ href, icon: Icon, title, description, prominent }: LinkCardProps) {
+export function LinkCard({
+  href,
+  icon: Icon,
+  title,
+  description,
+  prominent,
+}: LinkCardProps) {
   return (
     <a
       href={href}
@@ -124,7 +138,7 @@ export function LinkCard({ href, icon: Icon, title, description, prominent }: Li
       rel="noopener noreferrer"
       className={cn(
         'flex items-center gap-3 rounded-lg border border-border transition hover:border-primary/50 hover:bg-secondary/30',
-        prominent ? 'p-4' : 'p-3'
+        prominent ? 'p-4' : 'p-3',
       )}
     >
       {prominent ? (
@@ -136,7 +150,12 @@ export function LinkCard({ href, icon: Icon, title, description, prominent }: Li
       )}
       <div>
         <div className="font-medium text-foreground">{title}</div>
-        <p className={cn(prominent ? 'text-sm' : 'text-xs', 'text-muted-foreground')}>
+        <p
+          className={cn(
+            prominent ? 'text-sm' : 'text-xs',
+            'text-muted-foreground',
+          )}
+        >
           {description}
         </p>
       </div>

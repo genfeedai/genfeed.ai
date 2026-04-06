@@ -2,8 +2,8 @@
 
 import DatasetUploader from '@admin/(protected)/darkroom/_components/dataset-uploader';
 import ImageGrid from '@admin/(protected)/darkroom/_components/image-grid';
-import type { IDarkroomAsset, IDarkroomCharacter } from '@genfeedai/interfaces';
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
+import type { IDarkroomAsset, IDarkroomCharacter } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { AdminDarkroomService } from '@services/admin/darkroom.service';

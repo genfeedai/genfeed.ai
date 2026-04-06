@@ -1,7 +1,7 @@
-import ModelsTypePageClientContent from './page-content';
 import { render } from '@testing-library/react';
 import { PageScope } from '@ui-constants/misc.constant';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import ModelsTypePageClientContent from './page-content';
 
 const mockModelsList = vi.hoisted(() =>
   vi.fn(() => <div data-testid="models-list" />),

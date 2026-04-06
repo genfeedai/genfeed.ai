@@ -66,7 +66,7 @@ describe('CommandPalette', () => {
       <>
         <CommandPalette />
         <RunWorkflowConfirmationModal />
-      </>
+      </>,
     );
 
     fireEvent.click(screen.getAllByText('Run Workflow')[0]);
@@ -90,7 +90,7 @@ describe('CommandPalette', () => {
       <>
         <CommandPalette />
         <RunWorkflowConfirmationModal />
-      </>
+      </>,
     );
 
     fireEvent.click(screen.getByText('Run Selected Nodes'));

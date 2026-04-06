@@ -1,4 +1,4 @@
-import { AssetScope } from '@genfeedai/enums';
+import type { AssetScope } from '@genfeedai/enums';
 import type {
   IAsset,
   IBaseEntity,

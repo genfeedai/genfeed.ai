@@ -31,9 +31,7 @@ export function ErrorFallback({
         {description}
       </p>
       {error?.message && process.env.NODE_ENV === 'development' && (
-        <Pre className="mb-4 max-w-lg">
-          {error.message}
-        </Pre>
+        <Pre className="mb-4 max-w-lg">{error.message}</Pre>
       )}
       {resetErrorBoundary && (
         <Button

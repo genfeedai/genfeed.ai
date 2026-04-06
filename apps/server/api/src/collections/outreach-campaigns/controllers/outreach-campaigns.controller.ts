@@ -16,7 +16,6 @@ import { CampaignDiscoveryService } from '@api/services/campaign/campaign-discov
 import { CampaignExecutorService } from '@api/services/campaign/campaign-executor.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { User } from '@clerk/backend';
-import { OutreachCampaignSerializer } from '@genfeedai/serializers';
 import {
   CampaignDiscoverySource,
   CampaignPlatform,
@@ -24,6 +23,7 @@ import {
   CampaignTargetType,
   CampaignType,
 } from '@genfeedai/enums';
+import { OutreachCampaignSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

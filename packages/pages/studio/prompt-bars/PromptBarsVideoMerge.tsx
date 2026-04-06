@@ -2,7 +2,7 @@
 
 import {
   ButtonVariant,
-  IngredientFormat,
+  type IngredientFormat,
   VideoTransition,
 } from '@genfeedai/enums';
 import { formatDuration } from '@genfeedai/helpers';

@@ -2,7 +2,8 @@ import type { WorkflowTemplate } from '@genfeedai/types';
 
 export const IMAGE_TO_VIDEO_TEMPLATE: WorkflowTemplate = {
   createdAt: new Date().toISOString(),
-  description: 'Create interpolated video between two images with easing animation',
+  description:
+    'Create interpolated video between two images with easing animation',
   edgeStyle: 'smoothstep',
   edges: [
     {
