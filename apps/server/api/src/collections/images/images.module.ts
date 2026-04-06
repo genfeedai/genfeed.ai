@@ -16,6 +16,7 @@ import { ImagesService } from '@api/collections/images/services/images.service';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
+import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { TagsModule } from '@api/collections/tags/tags.module';
@@ -86,6 +87,12 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => VotesModule),
     WebhookClientModule,
   ],
-  providers: [ImagesService, CreditsGuard, ModelsGuard, CreditsInterceptor],
+  providers: [
+    ImagesService,
+    ModelRegistrationService,
+    CreditsGuard,
+    ModelsGuard,
+    CreditsInterceptor,
+  ],
 })
 export class ImagesModule {}

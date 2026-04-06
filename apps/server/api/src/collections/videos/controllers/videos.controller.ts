@@ -1,25 +1,26 @@
 import { Readable } from 'node:stream';
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { AssetsService } from '@api/collections/assets/services/assets.service';
-import { BookmarksService } from '@api/collections/bookmarks/services/bookmarks.service';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import type { AssetsService } from '@api/collections/assets/services/assets.service';
+import type { BookmarksService } from '@api/collections/bookmarks/services/bookmarks.service';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
+import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
+import type { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
-import { PromptsService } from '@api/collections/prompts/services/prompts.service';
-import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
-import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
-import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
-import { VideosService } from '@api/collections/videos/services/videos.service';
-import { VotesService } from '@api/collections/votes/services/votes.service';
-import { ConfigService } from '@api/config/config.service';
+import type { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import type { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
+import type { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
+import type { VideosService } from '@api/collections/videos/services/videos.service';
+import type { VotesService } from '@api/collections/votes/services/votes.service';
+import type { ConfigService } from '@api/config/config.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
 import {
   Credits,
@@ -53,25 +54,20 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { CacheService } from '@api/services/cache/services/cache.service';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { FalService } from '@api/services/integrations/fal/fal.service';
-import { KlingAIService } from '@api/services/integrations/klingai/klingai.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { RouterService } from '@api/services/router/router.service';
+import type { CacheService } from '@api/services/cache/services/cache.service';
+import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import type { FalService } from '@api/services/integrations/fal/fal.service';
+import type { KlingAIService } from '@api/services/integrations/klingai/klingai.service';
+import type { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import type { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import type { RouterService } from '@api/services/router/router.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import { PollingService } from '@api/shared/services/polling/polling.service';
-import { SharedService } from '@api/shared/services/shared/shared.service';
+import type { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
+import type { PollingService } from '@api/shared/services/polling/polling.service';
+import type { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { User } from '@clerk/backend';
-import type {
-  JsonApiCollectionResponse,
-  JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
-import { VideoSerializer } from '@genfeedai/serializers';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
 import {
   ActivityEntityModel,
@@ -87,7 +83,12 @@ import {
   PromptCategory,
   PromptStatus,
 } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
+import type {
+  JsonApiCollectionResponse,
+  JsonApiSingleResponse,
+} from '@genfeedai/interfaces';
+import { VideoSerializer } from '@genfeedai/serializers';
+import type { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
   Controller,
@@ -134,6 +135,7 @@ export class VideosController {
     private readonly klingAIService: KlingAIService,
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
+    private readonly modelRegistrationService: ModelRegistrationService,
     private readonly modelsService: ModelsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly promptsService: PromptsService,
@@ -777,6 +779,17 @@ export class VideosController {
           ModelCategory.VIDEO,
         )) as ModelKey,
       });
+    }
+
+    // Validate resolved model against org (catches default-resolution bypassing ModelsGuard)
+    if (request.context?.organizationId) {
+      const authenticatedOrgId = new Types.ObjectId(
+        request.context.organizationId,
+      );
+      await this.modelRegistrationService.validateModelForOrg(
+        model,
+        authenticatedOrgId,
+      );
     }
 
     // CreditsGuard deferred credit check, do it now with resolved model.
