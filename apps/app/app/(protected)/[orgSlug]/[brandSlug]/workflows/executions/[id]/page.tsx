@@ -1,8 +1,8 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import ExecutionDetailPage from '@pages/workflows/executions/ExecutionDetailPage';
 import type { DetailPageProps } from '@props/pages/page.props';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
+import ExecutionDetailPage from '@/features/workflows/pages/executions/ExecutionDetailPage';
 
 export const generateMetadata = createPageMetadata('Agent Workflow Execution');
 

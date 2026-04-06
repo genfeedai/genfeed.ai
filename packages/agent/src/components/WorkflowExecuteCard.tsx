@@ -5,6 +5,7 @@ import type {
   WorkflowInterfaceSchema,
 } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   type ChangeEvent,
   type ReactElement,
@@ -58,6 +59,7 @@ export function WorkflowExecuteCard({
   action,
   apiService,
 }: WorkflowExecuteCardProps): ReactElement {
+  const { href } = useOrgUrl();
   const workflowId = action.workflowId;
   const workflowName = action.workflowName ?? 'Workflow';
   const [status, setStatus] = useState<CardStatus>('idle');
@@ -342,7 +344,7 @@ export function WorkflowExecuteCard({
             </div>
             {executionId && (
               <a
-                href={`/workflows/executions/${executionId}`}
+                href={href(`/workflows/executions/${executionId}`)}
                 className="flex w-full items-center justify-center gap-1 rounded border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
               >
                 View Execution

@@ -1,9 +1,10 @@
+import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useCommandPaletteStore } from '@/store/commandPaletteStore';
 import { useExecutionStore } from '@/store/executionStore';
 import { useRunWorkflowConfirmationStore } from '@/store/runWorkflowConfirmationStore';
-import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { selectSelectedNodeIds } from '@/store/workflow/selectors';
 import { useWorkflowStore } from '@/store/workflowStore';
 
@@ -13,10 +14,16 @@ import { useWorkflowStore } from '@/store/workflowStore';
  */
 export function useGlobalShortcuts() {
   const router = useRouter();
-  const { toggle: toggleCommandPalette, isOpen: isCommandPaletteOpen } = useCommandPaletteStore();
+  const { href } = useOrgUrl();
+  const { toggle: toggleCommandPalette, isOpen: isCommandPaletteOpen } =
+    useCommandPaletteStore();
   const executeWorkflow = useExecutionStore((state) => state.executeWorkflow);
-  const executeSelectedNodes = useExecutionStore((state) => state.executeSelectedNodes);
-  const requestConfirmation = useRunWorkflowConfirmationStore((state) => state.requestConfirmation);
+  const executeSelectedNodes = useExecutionStore(
+    (state) => state.executeSelectedNodes,
+  );
+  const requestConfirmation = useRunWorkflowConfirmationStore(
+    (state) => state.requestConfirmation,
+  );
   const isRunning = useExecutionStore((state) => state.isRunning);
   const { openModal } = useUIStore();
   const selectedNodeIds = useWorkflowStore(selectSelectedNodeIds);
@@ -27,8 +34,12 @@ export function useGlobalShortcuts() {
       // Ignore if typing in input (unless it's the command palette input)
       const target = e.target;
       const isElement = target instanceof Element;
-      const isInput = target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
-      const isCommandPaletteInput = isElement ? target.closest('[data-command-palette]') : null;
+      const isInput =
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement;
+      const isCommandPaletteInput = isElement
+        ? target.closest('[data-command-palette]')
+        : null;
 
       // Allow Escape to close command palette even in inputs
       if (e.key === 'Escape' && isCommandPaletteOpen) {
@@ -85,7 +96,9 @@ export function useGlobalShortcuts() {
       if (isMod && (e.key === 's' || e.key === 'S')) {
         e.preventDefault();
         const workflow = exportWorkflow();
-        const blob = new Blob([JSON.stringify(workflow, null, 2)], { type: 'application/json' });
+        const blob = new Blob([JSON.stringify(workflow, null, 2)], {
+          type: 'application/json',
+        });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -100,7 +113,7 @@ export function useGlobalShortcuts() {
       // ⌘+N - New workflow
       if (isMod && (e.key === 'n' || e.key === 'N')) {
         e.preventDefault();
-        router.push('/workflows/new');
+        router.push(href('/workflows/new'));
         return;
       }
     };
@@ -118,5 +131,6 @@ export function useGlobalShortcuts() {
     openModal,
     exportWorkflow,
     router,
+    href,
   ]);
 }

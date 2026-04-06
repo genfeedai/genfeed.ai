@@ -9,15 +9,9 @@ const withBundleAnalyzer = bundleAnalyzer({
   openAnalyzer: false,
 });
 
-const workflowUiRoot = path.resolve(
-  __dirname,
-  '../../packages/workflow-ui',
-);
+const workflowUiRoot = path.resolve(__dirname, '../../packages/workflow-ui');
 const helpersRoot = path.resolve(__dirname, '../../packages/helpers');
-const serializersRoot = path.resolve(
-  __dirname,
-  '../../packages/serializers',
-);
+const serializersRoot = path.resolve(__dirname, '../../packages/serializers');
 
 const workflowUiAliases = {
   '@genfeedai/helpers': path.join(helpersRoot, 'src/index.ts'),
@@ -168,7 +162,6 @@ config.transpilePackages = [
   '@genfeedai/hooks',
   '@genfeedai/interfaces',
   '@genfeedai/types',
-  '@genfeedai/workflow',
   '@genfeedai/workflow-saas',
 ];
 
