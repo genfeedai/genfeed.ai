@@ -4,6 +4,7 @@ import { STRATEGY_TEMPLATES } from '@api/collections/brands/constants/strategy-t
 import { CreateBrandDto } from '@api/collections/brands/dto/create-brand.dto';
 import { GenerateBrandVoiceDto } from '@api/collections/brands/dto/generate-brand-voice.dto';
 import { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
+import { ToggleBrandSkillDto } from '@api/collections/brands/dto/toggle-brand-skill.dto';
 import { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
 import {
   Brand,
@@ -335,5 +336,45 @@ export class BrandsController extends BaseCRUDController<
     );
 
     return { data: voice };
+  }
+
+  @Patch(':id/agent-config/enabled-skills')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async updateEnabledSkills(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() toggleDto: ToggleBrandSkillDto,
+  ): Promise<JsonApiSingleResponse> {
+    const publicMetadata = getPublicMetadata(user);
+    const organizationId = publicMetadata.organization?.toString();
+
+    if (!organizationId) {
+      throw new HttpException(
+        {
+          detail: 'Organization context is required',
+          title: 'Forbidden',
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    const updatedBrand = await this.brandsService.updateAgentConfig(
+      id,
+      organizationId,
+      { enabledSkills: toggleDto.enabledSkills } as UpdateBrandAgentConfigDto,
+    );
+
+    if (!updatedBrand) {
+      throw new HttpException(
+        {
+          detail: 'Brand not found or update failed',
+          title: 'Not Found',
+        },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return serializeSingle(request, BrandSerializer, updatedBrand);
   }
 }

@@ -17,6 +17,7 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { useBrandEnabledSkills } from '@hooks/data/skills/use-brand-enabled-skills';
 import {
   HiOutlineArrowPath,
   HiOutlineBeaker,
@@ -97,6 +98,7 @@ export default function OrchestrationSkillsPage() {
   const { getToken } = useAuth();
   const { isReady, selectedBrand } = useBrand();
 
+  const { enabledSlugs, toggleSkill } = useBrandEnabledSkills();
   const [skills, setSkills] = useState<Skill[]>([]);
   const [selectedSkillId, setSelectedSkillId] = useState<string>('');
   const [sourceFilter, setSourceFilter] =
@@ -376,6 +378,7 @@ export default function OrchestrationSkillsPage() {
 
             {filteredSkills.map((skill) => {
               const isSelected = selectedSkill?.id === skill.id;
+              const isEnabled = enabledSlugs.includes(skill.slug);
 
               return (
                 <button
@@ -383,7 +386,7 @@ export default function OrchestrationSkillsPage() {
                     isSelected
                       ? 'border-white/30 bg-white/[0.06]'
                       : 'border-white/10 bg-white/[0.03] hover:border-white/20'
-                  }`}
+                  } ${!isEnabled ? 'opacity-50' : ''}`}
                   key={skill.id}
                   onClick={() => setSelectedSkillId(skill.id)}
                   type="button"
@@ -404,6 +407,27 @@ export default function OrchestrationSkillsPage() {
                     >
                       {skill.workflowStage}
                     </Badge>
+                    <span
+                      aria-label={isEnabled ? 'Disable skill' : 'Enable skill'}
+                      className={`ml-auto inline-flex h-6 w-10 shrink-0 cursor-pointer items-center rounded-full border transition ${
+                        isEnabled
+                          ? 'border-emerald-500/40 bg-emerald-500/25'
+                          : 'border-white/10 bg-white/5'
+                      }`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        void toggleSkill(skill.slug);
+                      }}
+                      role="switch"
+                    >
+                      <span
+                        className={`block h-4 w-4 rounded-full transition-transform ${
+                          isEnabled
+                            ? 'translate-x-5 bg-emerald-400'
+                            : 'translate-x-0.5 bg-white/40'
+                        }`}
+                      />
+                    </span>
                   </div>
 
                   <p className="mb-3 text-sm text-foreground/65">

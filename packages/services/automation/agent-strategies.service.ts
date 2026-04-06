@@ -67,6 +67,7 @@ export interface CreateAgentStrategyInput {
   model?: string;
   opportunitySources?: Partial<AgentStrategyOpportunitySources>;
   platforms?: string[];
+  skillSlugs?: string[];
   postsPerWeek?: number;
   publishPolicy?: Partial<AgentStrategyPublishPolicy>;
   qualityTier?: 'budget' | 'balanced' | 'high_quality';
@@ -162,6 +163,7 @@ export class AgentStrategy {
   voice?: string;
   model?: string;
   platforms!: string[];
+  skillSlugs!: string[];
   postsPerWeek!: number;
   runFrequency!: string;
   timezone!: string;

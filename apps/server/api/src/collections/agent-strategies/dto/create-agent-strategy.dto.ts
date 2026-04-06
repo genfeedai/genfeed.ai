@@ -360,6 +360,12 @@ export class CreateAgentStrategyDto {
   @ApiProperty({ description: 'Target platforms', required: false })
   platforms?: string[];
 
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  @ApiProperty({ description: 'Skill slugs assigned to this strategy', required: false })
+  skillSlugs?: string[];
+
   @ValidateNested()
   @Type(() => ContentMixConfigDto)
   @IsOptional()
