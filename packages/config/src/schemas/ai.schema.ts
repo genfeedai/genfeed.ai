@@ -75,15 +75,9 @@ export const newsApiSchema = {
  * Darkroom — self-hosted GPU instance (ComfyUI + darkroom-api)
  */
 export const darkroomSchema = {
-  DARKROOM_API_URL: Joi.string()
-    .uri()
-    .optional()
-    .default('http://100.106.229.81:8189'),
+  DARKROOM_API_URL: Joi.string().uri().optional(),
   DARKROOM_CLOUDFRONT_DISTRIBUTION_ID: Joi.string().optional().allow(''),
-  DARKROOM_COMFYUI_URL: Joi.string()
-    .uri()
-    .optional()
-    .default('http://100.106.229.81:8188'),
+  DARKROOM_COMFYUI_URL: Joi.string().uri().optional(),
   DARKROOM_S3_BUCKET: Joi.string().optional().default('darkroom.genfeed.ai'),
 };
 
@@ -91,20 +85,11 @@ export const darkroomSchema = {
  * GPU Fleet — self-hosted GPU instances (images, voices, videos, llm)
  */
 export const gpuFleetSchema = {
-  GPU_IMAGES_URL: Joi.string()
-    .uri()
-    .optional()
-    .default('http://100.106.229.81:8189'),
+  GPU_IMAGES_URL: Joi.string().uri().optional(),
   GPU_LLM_INSTANCE_ID: Joi.string().optional(),
   GPU_LLM_URL: Joi.string().uri().optional(),
-  GPU_VIDEOS_URL: Joi.string()
-    .uri()
-    .optional()
-    .default('http://100.114.208.72:8188'),
-  GPU_VOICES_URL: Joi.string()
-    .uri()
-    .optional()
-    .default('http://100.69.239.8:8189'),
+  GPU_VIDEOS_URL: Joi.string().uri().optional(),
+  GPU_VOICES_URL: Joi.string().uri().optional(),
 };
 
 /**
