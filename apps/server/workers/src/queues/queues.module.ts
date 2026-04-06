@@ -5,6 +5,10 @@
  */
 
 import { QueueService } from '@api/queues/core/queue.service';
+import {
+  buildBullMQConnection,
+  parseRedisConnection,
+} from '@libs/redis/redis-connection.utils';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@workers/config/config.module';
@@ -17,38 +21,8 @@ import { ConfigService } from '@workers/config/config.service';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const redisUrl = configService.get('REDIS_URL');
-        let host = 'localhost';
-        let port = 6379;
-        let password: string | undefined;
-
-        try {
-          const parsed = new URL(redisUrl || 'redis://localhost:6379');
-          host = parsed.hostname || host;
-          port = parsed.port ? Number(parsed.port) : port;
-          password = parsed.password || configService.get('REDIS_PASSWORD');
-        } catch {
-          const withoutScheme =
-            redisUrl?.replace(/^.*:\/\//, '') || 'localhost:6379';
-          const [parsedHost, parsedPort] = withoutScheme.split(':');
-          host = parsedHost || host;
-          port = parsedPort ? Number(parsedPort) : port;
-          password = configService.get('REDIS_PASSWORD');
-        }
-
-        return {
-          connection: {
-            host,
-            port,
-            ...(password && { password }),
-            connectTimeout: 3000,
-            enableOfflineQueue: false,
-            enableReadyCheck: false,
-            lazyConnect: true,
-            maxRetriesPerRequest: 0,
-            retryStrategy: () => null,
-          },
-        };
+        const config = parseRedisConnection(configService);
+        return { connection: buildBullMQConnection(config) };
       },
     }),
     BullModule.registerQueue(

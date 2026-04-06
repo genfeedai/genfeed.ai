@@ -1,4 +1,4 @@
-import { ConfigService } from '@api/config/config.service';
+import type { ConfigService } from '@api/config/config.service';
 import type {
   IChatbotMetadata,
   IDiscordEmbed,
@@ -7,13 +7,14 @@ import type {
   INotificationEvent,
   ITelegramMessageOptions,
 } from '@genfeedai/interfaces';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { parseRedisConnection } from '@libs/redis/redis-connection.utils';
 import {
   Injectable,
   type OnModuleDestroy,
   type OnModuleInit,
 } from '@nestjs/common';
-import { createClient, RedisClientType } from 'redis';
+import { createClient, type RedisClientType } from 'redis';
 
 export type { INotificationEvent as NotificationEvent };
 
@@ -27,13 +28,13 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
   ) {
-    const redisUrl =
-      this.configService.get('REDIS_URL') || 'redis://localhost:6379';
+    const config = parseRedisConnection(this.configService);
     this.publisher = createClient({
       socket: {
-        connectTimeout: 10000,
+        connectTimeout: 10_000,
+        ...(config.tls ? { tls: true as const } : {}),
       },
-      url: redisUrl,
+      url: config.url,
     });
 
     this.publisher.on('error', (error: Error) => {
