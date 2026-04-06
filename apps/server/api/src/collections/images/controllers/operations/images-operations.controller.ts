@@ -1,28 +1,29 @@
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { AssetsService } from '@api/collections/assets/services/assets.service';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import type { AssetsService } from '@api/collections/assets/services/assets.service';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
-import { SplitImageDto } from '@api/collections/images/dto/split-image.dto';
-import { ImagesService } from '@api/collections/images/services/images.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
+import type { SplitImageDto } from '@api/collections/images/dto/split-image.dto';
+import type { ImagesService } from '@api/collections/images/services/images.service';
+import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
+import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
+import type { ModelsService } from '@api/collections/models/services/models.service';
 import {
   baseModelKey,
   isFalDestination,
   isGenfeedAiDestination,
   isReplicateDestination,
 } from '@api/collections/models/utils/model-key.util';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
-import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import type { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import type { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
-import { TagsService } from '@api/collections/tags/services/tags.service';
-import { ConfigService } from '@api/config/config.service';
+import type { TagsService } from '@api/collections/tags/services/tags.service';
+import type { ConfigService } from '@api/config/config.service';
 import {
   Credits,
   DeferCreditsUntilModelResolution,
@@ -44,25 +45,23 @@ import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-def
 import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
-import { FalService } from '@api/services/integrations/fal/fal.service';
-import { KlingAIService } from '@api/services/integrations/klingai/klingai.service';
-import { LeonardoAIService } from '@api/services/integrations/leonardoai/leonardoai.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
-import { NotificationsService } from '@api/services/notifications/notifications.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { RouterService } from '@api/services/router/router.service';
-import { WebhookClientService } from '@api/services/webhook-client/webhook-client.service';
+import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import type { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
+import type { FalService } from '@api/services/integrations/fal/fal.service';
+import type { KlingAIService } from '@api/services/integrations/klingai/klingai.service';
+import type { LeonardoAIService } from '@api/services/integrations/leonardoai/leonardoai.service';
+import type { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import type { NotificationsService } from '@api/services/notifications/notifications.service';
+import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import type { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import type { RouterService } from '@api/services/router/router.service';
+import type { WebhookClientService } from '@api/services/webhook-client/webhook-client.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import { PollingService } from '@api/shared/services/polling/polling.service';
-import { SharedService } from '@api/shared/services/shared/shared.service';
+import type { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
+import type { PollingService } from '@api/shared/services/polling/polling.service';
+import type { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { User } from '@clerk/backend';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
-import { IngredientSerializer } from '@genfeedai/serializers';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
 import {
   ActivityEntityModel,
@@ -81,7 +80,9 @@ import {
   TagCategory,
   TagKey,
 } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import { IngredientSerializer } from '@genfeedai/serializers';
+import type { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
   Controller,
@@ -122,6 +123,7 @@ export class ImagesOperationsController {
     private readonly leonardoaiService: LeonardoAIService,
     private readonly loggerService: LoggerService,
     private readonly metadataService: MetadataService,
+    private readonly modelRegistrationService: ModelRegistrationService,
     private readonly modelsService: ModelsService,
     readonly _notificationsService: NotificationsService,
     private readonly promptBuilderService: PromptBuilderService,
@@ -254,6 +256,17 @@ export class ImagesOperationsController {
         organizationDefault: organizationDefaultModel,
         systemDefault: systemDefaultModel,
       });
+    }
+
+    // Validate resolved model against org (catches default-resolution bypassing ModelsGuard)
+    if (request.context?.organizationId) {
+      const authenticatedOrgId = new Types.ObjectId(
+        request.context.organizationId,
+      );
+      await this.modelRegistrationService.validateModelForOrg(
+        model,
+        authenticatedOrgId,
+      );
     }
 
     // CreditsGuard deferred credit check, do it now with resolved model.
