@@ -16,9 +16,7 @@
       "@data/*": ["./packages/data/*"],
       "@genfeedai/client": ["../../packages/client/dist/index"],
       "@genfeedai/client/*": ["../../packages/client/dist/*"],
-      "@genfeedai/client/schemas": [
-        "../../packages/client/dist/schemas/index"
-      ],
+      "@genfeedai/client/schemas": ["../../packages/client/dist/schemas/index"],
       "@genfeedai/client/schemas/*": [
         "../../packages/client/dist/schemas/*/index",
         "../../packages/client/dist/schemas/*"
@@ -46,7 +44,6 @@
       "@utils/*": ["../../packages/utils/*"],
       "@web-components/*": ["./packages/components/*"],
       "@website/*": ["./app/*"],
-      "@workflow-cloud/*": ["../../packages/workflow-cloud/src/*"],
       "@workflow-engine/*": ["../../packages/workflow-engine/src/*"],
       "@workflow-saas/*": ["../../packages/workflow-saas/src/*"]
     }
