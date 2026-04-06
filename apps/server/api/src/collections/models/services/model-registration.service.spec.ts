@@ -8,6 +8,7 @@ import { ModelRegistrationService } from './model-registration.service';
 describe('ModelRegistrationService', () => {
   let service: ModelRegistrationService;
   let mockModelModel: Record<string, ReturnType<typeof vi.fn>>;
+  let mockTrainingModel: Record<string, ReturnType<typeof vi.fn>>;
   let mockOrgSettingsService: Partial<
     Record<keyof OrganizationSettingsService, ReturnType<typeof vi.fn>>
   >;
@@ -32,7 +33,12 @@ describe('ModelRegistrationService', () => {
   beforeEach(() => {
     mockModelModel = {
       create: vi.fn(),
+      find: vi.fn(),
       findOne: vi.fn().mockReturnValue(makeFindOne(null)),
+    };
+
+    mockTrainingModel = {
+      aggregate: vi.fn().mockResolvedValue([]),
     };
 
     mockOrgSettingsService = {
@@ -42,6 +48,7 @@ describe('ModelRegistrationService', () => {
 
     service = new ModelRegistrationService(
       mockModelModel as never,
+      mockTrainingModel as never,
       mockOrgSettingsService as unknown as OrganizationSettingsService,
       mockLoggerService as unknown as LoggerService,
     );
@@ -277,6 +284,76 @@ describe('ModelRegistrationService', () => {
           supportsFeatures: ['lora-weights'],
         }),
       );
+    });
+  });
+
+  describe('reconcileTrainingModels', () => {
+    it('calls createFromTraining for each orphaned training', async () => {
+      const trainingId = new Types.ObjectId();
+      const orphanedTraining = {
+        _id: trainingId,
+        organization: orgId,
+        label: 'Orphaned LoRA',
+        trigger: 'ORPHAN',
+        baseModel: 'black-forest-labs/flux-dev',
+        model: 'replicate/fast-flux-trainer:abc123',
+        status: 'COMPLETED',
+        isDeleted: false,
+      };
+
+      mockTrainingModel.aggregate.mockResolvedValue([orphanedTraining]);
+
+      const createFromTrainingSpy = vi
+        .spyOn(service, 'createFromTraining')
+        .mockResolvedValue({ _id: new Types.ObjectId() } as never);
+
+      await service.reconcileTrainingModels();
+
+      expect(mockTrainingModel.aggregate).toHaveBeenCalledWith([
+        { $match: { status: 'COMPLETED', isDeleted: false } },
+        {
+          $lookup: {
+            from: 'models',
+            localField: '_id',
+            foreignField: 'training',
+            as: 'model',
+          },
+        },
+        { $match: { model: { $size: 0 } } },
+      ]);
+      expect(createFromTrainingSpy).toHaveBeenCalledWith(orphanedTraining);
+      expect(createFromTrainingSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('reconcileEnabledModels', () => {
+    it('calls addEnabledModel for models missing from org enabledModels', async () => {
+      const modelId2 = new Types.ObjectId();
+      const orgModel = {
+        _id: modelId2,
+        organization: orgId,
+      };
+
+      mockModelModel.find.mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          lean: vi.fn().mockReturnValue({
+            exec: vi.fn().mockResolvedValue([orgModel]),
+          }),
+        }),
+      });
+
+      // orgSettings returns empty enabledModels — model is not yet enabled
+      mockOrgSettingsService.findOne = vi.fn().mockResolvedValue({
+        enabledModels: [],
+      });
+
+      await service.reconcileEnabledModels();
+
+      expect(mockOrgSettingsService.addEnabledModel).toHaveBeenCalledWith(
+        expect.any(Types.ObjectId),
+        modelId2,
+      );
+      expect(mockOrgSettingsService.addEnabledModel).toHaveBeenCalledTimes(1);
     });
   });
 });
