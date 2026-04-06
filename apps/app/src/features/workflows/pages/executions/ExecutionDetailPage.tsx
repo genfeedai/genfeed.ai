@@ -2,19 +2,22 @@
 
 import { ButtonVariant, WorkflowExecutionStatus } from '@genfeedai/enums';
 import { Pre } from '@genfeedai/ui';
-import type { ExecutionNodeResult, ExecutionResult } from '@genfeedai/workflow';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import Button from '@ui/buttons/base/Button';
-import { createWorkflowApiService } from '@workflow-cloud/services/workflow-api';
-import { getExecutionEtaDisplayState } from '@workflow-cloud/utils/eta-display';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import type {
+  ExecutionNodeResult,
+  ExecutionResult,
+} from '@/features/workflows/services/workflow-api';
+import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
+import { getExecutionEtaDisplayState } from '@/features/workflows/utils/eta-display';
 import {
   getStatusBorderColor,
   getStatusIcon,
-} from '@workflow-cloud/utils/status-helpers';
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
+} from '@/features/workflows/utils/status-helpers';
 
 interface ExecutionLogsProps {
   executionId: string;

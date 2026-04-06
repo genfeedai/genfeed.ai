@@ -1,10 +1,6 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import {
-  createWorkflowApiService,
-  type WorkflowTemplate,
-} from '@genfeedai/workflow';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
@@ -12,6 +8,10 @@ import Button from '@ui/buttons/base/Button';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  createWorkflowApiService,
+  type WorkflowTemplate,
+} from '@/features/workflows/services/workflow-api';
 
 const TEMPLATE_CATEGORIES = [
   { id: 'all', label: 'All Templates' },
@@ -150,7 +150,6 @@ export default function WorkflowTemplatesPage() {
           <div className="mx-auto flex max-w-7xl gap-2">
             {Array.from({ length: 5 }).map((_, i) => (
               <div
-                // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton
                 key={i}
                 className="h-9 w-24 animate-pulse rounded bg-muted"
               />
@@ -161,7 +160,6 @@ export default function WorkflowTemplatesPage() {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <div
-                // biome-ignore lint/suspicious/noArrayIndexKey: static skeleton
                 key={i}
                 className="overflow-hidden border border-white/[0.08] bg-card"
               >

@@ -1,11 +1,6 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import {
-  createWorkflowApiService,
-  getLifecycleBadgeClass,
-  type WorkflowSummary,
-} from '@genfeedai/workflow';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -21,6 +16,11 @@ import {
   HiOutlinePlus,
   HiOutlineSparkles,
 } from 'react-icons/hi2';
+import {
+  createWorkflowApiService,
+  type WorkflowSummary,
+} from '@/features/workflows/services/workflow-api';
+import { getLifecycleBadgeClass } from '@/features/workflows/utils/status-helpers';
 
 const DEFAULT_WORKFLOW_CARD_CDN =
   process.env.NEXT_PUBLIC_CDN_URL || 'https://cdn.genfeed.ai';
@@ -64,7 +64,6 @@ function WorkflowCardPreview({
           onError={() => setHasAssetError(true)}
         />
       ) : (
-        // biome-ignore lint/performance/noImgElement: dynamic CDN thumbnails not optimizable by next/image
         <img
           src={previewUrl}
           alt={

@@ -1,7 +1,7 @@
 'use client';
 
-import { WorkflowEditor } from '@genfeedai/workflow';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { WorkflowEditor } from '@/features/workflows/components/WorkflowEditor';
 import WorkflowEditorToolbarNavigation from '../components/WorkflowEditorToolbarNavigation';
 
 interface WorkflowDetailPageClientProps {
