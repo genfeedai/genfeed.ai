@@ -7,12 +7,12 @@ export const discordBotSchema = {
   DISCORD_BOT_AVATAR_URL: Joi.string()
     .uri()
     .default('https://cdn.genfeed.ai/assets/branding/logo.jpg'),
-  DISCORD_BOT_TOKEN: Joi.string().required(),
-  DISCORD_CHANNEL_ID_POSTS: Joi.string().required(),
-  DISCORD_CHANNEL_ID_STUDIO: Joi.string().required(),
-  DISCORD_CHANNEL_ID_USERS: Joi.string().required(),
-  DISCORD_CLIENT_ID: Joi.string().required(),
-  DISCORD_GUILD_ID: Joi.string().required(),
+  DISCORD_BOT_TOKEN: Joi.string().optional().allow(''),
+  DISCORD_CHANNEL_ID_POSTS: Joi.string().optional().allow(''),
+  DISCORD_CHANNEL_ID_STUDIO: Joi.string().optional().allow(''),
+  DISCORD_CHANNEL_ID_USERS: Joi.string().optional().allow(''),
+  DISCORD_CLIENT_ID: Joi.string().optional().allow(''),
+  DISCORD_GUILD_ID: Joi.string().optional().allow(''),
 };
 
 /**
