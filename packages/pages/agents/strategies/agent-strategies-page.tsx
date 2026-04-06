@@ -8,6 +8,7 @@ import {
 } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
   AgentStrategyDialogProps,
   AgentStrategyFormState,
@@ -781,6 +782,7 @@ function AgentStrategyDialog({
 
 export default function AgentStrategiesPage() {
   const router = useRouter();
+  const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
   const { strategies, isLoading, refresh } = useAgentStrategies();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -1058,7 +1060,10 @@ export default function AgentStrategiesPage() {
           are agent policies: they decide when an agent runs, its budget, and
           its direction. Use autopilot when the agent should adapt each run. For
           fixed step-by-step automation graphs, use
-          <Link href="/workflows" className="ml-1 underline underline-offset-2">
+          <Link
+            href={href('/workflows')}
+            className="ml-1 underline underline-offset-2"
+          >
             Workflows
           </Link>
           .

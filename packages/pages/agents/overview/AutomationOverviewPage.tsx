@@ -1,8 +1,9 @@
 'use client';
 
-import type { OverviewCard } from '@genfeedai/interfaces/ui/overview-card.interface';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type { OverviewCard } from '@genfeedai/interfaces/ui/overview-card.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
 import CardIcon from '@ui/card/icon/CardIcon';
 import AppLink from '@ui/navigation/link/Link';
@@ -22,6 +23,8 @@ import {
 } from 'react-icons/hi2';
 
 export default function AutomationOverviewPage() {
+  const { href } = useOrgUrl();
+
   const cards: OverviewCard[] = [
     {
       color: 'bg-cyan-500/12 text-cyan-300',
@@ -46,7 +49,7 @@ export default function AutomationOverviewPage() {
       cta: 'Open Workflows',
       description:
         'Run fixed automation graphs for repeatable content pipelines',
-      href: '/workflows',
+      href: href('/workflows'),
       icon: HiMegaphone,
       id: 'workflows',
       label: 'Workflows',
@@ -106,7 +109,7 @@ export default function AutomationOverviewPage() {
       cta: 'Open Workflows',
       description:
         'Use workflows for fixed, reusable automation graphs and scheduled pipelines.',
-      href: '/workflows',
+      href: href('/workflows'),
       icon: HiMegaphone,
       kicker: 'Automation',
       label: 'Workflow Engine',
