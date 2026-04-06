@@ -1,4 +1,5 @@
 import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
+import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import type { AgentMemoryDocument } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import type { AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
@@ -57,6 +58,7 @@ import {
   type AgentUIBlocksEvent,
   type AgentUiAction,
 } from '@genfeedai/interfaces';
+import type { ResolvedRuntimeSkill } from '@genfeedai/interfaces/ai';
 import {
   ActivitySource,
   AgentAutonomyMode,
@@ -293,6 +295,8 @@ export interface AgentChatContext {
   campaignId?: string;
   generationPriority?: string;
   organizationId: string;
+  /** Resolved runtime skills for tool set augmentation */
+  resolvedSkills?: ResolvedRuntimeSkill[];
   /** When set, tool call progress is tracked against this agent-runs record */
   runId?: string;
   /** Strategy ID — enables content attribution on created posts/content */
@@ -420,6 +424,8 @@ export class AgentOrchestratorService {
     private readonly agentExecutionLaneService?: AgentExecutionLaneService,
     @Optional()
     private readonly agentProfileResolverService?: AgentProfileResolverService,
+    @Optional()
+    private readonly skillRuntimeService?: SkillRuntimeService,
   ) {}
 
   async chat(
@@ -443,6 +449,8 @@ export class AgentOrchestratorService {
       if (resolved.model !== request.model) {
         request = { ...request, model: resolved.model };
       }
+      // Attach resolved skills to context for tool set augmentation
+      context = { ...context, resolvedSkills: resolved.resolvedSkills };
 
       const model = request.model || DEFAULT_AGENT_CHAT_MODEL;
 
@@ -725,9 +733,16 @@ export class AgentOrchestratorService {
       const typeConfig = request.agentType
         ? getAgentTypeConfig(request.agentType)
         : null;
+      // Merge skill tool overrides into the base tool set (additive)
+      const syncBaseTools = this.skillRuntimeService && context.resolvedSkills?.length
+        ? this.skillRuntimeService.mergeSkillToolOverrides(
+            typeConfig?.defaultTools ?? [],
+            context.resolvedSkills,
+          ) as AgentToolName[]
+        : typeConfig?.defaultTools;
       const tools = this.buildToolDefinitions(
         this.mergeAllowedTools(
-          typeConfig?.defaultTools,
+          syncBaseTools,
           this.getRequestScopedAllowedTools(request.content),
         ),
       );
@@ -1252,6 +1267,7 @@ export class AgentOrchestratorService {
       startedRun?.startedAt?.toISOString?.() ?? new Date().toISOString();
     const streamContext: AgentChatContext = {
       ...context,
+      resolvedSkills: resolved.resolvedSkills,
       runId,
     };
     await this.recordProfileSnapshot(
@@ -1408,6 +1424,13 @@ export class AgentOrchestratorService {
         attachments,
       );
       const typeConfig = agentType ? getAgentTypeConfig(agentType) : null;
+      // Merge skill tool overrides into the base tool set (additive)
+      const baseTools = this.skillRuntimeService && context.resolvedSkills?.length
+        ? this.skillRuntimeService.mergeSkillToolOverrides(
+            typeConfig?.defaultTools ?? [],
+            context.resolvedSkills,
+          ) as AgentToolName[]
+        : typeConfig?.defaultTools;
       const latestUserMessage =
         [...history]
           .reverse()
@@ -1415,7 +1438,7 @@ export class AgentOrchestratorService {
           ?.content?.toString?.() ?? '';
       const scopedTools = this.getRequestScopedAllowedTools(latestUserMessage);
       const tools = this.buildToolDefinitions(
-        this.mergeAllowedTools(typeConfig?.defaultTools, scopedTools),
+        this.mergeAllowedTools(baseTools, scopedTools),
       );
       const allowedToolNames = new Set(
         tools.map((tool) => tool.function.name as AgentToolName),
@@ -3443,6 +3466,7 @@ export class AgentOrchestratorService {
   ): Promise<{
     model: string | undefined;
     policy: ResolvedAgentExecutionPolicy;
+    resolvedSkills: ResolvedRuntimeSkill[];
     systemPrompt: string | undefined;
     memories: AgentMemoryDocument[];
   }> {
@@ -3522,30 +3546,51 @@ export class AgentOrchestratorService {
       agentTypeConfig?.defaultModel ||
       DEFAULT_AGENT_CHAT_MODEL;
 
+    // Resolve active skills for this brand + strategy
+    const resolvedSkills = this.skillRuntimeService && policy.brandId
+      ? await this.skillRuntimeService.resolveActiveSkills(
+          context.organizationId,
+          policy.brandId,
+          strategy?.skillSlugs,
+        )
+      : [];
+    const skillPromptSuffix = this.skillRuntimeService
+      ? this.skillRuntimeService.buildSkillPromptSections(resolvedSkills)
+      : '';
+
     if (shouldUseOnboardingPrompt) {
       return {
         memories,
         model: resolveModel(),
         policy,
+        resolvedSkills,
         systemPrompt: ONBOARDING_SYSTEM_PROMPT,
       };
     }
 
     if (thread?.systemPrompt) {
+      const prompt = skillPromptSuffix
+        ? `${thread.systemPrompt}\n\n${skillPromptSuffix}`
+        : thread.systemPrompt;
       return {
         memories,
         model: resolveModel(brandContext?.defaultModel),
         policy,
-        systemPrompt: thread.systemPrompt,
+        resolvedSkills,
+        systemPrompt: prompt,
       };
     }
 
     if (request.systemPromptOverride) {
+      const prompt = skillPromptSuffix
+        ? `${request.systemPromptOverride}\n\n${skillPromptSuffix}`
+        : request.systemPromptOverride;
       return {
         memories,
         model: resolveModel(brandContext?.defaultModel),
         policy,
-        systemPrompt: request.systemPromptOverride,
+        resolvedSkills,
+        systemPrompt: prompt,
       };
     }
     const typeSuffix = agentTypeConfig?.systemPromptSuffix ?? '';
@@ -3553,7 +3598,8 @@ export class AgentOrchestratorService {
       !typeSuffix && request.content
         ? detectPlatformIntentSuffix(request.content)
         : '';
-    const basePrompt = SYSTEM_PROMPT + (typeSuffix || platformSuffix);
+    const basePrompt = SYSTEM_PROMPT + (typeSuffix || platformSuffix)
+      + (skillPromptSuffix ? `\n\n${skillPromptSuffix}` : '');
 
     if (brandContext) {
       const systemPrompt = this.contextAssemblyService.buildSystemPrompt(
@@ -3565,6 +3611,7 @@ export class AgentOrchestratorService {
         memories,
         model: resolveModel(brandContext.defaultModel),
         policy,
+        resolvedSkills,
         systemPrompt,
       };
     }
@@ -3589,6 +3636,7 @@ export class AgentOrchestratorService {
         memories,
         model: resolveModel(),
         policy,
+        resolvedSkills,
         systemPrompt,
       };
     }
@@ -3597,6 +3645,7 @@ export class AgentOrchestratorService {
       memories,
       model: resolveModel(),
       policy,
+      resolvedSkills,
       systemPrompt: agentTypeConfig?.systemPromptSuffix
         ? basePrompt
         : undefined,
