@@ -8,6 +8,7 @@ import {
 } from '@genfeedai/workflow';
 import { metadata } from '@helpers/media/metadata/metadata.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
@@ -80,6 +81,8 @@ function WorkflowCardPreview({
 }
 
 function EmptyWorkflowState() {
+  const { href } = useOrgUrl();
+
   return (
     <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-white/10 bg-card/40 px-6 py-16 text-center">
       <span className="flex size-16 items-center justify-center rounded-full bg-foreground/5 text-foreground/30">
@@ -93,14 +96,14 @@ function EmptyWorkflowState() {
         </p>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-3">
-        <Link href="/workflows/templates">
+        <Link href={href('/workflows/templates')}>
           <Button
             label="Browse Templates"
             variant={ButtonVariant.SECONDARY}
             icon={<HiOutlineDocumentDuplicate className="size-4" />}
           />
         </Link>
-        <Link href="/workflows/new">
+        <Link href={href('/workflows/new')}>
           <Button
             label="Create Workflow"
             variant={ButtonVariant.DEFAULT}
@@ -116,6 +119,7 @@ function EmptyWorkflowState() {
  * Workflow Library - List of saved workflows
  */
 export default function WorkflowLibraryPage() {
+  const { href } = useOrgUrl();
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -218,14 +222,14 @@ export default function WorkflowLibraryPage() {
       icon={HiOutlineBolt}
       right={
         <>
-          <Link href="/workflows/templates">
+          <Link href={href('/workflows/templates')}>
             <Button
               label="Templates"
               variant={ButtonVariant.SECONDARY}
               icon={<HiOutlineDocumentDuplicate className="size-4" />}
             />
           </Link>
-          <Link href="/workflows/new">
+          <Link href={href('/workflows/new')}>
             <Button
               label="New Workflow"
               variant={ButtonVariant.DEFAULT}
@@ -240,7 +244,7 @@ export default function WorkflowLibraryPage() {
         explicit automation graphs. Schedule a workflow when the steps should be
         predictable and repeatable. For adaptive agent behavior, use
         <Link
-          href="/orchestration/autopilot"
+          href={href('/orchestration/autopilot')}
           className="ml-1 underline underline-offset-2"
         >
           Autopilot
@@ -252,7 +256,7 @@ export default function WorkflowLibraryPage() {
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {workflows.map((workflow) => (
-            <Link key={workflow._id} href={`/workflows/${workflow._id}`}>
+            <Link key={workflow._id} href={href(`/workflows/${workflow._id}`)}>
               <Card
                 className="h-full hover:-translate-y-0.5"
                 label={workflow.name}

@@ -1,6 +1,7 @@
 'use client';
 
 import { WorkflowEditor } from '@genfeedai/workflow';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import WorkflowEditorToolbarNavigation from '../components/WorkflowEditorToolbarNavigation';
 
 interface WorkflowDetailPageClientProps {
@@ -12,11 +13,13 @@ export default function WorkflowDetailPageClient({
   workflowId,
   initialExecutionId,
 }: WorkflowDetailPageClientProps) {
+  const { href } = useOrgUrl();
+
   return (
     <WorkflowEditor
       initialExecutionId={initialExecutionId}
       workflowId={workflowId}
-      logoHref="/workflows"
+      logoHref={href('/workflows')}
       toolbarLeftContent={<WorkflowEditorToolbarNavigation />}
     />
   );

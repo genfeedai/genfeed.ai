@@ -3,6 +3,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import type { ExecutionResult } from '@genfeedai/workflow';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
 import Button from '@ui/buttons/base/Button';
 import { createWorkflowApiService } from '@workflow-cloud/services/workflow-api';
@@ -20,6 +21,7 @@ const EXECUTIONS_PER_PAGE = 20;
  * Execution History - List of workflow execution runs
  */
 export default function WorkflowExecutionsPage() {
+  const { href } = useOrgUrl();
   const [executions, setExecutions] = useState<ExecutionResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -165,7 +167,7 @@ export default function WorkflowExecutionsPage() {
               Run a workflow to see execution history here
             </p>
             <Link
-              href="/workflows"
+              href={href('/workflows')}
               className=" bg-primary px-6 py-3 text-primary-foreground hover:bg-primary/90"
             >
               Go to Automations
@@ -215,7 +217,9 @@ export default function WorkflowExecutionsPage() {
                       <tr key={execution._id} className="hover:bg-muted/30">
                         <td className="px-4 py-3">
                           <Link
-                            href={`/workflows/${getWorkflowId(execution.workflow)}`}
+                            href={href(
+                              `/workflows/${getWorkflowId(execution.workflow)}`,
+                            )}
                             className="font-medium hover:text-primary"
                           >
                             {getWorkflowLabel(execution.workflow)}
@@ -269,7 +273,9 @@ export default function WorkflowExecutionsPage() {
                         </td>
                         <td className="px-4 py-3">
                           <Link
-                            href={`/workflows/${getWorkflowId(execution.workflow)}?execution=${execution._id}`}
+                            href={href(
+                              `/workflows/${getWorkflowId(execution.workflow)}?execution=${execution._id}`,
+                            )}
                             className="text-sm text-primary hover:underline"
                           >
                             View Details
