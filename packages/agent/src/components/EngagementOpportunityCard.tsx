@@ -1,4 +1,7 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
+import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useCallback, useState } from 'react';
 import {
   HiChatBubbleLeftRight,
@@ -95,11 +98,11 @@ export function EngagementOpportunityCard({
           Draft Reply
         </label>
         {isEditing ? (
-          <textarea
+          <Textarea
             value={reply}
             onChange={(e) => setReply(e.target.value)}
             rows={3}
-            className="w-full resize-none rounded border border-border bg-background px-2.5 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full resize-none"
           />
         ) : (
           <div className="rounded border border-border bg-background p-2.5 text-sm text-foreground">
@@ -110,31 +113,34 @@ export function EngagementOpportunityCard({
 
       {/* Action buttons */}
       <div className="flex gap-2">
-        <button
-          type="button"
+        <Button
+          variant={ButtonVariant.DEFAULT}
+          size={ButtonSize.SM}
           onClick={handleApprove}
-          disabled={!reply.trim()}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded bg-green-500 px-3 py-1.5 text-xs font-black text-white transition-colors hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed"
+          isDisabled={!reply.trim()}
+          className="flex-1 bg-green-500 text-white hover:bg-green-600"
         >
           <HiCheck className="h-3.5 w-3.5" />
           Approve
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant={ButtonVariant.OUTLINE}
+          size={ButtonSize.SM}
           onClick={handleEdit}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded border border-border px-3 py-1.5 text-xs font-black text-foreground transition-colors hover:bg-accent"
+          className="flex-1"
         >
           <HiPencil className="h-3.5 w-3.5" />
           {isEditing ? 'Save' : 'Edit'}
-        </button>
-        <button
-          type="button"
+        </Button>
+        <Button
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.SM}
           onClick={handleSkip}
-          className="flex flex-1 items-center justify-center gap-1.5 rounded bg-muted px-3 py-1.5 text-xs font-black text-muted-foreground transition-colors hover:bg-muted/80"
+          className="flex-1 bg-muted text-muted-foreground hover:bg-muted/80"
         >
           <HiForward className="h-3.5 w-3.5" />
           Skip
-        </button>
+        </Button>
       </div>
     </div>
   );

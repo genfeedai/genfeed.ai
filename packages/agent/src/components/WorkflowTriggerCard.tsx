@@ -1,7 +1,9 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
+import { ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import Button from '@ui/buttons/base/Button';
 import { type ReactElement, useCallback, useRef, useState } from 'react';
 import {
   HiCheckCircle,
@@ -103,10 +105,11 @@ export function WorkflowTriggerCard({
         {/* Workflow list */}
         <div className="space-y-1.5">
           {workflows.map((wf) => (
-            <button
+            <Button
               key={wf.id}
-              type="button"
-              disabled={status !== 'idle'}
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
+              isDisabled={status !== 'idle'}
               onClick={() => setSelectedId(wf.id)}
               className={`w-full rounded border px-3 py-2 text-left transition-colors disabled:opacity-50 ${
                 selectedId === wf.id
@@ -131,21 +134,21 @@ export function WorkflowTriggerCard({
                   {wf.description}
                 </p>
               )}
-            </button>
+            </Button>
           ))}
         </div>
 
         {/* Trigger button */}
         {status === 'idle' && (
-          <button
-            type="button"
+          <Button
+            variant={ButtonVariant.DEFAULT}
             onClick={handleTrigger}
-            disabled={!selectedId}
-            className="flex w-full items-center justify-center gap-2 rounded bg-primary px-4 py-2 text-sm font-black text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+            isDisabled={!selectedId}
+            className="w-full"
           >
             <HiOutlineBolt className="h-4 w-4" />
             Run Workflow
-          </button>
+          </Button>
         )}
 
         {/* Triggering state */}
@@ -187,13 +190,13 @@ export function WorkflowTriggerCard({
                 {error}
               </span>
             </div>
-            <button
-              type="button"
+            <Button
+              variant={ButtonVariant.OUTLINE}
               onClick={handleRetry}
-              className="flex w-full items-center justify-center rounded border border-border px-4 py-2 text-sm font-black text-foreground transition-colors hover:bg-accent"
+              className="w-full"
             >
               Try Again
-            </button>
+            </Button>
           </div>
         )}
       </div>

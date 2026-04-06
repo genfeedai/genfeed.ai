@@ -1,4 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import { type ReactElement, useCallback, useState } from 'react';
 import { HiCheck, HiClipboardDocumentList, HiXMark } from 'react-icons/hi2';
 
@@ -76,13 +78,14 @@ export function ReviewGateCard({
             {action.title || 'Review Queue'}
           </h3>
         </div>
-        <button
+        <Button
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.XS}
           onClick={selectAll}
-          className="text-xs text-blue-500 hover:text-blue-600"
-          type="button"
+          className="text-blue-500 hover:text-blue-600"
         >
           Select All
-        </button>
+        </Button>
       </div>
 
       {action.description && (
@@ -129,24 +132,26 @@ export function ReviewGateCard({
 
       {items.length > 0 && (
         <div className="flex gap-2 mt-3 pt-3 border-t border-border">
-          <button
+          <Button
+            variant={ButtonVariant.DEFAULT}
+            size={ButtonSize.SM}
             onClick={handleApprove}
-            disabled={selected.size === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-black bg-green-500 text-white hover:bg-green-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            type="button"
+            isDisabled={selected.size === 0}
+            className="bg-green-500 text-white hover:bg-green-600"
           >
             <HiCheck className="w-3.5 h-3.5" />
             Approve ({selected.size})
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={ButtonVariant.DESTRUCTIVE}
+            size={ButtonSize.SM}
             onClick={handleReject}
-            disabled={selected.size === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-black bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-            type="button"
+            isDisabled={selected.size === 0}
+            className="bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/30 dark:text-red-400"
           >
             <HiXMark className="w-3.5 h-3.5" />
             Reject ({selected.size})
-          </button>
+          </Button>
         </div>
       )}
     </div>

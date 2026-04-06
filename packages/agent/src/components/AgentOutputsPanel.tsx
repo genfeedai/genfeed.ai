@@ -5,8 +5,8 @@ import type {
 } from '@genfeedai/agent/utils/extract-thread-outputs';
 import { extractThreadOutputs } from '@genfeedai/agent/utils/extract-thread-outputs';
 import { ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import { Pre } from '@genfeedai/ui';
+import { cn } from '@helpers/formatting/cn/cn.util';
 import Button from '@ui/buttons/base/Button';
 import type { ReactElement } from 'react';
 import { useEffect, useMemo, useState } from 'react';
@@ -84,7 +84,11 @@ function renderVariantPreview(
           <HiOutlineDocumentText className="h-4 w-4 text-primary/80" />
           {variant.title ?? group.title}
         </div>
-        <Pre variant="ghost" size="md" className="max-h-[18rem] overflow-y-auto text-foreground/75">
+        <Pre
+          variant="ghost"
+          size="md"
+          className="max-h-[18rem] overflow-y-auto text-foreground/75"
+        >
           {variant.textContent}
         </Pre>
       </div>
@@ -226,9 +230,10 @@ export function AgentOutputsPanel({
         {selectedGroup && selectedGroup.variants.length > 1 ? (
           <div className="flex flex-wrap gap-2">
             {selectedGroup.variants.map((variant, index) => (
-              <button
+              <Button
                 key={variant.id}
-                type="button"
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
                 onClick={() => setSelectedVariantId(variant.id)}
                 className={cn(
                   'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
@@ -239,7 +244,7 @@ export function AgentOutputsPanel({
               >
                 <VariantIcon kind={variant.kind} />
                 {getVariantLabel(selectedGroup, variant, index)}
-              </button>
+              </Button>
             ))}
           </div>
         ) : null}
@@ -306,9 +311,10 @@ export function AgentOutputsPanel({
           {outputs.map((group) => {
             const previewVariant = group.variants[0];
             return (
-              <button
+              <Button
                 key={group.id}
-                type="button"
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
                 onClick={() => {
                   setSelectedGroupId(group.id);
                   setSelectedVariantId(group.variants[0]?.id ?? null);
@@ -344,7 +350,7 @@ export function AgentOutputsPanel({
                     {group.variants.length === 1 ? '' : 's'}
                   </p>
                 </div>
-              </button>
+              </Button>
             );
           })}
         </div>

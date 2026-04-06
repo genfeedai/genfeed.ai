@@ -1,5 +1,7 @@
-import { cn } from '@helpers/formatting/cn/cn.util';
+import { ButtonVariant } from '@genfeedai/enums';
 import { Pre } from '@genfeedai/ui';
+import { cn } from '@helpers/formatting/cn/cn.util';
+import Button from '@ui/buttons/base/Button';
 import {
   AlertCircle,
   CheckCircle2,
@@ -47,7 +49,11 @@ function EvidenceItem({ evidence }: { evidence: Evidence }) {
           <AlertCircle className="size-4 text-red-400 ml-auto" />
         )}
       </div>
-      <Pre variant="ghost" size="xs" className="text-white/50 bg-black/20 max-h-40 overflow-y-auto">
+      <Pre
+        variant="ghost"
+        size="xs"
+        className="text-white/50 bg-black/20 max-h-40 overflow-y-auto"
+      >
         {evidence.content}
       </Pre>
     </div>
@@ -103,13 +109,14 @@ function VerificationPanelInner() {
       )}
 
       {canAdvance && (
-        <button
-          type="button"
+        <Button
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           onClick={() => advance('user')}
           className="w-full py-2.5 text-sm font-semibold bg-emerald-500 text-white rounded-lg hover:bg-emerald-400 transition-colors"
         >
           Accept & mark complete
-        </button>
+        </Button>
       )}
     </div>
   );

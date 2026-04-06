@@ -4,6 +4,15 @@ import type { AgentStrategyApiService } from '@genfeedai/agent/services/agent-st
 import { useAgentStrategyStore } from '@genfeedai/agent/stores/agent-strategy.store';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import {
   type ReactElement,
   useCallback,
@@ -288,19 +297,18 @@ export function AgentStrategyConfig({
 
         <div className="space-y-1">
           <label className="text-xs font-medium text-foreground">Label</label>
-          <input
+          <Input
             type="text"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="e.g. Weekly lifestyle content"
-            className="w-full rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
           />
         </div>
 
         <div className="space-y-1">
           <label className="text-xs font-medium text-foreground">Topics</label>
           <div className="flex gap-2">
-            <input
+            <Input
               type="text"
               value={topicInput}
               onChange={(e) => setTopicInput(e.target.value)}
@@ -311,7 +319,7 @@ export function AgentStrategyConfig({
                 }
               }}
               placeholder="Add a topic..."
-              className="flex-1 rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+              className="flex-1"
             />
             <Button
               variant={ButtonVariant.DEFAULT}
@@ -345,12 +353,11 @@ export function AgentStrategyConfig({
 
         <div className="space-y-1">
           <label className="text-xs font-medium text-foreground">Voice</label>
-          <textarea
+          <Textarea
             value={voice}
             onChange={(e) => setVoice(e.target.value)}
             placeholder="Describe your brand voice..."
             rows={3}
-            className="w-full rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
           />
         </div>
 
@@ -389,47 +396,48 @@ export function AgentStrategyConfig({
             <label className="text-xs font-medium text-foreground">
               Run Frequency
             </label>
-            <select
-              value={runFrequency}
-              onChange={(e) => setRunFrequency(e.target.value)}
-              className="w-full rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
-            >
-              {RUN_FREQUENCY_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+            <Select value={runFrequency} onValueChange={setRunFrequency}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {RUN_FREQUENCY_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-1">
             <label className="text-xs font-medium text-foreground">
               Timezone
             </label>
-            <select
-              value={timezone}
-              onChange={(e) => setTimezone(e.target.value)}
-              className="w-full rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
-            >
-              {TIMEZONE_OPTIONS.map((tz) => (
-                <option key={tz} value={tz}>
-                  {tz}
-                </option>
-              ))}
-            </select>
+            <Select value={timezone} onValueChange={setTimezone}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TIMEZONE_OPTIONS.map((tz) => (
+                  <SelectItem key={tz} value={tz}>
+                    {tz}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-1">
             <label className="text-xs font-medium text-foreground">
               Posts / Week
             </label>
-            <input
+            <Input
               type="number"
               value={postsPerWeek}
               onChange={(e) => setPostsPerWeek(Number(e.target.value))}
               min={1}
               max={100}
-              className="w-full rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
             />
           </div>
         </div>
@@ -446,12 +454,11 @@ export function AgentStrategyConfig({
             <label className="text-xs font-medium text-foreground">
               Daily Credit Budget
             </label>
-            <input
+            <Input
               type="number"
               value={dailyCreditBudget}
               onChange={(e) => setDailyCreditBudget(Number(e.target.value))}
               min={0}
-              className="w-full rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
             />
           </div>
 
@@ -459,12 +466,11 @@ export function AgentStrategyConfig({
             <label className="text-xs font-medium text-foreground">
               Weekly Credit Budget
             </label>
-            <input
+            <Input
               type="number"
               value={weeklyCreditBudget}
               onChange={(e) => setWeeklyCreditBudget(Number(e.target.value))}
               min={0}
-              className="w-full rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
             />
           </div>
         </div>
@@ -482,6 +488,7 @@ export function AgentStrategyConfig({
             Engagement
           </h3>
           <svg
+            aria-hidden="true"
             width="14"
             height="14"
             viewBox="0 0 24 24"
@@ -527,7 +534,7 @@ export function AgentStrategyConfig({
                     Keywords
                   </label>
                   <div className="flex gap-2">
-                    <input
+                    <Input
                       type="text"
                       value={keywordInput}
                       onChange={(e) => setKeywordInput(e.target.value)}
@@ -538,7 +545,7 @@ export function AgentStrategyConfig({
                         }
                       }}
                       placeholder="Add a keyword..."
-                      className="flex-1 rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
+                      className="flex-1"
                     />
                     <Button
                       variant={ButtonVariant.DEFAULT}
@@ -575,24 +582,28 @@ export function AgentStrategyConfig({
                     <label className="text-xs font-medium text-foreground">
                       Tone
                     </label>
-                    <select
+                    <Select
                       value={engagementTone}
-                      onChange={(e) => setEngagementTone(e.target.value)}
-                      className="w-full rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
+                      onValueChange={setEngagementTone}
                     >
-                      {TONE_OPTIONS.map((tone) => (
-                        <option key={tone} value={tone}>
-                          {tone.charAt(0).toUpperCase() + tone.slice(1)}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TONE_OPTIONS.map((tone) => (
+                          <SelectItem key={tone} value={tone}>
+                            {tone.charAt(0).toUpperCase() + tone.slice(1)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="space-y-1">
                     <label className="text-xs font-medium text-foreground">
                       Max / Day
                     </label>
-                    <input
+                    <Input
                       type="number"
                       value={maxEngagementsPerDay}
                       onChange={(e) =>
@@ -600,7 +611,6 @@ export function AgentStrategyConfig({
                       }
                       min={0}
                       max={100}
-                      className="w-full rounded border border-border bg-background px-3 py-1.5 text-sm text-foreground focus:border-primary focus:outline-none"
                     />
                   </div>
                 </div>

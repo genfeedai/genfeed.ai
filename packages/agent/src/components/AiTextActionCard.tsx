@@ -1,5 +1,7 @@
 import { AgentGeneratedTextCard } from '@genfeedai/agent/components/AgentGeneratedTextCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import { type ReactElement, useCallback, useState } from 'react';
 import { HiCheck, HiDocumentText } from 'react-icons/hi2';
 
@@ -90,9 +92,10 @@ export function AiTextActionCard({
         </p>
         <div className="flex flex-wrap gap-1.5">
           {availableActions.map((actionLabel) => (
-            <button
+            <Button
               key={actionLabel}
-              type="button"
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
               onClick={() => setSelectedAction(actionLabel)}
               className={`rounded-full border px-3 py-1 text-xs font-black transition-colors ${
                 selectedAction === actionLabel
@@ -101,20 +104,21 @@ export function AiTextActionCard({
               }`}
             >
               {actionLabel}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
 
       {/* Apply button */}
-      <button
-        type="button"
+      <Button
+        variant={ButtonVariant.DEFAULT}
+        withWrapper={false}
         onClick={handleApply}
-        disabled={!selectedAction}
-        className="flex w-full items-center justify-center gap-2 rounded bg-primary px-4 py-2 text-sm font-black text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+        isDisabled={!selectedAction}
+        className="flex w-full items-center justify-center gap-2 rounded px-4 py-2 text-sm font-black"
       >
         Apply
-      </button>
+      </Button>
     </div>
   );
 }

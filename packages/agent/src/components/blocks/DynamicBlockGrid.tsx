@@ -4,6 +4,7 @@ import CompositeLayout from '@genfeedai/agent/components/blocks/CompositeLayout'
 import DynamicChart from '@genfeedai/agent/components/blocks/DynamicChart';
 import DynamicTable from '@genfeedai/agent/components/blocks/DynamicTable';
 import { SafeMarkdown } from '@genfeedai/agent/components/SafeMarkdown';
+import { ButtonVariant } from '@genfeedai/enums';
 import type {
   AgentUIBlock,
   AgentUIBlockWidth,
@@ -22,6 +23,7 @@ import type {
   TextParagraphBlock,
   TopPostsBlock,
 } from '@genfeedai/interfaces';
+import Button from '@ui/buttons/base/Button';
 import type { ReactElement } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -447,12 +449,9 @@ function EmptyState({ block }: { block: EmptyStateBlock }): ReactElement {
       {block.icon && <span className="text-3xl">{block.icon}</span>}
       <p className="text-sm font-medium text-foreground">{block.message}</p>
       {block.ctaLabel && (
-        <button
-          type="button"
-          className="mt-2 rounded bg-primary px-4 py-2 text-xs font-black text-primary-foreground transition-colors hover:bg-primary/90"
-        >
+        <Button variant={ButtonVariant.DEFAULT} className="mt-2">
           {block.ctaLabel}
-        </button>
+        </Button>
       )}
     </div>
   );

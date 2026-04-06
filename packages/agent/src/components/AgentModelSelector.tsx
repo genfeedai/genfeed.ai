@@ -4,8 +4,9 @@ import {
   AGENT_MODELS,
   type AgentModelOption,
 } from '@genfeedai/agent/constants/agent-models.constant';
-import { CostTier } from '@genfeedai/enums';
+import { ButtonVariant, CostTier } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Button from '@ui/buttons/base/Button';
 import {
   Popover,
   PopoverContent,
@@ -44,9 +45,10 @@ export function AgentModelSelector({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="flex items-center gap-1.5 rounded px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        <Button
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
+          className="flex items-center gap-1.5 rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
         >
           {current?.isReasoning && (
             <HiSparkles className="h-3 w-3 text-purple-400" />
@@ -59,7 +61,7 @@ export function AgentModelSelector({
           <HiChevronUp
             className={cn('h-3 w-3 transition-transform', open && 'rotate-180')}
           />
-        </button>
+        </Button>
       </PopoverTrigger>
       <PopoverContent
         align="start"
@@ -93,16 +95,17 @@ export function AgentModelSelector({
         </div>
         {hasLockedModels && onBuyCredits && (
           <div className="mt-1.5 border-t border-border pt-1.5">
-            <button
-              type="button"
+            <Button
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
               onClick={() => {
                 onBuyCredits();
                 setOpen(false);
               }}
-              className="w-full rounded px-2 py-1.5 text-center text-xs font-black text-primary transition-colors hover:bg-primary/10"
+              className="w-full rounded px-2 py-1.5 text-center text-xs font-black text-primary hover:bg-primary/10"
             >
               Buy Credits
-            </button>
+            </Button>
           </div>
         )}
       </PopoverContent>
@@ -122,11 +125,12 @@ function ModelRow({
   onSelect: () => void;
 }): ReactElement {
   return (
-    <button
-      type="button"
+    <Button
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
       onClick={onSelect}
-      disabled={isLocked}
-      title={isLocked ? `Need ${model.creditCost} credits` : undefined}
+      isDisabled={isLocked}
+      ariaLabel={isLocked ? `Need ${model.creditCost} credits` : model.label}
       className={cn(
         'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs transition-colors',
         isSelected && 'bg-accent',
@@ -148,7 +152,7 @@ function ModelRow({
         <CostBadge costTier={model.costTier} creditCost={model.creditCost} />
         {isLocked && <HiLockClosed className="h-3 w-3 text-muted-foreground" />}
       </div>
-    </button>
+    </Button>
   );
 }
 

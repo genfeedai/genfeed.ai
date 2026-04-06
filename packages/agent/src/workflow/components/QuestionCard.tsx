@@ -1,4 +1,7 @@
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Button from '@ui/buttons/base/Button';
+import { Textarea } from '@ui/primitives/textarea';
 import { CircleHelp, Send } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import type { Question } from '../types';
@@ -87,14 +90,14 @@ function QuestionCardInner({
         </div>
       ) : (
         <div className="ml-8">
-          <textarea
+          <Textarea
             value={freeText}
             onChange={(e) => setFreeText(e.target.value)}
             disabled={disabled || isAnswered}
             placeholder="Type your answer..."
             rows={3}
             className={cn(
-              'w-full px-3 py-2 rounded-lg text-sm bg-white/5 border border-white/10 text-white/90 placeholder:text-white/30 resize-none focus:outline-none focus:ring-1 focus:ring-blue-500/30',
+              'bg-white/5 border-white/10 text-white/90 placeholder:text-white/30 resize-none',
               (disabled || isAnswered) && 'opacity-60',
             )}
           />
@@ -103,10 +106,11 @@ function QuestionCardInner({
 
       {!isAnswered && (
         <div className="mt-3 ml-8">
-          <button
-            type="button"
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
             onClick={handleSubmit}
-            disabled={
+            isDisabled={
               disabled ||
               (question.type === 'multiple_choice'
                 ? !selectedOption
@@ -116,7 +120,7 @@ function QuestionCardInner({
           >
             <Send className="size-3.5" />
             Submit answer
-          </button>
+          </Button>
         </div>
       )}
 
