@@ -5,7 +5,8 @@
  * Tests basic functionality without complex service dependencies
  */
 
-import { ModelKey, ModelProvider } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelProvider } from '@genfeedai/enums';
 import { Logger } from '@nestjs/common';
 
 const logger = new Logger('FalIntegrationTest');
@@ -15,7 +16,7 @@ logger.log('🧪 Testing FAL.AI Integration...\n');
 // Test 1: Enum additions
 logger.log('✅ Testing Enum Integration:');
 logger.log(`   FAL Provider: ${ModelProvider.FAL}`);
-logger.log(`   Sample FAL Model: ${ModelKey.FAL_FLUX_DEV}`);
+logger.log(`   Sample FAL Model: ${MODEL_KEYS.FAL_FLUX_DEV}`);
 logger.log('');
 
 // Test 2: FAL Provider Service
@@ -92,7 +93,7 @@ try {
   const { MODEL_OUTPUT_CAPABILITIES } = await import('@genfeedai/constants');
 
   // Check if our FAL models are in the capabilities
-  const falFluxCapability = MODEL_OUTPUT_CAPABILITIES[ModelKey.FAL_FLUX_DEV];
+  const falFluxCapability = MODEL_OUTPUT_CAPABILITIES[MODEL_KEYS.FAL_FLUX_DEV];
   if (falFluxCapability) {
     logger.log('   ✅ FAL model capabilities loaded');
     logger.log(
