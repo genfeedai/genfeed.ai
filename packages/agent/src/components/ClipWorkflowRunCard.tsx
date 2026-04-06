@@ -257,8 +257,11 @@ export function ClipWorkflowRunCard({
     }
   }, [
     action.brandId,
+    action.id,
     action.platform,
     action.title,
+    action.workflowId,
+    action.workflowName,
     apiService,
     draftReviewUrl,
     finalVideoId,
@@ -492,7 +495,7 @@ export function ClipWorkflowRunCard({
           {workflowExecutionId && (
             <a
               className="block text-primary underline-offset-2 hover:underline"
-              href={`/workflows/executions/${workflowExecutionId}`}
+              href={href(`/workflows/executions/${workflowExecutionId}`)}
             >
               View workflow execution →
             </a>
