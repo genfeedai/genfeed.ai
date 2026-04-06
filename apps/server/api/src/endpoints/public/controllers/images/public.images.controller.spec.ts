@@ -2,12 +2,12 @@ import { ImagesService } from '@api/collections/images/services/images.service';
 import { PublicImagesController } from '@api/endpoints/public/controllers/images/public.images.controller';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { IngredientSerializer } from '@genfeedai/serializers';
 import {
   AssetScope,
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/enums';
+import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type {

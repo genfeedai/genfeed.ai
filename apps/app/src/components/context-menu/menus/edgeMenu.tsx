@@ -6,7 +6,10 @@ interface EdgeMenuOptions {
   onDelete: (edgeId: string) => void;
 }
 
-export function getEdgeMenuItems({ edgeId, onDelete }: EdgeMenuOptions): ContextMenuItemConfig[] {
+export function getEdgeMenuItems({
+  edgeId,
+  onDelete,
+}: EdgeMenuOptions): ContextMenuItemConfig[] {
   return [
     {
       danger: true,

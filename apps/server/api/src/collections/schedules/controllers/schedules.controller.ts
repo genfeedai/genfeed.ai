@@ -20,8 +20,8 @@ import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import type { User } from '@clerk/backend';
-import { ScheduleSerializer } from '@genfeedai/serializers';
 import { ActivitySource } from '@genfeedai/enums';
+import { ScheduleSerializer } from '@genfeedai/serializers';
 import {
   Body,
   Controller,

@@ -1,9 +1,3 @@
-import type {
-  IBot,
-  IEngagementBotSettings,
-  IMonitoringBotSettings,
-  IPublishingBotSettings,
-} from '@genfeedai/interfaces';
 import { type BotSchema, botSchema } from '@genfeedai/client/schemas';
 import {
   AlertCategory,
@@ -18,6 +12,12 @@ import {
   Platform,
   PublishingFrequency,
 } from '@genfeedai/enums';
+import type {
+  IBot,
+  IEngagementBotSettings,
+  IMonitoringBotSettings,
+  IPublishingBotSettings,
+} from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,

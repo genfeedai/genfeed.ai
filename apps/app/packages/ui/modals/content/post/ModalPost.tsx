@@ -1,4 +1,3 @@
-import type { ICredential, IIngredient, IPost } from '@genfeedai/interfaces';
 import {
   type PostModalSchema,
   postModalSchema,
@@ -10,6 +9,7 @@ import {
   Platform,
   PostStatus,
 } from '@genfeedai/enums';
+import type { ICredential, IIngredient, IPost } from '@genfeedai/interfaces';
 import { getPostStatusOptions } from '@helpers/content/posts.helper';
 import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import {

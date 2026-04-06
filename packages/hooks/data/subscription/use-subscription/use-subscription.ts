@@ -1,11 +1,11 @@
 import { useUser } from '@clerk/nextjs';
 import type { UserResource } from '@clerk/types';
+import { SubscriptionStatus } from '@genfeedai/enums';
 import type {
   IBillingPortalResponse,
   ICreditsBreakdown,
 } from '@genfeedai/interfaces';
 import type { UseSubscriptionReturn } from '@genfeedai/interfaces/hooks/hooks.interface';
-import { SubscriptionStatus } from '@genfeedai/enums';
 import { getClerkPublicData } from '@helpers/auth/clerk.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';

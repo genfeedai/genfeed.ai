@@ -32,6 +32,21 @@ import { ReplicateService } from '@api/services/integrations/replicate/replicate
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import {
+  CaptionFormat,
+  CaptionLanguage,
+  CredentialPlatform,
+  FileInputType,
+  IngredientCategory,
+  IngredientStatus,
+  MetadataExtension,
+  ModelCategory,
+  ModelKey,
+  MusicSourceType,
+  PostCategory,
+  PostStatus,
+  TransformationCategory,
+} from '@genfeedai/enums';
 import type {
   ExecutableEdge,
   ExecutableNode,
@@ -57,22 +72,8 @@ import {
   type NodeExecutor,
   WorkflowEngine,
 } from '@genfeedai/workflow-engine';
-import {
-  CaptionFormat,
-  CaptionLanguage,
-  CredentialPlatform,
-  FileInputType,
-  IngredientCategory,
-  IngredientStatus,
-  MetadataExtension,
-  ModelCategory,
-  ModelKey,
-  MusicSourceType,
-  PostCategory,
-  PostStatus,
-  TransformationCategory,
-} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable, Optional } from '@nestjs/common';
 import { Types } from 'mongoose';
 
@@ -764,7 +765,7 @@ export class WorkflowEngineAdapterService {
             captionContent,
             inputPath: `${this.configService.ingredientsEndpoint}/videos/${sourceIngredientId}`,
           },
-          room: `user-${context.userId}`,
+          room: getUserRoomName(context.userId),
           type: 'add-captions',
           userId: context.userId,
           websocketUrl: `/videos/${ingredientId}`,

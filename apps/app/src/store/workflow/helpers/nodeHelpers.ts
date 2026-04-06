@@ -15,7 +15,7 @@ export function generateId(): string {
 export function getHandleType(
   nodeType: NodeType,
   handleId: string | null,
-  direction: 'source' | 'target'
+  direction: 'source' | 'target',
 ): HandleType | null {
   const nodeDef = NODE_DEFINITIONS[nodeType];
   if (!nodeDef) return null;

@@ -1,13 +1,5 @@
 'use client';
 
-import type {
-  ICredential,
-  IIngredient,
-  IPost,
-  IPreset,
-  IQueryParams,
-} from '@genfeedai/interfaces';
-import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
 import { usePostsLayout } from '@contexts/posts/posts-layout-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { EMPTY_STATES, ITEMS_PER_PAGE } from '@genfeedai/constants';
@@ -24,6 +16,14 @@ import {
   ViewType,
   WebSocketEventStatus,
 } from '@genfeedai/enums';
+import type {
+  ICredential,
+  IIngredient,
+  IPost,
+  IPreset,
+  IQueryParams,
+} from '@genfeedai/interfaces';
+import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
 import {
   normalizePostsPlatform,
   PLATFORM_LABEL_MAP,
@@ -925,7 +925,7 @@ export default function PostsList({
         router.push(href(`/posts/${remixPost.id}`));
       });
     },
-    [getPostsService, notificationsService, openPostRemixModal, router],
+    [getPostsService, notificationsService, openPostRemixModal, router, href],
   );
 
   // Table actions configuration - memoized to prevent unnecessary re-renders
@@ -1178,7 +1178,7 @@ export default function PostsList({
 
       router.replace(newUrl, { scroll: false });
     },
-    [pathname, router, searchParamsString],
+    [pathname, router, searchParamsString, scope],
   );
 
   const sortOptions = useMemo(

@@ -1,5 +1,5 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import { VoiceProvider } from '@genfeedai/enums';
+import type { VoiceProvider } from '@genfeedai/enums';
 import type {
   IOnboardingJourneyMissionState,
   IOrganizationSetting,

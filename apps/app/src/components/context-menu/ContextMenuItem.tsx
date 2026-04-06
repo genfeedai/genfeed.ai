@@ -57,7 +57,7 @@ export function ContextMenuItem({
         onClose?.();
       }
     },
-    [onClose]
+    [onClose],
   );
 
   const hasSubmenu = submenu && submenu.length > 0;
@@ -89,9 +89,13 @@ export function ContextMenuItem({
         )}
         {label && <span className="flex-1">{label}</span>}
         {shortcut && !hasSubmenu && (
-          <span className="text-xs text-[var(--muted-foreground)] ml-4">{shortcut}</span>
+          <span className="text-xs text-[var(--muted-foreground)] ml-4">
+            {shortcut}
+          </span>
         )}
-        {hasSubmenu && <ChevronRight className="w-4 h-4 text-[var(--muted-foreground)]" />}
+        {hasSubmenu && (
+          <ChevronRight className="w-4 h-4 text-[var(--muted-foreground)]" />
+        )}
       </button>
 
       {/* Submenu */}

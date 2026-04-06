@@ -1,11 +1,3 @@
-import type {
-  ICredential,
-  IIngredient,
-  IMetadata,
-  IOrganizationSetting,
-  IPostPlatformConfig,
-} from '@genfeedai/interfaces';
-import type { PlatformSubmissionStatus } from '@genfeedai/interfaces/modals/platform-submission-status.interface';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   type MultiPostSchema,
@@ -21,6 +13,14 @@ import {
   PostCategory,
   PostStatus,
 } from '@genfeedai/enums';
+import type {
+  ICredential,
+  IIngredient,
+  IMetadata,
+  IOrganizationSetting,
+  IPostPlatformConfig,
+} from '@genfeedai/interfaces';
+import type { PlatformSubmissionStatus } from '@genfeedai/interfaces/modals/platform-submission-status.interface';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import {
@@ -237,7 +237,7 @@ export default function ModalPostBatch({
 
   const isCredentialValid = useCallback(
     (credential: ICredential | undefined): boolean => {
-      if (!credential || !credential.isConnected) {
+      if (!credential?.isConnected) {
         return false;
       }
 

@@ -18,7 +18,8 @@ import { NotificationsService } from '@services/core/notifications.service';
 import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
 import { PageScope } from '@ui-constants/misc.constant';
 import Link from 'next/link';
-import React, { useEffect, useMemo, useState } from 'react';
+import type React from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { HiListBullet } from 'react-icons/hi2';
 
 const DEFAULT_COLOR = '#8b5cf6';

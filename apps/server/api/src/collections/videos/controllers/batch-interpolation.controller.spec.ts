@@ -55,6 +55,7 @@ import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { User } from '@clerk/backend';
 import { IngredientFormat } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -285,7 +286,7 @@ describe('BatchInterpolationController', () => {
         ).toHaveBeenCalledWith(
           expect.objectContaining({
             progress: 0,
-            room: `user-${mockUser.id}`,
+            room: getUserRoomName(mockUser.id),
             status: 'processing',
             userId: mockUser.id,
           }),

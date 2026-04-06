@@ -143,7 +143,9 @@ describe('useNodeActions', () => {
     });
 
     it('should not include null results', () => {
-      mockDuplicateNode.mockReturnValueOnce('new-id-1').mockReturnValueOnce(null);
+      mockDuplicateNode
+        .mockReturnValueOnce('new-id-1')
+        .mockReturnValueOnce(null);
 
       const { result } = renderHook(() => useNodeActions());
 

@@ -10,8 +10,8 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { BeehiivService } from '@api/services/integrations/beehiiv/services/beehiiv.service';
 import type { User } from '@clerk/backend';
-import { CredentialSerializer } from '@genfeedai/serializers';
 import { CredentialPlatform } from '@genfeedai/enums';
+import { CredentialSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Body, Controller, Get, Post, Query, Req } from '@nestjs/common';

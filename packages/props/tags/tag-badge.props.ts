@@ -1,5 +1,5 @@
-import type { ITag } from '@genfeedai/interfaces';
 import type { ComponentSize } from '@genfeedai/enums';
+import type { ITag } from '@genfeedai/interfaces';
 
 export interface TagBadgeProps {
   tag: ITag;

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getImageDimensions, getVideoMetadata } from './media';
 
 describe('getImageDimensions', () => {
@@ -10,7 +10,7 @@ describe('getImageDimensions', () => {
       'Image',
       vi.fn().mockImplementation(function imageConstructor(this: unknown) {
         return mockImage;
-      })
+      }),
     );
   });
 

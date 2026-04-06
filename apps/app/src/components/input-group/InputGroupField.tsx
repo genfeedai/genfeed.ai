@@ -1,6 +1,10 @@
 'use client';
 
-import type { ActionConfig, ActionUIPattern, FieldWidth } from '@genfeedai/types';
+import type {
+  ActionConfig,
+  ActionUIPattern,
+  FieldWidth,
+} from '@genfeedai/types';
 import { clsx } from 'clsx';
 import { AlertCircle } from 'lucide-react';
 import { memo, type ReactNode } from 'react';
@@ -70,14 +74,17 @@ function InputGroupFieldComponent({
         'relative group',
         WIDTH_CLASSES[width],
         disabled && 'opacity-50 pointer-events-none',
-        className
+        className,
       )}
     >
       {/* Label Row */}
       {(label || actions?.length) && (
         <div className="flex items-center justify-between mb-1.5">
           {label && (
-            <label htmlFor={id} className="text-sm font-medium text-[var(--foreground)]">
+            <label
+              htmlFor={id}
+              className="text-sm font-medium text-[var(--foreground)]"
+            >
               {label}
               {required && <span className="text-red-400 ml-0.5">*</span>}
             </label>
@@ -98,7 +105,9 @@ function InputGroupFieldComponent({
 
       {/* Helper Text */}
       {helperText && !error && (
-        <p className="text-xs text-[var(--muted-foreground)] mt-1">{helperText}</p>
+        <p className="text-xs text-[var(--muted-foreground)] mt-1">
+          {helperText}
+        </p>
       )}
 
       {/* Error Message */}

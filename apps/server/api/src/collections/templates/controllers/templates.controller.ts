@@ -26,8 +26,8 @@ import {
 import { TemplateFilterUtil } from '@api/helpers/utils/template-filter/template-filter.util';
 import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import type { User } from '@clerk/backend';
-import { TemplateSerializer } from '@genfeedai/serializers';
 import { ActivitySource } from '@genfeedai/enums';
+import { TemplateSerializer } from '@genfeedai/serializers';
 import {
   Body,
   Controller,

@@ -23,5 +23,3 @@
   "extends": "../tsconfig.json",
   "include": ["src/**/*", "src/**/*.d.ts"]
 }
-
-

@@ -1,8 +1,6 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
-import type { AgentRunStats } from '@genfeedai/types';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   ButtonSize,
@@ -10,10 +8,12 @@ import {
   PromptCategory,
   SystemPromptKey,
 } from '@genfeedai/enums';
+import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
+import type { AgentRunStats } from '@genfeedai/types';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useWebsocketPrompt } from '@hooks/utils/use-websocket-prompt/use-websocket-prompt';
-import { Ingredient } from '@models/content/ingredient.model';
+import type { Ingredient } from '@models/content/ingredient.model';
 import { Prompt } from '@models/content/prompt.model';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import { AgentRunsService } from '@services/ai/agent-runs.service';
@@ -318,7 +318,7 @@ const WorkspaceBrandMentionList = forwardRef<
 
   useEffect(() => {
     setSelectedIndex(0);
-  }, [items]);
+  }, []);
 
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }: { event: KeyboardEvent }) => {
@@ -503,7 +503,7 @@ function useWorkspaceTaskLinkedRunSummary(
     getEmptyLinkedRunSummary(),
   );
   const [isLoading, setIsLoading] = useState(false);
-  const linkedRunIdsKey = useMemo(
+  const _linkedRunIdsKey = useMemo(
     () => task?.linkedRunIds.join('|') ?? '',
     [task?.linkedRunIds],
   );
@@ -601,7 +601,7 @@ function useWorkspaceTaskLinkedRunSummary(
       isCancelled = true;
       controller.abort();
     };
-  }, [getToken, linkedRunIdsKey, task]);
+  }, [getToken, task]);
 
   return {
     ...summary,
@@ -651,7 +651,7 @@ function useWorkspaceTaskLinkedOutputs(
   const [summary, setSummary] = useState<WorkspaceTaskLinkedOutputSummary>(
     getEmptyLinkedOutputSummary(),
   );
-  const linkedOutputIdsKey = useMemo(
+  const _linkedOutputIdsKey = useMemo(
     () => task?.linkedOutputIds.join('|') ?? '',
     [task?.linkedOutputIds],
   );
@@ -735,7 +735,7 @@ function useWorkspaceTaskLinkedOutputs(
     return () => {
       isCancelled = true;
     };
-  }, [getToken, linkedOutputIdsKey, task]);
+  }, [getToken, task]);
 
   return summary;
 }
@@ -1551,7 +1551,6 @@ export default function WorkspacePageContent({
         return unreadInboxTasks;
       case 'all':
         return queueTasks;
-      case 'recent':
       default:
         return recentInboxTasks;
     }
@@ -1581,6 +1580,7 @@ export default function WorkspacePageContent({
       initialStats,
       inProgressTasks.length,
       queueTasks.length,
+      initialReviewInbox.recentItems.length,
     ],
   );
 

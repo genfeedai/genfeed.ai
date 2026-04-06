@@ -16,11 +16,18 @@ export interface GroupSlice {
   getGroupById: (groupId: string) => NodeGroup | undefined;
 }
 
-export const createGroupSlice: StateCreator<WorkflowStore, [], [], GroupSlice> = (set, get) => ({
+export const createGroupSlice: StateCreator<
+  WorkflowStore,
+  [],
+  [],
+  GroupSlice
+> = (set, get) => ({
   addToGroup: (groupId, nodeIds) => {
     set((state) => ({
       groups: state.groups.map((g) =>
-        g.id === groupId ? { ...g, nodeIds: [...new Set([...g.nodeIds, ...nodeIds])] } : g
+        g.id === groupId
+          ? { ...g, nodeIds: [...new Set([...g.nodeIds, ...nodeIds])] }
+          : g,
       ),
       isDirty: true,
     }));
@@ -66,7 +73,9 @@ export const createGroupSlice: StateCreator<WorkflowStore, [], [], GroupSlice> =
   removeFromGroup: (groupId, nodeIds) => {
     set((state) => ({
       groups: state.groups.map((g) =>
-        g.id === groupId ? { ...g, nodeIds: g.nodeIds.filter((id) => !nodeIds.includes(id)) } : g
+        g.id === groupId
+          ? { ...g, nodeIds: g.nodeIds.filter((id) => !nodeIds.includes(id)) }
+          : g,
       ),
       isDirty: true,
     }));
@@ -92,7 +101,9 @@ export const createGroupSlice: StateCreator<WorkflowStore, [], [], GroupSlice> =
     if (!group) return;
 
     set((state) => ({
-      groups: state.groups.map((g) => (g.id === groupId ? { ...g, isLocked: !g.isLocked } : g)),
+      groups: state.groups.map((g) =>
+        g.id === groupId ? { ...g, isLocked: !g.isLocked } : g,
+      ),
       isDirty: true,
     }));
 

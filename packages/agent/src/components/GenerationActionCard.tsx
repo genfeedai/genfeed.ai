@@ -10,7 +10,7 @@ import {
   DEFAULT_AGENT_GENERATION_PRIORITY,
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
-import { ModelCategory, RouterPriority } from '@genfeedai/enums';
+import { ModelCategory, type RouterPriority } from '@genfeedai/enums';
 import { resolveGenerationModelControls } from '@helpers/generation-controls.helper';
 import AspectRatioDropdown from '@ui/dropdowns/aspect-ratio/AspectRatioDropdown';
 import ModelSelectorPopover from '@ui/dropdowns/model-selector/ModelSelectorPopover';
@@ -246,7 +246,7 @@ export function GenerationActionCard({
       el.style.height = 'auto';
       el.style.height = `${el.scrollHeight}px`;
     }
-  }, [prompt]);
+  }, []);
 
   const clearGenerationOutcome = useCallback(() => {
     setResultUrl(null);

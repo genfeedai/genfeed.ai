@@ -1,3 +1,10 @@
+import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
+import type {
+  IngredientCategory,
+  IngredientFormat,
+  ModelCategory,
+  ModelKey,
+} from '@genfeedai/enums';
 import type {
   IAsset,
   IElementBlacklist,
@@ -15,13 +22,6 @@ import type {
   ISound,
 } from '@genfeedai/interfaces';
 import type { MediaConfig } from '@genfeedai/interfaces/ui/media-config.interface';
-import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import type {
-  IngredientCategory,
-  IngredientFormat,
-  ModelCategory,
-  ModelKey,
-} from '@genfeedai/enums';
 import type { Image as ImageModel } from '@models/ingredients/image.model';
 import type {
   PromptBarFormatControlsProps,

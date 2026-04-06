@@ -1,5 +1,5 @@
-import type { IAsset } from '@genfeedai/interfaces';
 import { Asset as BaseAsset } from '@genfeedai/client/models';
+import type { IAsset } from '@genfeedai/interfaces';
 import { User } from '@models/auth/user.model';
 
 export class Asset extends BaseAsset {

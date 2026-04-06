@@ -8,9 +8,7 @@ function cn(...classes: (string | false | undefined | null)[]): string {
 }
 
 function statusLabel(status: string): string {
-  return status
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 interface StatusIconProps {

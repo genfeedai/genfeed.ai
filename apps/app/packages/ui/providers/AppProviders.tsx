@@ -36,7 +36,13 @@ export interface AppProvidersProps {
   storageKey?: string;
 }
 
-function ThemedClerkProvider({
+/**
+ * Whether Clerk is available in this deployment.
+ * Checked once at module load — NEXT_PUBLIC_ vars are inlined at build time.
+ */
+const cloudConnected = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
+
+function ClerkProviderWithTheme({
   children,
   clerkProps,
 }: {
@@ -65,6 +71,24 @@ function ThemedClerkProvider({
   );
 }
 
+function MaybeClerkProvider({
+  children,
+  clerkProps,
+}: {
+  children: ReactNode;
+  clerkProps?: ClerkProviderProps;
+}) {
+  if (!cloudConnected) {
+    return <>{children}</>;
+  }
+
+  return (
+    <ClerkProviderWithTheme clerkProps={clerkProps}>
+      {children}
+    </ClerkProviderWithTheme>
+  );
+}
+
 export default function AppProviders({
   children,
   initialTheme,
@@ -86,7 +110,7 @@ export default function AppProviders({
       storageKey={storageKey}
       disableTransitionOnChange={disableTransitionOnChange}
     >
-      <ThemedClerkProvider clerkProps={clerkProps}>
+      <MaybeClerkProvider clerkProps={clerkProps}>
         <ThemeCookieSync />
         {children}
         {includeToaster ? (
@@ -98,7 +122,7 @@ export default function AppProviders({
         ) : null}
         {includeVercelAnalytics ? <Analytics /> : null}
         {includeSpeedInsights ? <SpeedInsights /> : null}
-      </ThemedClerkProvider>
+      </MaybeClerkProvider>
     </ThemeProvider>
   );
 }

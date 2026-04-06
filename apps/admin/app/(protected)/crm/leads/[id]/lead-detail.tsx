@@ -1,15 +1,15 @@
 'use client';
 
+import Button from '@components/buttons/base/Button';
+import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
+import SocialLinks from '@components/social/SocialLinks';
+import { ButtonVariant } from '@genfeedai/enums';
 import type {
   ICrmCompany,
   ICrmLead,
   ICrmLeadActivity,
   ICrmTask,
 } from '@genfeedai/interfaces';
-import Button from '@components/buttons/base/Button';
-import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
-import SocialLinks from '@components/social/SocialLinks';
-import { ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import ProactiveOnboardingCard from '@protected/crm/leads/[id]/proactive-onboarding-card';

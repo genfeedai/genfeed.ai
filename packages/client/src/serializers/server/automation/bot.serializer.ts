@@ -1,4 +1,7 @@
-import { buildSingleSerializer, type BuiltSerializer } from '../../builders';
+import { type BuiltSerializer, buildSingleSerializer } from '../../builders';
 import { botSerializerConfig } from '../../configs';
 
-export const BotSerializer: BuiltSerializer = buildSingleSerializer('server', botSerializerConfig);
+export const BotSerializer: BuiltSerializer = buildSingleSerializer(
+  'server',
+  botSerializerConfig,
+);

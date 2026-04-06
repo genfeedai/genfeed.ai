@@ -1,5 +1,6 @@
 'use client';
 
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { ChevronDown, Loader2, Plus, Workflow } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -14,9 +15,16 @@ interface WorkflowSwitcherProps {
 
 function WorkflowSwitcherComponent({ className }: WorkflowSwitcherProps) {
   const router = useRouter();
+  const { href } = useOrgUrl();
 
-  const { workflowName, workflowId, isDirty, setWorkflowName, saveWorkflow, listWorkflows } =
-    useWorkflowStore();
+  const {
+    workflowName,
+    workflowId,
+    isDirty,
+    setWorkflowName,
+    saveWorkflow,
+    listWorkflows,
+  } = useWorkflowStore();
 
   // Dropdown state
   const [isOpen, setIsOpen] = useState(false);
@@ -68,7 +76,9 @@ function WorkflowSwitcherComponent({ className }: WorkflowSwitcherProps) {
       })
       .catch((error) => {
         if (error?.name !== 'AbortError') {
-          logger.error('Failed to load workflows', error, { context: 'WorkflowSwitcher' });
+          logger.error('Failed to load workflows', error, {
+            context: 'WorkflowSwitcher',
+          });
         }
         setIsLoading(false);
       });
@@ -110,7 +120,7 @@ function WorkflowSwitcherComponent({ className }: WorkflowSwitcherProps) {
         setIsEditing(false);
       }
     },
-    [handleNameSave, workflowName]
+    [handleNameSave, workflowName],
   );
 
   const handleWorkflowSelect = useCallback(
@@ -130,13 +140,15 @@ function WorkflowSwitcherComponent({ className }: WorkflowSwitcherProps) {
         }
 
         // Navigate to selected workflow
-        router.push(`/workflows/${selectedWorkflow._id}`);
+        router.push(href(`/workflows/${selectedWorkflow._id}`));
       } catch (error) {
-        logger.error('Failed to switch workflow', error, { context: 'WorkflowSwitcher' });
+        logger.error('Failed to switch workflow', error, {
+          context: 'WorkflowSwitcher',
+        });
         setIsSwitching(false);
       }
     },
-    [workflowId, isDirty, saveWorkflow, router]
+    [workflowId, isDirty, saveWorkflow, router, href],
   );
 
   const handleNewWorkflow = useCallback(async () => {
@@ -149,17 +161,19 @@ function WorkflowSwitcherComponent({ className }: WorkflowSwitcherProps) {
         await saveWorkflow();
       }
 
-      router.push('/workflows/new');
+      router.push(href('/workflows/new'));
     } catch (error) {
-      logger.error('Failed to create new workflow', error, { context: 'WorkflowSwitcher' });
+      logger.error('Failed to create new workflow', error, {
+        context: 'WorkflowSwitcher',
+      });
       setIsSwitching(false);
     }
-  }, [isDirty, saveWorkflow, router]);
+  }, [isDirty, saveWorkflow, router, href]);
 
   // Filter out current workflow from list (memoized to avoid re-computation on each render)
   const otherWorkflows = useMemo(
     () => workflows.filter((w) => w._id !== workflowId),
-    [workflows, workflowId]
+    [workflows, workflowId],
   );
 
   return (
@@ -181,7 +195,9 @@ function WorkflowSwitcherComponent({ className }: WorkflowSwitcherProps) {
             disabled={isSwitching}
             className="flex items-center gap-1 text-sm font-semibold text-foreground hover:text-primary transition-colors group"
           >
-            {isSwitching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            {isSwitching ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : null}
             <span
               className="cursor-text"
               onClick={(e) => {
@@ -231,7 +247,9 @@ function WorkflowSwitcherComponent({ className }: WorkflowSwitcherProps) {
                           <Workflow className="h-4 w-4 text-muted-foreground" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium">{workflow.name}</div>
+                          <div className="truncate text-sm font-medium">
+                            {workflow.name}
+                          </div>
                           <div className="text-xs text-muted-foreground">
                             {new Date(workflow.updatedAt).toLocaleDateString()}
                           </div>
@@ -254,7 +272,7 @@ function WorkflowSwitcherComponent({ className }: WorkflowSwitcherProps) {
               </button>
             </div>
           </div>,
-          document.body
+          document.body,
         )}
     </>
   );

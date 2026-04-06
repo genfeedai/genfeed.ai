@@ -1,7 +1,7 @@
 'use client';
 
-import type { PlatformComparisonMetricType } from '@genfeedai/interfaces/analytics/analytics-ui.interface';
 import { AnalyticsMetric, ButtonVariant } from '@genfeedai/enums';
+import type { PlatformComparisonMetricType } from '@genfeedai/interfaces/analytics/analytics-ui.interface';
 import {
   formatCompactNumberIntl,
   formatFullNumber,

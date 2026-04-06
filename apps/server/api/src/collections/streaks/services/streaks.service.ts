@@ -10,6 +10,7 @@ import {
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { ActivityKey } from '@genfeedai/enums';
 import {
   IStreakCalendarResponse,
   type IStreakMilestoneDefinition,
@@ -17,7 +18,6 @@ import {
   type IStreakSummary,
   STREAK_MILESTONES,
 } from '@genfeedai/types';
-import { ActivityKey } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

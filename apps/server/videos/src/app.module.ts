@@ -1,3 +1,6 @@
+import { LoggerModule } from '@libs/logger/logger.module';
+import { HttpModule } from '@nestjs/axios';
+import { Module } from '@nestjs/common';
 import { ConfigModule } from '@videos/config/config.module';
 import { ComfyUIController } from '@videos/controllers/comfyui.controller';
 import { GenerationController } from '@videos/controllers/generation.controller';
@@ -7,9 +10,6 @@ import { GenerationService } from '@videos/services/generation.service';
 import { JobService } from '@videos/services/job.service';
 import { S3Service } from '@videos/services/s3.service';
 import { WorkflowService } from '@videos/services/workflow.service';
-import { LoggerModule } from '@libs/logger/logger.module';
-import { HttpModule } from '@nestjs/axios';
-import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [HealthController, ComfyUIController, GenerationController],

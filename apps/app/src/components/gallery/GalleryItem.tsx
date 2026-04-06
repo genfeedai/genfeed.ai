@@ -22,7 +22,10 @@ const TYPE_BADGES = {
   video: 'VID',
 };
 
-export const GalleryItem = memo(function GalleryItem({ item, onSelect }: GalleryItemProps) {
+export const GalleryItem = memo(function GalleryItem({
+  item,
+  onSelect,
+}: GalleryItemProps) {
   const mediaUrl = `/api/gallery/${item.path}`;
   const Icon = TYPE_ICONS[item.type];
 
@@ -43,7 +46,12 @@ export const GalleryItem = memo(function GalleryItem({ item, onSelect }: Gallery
         />
       )}
       {item.type === 'video' && (
-        <video src={mediaUrl} className="w-full h-full object-cover" muted preload="metadata" />
+        <video
+          src={mediaUrl}
+          className="w-full h-full object-cover"
+          muted
+          preload="metadata"
+        />
       )}
       {item.type === 'audio' && (
         <div className="w-full h-full flex items-center justify-center bg-[var(--secondary)]">
@@ -54,7 +62,9 @@ export const GalleryItem = memo(function GalleryItem({ item, onSelect }: Gallery
       {/* Hover overlay */}
       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2">
         <Icon className="w-6 h-6 text-white mb-2" />
-        <p className="text-xs text-white text-center truncate w-full px-2">{item.name}</p>
+        <p className="text-xs text-white text-center truncate w-full px-2">
+          {item.name}
+        </p>
       </div>
 
       {/* Type badge */}

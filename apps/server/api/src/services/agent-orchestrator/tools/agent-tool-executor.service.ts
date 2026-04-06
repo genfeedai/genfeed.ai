@@ -43,6 +43,23 @@ import { AgentSpawnService } from '@api/services/agent-spawn/agent-spawn.service
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
+import {
+  AgentType,
+  BotCategory,
+  BotPlatform,
+  BotStatus,
+  CampaignPlatform,
+  CampaignType,
+  CredentialPlatform,
+  IngredientCategory,
+  IngredientStatus,
+  PostCategory,
+  PostStatus,
+  Status,
+  VoiceCloneStatus,
+  VoteEntityModel,
+  WorkflowTrigger,
+} from '@genfeedai/enums';
 import type {
   AgentDashboardOperation,
   AgentIngredientItem,
@@ -61,30 +78,16 @@ import type {
   AdsResearchPlatform,
   AdsResearchSource,
 } from '@genfeedai/interfaces/integrations/ads-research.interface';
-import { serializeAgentBrand, serializeAgentBrands } from '@genfeedai/serializers';
+import {
+  serializeAgentBrand,
+  serializeAgentBrands,
+} from '@genfeedai/serializers';
 import {
   type IOnboardingJourneyMissionState,
   ONBOARDING_JOURNEY_MISSIONS,
   ONBOARDING_JOURNEY_TOTAL_CREDITS,
   type OnboardingJourneyMissionId,
 } from '@genfeedai/types';
-import {
-  AgentType,
-  BotCategory,
-  BotPlatform,
-  BotStatus,
-  CampaignPlatform,
-  CampaignType,
-  CredentialPlatform,
-  IngredientCategory,
-  IngredientStatus,
-  PostCategory,
-  PostStatus,
-  Status,
-  VoiceCloneStatus,
-  VoteEntityModel,
-  WorkflowTrigger,
-} from '@genfeedai/enums';
 import { formatRecurringSchedule } from '@helpers/formatting/recurring-schedule/recurring-schedule.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -3611,6 +3614,10 @@ export class AgentToolExecutorService {
       },
       nextActions: [
         {
+          // TODO: These hrefs should be org-scoped (e.g. /{orgSlug}/{brandSlug}/workflows/...).
+          // The agent orchestrator service doesn't have org/brand context in scope.
+          // The client should prefix these with the org URL, or the service needs
+          // org/brand slugs passed through the execution context.
           ctas: [
             {
               href: `/workflows/${workflow.workflowId}`,
@@ -3720,6 +3727,7 @@ export class AgentToolExecutorService {
       },
       nextActions: [
         {
+          // TODO: These hrefs should be org-scoped (see TODO above in buildAdRemixWorkflow).
           ctas: [
             ...(launchPrep.workflowId
               ? [

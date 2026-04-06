@@ -32,6 +32,7 @@ export const agentStrategyAttributes = createEntityAttributes([
   'organization',
   'opportunitySources',
   'platforms',
+  'skillSlugs',
   'postsPerWeek',
   'preferredPostingTimes',
   'autoPublishConfidenceThreshold',

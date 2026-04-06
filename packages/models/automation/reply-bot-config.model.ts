@@ -1,5 +1,8 @@
-import type { IReplyBotConfig, IReplyBotRateLimits } from '@genfeedai/interfaces';
 import { ReplyBotConfig as BaseReplyBotConfig } from '@genfeedai/client/models';
+import type {
+  IReplyBotConfig,
+  IReplyBotRateLimits,
+} from '@genfeedai/interfaces';
 
 function normalizeRateLimits(
   rateLimits?: Partial<IReplyBotRateLimits>,

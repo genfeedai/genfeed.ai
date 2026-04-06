@@ -1,5 +1,5 @@
-import type { IServiceSerializer } from '@genfeedai/interfaces/utils/error.interface';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import type { IServiceSerializer } from '@genfeedai/interfaces/utils/error.interface';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -67,6 +67,7 @@ export interface CreateAgentStrategyInput {
   model?: string;
   opportunitySources?: Partial<AgentStrategyOpportunitySources>;
   platforms?: string[];
+  skillSlugs?: string[];
   postsPerWeek?: number;
   publishPolicy?: Partial<AgentStrategyPublishPolicy>;
   qualityTier?: 'budget' | 'balanced' | 'high_quality';
@@ -162,6 +163,7 @@ export class AgentStrategy {
   voice?: string;
   model?: string;
   platforms!: string[];
+  skillSlugs!: string[];
   postsPerWeek!: number;
   runFrequency!: string;
   timezone!: string;

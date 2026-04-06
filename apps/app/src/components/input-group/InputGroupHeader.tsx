@@ -75,9 +75,13 @@ function InputGroupHeaderComponent({
 
       {/* Title & Description */}
       <div className="flex-1 min-w-0">
-        <h3 className="text-sm font-medium text-[var(--foreground)] truncate">{title}</h3>
+        <h3 className="text-sm font-medium text-[var(--foreground)] truncate">
+          {title}
+        </h3>
         {description && (
-          <p className="text-xs text-[var(--muted-foreground)] mt-0.5">{description}</p>
+          <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+            {description}
+          </p>
         )}
       </div>
 

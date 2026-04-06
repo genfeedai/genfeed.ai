@@ -1,13 +1,13 @@
 'use client';
 
-import type { ICredential, IPost } from '@genfeedai/interfaces';
 import { PostCategory, PostStatus, Status } from '@genfeedai/enums';
+import type { ICredential, IPost } from '@genfeedai/interfaces';
 import {
   FIRST_COMMENT_PLACEHOLDER,
   GROK_FEEDBACK_QUESTIONS,
 } from '@hooks/pages/use-post-detail/use-post-detail-state';
 import { useSocketSubscriptions } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import { PostsService } from '@services/content/posts.service';
+import type { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
 import type { NotificationsService } from '@services/core/notifications.service';
 import { WebSocketPaths } from '@utils/network/websocket.util';
@@ -576,7 +576,7 @@ export function usePostDetailThread({
   const handleDeleteChild = useCallback(
     (childId: string) => {
       setPost((prevPost) => {
-        if (!prevPost || !prevPost.children) {
+        if (!prevPost?.children) {
           return prevPost;
         }
         return {

@@ -1,7 +1,13 @@
 'use client';
 
 import type { IPrompt } from '@genfeedai/types';
-import { BookMarked, ChevronDown, ChevronUp, ExternalLink, Sparkles } from 'lucide-react';
+import {
+  BookMarked,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  Sparkles,
+} from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -19,8 +25,14 @@ function PromptPickerComponent({ onSelect, label }: PromptPickerProps) {
   const buttonRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const { items, featuredItems, isLoading, loadItems, loadFeatured, recordItemUsage } =
-    usePromptLibraryStore();
+  const {
+    items,
+    featuredItems,
+    isLoading,
+    loadItems,
+    loadFeatured,
+    recordItemUsage,
+  } = usePromptLibraryStore();
 
   // Update dropdown position when opened
   useEffect(() => {
@@ -55,7 +67,10 @@ function PromptPickerComponent({ onSelect, label }: PromptPickerProps) {
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     }
@@ -69,7 +84,7 @@ function PromptPickerComponent({ onSelect, label }: PromptPickerProps) {
       onSelect(item);
       setIsOpen(false);
     },
-    [recordItemUsage, onSelect]
+    [recordItemUsage, onSelect],
   );
 
   // Combine recent and featured, remove duplicates
@@ -103,7 +118,11 @@ function PromptPickerComponent({ onSelect, label }: PromptPickerProps) {
           className="gap-1 px-2"
         >
           <BookMarked className="h-3.5 w-3.5" />
-          {isOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          {isOpen ? (
+            <ChevronUp className="h-3 w-3" />
+          ) : (
+            <ChevronDown className="h-3 w-3" />
+          )}
         </Button>
       )}
 
@@ -153,7 +172,9 @@ function PromptPickerComponent({ onSelect, label }: PromptPickerProps) {
                           </div>
                         )}
                         <div className="min-w-0 flex-1">
-                          <div className="truncate text-sm font-medium">{item.name}</div>
+                          <div className="truncate text-sm font-medium">
+                            {item.name}
+                          </div>
                           <div className="truncate text-xs text-muted-foreground">
                             {item.promptText}
                           </div>
@@ -183,7 +204,7 @@ function PromptPickerComponent({ onSelect, label }: PromptPickerProps) {
               </a>
             </div>
           </div>,
-          document.body
+          document.body,
         )}
     </>
   );

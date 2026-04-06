@@ -1,8 +1,8 @@
 'use client';
 
+import { IngredientCategory } from '@genfeedai/enums';
 import type { IIngredient, IQueryParams } from '@genfeedai/interfaces';
 import type { AssetQueryService } from '@genfeedai/interfaces/studio/studio-generate.interface';
-import { IngredientCategory } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
   UseAssetLoadingParams,

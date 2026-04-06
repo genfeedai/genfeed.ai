@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { ConfigService } from '@api/config/config.service';
+import { FileInputType } from '@genfeedai/enums';
 import type {
   IApiUploadSource,
   ICaptionConfig,
@@ -16,7 +17,6 @@ import type {
   IVideoDimensions,
   UploadSource,
 } from '@genfeedai/interfaces';
-import { FileInputType } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';

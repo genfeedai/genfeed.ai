@@ -1,5 +1,5 @@
-import type { IUser, OnboardingType } from '@genfeedai/interfaces';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import type { IUser, OnboardingType } from '@genfeedai/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import { logger } from '@services/core/logger.service';

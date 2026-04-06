@@ -1,7 +1,7 @@
 'use client';
 
-import type { IContentTemplate } from '@genfeedai/interfaces/content/template-ui.interface';
 import { ComponentSize } from '@genfeedai/enums';
+import type { IContentTemplate } from '@genfeedai/interfaces/content/template-ui.interface';
 import { Code, Pre } from '@genfeedai/ui';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TemplateDetailProps } from '@props/admin/templates.props';

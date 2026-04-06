@@ -1,5 +1,7 @@
-import { ConfigService } from '@files/config/config.service';
+import type { ConfigService } from '@files/config/config.service';
 import type { JobProgress } from '@files/shared/interfaces/job.interface';
+import { parseRedisConnection } from '@libs/redis/redis-connection.utils';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable, Logger } from '@nestjs/common';
 import { createClient, type RedisClientType } from 'redis';
 
@@ -16,10 +18,15 @@ export class WebSocketService {
 
   private async initRedis() {
     try {
-      const redisUrl =
-        this.configService.get('REDIS_URL') || 'redis://localhost:6379';
+      const config = parseRedisConnection(this.configService);
 
-      this.redisPublisher = createClient({ url: redisUrl });
+      this.redisPublisher = createClient({
+        socket: {
+          connectTimeout: 3_000,
+          ...(config.tls ? { tls: true as const } : {}),
+        },
+        url: config.url,
+      });
       this.redisPublisher.on('error', (err) => {
         this.logger.error('Redis Publisher Error', err);
       });
@@ -38,7 +45,7 @@ export class WebSocketService {
     userId?: string,
     room?: string,
   ) {
-    if (!this.redisPublisher || !this.redisPublisher.isOpen) {
+    if (!this.redisPublisher?.isOpen) {
       this.logger.warn('Redis not connected, skipping progress emission');
       return;
     }
@@ -47,7 +54,7 @@ export class WebSocketService {
       const message = {
         path: websocketUrl,
         progress,
-        room: room || (userId ? `user-${userId}` : undefined),
+        room: room || (userId ? getUserRoomName(userId) : undefined),
         userId: userId || this.extractUserIdFromPath(websocketUrl),
       };
 
@@ -69,7 +76,7 @@ export class WebSocketService {
     userId?: string,
     room?: string,
   ) {
-    if (!this.redisPublisher || !this.redisPublisher.isOpen) {
+    if (!this.redisPublisher?.isOpen) {
       this.logger.warn('Redis not connected, skipping success emission');
       return;
     }
@@ -78,7 +85,7 @@ export class WebSocketService {
       const message = {
         path: websocketUrl,
         result,
-        room: room || (userId ? `user-${userId}` : undefined),
+        room: room || (userId ? getUserRoomName(userId) : undefined),
         userId: userId || this.extractUserIdFromPath(websocketUrl),
       };
 
@@ -100,7 +107,7 @@ export class WebSocketService {
     userId?: string,
     room?: string,
   ) {
-    if (!this.redisPublisher || !this.redisPublisher.isOpen) {
+    if (!this.redisPublisher?.isOpen) {
       this.logger.warn('Redis not connected, skipping error emission');
       return;
     }
@@ -109,7 +116,7 @@ export class WebSocketService {
       const message = {
         error,
         path: websocketUrl,
-        room: room || (userId ? `user-${userId}` : undefined),
+        room: room || (userId ? getUserRoomName(userId) : undefined),
         userId: userId || this.extractUserIdFromPath(websocketUrl),
       };
 
@@ -131,7 +138,7 @@ export class WebSocketService {
     data?: unknown,
     userId?: string,
   ) {
-    if (!this.redisPublisher || !this.redisPublisher.isOpen) {
+    if (!this.redisPublisher?.isOpen) {
       this.logger.warn('Redis not connected, skipping status emission');
       return;
     }
@@ -155,7 +162,7 @@ export class WebSocketService {
   }
 
   async sendProgress(ingredientId: string, progress: unknown) {
-    if (!this.redisPublisher || !this.redisPublisher.isOpen) {
+    if (!this.redisPublisher?.isOpen) {
       this.logger.warn('Redis not connected, skipping progress emission');
       return;
     }

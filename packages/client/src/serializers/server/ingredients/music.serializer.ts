@@ -1,4 +1,4 @@
-import { buildSingleSerializer, type BuiltSerializer } from '../../builders';
+import { type BuiltSerializer, buildSingleSerializer } from '../../builders';
 import { musicSerializerConfig } from '../../configs';
 
 const SERVER_MUSIC_ATTRIBUTES = [

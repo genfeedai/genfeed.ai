@@ -1,7 +1,11 @@
 'use client';
 
 import { Check, Cloud, CloudOff, Loader2 } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 

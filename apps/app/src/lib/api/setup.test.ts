@@ -34,7 +34,9 @@ describe('setupApi', () => {
 
       const result = await setupApi.getStatus();
 
-      expect(apiClient.get).toHaveBeenCalledWith('/setup/status', { signal: undefined });
+      expect(apiClient.get).toHaveBeenCalledWith('/setup/status', {
+        signal: undefined,
+      });
       expect(result).toEqual(mockStatus);
     });
 
@@ -48,7 +50,9 @@ describe('setupApi', () => {
       const controller = new AbortController();
       await setupApi.getStatus(controller.signal);
 
-      expect(apiClient.get).toHaveBeenCalledWith('/setup/status', { signal: controller.signal });
+      expect(apiClient.get).toHaveBeenCalledWith('/setup/status', {
+        signal: controller.signal,
+      });
     });
   });
 
@@ -61,13 +65,17 @@ describe('setupApi', () => {
       const data = { replicateApiKey: 'r8_test_key_123' };
       const result = await setupApi.complete(data);
 
-      expect(apiClient.post).toHaveBeenCalledWith('/setup/complete', data, { signal: undefined });
+      expect(apiClient.post).toHaveBeenCalledWith('/setup/complete', data, {
+        signal: undefined,
+      });
       expect(result).toEqual(mockResponse);
     });
 
     it('should pass abort signal when provided', async () => {
       const { apiClient } = await import('./client');
-      vi.mocked(apiClient.post).mockResolvedValueOnce({ hasCompletedSetup: true });
+      vi.mocked(apiClient.post).mockResolvedValueOnce({
+        hasCompletedSetup: true,
+      });
 
       const controller = new AbortController();
       const data = { replicateApiKey: 'r8_test_key_123' };
@@ -133,7 +141,9 @@ describe('setupApi', () => {
 
       const result = await setupApi.detectTools();
 
-      expect(apiClient.get).toHaveBeenCalledWith('/setup/detect-tools', { signal: undefined });
+      expect(apiClient.get).toHaveBeenCalledWith('/setup/detect-tools', {
+        signal: undefined,
+      });
       expect(result).toEqual(mockTools);
     });
 

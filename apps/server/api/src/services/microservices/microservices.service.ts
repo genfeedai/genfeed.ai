@@ -1,14 +1,15 @@
-import { ConfigService } from '@api/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { ConfigService } from '@api/config/config.service';
+import type { LoggerService } from '@libs/logger/logger.service';
+import { parseRedisConnection } from '@libs/redis/redis-connection.utils';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { HttpService } from '@nestjs/axios';
+import type { HttpService } from '@nestjs/axios';
 import {
   HttpException,
   HttpStatus,
   Injectable,
-  OnModuleInit,
+  type OnModuleInit,
 } from '@nestjs/common';
-import { createClient, RedisClientType } from 'redis';
+import { createClient, type RedisClientType } from 'redis';
 import { firstValueFrom } from 'rxjs';
 
 export interface ServiceHealth {
@@ -77,15 +78,20 @@ export class MicroservicesService implements OnModuleInit {
   }
 
   private async initializeRedis() {
-    const redisUrl =
-      this.configService.get('REDIS_URL') || 'redis://localhost:6379';
+    const config = parseRedisConnection(this.configService);
 
     this.loggerService.log(
-      `${this.constructorName} initializeRedis: Connecting to Redis at ${redisUrl}`,
+      `${this.constructorName} initializeRedis: Connecting to Redis at ${config.url}`,
     );
 
     try {
-      this.redisClient = createClient({ url: redisUrl });
+      this.redisClient = createClient({
+        socket: {
+          connectTimeout: 3_000,
+          ...(config.tls ? { tls: true as const } : {}),
+        },
+        url: config.url,
+      });
 
       this.redisClient.on('error', (err: Error) => {
         this.loggerService.error('Redis Client Error', err);
@@ -101,7 +107,7 @@ export class MicroservicesService implements OnModuleInit {
       );
     } catch (error: unknown) {
       this.loggerService.error(
-        `${this.constructorName} initializeRedis: Failed to connect to Redis at ${redisUrl}`,
+        `${this.constructorName} initializeRedis: Failed to connect to Redis at ${config.url}`,
         error,
       );
     }

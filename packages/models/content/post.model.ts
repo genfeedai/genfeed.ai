@@ -1,7 +1,7 @@
-import type { IIngredient, IPost } from '@genfeedai/interfaces';
 import { Post as BasePost } from '@genfeedai/client/models';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import { SocialUrlHelper } from '@genfeedai/helpers';
+import type { IIngredient, IPost } from '@genfeedai/interfaces';
 import { Credential } from '@models/auth/credential.model';
 import { User } from '@models/auth/user.model';
 import { Ingredient } from '@models/content/ingredient.model';

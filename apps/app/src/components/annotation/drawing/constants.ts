@@ -1,11 +1,22 @@
-import type { LucideIcon } from 'lucide-react';
-import { ArrowRight, Circle, MousePointer, Pencil, Square, Type } from 'lucide-react';
 import type { AnnotationTool } from '@genfeedai/workflow-ui/stores';
+import type { LucideIcon } from 'lucide-react';
+import {
+  ArrowRight,
+  Circle,
+  MousePointer,
+  Pencil,
+  Square,
+  Type,
+} from 'lucide-react';
 
 /**
  * Tool configuration for the annotation toolbar
  */
-export const TOOLS: { tool: AnnotationTool; icon: LucideIcon; label: string }[] = [
+export const TOOLS: {
+  tool: AnnotationTool;
+  icon: LucideIcon;
+  label: string;
+}[] = [
   { icon: MousePointer, label: 'Select', tool: 'select' },
   { icon: Square, label: 'Rectangle', tool: 'rectangle' },
   { icon: Circle, label: 'Circle', tool: 'circle' },

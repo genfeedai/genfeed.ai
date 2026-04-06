@@ -2,7 +2,7 @@ import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
   createImageGenExecutor,
-  ImageGenExecutor,
+  type ImageGenExecutor,
 } from '@workflow-engine/executors/saas/image-gen-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

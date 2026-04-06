@@ -41,11 +41,6 @@ import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builde
 import { QuotaService } from '@api/services/quota/quota.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { User } from '@clerk/backend';
-import type {
-  JsonApiCollectionResponse,
-  JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
-import { PostSerializer } from '@genfeedai/serializers';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -59,6 +54,11 @@ import {
   Status,
   SystemPromptKey,
 } from '@genfeedai/enums';
+import type {
+  JsonApiCollectionResponse,
+  JsonApiSingleResponse,
+} from '@genfeedai/interfaces';
+import { PostSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,

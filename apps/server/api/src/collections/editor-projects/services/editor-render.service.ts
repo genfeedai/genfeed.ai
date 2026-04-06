@@ -10,7 +10,6 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { User } from '@clerk/backend';
-import type { IFileProcessingParams } from '@genfeedai/interfaces';
 import {
   EditorTrackType,
   FileInputType,
@@ -20,7 +19,9 @@ import {
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/enums';
+import type { IFileProcessingParams } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
   Injectable,
   NotFoundException,
@@ -76,7 +77,7 @@ export class EditorRenderService {
         ingredientId: ingredientData._id.toString(),
         organizationId: orgId,
         params: renderParams.jobParams,
-        room: `user-${user.id}`,
+        room: getUserRoomName(user.id),
         type: renderParams.jobType,
         userId: publicMetadata.user,
         websocketUrl: `/videos/${ingredientData._id}`,
@@ -297,7 +298,7 @@ export class EditorRenderService {
             status: WebSocketEventStatus.COMPLETED,
           },
           user.id,
-          `user-${user.id}`,
+          getUserRoomName(user.id),
         );
 
         try {
@@ -319,7 +320,7 @@ export class EditorRenderService {
           websocketUrl,
           'Failed to render project. Please try again.',
           user.id,
-          `user-${user.id}`,
+          getUserRoomName(user.id),
         );
       });
   }

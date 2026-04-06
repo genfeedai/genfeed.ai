@@ -5,17 +5,17 @@ import { TelegramBotAdapter } from '@api/services/bot-gateway/adapters/telegram-
 import { BotGatewayService } from '@api/services/bot-gateway/bot-gateway.service';
 import { BotGenerationService } from '@api/services/bot-gateway/services/bot-generation.service';
 import { BotUserResolverService } from '@api/services/bot-gateway/services/bot-user-resolver.service';
+import {
+  BotCommandType,
+  BotResponseType,
+  CredentialPlatform,
+} from '@genfeedai/enums';
 import type {
   IBotCallbackContext,
   IBotMessage,
   IBotPlatformAdapter,
   IBotResolvedUser,
 } from '@genfeedai/interfaces';
-import {
-  BotCommandType,
-  BotResponseType,
-  CredentialPlatform,
-} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

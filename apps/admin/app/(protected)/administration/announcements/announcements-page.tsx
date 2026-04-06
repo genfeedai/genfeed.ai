@@ -1,8 +1,8 @@
 'use client';
 
-import type { IAnnouncement } from '@genfeedai/interfaces';
 import Button from '@components/buttons/base/Button';
 import { ButtonVariant } from '@genfeedai/enums';
+import type { IAnnouncement } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
   AnnouncementComposeFormState,

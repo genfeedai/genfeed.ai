@@ -1,4 +1,8 @@
-import type { WorkflowEdge, WorkflowNode, WorkflowNodeData } from '@genfeedai/types';
+import type {
+  WorkflowEdge,
+  WorkflowNode,
+  WorkflowNodeData,
+} from '@genfeedai/types';
 import { nanoid } from 'nanoid';
 import { useCallback, useState } from 'react';
 import {
@@ -22,7 +26,7 @@ interface ClipboardData {
 function createPastePayload(
   clipboard: ClipboardData,
   offsetX: number,
-  offsetY: number
+  offsetY: number,
 ): { nodes: WorkflowNode[]; edges: WorkflowEdge[] } {
   const { nodes: clipboardNodes, edges: clipboardEdges } = clipboard;
 
@@ -75,14 +79,14 @@ export function useNodeActions() {
     (nodeId: string) => {
       removeNode(nodeId);
     },
-    [removeNode]
+    [removeNode],
   );
 
   const duplicate = useCallback(
     (nodeId: string) => {
       return duplicateNode(nodeId);
     },
-    [duplicateNode]
+    [duplicateNode],
   );
 
   const copyNode = useCallback(
@@ -93,7 +97,7 @@ export function useNodeActions() {
         setClipboard({ edges: [], isCut: false, nodes: [node] });
       }
     },
-    [nodes]
+    [nodes],
   );
 
   const copyMultipleNodes = useCallback(
@@ -101,12 +105,14 @@ export function useNodeActions() {
       const nodeSet = new Set(nodeIds);
       const nodesToCopy = nodes.filter((n) => nodeSet.has(n.id));
       // Copy edges that connect nodes within the selection
-      const edgesToCopy = edges.filter((e) => nodeSet.has(e.source) && nodeSet.has(e.target));
+      const edgesToCopy = edges.filter(
+        (e) => nodeSet.has(e.source) && nodeSet.has(e.target),
+      );
       if (nodesToCopy.length > 0) {
         setClipboard({ edges: edgesToCopy, isCut: false, nodes: nodesToCopy });
       }
     },
-    [nodes, edges]
+    [nodes, edges],
   );
 
   const cutNode = useCallback(
@@ -117,14 +123,16 @@ export function useNodeActions() {
         removeNode(nodeId);
       }
     },
-    [nodes, removeNode]
+    [nodes, removeNode],
   );
 
   const cutMultipleNodes = useCallback(
     (nodeIds: string[]) => {
       const nodeSet = new Set(nodeIds);
       const nodesToCut = nodes.filter((n) => nodeSet.has(n.id));
-      const edgesToCut = edges.filter((e) => nodeSet.has(e.source) && nodeSet.has(e.target));
+      const edgesToCut = edges.filter(
+        (e) => nodeSet.has(e.source) && nodeSet.has(e.target),
+      );
       if (nodesToCut.length > 0) {
         setClipboard({ edges: edgesToCut, isCut: true, nodes: nodesToCut });
         for (const nodeId of nodeIds) {
@@ -132,7 +140,7 @@ export function useNodeActions() {
         }
       }
     },
-    [nodes, edges, removeNode]
+    [nodes, edges, removeNode],
   );
 
   const deleteMultipleNodes = useCallback(
@@ -141,7 +149,7 @@ export function useNodeActions() {
         removeNode(nodeId);
       }
     },
-    [removeNode]
+    [removeNode],
   );
 
   const duplicateMultipleNodes = useCallback(
@@ -155,7 +163,7 @@ export function useNodeActions() {
       }
       return newIds;
     },
-    [duplicateNode]
+    [duplicateNode],
   );
 
   /**
@@ -163,7 +171,10 @@ export function useNodeActions() {
    * Returns the new node IDs if paste was successful.
    */
   const pasteNodes = useCallback(
-    (offsetX: number, offsetY: number): { nodeIds: string[]; edgeIds: string[] } | null => {
+    (
+      offsetX: number,
+      offsetY: number,
+    ): { nodeIds: string[]; edgeIds: string[] } | null => {
       if (!clipboard || clipboard.nodes.length === 0) return null;
 
       const payload = createPastePayload(clipboard, offsetX, offsetY);
@@ -178,7 +189,7 @@ export function useNodeActions() {
         nodeIds: payload.nodes.map((n) => n.id),
       };
     },
-    [clipboard]
+    [clipboard],
   );
 
   /**
@@ -186,7 +197,10 @@ export function useNodeActions() {
    * Used by the context menu to actually add them to the store.
    */
   const getPasteData = useCallback(
-    (offsetX: number, offsetY: number): { nodes: WorkflowNode[]; edges: WorkflowEdge[] } | null => {
+    (
+      offsetX: number,
+      offsetY: number,
+    ): { nodes: WorkflowNode[]; edges: WorkflowEdge[] } | null => {
       if (!clipboard || clipboard.nodes.length === 0) return null;
 
       const payload = createPastePayload(clipboard, offsetX, offsetY);
@@ -198,7 +212,7 @@ export function useNodeActions() {
 
       return payload;
     },
-    [clipboard]
+    [clipboard],
   );
 
   return {

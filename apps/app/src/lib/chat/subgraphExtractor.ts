@@ -39,7 +39,7 @@ export interface SubgraphResult {
 export function extractSubgraph(
   nodes: WorkflowNode[],
   edges: WorkflowEdge[],
-  selectedNodeIds: string[]
+  selectedNodeIds: string[],
 ): SubgraphResult {
   // Early return for no selection - return everything
   if (selectedNodeIds.length === 0) {
@@ -84,25 +84,27 @@ export function extractSubgraph(
     typeBreakdown[type] = (typeBreakdown[type] || 0) + 1;
   }
 
-  const boundaryConnections: BoundaryConnection[] = boundaryEdges.map((edge) => {
-    const targetSelected = selectedSet.has(edge.target);
+  const boundaryConnections: BoundaryConnection[] = boundaryEdges.map(
+    (edge) => {
+      const targetSelected = selectedSet.has(edge.target);
 
-    if (targetSelected) {
-      return {
-        direction: 'incoming' as const,
-        handleType: edge.targetHandle || 'unknown',
-        otherNodeId: edge.source,
-        selectedNodeId: edge.target,
-      };
-    } else {
-      return {
-        direction: 'outgoing' as const,
-        handleType: edge.sourceHandle || 'unknown',
-        otherNodeId: edge.target,
-        selectedNodeId: edge.source,
-      };
-    }
-  });
+      if (targetSelected) {
+        return {
+          direction: 'incoming' as const,
+          handleType: edge.targetHandle || 'unknown',
+          otherNodeId: edge.source,
+          selectedNodeId: edge.target,
+        };
+      } else {
+        return {
+          direction: 'outgoing' as const,
+          handleType: edge.sourceHandle || 'unknown',
+          otherNodeId: edge.target,
+          selectedNodeId: edge.source,
+        };
+      }
+    },
+  );
 
   return {
     isScoped: true,

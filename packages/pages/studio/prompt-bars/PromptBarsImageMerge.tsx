@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonVariant, IngredientFormat } from '@genfeedai/enums';
+import { ButtonVariant, type IngredientFormat } from '@genfeedai/enums';
 import { formatVideos } from '@helpers/data/data/data.helper';
 import { BG_BLUR, BORDER_WHITE_30, cn } from '@helpers/formatting/cn/cn.util';
 import {

@@ -1,6 +1,5 @@
 'use client';
 
-import type { IBrand, ITraining } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   type TrainingEditSchema,
@@ -12,6 +11,7 @@ import {
   ButtonVariant,
   ModalEnum,
 } from '@genfeedai/enums';
+import type { IBrand, ITraining } from '@genfeedai/interfaces';
 import { Code } from '@genfeedai/ui';
 import {
   hasFormErrors,
@@ -156,9 +156,7 @@ export default function ModalTraining({
 
           <div className="flex items-center gap-2 p-4 bg-background/50">
             <span className="text-sm text-muted-foreground">Trigger</span>
-            <Code size="md">
-              {training.trigger}
-            </Code>
+            <Code size="md">{training.trigger}</Code>
             <span className="text-xs text-muted-foreground ml-auto">
               (cannot be edited)
             </span>

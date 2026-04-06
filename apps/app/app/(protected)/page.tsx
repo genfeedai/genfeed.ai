@@ -4,8 +4,14 @@ import {
 } from '@app-server/protected-bootstrap.server';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { redirect } from 'next/navigation';
+import { isSelfHosted } from '@/lib/config/edition';
 
 export default async function ProtectedRootPage() {
+  // Self-hosted: skip org resolution, use clean URLs (rewrites handle the mapping)
+  if (isSelfHosted()) {
+    redirect('/workspace/overview');
+  }
+
   const bootstrap = await loadProtectedBootstrap();
 
   if (!bootstrap) {

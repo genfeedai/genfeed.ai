@@ -115,7 +115,8 @@ export const INSTAGRAM_CAROUSEL_TEMPLATE: WorkflowTemplate = {
     {
       data: {
         label: 'Concept Prompt',
-        prompt: 'Professional portrait photography, studio lighting, modern urban background',
+        prompt:
+          'Professional portrait photography, studio lighting, modern urban background',
         status: 'idle',
         variables: {},
       },

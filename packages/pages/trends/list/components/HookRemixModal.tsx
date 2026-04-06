@@ -1,12 +1,12 @@
 'use client';
 
-import type { IIngredient } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   ButtonSize,
   ButtonVariant,
   IngredientCategory,
 } from '@genfeedai/enums';
+import type { IIngredient } from '@genfeedai/interfaces';
 import { closeModal, openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
@@ -94,7 +94,7 @@ export default function HookRemixModal({
     if (isOpen) {
       openModal(HOOK_REMIX_MODAL_ID);
     }
-  }, [isOpen, openKey]);
+  }, [isOpen]);
 
   // Reset form when video changes
   useEffect(() => {
@@ -102,7 +102,7 @@ export default function HookRemixModal({
     setSelectedClipId('');
     setHookDuration(DEFAULT_HOOK_DURATION);
     setSubmitError(null);
-  }, [video, contextBrandId]);
+  }, [contextBrandId]);
 
   const handleCancel = useCallback(() => {
     closeModal(HOOK_REMIX_MODAL_ID);

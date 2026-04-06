@@ -3,7 +3,7 @@ import type {
   AgentUiActionCta,
 } from '@genfeedai/agent/models/agent-chat.model';
 import Badge from '@ui/display/badge/Badge';
-import { type ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import {
   HiCalendarDays,
   HiCheckCircle,

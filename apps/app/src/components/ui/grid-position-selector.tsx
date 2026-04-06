@@ -26,8 +26,16 @@ const GRID_POSITIONS: GridPosition[] = [
   { x: 1, y: 1 },
 ];
 
-const X_LABELS: Record<number, string> = { 0: 'left', 0.5: 'center', 1: 'right' };
-const Y_LABELS: Record<number, string> = { 0: 'top', 0.5: 'middle', 1: 'bottom' };
+const X_LABELS: Record<number, string> = {
+  0: 'left',
+  0.5: 'center',
+  1: 'right',
+};
+const Y_LABELS: Record<number, string> = {
+  0: 'top',
+  0.5: 'middle',
+  1: 'bottom',
+};
 
 function getPositionTitle(pos: GridPosition): string {
   return `Position: ${X_LABELS[pos.x] ?? 'center'}, ${Y_LABELS[pos.y] ?? 'middle'}`;
@@ -40,8 +48,9 @@ function GridPositionSelectorComponent({
 }: GridPositionSelectorProps) {
   const isSelected = useCallback(
     (pos: GridPosition) =>
-      Math.abs(pos.x - position.x) < 0.01 && Math.abs(pos.y - position.y) < 0.01,
-    [position]
+      Math.abs(pos.x - position.x) < 0.01 &&
+      Math.abs(pos.y - position.y) < 0.01,
+    [position],
   );
 
   return (
@@ -57,7 +66,7 @@ function GridPositionSelectorComponent({
               'w-5 h-5 rounded-sm border transition-all',
               isSelected(pos)
                 ? 'bg-primary border-primary'
-                : 'bg-secondary border-input hover:border-primary'
+                : 'bg-secondary border-input hover:border-primary',
             )}
             title={getPositionTitle(pos)}
           />

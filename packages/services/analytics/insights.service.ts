@@ -3,12 +3,12 @@
  * Manages AI-generated insights and analytics recommendations
  */
 
+import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import type {
   IDateRange,
   IInsightResponse,
   IReportConfig,
 } from '@genfeedai/interfaces';
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import {
   deserializeCollection,
   deserializeResource,

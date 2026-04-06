@@ -190,10 +190,8 @@ describe('BaseNode', () => {
             </>
           }
         >
-          <>
-            <div>Child A</div>
-            <div>Child B</div>
-          </>
+          <div>Child A</div>
+          <div>Child B</div>
         </BaseNode>,
       );
 
@@ -202,7 +200,9 @@ describe('BaseNode', () => {
       expect(screen.getByText('Child A')).toBeInTheDocument();
       expect(screen.getByText('Child B')).toBeInTheDocument();
       expect(consoleErrorSpy).not.toHaveBeenCalledWith(
-        expect.stringContaining('Each child in a list should have a unique "key" prop'),
+        expect.stringContaining(
+          'Each child in a list should have a unique "key" prop',
+        ),
         expect.anything(),
       );
 

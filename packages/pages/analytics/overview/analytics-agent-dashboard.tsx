@@ -2,13 +2,13 @@
 
 import { DynamicBlockGrid } from '@genfeedai/agent/components/blocks';
 import { useAgentDashboardPersistence } from '@genfeedai/agent/hooks/use-agent-dashboard-persistence';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type {
   AgentUIBlock,
   DashboardPreferenceScope,
   DashboardScopePreferences,
   IUser,
 } from '@genfeedai/interfaces';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import Button from '@ui/buttons/base/Button';
 
 interface AnalyticsAgentDashboardProps {

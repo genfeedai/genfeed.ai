@@ -3,7 +3,7 @@ import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
   createSendDmExecutor,
   type DmSender,
-  SendDmExecutor,
+  type SendDmExecutor,
 } from '@workflow-engine/executors/saas/send-dm-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

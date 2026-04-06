@@ -1,10 +1,10 @@
 'use client';
 
-import type { ICrmCompany, ICrmLead } from '@genfeedai/interfaces';
 import Button from '@components/buttons/base/Button';
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import SocialLinks from '@components/social/SocialLinks';
 import { ButtonVariant } from '@genfeedai/enums';
+import type { ICrmCompany, ICrmLead } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import {
@@ -68,7 +68,7 @@ interface EditFormData {
 }
 
 export default function CompanyDetail({ id }: { id: string }) {
-  const router = useRouter();
+  const _router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
   const [formData, setFormData] = useState<EditFormData>({
     avatarUrl: '',

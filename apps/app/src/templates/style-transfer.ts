@@ -2,7 +2,8 @@ import type { WorkflowTemplate } from '@genfeedai/types';
 
 export const STYLE_TRANSFER_TEMPLATE: WorkflowTemplate = {
   createdAt: new Date().toISOString(),
-  description: 'Apply a new style to your reference image while preserving the subject identity',
+  description:
+    'Apply a new style to your reference image while preserving the subject identity',
   edgeStyle: 'smoothstep',
   edges: [
     {

@@ -1,11 +1,11 @@
 'use client';
 
 import { Pre } from '@genfeedai/ui';
+import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { Bug, ChevronDown, ChevronRight, Copy, Trash2, X } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import type { DebugPayload } from '@/store/execution';
 import { useExecutionStore } from '@/store/execution';
-import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { PanelContainer } from './PanelContainer';
 
 interface PayloadCardProps {
@@ -20,7 +20,9 @@ function PayloadCard({ payload }: PayloadCardProps) {
     async (e: React.MouseEvent) => {
       e.stopPropagation();
       try {
-        await navigator.clipboard.writeText(JSON.stringify(payload.input, null, 2));
+        await navigator.clipboard.writeText(
+          JSON.stringify(payload.input, null, 2),
+        );
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch {
@@ -41,7 +43,7 @@ function PayloadCard({ payload }: PayloadCardProps) {
         document.body.removeChild(textArea);
       }
     },
-    [payload.input]
+    [payload.input],
   );
 
   const timestamp = new Date(payload.timestamp).toLocaleTimeString();
@@ -162,8 +164,9 @@ function DebugPanelComponent() {
       {debugPayloads.length > 0 && (
         <div className="p-3 border-t border-[var(--border)] bg-[var(--muted)]/30">
           <p className="text-[10px] text-[var(--muted-foreground)]">
-            {debugPayloads.length} payload{debugPayloads.length !== 1 ? 's' : ''} captured. Click to
-            expand and view details.
+            {debugPayloads.length} payload
+            {debugPayloads.length !== 1 ? 's' : ''} captured. Click to expand
+            and view details.
           </p>
         </div>
       )}

@@ -1,16 +1,21 @@
-import type { ICaption, IIngredient, IPost, IVideo } from '@genfeedai/interfaces';
-import type {
-  IVideoEditParams,
-  IVideoMergeParams,
-  IVideoResizeParams,
-  IVideoTextOverlayParams,
-} from '@genfeedai/interfaces/components/video-operations.interface';
 import {
   IngredientMergeSerializer,
   VideoCaptionSerializer,
   VideoEditSerializer,
   VideoSerializer,
 } from '@genfeedai/client/serializers';
+import type {
+  ICaption,
+  IIngredient,
+  IPost,
+  IVideo,
+} from '@genfeedai/interfaces';
+import type {
+  IVideoEditParams,
+  IVideoMergeParams,
+  IVideoResizeParams,
+  IVideoTextOverlayParams,
+} from '@genfeedai/interfaces/components/video-operations.interface';
 import { buildResourcePath } from '@helpers/formatting/url/url.helper';
 import { Caption } from '@models/content/caption.model';
 import type { Video } from '@models/ingredients/video.model';

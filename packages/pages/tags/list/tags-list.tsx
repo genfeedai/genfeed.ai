@@ -1,9 +1,9 @@
 'use client';
 
-import type { IQueryParams, ITag } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { EMPTY_STATES } from '@genfeedai/constants';
 import { ComponentSize, ModalEnum, TagCategory } from '@genfeedai/enums';
+import type { IQueryParams, ITag } from '@genfeedai/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';

@@ -27,13 +27,13 @@ import { FilesClientService } from '@api/services/files-microservice/client/file
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import type { IFileMetadata } from '@genfeedai/interfaces';
 import {
   AssetCategory,
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/enums';
+import type { IFileMetadata } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';

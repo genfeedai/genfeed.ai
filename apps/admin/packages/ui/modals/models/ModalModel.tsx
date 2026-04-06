@@ -1,4 +1,3 @@
-import type { IModel } from '@genfeedai/interfaces';
 import { type ModelSchema, modelSchema } from '@genfeedai/client/schemas';
 import {
   AlertCategory,
@@ -10,6 +9,7 @@ import {
   ModelKey,
   ModelProvider,
 } from '@genfeedai/enums';
+import type { IModel } from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,

@@ -82,9 +82,7 @@ export default function SkillsSuccessContent() {
               <LuTerminal className="h-4 w-4 mt-0.5 shrink-0 text-surface/30" />
               <span>
                 Replace{' '}
-                <Code className="text-surface/60 bg-fill/5">
-                  sk_rcpt_xxx
-                </Code>{' '}
+                <Code className="text-surface/60 bg-fill/5">sk_rcpt_xxx</Code>{' '}
                 with the receipt ID from your confirmation email.
               </span>
             </div>
@@ -92,10 +90,8 @@ export default function SkillsSuccessContent() {
               <LuTerminal className="h-4 w-4 mt-0.5 shrink-0 text-surface/30" />
               <span>
                 Skills are installed to{' '}
-                <Code className="text-surface/60 bg-fill/5">
-                  skills/
-                </Code>{' '}
-                in your project directory.
+                <Code className="text-surface/60 bg-fill/5">skills/</Code> in
+                your project directory.
               </span>
             </div>
           </div>

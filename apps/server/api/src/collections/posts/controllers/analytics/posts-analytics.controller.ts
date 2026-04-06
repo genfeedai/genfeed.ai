@@ -10,8 +10,8 @@ import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { returnNotFound } from '@api/helpers/utils/response/response.util';
 import type { User } from '@clerk/backend';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { MemberRole, PostStatus, PublishStatus } from '@genfeedai/enums';
+import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {

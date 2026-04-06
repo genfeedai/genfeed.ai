@@ -1,9 +1,18 @@
 'use client';
 
 import type { WorkflowFile } from '@genfeedai/types';
-import { Bot, Loader2, Send, Sparkles, Trash2, Upload, User, X } from 'lucide-react';
-import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import {
+  Bot,
+  Loader2,
+  Send,
+  Sparkles,
+  Trash2,
+  Upload,
+  User,
+  X,
+} from 'lucide-react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useWorkflowStore } from '@/store/workflowStore';
 import { PanelContainer } from './PanelContainer';
 
@@ -68,7 +77,7 @@ function AIGeneratorPanelComponent() {
         role: m.role,
       }));
 
-      const response = await fetch('/api/ai/generate-workflow', {
+      const response = await fetch('/v1/core/ai/generate-workflow', {
         body: JSON.stringify({
           conversationHistory,
           prompt: userMessage.content,
@@ -96,7 +105,10 @@ function AIGeneratorPanelComponent() {
       if (controller.signal.aborted) return;
 
       const errorMessage: Message = {
-        content: error instanceof Error ? error.message : 'Failed to connect to AI service',
+        content:
+          error instanceof Error
+            ? error.message
+            : 'Failed to connect to AI service',
         error: true,
         id: `msg-${++messageId}`,
         role: 'assistant',
@@ -118,7 +130,7 @@ function AIGeneratorPanelComponent() {
         handleSend();
       }
     },
-    [handleSend]
+    [handleSend],
   );
 
   const handleLoadWorkflow = useCallback(
@@ -126,7 +138,7 @@ function AIGeneratorPanelComponent() {
       loadWorkflow(workflow);
       toggleAIGenerator();
     },
-    [loadWorkflow, toggleAIGenerator]
+    [loadWorkflow, toggleAIGenerator],
   );
 
   const handleClear = useCallback(() => {
@@ -167,14 +179,16 @@ function AIGeneratorPanelComponent() {
             <Bot className="w-12 h-12 mx-auto mb-3 opacity-50" />
             <p className="text-sm font-medium mb-2">Describe your workflow</p>
             <p className="text-xs">
-              Tell me what you want to create, and I'll generate a workflow with the right nodes and
-              connections.
+              Tell me what you want to create, and I'll generate a workflow with
+              the right nodes and connections.
             </p>
             <div className="mt-4 space-y-2 text-xs text-left">
               <p className="font-medium text-[var(--foreground)]">Examples:</p>
               <button
                 onClick={() =>
-                  setInput('Create a workflow that generates an image and converts it to video')
+                  setInput(
+                    'Create a workflow that generates an image and converts it to video',
+                  )
                 }
                 className="block w-full text-left p-2 bg-[var(--muted)] rounded hover:bg-[var(--muted)]/80 transition"
               >
@@ -182,7 +196,9 @@ function AIGeneratorPanelComponent() {
               </button>
               <button
                 onClick={() =>
-                  setInput('Split an image into a 2x2 grid and make videos from each piece')
+                  setInput(
+                    'Split an image into a 2x2 grid and make videos from each piece',
+                  )
                 }
                 className="block w-full text-left p-2 bg-[var(--muted)] rounded hover:bg-[var(--muted)]/80 transition"
               >
@@ -190,7 +206,9 @@ function AIGeneratorPanelComponent() {
               </button>
               <button
                 onClick={() =>
-                  setInput('Create a 3-scene story with images and stitch into one video')
+                  setInput(
+                    'Create a 3-scene story with images and stitch into one video',
+                  )
                 }
                 className="block w-full text-left p-2 bg-[var(--muted)] rounded hover:bg-[var(--muted)]/80 transition"
               >
@@ -201,7 +219,10 @@ function AIGeneratorPanelComponent() {
         )}
 
         {messages.map((msg) => (
-          <div key={msg.id} className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : ''}`}>
+          <div
+            key={msg.id}
+            className={`flex gap-2 ${msg.role === 'user' ? 'justify-end' : ''}`}
+          >
             {msg.role === 'assistant' && (
               <div className="w-6 h-6 rounded-full bg-[var(--primary)]/20 flex items-center justify-center flex-shrink-0">
                 <Bot className="w-3.5 h-3.5 text-[var(--primary)]" />

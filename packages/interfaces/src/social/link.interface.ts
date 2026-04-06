@@ -1,4 +1,4 @@
-import { LinkCategory } from '@genfeedai/enums';
+import type { LinkCategory } from '@genfeedai/enums';
 import type { IBaseEntity, IBrand } from '../index';
 
 export interface ILink extends IBaseEntity {

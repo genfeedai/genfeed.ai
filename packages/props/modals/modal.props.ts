@@ -1,4 +1,17 @@
 import type {
+  MultiPostSchema,
+  PromptTextareaSchema,
+} from '@genfeedai/client/schemas';
+import type {
+  AssetScope,
+  ComponentSize,
+  IngredientCategory,
+  IngredientFormat,
+  ModalEnum,
+  Platform,
+  TagCategory,
+} from '@genfeedai/enums';
+import type {
   IAsset,
   IBot,
   IBrand,
@@ -28,19 +41,6 @@ import type {
   ITag,
   IVideo,
 } from '@genfeedai/interfaces';
-import type {
-  MultiPostSchema,
-  PromptTextareaSchema,
-} from '@genfeedai/client/schemas';
-import type {
-  AssetScope,
-  ComponentSize,
-  IngredientCategory,
-  IngredientFormat,
-  ModalEnum,
-  Platform,
-  TagCategory,
-} from '@genfeedai/enums';
 import type { Training } from '@models/ai/training.model';
 import type { ElementBlacklist } from '@models/elements/blacklist.model';
 import type { Music } from '@models/ingredients/music.model';
