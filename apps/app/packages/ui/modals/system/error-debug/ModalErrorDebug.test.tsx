@@ -1,5 +1,5 @@
-import type { IErrorDebugInfo } from '@genfeedai/interfaces/modals/error-debug.interface';
 import { ModalEnum } from '@genfeedai/enums';
+import type { IErrorDebugInfo } from '@genfeedai/interfaces/modals/error-debug.interface';
 import { openModal as openModalHelper } from '@helpers/ui/modal/modal.helper';
 import {
   clearErrorDebugInfo,

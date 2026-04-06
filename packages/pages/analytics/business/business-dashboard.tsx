@@ -35,7 +35,7 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
-function formatPercent(value: number): string {
+function _formatPercent(value: number): string {
   if (!Number.isFinite(value)) return 'N/A';
   return `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
 }

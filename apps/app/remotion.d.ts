@@ -5,7 +5,7 @@
  * The actual types from node_modules/@remotion/player take precedence.
  */
 declare module '@remotion/player' {
-  import type { ComponentType, RefObject } from 'react';
+  import type { ComponentType } from 'react';
 
   export interface PlayerRef {
     play: () => void;

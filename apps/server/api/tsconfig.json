@@ -27,7 +27,9 @@
       "@genfeedai/workflow-engine": [
         "../../../packages/workflow-engine/src/index.ts"
       ],
-      "@genfeedai/workflow-saas": ["../../../packages/workflow-saas/src/index.ts"],
+      "@genfeedai/workflow-saas": [
+        "../../../packages/workflow-saas/src/index.ts"
+      ],
       "@config/*": ["../../../packages/config/src/*"],
       "@files/*": ["../files/src/*"],
       "@genfeedai/constants": ["../../../packages/constants/dist/index"],
@@ -37,7 +39,6 @@
       "@helpers/*": ["../../../packages/helpers/src/*"],
       "@libs/*": ["../../../packages/libs/*"],
       "@serializers/*": ["../../../packages/serializers/src/*"],
-      "@workflow-cloud/*": ["../../../packages/workflow-cloud/src/*"],
       "@workflow-engine/*": ["../../../packages/workflow-engine/src/*"],
       "@workflow-saas/*": ["../../../packages/workflow-saas/src/*"]
     },

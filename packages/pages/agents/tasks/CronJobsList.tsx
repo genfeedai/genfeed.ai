@@ -1,6 +1,8 @@
 'use client';
 
+import { Pre } from '@genfeedai/ui';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   type CronJobRecord,
   CronJobsService,
@@ -9,7 +11,6 @@ import {
 } from '@services/automation/cron-jobs.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import { Pre } from '@genfeedai/ui';
 import Button from '@ui/buttons/base/Button';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Badge from '@ui/display/badge/Badge';
@@ -187,6 +188,7 @@ function getSchedulePresetValue(schedule: string): string {
 }
 
 export default function CronJobsList() {
+  const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
 
   const [jobs, setJobs] = useState<CronJob[]>([]);
@@ -620,7 +622,7 @@ export default function CronJobsList() {
       right={
         <div className="flex items-center gap-2">
           <Link
-            href="/workflows"
+            href={href('/workflows')}
             className="inline-flex h-8 items-center rounded border border-white/10 px-3 text-xs font-semibold text-foreground transition-colors hover:bg-white/[0.04]"
           >
             Open Workflows
@@ -648,7 +650,7 @@ export default function CronJobsList() {
             <div className="mb-4 rounded border border-white/10 bg-white/[0.03] px-3 py-2 text-xs text-muted-foreground">
               Workflow schedules start in{' '}
               <Link
-                href="/workflows"
+                href={href('/workflows')}
                 className="font-medium text-foreground underline-offset-2 hover:underline"
               >
                 Workflows
@@ -1002,7 +1004,11 @@ export default function CronJobsList() {
           {selectedRun && (
             <div className="mt-3 rounded border border-white/10 bg-black/20 p-3">
               <div className="mb-1 text-xs text-white/60">Run Detail</div>
-              <Pre variant="ghost" size="sm" className="max-h-72 overflow-y-auto text-white/75">
+              <Pre
+                variant="ghost"
+                size="sm"
+                className="max-h-72 overflow-y-auto text-white/75"
+              >
                 {JSON.stringify(selectedRun, null, 2)}
               </Pre>
             </div>

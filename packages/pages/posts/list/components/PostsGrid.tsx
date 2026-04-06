@@ -1,6 +1,5 @@
 'use client';
 
-import type { IPost } from '@genfeedai/interfaces';
 import { EMPTY_STATES } from '@genfeedai/constants';
 import {
   ButtonSize,
@@ -8,6 +7,7 @@ import {
   ComponentSize,
   Platform,
 } from '@genfeedai/enums';
+import type { IPost } from '@genfeedai/interfaces';
 import { PLATFORM_LABEL_MAP } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import {

@@ -93,7 +93,7 @@ export function AgentPanel({
 
   const handleExpand = useCallback(() => {
     router.push(href(activeThreadId ? `/chat/${activeThreadId}` : '/chat/new'));
-  }, [activeThreadId, router]);
+  }, [activeThreadId, router, href]);
 
   const handleTabChange = useCallback((tab: AgentRailTab) => {
     if (

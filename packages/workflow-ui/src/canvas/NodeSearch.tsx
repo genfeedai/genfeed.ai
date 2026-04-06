@@ -106,7 +106,7 @@ export function NodeSearch() {
         handleClose();
       }
     },
-    [filteredNodes, selectedIndex, handleSelectNode],
+    [filteredNodes, selectedIndex, handleSelectNode, handleClose],
   );
 
   const handleClose = () => {
@@ -157,7 +157,6 @@ export function NodeSearch() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-9 pr-3 py-2 text-sm bg-[var(--secondary)] border border-[var(--border)] rounded-md outline-none focus:ring-1 focus:ring-[var(--ring)]"
-              autoFocus
             />
           </div>
 

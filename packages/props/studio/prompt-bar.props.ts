@@ -1,3 +1,11 @@
+import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
+import type {
+  IngredientCategory,
+  IngredientFormat,
+  ModelCategory,
+  QualityTier,
+  SubscriptionTier,
+} from '@genfeedai/enums';
 import type {
   IAsset,
   IEditFormData,
@@ -20,15 +28,6 @@ import type {
   ITraining,
 } from '@genfeedai/interfaces';
 import type { IGenerationItem } from '@genfeedai/interfaces/components/generation.interface';
-import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import type {
-  IngredientCategory,
-  IngredientFormat,
-  ModelCategory,
-  ModelKey,
-  QualityTier,
-  SubscriptionTier,
-} from '@genfeedai/enums';
 import type { FormDropdownOption } from '@props/forms/form.props';
 import type { PromptBarSuggestionItem } from '@props/prompt-bars/prompt-bar-suggestion-item.props';
 import type { PromptsService } from '@services/content/prompts.service';
@@ -123,10 +122,8 @@ export interface PromptBarModelControlsProps {
   isModelNotSet: boolean;
   controlClass: string;
   form: UseFormReturn<PromptTextareaSchema>;
-  getModelDefaultDuration: (modelKey: ModelKey) => number | undefined;
-  getDefaultVideoResolution: (
-    modelKey: ModelKey | string,
-  ) => string | undefined;
+  getModelDefaultDuration: (modelKey: string) => number | undefined;
+  getDefaultVideoResolution: (modelKey: string | string) => string | undefined;
   triggerConfigChange: () => void;
   currentModelCategory?: ModelCategory | null;
 }
@@ -298,7 +295,7 @@ export interface UsePromptBarModelsOptions {
   models: IModel[];
   trainings: ITraining[];
   normalizedWatchedModels: string[];
-  watchedModel: ModelKey;
+  watchedModel: string;
 }
 
 /**
@@ -307,11 +304,11 @@ export interface UsePromptBarModelsOptions {
 export interface UsePromptBarModelsReturn {
   trainingIds: Set<string>;
   selectedModels: IModel[];
-  hasAnyModel: (predicate: (modelKey: ModelKey) => boolean) => boolean;
+  hasAnyModel: (predicate: (modelKey: string) => boolean) => boolean;
   getUnionFromAllModels: <T extends number | string>(
-    getter: (modelKey: ModelKey) => T[],
+    getter: (modelKey: string) => T[],
   ) => T[];
-  getMinFromAllModels: (getter: (modelKey: ModelKey) => number) => number;
+  getMinFromAllModels: (getter: (modelKey: string) => number) => number;
   supportsMultipleReferences: boolean;
   requiresReferences: boolean;
   maxReferenceCount: number;
@@ -489,7 +486,7 @@ export interface UsePromptBarSyncReturn {
  */
 export interface UsePromptBarEnhancementOptions {
   form: UseFormReturn<PromptTextareaSchema>;
-  watchedModel: ModelKey;
+  watchedModel: string;
   organizationId: string;
   brandId: string;
   selectedProfile: string;
@@ -569,7 +566,7 @@ export interface PromptBarExpandedViewProps {
   trainingIds: Set<string>;
   normalizedWatchedModels: string[];
   watchedModels: string[];
-  watchedModel: ModelKey;
+  watchedModel: string;
   watchedFormat: IngredientFormat;
   watchedWidth?: number;
   watchedHeight?: number;
@@ -650,12 +647,10 @@ export interface PromptBarExpandedViewProps {
   modelDropdownRef: RefObject<HTMLButtonElement | null>;
   promptBarHeight: number;
 
-  getModelDefaultDuration: (modelKey: ModelKey) => number | undefined;
-  getDefaultVideoResolution: (
-    modelKey: ModelKey | string,
-  ) => string | undefined;
-  getMinFromAllModels: (getter: (modelKey: ModelKey) => number) => number;
-  getModelMaxOutputs: (modelKey: ModelKey) => number;
+  getModelDefaultDuration: (modelKey: string) => number | undefined;
+  getDefaultVideoResolution: (modelKey: string | string) => string | undefined;
+  getMinFromAllModels: (getter: (modelKey: string) => number) => number;
+  getModelMaxOutputs: (modelKey: string) => number;
 
   setTextValue: Dispatch<SetStateAction<string>>;
 

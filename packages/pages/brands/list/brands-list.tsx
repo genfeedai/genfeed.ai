@@ -1,8 +1,8 @@
 'use client';
 
-import type { IQueryParams } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/enums';
+import type { IQueryParams } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type { Brand } from '@models/organization/brand.model';

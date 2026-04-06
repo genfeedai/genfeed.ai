@@ -1,4 +1,4 @@
-import { ConfigService } from '@api/config/config.service';
+import type { ConfigService } from '@api/config/config.service';
 
 // ComfyUI types (not yet exported from cloud-types)
 interface ComfyUIOutputFile {
@@ -25,7 +25,7 @@ interface ComfyUIQueuePromptResponse {
   node_errors: Record<string, unknown>;
 }
 
-import { ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   buildFlux2DevPrompt,
   buildFlux2DevPulidLoraPrompt,
@@ -37,9 +37,9 @@ import {
   buildZImageTurboLoraPrompt,
   buildZImageTurboPrompt,
 } from '@genfeedai/workflows';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { HttpService } from '@nestjs/axios';
+import type { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
@@ -216,7 +216,7 @@ export class ComfyUIService {
     params: Record<string, unknown>,
   ): ComfyUIPrompt {
     switch (model) {
-      case ModelKey.GENFEED_AI_FLUX_DEV:
+      case MODEL_KEYS.GENFEED_AI_FLUX_DEV:
         return buildFluxDevPrompt({
           cfg: params.cfg as number | undefined,
           height: params.height as number | undefined,
@@ -227,7 +227,7 @@ export class ComfyUIService {
           width: params.width as number | undefined,
         });
 
-      case ModelKey.GENFEED_AI_FLUX_DEV_PULID:
+      case MODEL_KEYS.GENFEED_AI_FLUX_DEV_PULID:
         return buildPulidFluxPrompt({
           cfg: params.cfg as number | undefined,
           faceImage: String(params.faceImage ?? ''),
@@ -239,7 +239,7 @@ export class ComfyUIService {
           width: params.width as number | undefined,
         });
 
-      case ModelKey.GENFEED_AI_Z_IMAGE_TURBO:
+      case MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO:
         return buildZImageTurboPrompt({
           height: params.height as number | undefined,
           prompt: String(params.prompt ?? ''),
@@ -248,7 +248,7 @@ export class ComfyUIService {
           width: params.width as number | undefined,
         });
 
-      case ModelKey.GENFEED_AI_FLUX2_DEV:
+      case MODEL_KEYS.GENFEED_AI_FLUX2_DEV:
         return buildFlux2DevPrompt({
           guidance: params.guidance as number | undefined,
           height: params.height as number | undefined,
@@ -258,7 +258,7 @@ export class ComfyUIService {
           width: params.width as number | undefined,
         });
 
-      case ModelKey.GENFEED_AI_FLUX2_DEV_PULID:
+      case MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID:
         return buildFlux2DevPulidPrompt({
           faceImage: String(params.faceImage ?? ''),
           guidance: params.guidance as number | undefined,
@@ -270,7 +270,7 @@ export class ComfyUIService {
           width: params.width as number | undefined,
         });
 
-      case ModelKey.GENFEED_AI_FLUX2_DEV_PULID_UPSCALE:
+      case MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_UPSCALE:
         return buildFlux2DevPulidUpscalePrompt({
           faceImage: String(params.faceImage ?? ''),
           guidance: params.guidance as number | undefined,
@@ -283,7 +283,7 @@ export class ComfyUIService {
           width: params.width as number | undefined,
         });
 
-      case ModelKey.GENFEED_AI_FLUX2_DEV_PULID_LORA:
+      case MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_LORA:
         return buildFlux2DevPulidLoraPrompt({
           faceImage: String(params.faceImage ?? ''),
           guidance: params.guidance as number | undefined,
@@ -299,7 +299,7 @@ export class ComfyUIService {
           width: params.width as number | undefined,
         });
 
-      case ModelKey.GENFEED_AI_FLUX2_KLEIN:
+      case MODEL_KEYS.GENFEED_AI_FLUX2_KLEIN:
         return buildFlux2KleinPrompt({
           height: params.height as number | undefined,
           prompt: String(params.prompt ?? ''),
@@ -308,7 +308,7 @@ export class ComfyUIService {
           width: params.width as number | undefined,
         });
 
-      case ModelKey.GENFEED_AI_Z_IMAGE_TURBO_LORA:
+      case MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO_LORA:
         return buildZImageTurboLoraPrompt({
           height: params.height as number | undefined,
           loraPath: String(

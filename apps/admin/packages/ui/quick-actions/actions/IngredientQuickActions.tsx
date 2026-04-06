@@ -1,12 +1,12 @@
 'use client';
 
-import type { IIngredient } from '@genfeedai/interfaces';
-import type { IQuickAction } from '@genfeedai/interfaces/ui/quick-actions.interface';
 import {
   ComponentSize,
   DropdownDirection,
   IngredientCategory,
 } from '@genfeedai/enums';
+import type { IIngredient } from '@genfeedai/interfaces';
+import type { IQuickAction } from '@genfeedai/interfaces/ui/quick-actions.interface';
 import { BG_BLUR, BORDER_WHITE_30, cn } from '@helpers/formatting/cn/cn.util';
 import { useQuickActions } from '@hooks/ui/use-quick-actions/use-quick-actions';
 import type { StudioQuickActionsProps } from '@props/studio/studio.props';

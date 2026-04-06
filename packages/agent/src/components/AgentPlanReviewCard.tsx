@@ -22,7 +22,6 @@ function formatStatusLabel(status?: AgentProposedPlan['status']): string {
       return 'Superseded';
     case 'draft':
       return 'Draft';
-    case 'awaiting_approval':
     default:
       return 'Awaiting approval';
   }

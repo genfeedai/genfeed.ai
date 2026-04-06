@@ -6,8 +6,8 @@ import type {
 import { DEFAULT_AGENT_CHAT_MODEL } from '@api/services/agent-orchestrator/constants/agent-default-model.constant';
 import { getAgentTypeConfig } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
 import { SYSTEM_PROMPT_MANAGER } from '@api/services/agent-spawn/constants/spawn-system-prompt.constant';
-import type { AgentToolResult } from '@genfeedai/interfaces';
 import { AgentType } from '@genfeedai/enums';
+import type { AgentToolResult } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';

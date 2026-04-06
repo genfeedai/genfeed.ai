@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { NetworkStatus, networkService } from '@/services/network.service';
+import { type NetworkStatus, networkService } from '@/services/network.service';
 
 interface UseNetworkStatusReturn {
   isOnline: boolean;

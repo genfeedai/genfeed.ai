@@ -17,7 +17,10 @@ export interface ChatSlice {
   clearChatMessages: () => void;
   toggleChat: () => void;
   setChatOpen: (open: boolean) => void;
-  applyChatEditOperations: (operations: EditOperation[]) => { applied: number; skipped: string[] };
+  applyChatEditOperations: (operations: EditOperation[]) => {
+    applied: number;
+    skipped: string[];
+  };
 }
 
 export const createChatSlice: StateCreator<

@@ -1,3 +1,4 @@
+import type { AssetCategory, CredentialPlatform } from '@genfeedai/enums';
 import type {
   IArticle,
   IBrand,
@@ -5,7 +6,6 @@ import type {
   ILink,
   IVideo,
 } from '@genfeedai/interfaces';
-import type { AssetCategory, CredentialPlatform } from '@genfeedai/enums';
 
 export interface BrandDetailBannerProps {
   brand: IBrand;

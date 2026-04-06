@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+
 import type { DetectedTools } from '@/lib/api/setup';
 import { setupApi } from '@/lib/api/setup';
 import { logger } from '@/lib/logger';

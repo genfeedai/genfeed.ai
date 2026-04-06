@@ -32,7 +32,7 @@ export const PanelContainer = forwardRef<HTMLDivElement, PanelContainerProps>(
         {children}
       </div>
     );
-  }
+  },
 );
 
 PanelContainer.displayName = 'PanelContainer';

@@ -1,2 +1,2 @@
-export { ContentTypePresets, type ContentType } from './ContentTypePresets';
+export { type ContentType, ContentTypePresets } from './ContentTypePresets';
 export { TaskComposerModal } from './TaskComposerModal';

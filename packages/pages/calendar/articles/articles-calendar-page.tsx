@@ -1,7 +1,7 @@
 'use client';
 
-import type { IArticle } from '@genfeedai/interfaces';
 import { ArticleStatus } from '@genfeedai/enums';
+import type { IArticle } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCalendarWeekRange } from '@hooks/utils/use-calendar-week-range/use-calendar-week-range';
 import type { ArticleCalendarItem } from '@props/publisher/articles-calendar.props';
@@ -12,7 +12,8 @@ import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
 import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import React, { useEffect, useMemo, useState } from 'react';
+import type React from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { HiListBullet } from 'react-icons/hi2';
 
 const ARTICLE_STATUS_COLORS: Record<string, string> = {

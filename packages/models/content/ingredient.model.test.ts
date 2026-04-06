@@ -1,3 +1,12 @@
+import {
+  AssetCategory,
+  AssetParent,
+  AssetScope,
+  IngredientCategory,
+  IngredientFormat,
+  IngredientStatus,
+  TagCategory,
+} from '@genfeedai/enums';
 import type {
   IAsset,
   IBrand,
@@ -10,15 +19,6 @@ import type {
   ITag,
   IUser,
 } from '@genfeedai/interfaces';
-import {
-  AssetCategory,
-  AssetParent,
-  AssetScope,
-  IngredientCategory,
-  IngredientFormat,
-  IngredientStatus,
-  TagCategory,
-} from '@genfeedai/enums';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies

@@ -1,21 +1,20 @@
-import { ModelKey } from '@genfeedai/enums';
-
+import { MODEL_KEYS } from '@genfeedai/constants';
 import { DurationUtil, formatDuration } from '@helpers/video-duration.helper';
 
 vi.mock('@genfeedai/constants', () => ({
-  getModelDefaultDuration: vi.fn((model: ModelKey) => {
+  getModelDefaultDuration: vi.fn((model: string) => {
     const defaults: Record<string, number> = {
-      [ModelKey.REPLICATE_OPENAI_SORA_2]: 4,
-      [ModelKey.REPLICATE_GOOGLE_VEO_3]: 8,
-      [ModelKey.REPLICATE_KWAIVGI_KLING_V2_1]: 5,
+      [MODEL_KEYS.REPLICATE_OPENAI_SORA_2]: 4,
+      [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3]: 8,
+      [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1]: 5,
     };
     return defaults[model] || 8;
   }),
-  getModelDurations: vi.fn((model: ModelKey) => {
+  getModelDurations: vi.fn((model: string) => {
     const durations: Record<string, number[]> = {
-      [ModelKey.REPLICATE_OPENAI_SORA_2]: [4, 8, 12],
-      [ModelKey.REPLICATE_GOOGLE_VEO_3]: [5, 8],
-      [ModelKey.REPLICATE_KWAIVGI_KLING_V2_1]: [5, 10],
+      [MODEL_KEYS.REPLICATE_OPENAI_SORA_2]: [4, 8, 12],
+      [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3]: [5, 8],
+      [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1]: [5, 10],
     };
     return durations[model] || [];
   }),
@@ -142,19 +141,19 @@ describe('video-duration.helper', () => {
     it('should validate duration for Sora model', () => {
       expect(
         DurationUtil.validateDurationForModel(
-          ModelKey.REPLICATE_OPENAI_SORA_2,
+          MODEL_KEYS.REPLICATE_OPENAI_SORA_2,
           4,
         ),
       ).toBe(4);
       expect(
         DurationUtil.validateDurationForModel(
-          ModelKey.REPLICATE_OPENAI_SORA_2,
+          MODEL_KEYS.REPLICATE_OPENAI_SORA_2,
           8,
         ),
       ).toBe(8);
       expect(
         DurationUtil.validateDurationForModel(
-          ModelKey.REPLICATE_OPENAI_SORA_2,
+          MODEL_KEYS.REPLICATE_OPENAI_SORA_2,
           5,
         ),
       ).toBe(4);
@@ -163,19 +162,19 @@ describe('video-duration.helper', () => {
     it('should validate duration for Veo model', () => {
       expect(
         DurationUtil.validateDurationForModel(
-          ModelKey.REPLICATE_GOOGLE_VEO_3,
+          MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
           5,
         ),
       ).toBe(5);
       expect(
         DurationUtil.validateDurationForModel(
-          ModelKey.REPLICATE_GOOGLE_VEO_3,
+          MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
           8,
         ),
       ).toBe(8);
       expect(
         DurationUtil.validateDurationForModel(
-          ModelKey.REPLICATE_GOOGLE_VEO_3,
+          MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
           6,
         ),
       ).toBe(5);
@@ -183,19 +182,23 @@ describe('video-duration.helper', () => {
 
     it('should return default duration for model when not specified', () => {
       expect(
-        DurationUtil.validateDurationForModel(ModelKey.REPLICATE_OPENAI_SORA_2),
+        DurationUtil.validateDurationForModel(
+          MODEL_KEYS.REPLICATE_OPENAI_SORA_2,
+        ),
       ).toBe(4);
       expect(
-        DurationUtil.validateDurationForModel(ModelKey.REPLICATE_GOOGLE_VEO_3),
+        DurationUtil.validateDurationForModel(
+          MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
+        ),
       ).toBe(8);
     });
 
     it('should handle unknown models with no durations', () => {
       expect(
-        DurationUtil.validateDurationForModel('unknown-model' as ModelKey, 10),
+        DurationUtil.validateDurationForModel('unknown-model' as string, 10),
       ).toBe(10);
       expect(
-        DurationUtil.validateDurationForModel('unknown-model' as ModelKey),
+        DurationUtil.validateDurationForModel('unknown-model' as string),
       ).toBe(8);
     });
   });

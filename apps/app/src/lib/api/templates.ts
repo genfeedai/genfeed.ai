@@ -1,4 +1,8 @@
-import { WorkflowTemplateCategory, type WorkflowEdge, type WorkflowNode } from '@genfeedai/types';
+import type {
+  WorkflowEdge,
+  WorkflowNode,
+  WorkflowTemplateCategory,
+} from '@genfeedai/types';
 import { apiClient } from './client';
 
 export interface TemplateData {
@@ -30,7 +34,10 @@ export const templatesApi = {
   /**
    * Create a new custom template
    */
-  create: (data: CreateTemplateInput, signal?: AbortSignal): Promise<TemplateData> =>
+  create: (
+    data: CreateTemplateInput,
+    signal?: AbortSignal,
+  ): Promise<TemplateData> =>
     apiClient.post<TemplateData>('/templates', data, { signal }),
 
   /**
@@ -47,8 +54,13 @@ export const templatesApi = {
   /**
    * Get templates by category
    */
-  getByCategory: (category: string, signal?: AbortSignal): Promise<TemplateData[]> =>
-    apiClient.get<TemplateData[]>(`/templates?category=${category}`, { signal }),
+  getByCategory: (
+    category: string,
+    signal?: AbortSignal,
+  ): Promise<TemplateData[]> =>
+    apiClient.get<TemplateData[]>(`/templates?category=${category}`, {
+      signal,
+    }),
 
   /**
    * Get a single template by ID
@@ -60,5 +72,7 @@ export const templatesApi = {
    * Seed system templates (admin only)
    */
   seed: (signal?: AbortSignal): Promise<{ message: string }> =>
-    apiClient.post<{ message: string }>('/templates/seed', undefined, { signal }),
+    apiClient.post<{ message: string }>('/templates/seed', undefined, {
+      signal,
+    }),
 };

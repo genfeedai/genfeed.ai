@@ -46,7 +46,6 @@ function getColSpan(width?: AgentUIBlockWidth): string {
       return 'col-span-6';
     case 'third':
       return 'col-span-4';
-    case 'full':
     default:
       return 'col-span-12';
   }
@@ -102,7 +101,6 @@ function getAlertStyles(severity?: AlertBlock['severity']): {
         icon: '\u2714',
         text: 'text-green-400',
       };
-    case 'info':
     default:
       return {
         bg: 'bg-blue-500/10',

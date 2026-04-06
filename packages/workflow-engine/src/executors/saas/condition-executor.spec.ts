@@ -1,7 +1,7 @@
 import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
-  ConditionExecutor,
+  type ConditionExecutor,
   createConditionExecutor,
   evaluateCondition,
 } from '@workflow-engine/executors/saas/condition-executor';

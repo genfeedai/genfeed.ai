@@ -26,7 +26,7 @@ findModels(modelsDir);
 
 for (const modelFile of modelFiles) {
   const content = fs.readFileSync(modelFile, 'utf-8');
-  const relDir = path.relative(modelsDir, path.dirname(modelFile));
+  const _relDir = path.relative(modelsDir, path.dirname(modelFile));
   const baseName = path.basename(modelFile, '.model.ts');
 
   // Extract class name
@@ -39,7 +39,7 @@ for (const modelFile of modelFiles) {
     /import\s*\{[^}]*\b(\w+)\s+as\s+Base\w+[^}]*\}\s*from\s*'([^']+)'/,
   );
   const baseClassImport = baseImportMatch ? baseImportMatch[2] : null;
-  const baseClassName = baseImportMatch ? baseImportMatch[1] : null;
+  const _baseClassName = baseImportMatch ? baseImportMatch[1] : null;
 
   // Find all imports to mock
   const imports = [

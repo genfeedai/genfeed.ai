@@ -1,9 +1,9 @@
 'use client';
 
-import type { IQueryParams } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { EMPTY_STATES, ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { ModalEnum } from '@genfeedai/enums';
+import type { IQueryParams } from '@genfeedai/interfaces';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

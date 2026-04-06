@@ -1,7 +1,7 @@
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
-import { CreateOrganizationSettingDto } from '@api/collections/organization-settings/dto/create-organization-setting.dto';
-import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
+import type { CreateOrganizationSettingDto } from '@api/collections/organization-settings/dto/create-organization-setting.dto';
+import type { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
 import {
   OrganizationSetting,
   type OrganizationSettingDocument,
@@ -10,14 +10,14 @@ import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import {
-  IOnboardingJourneyMissionState,
+  type IOnboardingJourneyMissionState,
   ONBOARDING_JOURNEY_MISSION_ORDER,
   ONBOARDING_JOURNEY_MISSIONS,
-  OnboardingJourneyMissionId,
+  type OnboardingJourneyMissionId,
 } from '@genfeedai/types';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
+import type { ModuleRef } from '@nestjs/core';
 import { InjectModel } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 
@@ -83,8 +83,10 @@ export class OrganizationSettingsService extends BaseService<
    * Returns array of model ObjectIds
    */
   async getLatestMajorVersionModelIds(): Promise<Types.ObjectId[]> {
-    // Fetch all active models
-    const activeModels = await this.getModelsService().findAllActive();
+    // Fetch all active models — scope to system models only (organization: null)
+    const activeModels = await this.getModelsService().findAllActive({
+      organization: null,
+    });
 
     if (!activeModels || activeModels.length === 0) {
       return [];
@@ -171,6 +173,19 @@ export class OrganizationSettingsService extends BaseService<
       major,
       minor,
     };
+  }
+
+  /**
+   * Atomically add a model to an org's enabledModels set (idempotent via $addToSet)
+   */
+  async addEnabledModel(
+    organizationId: Types.ObjectId,
+    modelId: Types.ObjectId,
+  ): Promise<void> {
+    await this.model.updateOne(
+      { organization: organizationId },
+      { $addToSet: { enabledModels: modelId } },
+    );
   }
 
   async ensureJourneyState(

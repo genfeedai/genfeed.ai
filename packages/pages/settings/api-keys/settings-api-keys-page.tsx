@@ -1,8 +1,8 @@
 'use client';
 
-import type { IByokProviderStatus } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/enums';
+import type { IByokProviderStatus } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';

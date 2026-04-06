@@ -1,8 +1,8 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import type { ISetting } from '@genfeedai/interfaces';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
+import type { ISetting } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { User } from '@models/auth/user.model';
 import { logger } from '@services/core/logger.service';

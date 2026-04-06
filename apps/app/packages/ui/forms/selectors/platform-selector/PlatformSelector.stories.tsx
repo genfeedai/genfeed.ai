@@ -1,5 +1,5 @@
-import type { ICredential } from '@genfeedai/interfaces';
 import { CredentialPlatform } from '@genfeedai/enums';
+import type { ICredential } from '@genfeedai/interfaces';
 // @ts-expect-error storybook types not available
 import type { Meta, StoryObj } from '@storybook/react';
 import PlatformSelector from '@ui/forms/selectors/platform-selector/PlatformSelector';

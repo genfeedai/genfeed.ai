@@ -22,8 +22,8 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import type { User } from '@clerk/backend';
-import { InsightSerializer } from '@genfeedai/serializers';
 import { ActivitySource } from '@genfeedai/enums';
+import { InsightSerializer } from '@genfeedai/serializers';
 import {
   Body,
   Controller,

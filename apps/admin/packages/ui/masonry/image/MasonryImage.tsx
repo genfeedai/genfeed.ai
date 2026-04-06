@@ -1,6 +1,5 @@
 'use client';
 
-import type { IImage, IIngredient, IMetadata } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   ButtonSize,
@@ -8,6 +7,7 @@ import {
   ComponentSize,
   IngredientStatus,
 } from '@genfeedai/enums';
+import type { IImage, IIngredient, IMetadata } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import useIngredientActions from '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import type { MasonryImageProps } from '@props/content/masonry.props';

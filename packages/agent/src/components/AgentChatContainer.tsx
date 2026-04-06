@@ -33,13 +33,16 @@ import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-respon
 import { resolveRetryPrompt } from '@genfeedai/agent/utils/resolve-retry-prompt';
 import { PhaseProgress } from '@genfeedai/agent/workflow/components/PhaseProgress';
 import { useAgentWorkflowStore } from '@genfeedai/agent/workflow/store';
-import type { AgentDashboardOperation, AgentUIBlock } from '@genfeedai/interfaces';
 import {
   AgentThreadStatus,
   AlertCategory,
   ButtonSize,
   ButtonVariant,
 } from '@genfeedai/enums';
+import type {
+  AgentDashboardOperation,
+  AgentUIBlock,
+} from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import type { ChatAttachment } from '@props/ui/attachments.props';
@@ -826,7 +829,7 @@ export function AgentChatContainer({
 
   useEffect(() => {
     setFollowUpTaskMessage(null);
-  }, [latestProposedPlan?.id, workspacePlanningTaskId]);
+  }, []);
 
   useEffect(() => {
     const controller = new AbortController();

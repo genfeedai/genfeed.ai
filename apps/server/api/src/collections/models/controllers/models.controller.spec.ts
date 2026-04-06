@@ -1,8 +1,9 @@
 import { ModelsController } from '@api/collections/models/controllers/models.controller';
-import { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
-import { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
-import { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
+import type { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
+import type { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
+import type { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
 import type { User } from '@clerk/backend';
@@ -10,8 +11,7 @@ import { ModelSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import { Test, TestingModule } from '@nestjs/testing';
-import type { Request } from 'express';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
 
 vi.mock('@genfeedai/helpers', async () => ({
@@ -57,10 +57,25 @@ describe('ModelsController', () => {
     } as IClerkPublicMetadata,
   } as unknown as User;
 
+  const mockOrgId = new Types.ObjectId().toString();
+
   const mockRequest = {
+    context: {
+      organizationId: mockOrgId,
+      userId: 'user-mongo-id',
+      isSuperAdmin: false,
+      subscriptionTier: 'free',
+      stripeSubscriptionStatus: 'active',
+      hydratedAt: Date.now(),
+    },
     originalUrl: '/api/models',
     query: {},
-  } as Request;
+  } as unknown as RequestWithContext;
+
+  const mockRequestNoContext = {
+    originalUrl: '/api/models',
+    query: {},
+  } as unknown as RequestWithContext;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -250,6 +265,125 @@ describe('ModelsController', () => {
 
       expect(modelsService.findAll).toHaveBeenCalled();
       expect(result).toBeDefined();
+    });
+
+    it('should append org-scoped $match stage when request context has organizationId', async () => {
+      const mockModels = {
+        docs: [],
+        hasNextPage: false,
+        hasPrevPage: false,
+        limit: 10,
+        nextPage: null,
+        page: 1,
+        pagingCounter: 1,
+        prevPage: null,
+        totalDocs: 0,
+        totalPages: 1,
+      };
+
+      modelsService.findAll.mockResolvedValue(mockModels);
+
+      const query: ModelsQueryDto = {};
+
+      await controller.findAll(mockRequest, mockRegularUser, query);
+
+      const pipelineArg = modelsService.findAll.mock.calls[0][0];
+
+      // Last stage must be the org filter $match
+      const lastStage = pipelineArg[pipelineArg.length - 1];
+      expect(lastStage).toEqual({
+        $match: {
+          $or: [
+            { organization: null },
+            { organization: { $exists: false } },
+            { organization: new Types.ObjectId(mockOrgId) },
+          ],
+        },
+      });
+    });
+
+    it('should not append org $match stage when request context has no organizationId', async () => {
+      const mockModels = {
+        docs: [],
+        hasNextPage: false,
+        hasPrevPage: false,
+        limit: 10,
+        nextPage: null,
+        page: 1,
+        pagingCounter: 1,
+        prevPage: null,
+        totalDocs: 0,
+        totalPages: 1,
+      };
+
+      modelsService.findAll.mockResolvedValue(mockModels);
+
+      const query: ModelsQueryDto = {};
+
+      await controller.findAll(mockRequestNoContext, mockRegularUser, query);
+
+      const pipelineArg = modelsService.findAll.mock.calls[0][0];
+
+      // No stage should contain $or with organization filter
+      const hasOrgMatchStage = pipelineArg.some(
+        (stage: Record<string, unknown>) =>
+          stage.$match &&
+          (stage.$match as Record<string, unknown>).$or !== undefined,
+      );
+      expect(hasOrgMatchStage).toBe(false);
+    });
+
+    it('should filter foreign org models even when enabledModels is present', async () => {
+      // Simulates a scenario where enabledModels references a model from a different
+      // org (e.g. data corruption). The org filter is the last line of defense.
+      const mockOrgObjectId = new Types.ObjectId(mockOrgId);
+      const foreignOrgId = new Types.ObjectId();
+      const enabledModelId = new Types.ObjectId();
+
+      const moduleRefMock = {
+        findOne: vi.fn().mockResolvedValue({
+          enabledModels: [enabledModelId],
+          organization: foreignOrgId,
+        }),
+      };
+
+      // Temporarily override getOrganizationSettingsService
+      vi.spyOn(
+        // biome-ignore lint/suspicious/noExplicitAny: spying on private method requires any cast
+        controller as any,
+        'getOrganizationSettingsService',
+      ).mockReturnValue(moduleRefMock);
+
+      const mockModels = { docs: [], totalDocs: 0 };
+      modelsService.findAll.mockResolvedValue(mockModels);
+
+      const query: ModelsQueryDto = {
+        organizationId: foreignOrgId.toString(),
+      };
+
+      await controller.findAll(mockRequest, mockRegularUser, query);
+
+      const pipelineArg = modelsService.findAll.mock.calls[0][0];
+
+      // Verify the org-scoped $match is appended as the final stage
+      const lastStage = pipelineArg[pipelineArg.length - 1];
+      expect(lastStage).toEqual({
+        $match: {
+          $or: [
+            { organization: null },
+            { organization: { $exists: false } },
+            { organization: mockOrgObjectId },
+          ],
+        },
+      });
+
+      // Verify the enabledModels $match is also present (first stage)
+      const firstStage = pipelineArg[0];
+      expect(firstStage).toEqual({
+        $match: {
+          _id: { $in: [enabledModelId] },
+        },
+      });
     });
   });
 

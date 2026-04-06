@@ -22,7 +22,6 @@ import {
   type SocialContentData,
   SocialMonitorService,
 } from '@api/services/reply-bot/social-monitor.service';
-import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import {
   BotActivitySkipReason,
   BotActivityStatus,
@@ -32,6 +31,7 @@ import {
   ReplyLength,
   ReplyTone,
 } from '@genfeedai/enums';
+import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

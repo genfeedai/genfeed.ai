@@ -2,7 +2,7 @@ import {
   MODEL_OUTPUT_CAPABILITIES,
   type ModelCapabilityCategory,
 } from '@genfeedai/constants';
-import { type ModelKey, PromptCategory } from '@genfeedai/enums';
+import { PromptCategory } from '@genfeedai/enums';
 import { Prompt } from '@models/content/prompt.model';
 import type {
   UsePromptBarEnhancementOptions,
@@ -72,7 +72,7 @@ export function usePromptBarEnhancement(
 
   useEffect(() => {
     return () => {
-      socketSubscriptionsRef.current.forEach((unsubscribe) => unsubscribe());
+      for (const unsubscribe of socketSubscriptionsRef.current) unsubscribe();
       socketSubscriptionsRef.current = [];
       timeoutRefsRef.current.forEach(clearTimeout);
       timeoutRefsRef.current = [];
@@ -147,8 +147,7 @@ export function usePromptBarEnhancement(
 
     try {
       const service = await getPromptsService();
-      const modelCapability =
-        MODEL_OUTPUT_CAPABILITIES[watchedModel as ModelKey];
+      const modelCapability = MODEL_OUTPUT_CAPABILITIES[watchedModel as string];
       const promptCategory = modelCapability
         ? MODEL_CATEGORY_TO_PROMPT_CATEGORY[modelCapability.category]
         : PromptCategory.MODELS_PROMPT_IMAGE;

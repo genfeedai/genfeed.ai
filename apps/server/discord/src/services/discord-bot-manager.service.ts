@@ -1,3 +1,4 @@
+import { ConfigService } from '@discord/config/config.service';
 import {
   BaseBotManager,
   DiscordSendToChannelEvent,
@@ -13,7 +14,6 @@ import {
   WorkflowInput,
   WorkflowSession,
 } from '@genfeedai/integrations';
-import { ConfigService } from '@discord/config/config.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';

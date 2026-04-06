@@ -1,10 +1,3 @@
-import type {
-  IAsset,
-  IHttpInterceptorError,
-  IIngredient,
-  IUploadProgressData,
-} from '@genfeedai/interfaces';
-import type { FileUploadStatus } from '@genfeedai/interfaces/modals/file-upload-status.interface';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AssetCategory,
@@ -16,6 +9,13 @@ import {
   UploadStatus,
   VoiceProvider,
 } from '@genfeedai/enums';
+import type {
+  IAsset,
+  IHttpInterceptorError,
+  IIngredient,
+  IUploadProgressData,
+} from '@genfeedai/interfaces';
+import type { FileUploadStatus } from '@genfeedai/interfaces/modals/file-upload-status.interface';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAudioRecording } from '@hooks/media/use-audio-recording/use-audio-recording';

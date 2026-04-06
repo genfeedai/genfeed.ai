@@ -59,7 +59,10 @@ export function ActivityRow({
 
   if (href && LinkComponent) {
     return (
-      <LinkComponent href={href} className={cn(classes, 'block text-inherit no-underline')}>
+      <LinkComponent
+        href={href}
+        className={cn(classes, 'block text-inherit no-underline')}
+      >
         {inner}
       </LinkComponent>
     );

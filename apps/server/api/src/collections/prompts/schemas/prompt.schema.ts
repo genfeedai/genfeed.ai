@@ -1,10 +1,4 @@
-import { isTrainingKey } from '@api/collections/models/utils/model-key.util';
-import {
-  AssetScope,
-  ModelKey,
-  PromptCategory,
-  PromptStatus,
-} from '@genfeedai/enums';
+import { AssetScope, PromptCategory, PromptStatus } from '@genfeedai/enums';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { type Document, Types } from 'mongoose';
 
@@ -140,12 +134,8 @@ export class Prompt {
     validate: {
       message: 'Invalid model key',
       validator: (v: unknown) => {
-        if (v == null || v === '') {
-          return true;
-        }
-        return (
-          Object.values(ModelKey).includes(v as ModelKey) || isTrainingKey(v)
-        );
+        if (v == null || v === '') return true;
+        return typeof v === 'string';
       },
     },
   })

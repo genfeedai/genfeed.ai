@@ -96,7 +96,7 @@ export function ContextMenuItem({
           <span className="text-xs text-[var(--muted-foreground)] ml-4">
             {shortcut}
           </span>
-        )}
+)}
         {hasSubmenu && (
           <ChevronRight className="w-4 h-4 text-[var(--muted-foreground)]" />
         )}

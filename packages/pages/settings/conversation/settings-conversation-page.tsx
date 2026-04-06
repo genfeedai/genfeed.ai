@@ -1,9 +1,9 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import type { ISetting } from '@genfeedai/interfaces';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { AgentReplyStyle } from '@genfeedai/enums';
+import type { ISetting } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { User } from '@models/auth/user.model';

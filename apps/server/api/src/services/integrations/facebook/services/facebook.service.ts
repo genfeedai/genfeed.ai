@@ -1,12 +1,12 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ConfigService } from '@api/config/config.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
+import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import type {
   FacebookInsight,
   FacebookPage,
   FacebookReaction,
 } from '@genfeedai/interfaces/integrations/facebook.interface';
-import { CredentialPlatform, OAuthGrantType } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';

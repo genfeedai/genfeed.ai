@@ -1,4 +1,4 @@
-import { ConfigService } from '@api/config/config.service';
+import type { ConfigService } from '@api/config/config.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { BasePromptBuilder } from '@api/services/prompt-builder/builders/base-prompt.builder';
 import {
@@ -12,17 +12,18 @@ import type {
   ReplicateInput,
   TrainedModelInput,
 } from '@api/services/prompt-builder/interfaces/replicate-input.interface';
-import { ModelKey, ModelProvider } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelProvider } from '@genfeedai/enums';
 import {
   calculateAspectRatio,
   getDefaultAspectRatio,
 } from '@genfeedai/helpers';
 import { Injectable } from '@nestjs/common';
 
-// Derived allowlist of all Replicate models defined in the shared ModelKey enum/object.
-// We key off enum *names* (e.g. "REPLICATE_*") because the enum values are model IDs (e.g. "replicate/...").
-const replicateModels: ModelKey[] = (
-  Object.entries(ModelKey) as Array<[string, ModelKey]>
+// Derived allowlist of all Replicate models defined in the shared MODEL_KEYS constant.
+// We key off constant *names* (e.g. "REPLICATE_*") because the values are model IDs (e.g. "replicate/...").
+const replicateModels: string[] = (
+  Object.entries(MODEL_KEYS) as Array<[string, string]>
 )
   .filter(([key]) => key.startsWith('REPLICATE_'))
   .map(([, value]) => value);
@@ -65,7 +66,7 @@ export class ReplicatePromptBuilder extends BasePromptBuilder {
    * - Avoid relying on ModelKey key names, as the enum key-string may change or be minified
    * - For custom/trained models, permit if the model string contains the configured REPLICATE_OWNER
    */
-  supportsModel(model: ModelKey): boolean {
+  supportsModel(model: string): boolean {
     if (model === DEFAULT_TEXT_MODEL || this.textBuilder.supportsModel(model)) {
       return true;
     }
@@ -89,7 +90,7 @@ export class ReplicatePromptBuilder extends BasePromptBuilder {
     //    This is less robust if enums are not fully trusted, but adds flexibility for future additions.
     //    Only use as fallback, not primary check!
     const modelKeyName = (
-      Object.entries(ModelKey) as Array<[string, ModelKey]>
+      Object.entries(MODEL_KEYS) as Array<[string, string]>
     ).find(([, value]) => value === model)?.[0];
 
     if (modelKeyName?.startsWith('REPLICATE_')) {
@@ -101,7 +102,7 @@ export class ReplicatePromptBuilder extends BasePromptBuilder {
   }
 
   buildPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): ReplicateInput {
@@ -138,7 +139,7 @@ export class ReplicatePromptBuilder extends BasePromptBuilder {
   }
 
   private buildTrainedModelPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): TrainedModelInput {

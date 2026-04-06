@@ -1,5 +1,5 @@
-import type { ITag } from '@genfeedai/interfaces';
 import { PLATFORM_COLORS } from '@genfeedai/constants';
+import type { ITag } from '@genfeedai/interfaces';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import TagInput from '@ui/tags/input/TagInput';
 import { useState } from 'react';

@@ -1,6 +1,11 @@
 import type { OrganizationCategory } from '@genfeedai/enums';
-import type { IBaseEntity, IUser } from '../index';
-import { IAsset, ICredit, IOrganizationSetting } from '../index';
+import type {
+  IAsset,
+  IBaseEntity,
+  ICredit,
+  IOrganizationSetting,
+  IUser,
+} from '../index';
 
 export interface IOrganization extends IBaseEntity {
   user: IUser;

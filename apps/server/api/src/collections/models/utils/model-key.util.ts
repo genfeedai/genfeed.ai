@@ -1,4 +1,4 @@
-import { ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
 
 export function baseModelKey(key?: string): string | undefined {
   if (!key || typeof key !== 'string') {
@@ -7,16 +7,21 @@ export function baseModelKey(key?: string): string | undefined {
   return key.split(':')[0];
 }
 
-export function isTrainingKey(key?: string): boolean {
-  if (!key || typeof key !== 'string') {
-    return false;
+export function isTrainingKey(key?: unknown): boolean {
+  if (!key || typeof key !== 'string') return false;
+  const normalized = key.toLowerCase();
+  if (normalized.startsWith('genfeed-ai/')) {
+    return key.split('/').length === 3;
   }
-  return key.toLowerCase().startsWith('genfeedai');
+  if (normalized.startsWith('genfeedai/')) {
+    return key.split('/').length === 3;
+  }
+  return false;
 }
 
 export function isTrainerKey(key?: string): boolean {
   const base = baseModelKey(key);
-  return base === ModelKey.REPLICATE_FAST_FLUX_TRAINER;
+  return base === MODEL_KEYS.REPLICATE_FAST_FLUX_TRAINER;
 }
 
 export function isFalDestination(key?: string): boolean {

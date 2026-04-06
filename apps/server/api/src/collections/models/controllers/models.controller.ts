@@ -1,9 +1,10 @@
-import { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
-import { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
-import { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
+import type { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
+import type { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
+import type { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
-import { ModelsService } from '@api/collections/models/services/models.service';
+import type { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getIsSuperAdmin } from '@api/helpers/utils/clerk/clerk.util';
@@ -22,7 +23,7 @@ import type {
   SortObject,
 } from '@genfeedai/interfaces';
 import { ModelSerializer } from '@genfeedai/serializers';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
   Controller,
@@ -32,8 +33,7 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
-import type { Request } from 'express';
+import type { ModuleRef } from '@nestjs/core';
 import { Model, type PipelineStage, Types } from 'mongoose';
 
 @AutoSwagger()
@@ -148,7 +148,7 @@ export class ModelsController extends BaseCRUDController<
    */
   @Get()
   async findAll(
-    @Req() request: Request,
+    @Req() request: RequestWithContext,
     @CurrentUser() user: User,
     @Query() query: ModelsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
@@ -190,6 +190,24 @@ export class ModelsController extends BaseCRUDController<
       }
     }
 
+    // Defense-in-depth: org-scoped tenant isolation
+    // Derive org from request context middleware, NOT from query params
+    const authenticatedOrgId = request.context?.organizationId
+      ? new Types.ObjectId(request.context.organizationId)
+      : null;
+
+    if (authenticatedOrgId) {
+      pipeline.push({
+        $match: {
+          $or: [
+            { organization: null },
+            { organization: { $exists: false } },
+            { organization: authenticatedOrgId },
+          ],
+        },
+      });
+    }
+
     // Use the base service findAll with the modified pipeline
     const options = {
       customLabels,
@@ -214,7 +232,7 @@ export class ModelsController extends BaseCRUDController<
    */
   @Patch(':modelId')
   async patch(
-    @Req() request: Request,
+    @Req() request: RequestWithContext,
     @CurrentUser() user: User,
     @Param('modelId') modelId: string,
     @Body() updateDto: UpdateModelDto,

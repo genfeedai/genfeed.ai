@@ -1,8 +1,8 @@
 'use client';
 
-import type { IEditorProject } from '@genfeedai/interfaces';
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/enums';
+import type { IEditorProject } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { EditorProjectsService } from '@services/editor/editor-projects.service';
 import Button from '@ui/buttons/base/Button';
@@ -74,7 +74,7 @@ function formatRelativeTime(dateStr: string): string {
 }
 
 export default function EditorProjectsPage() {
-  const brandId = useBrandId();
+  const _brandId = useBrandId();
   const [projects, setProjects] = useState<IEditorProject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -95,12 +95,12 @@ export default function EditorProjectsPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [brandId, getEditorService]);
+  }, [getEditorService]);
 
   useEffect(() => {
     track('studio_editor_opened', { surface: 'index' });
     loadProjects();
-  }, [brandId, loadProjects]);
+  }, [loadProjects]);
 
   const handleDelete = useCallback(
     async (e: React.MouseEvent, projectId: string) => {

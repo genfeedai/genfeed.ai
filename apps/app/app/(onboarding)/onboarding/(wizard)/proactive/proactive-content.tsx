@@ -1,8 +1,8 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import type { IPost } from '@genfeedai/interfaces';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type { IPost } from '@genfeedai/interfaces';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import {

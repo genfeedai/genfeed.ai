@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom';
-import type { IIngredient } from '@genfeedai/interfaces';
 import { IngredientCategory } from '@genfeedai/enums';
+import type { IIngredient } from '@genfeedai/interfaces';
 import type { BaseButtonProps } from '@props/ui/forms/button.props';
 import { render, screen } from '@testing-library/react';
 import IngredientTabs from '@ui/ingredients/ingredient-tabs/IngredientTabs';

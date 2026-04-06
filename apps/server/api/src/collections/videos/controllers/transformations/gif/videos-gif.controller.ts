@@ -16,7 +16,6 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import type { User } from '@clerk/backend';
-import { IngredientSerializer } from '@genfeedai/serializers';
 import {
   AssetScope,
   FileInputType,
@@ -24,6 +23,7 @@ import {
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/enums';
+import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller, Param, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';

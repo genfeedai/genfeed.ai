@@ -65,7 +65,7 @@ export default function GalleryPage() {
           pageSize: '30',
           type: targetFilter,
         });
-        const response = await fetch(`/api/gallery?${params}`, { signal });
+        const response = await fetch(`/v1/core/gallery?${params}`, { signal });
         if (!response.ok) throw new Error('Failed to load gallery');
         const data: GalleryResponse = await response.json();
         setItems(data.items);
@@ -143,7 +143,7 @@ export default function GalleryPage() {
   const handleDelete = useCallback(
     async (item: GalleryItem) => {
       try {
-        const response = await fetch(`/api/gallery/${item.path}`, {
+        const response = await fetch(`/v1/core/gallery/${item.path}`, {
           method: 'DELETE',
         });
         if (!response.ok) throw new Error('Failed to delete file');
@@ -191,14 +191,14 @@ export default function GalleryPage() {
         pageSize: String(count),
         type: filter,
       });
-      const allResponse = await fetch(`/api/gallery?${params}`);
+      const allResponse = await fetch(`/v1/core/gallery?${params}`);
       if (!allResponse.ok)
         throw new Error('Failed to fetch items for deletion');
       const allData: GalleryResponse = await allResponse.json();
 
       await Promise.all(
         allData.items.map((item) =>
-          fetch(`/api/gallery/${item.path}`, { method: 'DELETE' }),
+          fetch(`/v1/core/gallery/${item.path}`, { method: 'DELETE' }),
         ),
       );
 

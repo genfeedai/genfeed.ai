@@ -1,6 +1,6 @@
-import { TemplatesService } from '@api/collections/templates/services/templates.service';
+import type { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { PromptParser } from '@api/helpers/utils/prompt-parser/prompt-parser.util';
-import { ReplicatePromptBuilder } from '@api/services/prompt-builder/builders/replicate-prompt.builder';
+import type { ReplicatePromptBuilder } from '@api/services/prompt-builder/builders/replicate-prompt.builder';
 import type { IPromptBuilder } from '@api/services/prompt-builder/interfaces/prompt-builder.interface';
 import type {
   BrandingMode,
@@ -13,11 +13,10 @@ import type {
 import {
   ContentTemplateKey,
   ModelCategory,
-  ModelKey,
   ModelProvider,
   PromptTemplateKey,
 } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 
@@ -222,7 +221,7 @@ export class PromptBuilderService {
    * @returns Provider-specific formatted parameters with template metadata
    */
   async buildPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     organizationId?: string,
   ): Promise<PromptBuilderResult> {
@@ -409,7 +408,7 @@ export class PromptBuilderService {
    * @param model - Model key
    * @returns The prompt builder for this model
    */
-  private getBuilderForModel(model: ModelKey): IPromptBuilder | undefined {
+  private getBuilderForModel(model: string): IPromptBuilder | undefined {
     // Try each builder until we find one that supports this model
     for (const builder of this.builders.values()) {
       if (builder.supportsModel(model)) {
@@ -428,7 +427,7 @@ export class PromptBuilderService {
    * @param model - Model key (e.g., 'openai/sora-2', 'google/veo-3')
    * @returns Model provider (always REPLICATE)
    */
-  private getProviderFromModelKey(_model: ModelKey): ModelProvider {
+  private getProviderFromModelKey(_model: string): ModelProvider {
     // All AI models are now routed through Replicate
     return ModelProvider.REPLICATE;
   }
@@ -438,7 +437,7 @@ export class PromptBuilderService {
    * @param model - Model key to check
    * @returns true if any builder supports this model
    */
-  isModelSupported(model: ModelKey): boolean {
+  isModelSupported(model: string): boolean {
     return this.getBuilderForModel(model) !== undefined;
   }
 
@@ -447,7 +446,7 @@ export class PromptBuilderService {
    * @param model - Model key
    * @returns The provider enum for this model
    */
-  getProviderForModel(model: ModelKey): ModelProvider | undefined {
+  getProviderForModel(model: string): ModelProvider | undefined {
     const builder = this.getBuilderForModel(model);
     return builder?.getProvider();
   }

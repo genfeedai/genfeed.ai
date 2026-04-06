@@ -1,6 +1,5 @@
 'use client';
 
-import type { IIngredient } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import {
@@ -9,6 +8,7 @@ import {
   IngredientCategory,
   IngredientStatus,
 } from '@genfeedai/enums';
+import type { IIngredient } from '@genfeedai/interfaces';
 import { resolveIngredientAspectRatio } from '@helpers/formatting/aspect-ratio/aspect-ratio.util';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -130,7 +130,7 @@ export default function CanvasGallery({
       block: 'nearest',
       inline: 'center',
     });
-  }, [scrollFocusedIngredientId, ingredients]);
+  }, [scrollFocusedIngredientId]);
 
   function handleClick(ingredient: IIngredient): void {
     if (!onAssetSelect) {

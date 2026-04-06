@@ -637,13 +637,17 @@ export class AgentStrategyAutopilotService {
         ? {
             model: defaultModel,
             prompt: this.buildImagePrompt(strategy, opportunity),
-            skillSlugs: ['image-generation'],
+            skillSlugs: strategy.skillSlugs?.length
+              ? strategy.skillSlugs
+              : ['image-generation'],
           }
         : {
             model: defaultModel,
             platform:
               opportunity.platformCandidates[0] ?? strategy.platforms[0],
-            skillSlugs: ['content-writing'],
+            skillSlugs: strategy.skillSlugs?.length
+              ? strategy.skillSlugs
+              : ['content-writing'],
             topic: opportunity.topic,
             variationsCount: 1,
           },

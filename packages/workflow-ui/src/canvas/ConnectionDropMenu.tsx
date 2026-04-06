@@ -1,13 +1,9 @@
 'use client';
 
-import type { HandleType, NodeCategory, NodeType } from '@genfeedai/types';
-import {
-  CONNECTION_RULES,
-  getNodesByCategory,
-  NODE_DEFINITIONS,
-} from '@genfeedai/types';
+import type { NodeCategory, NodeType } from '@genfeedai/types';
+import { CONNECTION_RULES, getNodesByCategory } from '@genfeedai/types';
 import { useReactFlow } from '@xyflow/react';
-import { Plus, Search, X } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflowStore';
@@ -91,7 +87,7 @@ function ConnectionDropMenuComponent() {
     const grouped: Partial<Record<NodeCategory, typeof filteredNodes>> = {};
     for (const node of filteredNodes) {
       if (!grouped[node.category]) grouped[node.category] = [];
-      grouped[node.category]!.push(node);
+      grouped[node.category]?.push(node);
     }
     return grouped;
   }, [filteredNodes]);
@@ -108,7 +104,7 @@ function ConnectionDropMenuComponent() {
   // Reset selection when search changes
   useEffect(() => {
     setSelectedIndex(0);
-  }, [search]);
+  }, []);
 
   // Scroll selected item into view
   useEffect(() => {

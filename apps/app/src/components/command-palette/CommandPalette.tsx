@@ -5,6 +5,7 @@ import { Kbd } from '@genfeedai/ui';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import Button from '@ui/buttons/base/Button';
 import { Input } from '@ui/primitives/input';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useCommandPaletteStore } from '@/store/commandPaletteStore';
@@ -62,6 +63,7 @@ function CommandItem({
 
 export function CommandPalette() {
   const router = useRouter();
+  const { href } = useOrgUrl();
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -153,7 +155,7 @@ export function CommandPalette() {
           toggleAIGenerator();
           break;
         case 'new-workflow':
-          router.push('/workflows/new');
+          router.push(href('/workflows/new'));
           break;
         default:
           // Handle node addition
@@ -180,6 +182,7 @@ export function CommandPalette() {
       openModal,
       toggleAIGenerator,
       router,
+      href,
       addNode,
     ],
   );

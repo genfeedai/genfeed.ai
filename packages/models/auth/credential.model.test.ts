@@ -1,3 +1,4 @@
+import { CredentialPlatform } from '@genfeedai/enums';
 import type {
   ICredential,
   IOrganization,
@@ -5,7 +6,6 @@ import type {
   ISetting,
   IUser,
 } from '@genfeedai/interfaces';
-import { CredentialPlatform } from '@genfeedai/enums';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/client/models', () => ({

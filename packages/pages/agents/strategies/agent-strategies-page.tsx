@@ -8,6 +8,7 @@ import {
 } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strategies';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
   AgentStrategyDialogProps,
   AgentStrategyFormState,
@@ -156,6 +157,7 @@ const DEFAULT_FORM_STATE: AgentStrategyFormState = {
   minPostScore: '70',
   monthlyCreditBudget: '500',
   platforms: ['twitter'],
+  skillSlugs: [],
   reserveTrendBudget: '125',
   runFrequency: AgentRunFrequency.DAILY,
   topics: '',
@@ -210,6 +212,7 @@ function buildFormState(
       strategy.budgetPolicy?.monthlyCreditBudget ?? 500,
     ),
     platforms: strategy.platforms ?? [],
+    skillSlugs: strategy.skillSlugs ?? [],
     reserveTrendBudget: String(
       strategy.budgetPolicy?.reserveTrendBudget ?? 125,
     ),
@@ -244,6 +247,7 @@ function buildPayload(form: AgentStrategyFormState): AgentStrategyPayload {
       trendWatchersEnabled: form.trendWatchersEnabled,
     },
     platforms: form.platforms,
+    skillSlugs: form.skillSlugs,
     publishPolicy: {
       autoPublishEnabled: form.autoPublishEnabled,
       minImageScore: Number(form.minImageScore) || 0,
@@ -482,6 +486,27 @@ function AgentStrategyDialog({
                 );
               })}
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-foreground">Skill Slugs</p>
+            <Input
+              placeholder="e.g. content-writing, image-generation"
+              value={form.skillSlugs.join(', ')}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                setForm((prev) => ({
+                  ...prev,
+                  skillSlugs: event.target.value
+                    .split(',')
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+                }))
+              }
+            />
+            <p className="text-xs text-foreground/50">
+              Comma-separated skill slugs. Leave empty to use all brand-enabled
+              skills.
+            </p>
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">
@@ -781,6 +806,7 @@ function AgentStrategyDialog({
 
 export default function AgentStrategiesPage() {
   const router = useRouter();
+  const { href } = useOrgUrl();
   const notificationsService = NotificationsService.getInstance();
   const { strategies, isLoading, refresh } = useAgentStrategies();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -949,6 +975,17 @@ export default function AgentStrategiesPage() {
         ),
       },
       {
+        header: 'Skills',
+        key: 'skillSlugs',
+        render: (strategy) => (
+          <span className="text-sm">
+            {strategy.skillSlugs.length > 0
+              ? strategy.skillSlugs.join(', ')
+              : '—'}
+          </span>
+        ),
+      },
+      {
         header: 'Schedule',
         key: 'runFrequency',
         render: (strategy) => (
@@ -1058,7 +1095,10 @@ export default function AgentStrategiesPage() {
           are agent policies: they decide when an agent runs, its budget, and
           its direction. Use autopilot when the agent should adapt each run. For
           fixed step-by-step automation graphs, use
-          <Link href="/workflows" className="ml-1 underline underline-offset-2">
+          <Link
+            href={href('/workflows')}
+            className="ml-1 underline underline-offset-2"
+          >
             Workflows
           </Link>
           .

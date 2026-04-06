@@ -1,3 +1,4 @@
+import { API_ENDPOINTS } from '@genfeedai/constants';
 import type {
   IElementBlacklist,
   IElementCamera,
@@ -9,7 +10,6 @@ import type {
   IElementStyle,
   ISound,
 } from '@genfeedai/interfaces';
-import { API_ENDPOINTS } from '@genfeedai/constants';
 import {
   deserializeCollection,
   type JsonApiResponseDocument,

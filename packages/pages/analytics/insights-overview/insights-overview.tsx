@@ -36,7 +36,7 @@ import {
   HiSparkles,
 } from 'react-icons/hi2';
 
-const TrendAnalysisCard = dynamic(
+const _TrendAnalysisCard = dynamic(
   () => import('@ui/analytics/insights/trend-analysis-card/TrendAnalysisCard'),
   {
     loading: () => (

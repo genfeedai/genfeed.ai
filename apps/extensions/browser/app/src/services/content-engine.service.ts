@@ -3,7 +3,7 @@ import {
   type RunActionType,
   type RunEventRecord,
   type RunRecord,
-  RunsService,
+  type RunsService,
 } from '~services/runs.service';
 
 export interface RunProgressSnapshot {

@@ -11,7 +11,7 @@ import type {
   Llama31405BInput,
   ReplicateTextInput,
 } from '@api/services/prompt-builder/interfaces/replicate-input.interface';
-import { ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   calculateAspectRatio,
   getDefaultAspectRatio,
@@ -24,20 +24,20 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class ReplicateTextBuilder extends BaseReplicateBuilder {
-  getSupportedModels(): ModelKey[] {
+  getSupportedModels(): string[] {
     return [
       DEFAULT_TEXT_MODEL,
-      ModelKey.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1,
-      ModelKey.REPLICATE_OPENAI_GPT_5_2,
-      ModelKey.REPLICATE_OPENAI_GPT_IMAGE_1_5,
-      ModelKey.REPLICATE_GOOGLE_GEMINI_2_5_FLASH,
-      ModelKey.REPLICATE_GOOGLE_GEMINI_3_PRO,
-      ModelKey.REPLICATE_META_LLAMA_3_1_405B_INSTRUCT,
+      MODEL_KEYS.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1,
+      MODEL_KEYS.REPLICATE_OPENAI_GPT_5_2,
+      MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5,
+      MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_2_5_FLASH,
+      MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO,
+      MODEL_KEYS.REPLICATE_META_LLAMA_3_1_405B_INSTRUCT,
     ];
   }
 
   buildPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): ReplicateTextInput {
@@ -45,22 +45,22 @@ export class ReplicateTextBuilder extends BaseReplicateBuilder {
       case DEFAULT_TEXT_MODEL:
         return this.buildClaude45SonnetPrompt(params, promptText);
 
-      case ModelKey.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1:
+      case MODEL_KEYS.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1:
         return this.buildDeepSeekR1Prompt(params, promptText);
 
-      case ModelKey.REPLICATE_OPENAI_GPT_5_2:
+      case MODEL_KEYS.REPLICATE_OPENAI_GPT_5_2:
         return this.buildGPT52Prompt(params, promptText);
 
-      case ModelKey.REPLICATE_OPENAI_GPT_IMAGE_1_5:
+      case MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5:
         return this.buildGPTImage15Prompt(params, promptText);
 
-      case ModelKey.REPLICATE_GOOGLE_GEMINI_2_5_FLASH:
+      case MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_2_5_FLASH:
         return this.buildGemini25FlashPrompt(params, promptText);
 
-      case ModelKey.REPLICATE_GOOGLE_GEMINI_3_PRO:
+      case MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO:
         return this.buildGemini3ProPrompt(params, promptText);
 
-      case ModelKey.REPLICATE_META_LLAMA_3_1_405B_INSTRUCT:
+      case MODEL_KEYS.REPLICATE_META_LLAMA_3_1_405B_INSTRUCT:
         return this.buildLlama31405BPrompt(params, promptText);
 
       default:
@@ -129,7 +129,7 @@ export class ReplicateTextBuilder extends BaseReplicateBuilder {
     );
     const aspectRatio =
       calculatedAspectRatio ||
-      getDefaultAspectRatio(ModelKey.REPLICATE_OPENAI_GPT_IMAGE_1_5);
+      getDefaultAspectRatio(MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5);
 
     const input: GPTImage15Input = {
       aspect_ratio: aspectRatio,

@@ -254,7 +254,7 @@ export function GenerationActionCard({
       el.style.height = 'auto';
       el.style.height = `${el.scrollHeight}px`;
     }
-  }, [prompt]);
+  }, []);
 
   const clearGenerationOutcome = useCallback(() => {
     setResultUrl(null);

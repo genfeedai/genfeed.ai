@@ -1,13 +1,5 @@
 'use client';
 
-import type {
-  IActivity,
-  IActivityPopulated,
-  IBackgroundTask,
-  IIngredient,
-} from '@genfeedai/interfaces';
-import type { IGenerationItem } from '@genfeedai/interfaces/components/generation.interface';
-import type { UnifiedActivityItem } from '@genfeedai/interfaces/components/topbar-activities.interface';
 import { useAssetSelection } from '@contexts/ui/asset-selection-context';
 import { useBackgroundTaskContext } from '@contexts/ui/background-task-context';
 import {
@@ -17,6 +9,14 @@ import {
   ComponentSize,
   IngredientCategory,
 } from '@genfeedai/enums';
+import type {
+  IActivity,
+  IActivityPopulated,
+  IBackgroundTask,
+  IIngredient,
+} from '@genfeedai/interfaces';
+import type { IGenerationItem } from '@genfeedai/interfaces/components/generation.interface';
+import type { UnifiedActivityItem } from '@genfeedai/interfaces/components/topbar-activities.interface';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';

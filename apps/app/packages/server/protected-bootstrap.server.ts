@@ -6,8 +6,13 @@ import { AuthService } from '@services/auth/auth.service';
 import { logger } from '@services/core/logger.service';
 import { cookies } from 'next/headers';
 import { cache } from 'react';
+import { isCoreMode } from '@/lib/config/edition';
 
 export const getServerAuthToken = cache(async (): Promise<string> => {
+  if (isCoreMode()) {
+    return '';
+  }
+
   const cookieStore = await cookies();
   const isPlaywrightBypass =
     process.env.PLAYWRIGHT_TEST === 'true' ||

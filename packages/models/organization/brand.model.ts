@@ -1,6 +1,6 @@
-import type { IAsset, IBrand, ICredential, ILink } from '@genfeedai/interfaces';
 import { Brand as BaseBrand } from '@genfeedai/client/models';
 import { CredentialPlatform } from '@genfeedai/enums';
+import type { IAsset, IBrand, ICredential, ILink } from '@genfeedai/interfaces';
 import { getDeepLink, isMobileDevice } from '@helpers/ui/mobile/mobile.helper';
 import { User } from '@models/auth/user.model';
 import { Asset } from '@models/ingredients/asset.model';

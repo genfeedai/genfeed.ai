@@ -6,8 +6,8 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import type { User } from '@clerk/backend';
-import { SubscriptionAttributionSerializer } from '@genfeedai/serializers';
 import { Timeframe } from '@genfeedai/enums';
+import { SubscriptionAttributionSerializer } from '@genfeedai/serializers';
 import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';

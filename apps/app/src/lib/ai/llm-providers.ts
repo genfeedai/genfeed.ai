@@ -29,7 +29,8 @@ export interface LLMModelOption {
 
 export const LLM_PROVIDERS: Record<LLMProviderType, LLMProviderInfo> = {
   anthropic: {
-    description: 'Claude models — best for reasoning, tool use, and creative workflows',
+    description:
+      'Claude models — best for reasoning, tool use, and creative workflows',
     docsUrl: 'https://console.anthropic.com/settings/keys',
     keyPlaceholder: 'sk-ant-...',
     keyPrefix: 'sk-ant-',

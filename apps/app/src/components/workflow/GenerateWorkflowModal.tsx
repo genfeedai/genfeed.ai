@@ -139,7 +139,7 @@ function GenerateWorkflowModalComponent() {
     setGeneratedWorkflow(null);
 
     try {
-      const response = await fetch('/api/workflows/generate', {
+      const response = await fetch('/v1/core/workflows/generate', {
         body: JSON.stringify({ contentLevel, description, model }),
         headers: { 'Content-Type': 'application/json' },
         method: 'POST',

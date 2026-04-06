@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { COMMANDS, type Command, filterCommands, groupCommandsByCategory } from './commands';
+import {
+  COMMANDS,
+  type Command,
+  filterCommands,
+  groupCommandsByCategory,
+} from './commands';
 
 describe('filterCommands', () => {
   it('returns all commands when query is empty', () => {

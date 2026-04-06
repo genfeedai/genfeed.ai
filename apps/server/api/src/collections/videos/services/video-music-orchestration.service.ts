@@ -11,25 +11,25 @@ import { FileInputType } from '@genfeedai/enums';
  */
 
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { MusicsService } from '@api/collections/musics/services/musics.service';
+import type { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { MusicsService } from '@api/collections/musics/services/musics.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
-import { PromptsService } from '@api/collections/prompts/services/prompts.service';
-import { BackgroundMusicDto } from '@api/collections/videos/dto/create-video.dto';
-import { VideosService } from '@api/collections/videos/services/videos.service';
-import { ConfigService } from '@api/config/config.service';
+import type { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import type { BackgroundMusicDto } from '@api/collections/videos/dto/create-video.dto';
+import type { VideosService } from '@api/collections/videos/services/videos.service';
+import type { ConfigService } from '@api/config/config.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { RouterService } from '@api/services/router/router.service';
-import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import { PollingService } from '@api/shared/services/polling/polling.service';
-import { SharedService } from '@api/shared/services/shared/shared.service';
+import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import type { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import type { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import type { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import type { RouterService } from '@api/services/router/router.service';
+import type { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
+import type { PollingService } from '@api/shared/services/polling/polling.service';
+import type { SharedService } from '@api/shared/services/shared/shared.service';
 import { JOB_TYPES } from '@files/queues/queue.constants';
 import {
   ActivityEntityModel,
@@ -39,13 +39,13 @@ import {
   IngredientStatus,
   MetadataExtension,
   ModelCategory,
-  ModelKey,
   PromptCategory,
   TransformationCategory,
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { Types } from 'mongoose';
 
@@ -155,7 +155,7 @@ export class VideoMusicOrchestrationService {
     // Get default music model
     const model = (await this.routerService.getDefaultModel(
       ModelCategory.MUSIC,
-    )) as ModelKey;
+    )) as string;
 
     // Create prompt record
     const promptData = await this.promptsService.create(
@@ -205,7 +205,7 @@ export class VideoMusicOrchestrationService {
       activityId: activity._id.toString(),
       label: 'Generating Background Music',
       progress: 0,
-      room: `user-${context.clerkUserId}`,
+      room: getUserRoomName(context.clerkUserId),
       status: 'processing',
       taskId: ingredientData._id.toString(),
       userId: context.clerkUserId,
@@ -319,7 +319,7 @@ export class VideoMusicOrchestrationService {
       activityId,
       label: 'Adding Background Music',
       progress: 0,
-      room: `user-${context.clerkUserId}`,
+      room: getUserRoomName(context.clerkUserId),
       status: 'processing',
       taskId: mergedIngredientId,
       userId: context.clerkUserId,
@@ -337,7 +337,7 @@ export class VideoMusicOrchestrationService {
           musicVolume: musicVolume / 100, // Convert 0-100 to 0-1
           sourceIds: [videoIngredientId],
         },
-        room: `user-${context.clerkUserId}`,
+        room: getUserRoomName(context.clerkUserId),
         type: JOB_TYPES.MERGE_VIDEOS,
         userId: context.userId,
         websocketUrl,
@@ -380,7 +380,7 @@ export class VideoMusicOrchestrationService {
           transformation: TransformationCategory.MERGED,
         },
         context.clerkUserId,
-        `user-${context.clerkUserId}`,
+        getUserRoomName(context.clerkUserId),
       );
 
       // Update activity
@@ -402,7 +402,7 @@ export class VideoMusicOrchestrationService {
         progress: 100,
         resultId: mergedIngredientId,
         resultType: 'VIDEO',
-        room: `user-${context.clerkUserId}`,
+        room: getUserRoomName(context.clerkUserId),
         status: 'completed',
         taskId: mergedIngredientId,
         userId: context.clerkUserId,
@@ -447,7 +447,7 @@ export class VideoMusicOrchestrationService {
         activityId,
         error: errorMessage,
         label: 'Failed to add background music',
-        room: `user-${context.clerkUserId}`,
+        room: getUserRoomName(context.clerkUserId),
         status: 'failed',
         taskId: mergedIngredientId,
         userId: context.clerkUserId,
@@ -457,7 +457,7 @@ export class VideoMusicOrchestrationService {
         websocketUrl,
         `Failed to add background music: ${errorMessage}`,
         context.clerkUserId,
-        `user-${context.clerkUserId}`,
+        getUserRoomName(context.clerkUserId),
       );
 
       throw new HttpException(

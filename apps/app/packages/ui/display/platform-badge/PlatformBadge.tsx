@@ -1,5 +1,5 @@
-import type { IPlatformBadgeConfig } from '@genfeedai/interfaces/ui/platform-badge-config.interface';
 import { ComponentSize } from '@genfeedai/enums';
+import type { IPlatformBadgeConfig } from '@genfeedai/interfaces/ui/platform-badge-config.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { PlatformBadgeProps } from '@props/ui/display/platform-badge.props';
 import {

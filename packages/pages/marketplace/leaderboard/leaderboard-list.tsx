@@ -1,8 +1,8 @@
 'use client';
 
-import type { IPost } from '@genfeedai/interfaces';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { CardEmptySize } from '@genfeedai/enums';
+import type { IPost } from '@genfeedai/interfaces';
 import type { Ingredient } from '@models/content/ingredient.model';
 import type { Post } from '@models/content/post.model';
 import { logger } from '@services/core/logger.service';

@@ -99,13 +99,20 @@ function reorderByHandlePosition(nodes: Node[], edges: Edge[]): Node[] {
     if (!targetNode) continue;
 
     // Get source nodes with their target handle indices
-    const sourceInfos: { nodeId: string; handleIndex: number; currentY: number }[] = [];
+    const sourceInfos: {
+      nodeId: string;
+      handleIndex: number;
+      currentY: number;
+    }[] = [];
 
     for (const edge of targetEdges) {
       const sourceNode = nodeMap.get(edge.source);
       if (!sourceNode) continue;
 
-      const handleIndex = getInputHandleIndex(targetNode.type as string, edge.targetHandle ?? '');
+      const handleIndex = getInputHandleIndex(
+        targetNode.type as string,
+        edge.targetHandle ?? '',
+      );
       sourceInfos.push({
         currentY: sourceNode.position.y,
         handleIndex,
@@ -119,7 +126,9 @@ function reorderByHandlePosition(nodes: Node[], edges: Edge[]): Node[] {
     sourceInfos.sort((a, b) => a.handleIndex - b.handleIndex);
 
     // Get the Y positions sorted (top positions first)
-    const sortedYPositions = sourceInfos.map((s) => s.currentY).sort((a, b) => a - b);
+    const sortedYPositions = sourceInfos
+      .map((s) => s.currentY)
+      .sort((a, b) => a - b);
 
     // Assign Y positions: node connecting to top handle gets top Y position
     for (let i = 0; i < sourceInfos.length; i++) {
@@ -202,7 +211,7 @@ function resolveCollisions(nodes: Node[]): Node[] {
 export function getLayoutedNodes(
   nodes: Node[],
   edges: Edge[],
-  options: LayoutOptions = {}
+  options: LayoutOptions = {},
 ): Node[] {
   if (nodes.length === 0) return nodes;
 

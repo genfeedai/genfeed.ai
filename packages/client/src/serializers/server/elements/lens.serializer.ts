@@ -1,4 +1,4 @@
-import { buildSingleSerializer, type BuiltSerializer } from '../../builders';
+import { type BuiltSerializer, buildSingleSerializer } from '../../builders';
 import { elementLensSerializerConfig } from '../../configs';
 
 export const ElementLensSerializer: BuiltSerializer = buildSingleSerializer(

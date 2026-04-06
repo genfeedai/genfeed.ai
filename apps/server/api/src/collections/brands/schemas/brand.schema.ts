@@ -2,7 +2,6 @@ import { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref
 import {
   AssetScope,
   FontFamily,
-  ModelKey,
   ReferenceImageCategory,
 } from '@genfeedai/enums';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
@@ -302,6 +301,9 @@ export class Brand {
   @Prop({ default: true, type: Boolean })
   isActive!: boolean;
 
+  @Prop({ default: false, type: Boolean, index: true })
+  isDefault!: boolean;
+
   @Prop({ default: false, type: Boolean })
   isDeleted!: boolean;
 
@@ -313,34 +315,26 @@ export class Brand {
 
   // Default models for different media types
   @Prop({
-    enum: [...Object.values(ModelKey), null, ''],
-    required: false,
-    set: (v: unknown) => (v === '' || v === undefined ? null : v),
     type: String,
+    default: null,
   })
   defaultVideoModel?: string;
 
   @Prop({
-    enum: [...Object.values(ModelKey), null, ''],
-    required: false,
-    set: (v: unknown) => (v === '' || v === undefined ? null : v),
     type: String,
+    default: null,
   })
   defaultImageModel?: string;
 
   @Prop({
-    enum: [...Object.values(ModelKey), null, ''],
-    required: false,
-    set: (v: unknown) => (v === '' || v === undefined ? null : v),
     type: String,
+    default: null,
   })
   defaultImageToVideoModel?: string;
 
   @Prop({
-    enum: [...Object.values(ModelKey), null, ''],
-    required: false,
-    set: (v: unknown) => (v === '' || v === undefined ? null : v),
     type: String,
+    default: null,
   })
   defaultMusicModel?: string;
 

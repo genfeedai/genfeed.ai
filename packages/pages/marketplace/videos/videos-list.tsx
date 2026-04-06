@@ -1,12 +1,12 @@
 'use client';
 
-import type { IVideo } from '@genfeedai/interfaces';
 import {
   GALLERY_CONTAINER_PADDING,
   GALLERY_EMPTY_MESSAGES,
   GALLERY_EMPTY_SIZE,
 } from '@genfeedai/constants';
 import { AssetScope, IngredientFormat } from '@genfeedai/enums';
+import type { IVideo } from '@genfeedai/interfaces';
 import { useGalleryList } from '@hooks/data/gallery/use-gallery-list/use-gallery-list';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import { LazyMasonryGrid } from '@ui/lazy/masonry/LazyMasonry';

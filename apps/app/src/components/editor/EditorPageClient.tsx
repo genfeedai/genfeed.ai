@@ -112,7 +112,7 @@ export function EditorPageClient({ initialAssets }: EditorPageClientProps) {
     setRenderedPath(null);
 
     try {
-      const response = await fetch('/api/editor/render', {
+      const response = await fetch('/v1/core/editor/render', {
         body: JSON.stringify({ composition }),
         headers: { 'Content-Type': 'application/json' },
         method: 'POST',

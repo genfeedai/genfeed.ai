@@ -1,8 +1,11 @@
 import 'server-only';
 
 import { getServerAuthToken } from '@app-server/protected-bootstrap.server';
-import type { IAnalytics, ITimeSeriesApiDataPoint } from '@genfeedai/interfaces';
 import { AnalyticsMetric } from '@genfeedai/enums';
+import type {
+  IAnalytics,
+  ITimeSeriesApiDataPoint,
+} from '@genfeedai/interfaces';
 import { getDefaultDateRange } from '@helpers/utils/date-range.util';
 import type { TopPostData } from '@hooks/data/analytics/use-top-posts/use-top-posts';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';

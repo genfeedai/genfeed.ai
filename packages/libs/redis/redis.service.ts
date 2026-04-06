@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import {
   Inject,
   Injectable,
@@ -7,6 +7,7 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 import { createClient, type RedisClientType } from 'redis';
+import { parseRedisConnection } from './redis-connection.utils';
 
 @Injectable()
 export class RedisService
@@ -43,15 +44,18 @@ export class RedisService
       return;
     }
 
-    const CONNECT_TIMEOUT = 3_000; // 3 second timeout - fail fast
+    const config = parseRedisConnection(this.configService);
+    const CONNECT_TIMEOUT = 3_000;
+    const socketOptions = {
+      connectTimeout: CONNECT_TIMEOUT,
+      reconnectStrategy: () => false as const, // Don't retry - fail fast
+      ...(config.tls ? { tls: true as const } : {}),
+    };
 
     try {
       this.publisher = createClient({
-        socket: {
-          connectTimeout: CONNECT_TIMEOUT,
-          reconnectStrategy: () => false, // Don't retry - fail fast
-        },
-        url: redisUrl,
+        socket: socketOptions,
+        url: config.url,
       });
       this.publisher.on('error', (err) =>
         this.logger.error('Redis Publisher Error', err, this.context),
@@ -67,11 +71,8 @@ export class RedisService
       ]);
 
       this.subscriber = createClient({
-        socket: {
-          connectTimeout: CONNECT_TIMEOUT,
-          reconnectStrategy: () => false, // Don't retry - fail fast
-        },
-        url: redisUrl,
+        socket: socketOptions,
+        url: config.url,
       });
       this.subscriber.on('error', (err) =>
         this.logger.error('Redis Subscriber Error', err, this.context),
@@ -87,6 +88,9 @@ export class RedisService
       ]);
 
       this.logger.log('Redis clients connected successfully', this.context);
+      if (config.tls) {
+        this.logger.log('Redis TLS enabled', this.context);
+      }
       this.isInitialized = true;
 
       for (const { channel, handler } of this.pendingSubscriptions) {

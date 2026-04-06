@@ -1,4 +1,4 @@
-import { NewsletterSerializer } from '@genfeedai/client/serializers';
+import type { NewsletterSerializer } from '@genfeedai/client/serializers';
 import { Newsletter } from '@models/content/newsletter.model';
 import { NewslettersService } from '@services/content/newsletters.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

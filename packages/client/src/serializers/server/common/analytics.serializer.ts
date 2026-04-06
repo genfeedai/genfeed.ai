@@ -1,4 +1,4 @@
-import { buildSingleSerializer, type BuiltSerializer } from '../../builders';
+import { type BuiltSerializer, buildSingleSerializer } from '../../builders';
 import {
   analyticsBrandLeaderboardSerializerConfig,
   analyticsBrandStatsSerializerConfig,
@@ -21,20 +21,14 @@ export const AnalyticSerializer: BuiltSerializer = buildSingleSerializer(
   analyticsSerializerConfig,
 );
 
-export const AnalyticsBrandLeaderboardSerializer: BuiltSerializer = buildSingleSerializer(
-  'server',
-  analyticsBrandLeaderboardSerializerConfig,
-);
+export const AnalyticsBrandLeaderboardSerializer: BuiltSerializer =
+  buildSingleSerializer('server', analyticsBrandLeaderboardSerializerConfig);
 
-export const AnalyticsBrandStatsSerializer: BuiltSerializer = buildSingleSerializer(
-  'server',
-  analyticsBrandStatsSerializerConfig,
-);
+export const AnalyticsBrandStatsSerializer: BuiltSerializer =
+  buildSingleSerializer('server', analyticsBrandStatsSerializerConfig);
 
-export const AnalyticsEngagementSerializer: BuiltSerializer = buildSingleSerializer(
-  'server',
-  analyticsEngagementSerializerConfig,
-);
+export const AnalyticsEngagementSerializer: BuiltSerializer =
+  buildSingleSerializer('server', analyticsEngagementSerializerConfig);
 
 export const AnalyticsGrowthSerializer: BuiltSerializer = buildSingleSerializer(
   'server',
@@ -46,40 +40,29 @@ export const AnalyticsHooksSerializer: BuiltSerializer = buildSingleSerializer(
   analyticsHooksSerializerConfig,
 );
 
-export const AnalyticsOrgLeaderboardSerializer: BuiltSerializer = buildSingleSerializer(
-  'server',
-  analyticsOrgLeaderboardSerializerConfig,
-);
+export const AnalyticsOrgLeaderboardSerializer: BuiltSerializer =
+  buildSingleSerializer('server', analyticsOrgLeaderboardSerializerConfig);
 
-export const AnalyticsOrgStatsSerializer: BuiltSerializer = buildSingleSerializer(
-  'server',
-  analyticsOrgStatsSerializerConfig,
-);
+export const AnalyticsOrgStatsSerializer: BuiltSerializer =
+  buildSingleSerializer('server', analyticsOrgStatsSerializerConfig);
 
-export const AnalyticsOverviewSerializer: BuiltSerializer = buildSingleSerializer(
-  'server',
-  analyticsOverviewSerializerConfig,
-);
+export const AnalyticsOverviewSerializer: BuiltSerializer =
+  buildSingleSerializer('server', analyticsOverviewSerializerConfig);
 
-export const AnalyticsPlatformSerializer: BuiltSerializer = buildSingleSerializer(
-  'server',
-  analyticsPlatformSerializerConfig,
-);
+export const AnalyticsPlatformSerializer: BuiltSerializer =
+  buildSingleSerializer('server', analyticsPlatformSerializerConfig);
 
-export const AnalyticsTimeseriesSerializer: BuiltSerializer = buildSingleSerializer(
-  'server',
-  analyticsTimeSeriesSerializerConfig,
-);
+export const AnalyticsTimeseriesSerializer: BuiltSerializer =
+  buildSingleSerializer('server', analyticsTimeSeriesSerializerConfig);
 
-export const AnalyticsTimeseriesWithPlatformsSerializer: BuiltSerializer = buildSingleSerializer(
-  'server',
-  analyticsTimeSeriesWithPlatformsSerializerConfig,
-);
+export const AnalyticsTimeseriesWithPlatformsSerializer: BuiltSerializer =
+  buildSingleSerializer(
+    'server',
+    analyticsTimeSeriesWithPlatformsSerializerConfig,
+  );
 
-export const AnalyticsTopContentSerializer: BuiltSerializer = buildSingleSerializer(
-  'server',
-  analyticsTopContentSerializerConfig,
-);
+export const AnalyticsTopContentSerializer: BuiltSerializer =
+  buildSingleSerializer('server', analyticsTopContentSerializerConfig);
 
 export const AnalyticsTrendSerializer: BuiltSerializer = buildSingleSerializer(
   'server',

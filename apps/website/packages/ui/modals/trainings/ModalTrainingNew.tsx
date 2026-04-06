@@ -1,14 +1,5 @@
 'use client';
 
-import type {
-  IHttpInterceptorError,
-  IUploadProgressData,
-} from '@genfeedai/interfaces';
-import type { FileUploadStatus } from '@genfeedai/interfaces/modals/file-upload-status.interface';
-import type {
-  ModalTrainingNewProps,
-  TrainingStatusUpdate,
-} from '@genfeedai/interfaces/training/modal-training-new.interface';
 import { type TrainingSchema, trainingSchema } from '@genfeedai/client/schemas';
 import {
   AlertCategory,
@@ -20,6 +11,15 @@ import {
   TrainingCategory,
   UploadStatus,
 } from '@genfeedai/enums';
+import type {
+  IHttpInterceptorError,
+  IUploadProgressData,
+} from '@genfeedai/interfaces';
+import type { FileUploadStatus } from '@genfeedai/interfaces/modals/file-upload-status.interface';
+import type {
+  ModalTrainingNewProps,
+  TrainingStatusUpdate,
+} from '@genfeedai/interfaces/training/modal-training-new.interface';
 import {
   hasFormErrors,
   parseFormErrors,
@@ -229,7 +229,7 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
   };
 
   const steps = form.watch('steps');
-  const computedCost = Math.round(
+  const _computedCost = Math.round(
     ((steps || 1000) / 1000) * EnvironmentService.CREDITS_TRAINING_COST,
   );
 
@@ -380,7 +380,7 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
           // Confirm upload completion
           const uploaded = await mediaService.confirmUpload(presignedData.id);
 
-          if (!uploaded || !uploaded.id) {
+          if (!uploaded?.id) {
             throw new Error('Upload confirmation failed - no ID returned');
           }
 

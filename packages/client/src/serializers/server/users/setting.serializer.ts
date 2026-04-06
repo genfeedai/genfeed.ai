@@ -1,4 +1,4 @@
-import { buildSingleSerializer, type BuiltSerializer } from '../../builders';
+import { type BuiltSerializer, buildSingleSerializer } from '../../builders';
 import { settingSerializerConfig } from '../../configs';
 
 export const SettingSerializer: BuiltSerializer = buildSingleSerializer(

@@ -12,11 +12,11 @@ import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import type { User } from '@clerk/backend';
+import { CredentialPlatform } from '@genfeedai/enums';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
 } from '@genfeedai/serializers';
-import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {

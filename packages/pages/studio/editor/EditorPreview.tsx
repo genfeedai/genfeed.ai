@@ -1,7 +1,7 @@
 'use client';
 
-import type { IEditorEffect, IEditorTrack } from '@genfeedai/interfaces';
 import { EditorTrackType } from '@genfeedai/enums';
+import type { IEditorEffect, IEditorTrack } from '@genfeedai/interfaces';
 import type { EditorPreviewProps } from '@props/studio/editor-preview.props';
 import type { Player, PlayerRef } from '@remotion/player';
 import dynamic from 'next/dynamic';

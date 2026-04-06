@@ -14,8 +14,8 @@ import {
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BrandMemorySyncService } from '@api/services/brand-memory/brand-memory-sync.service';
 import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
-import type { IAnalyticsMatchStage } from '@genfeedai/interfaces';
 import { ContentType, PostCategory } from '@genfeedai/enums';
+import type { IAnalyticsMatchStage } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';

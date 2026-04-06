@@ -11,7 +11,14 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('next/link', () => ({
-  default: ({ href, children, ...props }: { href: string; children: React.ReactNode }) => (
+  default: ({
+    href,
+    children,
+    ...props
+  }: {
+    href: string;
+    children: React.ReactNode;
+  }) => (
     <a href={href} {...props}>
       {children}
     </a>
@@ -27,7 +34,7 @@ describe('CoreAppShell', () => {
     render(
       <CoreAppShell>
         <div>Test Content</div>
-      </CoreAppShell>
+      </CoreAppShell>,
     );
     expect(screen.getByTestId('core-content-shell')).toBeInTheDocument();
   });
@@ -36,7 +43,7 @@ describe('CoreAppShell', () => {
     render(
       <CoreAppShell>
         <div>Test Content</div>
-      </CoreAppShell>
+      </CoreAppShell>,
     );
     expect(screen.getByTestId('core-main-content')).toBeInTheDocument();
   });
@@ -45,7 +52,7 @@ describe('CoreAppShell', () => {
     render(
       <CoreAppShell>
         <div data-testid="child-content">Test Content</div>
-      </CoreAppShell>
+      </CoreAppShell>,
     );
     expect(screen.getByTestId('child-content')).toBeInTheDocument();
   });
@@ -54,7 +61,7 @@ describe('CoreAppShell', () => {
     render(
       <CoreAppShell>
         <div>Test</div>
-      </CoreAppShell>
+      </CoreAppShell>,
     );
     expect(screen.getByTestId('core-topbar-shell')).toBeInTheDocument();
   });
@@ -63,7 +70,7 @@ describe('CoreAppShell', () => {
     render(
       <CoreAppShell>
         <div>Test</div>
-      </CoreAppShell>
+      </CoreAppShell>,
     );
     expect(screen.getByTestId('desktop-sidebar-rail')).toBeInTheDocument();
   });
@@ -72,7 +79,7 @@ describe('CoreAppShell', () => {
     render(
       <CoreAppShell>
         <div>Test</div>
-      </CoreAppShell>
+      </CoreAppShell>,
     );
     expect(screen.getByTestId('sidebar-shell')).toBeInTheDocument();
   });

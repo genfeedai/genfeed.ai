@@ -1,9 +1,9 @@
-import type { IElementLens } from '@genfeedai/interfaces';
 import {
   type ElementSimpleSchema,
   elementSimpleSchema,
 } from '@genfeedai/client/schemas';
 import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import type { IElementLens } from '@genfeedai/interfaces';
 import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
 import type { ModalCrudProps } from '@props/modals/modal.props';
 import { LensesService } from '@services/elements/lenses.service';

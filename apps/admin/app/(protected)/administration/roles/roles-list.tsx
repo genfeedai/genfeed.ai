@@ -1,10 +1,10 @@
 'use client';
 
-import type { IRole } from '@genfeedai/interfaces';
 import Button from '@components/buttons/base/Button';
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import { LazyModalRole } from '@components/lazy/LazyModal';
 import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import type { IRole } from '@genfeedai/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TableAction } from '@props/ui/display/table.props';

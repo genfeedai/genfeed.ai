@@ -1,5 +1,8 @@
 import { Effect } from 'effect';
-import { AgentApiDecodeError, AgentApiRequestError } from './agent-api-error';
+import type {
+  AgentApiDecodeError,
+  AgentApiRequestError,
+} from './agent-api-error';
 import {
   type AgentApiConfig,
   AgentBaseApiService,
@@ -8,10 +11,6 @@ import {
 
 // Concrete subclass to test the protected base methods
 class TestApiService extends AgentBaseApiService {
-  constructor(config: AgentApiConfig) {
-    super(config);
-  }
-
   public async getHeaders(): Promise<Record<string, string>> {
     return runAgentApiEffect(this.headersEffect());
   }

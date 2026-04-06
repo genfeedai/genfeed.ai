@@ -1,6 +1,5 @@
 import type {
   ModelCategory,
-  ModelKey,
   ModelProvider,
   QualityTier,
 } from '@genfeedai/enums';
@@ -26,7 +25,7 @@ export interface ModelLike {
   isDeleted?: boolean;
   isImagenModel?: boolean;
   isReferencesMandatory?: boolean;
-  key: ModelKey;
+  key: string;
   label?: string;
   maxOutputs?: number;
   maxReferences?: number;

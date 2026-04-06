@@ -1,9 +1,3 @@
-import type {
-  IBulkDeleteRequest,
-  IBulkDeleteResult,
-  IIngredient,
-  IPost,
-} from '@genfeedai/interfaces';
 import {
   AvatarSerializer,
   ImageSerializer,
@@ -14,6 +8,12 @@ import {
   VideoSerializer,
 } from '@genfeedai/client/serializers';
 import { IngredientCategory } from '@genfeedai/enums';
+import type {
+  IBulkDeleteRequest,
+  IBulkDeleteResult,
+  IIngredient,
+  IPost,
+} from '@genfeedai/interfaces';
 import { Avatar } from '@models/ai/avatar.model';
 import { Ingredient } from '@models/content/ingredient.model';
 import { GIF } from '@models/ingredients/gif.model';

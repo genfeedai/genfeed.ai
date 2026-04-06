@@ -96,7 +96,7 @@ export default function ModalArticle({
 
       // Validate based on mode
       if (useAI) {
-        if (!formData.prompt || !formData.prompt.trim()) {
+        if (!formData.prompt?.trim()) {
           return form.setError('prompt', {
             message: 'Please enter an article idea',
             type: 'manual',
@@ -118,14 +118,14 @@ export default function ModalArticle({
           return;
         }
       } else {
-        if (!formData.label || !formData.label.trim()) {
+        if (!formData.label?.trim()) {
           return form.setError('label', {
             message: 'Title is required',
             type: 'manual',
           });
         }
 
-        if (!formData.content || !formData.content.trim()) {
+        if (!formData.content?.trim()) {
           return form.setError('content', {
             message: 'Content is required',
             type: 'manual',

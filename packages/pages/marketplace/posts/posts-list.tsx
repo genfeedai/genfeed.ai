@@ -1,11 +1,11 @@
 'use client';
 
-import type { IPost } from '@genfeedai/interfaces';
 import {
   GALLERY_EMPTY_MESSAGES,
   GALLERY_EMPTY_SIZE,
   GALLERY_GRID_CLASS,
 } from '@genfeedai/constants';
+import type { IPost } from '@genfeedai/interfaces';
 import { useGalleryList } from '@hooks/data/gallery/use-gallery-list/use-gallery-list';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';

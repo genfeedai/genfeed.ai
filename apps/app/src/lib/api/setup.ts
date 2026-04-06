@@ -40,8 +40,14 @@ export const setupApi = {
   detectTools: (signal?: AbortSignal) =>
     apiClient.get<DetectedTools>('/setup/detect-tools', { signal }),
 
-  getStatus: (signal?: AbortSignal) => apiClient.get<SetupStatus>('/setup/status', { signal }),
+  getStatus: (signal?: AbortSignal) =>
+    apiClient.get<SetupStatus>('/setup/status', { signal }),
 
-  validateKey: (data: { provider: string; apiKey: string }, signal?: AbortSignal) =>
-    apiClient.post<KeyValidationResult>('/setup/validate-key', data, { signal }),
+  validateKey: (
+    data: { provider: string; apiKey: string },
+    signal?: AbortSignal,
+  ) =>
+    apiClient.post<KeyValidationResult>('/setup/validate-key', data, {
+      signal,
+    }),
 };

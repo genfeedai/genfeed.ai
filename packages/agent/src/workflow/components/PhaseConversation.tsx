@@ -98,7 +98,7 @@ function PhaseConversationInner() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages.length]);
+  }, []);
 
   return (
     <div

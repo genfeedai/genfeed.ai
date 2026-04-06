@@ -1,9 +1,9 @@
+import { EditorProjectStatus, IngredientFormat } from '@genfeedai/enums';
 import type {
   ICreateEditorProjectDto,
   IEditorProject,
   IUpdateEditorProjectDto,
 } from '@genfeedai/interfaces';
-import { EditorProjectStatus, IngredientFormat } from '@genfeedai/enums';
 import {
   deserializeCollection,
   deserializeResource,

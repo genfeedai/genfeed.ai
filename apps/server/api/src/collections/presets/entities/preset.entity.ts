@@ -1,10 +1,5 @@
-import {
-  ModelCategory,
-  ModelKey,
-  ModelProvider,
-  Platform,
-} from '@genfeedai/enums';
-import { Types } from 'mongoose';
+import type { ModelCategory, ModelProvider, Platform } from '@genfeedai/enums';
+import type { Types } from 'mongoose';
 
 export class Preset {
   id!: string;
@@ -18,7 +13,7 @@ export class Preset {
   prompt?: string;
   key!: string;
   category!: ModelCategory;
-  model?: ModelKey;
+  model?: string;
   provider?: ModelProvider;
   platform?: Platform;
 

@@ -12,9 +12,9 @@ import {
   resolvePathInsideRoot,
 } from '@genfeedai/desktop-core';
 import { dialog, shell } from 'electron';
-import {
+import type {
   CloudDatabaseService,
-  type WorkspaceRow,
+  WorkspaceRow,
 } from './cloud-database.service';
 
 const toIso = (): string => new Date().toISOString();

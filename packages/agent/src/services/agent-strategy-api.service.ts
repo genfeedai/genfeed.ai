@@ -3,9 +3,9 @@ import type {
   CreateAgentStrategyPayload,
   UpdateAgentStrategyPayload,
 } from '@genfeedai/agent/models/agent-strategy.model';
-import { type AgentApiError } from '@genfeedai/agent/services/agent-api-error';
+import type { AgentApiError } from '@genfeedai/agent/services/agent-api-error';
 import { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
-import { Effect } from 'effect';
+import type { Effect } from 'effect';
 
 export class AgentStrategyApiService extends AgentBaseApiService {
   getStrategiesEffect(

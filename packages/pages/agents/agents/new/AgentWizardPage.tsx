@@ -1,6 +1,5 @@
 'use client';
 
-import type { IAgentWizardFormData } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AgentAutonomyMode,
@@ -9,6 +8,7 @@ import {
   ButtonSize,
   ButtonVariant,
 } from '@genfeedai/enums';
+import type { IAgentWizardFormData } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { AgentStrategiesService } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';

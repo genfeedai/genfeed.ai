@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
+
 import { logger } from '@/lib/logger';
 import { useSettingsStore } from '@/store/settingsStore';
 
@@ -281,7 +282,7 @@ function ModelBrowserModalComponent({
         }
 
         const response = await fetch(
-          `/api/providers/models?${params.toString()}`,
+          `/v1/core/providers/models?${params.toString()}`,
           {
             headers,
             signal,

@@ -1,4 +1,4 @@
-import { buildSingleSerializer, type BuiltSerializer } from '../../builders';
+import { type BuiltSerializer, buildSingleSerializer } from '../../builders';
 import { fanvueContentSerializerConfig } from '../../configs';
 
 export const FanvueContentSerializer: BuiltSerializer = buildSingleSerializer(

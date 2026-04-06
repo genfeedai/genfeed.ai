@@ -1,17 +1,17 @@
 'use client';
 
-import type { ILink } from '@genfeedai/interfaces';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   AlertCategory,
   AssetCategory,
   AssetScope,
   LinkCategory,
-  ModelKey,
 } from '@genfeedai/enums';
+import type { ILink } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
-import { Link } from '@models/social/link.model';
+import type { Link } from '@models/social/link.model';
 import BrandDetailBanner from '@pages/brands/components/banner/BrandDetailBanner';
 import BrandDetailSidebar from '@pages/brands/components/detail-sidebar/BrandDetailSidebar';
 import BrandDetailLatestArticles from '@pages/brands/components/latest-articles/BrandDetailLatestArticles';
@@ -83,7 +83,7 @@ export default function BrandDetail() {
       return 5;
     }
     const modelToUse =
-      brand.defaultImageModel || ModelKey.REPLICATE_GOOGLE_IMAGEN_4_FAST;
+      brand.defaultImageModel || MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_FAST;
     const model = imageModels.find((m) => m.key === modelToUse);
     return model?.cost || 5;
   }, [brand, generateModalType, imageModels]);

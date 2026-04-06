@@ -90,6 +90,8 @@ function ExecutionItem({
 
   return (
     <div className=" border border-white/[0.08] bg-card">
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: toggle panel */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: toggle panel */}
       <div
         className="flex cursor-pointer items-center gap-3 p-3"
         onClick={() => setIsExpanded(!isExpanded)}
@@ -226,7 +228,7 @@ export default function ExecutionHistoryPanel({
   const handleCancel = useCallback(
     async (executionId: string) => {
       try {
-        await fetch(`/api/workflow-executions/${executionId}/cancel`, {
+        await fetch(`/v1/core/workflow-executions/${executionId}/cancel`, {
           method: 'POST',
         });
         fetchExecutions();
@@ -239,6 +241,8 @@ export default function ExecutionHistoryPanel({
 
   return (
     <div className="border-b border-white/[0.08]">
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: toggle panel */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: toggle panel */}
       <div
         className="flex cursor-pointer items-center justify-between px-4 py-3"
         onClick={onToggleCollapse}

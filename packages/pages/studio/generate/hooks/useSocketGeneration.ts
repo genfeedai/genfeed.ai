@@ -1,11 +1,5 @@
 'use client';
 
-import type { IImage, IVideo } from '@genfeedai/interfaces';
-import type {
-  GenerationResponse,
-  SocketResult,
-} from '@genfeedai/interfaces/content/generation-payload.interface';
-import type { AssetQueryService } from '@genfeedai/interfaces/studio/studio-generate.interface';
 import { useAssetSelection } from '@contexts/ui/asset-selection-context';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import {
@@ -13,9 +7,15 @@ import {
   IngredientFormat,
   IngredientStatus,
   ModelCategory,
-  QualityTier,
+  type QualityTier,
 } from '@genfeedai/enums';
 import { resolveQualityToModel } from '@genfeedai/helpers';
+import type { IImage, IVideo } from '@genfeedai/interfaces';
+import type {
+  GenerationResponse,
+  SocketResult,
+} from '@genfeedai/interfaces/content/generation-payload.interface';
+import type { AssetQueryService } from '@genfeedai/interfaces/studio/studio-generate.interface';
 import { buildGenerationEtaSnapshot } from '@helpers/generation-eta.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';

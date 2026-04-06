@@ -258,8 +258,6 @@ mock.module('./statusBar', () => ({
 function createViewProviderMock(viewType: string) {
   return class ViewProviderMock {
     static readonly viewType = viewType;
-
-    constructor(_extensionUri?: unknown) {}
   };
 }
 

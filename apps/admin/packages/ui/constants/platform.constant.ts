@@ -1,5 +1,5 @@
-import type { ITrendPlatformConfig } from '@genfeedai/interfaces/analytics/platform-config.interface';
 import { PLATFORM_COLORS } from '@genfeedai/constants';
+import type { ITrendPlatformConfig } from '@genfeedai/interfaces/analytics/platform-config.interface';
 import {
   FaFacebook,
   FaGhost,

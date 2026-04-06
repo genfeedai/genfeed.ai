@@ -1,16 +1,16 @@
-import { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CaptionEntity } from '@api/collections/captions/entities/caption.entity';
-import { CaptionsService } from '@api/collections/captions/services/captions.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type { CaptionsService } from '@api/collections/captions/services/captions.service';
+import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { MusicsService } from '@api/collections/musics/services/musics.service';
-import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
-import { PostsService } from '@api/collections/posts/services/posts.service';
-import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
-import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
+import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { MusicsService } from '@api/collections/musics/services/musics.service';
+import type { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
+import type { PostsService } from '@api/collections/posts/services/posts.service';
+import type { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
+import type { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
 import {
   isWorkflowInputNodeType,
   normalizeWorkflowNodeTypeToCanonical,
@@ -32,6 +32,21 @@ import { ReplicateService } from '@api/services/integrations/replicate/replicate
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import {
+  CaptionFormat,
+  CaptionLanguage,
+  type CredentialPlatform,
+  FileInputType,
+  IngredientCategory,
+  IngredientStatus,
+  MetadataExtension,
+  ModelCategory,
+  MusicSourceType,
+  PostCategory,
+  PostStatus,
+  TransformationCategory,
+} from '@genfeedai/enums';
 import type {
   ExecutableEdge,
   ExecutableNode,
@@ -57,22 +72,8 @@ import {
   type NodeExecutor,
   WorkflowEngine,
 } from '@genfeedai/workflow-engine';
-import {
-  CaptionFormat,
-  CaptionLanguage,
-  CredentialPlatform,
-  FileInputType,
-  IngredientCategory,
-  IngredientStatus,
-  MetadataExtension,
-  ModelCategory,
-  ModelKey,
-  MusicSourceType,
-  PostCategory,
-  PostStatus,
-  TransformationCategory,
-} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable, Optional } from '@nestjs/common';
 import { Types } from 'mongoose';
 
@@ -356,7 +357,7 @@ export class WorkflowEngineAdapterService {
       const seed = typeof params.seed === 'number' ? params.seed : undefined;
 
       const { input } = await promptBuilderService.buildPrompt(
-        model as ModelKey,
+        model as string,
         {
           height,
           modelCategory: ModelCategory.IMAGE,
@@ -612,7 +613,7 @@ export class WorkflowEngineAdapterService {
             brandId,
             category: IngredientCategory.VIDEO,
             extension: MetadataExtension.MP4,
-            model: ModelKey.HEYGEN_AVATAR,
+            model: MODEL_KEYS.HEYGEN_AVATAR,
             organizationId: context.organizationId,
             parentIngredientId,
             references: [parentIngredientId, audioIngredientId],
@@ -764,7 +765,7 @@ export class WorkflowEngineAdapterService {
             captionContent,
             inputPath: `${this.configService.ingredientsEndpoint}/videos/${sourceIngredientId}`,
           },
-          room: `user-${context.userId}`,
+          room: getUserRoomName(context.userId),
           type: 'add-captions',
           userId: context.userId,
           websocketUrl: `/videos/${ingredientId}`,
@@ -1132,8 +1133,8 @@ export class WorkflowEngineAdapterService {
         const isVideo = outputCategory === IngredientCategory.VIDEO;
         const model =
           outputCategory === IngredientCategory.VIDEO
-            ? ModelKey.REPLICATE_LUMA_REFRAME_VIDEO
-            : ModelKey.REPLICATE_LUMA_REFRAME_IMAGE;
+            ? MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO
+            : MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE;
         const inputKey = isVideo ? 'video' : 'image';
         const parentIngredientId = this.extractIngredientId(mediaUrl);
         const brandId = await this.resolveBrandIdFromInputOrFail(
@@ -1208,8 +1209,8 @@ export class WorkflowEngineAdapterService {
         const outputCategory = this.resolveMediaOutputCategory(mediaUrl);
         const isVideo = outputCategory === IngredientCategory.VIDEO;
         const model = isVideo
-          ? ModelKey.REPLICATE_TOPAZ_VIDEO_UPSCALE
-          : ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE;
+          ? MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE
+          : MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE;
         const inputKey = isVideo ? 'video' : 'image';
         const parentIngredientId = this.extractIngredientId(mediaUrl);
         const brandId = await this.resolveBrandIdFromInputOrFail(

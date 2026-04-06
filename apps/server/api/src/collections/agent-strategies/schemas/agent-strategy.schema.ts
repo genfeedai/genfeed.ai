@@ -134,6 +134,9 @@ export class AgentStrategy {
   @Prop({ default: [], type: [String] })
   platforms!: string[];
 
+  @Prop({ default: [], type: [String] })
+  skillSlugs!: string[];
+
   @Prop({ type: ContentMixConfig })
   contentMix?: ContentMixConfig;
 

@@ -1,7 +1,7 @@
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import type { PopulateOption } from '@genfeedai/interfaces';
 import { IngredientStatus } from '@genfeedai/enums';
+import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 

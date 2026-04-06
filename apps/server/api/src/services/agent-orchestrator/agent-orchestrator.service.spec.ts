@@ -15,8 +15,8 @@ import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools
 import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
-import { AgentToolName } from '@genfeedai/interfaces';
 import { AgentAutonomyMode, AgentType } from '@genfeedai/enums';
+import { AgentToolName } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Effect } from 'effect';

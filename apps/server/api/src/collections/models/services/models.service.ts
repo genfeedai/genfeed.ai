@@ -1,5 +1,5 @@
-import { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
-import { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
+import type { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
+import type { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import {
   Model,
   type ModelDocument,
@@ -7,10 +7,10 @@ import {
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import type { UpdateQuery } from 'mongoose';
+import type { FilterQuery, UpdateQuery } from 'mongoose';
 
 @Injectable()
 export class ModelsService extends BaseService<
@@ -40,12 +40,16 @@ export class ModelsService extends BaseService<
   /**
    * Find all active models (for use in organization settings initialization)
    */
-  findAllActive(): Promise<ModelDocument[]> {
+  async findAllActive(
+    filter?: FilterQuery<ModelDocument>,
+  ): Promise<ModelDocument[]> {
     return this.model
       .find({
         isActive: true,
         isDeleted: false,
+        ...filter,
       })
+      .lean()
       .exec();
   }
 }

@@ -472,6 +472,7 @@ export function AgentChatInput({
     hasCompletedAttachments,
     getCompletedAttachments,
     clearAllAttachments,
+    draftPlanModeEnabled,
   ]);
 
   // Sync disabled state

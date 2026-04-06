@@ -1,6 +1,5 @@
 'use client';
 
-import type { IArticle } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { PLATFORM_COLORS } from '@genfeedai/constants';
 import {
@@ -8,6 +7,7 @@ import {
   CredentialPlatform,
   PostStatus,
 } from '@genfeedai/enums';
+import type { IArticle } from '@genfeedai/interfaces';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCalendarWeekRange } from '@hooks/utils/use-calendar-week-range/use-calendar-week-range';

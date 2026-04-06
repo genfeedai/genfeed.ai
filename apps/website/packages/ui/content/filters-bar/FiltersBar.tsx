@@ -1,12 +1,12 @@
 'use client';
 
-import type { IFilters } from '@genfeedai/interfaces/utils/filters.interface';
 import {
   ButtonVariant,
   ComponentSize,
   IngredientFormat,
   IngredientStatus,
 } from '@genfeedai/enums';
+import type { IFilters } from '@genfeedai/interfaces/utils/filters.interface';
 import type { FiltersBarProps } from '@props/ui/forms/filters.props';
 import Button from '@ui/buttons/base/Button';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';

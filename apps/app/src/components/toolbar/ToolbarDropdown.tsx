@@ -78,7 +78,7 @@ export function ToolbarDropdown({ label, items }: ToolbarDropdownProps) {
                     ↗
                   </span>
                 )}
-              </Button>
+</Button>
             );
           })}
         </div>

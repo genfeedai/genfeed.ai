@@ -56,12 +56,19 @@ export const promptsApi = {
    * Get featured prompt library items
    */
   getFeatured: (limit?: number, signal?: AbortSignal): Promise<IPrompt[]> =>
-    apiClient.get<IPrompt[]>(`/prompts/featured${limit ? `?limit=${limit}` : ''}`, { signal }),
+    apiClient.get<IPrompt[]>(
+      `/prompts/featured${limit ? `?limit=${limit}` : ''}`,
+      { signal },
+    ),
 
   /**
    * Update a prompt library item
    */
-  update: (id: string, data: Partial<ICreatePrompt>, signal?: AbortSignal): Promise<IPrompt> =>
+  update: (
+    id: string,
+    data: Partial<ICreatePrompt>,
+    signal?: AbortSignal,
+  ): Promise<IPrompt> =>
     apiClient.put<IPrompt>(`/prompts/${id}`, data, { signal }),
 
   /**

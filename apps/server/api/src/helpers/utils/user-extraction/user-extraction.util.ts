@@ -1,3 +1,4 @@
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Types } from 'mongoose';
 
 /**
@@ -72,7 +73,7 @@ export class UserExtractionUtil {
     }
 
     const userId = clerkUserId || dbUserId;
-    const userRoom = clerkUserId ? `user-${clerkUserId}` : undefined;
+    const userRoom = clerkUserId ? getUserRoomName(clerkUserId) : undefined;
 
     return {
       clerkUserId,

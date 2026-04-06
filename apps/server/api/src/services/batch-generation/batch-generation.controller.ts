@@ -16,8 +16,8 @@ import {
 import { CreateBatchDto } from '@api/services/batch-generation/dto/create-batch.dto';
 import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/create-manual-review-batch.dto';
 import type { User } from '@clerk/backend';
-import { BatchSerializer } from '@genfeedai/serializers';
 import { BatchStatus } from '@genfeedai/enums';
+import { BatchSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,

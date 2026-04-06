@@ -1,5 +1,6 @@
 import { categoryToPlural } from '@api/helpers/utils/category-conversion/category-conversion.util';
 import { IngredientCategory } from '@genfeedai/enums';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 
 /**
  * Calculates the WebSocket user room identifier.
@@ -10,10 +11,10 @@ export function getUserRoom(
   dbUserId?: string,
 ): string | undefined {
   if (clerkUserId) {
-    return `user-${clerkUserId}`;
+    return getUserRoomName(clerkUserId);
   }
   if (dbUserId) {
-    return `user-${dbUserId}`;
+    return getUserRoomName(dbUserId);
   }
   return undefined;
 }
@@ -70,5 +71,5 @@ export function resolveRoom(
   userRoom?: string,
   userId?: string,
 ): string | undefined {
-  return userRoom || (userId ? `user-${userId}` : undefined);
+  return userRoom || (userId ? getUserRoomName(userId) : undefined);
 }

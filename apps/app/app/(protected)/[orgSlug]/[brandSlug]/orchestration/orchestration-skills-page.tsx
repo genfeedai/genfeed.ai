@@ -2,12 +2,22 @@
 
 import { useAuth } from '@clerk/nextjs';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { ButtonVariant } from '@genfeedai/enums';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
-import { Skill, SkillsService } from '@services/content/skills.service';
+import { useBrandEnabledSkills } from '@hooks/data/skills/use-brand-enabled-skills';
+import { type Skill, SkillsService } from '@services/content/skills.service';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
+import { Button } from '@ui/primitives/button';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@ui/primitives/collapsible';
 import { Input } from '@ui/primitives/input';
+import { Switch } from '@ui/primitives/switch';
+import { Textarea } from '@ui/primitives/textarea';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -54,6 +64,7 @@ type SkillDraft = {
   defaultInstructions: string;
   description: string;
   name: string;
+  systemPromptTemplate: string;
 };
 
 function buildSkillTestPrompt(skill: Skill): string {
@@ -97,6 +108,7 @@ export default function OrchestrationSkillsPage() {
   const { getToken } = useAuth();
   const { isReady, selectedBrand } = useBrand();
 
+  const { enabledSlugs, toggleSkill } = useBrandEnabledSkills();
   const [skills, setSkills] = useState<Skill[]>([]);
   const [selectedSkillId, setSelectedSkillId] = useState<string>('');
   const [sourceFilter, setSourceFilter] =
@@ -113,6 +125,7 @@ export default function OrchestrationSkillsPage() {
     defaultInstructions: '',
     description: '',
     name: '',
+    systemPromptTemplate: '',
   });
 
   const getSkillsService = useCallback(async () => {
@@ -138,7 +151,7 @@ export default function OrchestrationSkillsPage() {
       startTransition(() => {
         setSkills(catalogSkills);
       });
-    } catch (refreshError) {
+    } catch {
       setError('Failed to load the agent skill catalog.');
     } finally {
       setLoading(false);
@@ -185,11 +198,12 @@ export default function OrchestrationSkillsPage() {
       defaultInstructions: selectedSkill?.defaultInstructions ?? '',
       description: selectedSkill?.description ?? '',
       name: selectedSkill?.name ?? '',
+      systemPromptTemplate: selectedSkill?.systemPromptTemplate ?? '',
     });
   }, [selectedSkill]);
 
   const handleSaveSkill = useCallback(async () => {
-    if (!(selectedSkill && selectedSkill.organization)) {
+    if (!selectedSkill?.organization) {
       return;
     }
 
@@ -202,9 +216,11 @@ export default function OrchestrationSkillsPage() {
         defaultInstructions: skillDraft.defaultInstructions.trim() || undefined,
         description: skillDraft.description.trim(),
         name: skillDraft.name.trim(),
+        systemPromptTemplate:
+          skillDraft.systemPromptTemplate.trim() || undefined,
       });
       await refreshCatalog();
-    } catch (saveError) {
+    } catch {
       setError('Failed to update the selected skill variant.');
     } finally {
       setSavingSkill(false);
@@ -216,6 +232,7 @@ export default function OrchestrationSkillsPage() {
     skillDraft.defaultInstructions,
     skillDraft.description,
     skillDraft.name,
+    skillDraft.systemPromptTemplate,
   ]);
 
   const handleCustomize = useCallback(async () => {
@@ -233,7 +250,7 @@ export default function OrchestrationSkillsPage() {
       });
       await refreshCatalog();
       setSelectedSkillId(customizedSkill.id);
-    } catch (customizeError) {
+    } catch {
       setError('Failed to create a brand-editable skill variant.');
     } finally {
       setCustomizing(false);
@@ -274,38 +291,41 @@ export default function OrchestrationSkillsPage() {
           </div>
 
           <div className="flex flex-wrap gap-2">
-            <button
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-foreground/70 transition hover:border-white/20 hover:text-foreground"
+            <Button
+              className="rounded-full"
               onClick={() => void refreshCatalog()}
-              type="button"
+              variant={ButtonVariant.OUTLINE}
             >
               <HiOutlineArrowPath className="h-4 w-4" />
               Refresh
-            </button>
-            <Link
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-foreground/70 transition hover:border-white/20 hover:text-foreground"
-              href="/chat"
+            </Button>
+            <Button
+              asChild
+              className="rounded-full"
+              variant={ButtonVariant.OUTLINE}
             >
-              <HiOutlineSparkles className="h-4 w-4" />
-              Open Chat
-            </Link>
+              <Link href="/chat">
+                <HiOutlineSparkles className="h-4 w-4" />
+                Open Chat
+              </Link>
+            </Button>
           </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
           {SOURCE_FILTERS.map((filter) => (
-            <button
-              className={`rounded-full px-3 py-1.5 text-sm transition ${
-                sourceFilter === filter.value
-                  ? 'bg-white text-black'
-                  : 'border border-white/10 text-foreground/65 hover:border-white/20 hover:text-foreground'
-              }`}
+            <Button
+              className="rounded-full"
               key={filter.value}
               onClick={() => setSourceFilter(filter.value)}
-              type="button"
+              variant={
+                sourceFilter === filter.value
+                  ? ButtonVariant.DEFAULT
+                  : ButtonVariant.OUTLINE
+              }
             >
               {filter.label}
-            </button>
+            </Button>
           ))}
         </div>
       </Card>
@@ -332,32 +352,32 @@ export default function OrchestrationSkillsPage() {
 
           <div className="mb-4 flex flex-wrap gap-2">
             {MODALITY_FILTERS.map((filter) => (
-              <button
-                className={`rounded-full px-3 py-1.5 text-sm transition ${
-                  modalityFilter === filter.value
-                    ? 'bg-white text-black'
-                    : 'border border-white/10 text-foreground/65 hover:border-white/20 hover:text-foreground'
-                }`}
+              <Button
+                className="rounded-full"
                 key={filter.value}
                 onClick={() => setModalityFilter(filter.value)}
-                type="button"
+                variant={
+                  modalityFilter === filter.value
+                    ? ButtonVariant.DEFAULT
+                    : ButtonVariant.OUTLINE
+                }
               >
                 {filter.label}
-              </button>
+              </Button>
             ))}
             {STAGE_FILTERS.map((filter) => (
-              <button
-                className={`rounded-full px-3 py-1.5 text-sm transition ${
-                  stageFilter === filter.value
-                    ? 'bg-white text-black'
-                    : 'border border-white/10 text-foreground/65 hover:border-white/20 hover:text-foreground'
-                }`}
+              <Button
+                className="rounded-full"
                 key={filter.value}
                 onClick={() => setStageFilter(filter.value)}
-                type="button"
+                variant={
+                  stageFilter === filter.value
+                    ? ButtonVariant.DEFAULT
+                    : ButtonVariant.OUTLINE
+                }
               >
                 {filter.label}
-              </button>
+              </Button>
             ))}
           </div>
 
@@ -376,17 +396,18 @@ export default function OrchestrationSkillsPage() {
 
             {filteredSkills.map((skill) => {
               const isSelected = selectedSkill?.id === skill.id;
+              const isEnabled = enabledSlugs.includes(skill.slug);
 
               return (
-                <button
-                  className={`rounded-2xl border p-4 text-left transition ${
+                <Button
+                  className={`h-auto w-full flex-col items-stretch rounded-2xl border p-4 text-left ${
                     isSelected
                       ? 'border-white/30 bg-white/[0.06]'
                       : 'border-white/10 bg-white/[0.03] hover:border-white/20'
-                  }`}
+                  } ${!isEnabled ? 'opacity-50' : ''}`}
                   key={skill.id}
                   onClick={() => setSelectedSkillId(skill.id)}
-                  type="button"
+                  variant={ButtonVariant.UNSTYLED}
                 >
                   <div className="mb-3 flex flex-wrap items-center gap-2">
                     <span className="text-sm font-semibold text-foreground">
@@ -404,6 +425,12 @@ export default function OrchestrationSkillsPage() {
                     >
                       {skill.workflowStage}
                     </Badge>
+                    <Switch
+                      checked={isEnabled}
+                      className="ml-auto"
+                      onClick={(event) => event.stopPropagation()}
+                      onCheckedChange={() => void toggleSkill(skill.slug)}
+                    />
                   </div>
 
                   <p className="mb-3 text-sm text-foreground/65">
@@ -430,7 +457,7 @@ export default function OrchestrationSkillsPage() {
                       </Badge>
                     ))}
                   </div>
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -481,14 +508,14 @@ export default function OrchestrationSkillsPage() {
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <button
-                  className="inline-flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-foreground/70 transition hover:border-white/20 hover:text-foreground"
+                <Button
+                  className="rounded-full"
                   onClick={handleOpenTestInChat}
-                  type="button"
+                  variant={ButtonVariant.OUTLINE}
                 >
                   <HiOutlineBeaker className="h-4 w-4" />
                   Test in chat
-                </button>
+                </Button>
               </div>
 
               <InsetSurface className="space-y-3">
@@ -504,15 +531,15 @@ export default function OrchestrationSkillsPage() {
                     </p>
                   </div>
                   {!selectedSkill.organization ? (
-                    <button
-                      className="inline-flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm font-medium text-foreground/70 transition hover:border-white/20 hover:text-foreground"
+                    <Button
+                      className="rounded-full"
                       disabled={customizing}
                       onClick={() => void handleCustomize()}
-                      type="button"
+                      variant={ButtonVariant.OUTLINE}
                     >
                       <HiOutlineSparkles className="h-4 w-4" />
                       {customizing ? 'Customizing...' : 'Customize'}
-                    </button>
+                    </Button>
                   ) : null}
                 </div>
 
@@ -533,7 +560,7 @@ export default function OrchestrationSkillsPage() {
 
                 <label className="grid gap-2 text-sm text-foreground/70">
                   Description
-                  <textarea
+                  <Textarea
                     className="min-h-24 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-foreground outline-none"
                     disabled={!selectedSkill.organization}
                     onChange={(event) =>
@@ -548,8 +575,8 @@ export default function OrchestrationSkillsPage() {
 
                 <label className="grid gap-2 text-sm text-foreground/70">
                   Default instructions
-                  <textarea
-                    className="min-h-28 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-foreground outline-none"
+                  <Textarea
+                    className="min-h-28 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm font-mono text-foreground outline-none"
                     disabled={!selectedSkill.organization}
                     onChange={(event) =>
                       setSkillDraft((current) => ({
@@ -561,15 +588,40 @@ export default function OrchestrationSkillsPage() {
                   />
                 </label>
 
+                <Collapsible>
+                  <CollapsibleTrigger className="text-sm font-medium text-foreground/50 hover:text-foreground/70">
+                    Advanced: System Prompt Template
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="space-y-2">
+                      <p className="text-xs text-foreground/40">
+                        The exact text injected into the agent system prompt at
+                        runtime. Falls back to Default Instructions if empty.
+                      </p>
+                      <Textarea
+                        className="min-h-32 w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm font-mono text-foreground outline-none"
+                        disabled={!selectedSkill.organization}
+                        onChange={(event) =>
+                          setSkillDraft((current) => ({
+                            ...current,
+                            systemPromptTemplate: event.target.value,
+                          }))
+                        }
+                        placeholder="Leave empty to use Default Instructions above"
+                        value={skillDraft.systemPromptTemplate}
+                      />
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+
                 {selectedSkill.organization ? (
-                  <button
-                    className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-white/90"
+                  <Button
                     disabled={savingSkill}
                     onClick={() => void handleSaveSkill()}
-                    type="button"
+                    variant={ButtonVariant.DEFAULT}
                   >
                     {savingSkill ? 'Saving...' : 'Save variant'}
-                  </button>
+                  </Button>
                 ) : null}
               </InsetSurface>
             </div>

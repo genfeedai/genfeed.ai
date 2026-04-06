@@ -77,7 +77,10 @@ export interface LLMInput {
   top_p?: number;
 }
 
-export type LipSyncModel = 'sync/lipsync-2-pro' | 'sync/lipsync-2' | 'pixverse/lipsync';
+export type LipSyncModel =
+  | 'sync/lipsync-2-pro'
+  | 'sync/lipsync-2'
+  | 'pixverse/lipsync';
 
 export type LipSyncMode = 'loop' | 'bounce' | 'cut_off' | 'silence' | 'remap';
 
@@ -106,9 +109,10 @@ export interface PredictionResult {
 export async function generateImage(
   model: 'nano-banana' | 'nano-banana-pro',
   input: ImageGenInput,
-  webhookUrl?: string
+  webhookUrl?: string,
 ): Promise<PredictionResult> {
-  const modelId = model === 'nano-banana' ? MODELS.nanoBanana : MODELS.nanoBananaPro;
+  const modelId =
+    model === 'nano-banana' ? MODELS.nanoBanana : MODELS.nanoBananaPro;
 
   const prediction = await replicate.predictions.create({
     input: {
@@ -136,7 +140,7 @@ export async function generateImage(
 export async function generateVideo(
   model: 'veo-3.1-fast' | 'veo-3.1',
   input: VideoGenInput,
-  webhookUrl?: string
+  webhookUrl?: string,
 ): Promise<PredictionResult> {
   const modelId = model === 'veo-3.1-fast' ? MODELS.veoFast : MODELS.veo;
 
@@ -191,7 +195,7 @@ export async function generateText(input: LLMInput): Promise<string> {
 export async function generateLipSync(
   model: LipSyncModel,
   input: LipSyncInput,
-  webhookUrl?: string
+  webhookUrl?: string,
 ): Promise<PredictionResult> {
   // Map model string to Replicate model identifier
   const modelMap: Record<LipSyncModel, string> = {
@@ -235,7 +239,9 @@ export async function generateLipSync(
 /**
  * Get prediction status
  */
-export async function getPredictionStatus(predictionId: string): Promise<PredictionResult> {
+export async function getPredictionStatus(
+  predictionId: string,
+): Promise<PredictionResult> {
   const prediction = await replicate.predictions.get(predictionId);
   return prediction as PredictionResult;
 }
@@ -256,7 +262,7 @@ export function calculateCost(
   imageResolution: string,
   videoSeconds: number,
   videoModel: 'veo-3.1-fast' | 'veo-3.1',
-  withAudio: boolean
+  withAudio: boolean,
 ): number {
   let cost = 0;
 
@@ -279,7 +285,7 @@ export function calculateCost(
  * Calculate total estimated cost for a workflow based on its nodes
  */
 export function calculateWorkflowCost(
-  nodes: Array<{ type: string; data: Record<string, unknown> }>
+  nodes: Array<{ type: string; data: Record<string, unknown> }>,
 ): number {
   const { total } = calculateWorkflowCostWithBreakdown(nodes);
   return total;
@@ -289,7 +295,7 @@ export function calculateWorkflowCost(
  * Calculate total estimated cost for a workflow with detailed breakdown per node
  */
 export function calculateWorkflowCostWithBreakdown(
-  nodes: Array<{ id?: string; type: string; data: Record<string, unknown> }>
+  nodes: Array<{ id?: string; type: string; data: Record<string, unknown> }>,
 ): CostBreakdown {
   let total = 0;
   const items: NodeCostEstimate[] = [];
@@ -301,7 +307,8 @@ export function calculateWorkflowCostWithBreakdown(
 
     switch (type) {
       case 'imageGen': {
-        const model = (data.model as 'nano-banana' | 'nano-banana-pro') ?? 'nano-banana';
+        const model =
+          (data.model as 'nano-banana' | 'nano-banana-pro') ?? 'nano-banana';
         const resolution = (data.resolution as string) ?? '2K';
         let subtotal: number;
 
@@ -314,7 +321,8 @@ export function calculateWorkflowCostWithBreakdown(
 
         total += subtotal;
         items.push({
-          details: model === 'nano-banana' ? 'per image' : `${resolution} resolution`,
+          details:
+            model === 'nano-banana' ? 'per image' : `${resolution} resolution`,
           model,
           nodeId,
           nodeLabel,
@@ -327,7 +335,8 @@ export function calculateWorkflowCostWithBreakdown(
       }
 
       case 'videoGen': {
-        const model = (data.model as 'veo-3.1-fast' | 'veo-3.1') ?? 'veo-3.1-fast';
+        const model =
+          (data.model as 'veo-3.1-fast' | 'veo-3.1') ?? 'veo-3.1-fast';
         const duration = (data.duration as number) ?? 4;
         const generateAudio = (data.generateAudio as boolean) ?? false;
 
