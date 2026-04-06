@@ -1,7 +1,7 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import BatchWorkflowPage from '@pages/workflows/batch/BatchWorkflowPage';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
+import BatchWorkflowPage from '@/features/workflows/pages/batch/BatchWorkflowPage';
 
 export const generateMetadata = createPageMetadata('Batch Workflow Runner');
 
