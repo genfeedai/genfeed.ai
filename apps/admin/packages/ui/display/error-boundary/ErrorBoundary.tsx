@@ -1,11 +1,11 @@
 'use client';
 
+import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
 import type { IErrorDebugInfo } from '@genfeedai/interfaces/modals/error-debug.interface';
 import type {
   IErrorBoundaryProps,
   IErrorBoundaryState,
 } from '@genfeedai/interfaces/utils/error.interface';
-import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
 import { closeModal, openModal } from '@helpers/ui/modal/modal.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { setErrorDebugInfo } from '@services/core/error-debug-store';

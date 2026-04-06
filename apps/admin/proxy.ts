@@ -1,7 +1,11 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { resolveClerkSessionClaims } from '@helpers/auth/clerk-session-claims.helper';
 import { EnvironmentService } from '@services/core/environment.service';
-import { NextFetchEvent, NextRequest, NextResponse } from 'next/server';
+import {
+  type NextFetchEvent,
+  type NextRequest,
+  NextResponse,
+} from 'next/server';
 
 const isPublicRoute = createRouteMatcher([
   '/',

@@ -1,4 +1,9 @@
 import type {
+  AssetScope,
+  IngredientCategory,
+  ModalEnum,
+} from '@genfeedai/enums';
+import type {
   IElementBlacklist,
   IElementCamera,
   IElementMood,
@@ -11,11 +16,6 @@ import type {
   ISound,
   ITag,
 } from '@genfeedai/interfaces';
-import type {
-  AssetScope,
-  IngredientCategory,
-  ModalEnum,
-} from '@genfeedai/enums';
 import type { IngredientsTypeProps } from '@props/content/ingredient.props';
 import type { PageScope } from '@ui-constants/misc.constant';
 import type { Dispatch, SetStateAction } from 'react';

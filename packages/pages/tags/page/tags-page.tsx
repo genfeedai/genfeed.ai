@@ -1,7 +1,7 @@
 'use client';
 
-import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
 import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import TagsLayout from '@pages/tags/layout/tags-layout';
 import TagsList from '@pages/tags/list/tags-list';

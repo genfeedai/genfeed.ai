@@ -1,12 +1,12 @@
 import type { TriggerEvent } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
-import type { ExecutionRunResult } from '@genfeedai/workflow-engine';
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
   WorkflowLifecycle,
   WorkflowStatus,
 } from '@genfeedai/enums';
+import type { ExecutionRunResult } from '@genfeedai/workflow-engine';
 import { describe, expect, it, vi } from 'vitest';
 
 // =============================================================================

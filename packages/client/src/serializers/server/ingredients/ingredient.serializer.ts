@@ -1,4 +1,4 @@
-import { buildSingleSerializer, type BuiltSerializer } from '../../builders';
+import { type BuiltSerializer, buildSingleSerializer } from '../../builders';
 import {
   ingredientBulkDeleteSerializerConfig,
   ingredientMergeSerializerConfig,
@@ -11,17 +11,13 @@ export const IngredientSerializer: BuiltSerializer = buildSingleSerializer(
   ingredientSerializerConfig,
 );
 
-export const IngredientBulkDeleteSerializer: BuiltSerializer = buildSingleSerializer(
-  'server',
-  ingredientBulkDeleteSerializerConfig,
-);
+export const IngredientBulkDeleteSerializer: BuiltSerializer =
+  buildSingleSerializer('server', ingredientBulkDeleteSerializerConfig);
 
 export const IngredientMergeSerializer: BuiltSerializer = buildSingleSerializer(
   'server',
   ingredientMergeSerializerConfig,
 );
 
-export const IngredientUploadSerializer: BuiltSerializer = buildSingleSerializer(
-  'server',
-  ingredientUploadSerializerConfig,
-);
+export const IngredientUploadSerializer: BuiltSerializer =
+  buildSingleSerializer('server', ingredientUploadSerializerConfig);

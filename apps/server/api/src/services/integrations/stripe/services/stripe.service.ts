@@ -1,4 +1,5 @@
 import { ConfigService } from '@api/config/config.service';
+import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { creditPackTotalCredits, PAYG_CREDIT_PACKS } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -24,6 +25,12 @@ export class StripeService {
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
   ) {
+    if (IS_SELF_HOSTED) {
+      // Noop — Stripe is not available in self-hosted mode
+      this.stripe = null as unknown as Stripe;
+      return;
+    }
+
     // Eager initialization - create Stripe client in constructor
     this.stripe = new Stripe(this.configService.get('STRIPE_SECRET_KEY')!, {
       apiVersion: this.configService.get(

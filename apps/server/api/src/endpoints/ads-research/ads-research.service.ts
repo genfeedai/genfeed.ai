@@ -5,6 +5,7 @@ import type { CreativePattern } from '@api/collections/creative-patterns/schemas
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
+import { WorkflowStatus, WorkflowTrigger } from '@genfeedai/enums';
 import type {
   AdsAdapterContext,
   AdsPlatform,
@@ -23,7 +24,6 @@ import type {
   AdsResearchWorkflowResult,
   CampaignLaunchPrep,
 } from '@genfeedai/interfaces/integrations/ads-research.interface';
-import { WorkflowStatus, WorkflowTrigger } from '@genfeedai/enums';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Types } from 'mongoose';
 

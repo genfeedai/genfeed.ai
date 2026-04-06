@@ -12,7 +12,7 @@ export function getImageDimensions(
   base64DataUrl: string,
 ): Promise<{ width: number; height: number } | null> {
   return new Promise((resolve) => {
-    if (!base64DataUrl || !base64DataUrl.startsWith('data:image')) {
+    if (!base64DataUrl?.startsWith('data:image')) {
       resolve(null);
       return;
     }

@@ -1,12 +1,12 @@
 import crypto from 'node:crypto';
 import { ConfigService } from '@api/config/config.service';
-import type { IBotMessage, IBotPlatformAdapter } from '@genfeedai/interfaces';
 import {
   BotCommandType,
   BotInteractionType,
   BotResponseType,
   CredentialPlatform,
 } from '@genfeedai/enums';
+import type { IBotMessage, IBotPlatformAdapter } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';

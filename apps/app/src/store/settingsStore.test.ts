@@ -82,9 +82,15 @@ describe('useSettingsStore', () => {
     it('should have correct initial state', () => {
       const state = useSettingsStore.getState();
 
-      expect(state.providers.replicate).toEqual({ apiKey: null, enabled: true });
+      expect(state.providers.replicate).toEqual({
+        apiKey: null,
+        enabled: true,
+      });
       expect(state.providers.fal).toEqual({ apiKey: null, enabled: false });
-      expect(state.providers.huggingface).toEqual({ apiKey: null, enabled: false });
+      expect(state.providers.huggingface).toEqual({
+        apiKey: null,
+        enabled: false,
+      });
       expect(state.defaults.imageModel).toBe('nano-banana-pro');
       expect(state.defaults.imageProvider).toBe('replicate');
       expect(state.defaults.videoModel).toBe('veo-3.1');
@@ -130,7 +136,9 @@ describe('useSettingsStore', () => {
 
       setProviderKey('replicate', 'r8_test_key');
 
-      const stored = JSON.parse(localStorageMock.getItem('genfeed-settings') ?? '{}');
+      const stored = JSON.parse(
+        localStorageMock.getItem('genfeed-settings') ?? '{}',
+      );
       expect(stored.providers.replicate.apiKey).toBe('r8_test_key');
     });
 
@@ -171,7 +179,9 @@ describe('useSettingsStore', () => {
       const { setProviderEnabled } = useSettingsStore.getState();
       setProviderEnabled('replicate', false);
 
-      expect(useSettingsStore.getState().providers.replicate.enabled).toBe(false);
+      expect(useSettingsStore.getState().providers.replicate.enabled).toBe(
+        false,
+      );
     });
 
     it('should persist to localStorage', () => {
@@ -179,7 +189,9 @@ describe('useSettingsStore', () => {
 
       setProviderEnabled('huggingface', true);
 
-      const stored = JSON.parse(localStorageMock.getItem('genfeed-settings') ?? '{}');
+      const stored = JSON.parse(
+        localStorageMock.getItem('genfeed-settings') ?? '{}',
+      );
       expect(stored.providers.huggingface.enabled).toBe(true);
     });
   });
@@ -220,7 +232,9 @@ describe('useSettingsStore', () => {
 
       setDefaultModel('image', 'custom-model', 'fal');
 
-      const stored = JSON.parse(localStorageMock.getItem('genfeed-settings') ?? '{}');
+      const stored = JSON.parse(
+        localStorageMock.getItem('genfeed-settings') ?? '{}',
+      );
       expect(stored.defaults.imageModel).toBe('custom-model');
       expect(stored.defaults.imageProvider).toBe('fal');
     });
@@ -257,7 +271,9 @@ describe('useSettingsStore', () => {
 
       await setEdgeStyle('smoothstep');
 
-      const stored = JSON.parse(localStorageMock.getItem('genfeed-settings') ?? '{}');
+      const stored = JSON.parse(
+        localStorageMock.getItem('genfeed-settings') ?? '{}',
+      );
       expect(stored.edgeStyle).toBe('smoothstep');
     });
 
@@ -268,7 +284,9 @@ describe('useSettingsStore', () => {
         throw syncError;
       });
 
-      await expect(setEdgeStyle('smoothstep')).rejects.toThrow('workflow sync failed');
+      await expect(setEdgeStyle('smoothstep')).rejects.toThrow(
+        'workflow sync failed',
+      );
     });
   });
 
@@ -293,8 +311,16 @@ describe('useSettingsStore', () => {
     it('should add new model at the front', () => {
       const { addRecentModel } = useSettingsStore.getState();
 
-      addRecentModel({ displayName: 'Model 1', id: 'model-1', provider: 'replicate' });
-      addRecentModel({ displayName: 'Model 2', id: 'model-2', provider: 'fal' });
+      addRecentModel({
+        displayName: 'Model 1',
+        id: 'model-1',
+        provider: 'replicate',
+      });
+      addRecentModel({
+        displayName: 'Model 2',
+        id: 'model-2',
+        provider: 'fal',
+      });
 
       const state = useSettingsStore.getState();
       expect(state.recentModels[0].id).toBe('model-2');
@@ -304,9 +330,21 @@ describe('useSettingsStore', () => {
     it('should move existing model to front if already present', () => {
       const { addRecentModel } = useSettingsStore.getState();
 
-      addRecentModel({ displayName: 'Model 1', id: 'model-1', provider: 'replicate' });
-      addRecentModel({ displayName: 'Model 2', id: 'model-2', provider: 'replicate' });
-      addRecentModel({ displayName: 'Model 1', id: 'model-1', provider: 'replicate' });
+      addRecentModel({
+        displayName: 'Model 1',
+        id: 'model-1',
+        provider: 'replicate',
+      });
+      addRecentModel({
+        displayName: 'Model 2',
+        id: 'model-2',
+        provider: 'replicate',
+      });
+      addRecentModel({
+        displayName: 'Model 1',
+        id: 'model-1',
+        provider: 'replicate',
+      });
 
       const state = useSettingsStore.getState();
       expect(state.recentModels).toHaveLength(2);
@@ -333,7 +371,11 @@ describe('useSettingsStore', () => {
     it('should differentiate models by provider', () => {
       const { addRecentModel } = useSettingsStore.getState();
 
-      addRecentModel({ displayName: 'Model', id: 'same-id', provider: 'replicate' });
+      addRecentModel({
+        displayName: 'Model',
+        id: 'same-id',
+        provider: 'replicate',
+      });
       addRecentModel({ displayName: 'Model', id: 'same-id', provider: 'fal' });
 
       const state = useSettingsStore.getState();
@@ -343,9 +385,15 @@ describe('useSettingsStore', () => {
     it('should persist to localStorage', () => {
       const { addRecentModel } = useSettingsStore.getState();
 
-      addRecentModel({ displayName: 'Test', id: 'model-1', provider: 'replicate' });
+      addRecentModel({
+        displayName: 'Test',
+        id: 'model-1',
+        provider: 'replicate',
+      });
 
-      const stored = JSON.parse(localStorageMock.getItem('genfeed-settings') ?? '{}');
+      const stored = JSON.parse(
+        localStorageMock.getItem('genfeed-settings') ?? '{}',
+      );
       expect(stored.recentModels).toHaveLength(1);
     });
   });
@@ -392,7 +440,9 @@ describe('useSettingsStore', () => {
       const { clearProviderKey } = useSettingsStore.getState();
       clearProviderKey('replicate');
 
-      const stored = JSON.parse(localStorageMock.getItem('genfeed-settings') ?? '{}');
+      const stored = JSON.parse(
+        localStorageMock.getItem('genfeed-settings') ?? '{}',
+      );
       expect(stored.providers.replicate.apiKey).toBeNull();
     });
   });
@@ -526,7 +576,9 @@ describe('useSettingsStore', () => {
 
     it('should have correct replicate info', () => {
       expect(PROVIDER_INFO.replicate.name).toBe('Replicate');
-      expect(PROVIDER_INFO.replicate.docsUrl).toBe('https://replicate.com/docs');
+      expect(PROVIDER_INFO.replicate.docsUrl).toBe(
+        'https://replicate.com/docs',
+      );
     });
 
     it('should have correct fal info', () => {
@@ -536,7 +588,9 @@ describe('useSettingsStore', () => {
 
     it('should have correct huggingface info', () => {
       expect(PROVIDER_INFO.huggingface.name).toBe('Hugging Face');
-      expect(PROVIDER_INFO.huggingface.docsUrl).toBe('https://huggingface.co/docs/api-inference');
+      expect(PROVIDER_INFO.huggingface.docsUrl).toBe(
+        'https://huggingface.co/docs/api-inference',
+      );
     });
   });
 
@@ -558,15 +612,22 @@ describe('useSettingsStore', () => {
             replicate: { apiKey: 'stored_key', enabled: true },
           },
           recentModels: [
-            { displayName: 'Recent', id: 'recent-1', provider: 'replicate', timestamp: 123 },
+            {
+              displayName: 'Recent',
+              id: 'recent-1',
+              provider: 'replicate',
+              timestamp: 123,
+            },
           ],
-        })
+        }),
       );
 
       // Re-initialize the store to test loading
       // Note: In actual implementation, this would happen on module load
       // This test verifies the structure is correct
-      const stored = JSON.parse(localStorageMock.getItem('genfeed-settings') ?? '{}');
+      const stored = JSON.parse(
+        localStorageMock.getItem('genfeed-settings') ?? '{}',
+      );
       expect(stored.providers.replicate.apiKey).toBe('stored_key');
       expect(stored.defaults.imageModel).toBe('stored-model');
       expect(stored.edgeStyle).toBe('smoothstep');

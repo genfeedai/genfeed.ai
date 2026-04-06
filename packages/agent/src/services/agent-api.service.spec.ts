@@ -1,5 +1,5 @@
 import { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
-import { AgentApiDecodeError } from '@genfeedai/agent/services/agent-api-error';
+import type { AgentApiDecodeError } from '@genfeedai/agent/services/agent-api-error';
 import { Effect } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

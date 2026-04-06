@@ -37,22 +37,53 @@ const WORKSPACE_ITEMS: NavItem[] = [
     icon: <LayoutDashboard className="h-4 w-4 shrink-0" />,
     label: 'Dashboard',
   },
-  { href: '/workspace/inbox', icon: <Inbox className="h-4 w-4 shrink-0" />, label: 'Inbox' },
-  { href: '/tasks', icon: <CircleDot className="h-4 w-4 shrink-0" />, label: 'Tasks' },
+  {
+    href: '/workspace/inbox',
+    icon: <Inbox className="h-4 w-4 shrink-0" />,
+    label: 'Inbox',
+  },
+  {
+    href: '/tasks',
+    icon: <CircleDot className="h-4 w-4 shrink-0" />,
+    label: 'Tasks',
+  },
 ];
 
 const TOOLS_ITEMS: NavItem[] = [
-  { href: '/workflows', icon: <Boxes className="h-4 w-4 shrink-0" />, label: 'Workflows' },
-  { href: '/studio', icon: <Sparkles className="h-4 w-4 shrink-0" />, label: 'Studio' },
-  { href: '/editor', icon: <Clapperboard className="h-4 w-4 shrink-0" />, label: 'Editor' },
-  { href: '/gallery', icon: <ImageIcon className="h-4 w-4 shrink-0" />, label: 'Gallery' },
+  {
+    href: '/workflows',
+    icon: <Boxes className="h-4 w-4 shrink-0" />,
+    label: 'Workflows',
+  },
+  {
+    href: '/studio',
+    icon: <Sparkles className="h-4 w-4 shrink-0" />,
+    label: 'Studio',
+  },
+  {
+    href: '/editor',
+    icon: <Clapperboard className="h-4 w-4 shrink-0" />,
+    label: 'Editor',
+  },
+  {
+    href: '/gallery',
+    icon: <ImageIcon className="h-4 w-4 shrink-0" />,
+    label: 'Gallery',
+  },
 ];
 
 const BOTTOM_ITEMS: NavItem[] = [
-  { href: '/settings', icon: <Settings className="h-4 w-4 shrink-0" />, label: 'Settings' },
+  {
+    href: '/settings',
+    icon: <Settings className="h-4 w-4 shrink-0" />,
+    label: 'Settings',
+  },
 ];
 
-const NAV_GROUPS: NavGroup[] = [{ items: WORKSPACE_ITEMS }, { items: TOOLS_ITEMS, label: 'Tools' }];
+const NAV_GROUPS: NavGroup[] = [
+  { items: WORKSPACE_ITEMS },
+  { items: TOOLS_ITEMS, label: 'Tools' },
+];
 
 interface CoreSidebarProps {
   isCollapsed?: boolean;
@@ -67,7 +98,8 @@ export default function CoreSidebar({
 }: CoreSidebarProps) {
   const pathname = usePathname();
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const isActive = (href: string) =>
+    pathname === href || pathname.startsWith(`${href}/`);
 
   const handleLinkClick = () => {
     onClose?.();
@@ -78,7 +110,7 @@ export default function CoreSidebar({
       data-testid="sidebar-shell"
       className={cn(
         'flex h-full min-h-0 flex-1 flex-shrink-0 bg-background',
-        !isCollapsed && 'border-r border-white/[0.08]'
+        !isCollapsed && 'border-r border-white/[0.08]',
       )}
       style={{ minWidth: SIDEBAR_WIDTH, width: SIDEBAR_WIDTH }}
     >
@@ -111,7 +143,7 @@ export default function CoreSidebar({
         <div
           className={cn(
             'flex-1 flex flex-col min-h-0 transition-opacity duration-200',
-            isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
+            isCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100',
           )}
         >
           {/* New Task CTA */}
@@ -130,7 +162,9 @@ export default function CoreSidebar({
           <div className="flex-1 overflow-y-auto overflow-x-hidden px-3 py-2">
             {NAV_GROUPS.map((group, groupIndex) => (
               <div key={group.label ?? `group-${groupIndex}`}>
-                {groupIndex > 0 && <div className="my-2 border-t border-white/[0.08]" />}
+                {groupIndex > 0 && (
+                  <div className="my-2 border-t border-white/[0.08]" />
+                )}
 
                 {group.label ? (
                   <div className="px-2 pb-1 pt-2">
@@ -151,7 +185,7 @@ export default function CoreSidebar({
                           'hover:bg-white/[0.06] hover:text-foreground',
                           isActive(item.href)
                             ? 'text-foreground bg-white/[0.08]'
-                            : 'text-muted-foreground'
+                            : 'text-muted-foreground',
                         )}
                       >
                         {item.icon}
@@ -177,7 +211,7 @@ export default function CoreSidebar({
                       'hover:bg-white/[0.06] hover:text-foreground',
                       isActive(item.href)
                         ? 'text-foreground bg-white/[0.08]'
-                        : 'text-muted-foreground'
+                        : 'text-muted-foreground',
                     )}
                   >
                     {item.icon}

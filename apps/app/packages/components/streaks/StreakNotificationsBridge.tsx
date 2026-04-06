@@ -1,7 +1,7 @@
 'use client';
 
-import type { IStreakSummary } from '@genfeedai/types';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import type { IStreakSummary } from '@genfeedai/types';
 import { useStreak } from '@hooks/data/streaks/use-streak/use-streak';
 import { NotificationsService } from '@services/core/notifications.service';
 import {

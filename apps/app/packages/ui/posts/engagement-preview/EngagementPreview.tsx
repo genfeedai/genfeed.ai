@@ -1,7 +1,7 @@
 'use client';
 
-import type { IPost } from '@genfeedai/interfaces';
 import { CredentialPlatform } from '@genfeedai/enums';
+import type { IPost } from '@genfeedai/interfaces';
 import Card from '@ui/card/Card';
 import { HiChartBar } from 'react-icons/hi2';
 

@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { useSettingsStore } from '@/store/settingsStore';
+import { useEffect, useState } from 'react';
 import { setupApi } from '@/lib/api/setup';
 import { logger } from '@/lib/logger';
+import { useSettingsStore } from '@/store/settingsStore';
 
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -34,9 +34,12 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
           return;
         }
       } catch (error: unknown) {
-        if (error instanceof DOMException && error.name === 'AbortError') return;
+        if (error instanceof DOMException && error.name === 'AbortError')
+          return;
         // If API is unreachable, don't block the app — let user through
-        logger.error('Failed to check setup status', error, { context: 'OnboardingGuard' });
+        logger.error('Failed to check setup status', error, {
+          context: 'OnboardingGuard',
+        });
         setIsReady(true);
         return;
       }

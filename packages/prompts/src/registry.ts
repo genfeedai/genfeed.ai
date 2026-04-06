@@ -4,7 +4,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { PromptCategory, PromptTemplate } from './types.js';
+import type { PromptCategory, PromptTemplate } from './types.js';
 
 /**
  * Registry of all available prompt templates

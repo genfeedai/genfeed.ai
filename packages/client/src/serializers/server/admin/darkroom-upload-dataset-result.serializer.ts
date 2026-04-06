@@ -1,7 +1,5 @@
-import { buildSingleSerializer, type BuiltSerializer } from '../../builders';
+import { type BuiltSerializer, buildSingleSerializer } from '../../builders';
 import { darkroomUploadDatasetResultSerializerConfig } from '../../configs';
 
-export const DarkroomUploadDatasetResultSerializer: BuiltSerializer = buildSingleSerializer(
-  'server',
-  darkroomUploadDatasetResultSerializerConfig,
-);
+export const DarkroomUploadDatasetResultSerializer: BuiltSerializer =
+  buildSingleSerializer('server', darkroomUploadDatasetResultSerializerConfig);

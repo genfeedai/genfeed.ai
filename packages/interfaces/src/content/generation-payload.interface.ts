@@ -1,4 +1,4 @@
-import { type IngredientFormat, type RouterPriority } from '@genfeedai/enums';
+import type { IngredientFormat, RouterPriority } from '@genfeedai/enums';
 import type { IIngredient } from '../index';
 
 export interface BaseGenerationPayload {

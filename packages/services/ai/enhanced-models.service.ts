@@ -1,5 +1,5 @@
-import type { IModel } from '@genfeedai/interfaces';
 import { ModelProvider } from '@genfeedai/enums';
+import type { IModel } from '@genfeedai/interfaces';
 import { ModelsService } from '@services/ai/models.service';
 import { FalProviderService } from '@services/ai/providers/fal/fal-provider.service';
 import { HuggingFaceProviderService } from '@services/ai/providers/huggingface/huggingface-provider.service';

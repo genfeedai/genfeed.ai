@@ -1,9 +1,9 @@
 'use client';
 
-import type { IElementLighting, IQueryParams } from '@genfeedai/interfaces';
-import type { IElementContentProps } from '@genfeedai/interfaces/ui/elements-content.interface';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { ModalEnum } from '@genfeedai/enums';
+import type { IElementLighting, IQueryParams } from '@genfeedai/interfaces';
+import type { IElementContentProps } from '@genfeedai/interfaces/ui/elements-content.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { ElementLighting } from '@models/elements/lighting.model';

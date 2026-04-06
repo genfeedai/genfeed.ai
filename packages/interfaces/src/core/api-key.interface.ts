@@ -1,4 +1,4 @@
-import { IBaseEntity } from '../index';
+import type { IBaseEntity } from '../index';
 
 export interface IApiKey extends IBaseEntity {
   label: string;

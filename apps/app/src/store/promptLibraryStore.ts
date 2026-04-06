@@ -1,4 +1,9 @@
-import type { ICreatePrompt, IPrompt, IQueryPrompts, PromptCategory } from '@genfeedai/types';
+import type {
+  ICreatePrompt,
+  IPrompt,
+  IQueryPrompts,
+  PromptCategory,
+} from '@genfeedai/types';
 import { create } from 'zustand';
 import { promptsApi } from '@/lib/api';
 import { logger } from '@/lib/logger';
@@ -39,7 +44,11 @@ interface PromptLibraryStore {
   loadItems: (query?: IQueryPrompts, signal?: AbortSignal) => Promise<void>;
   loadFeatured: (signal?: AbortSignal) => Promise<void>;
   createItem: (data: ICreatePrompt, signal?: AbortSignal) => Promise<IPrompt>;
-  updateItem: (id: string, data: Partial<ICreatePrompt>, signal?: AbortSignal) => Promise<IPrompt>;
+  updateItem: (
+    id: string,
+    data: Partial<ICreatePrompt>,
+    signal?: AbortSignal,
+  ) => Promise<IPrompt>;
   deleteItem: (id: string, signal?: AbortSignal) => Promise<void>;
   duplicateItem: (id: string, signal?: AbortSignal) => Promise<IPrompt>;
   recordItemUsage: (id: string, signal?: AbortSignal) => Promise<IPrompt>;
@@ -78,7 +87,8 @@ export const usePromptLibraryStore = create<PromptLibraryStore>((set, get) => ({
       await promptsApi.delete(id, signal);
       set((state) => ({
         items: state.items.filter((i) => i._id !== id),
-        selectedItem: state.selectedItem?._id === id ? null : state.selectedItem,
+        selectedItem:
+          state.selectedItem?._id === id ? null : state.selectedItem,
       }));
     } catch (error) {
       set({ error: (error as Error).message });
@@ -113,7 +123,9 @@ export const usePromptLibraryStore = create<PromptLibraryStore>((set, get) => ({
       set({ featuredItems });
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
-        logger.error('Failed to load featured items', error, { context: 'promptLibraryStore' });
+        logger.error('Failed to load featured items', error, {
+          context: 'promptLibraryStore',
+        });
       }
     }
   },
@@ -177,7 +189,8 @@ export const usePromptLibraryStore = create<PromptLibraryStore>((set, get) => ({
         isCreateModalOpen: false,
         isLoading: false,
         items: state.items.map((i) => (i._id === id ? item : i)),
-        selectedItem: state.selectedItem?._id === id ? item : state.selectedItem,
+        selectedItem:
+          state.selectedItem?._id === id ? item : state.selectedItem,
       }));
       return item;
     } catch (error) {

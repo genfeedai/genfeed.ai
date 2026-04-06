@@ -1,3 +1,4 @@
+import { IngredientCategory, ModelCategory } from '@genfeedai/enums';
 import type {
   IElementBlacklist,
   IElementCamera,
@@ -14,7 +15,6 @@ import type {
   ITag,
   ITraining,
 } from '@genfeedai/interfaces';
-import { IngredientCategory, ModelCategory } from '@genfeedai/enums';
 import { useFilteredData } from '@hooks/utils/use-filtered-data/use-filtered-data';
 import { useElementsContext } from '@providers/elements/elements.provider';
 import { usePromptBarContext } from '@providers/promptbar/promptbar.provider';

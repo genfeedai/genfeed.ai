@@ -1,5 +1,5 @@
-import { NODE_DEFINITIONS, CONNECTION_RULES } from '@genfeedai/types';
-import type { NodeType, HandleType } from '@genfeedai/types';
+import type { HandleType, NodeType } from '@genfeedai/types';
+import { CONNECTION_RULES, NODE_DEFINITIONS } from '@genfeedai/types';
 
 // =============================================================================
 // TYPES
@@ -49,7 +49,10 @@ interface ValidationResult {
 
 const VALID_NODE_TYPES = new Set<string>(Object.keys(NODE_DEFINITIONS));
 
-function getHandleDefinitions(nodeType: string, direction: 'inputs' | 'outputs') {
+function getHandleDefinitions(
+  nodeType: string,
+  direction: 'inputs' | 'outputs',
+) {
   const def = NODE_DEFINITIONS[nodeType as NodeType];
   if (!def) return [];
   return def[direction];
@@ -58,7 +61,7 @@ function getHandleDefinitions(nodeType: string, direction: 'inputs' | 'outputs')
 function getHandleType(
   nodeType: string,
   handleId: string,
-  direction: 'inputs' | 'outputs'
+  direction: 'inputs' | 'outputs',
 ): HandleType | null {
   const handles = getHandleDefinitions(nodeType, direction);
   const handle = handles.find((h) => h.id === handleId);
@@ -108,7 +111,9 @@ export function parseJSONFromResponse(text: string): GeneratedWorkflow | null {
 // VALIDATION
 // =============================================================================
 
-export function validateWorkflowJSON(workflow: GeneratedWorkflow): ValidationResult {
+export function validateWorkflowJSON(
+  workflow: GeneratedWorkflow,
+): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
@@ -163,10 +168,14 @@ export function validateWorkflowJSON(workflow: GeneratedWorkflow): ValidationRes
     edgeIds.add(edge.id);
 
     if (!edge.source || !nodeIds.has(edge.source)) {
-      errors.push(`Edge ${edge.id} references non-existent source: ${edge.source}`);
+      errors.push(
+        `Edge ${edge.id} references non-existent source: ${edge.source}`,
+      );
     }
     if (!edge.target || !nodeIds.has(edge.target)) {
-      errors.push(`Edge ${edge.id} references non-existent target: ${edge.target}`);
+      errors.push(
+        `Edge ${edge.id} references non-existent target: ${edge.target}`,
+      );
     }
     if (!edge.sourceHandle) {
       errors.push(`Edge ${edge.id} missing sourceHandle`);
@@ -180,24 +189,32 @@ export function validateWorkflowJSON(workflow: GeneratedWorkflow): ValidationRes
       const sourceNode = workflow.nodes.find((n) => n.id === edge.source);
       const targetNode = workflow.nodes.find((n) => n.id === edge.target);
       if (sourceNode && targetNode) {
-        const sourceType = getHandleType(sourceNode.type, edge.sourceHandle, 'outputs');
-        const targetType = getHandleType(targetNode.type, edge.targetHandle, 'inputs');
+        const sourceType = getHandleType(
+          sourceNode.type,
+          edge.sourceHandle,
+          'outputs',
+        );
+        const targetType = getHandleType(
+          targetNode.type,
+          edge.targetHandle,
+          'inputs',
+        );
         if (sourceType && targetType) {
           const allowed = CONNECTION_RULES[sourceType];
           if (!allowed?.includes(targetType)) {
             errors.push(
-              `Edge ${edge.id}: incompatible types ${sourceType} → ${targetType} (${sourceNode.type}.${edge.sourceHandle} → ${targetNode.type}.${edge.targetHandle})`
+              `Edge ${edge.id}: incompatible types ${sourceType} → ${targetType} (${sourceNode.type}.${edge.sourceHandle} → ${targetNode.type}.${edge.targetHandle})`,
             );
           }
         } else {
           if (!sourceType) {
             warnings.push(
-              `Edge ${edge.id}: unknown source handle "${edge.sourceHandle}" on ${sourceNode.type}`
+              `Edge ${edge.id}: unknown source handle "${edge.sourceHandle}" on ${sourceNode.type}`,
             );
           }
           if (!targetType) {
             warnings.push(
-              `Edge ${edge.id}: unknown target handle "${edge.targetHandle}" on ${targetNode.type}`
+              `Edge ${edge.id}: unknown target handle "${edge.targetHandle}" on ${targetNode.type}`,
             );
           }
         }
@@ -219,7 +236,9 @@ function generateRepairId(prefix: string): string {
   return `${prefix}-repair-${repairCounter}`;
 }
 
-export function repairWorkflowJSON(workflow: GeneratedWorkflow): GeneratedWorkflow {
+export function repairWorkflowJSON(
+  workflow: GeneratedWorkflow,
+): GeneratedWorkflow {
   repairCounter = 0;
   const repaired = structuredClone(workflow);
 
@@ -288,8 +307,16 @@ export function repairWorkflowJSON(workflow: GeneratedWorkflow): GeneratedWorkfl
     const sourceNode = repaired.nodes.find((n) => n.id === edge.source);
     const targetNode = repaired.nodes.find((n) => n.id === edge.target);
     if (sourceNode && targetNode) {
-      const sourceType = getHandleType(sourceNode.type, edge.sourceHandle, 'outputs');
-      const targetType = getHandleType(targetNode.type, edge.targetHandle, 'inputs');
+      const sourceType = getHandleType(
+        sourceNode.type,
+        edge.sourceHandle,
+        'outputs',
+      );
+      const targetType = getHandleType(
+        targetNode.type,
+        edge.targetHandle,
+        'inputs',
+      );
       if (sourceType && targetType) {
         const allowed = CONNECTION_RULES[sourceType];
         if (!allowed?.includes(targetType)) return false;

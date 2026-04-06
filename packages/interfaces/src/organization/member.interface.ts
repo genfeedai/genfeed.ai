@@ -1,5 +1,10 @@
-import type { IBaseEntity } from '../index';
-import { IBrand, IOrganization, IRole, IUser } from '../index';
+import type {
+  IBaseEntity,
+  IBrand,
+  IOrganization,
+  IRole,
+  IUser,
+} from '../index';
 
 export interface IMemberInvitation {
   email: string;

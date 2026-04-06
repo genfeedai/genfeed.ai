@@ -1,7 +1,7 @@
 'use client';
 
-import type { ICrmLead, IPost } from '@genfeedai/interfaces';
 import { ButtonVariant } from '@genfeedai/enums';
+import type { ICrmLead, IPost } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type { BadgeProps } from '@props/ui/display/badge.props';

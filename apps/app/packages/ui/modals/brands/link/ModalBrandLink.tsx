@@ -1,4 +1,3 @@
-import type { ILink } from '@genfeedai/interfaces';
 import { type LinkSchema, linkSchema } from '@genfeedai/client/schemas';
 import {
   AlertCategory,
@@ -7,6 +6,7 @@ import {
   LinkCategory,
   ModalEnum,
 } from '@genfeedai/enums';
+import type { ILink } from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,

@@ -353,7 +353,7 @@ function AgentLabSurface({
     }
 
     viewport.scrollTop = viewport.scrollHeight;
-  }, [messages, open]);
+  }, [open]);
 
   if (!open) {
     return null;

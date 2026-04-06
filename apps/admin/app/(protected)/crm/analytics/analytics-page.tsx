@@ -1,8 +1,8 @@
 'use client';
 
-import type { ICrmAnalytics } from '@genfeedai/interfaces';
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import { ButtonVariant } from '@genfeedai/enums';
+import type { ICrmAnalytics } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { AdminCrmService } from '@services/admin/crm.service';

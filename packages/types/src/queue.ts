@@ -101,7 +101,8 @@ export const EXECUTION_STATUS = {
   RUNNING: 'running',
 } as const;
 
-export type ExecutionStatus = (typeof EXECUTION_STATUS)[keyof typeof EXECUTION_STATUS];
+export type ExecutionStatus =
+  (typeof EXECUTION_STATUS)[keyof typeof EXECUTION_STATUS];
 
 export const PREDICTION_STATUS = {
   CANCELED: 'canceled',
@@ -111,7 +112,8 @@ export const PREDICTION_STATUS = {
   SUCCEEDED: 'succeeded',
 } as const;
 
-export type PredictionStatus = (typeof PREDICTION_STATUS)[keyof typeof PREDICTION_STATUS];
+export type PredictionStatus =
+  (typeof PREDICTION_STATUS)[keyof typeof PREDICTION_STATUS];
 
 export const NODE_RESULT_STATUS = {
   COMPLETE: 'complete',
@@ -120,6 +122,7 @@ export const NODE_RESULT_STATUS = {
   PROCESSING: 'processing',
 } as const;
 
-export type NodeResultStatus = (typeof NODE_RESULT_STATUS)[keyof typeof NODE_RESULT_STATUS];
+export type NodeResultStatus =
+  (typeof NODE_RESULT_STATUS)[keyof typeof NODE_RESULT_STATUS];
 
 export const MAX_RECOVERY_ATTEMPTS = 3;

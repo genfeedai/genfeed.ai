@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mock,
+  vi,
+} from 'vitest';
 import { apiClient } from './client';
 import type { ExecutionData, JobData } from './executions';
 import { executionsApi } from './executions';
@@ -46,13 +54,20 @@ describe('executionsApi', () => {
 
   describe('create', () => {
     it('should start a workflow execution', async () => {
-      (apiClient.post as Mock).mockResolvedValueOnce({ ...mockExecution, status: 'running' });
+      (apiClient.post as Mock).mockResolvedValueOnce({
+        ...mockExecution,
+        status: 'running',
+      });
 
       const result = await executionsApi.create('workflow-456');
 
-      expect(apiClient.post).toHaveBeenCalledWith('/workflows/workflow-456/execute', undefined, {
-        signal: undefined,
-      });
+      expect(apiClient.post).toHaveBeenCalledWith(
+        '/workflows/workflow-456/execute',
+        undefined,
+        {
+          signal: undefined,
+        },
+      );
       expect(result.workflowId).toBe('workflow-456');
       expect(result.status).toBe('running');
     });
@@ -63,9 +78,13 @@ describe('executionsApi', () => {
       const controller = new AbortController();
       await executionsApi.create('workflow-456', controller.signal);
 
-      expect(apiClient.post).toHaveBeenCalledWith('/workflows/workflow-456/execute', undefined, {
-        signal: controller.signal,
-      });
+      expect(apiClient.post).toHaveBeenCalledWith(
+        '/workflows/workflow-456/execute',
+        undefined,
+        {
+          signal: controller.signal,
+        },
+      );
     });
   });
 
@@ -75,9 +94,12 @@ describe('executionsApi', () => {
 
       const result = await executionsApi.getByWorkflow('workflow-456');
 
-      expect(apiClient.get).toHaveBeenCalledWith('/workflows/workflow-456/executions', {
-        signal: undefined,
-      });
+      expect(apiClient.get).toHaveBeenCalledWith(
+        '/workflows/workflow-456/executions',
+        {
+          signal: undefined,
+        },
+      );
       expect(result).toHaveLength(1);
       expect(result[0].workflowId).toBe('workflow-456');
     });
@@ -97,20 +119,29 @@ describe('executionsApi', () => {
 
       const result = await executionsApi.getById('exec-123');
 
-      expect(apiClient.get).toHaveBeenCalledWith('/executions/exec-123', { signal: undefined });
+      expect(apiClient.get).toHaveBeenCalledWith('/executions/exec-123', {
+        signal: undefined,
+      });
       expect(result._id).toBe('exec-123');
     });
   });
 
   describe('stop', () => {
     it('should stop a running execution', async () => {
-      (apiClient.post as Mock).mockResolvedValueOnce({ ...mockExecution, status: 'cancelled' });
+      (apiClient.post as Mock).mockResolvedValueOnce({
+        ...mockExecution,
+        status: 'cancelled',
+      });
 
       const result = await executionsApi.stop('exec-123');
 
-      expect(apiClient.post).toHaveBeenCalledWith('/executions/exec-123/stop', undefined, {
-        signal: undefined,
-      });
+      expect(apiClient.post).toHaveBeenCalledWith(
+        '/executions/exec-123/stop',
+        undefined,
+        {
+          signal: undefined,
+        },
+      );
       expect(result.status).toBe('cancelled');
     });
   });
@@ -135,7 +166,9 @@ describe('executionsApi', () => {
 
       const result = await executionsApi.getJobByPredictionId('pred-abc');
 
-      expect(apiClient.get).toHaveBeenCalledWith('/jobs/pred-abc', { signal: undefined });
+      expect(apiClient.get).toHaveBeenCalledWith('/jobs/pred-abc', {
+        signal: undefined,
+      });
       expect(result.predictionId).toBe('pred-abc');
     });
   });

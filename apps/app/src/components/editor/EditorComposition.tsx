@@ -17,26 +17,43 @@ export function EditorComposition({ composition }: EditorCompositionProps) {
   const totalFrames = getCompositionDurationInFrames(composition);
 
   return (
-    <AbsoluteFill style={{ backgroundColor: '#050816', color: 'white', overflow: 'hidden' }}>
+    <AbsoluteFill
+      style={{ backgroundColor: '#050816', color: 'white', overflow: 'hidden' }}
+    >
       {composition.items.map((item) => {
         const from = currentFrom;
         currentFrom += item.durationInFrames;
         const source = `/api/gallery/${item.path}`;
 
         return (
-          <Sequence key={item.id} from={from} durationInFrames={item.durationInFrames}>
+          <Sequence
+            key={item.id}
+            from={from}
+            durationInFrames={item.durationInFrames}
+          >
             <AbsoluteFill
-              style={{ alignItems: 'center', display: 'flex', justifyContent: 'center' }}
+              style={{
+                alignItems: 'center',
+                display: 'flex',
+                justifyContent: 'center',
+              }}
             >
               {item.mediaType === 'video' ? (
                 <OffthreadVideo
                   src={source}
                   startFrom={item.trimStart}
-                  endAt={item.trimEnd ? item.durationInFrames - item.trimEnd : undefined}
+                  endAt={
+                    item.trimEnd
+                      ? item.durationInFrames - item.trimEnd
+                      : undefined
+                  }
                   style={{ height: '100%', objectFit: 'cover', width: '100%' }}
                 />
               ) : (
-                <Img src={source} style={{ height: '100%', objectFit: 'cover', width: '100%' }} />
+                <Img
+                  src={source}
+                  style={{ height: '100%', objectFit: 'cover', width: '100%' }}
+                />
               )}
             </AbsoluteFill>
           </Sequence>

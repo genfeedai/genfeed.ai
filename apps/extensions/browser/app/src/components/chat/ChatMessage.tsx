@@ -1,4 +1,4 @@
-import { type ReactElement } from 'react';
+import type { ReactElement } from 'react';
 
 import { ContentPreview } from '~components/chat/ContentPreview';
 import type { ChatMessage as ChatMessageType } from '~models/chat.model';

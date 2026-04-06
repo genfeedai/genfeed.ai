@@ -8,7 +8,10 @@ export type { GroupColor, NodeGroup } from '@genfeedai/types';
 
 import type { GroupColor } from '@genfeedai/types';
 
-export const GROUP_COLORS: Record<GroupColor, { bg: string; border: string; text: string }> = {
+export const GROUP_COLORS: Record<
+  GroupColor,
+  { bg: string; border: string; text: string }
+> = {
   blue: {
     bg: 'bg-blue-500/10',
     border: 'border-blue-500/30',

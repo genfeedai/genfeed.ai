@@ -25,6 +25,7 @@ import {
   WebSocketEventType,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
 import { Types } from 'mongoose';
 
@@ -198,7 +199,7 @@ export class AutoMergeService {
         if (fullUser?.clerkId) {
           clerkUserId = fullUser.clerkId;
           userId = clerkUserId;
-          userRoom = `user-${clerkUserId}`;
+          userRoom = getUserRoomName(clerkUserId);
         }
       } catch {
         // Continue without clerkId
@@ -244,7 +245,7 @@ export class AutoMergeService {
       ingredientData._id as Types.ObjectId
     ).toHexString();
     const websocketURL = WebSocketPaths.video(mergedIngredientId);
-    const room = resolveRoom(userRoom, userId) || `user-${userId}`;
+    const room = resolveRoom(userRoom, userId) || getUserRoomName(userId);
 
     const activity = await this.activitiesService.create(
       new ActivityEntity({

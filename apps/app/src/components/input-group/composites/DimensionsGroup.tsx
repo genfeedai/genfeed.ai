@@ -18,7 +18,14 @@ interface DimensionsGroupProps {
   className?: string;
 }
 
-const UNIT_OPTIONS: DimensionsValue['unit'][] = ['px', '%', 'em', 'rem', 'vw', 'vh'];
+const UNIT_OPTIONS: DimensionsValue['unit'][] = [
+  'px',
+  '%',
+  'em',
+  'rem',
+  'vw',
+  'vh',
+];
 
 function DimensionsGroupComponent({
   value,
@@ -49,7 +56,16 @@ function DimensionsGroupComponent({
         onChange({ ...value, width: clampedWidth });
       }
     },
-    [value, onChange, isLinked, aspectRatio, minWidth, maxWidth, minHeight, maxHeight]
+    [
+      value,
+      onChange,
+      isLinked,
+      aspectRatio,
+      minWidth,
+      maxWidth,
+      minHeight,
+      maxHeight,
+    ],
   );
 
   const handleHeightChange = useCallback(
@@ -66,14 +82,23 @@ function DimensionsGroupComponent({
         onChange({ ...value, height: clampedHeight });
       }
     },
-    [value, onChange, isLinked, aspectRatio, minWidth, maxWidth, minHeight, maxHeight]
+    [
+      value,
+      onChange,
+      isLinked,
+      aspectRatio,
+      minWidth,
+      maxWidth,
+      minHeight,
+      maxHeight,
+    ],
   );
 
   const handleUnitChange = useCallback(
     (newUnit: DimensionsValue['unit']) => {
       onChange({ ...value, unit: newUnit });
     },
-    [value, onChange]
+    [value, onChange],
   );
 
   const inputClasses = clsx(
@@ -81,7 +106,7 @@ function DimensionsGroupComponent({
     'bg-[var(--background)] border border-[var(--border)] rounded',
     'focus:outline-none focus:ring-1 focus:ring-[var(--primary)] focus:border-[var(--primary)]',
     '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
-    disabled && 'opacity-50 cursor-not-allowed'
+    disabled && 'opacity-50 cursor-not-allowed',
   );
 
   return (
@@ -111,11 +136,19 @@ function DimensionsGroupComponent({
             isLinked
               ? 'bg-[var(--primary)]/10 text-[var(--primary)]'
               : 'hover:bg-[var(--border)] text-[var(--muted-foreground)]',
-            disabled && 'opacity-50 cursor-not-allowed'
+            disabled && 'opacity-50 cursor-not-allowed',
           )}
-          title={isLinked ? 'Unlink dimensions' : 'Link dimensions (maintain aspect ratio)'}
+          title={
+            isLinked
+              ? 'Unlink dimensions'
+              : 'Link dimensions (maintain aspect ratio)'
+          }
         >
-          {isLinked ? <Link className="w-4 h-4" /> : <Unlink className="w-4 h-4" />}
+          {isLinked ? (
+            <Link className="w-4 h-4" />
+          ) : (
+            <Unlink className="w-4 h-4" />
+          )}
         </button>
 
         {/* Height */}
@@ -136,13 +169,15 @@ function DimensionsGroupComponent({
         {showUnit && (
           <select
             value={value.unit || 'px'}
-            onChange={(e) => handleUnitChange(e.target.value as DimensionsValue['unit'])}
+            onChange={(e) =>
+              handleUnitChange(e.target.value as DimensionsValue['unit'])
+            }
             disabled={disabled}
             className={clsx(
               'px-2 py-1.5 text-sm',
               'bg-[var(--background)] border border-[var(--border)] rounded',
               'focus:outline-none focus:ring-1 focus:ring-[var(--primary)]',
-              disabled && 'opacity-50 cursor-not-allowed'
+              disabled && 'opacity-50 cursor-not-allowed',
             )}
           >
             {UNIT_OPTIONS.map((unit) => (

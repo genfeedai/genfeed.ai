@@ -1,11 +1,11 @@
 'use client';
 
-import type { IIngredient } from '@genfeedai/interfaces';
 import {
   IngredientCategory,
   type IngredientFormat,
   ViewType,
 } from '@genfeedai/enums';
+import type { IIngredient } from '@genfeedai/interfaces';
 import type { TableAction, TableColumn } from '@props/ui/display/table.props';
 import AppTable from '@ui/display/table/Table';
 import { LazyMasonryGrid } from '@ui/lazy/masonry/LazyMasonry';

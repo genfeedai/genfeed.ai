@@ -121,9 +121,9 @@ describe('Prompt Registry', () => {
   test('prompt variables should have proper structure', () => {
     const prompt = getPrompt('product-photography');
     expect(prompt?.variables).toBeInstanceOf(Array);
-    expect(prompt!.variables.length).toBeGreaterThan(0);
+    expect(prompt?.variables.length).toBeGreaterThan(0);
 
-    prompt!.variables.forEach((variable) => {
+    prompt?.variables.forEach((variable) => {
       expect(variable).toHaveProperty('name');
       expect(variable).toHaveProperty('label');
       expect(variable).toHaveProperty('type');
@@ -132,7 +132,7 @@ describe('Prompt Registry', () => {
       if (variable.type === 'select') {
         expect(variable).toHaveProperty('options');
         expect(variable.options).toBeInstanceOf(Array);
-        expect(variable.options!.length).toBeGreaterThan(0);
+        expect(variable.options?.length).toBeGreaterThan(0);
       }
     });
   });

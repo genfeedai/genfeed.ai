@@ -1,5 +1,5 @@
 import { ConsoleLogger, Inject, Injectable } from '@nestjs/common';
-import { Logger as winstonLogger } from 'winston';
+import type { Logger as winstonLogger } from 'winston';
 
 @Injectable()
 export class LoggerService extends ConsoleLogger {

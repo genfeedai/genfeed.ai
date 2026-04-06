@@ -18,20 +18,21 @@ import type {
   VideoProgressEvent,
   VoteCreateMessage,
 } from '@libs/interfaces/websockets.interface';
-import { LoggerService } from '@libs/logger/logger.service';
-import { RedisService } from '@libs/redis/redis.service';
+import type { LoggerService } from '@libs/logger/logger.service';
+import type { RedisService } from '@libs/redis/redis.service';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   ConnectedSocket,
   MessageBody,
-  OnGatewayConnection,
-  OnGatewayDisconnect,
-  OnGatewayInit,
+  type OnGatewayConnection,
+  type OnGatewayDisconnect,
+  type OnGatewayInit,
   SubscribeMessage,
   WebSocketServer,
   WebSocketGateway as WSGateway,
 } from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
+import type { Server, Socket } from 'socket.io';
+import { getUserRoomName } from './room-name.util';
 
 @Injectable()
 @WSGateway({
@@ -100,7 +101,7 @@ export class WebSocketGateway
   }
 
   private getTargetRoom(userId: string, room?: string): string {
-    return room ?? `user-${userId}`;
+    return room ?? getUserRoomName(userId);
   }
 
   private subscribeToRedisChannels(): void {
@@ -172,9 +173,8 @@ export class WebSocketGateway
     this.userToSocket.get(userId)?.add(client.id);
 
     // Join user-specific room
-    // CRITICAL: Room name must use Clerk ID to match backend emits
-    // Backend emits to: user-{clerkId} (from webhooks.service.ts)
-    await client.join(`user-${userId}`);
+    // Room name uses getUserRoomName for consistency across cloud and self-hosted
+    await client.join(getUserRoomName(userId));
 
     if (organizationId) {
       await client.join(`org-${organizationId}`);
@@ -183,7 +183,7 @@ export class WebSocketGateway
     this.logger.log(`Client ${client.id} connected for user ${userId}`, {
       organizationId,
       orgRoomJoined: organizationId ? `org-${organizationId}` : undefined,
-      roomJoined: `user-${userId}`,
+      roomJoined: getUserRoomName(userId),
       userId,
     });
 
@@ -361,10 +361,10 @@ export class WebSocketGateway
       return;
     }
 
-    this.server.to(`user-${data.userId}`).emit(type, data);
+    this.server.to(getUserRoomName(data.userId)).emit(type, data);
 
     this.logger.debug(
-      `Sent ${type} to user-${data.userId} for thread ${data.threadId}`,
+      `Sent ${type} to ${getUserRoomName(data.userId)} for thread ${data.threadId}`,
     );
   }
 
@@ -471,7 +471,9 @@ export class WebSocketGateway
         .emit('notification', notification);
       this.logger.log(`Sent notification to org ${organizationId}`);
     } else if (userId) {
-      this.server.to(`user-${userId}`).emit('notification', notification);
+      this.server
+        .to(getUserRoomName(userId))
+        .emit('notification', notification);
       this.logger.log(`Sent notification to user ${userId}`);
     }
   }
@@ -485,7 +487,7 @@ export class WebSocketGateway
     const { ingredientId, status, userId, metadata } = data;
     const path = `/ingredients/${ingredientId}/status`;
 
-    this.server.to(`user-${userId}`).emit(path, {
+    this.server.to(getUserRoomName(userId)).emit(path, {
       ingredientId,
       metadata,
       status,
@@ -506,7 +508,7 @@ export class WebSocketGateway
     const { postId, status, userId, metadata } = data;
     const path = `/posts/${postId}/status`;
 
-    this.server.to(`user-${userId}`).emit(path, {
+    this.server.to(getUserRoomName(userId)).emit(path, {
       metadata,
       postId,
       status,
@@ -525,7 +527,7 @@ export class WebSocketGateway
     const { trainingId, status, userId, progress } = data;
     const path = `/trainings/${trainingId}/status`;
 
-    this.server.to(`user-${userId}`).emit(path, {
+    this.server.to(getUserRoomName(userId)).emit(path, {
       progress,
       status,
       timestamp: new Date().toISOString(),
@@ -546,7 +548,7 @@ export class WebSocketGateway
     const { jobId, type, status, progress, userId, ingredientId } = data;
     const path = `/files/${ingredientId}/${type}`;
 
-    this.server.to(`user-${userId}`).emit(path, {
+    this.server.to(getUserRoomName(userId)).emit(path, {
       ingredientId,
       jobId,
       progress,
@@ -568,7 +570,7 @@ export class WebSocketGateway
 
     const { assetId, status, userId, metadata } = data;
 
-    this.server.to(`user-${userId}`).emit('asset-status', {
+    this.server.to(getUserRoomName(userId)).emit('asset-status', {
       assetId,
       metadata,
       status,
@@ -593,7 +595,7 @@ export class WebSocketGateway
 
     const { articleId, status, userId, metadata } = data;
 
-    this.server.to(`user-${userId}`).emit('article-status', {
+    this.server.to(getUserRoomName(userId)).emit('article-status', {
       articleId,
       metadata,
       status,
@@ -641,7 +643,7 @@ export class WebSocketGateway
       this.server.to(room).emit(path, payload);
       this.logger.debug(`Sent generic event to room ${room}: ${path}`);
     } else if (userId) {
-      this.server.to(`user-${userId}`).emit(path, payload);
+      this.server.to(getUserRoomName(userId)).emit(path, payload);
       this.logger.debug(`Sent generic event to user ${userId}: ${path}`);
     } else {
       this.server.emit(path, payload);
@@ -726,7 +728,7 @@ export class WebSocketGateway
       });
       return;
     }
-    this.server.to(`user-${userId}`).emit(event, data);
+    this.server.to(getUserRoomName(userId)).emit(event, data);
   }
 
   emitToOrganization(

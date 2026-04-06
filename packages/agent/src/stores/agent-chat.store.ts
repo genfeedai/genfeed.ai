@@ -9,6 +9,7 @@ import type {
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
+
 // Inlined from @genfeedai/types to avoid turbopack resolution issues
 const ONBOARDING_SIGNUP_GIFT_CREDITS = 100;
 const ONBOARDING_TOTAL_VISIBLE_CREDITS = 600;

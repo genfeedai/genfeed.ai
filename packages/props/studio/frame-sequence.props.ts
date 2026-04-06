@@ -1,5 +1,5 @@
-import type { IImage } from '@genfeedai/interfaces';
 import type { IngredientFormat } from '@genfeedai/enums';
+import type { IImage } from '@genfeedai/interfaces';
 
 export interface FrameSequenceSelectorProps {
   frames: IImage[];

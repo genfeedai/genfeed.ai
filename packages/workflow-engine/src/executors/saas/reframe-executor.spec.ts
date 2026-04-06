@@ -2,7 +2,7 @@ import type { ExecutionContext } from '@workflow-engine/execution/engine';
 import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
   createReframeExecutor,
-  ReframeExecutor,
+  type ReframeExecutor,
   type ReframeResolver,
 } from '@workflow-engine/executors/saas/reframe-executor';
 import type { ExecutableNode } from '@workflow-engine/types';

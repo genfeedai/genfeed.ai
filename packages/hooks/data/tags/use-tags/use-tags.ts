@@ -1,9 +1,9 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import type { ITag } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import type { TagCategory } from '@genfeedai/enums';
+import type { ITag } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { TagsService } from '@services/content/tags.service';

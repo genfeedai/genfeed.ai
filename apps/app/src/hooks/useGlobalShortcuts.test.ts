@@ -56,7 +56,9 @@ describe('useGlobalShortcuts', () => {
     renderHook(() => useGlobalShortcuts());
 
     act(() => {
-      window.dispatchEvent(new KeyboardEvent('keydown', { ctrlKey: true, key: 'Enter' }));
+      window.dispatchEvent(
+        new KeyboardEvent('keydown', { ctrlKey: true, key: 'Enter' }),
+      );
     });
 
     expect(useRunWorkflowConfirmationStore.getState().isOpen).toBe(true);
@@ -72,7 +74,11 @@ describe('useGlobalShortcuts', () => {
 
     act(() => {
       window.dispatchEvent(
-        new KeyboardEvent('keydown', { ctrlKey: true, key: 'Enter', shiftKey: true })
+        new KeyboardEvent('keydown', {
+          ctrlKey: true,
+          key: 'Enter',
+          shiftKey: true,
+        }),
       );
     });
 

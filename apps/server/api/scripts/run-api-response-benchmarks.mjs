@@ -1,7 +1,7 @@
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
 
 const API_ROOT = path.resolve(import.meta.dirname, '..');
 const RUNNER_SPEC = 'test/integration/api-response-benchmarks.runner.spec.ts';

@@ -58,7 +58,9 @@ function extractAllOutputValues(output: unknown): string[] {
   if (typeof output === 'object' && output !== null) {
     const obj = output as Record<string, unknown>;
     if ('images' in obj && Array.isArray(obj.images)) {
-      return obj.images.filter((item): item is string => typeof item === 'string');
+      return obj.images.filter(
+        (item): item is string => typeof item === 'string',
+      );
     }
     // Fallback to single image field
     if ('image' in obj && typeof obj.image === 'string') {
@@ -75,7 +77,7 @@ function extractAllOutputValues(output: unknown): string[] {
 export function getOutputUpdate(
   nodeId: string,
   output: unknown,
-  workflowStore: ReturnType<typeof useWorkflowStore.getState>
+  workflowStore: ReturnType<typeof useWorkflowStore.getState>,
 ): Record<string, unknown> {
   const node = workflowStore.getNodeById(nodeId);
   if (!node) return {};
@@ -103,9 +105,14 @@ export function getOutputUpdate(
 
   // Video output nodes
   if (
-    ['videoGen', 'animation', 'videoStitch', 'lipSync', 'voiceChange', 'motionControl'].includes(
-      nodeType
-    )
+    [
+      'videoGen',
+      'animation',
+      'videoStitch',
+      'lipSync',
+      'voiceChange',
+      'motionControl',
+    ].includes(nodeType)
   ) {
     return { outputVideo: outputValue };
   }

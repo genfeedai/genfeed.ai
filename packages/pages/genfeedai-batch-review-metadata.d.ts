@@ -8,5 +8,3 @@ declare module '@genfeedai/interfaces' {
     opportunityTopic?: string;
   }
 }
-
-export {};

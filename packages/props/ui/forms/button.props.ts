@@ -1,4 +1,8 @@
-import { ButtonSize, ButtonVariant, DropdownDirection } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  type DropdownDirection,
+} from '@genfeedai/enums';
 import type { ButtonHTMLAttributes, MouseEvent, ReactNode } from 'react';
 
 export { ButtonSize, ButtonVariant };

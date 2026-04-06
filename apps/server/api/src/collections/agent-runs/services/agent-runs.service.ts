@@ -16,6 +16,7 @@ import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AgentExecutionStatus } from '@genfeedai/enums';
 import type {
   AgentRunAnomaly,
   AgentRunModelCount,
@@ -26,7 +27,6 @@ import type {
   AgentRunTrendPoint,
 } from '@genfeedai/types';
 import { DEFAULT_AGENT_RUN_TIME_RANGE } from '@genfeedai/types';
-import { AgentExecutionStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';

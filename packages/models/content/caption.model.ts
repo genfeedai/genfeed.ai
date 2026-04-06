@@ -1,5 +1,5 @@
-import type { ICaption, IIngredient } from '@genfeedai/interfaces';
 import { Caption as BaseCaption } from '@genfeedai/client/models';
+import type { ICaption, IIngredient } from '@genfeedai/interfaces';
 import { Ingredient } from '@models/content/ingredient.model';
 
 export class Caption extends BaseCaption {

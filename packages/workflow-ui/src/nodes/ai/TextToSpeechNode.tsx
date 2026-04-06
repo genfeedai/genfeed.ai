@@ -5,6 +5,7 @@ import type {
   TTSProvider,
   TTSVoice,
 } from '@genfeedai/types';
+import { Code } from '@genfeedai/ui';
 import type { NodeProps } from '@xyflow/react';
 import {
   AlertTriangle,
@@ -14,7 +15,6 @@ import {
   Volume2,
 } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
-import { Code } from '@genfeedai/ui';
 import { useCanGenerate } from '../../hooks/useCanGenerate';
 import { useNodeExecution } from '../../hooks/useNodeExecution';
 import { useWorkflowStore } from '../../stores/workflowStore';
@@ -137,10 +137,7 @@ function TextToSpeechNodeComponent(props: NodeProps) {
             <div className="text-amber-500">
               <p className="font-medium">ElevenLabs not configured</p>
               <p className="text-amber-500/80 mt-0.5">
-                Set{' '}
-                <Code className="bg-amber-500/20">
-                  ELEVENLABS_API_KEY
-                </Code>{' '}
+                Set <Code className="bg-amber-500/20">ELEVENLABS_API_KEY</Code>{' '}
                 in API and{' '}
                 <Code className="bg-amber-500/20">
                   NEXT_PUBLIC_TTS_ENABLED=true

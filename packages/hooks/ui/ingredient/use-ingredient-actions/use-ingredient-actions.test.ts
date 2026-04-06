@@ -1,4 +1,3 @@
-import type { IIngredient } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   AssetCategory,
@@ -6,6 +5,7 @@ import {
   IngredientFormat,
   IngredientStatus,
 } from '@genfeedai/enums';
+import type { IIngredient } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useIngredientServices } from '@hooks/data/ingredients/use-ingredient-services/use-ingredient-services';
 import { useIngredientActions } from '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';

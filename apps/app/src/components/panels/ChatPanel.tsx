@@ -1,23 +1,33 @@
 'use client';
 
+import { useChat } from '@ai-sdk/react';
 import type { UIMessage } from 'ai';
 import { DefaultChatTransport } from 'ai';
-import { Bot, Loader2, MessageSquare, Send, Settings2, Wrench, X } from 'lucide-react';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useChat } from '@ai-sdk/react';
+import {
+  Bot,
+  Loader2,
+  MessageSquare,
+  Send,
+  Settings2,
+  Wrench,
+  X,
+} from 'lucide-react';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { buildWorkflowContext } from '@/lib/chat/contextBuilder';
-import { narrateOperations } from '@/lib/chat/editOperations';
-import type { EditOperation } from '@/lib/chat/editOperations';
-import { LLM_PROVIDERS } from '@/lib/ai/llm-providers';
 import type { LLMProviderType } from '@/lib/ai/llm-providers';
+import { LLM_PROVIDERS } from '@/lib/ai/llm-providers';
+import { buildWorkflowContext } from '@/lib/chat/contextBuilder';
+import type { EditOperation } from '@/lib/chat/editOperations';
+import { narrateOperations } from '@/lib/chat/editOperations';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 function ChatPanelComponent() {
   const isChatOpen = useWorkflowStore((state) => state.isChatOpen);
   const setChatOpen = useWorkflowStore((state) => state.setChatOpen);
-  const applyChatEditOperations = useWorkflowStore((state) => state.applyChatEditOperations);
+  const applyChatEditOperations = useWorkflowStore(
+    (state) => state.applyChatEditOperations,
+  );
   const nodes = useWorkflowStore((state) => state.nodes);
   const edges = useWorkflowStore((state) => state.edges);
 
@@ -33,7 +43,10 @@ function ChatPanelComponent() {
   const configured = isLLMConfigured();
 
   // Build workflow context for LLM
-  const workflowContext = useMemo(() => buildWorkflowContext(nodes, edges), [nodes, edges]);
+  const workflowContext = useMemo(
+    () => buildWorkflowContext(nodes, edges),
+    [nodes, edges],
+  );
 
   // Create transport with dynamic body
   const transport = useMemo(
@@ -48,7 +61,13 @@ function ChatPanelComponent() {
           workflowContext,
         },
       }),
-    [llm.activeProvider, llm.activeModel, llm.providers, workflowContext, nodes]
+    [
+      llm.activeProvider,
+      llm.activeModel,
+      llm.providers,
+      workflowContext,
+      nodes,
+    ],
   );
 
   const { messages, sendMessage, status, setMessages } = useChat({
@@ -115,7 +134,7 @@ function ChatPanelComponent() {
         handleSend();
       }
     },
-    [handleSend]
+    [handleSend],
   );
 
   const setExample = useCallback((text: string) => {
@@ -135,7 +154,11 @@ function ChatPanelComponent() {
             BYOK
           </span>
         </div>
-        <Button variant="ghost" size="icon-sm" onClick={() => setChatOpen(false)}>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => setChatOpen(false)}
+        >
           <X className="w-4 h-4" />
         </Button>
       </div>
@@ -145,7 +168,9 @@ function ChatPanelComponent() {
         <Settings2 className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
         <select
           value={llm.activeProvider}
-          onChange={(e) => setLLMActiveProvider(e.target.value as LLMProviderType)}
+          onChange={(e) =>
+            setLLMActiveProvider(e.target.value as LLMProviderType)
+          }
           className="text-xs bg-transparent border-none focus:outline-none text-foreground cursor-pointer"
         >
           {(Object.keys(LLM_PROVIDERS) as LLMProviderType[]).map((p) => (
@@ -171,7 +196,8 @@ function ChatPanelComponent() {
       {/* Not configured warning */}
       {!configured && (
         <div className="mx-4 mt-3 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-500">
-          Add your {providerInfo.name} API key in Settings &gt; API Keys to start chatting.
+          Add your {providerInfo.name} API key in Settings &gt; API Keys to
+          start chatting.
         </div>
       )}
 
@@ -182,24 +208,32 @@ function ChatPanelComponent() {
             <Bot className="w-10 h-10 mx-auto mb-3 opacity-50" />
             <p className="text-sm font-medium mb-1">Workflow Assistant</p>
             <p className="text-xs mb-4">
-              Ask me to create, modify, or explain your workflow. I can add nodes, make connections,
-              and update settings.
+              Ask me to create, modify, or explain your workflow. I can add
+              nodes, make connections, and update settings.
             </p>
             <div className="space-y-1.5 text-xs text-left">
               <button
-                onClick={() => setExample('Add an image generation node connected to a prompt')}
+                onClick={() =>
+                  setExample(
+                    'Add an image generation node connected to a prompt',
+                  )
+                }
                 className="block w-full text-left p-2 bg-muted rounded hover:bg-muted/80 transition"
               >
                 &quot;Add an image generation node connected to a prompt&quot;
               </button>
               <button
-                onClick={() => setExample('Create a 3-scene video pipeline with stitching')}
+                onClick={() =>
+                  setExample('Create a 3-scene video pipeline with stitching')
+                }
                 className="block w-full text-left p-2 bg-muted rounded hover:bg-muted/80 transition"
               >
                 &quot;Create a 3-scene video pipeline with stitching&quot;
               </button>
               <button
-                onClick={() => setExample('What does each node in my workflow do?')}
+                onClick={() =>
+                  setExample('What does each node in my workflow do?')
+                }
                 className="block w-full text-left p-2 bg-muted rounded hover:bg-muted/80 transition"
               >
                 &quot;What does each node in my workflow do?&quot;
@@ -247,7 +281,11 @@ function ChatPanelComponent() {
             onClick={handleSend}
             disabled={!inputValue.trim() || !configured || isActive}
           >
-            {isActive ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            {isActive ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
           </Button>
         </div>
         <p className="text-[10px] text-muted-foreground mt-1.5">
@@ -262,7 +300,11 @@ function ChatPanelComponent() {
 }
 
 /** Renders a single message bubble with parts support */
-const MessageBubble = memo(function MessageBubble({ message }: { message: UIMessage }) {
+const MessageBubble = memo(function MessageBubble({
+  message,
+}: {
+  message: UIMessage;
+}) {
   const isUser = message.role === 'user';
 
   return (
@@ -274,7 +316,9 @@ const MessageBubble = memo(function MessageBubble({ message }: { message: UIMess
       )}
       <div
         className={`max-w-[85%] px-3 py-2 rounded-lg text-sm ${
-          isUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'
+          isUser
+            ? 'bg-primary text-primary-foreground'
+            : 'bg-muted text-foreground'
         }`}
       >
         {message.parts.map((part, i) => {
@@ -289,12 +333,17 @@ const MessageBubble = memo(function MessageBubble({ message }: { message: UIMess
             const toolPart = part as { type: string; state: string };
             const toolName = part.type.replace('tool-', '');
             return (
-              <div key={i} className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+              <div
+                key={i}
+                className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground"
+              >
                 <Wrench className="w-3 h-3" />
                 <span>
                   {toolPart.state === 'result' ? 'Used' : 'Calling'} {toolName}
                 </span>
-                {toolPart.state !== 'result' && <Loader2 className="w-3 h-3 animate-spin" />}
+                {toolPart.state !== 'result' && (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                )}
               </div>
             );
           }

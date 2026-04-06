@@ -10,14 +10,14 @@ import {
 import { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref.schema';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import {
-  ONBOARDING_JOURNEY_MISSIONS,
-  type OnboardingJourneyMissionId,
-} from '@genfeedai/types';
-import {
   AgentAutonomyMode,
   AgentReplyStyle,
   ByokBillingStatus,
 } from '@genfeedai/enums';
+import {
+  ONBOARDING_JOURNEY_MISSIONS,
+  type OnboardingJourneyMissionId,
+} from '@genfeedai/types';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { type Document, Types } from 'mongoose';
 

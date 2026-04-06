@@ -1,4 +1,4 @@
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import type { RedisClientType } from 'redis';
 import * as redis from 'redis';

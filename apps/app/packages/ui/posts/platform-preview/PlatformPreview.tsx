@@ -1,7 +1,7 @@
 'use client';
 
-import type { IIngredient, IPost } from '@genfeedai/interfaces';
 import { CredentialPlatform } from '@genfeedai/enums';
+import type { IIngredient, IPost } from '@genfeedai/interfaces';
 import Card from '@ui/card/Card';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import Image from 'next/image';

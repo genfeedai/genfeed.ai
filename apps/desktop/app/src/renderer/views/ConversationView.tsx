@@ -281,11 +281,11 @@ export const ConversationView = ({
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [thread?.messages.length]);
+  }, []);
 
   useEffect(() => {
     inputRef.current?.focus();
-  }, [thread?.id]);
+  }, []);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {

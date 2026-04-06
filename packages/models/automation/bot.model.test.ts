@@ -17,10 +17,10 @@ describe('Bot', () => {
     it('should create a bot with default settings', () => {
       const bot = new Bot();
       expect(bot.settings).toBeDefined();
-      expect(bot.settings!.messagesPerMinute).toBe(10);
-      expect(bot.settings!.responseDelaySeconds).toBe(5);
-      expect(bot.settings!.responses).toEqual([]);
-      expect(bot.settings!.triggers).toEqual([]);
+      expect(bot.settings?.messagesPerMinute).toBe(10);
+      expect(bot.settings?.responseDelaySeconds).toBe(5);
+      expect(bot.settings?.responses).toEqual([]);
+      expect(bot.settings?.triggers).toEqual([]);
     });
 
     it('should normalize settings with custom values', () => {
@@ -30,8 +30,8 @@ describe('Bot', () => {
           responseDelaySeconds: 3,
         },
       } as never);
-      expect(bot.settings!.messagesPerMinute).toBe(20);
-      expect(bot.settings!.responseDelaySeconds).toBe(3);
+      expect(bot.settings?.messagesPerMinute).toBe(20);
+      expect(bot.settings?.responseDelaySeconds).toBe(3);
     });
 
     it('should normalize response templates', () => {
@@ -43,12 +43,12 @@ describe('Bot', () => {
           ],
         },
       } as never);
-      expect(bot.settings!.responses).toHaveLength(2);
-      expect(bot.settings!.responses[0]).toEqual({
+      expect(bot.settings?.responses).toHaveLength(2);
+      expect(bot.settings?.responses[0]).toEqual({
         response: 'Hi!',
         trigger: 'hello',
       });
-      expect(bot.settings!.responses[1]).toEqual({
+      expect(bot.settings?.responses[1]).toEqual({
         response: '',
         trigger: 'bye',
       });
@@ -67,8 +67,8 @@ describe('Bot', () => {
         ],
       } as never);
       expect(bot.targets).toHaveLength(1);
-      expect(bot.targets![0].isEnabled).toBe(true);
-      expect(bot.targets![0].channelId).toBe('ch-1');
+      expect(bot.targets?.[0].isEnabled).toBe(true);
+      expect(bot.targets?.[0].channelId).toBe('ch-1');
     });
 
     it('should preserve explicit isEnabled=false on targets', () => {
@@ -81,7 +81,7 @@ describe('Bot', () => {
           },
         ],
       } as never);
-      expect(bot.targets![0].isEnabled).toBe(false);
+      expect(bot.targets?.[0].isEnabled).toBe(false);
     });
 
     it('should handle empty targets array', () => {
@@ -99,9 +99,9 @@ describe('Bot', () => {
       const bot = new Bot({
         settings: { triggers },
       } as never);
-      expect(bot.settings!.triggers).toEqual(triggers);
+      expect(bot.settings?.triggers).toEqual(triggers);
       // Should be a copy, not a reference
-      expect(bot.settings!.triggers).not.toBe(triggers);
+      expect(bot.settings?.triggers).not.toBe(triggers);
     });
   });
 });

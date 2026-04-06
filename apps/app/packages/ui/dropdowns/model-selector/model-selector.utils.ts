@@ -1,10 +1,10 @@
-import type { IModel } from '@genfeedai/interfaces';
 import {
   COST_TIER_DISPLAY,
   extractBrandFromKey,
   getBrandConfig,
 } from '@genfeedai/constants/model-brands.constant';
 import type { CostTier } from '@genfeedai/enums';
+import type { IModel } from '@genfeedai/interfaces';
 import type { ModelSelectorOption } from '@props/ui/model-selector/model-selector.props';
 
 type ModelWithLifecycle = IModel & {

@@ -1,6 +1,5 @@
 'use client';
 
-import type { IIngredient } from '@genfeedai/interfaces';
 import { EMPTY_STATES } from '@genfeedai/constants';
 import {
   ButtonVariant,
@@ -8,6 +7,7 @@ import {
   type IngredientFormat,
   ModalEnum,
 } from '@genfeedai/enums';
+import type { IIngredient } from '@genfeedai/interfaces';
 import type { IngredientsListContentProps } from '@props/pages/ingredients-list.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';

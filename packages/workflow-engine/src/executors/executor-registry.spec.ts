@@ -24,7 +24,7 @@ describe('executor-registry', () => {
     it('returns executor for known type', () => {
       const exec = getExecutor('noop');
       expect(exec).toBeDefined();
-      expect(exec!.nodeType).toBe('noop');
+      expect(exec?.nodeType).toBe('noop');
     });
 
     it('returns undefined for unknown type', () => {
@@ -53,8 +53,8 @@ describe('executor-registry', () => {
     it('returns metadata for known type', () => {
       const meta = getExecutorMetadata('brand');
       expect(meta).toBeDefined();
-      expect(meta!.nodeType).toBe('brand');
-      expect(meta!.requiresResolver).toBe(true);
+      expect(meta?.nodeType).toBe('brand');
+      expect(meta?.requiresResolver).toBe(true);
     });
 
     it('returns undefined for unknown type', () => {
@@ -117,7 +117,7 @@ describe('executor-registry', () => {
       registry.register('myNode', async () => 'result');
       const exec = registry.get('myNode');
       expect(exec).toBeDefined();
-      expect(exec!.nodeType).toBe('myNode');
+      expect(exec?.nodeType).toBe('myNode');
     });
 
     it('returns undefined for wrong type cast', () => {

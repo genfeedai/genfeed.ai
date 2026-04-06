@@ -8,7 +8,12 @@ export interface SelectionSlice {
   clearSelection: () => void;
 }
 
-export const createSelectionSlice: StateCreator<WorkflowStore, [], [], SelectionSlice> = (set) => ({
+export const createSelectionSlice: StateCreator<
+  WorkflowStore,
+  [],
+  [],
+  SelectionSlice
+> = (set) => ({
   addToSelection: (nodeId) => {
     set((state) => ({
       selectedNodeIds: state.selectedNodeIds.includes(nodeId)

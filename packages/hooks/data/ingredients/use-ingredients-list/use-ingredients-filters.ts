@@ -1,6 +1,5 @@
 'use client';
 
-import type { IIngredient } from '@genfeedai/interfaces';
 import { useIngredientsContext } from '@contexts/content/ingredients-context/ingredients-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
@@ -8,6 +7,7 @@ import {
   ingredientCategorySchema,
 } from '@genfeedai/client/schemas';
 import { IngredientCategory, IngredientFormat } from '@genfeedai/enums';
+import type { IIngredient } from '@genfeedai/interfaces';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { PageScope } from '@ui-constants/misc.constant';
 import {

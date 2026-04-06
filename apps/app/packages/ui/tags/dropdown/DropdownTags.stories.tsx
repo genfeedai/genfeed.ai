@@ -1,6 +1,6 @@
-import type { IBrand, IOrganization, ITag, IUser } from '@genfeedai/interfaces';
 import { PLATFORM_COLORS } from '@genfeedai/constants';
 import { DropdownDirection, TagCategory } from '@genfeedai/enums';
+import type { IBrand, IOrganization, ITag, IUser } from '@genfeedai/interfaces';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import DropdownTags from '@ui/tags/dropdown/DropdownTags';
 import { useState } from 'react';

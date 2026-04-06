@@ -1,12 +1,5 @@
 'use client';
 
-import type {
-  IFolder,
-  IIngredient,
-  IModel,
-  IQueryParams,
-} from '@genfeedai/interfaces';
-import type { AvatarVoiceData } from '@genfeedai/interfaces/studio/studio-generate.interface';
 import { useAssetSelection } from '@contexts/ui/asset-selection-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
@@ -16,6 +9,13 @@ import {
   ModelCategory,
   ViewType,
 } from '@genfeedai/enums';
+import type {
+  IFolder,
+  IIngredient,
+  IModel,
+  IQueryParams,
+} from '@genfeedai/interfaces';
+import type { AvatarVoiceData } from '@genfeedai/interfaces/studio/studio-generate.interface';
 import { formatVideos } from '@helpers/data/data/data.helper';
 import { resolveIngredientAspectRatio } from '@helpers/formatting/aspect-ratio/aspect-ratio.util';
 import {
@@ -246,20 +246,7 @@ export default function StudioGenerateLayout({
     stopAllMusic();
     resetPaginationState();
     void findAllAssets(1, false);
-  }, [
-    brandId,
-    categoryType,
-    filters.format,
-    filters.provider,
-    filters.search,
-    filters.sort,
-    filters.status,
-    filters.type,
-    findAllAssets,
-    isReady,
-    resetPaginationState,
-    stopAllMusic,
-  ]);
+  }, [brandId, findAllAssets, isReady, resetPaginationState, stopAllMusic]);
 
   useEffect(() => {
     const nextGeneratedAssetId = activeGenerations[0]?.id ?? null;
@@ -515,6 +502,7 @@ export default function StudioGenerateLayout({
       resetPaginationState,
       stopAllMusic,
       onCategoryChange,
+      href,
     ],
   );
 

@@ -1,8 +1,8 @@
 'use client';
 
-import type { IIngredient, IMetadata, IVideo } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant, IngredientStatus } from '@genfeedai/enums';
+import type { IIngredient, IMetadata, IVideo } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { stopAndResetVideo } from '@hooks/media/video-utils/video.utils';
 import useIngredientActions from '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';

@@ -1,11 +1,11 @@
-import { Module } from '@nestjs/common';
+import { RedisModule } from '@libs/redis/redis.module';
 import { HttpModule } from '@nestjs/axios';
+import { Module } from '@nestjs/common';
 import { SentryModule } from '@sentry/nestjs/setup';
 import { ConfigModule } from '@slack/config/config.module';
 import { ConfigService } from '@slack/config/config.service';
-import { SlackBotManager } from '@slack/services/slack-bot-manager.service';
 import { HealthController } from '@slack/controllers/health.controller';
-import { RedisModule } from '@libs/redis/redis.module';
+import { SlackBotManager } from '@slack/services/slack-bot-manager.service';
 
 @Module({
   controllers: [HealthController],

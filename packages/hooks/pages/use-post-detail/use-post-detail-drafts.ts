@@ -1,7 +1,7 @@
 'use client';
 
 import type { IIngredient, IPost } from '@genfeedai/interfaces';
-import { PostsService } from '@services/content/posts.service';
+import type { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
 import { PageScope } from '@ui-constants/misc.constant';
 import { useCallback, useEffect, useRef, useState } from 'react';

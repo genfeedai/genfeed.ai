@@ -28,7 +28,6 @@ function getVisualHref(item: Ingredient): string {
       return '/library/images';
     case 'gif':
       return '/library/gifs';
-    case 'video':
     default:
       return '/library/videos';
   }

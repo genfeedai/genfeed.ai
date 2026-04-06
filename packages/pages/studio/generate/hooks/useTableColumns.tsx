@@ -1,11 +1,5 @@
 'use client';
 
-import type {
-  IArticle,
-  IIngredient,
-  IMetadata,
-  IPost,
-} from '@genfeedai/interfaces';
 import {
   type ArticleStatus,
   ButtonSize,
@@ -14,6 +8,12 @@ import {
   IngredientStatus,
   type PostStatus,
 } from '@genfeedai/enums';
+import type {
+  IArticle,
+  IIngredient,
+  IMetadata,
+  IPost,
+} from '@genfeedai/interfaces';
 import type { UseTableColumnsParams } from '@pages/studio/generate/types';
 import {
   formatDuration,

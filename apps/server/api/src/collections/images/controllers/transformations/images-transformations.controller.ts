@@ -47,11 +47,6 @@ import { FailedGenerationService } from '@api/shared/services/failed-generation/
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { User } from '@clerk/backend';
-import type {
-  IResizeBodyParams,
-  JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
-import { IngredientSerializer } from '@genfeedai/serializers';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -65,8 +60,14 @@ import {
   PromptStatus,
   TransformationCategory,
 } from '@genfeedai/enums';
+import type {
+  IResizeBodyParams,
+  JsonApiSingleResponse,
+} from '@genfeedai/interfaces';
+import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
   Body,
   Controller,
@@ -150,7 +151,7 @@ export class ImagesTransformationsController {
           sourceId: imageId,
           width: body.width || 1080,
         },
-        room: `user-${user.id}`,
+        room: getUserRoomName(user.id),
         type: 'resize',
         userId: publicMetadata.user,
       });
@@ -322,7 +323,7 @@ export class ImagesTransformationsController {
       activityId: activity._id.toString(),
       label: 'Image Reframe',
       progress: 0,
-      room: `user-${user.id}`,
+      room: getUserRoomName(user.id),
       status: 'processing',
       taskId: ingredientData._id.toString(),
       userId: user.id,
@@ -372,7 +373,7 @@ export class ImagesTransformationsController {
           ingredientData._id,
           websocketUrl,
           publicMetadata,
-          `user-${user.id}`,
+          getUserRoomName(user.id),
         );
       }
     } catch (error: unknown) {
@@ -384,7 +385,7 @@ export class ImagesTransformationsController {
         ingredientData._id,
         websocketUrl,
         publicMetadata,
-        `user-${user.id}`,
+        getUserRoomName(user.id),
         errorMessage,
       );
     }
@@ -489,7 +490,7 @@ export class ImagesTransformationsController {
       activityId: activity._id.toString(),
       label: 'Image Upscale',
       progress: 0,
-      room: `user-${user.id}`,
+      room: getUserRoomName(user.id),
       status: 'processing',
       taskId: ingredientData._id.toString(),
       userId: user.id,
@@ -543,7 +544,7 @@ export class ImagesTransformationsController {
           ingredientData._id,
           websocketUrl,
           publicMetadata,
-          `user-${user.id}`,
+          getUserRoomName(user.id),
         );
       }
     } catch (error: unknown) {
@@ -555,7 +556,7 @@ export class ImagesTransformationsController {
         ingredientData._id,
         websocketUrl,
         publicMetadata,
-        `user-${user.id}`,
+        getUserRoomName(user.id),
         errorMessage,
       );
     }

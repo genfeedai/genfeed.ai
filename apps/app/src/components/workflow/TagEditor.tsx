@@ -33,7 +33,9 @@ export function TagEditor({ tags, onChange }: TagEditorProps) {
     if (inputValue.trim()) {
       const filtered = allTags
         .filter(
-          (t: string) => t.toLowerCase().includes(inputValue.toLowerCase()) && !tags.includes(t)
+          (t: string) =>
+            t.toLowerCase().includes(inputValue.toLowerCase()) &&
+            !tags.includes(t),
         )
         .slice(0, 5);
       setSuggestions(filtered);
@@ -54,14 +56,14 @@ export function TagEditor({ tags, onChange }: TagEditorProps) {
       setInputValue('');
       setIsAdding(false);
     },
-    [tags, onChange]
+    [tags, onChange],
   );
 
   const removeTag = useCallback(
     (tag: string) => {
       onChange(tags.filter((t) => t !== tag));
     },
-    [tags, onChange]
+    [tags, onChange],
   );
 
   const handleKeyDown = useCallback(
@@ -74,7 +76,7 @@ export function TagEditor({ tags, onChange }: TagEditorProps) {
         setInputValue('');
       }
     },
-    [inputValue, addTag]
+    [inputValue, addTag],
   );
 
   return (

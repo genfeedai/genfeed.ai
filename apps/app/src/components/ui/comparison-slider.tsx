@@ -35,7 +35,7 @@ function ComparisonSliderComponent({
       const newPosition = Math.max(0, Math.min(100, (x / rect.width) * 100));
       onPositionChange(newPosition);
     },
-    [onPositionChange]
+    [onPositionChange],
   );
 
   const handleMouseDown = useCallback(
@@ -44,7 +44,7 @@ function ComparisonSliderComponent({
       setIsDragging(true);
       handleMove(e.clientX);
     },
-    [handleMove]
+    [handleMove],
   );
 
   const handleMouseMove = useCallback(
@@ -52,7 +52,7 @@ function ComparisonSliderComponent({
       if (!isDragging) return;
       handleMove(e.clientX);
     },
-    [isDragging, handleMove]
+    [isDragging, handleMove],
   );
 
   const handleMouseUp = useCallback(() => {
@@ -64,7 +64,7 @@ function ComparisonSliderComponent({
       setIsDragging(true);
       handleMove(e.touches[0].clientX);
     },
-    [handleMove]
+    [handleMove],
   );
 
   const handleTouchMove = useCallback(
@@ -72,13 +72,16 @@ function ComparisonSliderComponent({
       if (!isDragging) return;
       handleMove(e.touches[0].clientX);
     },
-    [isDragging, handleMove]
+    [isDragging, handleMove],
   );
 
   return (
     <div
       ref={containerRef}
-      className={cn('relative overflow-hidden rounded-md cursor-ew-resize select-none', className)}
+      className={cn(
+        'relative overflow-hidden rounded-md cursor-ew-resize select-none',
+        className,
+      )}
       style={{ height }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}

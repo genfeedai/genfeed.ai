@@ -1,12 +1,12 @@
 'use client';
 
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { formatDuration } from '@genfeedai/helpers';
 import type { IQueryParams } from '@genfeedai/interfaces';
 import type {
   IViralHookAnalysis,
   IViralHookVideo,
 } from '@genfeedai/interfaces/analytics/viral-hooks.interface';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { formatDuration } from '@genfeedai/helpers';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

@@ -63,7 +63,7 @@ function initializePlatformIntegration(): void {
       ? document.querySelector(platform.selectors.submitButton)
       : null;
 
-    if (!submitButton || !submitButton.parentNode) {
+    if (!submitButton?.parentNode) {
       return;
     }
 

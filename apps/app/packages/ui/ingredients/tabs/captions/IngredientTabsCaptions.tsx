@@ -1,13 +1,13 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import type { ICaption, IFieldOption, IMetadata } from '@genfeedai/interfaces';
 import {
   AlertCategory,
   ButtonSize,
   ButtonVariant,
   CaptionFormat,
 } from '@genfeedai/enums';
+import type { ICaption, IFieldOption, IMetadata } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';

@@ -1,6 +1,6 @@
 'use client';
 
-import { IngredientStatus } from '@genfeedai/enums';
+import type { IngredientStatus } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import { IngredientsService } from '@services/content/ingredients.service';

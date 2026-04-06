@@ -1,15 +1,25 @@
 'use client';
 
 import { ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useHeaderCommentNavigation } from '@/hooks/useCommentNavigation';
 
 /**
  * Comment navigation indicator
  */
 export function CommentNavigator() {
-  const { totalCount, unviewedCount, currentIndex, hasComments, goToPrevious, goToNext } =
-    useHeaderCommentNavigation();
+  const {
+    totalCount,
+    unviewedCount,
+    currentIndex,
+    hasComments,
+    goToPrevious,
+    goToNext,
+  } = useHeaderCommentNavigation();
 
   if (!hasComments) return null;
 

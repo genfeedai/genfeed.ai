@@ -1,5 +1,10 @@
 'use client';
 
+import {
+  DefinitionDetail,
+  DefinitionList,
+  DefinitionTerm,
+} from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -14,11 +19,6 @@ import {
   type IssueStatus,
   IssuesService,
 } from '@services/management/issues.service';
-import {
-  DefinitionDetail,
-  DefinitionList,
-  DefinitionTerm,
-} from '@genfeedai/ui';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import Link from 'next/link';
@@ -489,9 +489,7 @@ export default function IssueDetail({
               </h3>
               <DefinitionList className="text-sm">
                 <div>
-                  <DefinitionTerm variant="label">
-                    Status
-                  </DefinitionTerm>
+                  <DefinitionTerm variant="label">Status</DefinitionTerm>
                   <DefinitionDetail variant="inline" className="mt-1">
                     <span
                       className={cn(
@@ -518,10 +516,11 @@ export default function IssueDetail({
                   </DefinitionDetail>
                 </div>
                 <div>
-                  <DefinitionTerm variant="label">
-                    Priority
-                  </DefinitionTerm>
-                  <DefinitionDetail variant="inline" className={PRIORITY_COLORS[issue.priority]}>
+                  <DefinitionTerm variant="label">Priority</DefinitionTerm>
+                  <DefinitionDetail
+                    variant="inline"
+                    className={PRIORITY_COLORS[issue.priority]}
+                  >
                     {PRIORITY_LABELS[issue.priority]}
                   </DefinitionDetail>
                 </div>
@@ -541,17 +540,13 @@ export default function IssueDetail({
                   </div>
                 ) : null}
                 <div>
-                  <DefinitionTerm variant="label">
-                    Created
-                  </DefinitionTerm>
+                  <DefinitionTerm variant="label">Created</DefinitionTerm>
                   <DefinitionDetail variant="inline" className="text-white/50">
                     {getRelativeTime(issue.createdAt)}
                   </DefinitionDetail>
                 </div>
                 <div>
-                  <DefinitionTerm variant="label">
-                    Updated
-                  </DefinitionTerm>
+                  <DefinitionTerm variant="label">Updated</DefinitionTerm>
                   <DefinitionDetail variant="inline" className="text-white/50">
                     {getRelativeTime(issue.updatedAt)}
                   </DefinitionDetail>
@@ -561,7 +556,12 @@ export default function IssueDetail({
                     <DefinitionTerm variant="label">
                       Checked Out By
                     </DefinitionTerm>
-                    <DefinitionDetail variant="inline" className="text-blue-400">Agent</DefinitionDetail>
+                    <DefinitionDetail
+                      variant="inline"
+                      className="text-blue-400"
+                    >
+                      Agent
+                    </DefinitionDetail>
                   </div>
                 ) : null}
               </DefinitionList>

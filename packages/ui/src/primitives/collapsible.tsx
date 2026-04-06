@@ -1,13 +1,13 @@
 'use client';
 
-import { cn } from '../lib/utils';
 import * as CollapsiblePrimitive from '@radix-ui/react-collapsible';
+import { ChevronDown } from 'lucide-react';
 import {
   type ComponentPropsWithoutRef,
   type ElementRef,
   forwardRef,
 } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { cn } from '../lib/utils';
 
 const Collapsible = CollapsiblePrimitive.Root;
 

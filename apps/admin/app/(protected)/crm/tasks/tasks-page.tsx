@@ -1,9 +1,9 @@
 'use client';
 
-import type { ICrmCompany, ICrmLead, ICrmTask } from '@genfeedai/interfaces';
 import Button from '@components/buttons/base/Button';
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import { ButtonVariant } from '@genfeedai/enums';
+import type { ICrmCompany, ICrmLead, ICrmTask } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import {
@@ -115,7 +115,7 @@ const EMPTY_FORM: TaskFormData = {
 };
 
 export default function TasksPage() {
-  const router = useRouter();
+  const _router = useRouter();
   const [statusFilter, setStatusFilter] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('');
   const [modalOpen, setModalOpen] = useState(false);

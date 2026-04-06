@@ -1,9 +1,9 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { memo, useEffect, type ReactNode } from 'react';
+import { X } from 'lucide-react';
+import { memo, type ReactNode, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
 
 interface ModalProps {
   isOpen: boolean;
@@ -79,7 +79,11 @@ interface ModalTabsProps<T extends string> {
   onTabChange: (tab: T) => void;
 }
 
-function ModalTabsComponent<T extends string>({ tabs, activeTab, onTabChange }: ModalTabsProps<T>) {
+function ModalTabsComponent<T extends string>({
+  tabs,
+  activeTab,
+  onTabChange,
+}: ModalTabsProps<T>) {
   return (
     <div className="flex border-b border-border px-6">
       {tabs.map((tab) => (
@@ -87,7 +91,9 @@ function ModalTabsComponent<T extends string>({ tabs, activeTab, onTabChange }: 
           key={tab.id}
           onClick={() => onTabChange(tab.id)}
           className={`relative px-4 py-3 text-sm font-medium transition ${
-            activeTab === tab.id ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+            activeTab === tab.id
+              ? 'text-foreground'
+              : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           {tab.label}

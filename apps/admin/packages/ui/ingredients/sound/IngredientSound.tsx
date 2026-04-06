@@ -1,5 +1,5 @@
-import type { IIngredient } from '@genfeedai/interfaces';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type { IIngredient } from '@genfeedai/interfaces';
 import { useAudioPlayer } from '@hooks/media/use-audio-player/use-audio-player';
 import { Ingredient } from '@models/content/ingredient.model';
 import type { IngredientSoundProps } from '@props/content/ingredient.props';

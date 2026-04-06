@@ -2,7 +2,8 @@ import type { WorkflowTemplate } from '@genfeedai/types';
 
 export const CHARACTER_VARIATIONS_TEMPLATE: WorkflowTemplate = {
   createdAt: new Date().toISOString(),
-  description: 'Generate multiple scenes with a consistent character from a single reference photo',
+  description:
+    'Generate multiple scenes with a consistent character from a single reference photo',
   edgeStyle: 'smoothstep',
   edges: [
     // Reference Image → all 3 image gen nodes

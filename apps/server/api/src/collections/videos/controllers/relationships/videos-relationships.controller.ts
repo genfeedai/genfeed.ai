@@ -39,11 +39,6 @@ import { WhisperService } from '@api/services/whisper/whisper.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
-import {
-  IngredientSerializer,
-  PostSerializer,
-  VideoSerializer,
-} from '@genfeedai/serializers';
 import { JOB_TYPES } from '@files/queues/queue.constants';
 import {
   ActivityEntityModel,
@@ -59,7 +54,13 @@ import {
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/enums';
+import {
+  IngredientSerializer,
+  PostSerializer,
+  VideoSerializer,
+} from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
   Body,
   Controller,
@@ -270,7 +271,7 @@ export class VideosRelationshipsController {
           zoomConfigs: createMergedVideoDto.zoomConfigs,
           zoomEaseCurve: createMergedVideoDto.zoomEaseCurve,
         },
-        room: `user-${user.id}`,
+        room: getUserRoomName(user.id),
         type: JOB_TYPES.MERGE_VIDEOS,
         userId: publicMetadata.user,
         websocketUrl: websocketURL,
@@ -294,7 +295,7 @@ export class VideosRelationshipsController {
               inputPath: `${this.configService.ingredientsEndpoint}/videos/${ingredientId}`,
               width: 1080,
             },
-            room: `user-${user.id}`,
+            room: getUserRoomName(user.id),
             type: JOB_TYPES.CONVERT_TO_PORTRAIT,
             userId: publicMetadata.user,
             websocketUrl: `/videos/${ingredientId}`,
@@ -340,7 +341,7 @@ export class VideosRelationshipsController {
                 captionContent: caption.content,
                 inputPath: `${this.configService.ingredientsEndpoint}/videos/${ingredientId}`,
               },
-              room: `user-${user.id}`,
+              room: getUserRoomName(user.id),
               type: 'add-captions',
               userId: publicMetadata.user,
               websocketUrl: `/videos/${ingredientId}`,
@@ -393,7 +394,7 @@ export class VideosRelationshipsController {
             transformation: TransformationCategory.MERGED,
           },
           user.id,
-          `user-${user.id}`,
+          getUserRoomName(user.id),
         );
 
         // Update activity to completed with resultId
@@ -417,7 +418,7 @@ export class VideosRelationshipsController {
           progress: 100,
           resultId: ingredientId,
           resultType: 'VIDEO',
-          room: `user-${user.id}`,
+          room: getUserRoomName(user.id),
           status: 'completed',
           taskId: ingredientId,
           userId: user.id,
@@ -446,7 +447,7 @@ export class VideosRelationshipsController {
           websocketURL,
           `Failed to merge videos: ${errorMessage}`,
           user.id,
-          `user-${user.id}`,
+          getUserRoomName(user.id),
         );
 
         // Update activity to failed
@@ -466,7 +467,7 @@ export class VideosRelationshipsController {
           activityId,
           error: errorMessage,
           label: `Merge failed`,
-          room: `user-${user.id}`,
+          room: getUserRoomName(user.id),
           status: 'failed',
           taskId: ingredientId,
           userId: user.id,

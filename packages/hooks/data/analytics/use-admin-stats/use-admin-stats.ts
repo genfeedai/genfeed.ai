@@ -1,5 +1,5 @@
-import type { IAnalytics } from '@genfeedai/interfaces';
 import { AnalyticsMetric } from '@genfeedai/enums';
+import type { IAnalytics } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type { IOrgLeaderboardItem } from '@services/analytics/analytics.service';

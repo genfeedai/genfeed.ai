@@ -67,11 +67,6 @@ import { PollingService } from '@api/shared/services/polling/polling.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { User } from '@clerk/backend';
-import type {
-  JsonApiCollectionResponse,
-  JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
-import { VideoSerializer } from '@genfeedai/serializers';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
 import {
   ActivityEntityModel,
@@ -87,7 +82,13 @@ import {
   PromptCategory,
   PromptStatus,
 } from '@genfeedai/enums';
+import type {
+  JsonApiCollectionResponse,
+  JsonApiSingleResponse,
+} from '@genfeedai/interfaces';
+import { VideoSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
   Body,
   Controller,
@@ -993,7 +994,7 @@ export class VideosController {
       activityId: activity._id.toString(),
       label: 'Video Generation',
       progress: 0,
-      room: `user-${user.id}`,
+      room: getUserRoomName(user.id),
       status: 'processing',
       taskId: ingredientData._id.toString(),
       userId: user.id,
@@ -1203,7 +1204,7 @@ export class VideosController {
                     activityId: newActivity._id.toString(),
                     label: 'Video Generation',
                     progress: 0,
-                    room: `user-${user.id}`,
+                    room: getUserRoomName(user.id),
                     status: 'processing',
                     taskId: addIngredient._id.toString(),
                     userId: user.id,
@@ -1333,7 +1334,7 @@ export class VideosController {
               activityId: additionalActivity._id.toString(),
               label: 'Video Generation',
               progress: 0,
-              room: `user-${user.id}`,
+              room: getUserRoomName(user.id),
               status: 'processing',
               taskId: additionalIngredient._id.toString(),
               userId: user.id,
@@ -1365,7 +1366,7 @@ export class VideosController {
           ingredientData._id,
           websocketUrl,
           user.id,
-          `user-${user.id}`,
+          getUserRoomName(user.id),
           {
             brand: brand._id.toString(),
             key: ActivityKey.VIDEO_FAILED,
@@ -1391,7 +1392,7 @@ export class VideosController {
             pendingId,
             wsUrl,
             user.id,
-            `user-${user.id}`,
+            getUserRoomName(user.id),
             {
               brand: brand._id.toString(),
               key: ActivityKey.VIDEO_FAILED,

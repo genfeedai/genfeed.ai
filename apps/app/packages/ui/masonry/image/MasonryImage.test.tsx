@@ -88,8 +88,8 @@ vi.mock('@services/core/environment.service', () => ({
   },
 }));
 
-import type { IImage } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import type { IImage } from '@genfeedai/interfaces';
 import MasonryImage from '@ui/masonry/image/MasonryImage';
 
 const mockImage: IImage = {

@@ -1,7 +1,7 @@
 'use client';
 
-import type { IIngredient } from '@genfeedai/interfaces';
 import { IngredientCategory } from '@genfeedai/enums';
+import type { IIngredient } from '@genfeedai/interfaces';
 import type { MediaLightboxProps } from '@props/layout/media-lightbox.props';
 import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
