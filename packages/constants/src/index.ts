@@ -7,6 +7,7 @@ export * from './media.constant';
 export * from './model-aspect-ratios.constant';
 export * from './model-capabilities.constant';
 export * from './model-helpers.constant';
+export * from './model-keys.constant';
 export * from './onboarding.constant';
 export * from './onboarding-journey.constant';
 export * from './onboarding-journey.types';

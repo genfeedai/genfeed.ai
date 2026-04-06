@@ -3,10 +3,11 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import type { ModelSelectionOptions } from '@api/services/router/interfaces/router.interfaces';
 import { RouterService } from '@api/services/router/router.service';
-import { ModelCategory, ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
 
 describe('RouterService', () => {
@@ -702,7 +703,7 @@ describe('RouterService', () => {
 
         const defaultModel = createMockModel({
           category: ModelCategory.IMAGE,
-          key: ModelKey.REPLICATE_GOOGLE_NANO_BANANA_PRO,
+          key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_PRO,
         });
 
         modelsService.findOne.mockResolvedValue(defaultModel);
@@ -715,7 +716,7 @@ describe('RouterService', () => {
         const result = await service.selectModel(options);
 
         expect(result.selectedModel).toBe(
-          ModelKey.REPLICATE_GOOGLE_NANO_BANANA_PRO,
+          MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_PRO,
         );
         expect(result.reason).toContain('Default model');
         expect(loggerService.warn).toHaveBeenCalled();
@@ -943,7 +944,7 @@ describe('RouterService', () => {
 
       const result = await service.getDefaultModel(ModelCategory.IMAGE);
 
-      expect(result).toBe(ModelKey.REPLICATE_GOOGLE_NANO_BANANA);
+      expect(result).toBe(MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA);
       expect(loggerService.warn).toHaveBeenCalled();
     });
 
@@ -952,7 +953,7 @@ describe('RouterService', () => {
 
       const result = await service.getDefaultModel(ModelCategory.VIDEO);
 
-      expect(result).toBe(ModelKey.REPLICATE_GOOGLE_VEO_3_1);
+      expect(result).toBe(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1);
     });
 
     it('should return fallback for TEXT category when no database default', async () => {
@@ -968,7 +969,7 @@ describe('RouterService', () => {
 
       const result = await service.getDefaultModel(ModelCategory.IMAGE_EDIT);
 
-      expect(result).toBe(ModelKey.REPLICATE_LUMA_REFRAME_IMAGE);
+      expect(result).toBe(MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE);
     });
 
     it('should return fallback for IMAGE_UPSCALE category when no database default', async () => {
@@ -976,7 +977,7 @@ describe('RouterService', () => {
 
       const result = await service.getDefaultModel(ModelCategory.IMAGE_UPSCALE);
 
-      expect(result).toBe(ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE);
+      expect(result).toBe(MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE);
     });
 
     it('should return fallback for VIDEO_EDIT category when no database default', async () => {
@@ -984,7 +985,7 @@ describe('RouterService', () => {
 
       const result = await service.getDefaultModel(ModelCategory.VIDEO_EDIT);
 
-      expect(result).toBe(ModelKey.REPLICATE_LUMA_REFRAME_VIDEO);
+      expect(result).toBe(MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO);
     });
 
     it('should return fallback for VIDEO_UPSCALE category when no database default', async () => {
@@ -992,7 +993,7 @@ describe('RouterService', () => {
 
       const result = await service.getDefaultModel(ModelCategory.VIDEO_UPSCALE);
 
-      expect(result).toBe(ModelKey.REPLICATE_TOPAZ_VIDEO_UPSCALE);
+      expect(result).toBe(MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE);
     });
 
     it('should return fallback for MUSIC category when no database default', async () => {
@@ -1000,7 +1001,7 @@ describe('RouterService', () => {
 
       const result = await service.getDefaultModel(ModelCategory.MUSIC);
 
-      expect(result).toBe(ModelKey.REPLICATE_META_MUSICGEN);
+      expect(result).toBe(MODEL_KEYS.REPLICATE_META_MUSICGEN);
     });
 
     it('should return fallback for VOICE category when no database default', async () => {

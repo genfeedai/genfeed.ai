@@ -1,7 +1,7 @@
 import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { CreateMetadataDto } from '@api/collections/metadata/dto/create-metadata.dto';
 import { IsModelKeyOrTraining } from '@api/helpers/validators/model-key-or-training.validator';
-import { ModelKey, RouterPriority } from '@genfeedai/enums';
+import { RouterPriority } from '@genfeedai/enums';
 import { ApiProperty, OmitType } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -73,11 +73,11 @@ export class CreateMusicDto extends OmitType(CreateIngredientDto, [
   })
   @ApiProperty({
     description: 'Model key or genfeedai/<id>',
-    enum: ModelKey,
+    enum: string,
     enumName: 'ModelKey',
     required: false,
   })
-  readonly model?: ModelKey;
+  readonly model?: string;
 
   @IsOptional()
   @IsNumber()

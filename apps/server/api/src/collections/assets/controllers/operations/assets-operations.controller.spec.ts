@@ -1,7 +1,7 @@
 import { AssetsOperationsController } from '@api/collections/assets/controllers/operations/assets-operations.controller';
-import { CreateAssetDto } from '@api/collections/assets/dto/create-asset.dto';
-import { CreateFromIngredientDto } from '@api/collections/assets/dto/create-from-ingredient.dto';
-import { GenerateAssetDto } from '@api/collections/assets/dto/generate-asset.dto';
+import type { CreateAssetDto } from '@api/collections/assets/dto/create-asset.dto';
+import type { CreateFromIngredientDto } from '@api/collections/assets/dto/create-from-ingredient.dto';
+import type { GenerateAssetDto } from '@api/collections/assets/dto/generate-asset.dto';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -20,16 +20,16 @@ import { ReplicateService } from '@api/services/integrations/replicate/replicate
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import type { User } from '@clerk/backend';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   AssetCategory,
   AssetParent,
   IngredientCategory,
   ModelCategory,
-  ModelKey,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { Types } from 'mongoose';
 
@@ -242,7 +242,7 @@ describe('AssetsOperationsController', () => {
         { isDeleted: true },
       );
       expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
-        ModelKey.REPLICATE_GOOGLE_IMAGEN_3_FAST,
+        MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3_FAST,
         expect.objectContaining({
           height: 1080,
           modelCategory: ModelCategory.IMAGE,
@@ -251,7 +251,7 @@ describe('AssetsOperationsController', () => {
         mockOrgId.toString(),
       );
       expect(replicateService.generateTextToImage).toHaveBeenCalledWith(
-        ModelKey.REPLICATE_GOOGLE_IMAGEN_3_FAST,
+        MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3_FAST,
         expect.any(Object),
       );
       expect(assetsService.patch).toHaveBeenCalledWith(mockAssetId, {

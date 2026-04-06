@@ -10,6 +10,7 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { MembersModule } from '@api/collections/members/members.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
+import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { RolesModule } from '@api/collections/roles/roles.module';
@@ -120,6 +121,7 @@ import { MongooseModule } from '@nestjs/mongoose';
     ActivityUpdateService,
     AutoMergeService,
     ChromaticWebhookService,
+    ModelRegistrationService,
     ClerkWebhookService,
     GitHubWebhookService,
     HeygenWebhookService,

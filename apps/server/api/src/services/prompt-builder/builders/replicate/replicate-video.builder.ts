@@ -17,7 +17,7 @@ import type {
   Veo31Input,
   WanVideoInput,
 } from '@api/services/prompt-builder/interfaces/replicate-input.interface';
-import { ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   calculateAspectRatio,
   convertRatioToOrientation,
@@ -32,70 +32,70 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class ReplicateVideoBuilder extends BaseReplicateBuilder {
-  getSupportedModels(): ModelKey[] {
+  getSupportedModels(): string[] {
     return [
       // OpenAI Sora
-      ModelKey.REPLICATE_OPENAI_SORA_2,
-      ModelKey.REPLICATE_OPENAI_SORA_2_PRO,
+      MODEL_KEYS.REPLICATE_OPENAI_SORA_2,
+      MODEL_KEYS.REPLICATE_OPENAI_SORA_2_PRO,
       // Google Veo
-      ModelKey.REPLICATE_GOOGLE_VEO_2,
-      ModelKey.REPLICATE_GOOGLE_VEO_3,
-      ModelKey.REPLICATE_GOOGLE_VEO_3_FAST,
-      ModelKey.REPLICATE_GOOGLE_VEO_3_1,
-      ModelKey.REPLICATE_GOOGLE_VEO_3_1_FAST,
+      MODEL_KEYS.REPLICATE_GOOGLE_VEO_2,
+      MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
+      MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST,
+      MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
+      MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST,
       // WAN Video
-      ModelKey.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
+      MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
       // PrunaAI
-      ModelKey.REPLICATE_PRUNAAI_P_VIDEO,
+      MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO,
       // Kwaivgi Kling
-      ModelKey.REPLICATE_KWAIVGI_KLING_V2_1,
-      ModelKey.REPLICATE_KWAIVGI_KLING_V2_1_MASTER,
-      ModelKey.REPLICATE_KWAIVGI_KLING_V2_5_TURBO_PRO,
-      ModelKey.REPLICATE_KWAIVGI_KLING_V1_6_PRO,
-      ModelKey.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
-      ModelKey.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO,
-      ModelKey.REPLICATE_KWAIVGI_KLING_AVATAR_V2,
+      MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
+      MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1_MASTER,
+      MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_5_TURBO_PRO,
+      MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V1_6_PRO,
+      MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+      MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO,
+      MODEL_KEYS.REPLICATE_KWAIVGI_KLING_AVATAR_V2,
     ];
   }
 
   buildPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): ReplicateVideoInput {
     const negativePrompt = this.getNegativePrompt(params.blacklist);
 
     switch (model) {
-      case ModelKey.REPLICATE_OPENAI_SORA_2:
+      case MODEL_KEYS.REPLICATE_OPENAI_SORA_2:
         return this.buildSora2Prompt(params, promptText);
 
-      case ModelKey.REPLICATE_OPENAI_SORA_2_PRO:
+      case MODEL_KEYS.REPLICATE_OPENAI_SORA_2_PRO:
         return this.buildSora2ProPrompt(params, promptText);
 
-      case ModelKey.REPLICATE_GOOGLE_VEO_2:
+      case MODEL_KEYS.REPLICATE_GOOGLE_VEO_2:
         return this.buildVeo2Prompt(params, promptText);
 
-      case ModelKey.REPLICATE_GOOGLE_VEO_3:
-      case ModelKey.REPLICATE_GOOGLE_VEO_3_FAST:
+      case MODEL_KEYS.REPLICATE_GOOGLE_VEO_3:
+      case MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST:
         return this.buildVeo3Prompt(params, promptText, negativePrompt);
 
-      case ModelKey.REPLICATE_GOOGLE_VEO_3_1:
+      case MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1:
         return this.buildVeo31Prompt(params, promptText, negativePrompt);
 
-      case ModelKey.REPLICATE_GOOGLE_VEO_3_1_FAST:
+      case MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST:
         return this.buildVeo31FastPrompt(params, promptText, negativePrompt);
 
-      case ModelKey.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST:
+      case MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST:
         return this.buildWanVideoPrompt(model, params, promptText);
 
-      case ModelKey.REPLICATE_PRUNAAI_P_VIDEO:
+      case MODEL_KEYS.REPLICATE_PRUNAAI_P_VIDEO:
         return this.buildPVideoPrompt(model, params, promptText);
 
-      case ModelKey.REPLICATE_KWAIVGI_KLING_V2_1:
+      case MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1:
         return this.buildKlingV21Prompt(params, promptText, negativePrompt);
 
-      case ModelKey.REPLICATE_KWAIVGI_KLING_V2_1_MASTER:
-      case ModelKey.REPLICATE_KWAIVGI_KLING_V2_5_TURBO_PRO:
+      case MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1_MASTER:
+      case MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_5_TURBO_PRO:
         return this.buildKlingMasterPrompt(
           model,
           params,
@@ -103,7 +103,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
           negativePrompt,
         );
 
-      case ModelKey.REPLICATE_KWAIVGI_KLING_V1_6_PRO:
+      case MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V1_6_PRO:
         return this.buildKlingV16ProPrompt(
           model,
           params,
@@ -111,7 +111,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
           negativePrompt,
         );
 
-      case ModelKey.REPLICATE_KWAIVGI_KLING_V3_VIDEO:
+      case MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO:
         return this.buildKlingV3Prompt(
           model,
           params,
@@ -119,7 +119,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
           negativePrompt,
         );
 
-      case ModelKey.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO:
+      case MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_OMNI_VIDEO:
         return this.buildKlingV3OmniPrompt(
           model,
           params,
@@ -127,7 +127,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
           negativePrompt,
         );
 
-      case ModelKey.REPLICATE_KWAIVGI_KLING_AVATAR_V2:
+      case MODEL_KEYS.REPLICATE_KWAIVGI_KLING_AVATAR_V2:
         return this.buildKlingAvatarV2Prompt(params, promptText);
 
       default:
@@ -141,7 +141,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
   ): Sora2Input {
     const calculatedRatio = calculateAspectRatio(params.width, params.height);
     const normalizedRatio = normalizeAspectRatioForModel(
-      ModelKey.REPLICATE_OPENAI_SORA_2,
+      MODEL_KEYS.REPLICATE_OPENAI_SORA_2,
       calculatedRatio,
     );
     const aspectRatio = convertRatioToOrientation(normalizedRatio);
@@ -166,7 +166,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
   ): Sora2ProInput {
     const calculatedRatio = calculateAspectRatio(params.width, params.height);
     const normalizedRatio = normalizeAspectRatioForModel(
-      ModelKey.REPLICATE_OPENAI_SORA_2_PRO,
+      MODEL_KEYS.REPLICATE_OPENAI_SORA_2_PRO,
       calculatedRatio,
     );
     const aspectRatio = convertRatioToOrientation(normalizedRatio);
@@ -198,7 +198,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
   ): Veo2Input {
     const calculatedRatio = calculateAspectRatio(params.width, params.height);
     const aspectRatio = normalizeAspectRatioForModel(
-      ModelKey.REPLICATE_GOOGLE_VEO_2,
+      MODEL_KEYS.REPLICATE_GOOGLE_VEO_2,
       calculatedRatio,
     );
 
@@ -223,7 +223,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
   ): Veo3Input {
     const calculatedRatio = calculateAspectRatio(params.width, params.height);
     const aspectRatio = normalizeAspectRatioForModel(
-      ModelKey.REPLICATE_GOOGLE_VEO_3,
+      MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
       calculatedRatio,
     );
 
@@ -251,7 +251,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
   ): Veo31Input {
     const calculatedRatio = calculateAspectRatio(params.width, params.height);
     const aspectRatio = normalizeAspectRatioForModel(
-      ModelKey.REPLICATE_GOOGLE_VEO_3_1,
+      MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
       calculatedRatio,
     );
 
@@ -294,7 +294,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
   ): Veo31FastInput {
     const calculatedRatio = calculateAspectRatio(params.width, params.height);
     const aspectRatio = normalizeAspectRatioForModel(
-      ModelKey.REPLICATE_GOOGLE_VEO_3_1_FAST,
+      MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST,
       calculatedRatio,
     );
 
@@ -329,7 +329,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
   }
 
   private buildWanVideoPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): WanVideoInput {
@@ -405,7 +405,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
   }
 
   private buildKlingMasterPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
     negativePrompt: string,
@@ -437,7 +437,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
   }
 
   private buildKlingV16ProPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
     negativePrompt: string,
@@ -477,7 +477,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
   }
 
   private buildPVideoPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): PVideoInput {
@@ -509,7 +509,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
   }
 
   private buildKlingV3Prompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
     negativePrompt: string,
@@ -548,7 +548,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
   }
 
   private buildKlingV3OmniPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
     negativePrompt: string,

@@ -1,8 +1,7 @@
-import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
+import { MODEL_KEYS, MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
 import {
   type IngredientFormat,
   ModelCategory,
-  ModelKey,
   QualityTier,
 } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
@@ -36,73 +35,73 @@ export const QUALITY_TIER_OPTIONS: QualityTierOption[] = [
 
 export const DEFAULT_QUALITY_TIER = QualityTier.HIGH;
 
-export const IMAGE_QUALITY_MODELS: Record<QualityTier, ModelKey[]> = {
+export const IMAGE_QUALITY_MODELS: Record<QualityTier, string[]> = {
   [QualityTier.BASIC]: [
-    ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO,
-    ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
-    ModelKey.REPLICATE_GOOGLE_IMAGEN_3_FAST,
-    ModelKey.REPLICATE_GOOGLE_IMAGEN_4_FAST,
-    ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO,
+    MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO,
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+    MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3_FAST,
+    MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_FAST,
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO,
   ],
   [QualityTier.STANDARD]: [
-    ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO,
-    ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
-    ModelKey.REPLICATE_GOOGLE_IMAGEN_3_FAST,
-    ModelKey.REPLICATE_GOOGLE_IMAGEN_4_FAST,
-    ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO,
+    MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO,
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+    MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3_FAST,
+    MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_FAST,
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO,
   ],
   [QualityTier.HIGH]: [
-    ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED,
-    ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
-    ModelKey.REPLICATE_GOOGLE_IMAGEN_3,
-    ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
-    ModelKey.REPLICATE_BYTEDANCE_SEEDREAM_4_5,
+    MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED,
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
+    MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
+    MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+    MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4_5,
   ],
   [QualityTier.ULTRA]: [
-    ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_QUALITY,
-    ModelKey.REPLICATE_GOOGLE_IMAGEN_4_ULTRA,
-    ModelKey.REPLICATE_OPENAI_GPT_IMAGE_1_5,
-    ModelKey.REPLICATE_GOOGLE_NANO_BANANA_PRO,
-    ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO,
+    MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_QUALITY,
+    MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_ULTRA,
+    MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5,
+    MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_PRO,
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO,
   ],
 };
 
-export const VIDEO_QUALITY_MODELS: Record<QualityTier, ModelKey[]> = {
+export const VIDEO_QUALITY_MODELS: Record<QualityTier, string[]> = {
   [QualityTier.BASIC]: [
-    ModelKey.REPLICATE_GOOGLE_VEO_3_FAST,
-    ModelKey.REPLICATE_GOOGLE_VEO_3_1_FAST,
-    ModelKey.REPLICATE_KWAIVGI_KLING_V2_5_TURBO_PRO,
-    ModelKey.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
+    MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST,
+    MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST,
+    MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_5_TURBO_PRO,
+    MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
   ],
   [QualityTier.STANDARD]: [
-    ModelKey.REPLICATE_GOOGLE_VEO_3_FAST,
-    ModelKey.REPLICATE_GOOGLE_VEO_3_1_FAST,
-    ModelKey.REPLICATE_KWAIVGI_KLING_V2_5_TURBO_PRO,
-    ModelKey.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
+    MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST,
+    MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST,
+    MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_5_TURBO_PRO,
+    MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
   ],
   [QualityTier.HIGH]: [
-    ModelKey.REPLICATE_GOOGLE_VEO_3,
-    ModelKey.REPLICATE_KWAIVGI_KLING_V2_1,
-    ModelKey.REPLICATE_KWAIVGI_KLING_V2_1_MASTER,
-    ModelKey.REPLICATE_OPENAI_SORA_2,
+    MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
+    MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
+    MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1_MASTER,
+    MODEL_KEYS.REPLICATE_OPENAI_SORA_2,
   ],
   [QualityTier.ULTRA]: [
-    ModelKey.REPLICATE_GOOGLE_VEO_3_1,
-    ModelKey.REPLICATE_OPENAI_SORA_2_PRO,
-    ModelKey.REPLICATE_KWAIVGI_KLING_V1_6_PRO,
-    ModelKey.REPLICATE_GOOGLE_VEO_2,
+    MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
+    MODEL_KEYS.REPLICATE_OPENAI_SORA_2_PRO,
+    MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V1_6_PRO,
+    MODEL_KEYS.REPLICATE_GOOGLE_VEO_2,
   ],
 };
 
-export const MUSIC_QUALITY_MODELS: Record<QualityTier, ModelKey[]> = {
-  [QualityTier.BASIC]: [ModelKey.REPLICATE_META_MUSICGEN],
-  [QualityTier.STANDARD]: [ModelKey.REPLICATE_META_MUSICGEN],
-  [QualityTier.HIGH]: [ModelKey.REPLICATE_META_MUSICGEN],
-  [QualityTier.ULTRA]: [ModelKey.REPLICATE_META_MUSICGEN],
+export const MUSIC_QUALITY_MODELS: Record<QualityTier, string[]> = {
+  [QualityTier.BASIC]: [MODEL_KEYS.REPLICATE_META_MUSICGEN],
+  [QualityTier.STANDARD]: [MODEL_KEYS.REPLICATE_META_MUSICGEN],
+  [QualityTier.HIGH]: [MODEL_KEYS.REPLICATE_META_MUSICGEN],
+  [QualityTier.ULTRA]: [MODEL_KEYS.REPLICATE_META_MUSICGEN],
 };
 
 export const CATEGORY_QUALITY_MODELS: Partial<
-  Record<ModelCategory, Record<QualityTier, ModelKey[]>>
+  Record<ModelCategory, Record<QualityTier, string[]>>
 > = {
   [ModelCategory.IMAGE]: IMAGE_QUALITY_MODELS,
   [ModelCategory.VIDEO]: VIDEO_QUALITY_MODELS,
@@ -111,7 +110,7 @@ export const CATEGORY_QUALITY_MODELS: Partial<
 
 function getQualityModelsForCategory(
   category: ModelCategory,
-): Record<QualityTier, ModelKey[]> | null {
+): Record<QualityTier, string[]> | null {
   return CATEGORY_QUALITY_MODELS[category] ?? null;
 }
 
@@ -126,7 +125,7 @@ function formatToAspectRatio(format: IngredientFormat | string): string {
 }
 
 function isModelFormatCompatible(
-  modelKey: ModelKey,
+  modelKey: string,
   format: IngredientFormat | string,
 ): boolean {
   return isAspectRatioSupported(modelKey, formatToAspectRatio(format));
@@ -137,7 +136,7 @@ export function resolveQualityToModel(
   category: ModelCategory,
   format: IngredientFormat | string,
   availableModelKeys: string[],
-): ModelKey | null {
+): string | null {
   const qualityModels = getQualityModelsForCategory(category);
 
   if (!qualityModels) {
@@ -179,15 +178,15 @@ export function resolveQualityToModel(
   }
 
   const categoryAvailableModels = availableModelKeys.filter((key) => {
-    const capability = MODEL_OUTPUT_CAPABILITIES[key as ModelKey];
+    const capability = MODEL_OUTPUT_CAPABILITIES[key as string];
     return (
       capability?.category === category &&
-      isModelFormatCompatible(key as ModelKey, format)
+      isModelFormatCompatible(key as string, format)
     );
   });
 
   return categoryAvailableModels.length > 0
-    ? (categoryAvailableModels[0] as ModelKey)
+    ? (categoryAvailableModels[0] as string)
     : null;
 }
 
@@ -209,7 +208,7 @@ export function getQualityTierForModel(
   ];
 
   for (const tier of tiers) {
-    if (qualityModels[tier].includes(modelKey as ModelKey)) {
+    if (qualityModels[tier].includes(modelKey as string)) {
       return tier;
     }
   }

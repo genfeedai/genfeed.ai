@@ -1,14 +1,14 @@
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
-import { ModelsService } from '@api/collections/models/services/models.service';
-import { ModelCategory, type ModelKey } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { ModelsService } from '@api/collections/models/services/models.service';
+import { ModelCategory } from '@genfeedai/enums';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@workers/config/config.service';
+import type { ConfigService } from '@workers/config/config.service';
 import type {
   IModelDiscoveryInput,
   IReplicateVersionDetail,
 } from '@workers/interfaces/model-discovery.interface';
-import { ModelPricingService } from '@workers/services/model-pricing.service';
+import type { ModelPricingService } from '@workers/services/model-pricing.service';
 
 /**
  * Schema property shape from Replicate OpenAPI schema inspection.
@@ -126,7 +126,7 @@ export class ModelDiscoveryService {
         isActive: false,
         isDefault: false,
         isHighlighted: false,
-        key: modelKey as ModelKey,
+        key: modelKey as string,
         label,
         provider: modelInfo.provider,
       };
@@ -354,7 +354,7 @@ export class ModelDiscoveryService {
    * @example "black-forest-labs/flux-2-pro" -> "Flux 2 Pro"
    * @example "google/imagen-4" -> "Imagen 4"
    */
-  private buildDisplayLabel(owner: string, name: string): string {
+  private buildDisplayLabel(_owner: string, name: string): string {
     return name
       .split('-')
       .map((part) => {

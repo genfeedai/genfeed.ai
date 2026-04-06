@@ -1,8 +1,8 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   IngredientFormat,
   ModelCategory,
-  ModelKey,
   ModelProvider,
   RouterPriority,
 } from '@genfeedai/enums';
@@ -107,7 +107,7 @@ describe('PromptBarModelControls', () => {
     isActive: true,
     isDefault: true,
     isDeleted: false,
-    key: ModelKey.REPLICATE_GOOGLE_IMAGEN_3,
+    key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
     label: 'Imagen 3',
     provider: ModelProvider.REPLICATE,
     updatedAt: '2024-01-01',

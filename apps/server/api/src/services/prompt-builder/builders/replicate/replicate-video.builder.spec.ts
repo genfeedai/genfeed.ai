@@ -1,6 +1,7 @@
 import type { ConfigService } from '@api/config/config.service';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
-import { ModelCategory, ModelKey, ModelProvider } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import { ReplicateVideoBuilder } from './replicate-video.builder';
 
 function createConfigService(isDev = false): ConfigService {
@@ -32,23 +33,23 @@ describe('ReplicateVideoBuilder', () => {
   describe('getSupportedModels', () => {
     it('should include Sora models', () => {
       const models = builder.getSupportedModels();
-      expect(models).toContain(ModelKey.REPLICATE_OPENAI_SORA_2);
-      expect(models).toContain(ModelKey.REPLICATE_OPENAI_SORA_2_PRO);
+      expect(models).toContain(MODEL_KEYS.REPLICATE_OPENAI_SORA_2);
+      expect(models).toContain(MODEL_KEYS.REPLICATE_OPENAI_SORA_2_PRO);
     });
 
     it('should include Veo models', () => {
       const models = builder.getSupportedModels();
-      expect(models).toContain(ModelKey.REPLICATE_GOOGLE_VEO_2);
-      expect(models).toContain(ModelKey.REPLICATE_GOOGLE_VEO_3);
-      expect(models).toContain(ModelKey.REPLICATE_GOOGLE_VEO_3_1);
-      expect(models).toContain(ModelKey.REPLICATE_GOOGLE_VEO_3_1_FAST);
+      expect(models).toContain(MODEL_KEYS.REPLICATE_GOOGLE_VEO_2);
+      expect(models).toContain(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3);
+      expect(models).toContain(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1);
+      expect(models).toContain(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST);
     });
 
     it('should include Kling models', () => {
       const models = builder.getSupportedModels();
-      expect(models).toContain(ModelKey.REPLICATE_KWAIVGI_KLING_V2_1);
-      expect(models).toContain(ModelKey.REPLICATE_KWAIVGI_KLING_V3_VIDEO);
-      expect(models).toContain(ModelKey.REPLICATE_KWAIVGI_KLING_AVATAR_V2);
+      expect(models).toContain(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1);
+      expect(models).toContain(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO);
+      expect(models).toContain(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_AVATAR_V2);
     });
   });
 
@@ -60,7 +61,7 @@ describe('ReplicateVideoBuilder', () => {
 
     it('should build Sora 2 prompt', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_OPENAI_SORA_2,
+        MODEL_KEYS.REPLICATE_OPENAI_SORA_2,
         baseParams,
         'A sunset over the ocean',
       );
@@ -76,7 +77,7 @@ describe('ReplicateVideoBuilder', () => {
         references: ['https://example.com/ref.jpg'],
       };
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_OPENAI_SORA_2,
+        MODEL_KEYS.REPLICATE_OPENAI_SORA_2,
         params,
         'test',
       );
@@ -96,7 +97,7 @@ describe('ReplicateVideoBuilder', () => {
 
     it('should build with default resolution', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_OPENAI_SORA_2_PRO,
+        MODEL_KEYS.REPLICATE_OPENAI_SORA_2_PRO,
         baseParams,
         'test',
       );
@@ -107,7 +108,7 @@ describe('ReplicateVideoBuilder', () => {
     it('should accept "high" resolution', () => {
       const params = { ...baseParams, resolution: 'high' };
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_OPENAI_SORA_2_PRO,
+        MODEL_KEYS.REPLICATE_OPENAI_SORA_2_PRO,
         params,
         'test',
       );
@@ -118,7 +119,7 @@ describe('ReplicateVideoBuilder', () => {
     it('should fallback invalid resolution to standard', () => {
       const params = { ...baseParams, resolution: 'ultra' };
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_OPENAI_SORA_2_PRO,
+        MODEL_KEYS.REPLICATE_OPENAI_SORA_2_PRO,
         params,
         'test',
       );
@@ -135,7 +136,7 @@ describe('ReplicateVideoBuilder', () => {
 
     it('should build with defaults', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_VEO_2,
+        MODEL_KEYS.REPLICATE_GOOGLE_VEO_2,
         baseParams,
         'A dancing robot',
       );
@@ -150,7 +151,7 @@ describe('ReplicateVideoBuilder', () => {
     it('should include image reference', () => {
       const params = { ...baseParams, references: ['ref.jpg'] };
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_VEO_2,
+        MODEL_KEYS.REPLICATE_GOOGLE_VEO_2,
         params,
         'test',
       );
@@ -167,7 +168,7 @@ describe('ReplicateVideoBuilder', () => {
 
     it('should build with audio generation enabled by default', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_VEO_3,
+        MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
         baseParams,
         'test',
       );
@@ -180,7 +181,7 @@ describe('ReplicateVideoBuilder', () => {
     it('should respect isAudioEnabled flag', () => {
       const params = { ...baseParams, isAudioEnabled: false };
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_VEO_3,
+        MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
         params,
         'test',
       );
@@ -191,7 +192,7 @@ describe('ReplicateVideoBuilder', () => {
     it('should include negative prompt from blacklist', () => {
       const params = { ...baseParams, blacklist: ['nsfw', 'violence'] };
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_VEO_3,
+        MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
         params,
         'test',
       );
@@ -208,7 +209,7 @@ describe('ReplicateVideoBuilder', () => {
 
     it('should default resolution to 1080p in production', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_VEO_3_1,
+        MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
         baseParams,
         'test',
       );
@@ -219,7 +220,7 @@ describe('ReplicateVideoBuilder', () => {
     it('should default resolution to 720p in development', () => {
       const devBuilder = new ReplicateVideoBuilder(createConfigService(true));
       const result = devBuilder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_VEO_3_1,
+        MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
         baseParams,
         'test',
       );
@@ -233,7 +234,7 @@ describe('ReplicateVideoBuilder', () => {
         references: ['ref1.jpg', 'ref2.jpg', 'ref3.jpg'],
       };
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_VEO_3_1,
+        MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
         params,
         'test',
       );
@@ -247,7 +248,7 @@ describe('ReplicateVideoBuilder', () => {
     it('should use single image for I2V', () => {
       const params = { ...baseParams, references: ['ref1.jpg'] };
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_VEO_3_1,
+        MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
         params,
         'test',
       );
@@ -263,7 +264,7 @@ describe('ReplicateVideoBuilder', () => {
         references: ['ref1.jpg'],
       };
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_VEO_3_1,
+        MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
         params,
         'test',
       );
@@ -281,7 +282,7 @@ describe('ReplicateVideoBuilder', () => {
 
       expect(() =>
         builder.buildPrompt(
-          ModelKey.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
+          MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
           params,
           'test',
         ),
@@ -296,7 +297,7 @@ describe('ReplicateVideoBuilder', () => {
       };
 
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
+        MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
         params,
         'test',
       );
@@ -316,7 +317,7 @@ describe('ReplicateVideoBuilder', () => {
 
       expect(() =>
         builder.buildPrompt(
-          ModelKey.REPLICATE_KWAIVGI_KLING_V2_1,
+          MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
           params,
           'test',
         ),
@@ -331,7 +332,7 @@ describe('ReplicateVideoBuilder', () => {
       };
 
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_KWAIVGI_KLING_V2_1,
+        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
         params,
         'test',
       );
@@ -350,7 +351,7 @@ describe('ReplicateVideoBuilder', () => {
       };
 
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_KWAIVGI_KLING_V2_1,
+        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
         params,
         'test',
       );
@@ -370,7 +371,7 @@ describe('ReplicateVideoBuilder', () => {
 
       expect(() =>
         builder.buildPrompt(
-          ModelKey.REPLICATE_KWAIVGI_KLING_AVATAR_V2,
+          MODEL_KEYS.REPLICATE_KWAIVGI_KLING_AVATAR_V2,
           params,
           'test',
         ),
@@ -386,7 +387,7 @@ describe('ReplicateVideoBuilder', () => {
 
       expect(() =>
         builder.buildPrompt(
-          ModelKey.REPLICATE_KWAIVGI_KLING_AVATAR_V2,
+          MODEL_KEYS.REPLICATE_KWAIVGI_KLING_AVATAR_V2,
           params,
           'test',
         ),
@@ -402,7 +403,7 @@ describe('ReplicateVideoBuilder', () => {
       };
 
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_KWAIVGI_KLING_AVATAR_V2,
+        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_AVATAR_V2,
         params,
         'Say hello',
       );
@@ -421,7 +422,7 @@ describe('ReplicateVideoBuilder', () => {
       };
 
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
         params,
         'test',
       );
@@ -437,7 +438,7 @@ describe('ReplicateVideoBuilder', () => {
       };
 
       const result = devBuilder.buildPrompt(
-        ModelKey.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
         params,
         'test',
       );
@@ -453,7 +454,7 @@ describe('ReplicateVideoBuilder', () => {
       };
 
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
+        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V3_VIDEO,
         params,
         'test',
       );
@@ -466,7 +467,7 @@ describe('ReplicateVideoBuilder', () => {
     it('should throw for unsupported model', () => {
       expect(() =>
         builder.buildPrompt(
-          ModelKey.REPLICATE_META_MUSICGEN,
+          MODEL_KEYS.REPLICATE_META_MUSICGEN,
           { modelCategory: ModelCategory.VIDEO, prompt: '' },
           'test',
         ),

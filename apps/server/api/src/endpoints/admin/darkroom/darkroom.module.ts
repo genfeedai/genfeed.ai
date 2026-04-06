@@ -2,6 +2,9 @@ import { BrandsModule } from '@api/collections/brands/brands.module';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
+import { ModelsModule } from '@api/collections/models/models.module';
+import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
+import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PersonasModule } from '@api/collections/personas/personas.module';
 import { TrainingsModule } from '@api/collections/trainings/trainings.module';
 import { DarkroomController } from '@api/endpoints/admin/darkroom/darkroom.controller';
@@ -26,6 +29,8 @@ import { Module } from '@nestjs/common';
     ContentIntelligenceModule,
     PersonasModule,
     IngredientsModule,
+    ModelsModule,
+    OrganizationSettingsModule,
     TrainingsModule,
     CredentialsModule,
     FleetModule,
@@ -37,6 +42,11 @@ import { Module } from '@nestjs/common';
     TwitterModule,
     FacebookModule,
   ],
-  providers: [DarkroomService, DarkroomTrainingService, IpWhitelistGuard],
+  providers: [
+    DarkroomService,
+    DarkroomTrainingService,
+    IpWhitelistGuard,
+    ModelRegistrationService,
+  ],
 })
 export class DarkroomModule {}

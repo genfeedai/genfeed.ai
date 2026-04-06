@@ -39,7 +39,8 @@ vi.mock('@genfeedai/helpers', async () => ({
 import { ConfigService } from '@api/config/config.service';
 import { ReplicatePromptBuilder } from '@api/services/prompt-builder/builders/replicate-prompt.builder';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
-import { ModelCategory, ModelKey, ModelProvider } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import {
   calculateAspectRatio,
   convertRatioToOrientation,
@@ -47,7 +48,7 @@ import {
   getDefaultAspectRatio,
   normalizeAspectRatioForModel,
 } from '@genfeedai/helpers';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 
 /**
  * Helper to create PromptBuilderParams with required fields
@@ -143,24 +144,28 @@ describe('ReplicatePromptBuilder', () => {
 
   describe('supportsModel', () => {
     it('should return true for known Replicate models', () => {
-      expect(builder.supportsModel(ModelKey.REPLICATE_GOOGLE_VEO_2)).toBe(true);
-      expect(builder.supportsModel(ModelKey.REPLICATE_GOOGLE_VEO_3)).toBe(true);
-      expect(builder.supportsModel(ModelKey.REPLICATE_GOOGLE_IMAGEN_4)).toBe(
+      expect(builder.supportsModel(MODEL_KEYS.REPLICATE_GOOGLE_VEO_2)).toBe(
         true,
       );
-      expect(builder.supportsModel(ModelKey.REPLICATE_OPENAI_SORA_2)).toBe(
+      expect(builder.supportsModel(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3)).toBe(
+        true,
+      );
+      expect(builder.supportsModel(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4)).toBe(
+        true,
+      );
+      expect(builder.supportsModel(MODEL_KEYS.REPLICATE_OPENAI_SORA_2)).toBe(
         true,
       );
     });
 
     it('should return true for models containing REPLICATE_OWNER', () => {
-      const customModel = 'genfeedai/custom-model:v1' as ModelKey;
+      const customModel = 'genfeedai/custom-model:v1' as string;
       expect(builder.supportsModel(customModel)).toBe(true);
     });
 
     it('should return false for non-Replicate models', () => {
       // Use a non-replicate model key
-      expect(builder.supportsModel(ModelKey.HEYGEN_AVATAR)).toBe(false);
+      expect(builder.supportsModel(MODEL_KEYS.HEYGEN_AVATAR)).toBe(false);
     });
   });
 
@@ -170,7 +175,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - OpenAI Sora 2', () => {
     it('should build prompt for Sora 2', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_OPENAI_SORA_2,
+        MODEL_KEYS.REPLICATE_OPENAI_SORA_2,
         createParams({
           duration: 8,
           height: 1920,
@@ -189,7 +194,7 @@ describe('ReplicatePromptBuilder', () => {
 
     it('should add reference image if provided', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_OPENAI_SORA_2,
+        MODEL_KEYS.REPLICATE_OPENAI_SORA_2,
         createParams({
           duration: 4,
           height: 1080,
@@ -206,7 +211,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - OpenAI Sora 2 Pro', () => {
     it('should build prompt for Sora 2 Pro with resolution', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_OPENAI_SORA_2_PRO,
+        MODEL_KEYS.REPLICATE_OPENAI_SORA_2_PRO,
         createParams({
           duration: 8,
           height: 1080,
@@ -226,7 +231,7 @@ describe('ReplicatePromptBuilder', () => {
 
     it('should default to standard resolution if invalid', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_OPENAI_SORA_2_PRO,
+        MODEL_KEYS.REPLICATE_OPENAI_SORA_2_PRO,
         createParams({
           height: 1080,
           resolution: 'invalid',
@@ -245,7 +250,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - Google Veo 2', () => {
     it('should build prompt for Veo 2', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_VEO_2,
+        MODEL_KEYS.REPLICATE_GOOGLE_VEO_2,
         createParams({
           duration: 5,
           height: 1080,
@@ -265,7 +270,7 @@ describe('ReplicatePromptBuilder', () => {
 
     it('should add reference image if provided', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_VEO_2,
+        MODEL_KEYS.REPLICATE_GOOGLE_VEO_2,
         createParams({
           height: 1080,
           references: ['https://example.com/image.jpg'],
@@ -281,7 +286,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - Google Veo 3', () => {
     it('should build prompt for Veo 3 with audio', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_VEO_3,
+        MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
         createParams({
           blacklist: ['violence', 'nsfw'],
           duration: 8,
@@ -302,7 +307,7 @@ describe('ReplicatePromptBuilder', () => {
 
     it('should normalize Sora-style resolution to Veo format', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_VEO_3,
+        MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
         createParams({
           height: 1080,
           resolution: 'high',
@@ -318,7 +323,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - Google Veo 3.1', () => {
     it('should build prompt for Veo 3.1 with R2V mode', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_VEO_3_1,
+        MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
         createParams({
           height: 1080,
           references: [
@@ -335,7 +340,7 @@ describe('ReplicatePromptBuilder', () => {
 
     it('should build prompt for Veo 3.1 with I2V mode', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_VEO_3_1,
+        MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
         createParams({
           endFrame: 'https://example.com/end.jpg',
           height: 1080,
@@ -351,7 +356,7 @@ describe('ReplicatePromptBuilder', () => {
 
     it('should add seed if provided', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_VEO_3_1,
+        MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
         createParams({
           height: 1080,
           seed: 42,
@@ -367,7 +372,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - Google Veo 3.1 Fast', () => {
     it('should build prompt for Veo 3.1 Fast (no R2V support)', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_VEO_3_1_FAST,
+        MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST,
         createParams({
           height: 1920,
           references: [
@@ -391,7 +396,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - Google Imagen', () => {
     it('should build prompt for Imagen 4', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+        MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
         createParams({
           height: 1024,
           modelCategory: ModelCategory.IMAGE,
@@ -410,7 +415,7 @@ describe('ReplicatePromptBuilder', () => {
 
     it('should build prompt for Imagen 4 Ultra', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_IMAGEN_4_ULTRA,
+        MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_ULTRA,
         createParams({
           height: 1080,
           modelCategory: ModelCategory.IMAGE,
@@ -430,7 +435,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - Google Nano Banana', () => {
     it('should build prompt for Nano Banana with image input', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_NANO_BANANA,
+        MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
         createParams({
           modelCategory: ModelCategory.IMAGE,
           references: ['https://example.com/image.jpg'],
@@ -444,7 +449,7 @@ describe('ReplicatePromptBuilder', () => {
 
     it('should build prompt for Nano Banana Pro with resolution', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_NANO_BANANA_PRO,
+        MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_PRO,
         createParams({
           height: 1024,
           modelCategory: ModelCategory.IMAGE,
@@ -469,7 +474,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - Ideogram Character', () => {
     it('should build prompt for Ideogram Character with required reference', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_CHARACTER,
+        MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_CHARACTER,
         createParams({
           height: 1024,
           modelCategory: ModelCategory.IMAGE,
@@ -488,7 +493,7 @@ describe('ReplicatePromptBuilder', () => {
     it('should throw error if no character reference provided', () => {
       expect(() =>
         builder.buildPrompt(
-          ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_CHARACTER,
+          MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_CHARACTER,
           createParams({
             height: 1024,
             modelCategory: ModelCategory.IMAGE,
@@ -503,7 +508,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - Ideogram V3 Balanced', () => {
     it('should build prompt for Ideogram V3 Balanced', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED,
+        MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED,
         createParams({
           height: 1024,
           modelCategory: ModelCategory.IMAGE,
@@ -524,7 +529,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - ByteDance SeeDream', () => {
     it('should build prompt for SeeDream 4', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_BYTEDANCE_SEEDREAM_4,
+        MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4,
         createParams({
           height: 1024,
           modelCategory: ModelCategory.IMAGE,
@@ -540,7 +545,7 @@ describe('ReplicatePromptBuilder', () => {
 
     it('should build prompt for SeeDream 4.5', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_BYTEDANCE_SEEDREAM_4_5,
+        MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4_5,
         createParams({
           height: 2048,
           modelCategory: ModelCategory.IMAGE,
@@ -559,7 +564,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - FLUX 1.1 Pro', () => {
     it('should build prompt for FLUX 1.1 Pro', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO,
+        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO,
         createParams({
           height: 1024,
           modelCategory: ModelCategory.IMAGE,
@@ -576,7 +581,7 @@ describe('ReplicatePromptBuilder', () => {
 
     it('should add image_prompt for FLUX Redux', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO,
+        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO,
         createParams({
           modelCategory: ModelCategory.IMAGE,
           references: ['https://example.com/ref.jpg'],
@@ -591,7 +596,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - FLUX 2 Pro', () => {
     it('should build prompt for FLUX 2 Pro with multiple input images', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
+        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
         createParams({
           modelCategory: ModelCategory.IMAGE,
           references: [
@@ -613,7 +618,7 @@ describe('ReplicatePromptBuilder', () => {
       );
 
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
+        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
         createParams({ modelCategory: ModelCategory.IMAGE, references }),
         'Many images',
       );
@@ -625,7 +630,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - FLUX Schnell', () => {
     it('should build prompt for FLUX Schnell (fast mode)', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
         createParams({
           height: 1024,
           modelCategory: ModelCategory.IMAGE,
@@ -647,7 +652,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - Qwen Image', () => {
     it('should build prompt for Qwen Image', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_QWEN_QWEN_IMAGE,
+        MODEL_KEYS.REPLICATE_QWEN_QWEN_IMAGE,
         createParams({
           blacklist: ['nsfw'],
           height: 1024,
@@ -663,7 +668,7 @@ describe('ReplicatePromptBuilder', () => {
 
     it('should add image for img2img', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_QWEN_QWEN_IMAGE,
+        MODEL_KEYS.REPLICATE_QWEN_QWEN_IMAGE,
         createParams({
           modelCategory: ModelCategory.IMAGE,
           references: ['https://example.com/input.jpg'],
@@ -682,7 +687,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - RunwayML Gen4 Image Turbo', () => {
     it('should build prompt for Gen4 Image Turbo', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_RUNWAYML_GEN4_IMAGE_TURBO,
+        MODEL_KEYS.REPLICATE_RUNWAYML_GEN4_IMAGE_TURBO,
         createParams({
           height: 1080,
           modelCategory: ModelCategory.IMAGE,
@@ -703,7 +708,7 @@ describe('ReplicatePromptBuilder', () => {
       );
 
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_RUNWAYML_GEN4_IMAGE_TURBO,
+        MODEL_KEYS.REPLICATE_RUNWAYML_GEN4_IMAGE_TURBO,
         createParams({ modelCategory: ModelCategory.IMAGE, references }),
         'With references',
       );
@@ -718,7 +723,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - Meta MusicGen', () => {
     it('should build prompt for MusicGen', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_META_MUSICGEN,
+        MODEL_KEYS.REPLICATE_META_MUSICGEN,
         createParams({
           duration: 15,
           modelCategory: ModelCategory.MUSIC,
@@ -750,7 +755,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - Topaz Image Upscale', () => {
     it('should build prompt for image upscaling', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
         createParams({
           faceEnhancement: true,
           modelCategory: ModelCategory.IMAGE,
@@ -769,7 +774,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - Topaz Video Upscale', () => {
     it('should build prompt for video upscaling', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+        MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
         createParams({
           modelCategory: ModelCategory.VIDEO,
           target_fps: 60,
@@ -791,7 +796,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - Luma Reframe Image', () => {
     it('should build prompt for Luma Reframe Image', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_LUMA_REFRAME_IMAGE,
+        MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
         createParams({
           height: 1920,
           modelCategory: ModelCategory.IMAGE,
@@ -809,7 +814,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - Luma Reframe Video', () => {
     it('should build prompt for Luma Reframe Video', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_LUMA_REFRAME_VIDEO,
+        MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
         createParams({
           height: 1920,
           modelCategory: ModelCategory.VIDEO,
@@ -829,7 +834,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - WAN Video 2.2 I2V Fast', () => {
     it('should build prompt for WAN Video with image', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
+        MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
         createParams({
           height: 1080,
           modelCategory: ModelCategory.VIDEO,
@@ -848,7 +853,7 @@ describe('ReplicatePromptBuilder', () => {
     it('should throw error if no image provided', () => {
       expect(() =>
         builder.buildPrompt(
-          ModelKey.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
+          MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
           createParams({
             height: 1080,
             modelCategory: ModelCategory.VIDEO,
@@ -861,7 +866,7 @@ describe('ReplicatePromptBuilder', () => {
 
     it('should add last_image for interpolation', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
+        MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
         createParams({
           endFrame: 'https://example.com/end.jpg',
           height: 1080,
@@ -877,7 +882,7 @@ describe('ReplicatePromptBuilder', () => {
 
     it('should normalize resolution to WAN-supported values', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
+        MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
         createParams({
           height: 1080,
           modelCategory: ModelCategory.VIDEO,
@@ -898,7 +903,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - Kling V2.1', () => {
     it('should build prompt for Kling V2.1', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_KWAIVGI_KLING_V2_1,
+        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
         createParams({
           blacklist: ['violence'],
           duration: 5,
@@ -916,7 +921,7 @@ describe('ReplicatePromptBuilder', () => {
     it('should throw error if no start_image provided', () => {
       expect(() =>
         builder.buildPrompt(
-          ModelKey.REPLICATE_KWAIVGI_KLING_V2_1,
+          MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
           createParams({ modelCategory: ModelCategory.VIDEO }),
           'A scene',
         ),
@@ -925,7 +930,7 @@ describe('ReplicatePromptBuilder', () => {
 
     it('should use pro mode when end_image provided', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_KWAIVGI_KLING_V2_1,
+        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1,
         createParams({
           endFrame: 'https://example.com/end.jpg',
           modelCategory: ModelCategory.VIDEO,
@@ -942,7 +947,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - Kling V2.1 Master', () => {
     it('should build prompt for Kling V2.1 Master', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_KWAIVGI_KLING_V2_1_MASTER,
+        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1_MASTER,
         createParams({
           duration: 10,
           height: 1080,
@@ -958,7 +963,7 @@ describe('ReplicatePromptBuilder', () => {
 
     it('should validate duration to 5 or 10', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_KWAIVGI_KLING_V2_1_MASTER,
+        MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1_MASTER,
         createParams({
           duration: 7,
           height: 1080,
@@ -978,7 +983,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - DeepSeek R1', () => {
     it('should build prompt for DeepSeek R1', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1,
+        MODEL_KEYS.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1,
         createParams({
           maxTokens: 4096,
           modelCategory: ModelCategory.TEXT,
@@ -1001,7 +1006,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - GPT 5.2', () => {
     it('should build prompt for GPT 5.2 with images', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_OPENAI_GPT_5_2,
+        MODEL_KEYS.REPLICATE_OPENAI_GPT_5_2,
         createParams({
           maxTokens: 8192,
           modelCategory: ModelCategory.TEXT,
@@ -1019,7 +1024,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - GPT Image 1.5', () => {
     it('should build prompt for GPT Image 1.5', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_OPENAI_GPT_IMAGE_1_5,
+        MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5,
         createParams({
           height: 1024,
           modelCategory: ModelCategory.IMAGE,
@@ -1038,7 +1043,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - Gemini 2.5 Flash', () => {
     it('should build prompt for Gemini 2.5 Flash', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_GEMINI_2_5_FLASH,
+        MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_2_5_FLASH,
         createParams({
           maxTokens: 4096,
           modelCategory: ModelCategory.TEXT,
@@ -1057,7 +1062,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('buildPrompt - Meta Llama 3.1 405B', () => {
     it('should build prompt for Llama 3.1 405B', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_META_LLAMA_3_1_405B_INSTRUCT,
+        MODEL_KEYS.REPLICATE_META_LLAMA_3_1_405B_INSTRUCT,
         createParams({
           maxTokens: 1024,
           modelCategory: ModelCategory.TEXT,
@@ -1079,7 +1084,7 @@ describe('ReplicatePromptBuilder', () => {
   // ==========================================================================
   describe('buildPrompt - Custom Models', () => {
     it('should handle custom trained models via generic image builder', () => {
-      const customModel = 'genfeedai/custom-flux:v1' as ModelKey;
+      const customModel = 'genfeedai/custom-flux:v1' as string;
       (mockConfigService.get as vi.Mock).mockReturnValue('genfeedai');
 
       const result = builder.buildPrompt(
@@ -1108,7 +1113,7 @@ describe('ReplicatePromptBuilder', () => {
   describe('Edge Cases', () => {
     it('should handle empty params', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+        MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
         createParams({ modelCategory: ModelCategory.IMAGE }),
         'A simple prompt',
       );
@@ -1118,7 +1123,7 @@ describe('ReplicatePromptBuilder', () => {
 
     it('should handle undefined optional params', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_VEO_2,
+        MODEL_KEYS.REPLICATE_GOOGLE_VEO_2,
         createParams({
           duration: undefined,
           height: undefined,
@@ -1134,7 +1139,7 @@ describe('ReplicatePromptBuilder', () => {
     });
 
     it('should use generic image builder for unknown models', () => {
-      const unknownModel = 'unknown/model:v1' as ModelKey;
+      const unknownModel = 'unknown/model:v1' as string;
       const params = createParams({
         height: 512,
         modelCategory: ModelCategory.IMAGE,

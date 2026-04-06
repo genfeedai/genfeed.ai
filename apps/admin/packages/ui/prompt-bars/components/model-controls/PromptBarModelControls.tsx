@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  IngredientFormat,
-  type ModelKey,
-  RouterPriority,
-} from '@genfeedai/enums';
+import { IngredientFormat, RouterPriority } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import { isAspectRatioSupported } from '@helpers/aspect-ratio.helper';
 import {
@@ -121,7 +117,7 @@ const PromptBarModelControls = memo(function PromptBarModelControls({
           const primaryModel = manualValues[0];
           if (primaryModel) {
             const defaultDuration = getModelDefaultDuration(
-              primaryModel as ModelKey,
+              primaryModel as string,
             );
             if (defaultDuration) {
               form.setValue('duration', defaultDuration, {

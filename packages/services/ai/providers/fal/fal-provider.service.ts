@@ -1,4 +1,5 @@
-import { ModelCategory, ModelKey, ModelProvider } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import { applyMargin } from '@genfeedai/helpers';
 import type { IModel } from '@genfeedai/interfaces';
 import { logger } from '@services/core/logger.service';
@@ -171,7 +172,7 @@ export class FalProviderService {
       description: falModel.shortDescription || `${name} via fal.ai`,
       isActive: true,
       isDefault: false,
-      key: key as ModelKey,
+      key: key as string,
       label: name,
       minCost: 2,
       pricingType: 'per-request',
@@ -431,7 +432,7 @@ export class FalProviderService {
         description: 'High-quality image generation with FLUX Dev model',
         isActive: true,
         isDefault: false,
-        key: ModelKey.FAL_FLUX_DEV,
+        key: MODEL_KEYS.FAL_FLUX_DEV,
         label: 'FLUX Dev',
         minCost: 0.001,
         pricingType: 'per-request',
@@ -448,7 +449,7 @@ export class FalProviderService {
         description: 'Fast image generation with FLUX Schnell model',
         isActive: true,
         isDefault: false,
-        key: ModelKey.FAL_FLUX_SCHNELL,
+        key: MODEL_KEYS.FAL_FLUX_SCHNELL,
         label: 'FLUX Schnell',
         minCost: 0.001,
         pricingType: 'per-request',
@@ -465,7 +466,7 @@ export class FalProviderService {
         description: 'Professional image generation with FLUX Pro model',
         isActive: true,
         isDefault: false,
-        key: ModelKey.FAL_FLUX_PRO,
+        key: MODEL_KEYS.FAL_FLUX_PRO,
         label: 'FLUX Pro',
         minCost: 0.001,
         pricingType: 'per-request',
@@ -482,7 +483,7 @@ export class FalProviderService {
         description: 'High-quality video generation with Kling model',
         isActive: true,
         isDefault: false,
-        key: ModelKey.FAL_KLING_VIDEO,
+        key: MODEL_KEYS.FAL_KLING_VIDEO,
         label: 'Kling Video',
         minCost: 0.001,
         pricingType: 'per-request',
@@ -505,7 +506,7 @@ export class FalProviderService {
           'Cinema-grade video generation with native audio by ByteDance',
         isActive: true,
         isDefault: false,
-        key: ModelKey.FAL_SEEDANCE_2_0,
+        key: MODEL_KEYS.FAL_SEEDANCE_2_0,
         label: 'Seedance 2.0',
         minCost: 0.001,
         pricingType: 'per-request',

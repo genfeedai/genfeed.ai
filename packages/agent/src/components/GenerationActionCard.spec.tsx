@@ -1,9 +1,4 @@
-import {
-  ModelCategory,
-  ModelKey,
-  ModelProvider,
-  RouterPriority,
-} from '@genfeedai/enums';
+import { ModelCategory, ModelProvider, RouterPriority } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
@@ -120,6 +115,7 @@ vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
     selector(storeState),
 }));
 
+import { MODEL_KEYS } from '@genfeedai/constants';
 import { GenerationActionCard } from './GenerationActionCard';
 
 function createModel(
@@ -220,12 +216,12 @@ describe('GenerationActionCard', () => {
 
   it('passes Genfeed image models into the shared model selector', async () => {
     const imageModel = createModel({
-      key: ModelKey.REPLICATE_GOOGLE_NANO_BANANA,
+      key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
       label: 'Nano Banana',
     });
     const videoModel = createModel({
       category: ModelCategory.VIDEO,
-      key: ModelKey.REPLICATE_GOOGLE_VEO_3,
+      key: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
       label: 'Veo 3',
     });
 
@@ -354,7 +350,7 @@ describe('GenerationActionCard', () => {
       <GenerationActionCard
         action={{
           generationParams: {
-            model: ModelKey.GENFEED_AI_Z_IMAGE_TURBO,
+            model: MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
             prompt: 'SCENE: Professional boxing ring.',
           },
           generationType: 'image',
@@ -368,7 +364,7 @@ describe('GenerationActionCard', () => {
           generateIngredient,
           getModels: vi.fn().mockResolvedValue([
             createModel({
-              key: ModelKey.GENFEED_AI_Z_IMAGE_TURBO,
+              key: MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
               label: 'Z-Image Turbo',
             }),
           ]),

@@ -2,7 +2,6 @@ import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
 import type {
   CostTier,
   ModelCategory,
-  ModelKey,
   ModelProvider,
   PricingType,
   QualityTier,
@@ -12,7 +11,7 @@ import type { IModel } from '@genfeedai/interfaces';
 
 export class Model extends BaseEntity implements IModel {
   public declare label: string;
-  public declare key: ModelKey;
+  public declare key: string;
   public declare category: ModelCategory;
   public declare provider: ModelProvider;
   public declare cost: number;

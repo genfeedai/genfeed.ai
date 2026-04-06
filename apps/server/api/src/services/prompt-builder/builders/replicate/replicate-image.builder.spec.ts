@@ -29,7 +29,7 @@ vi.mock('@api/services/prompt-builder/utils/replicate-schema.util', () => ({
   schemaHasField: vi.fn(() => false),
 }));
 
-import { ConfigService } from '@api/config/config.service';
+import type { ConfigService } from '@api/config/config.service';
 import { ReplicateImageBuilder } from '@api/services/prompt-builder/builders/replicate/replicate-image.builder';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import type { ReplicateModelSchema } from '@api/services/prompt-builder/interfaces/replicate-schema.interface';
@@ -40,7 +40,8 @@ import {
   loadModelSchema,
   schemaHasField,
 } from '@api/services/prompt-builder/utils/replicate-schema.util';
-import { ModelCategory, ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelCategory } from '@genfeedai/enums';
 import {
   calculateAspectRatio,
   getDefaultAspectRatio,
@@ -108,7 +109,7 @@ describe('ReplicateImageBuilder', () => {
   });
 
   const buildImagePrompt = (
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     prompt: string,
   ) => builder.buildPrompt(model, params, prompt) as TestPromptInput;
@@ -118,10 +119,10 @@ describe('ReplicateImageBuilder', () => {
   // =========================================================================
   describe('supportsModel', () => {
     it('should return true for any model (generic fallback)', () => {
-      expect(builder.supportsModel(ModelKey.REPLICATE_GOOGLE_IMAGEN_4)).toBe(
+      expect(builder.supportsModel(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4)).toBe(
         true,
       );
-      expect(builder.supportsModel('some-new/model' as ModelKey)).toBe(true);
+      expect(builder.supportsModel('some-new/model' as string)).toBe(true);
     });
   });
 
@@ -131,8 +132,10 @@ describe('ReplicateImageBuilder', () => {
   describe('getSupportedModels', () => {
     it('should return dedicated models list', () => {
       const models = builder.getSupportedModels();
-      expect(models).toContain(ModelKey.REPLICATE_GOOGLE_IMAGEN_4);
-      expect(models).toContain(ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO);
+      expect(models).toContain(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4);
+      expect(models).toContain(
+        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
+      );
       expect(models.length).toBeGreaterThan(0);
     });
   });
@@ -143,7 +146,7 @@ describe('ReplicateImageBuilder', () => {
   describe('buildPrompt - dedicated models', () => {
     it('should route Imagen 4 to dedicated builder', () => {
       const result = buildImagePrompt(
-        ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+        MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
         createParams({ height: 1024, width: 1024 }),
         'A beautiful image',
       );
@@ -154,7 +157,7 @@ describe('ReplicateImageBuilder', () => {
 
     it('should route FLUX Schnell to dedicated builder', () => {
       const result = buildImagePrompt(
-        ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
         createParams({ height: 1024, outputs: 2, width: 1024 }),
         'Fast image',
       );
@@ -170,7 +173,7 @@ describe('ReplicateImageBuilder', () => {
   describe('buildGenericImagePrompt - no schema', () => {
     it('should produce basic input with prompt, aspect_ratio, output_format', () => {
       const result = buildImagePrompt(
-        'new-vendor/new-model' as ModelKey,
+        'new-vendor/new-model' as string,
         createParams({ height: 1024, width: 1024 }),
         'A generic prompt',
       );
@@ -182,7 +185,7 @@ describe('ReplicateImageBuilder', () => {
 
     it('should include seed when provided', () => {
       const result = buildImagePrompt(
-        'new-vendor/new-model' as ModelKey,
+        'new-vendor/new-model' as string,
         createParams({ seed: 42 }),
         'Seeded prompt',
       );
@@ -192,7 +195,7 @@ describe('ReplicateImageBuilder', () => {
 
     it('should include resolution when provided', () => {
       const result = buildImagePrompt(
-        'new-vendor/new-model' as ModelKey,
+        'new-vendor/new-model' as string,
         createParams({ resolution: '2K' }),
         'High res prompt',
       );
@@ -202,7 +205,7 @@ describe('ReplicateImageBuilder', () => {
 
     it('should include image_input for references when no schema', () => {
       const result = buildImagePrompt(
-        'new-vendor/new-model' as ModelKey,
+        'new-vendor/new-model' as string,
         createParams({
           references: ['https://example.com/img.jpg'],
         }),
@@ -214,7 +217,7 @@ describe('ReplicateImageBuilder', () => {
 
     it('should use match_input_image aspect_ratio when references provided', () => {
       const result = buildImagePrompt(
-        'new-vendor/new-model' as ModelKey,
+        'new-vendor/new-model' as string,
         createParams({
           references: ['https://example.com/img.jpg'],
         }),
@@ -226,7 +229,7 @@ describe('ReplicateImageBuilder', () => {
 
     it('should use custom output format when provided', () => {
       const result = buildImagePrompt(
-        'new-vendor/new-model' as ModelKey,
+        'new-vendor/new-model' as string,
         createParams({ outputFormat: 'png' }),
         'PNG output',
       );
@@ -317,7 +320,7 @@ describe('ReplicateImageBuilder', () => {
       (getArrayImageLimit as ReturnType<typeof vi.fn>).mockReturnValue(8);
 
       const result = buildImagePrompt(
-        'new-vendor/flux-like' as ModelKey,
+        'new-vendor/flux-like' as string,
         createParams({
           references: [
             'https://example.com/1.jpg',
@@ -351,7 +354,7 @@ describe('ReplicateImageBuilder', () => {
       );
 
       const result = buildImagePrompt(
-        'new-vendor/limited-model' as ModelKey,
+        'new-vendor/limited-model' as string,
         createParams({ references }),
         'Limited images',
       );
@@ -369,7 +372,7 @@ describe('ReplicateImageBuilder', () => {
       (isArrayImageField as ReturnType<typeof vi.fn>).mockReturnValue(false);
 
       const result = buildImagePrompt(
-        'new-vendor/single-image' as ModelKey,
+        'new-vendor/single-image' as string,
         createParams({
           references: [
             'https://example.com/1.jpg',
@@ -394,7 +397,7 @@ describe('ReplicateImageBuilder', () => {
       );
 
       const result = buildImagePrompt(
-        'new-vendor/imagen-like' as ModelKey,
+        'new-vendor/imagen-like' as string,
         createParams({ height: 1024, width: 1024 }),
         'Safe prompt',
       );
@@ -412,7 +415,7 @@ describe('ReplicateImageBuilder', () => {
       );
 
       const result = buildImagePrompt(
-        'new-vendor/no-safety' as ModelKey,
+        'new-vendor/no-safety' as string,
         createParams({ height: 1024, width: 1024 }),
         'No safety field',
       );
@@ -430,7 +433,7 @@ describe('ReplicateImageBuilder', () => {
       );
 
       const result = buildImagePrompt(
-        'new-vendor/no-output-format' as ModelKey,
+        'new-vendor/no-output-format' as string,
         createParams(),
         'No output format',
       );
@@ -449,14 +452,14 @@ describe('ReplicateImageBuilder', () => {
       );
 
       const withSeed = buildImagePrompt(
-        'new-vendor/with-seed' as ModelKey,
+        'new-vendor/with-seed' as string,
         createParams({ seed: 99 }),
         'Seeded',
       );
       expect(withSeed.seed).toBe(99);
 
       const withoutSeed = buildImagePrompt(
-        'new-vendor/no-seed' as ModelKey,
+        'new-vendor/no-seed' as string,
         createParams(),
         'No seed',
       );
@@ -473,7 +476,7 @@ describe('ReplicateImageBuilder', () => {
       );
 
       const result = buildImagePrompt(
-        'new-vendor/with-resolution' as ModelKey,
+        'new-vendor/with-resolution' as string,
         createParams({ resolution: '2 MP' }),
         'High res',
       );
@@ -494,7 +497,7 @@ describe('ReplicateImageBuilder', () => {
       );
 
       const result = buildImagePrompt(
-        'new-vendor/no-refs' as ModelKey,
+        'new-vendor/no-refs' as string,
         createParams({
           references: ['https://example.com/img.jpg'],
         }),

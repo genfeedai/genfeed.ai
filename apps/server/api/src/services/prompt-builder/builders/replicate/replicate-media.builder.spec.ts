@@ -1,6 +1,7 @@
 import type { ConfigService } from '@api/config/config.service';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
-import { ModelCategory, ModelKey, ModelProvider } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import { ReplicateMediaBuilder } from './replicate-media.builder';
 
 describe('ReplicateMediaBuilder', () => {
@@ -24,19 +25,19 @@ describe('ReplicateMediaBuilder', () => {
   describe('getSupportedModels', () => {
     it('should include MusicGen', () => {
       expect(builder.getSupportedModels()).toContain(
-        ModelKey.REPLICATE_META_MUSICGEN,
+        MODEL_KEYS.REPLICATE_META_MUSICGEN,
       );
     });
 
     it('should include Topaz Image Upscale', () => {
       expect(builder.getSupportedModels()).toContain(
-        ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
       );
     });
 
     it('should include Topaz Video Upscale', () => {
       expect(builder.getSupportedModels()).toContain(
-        ModelKey.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+        MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
       );
     });
 
@@ -55,7 +56,7 @@ describe('ReplicateMediaBuilder', () => {
 
     it('should build MusicGen prompt with defaults', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_META_MUSICGEN,
+        MODEL_KEYS.REPLICATE_META_MUSICGEN,
         baseParams,
         'upbeat electronic music',
       );
@@ -72,7 +73,7 @@ describe('ReplicateMediaBuilder', () => {
     it('should use custom duration', () => {
       const params = { ...baseParams, duration: 15 };
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_META_MUSICGEN,
+        MODEL_KEYS.REPLICATE_META_MUSICGEN,
         params,
         'chill beats',
       );
@@ -83,7 +84,7 @@ describe('ReplicateMediaBuilder', () => {
     it('should use custom seed', () => {
       const params = { ...baseParams, seed: 42 };
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_META_MUSICGEN,
+        MODEL_KEYS.REPLICATE_META_MUSICGEN,
         params,
         'music',
       );
@@ -93,7 +94,7 @@ describe('ReplicateMediaBuilder', () => {
 
     it('should default seed to -1', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_META_MUSICGEN,
+        MODEL_KEYS.REPLICATE_META_MUSICGEN,
         baseParams,
         'music',
       );
@@ -111,7 +112,7 @@ describe('ReplicateMediaBuilder', () => {
 
     it('should build Topaz Image Upscale prompt with defaults', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
         baseParams,
         '',
       );
@@ -127,7 +128,7 @@ describe('ReplicateMediaBuilder', () => {
     it('should use custom enhance model', () => {
       const params = { ...baseParams, enhanceModel: 'High Fidelity V2' };
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
         params,
         '',
       );
@@ -138,7 +139,7 @@ describe('ReplicateMediaBuilder', () => {
     it('should disable face enhancement when set to false', () => {
       const params = { ...baseParams, faceEnhancement: false };
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
         params,
         '',
       );
@@ -149,7 +150,7 @@ describe('ReplicateMediaBuilder', () => {
     it('should use custom upscale factor', () => {
       const params = { ...baseParams, upscaleFactor: '2x' };
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
         params,
         '',
       );
@@ -169,7 +170,7 @@ describe('ReplicateMediaBuilder', () => {
 
     it('should build Topaz Video Upscale prompt', () => {
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+        MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
         baseParams,
         '',
       );
@@ -188,7 +189,7 @@ describe('ReplicateMediaBuilder', () => {
       };
 
       const result = builder.buildPrompt(
-        ModelKey.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+        MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
         params,
         '',
       );
@@ -202,7 +203,7 @@ describe('ReplicateMediaBuilder', () => {
     it('should throw for unsupported model', () => {
       expect(() =>
         builder.buildPrompt(
-          ModelKey.REPLICATE_OPENAI_SORA_2,
+          MODEL_KEYS.REPLICATE_OPENAI_SORA_2,
           { modelCategory: ModelCategory.VIDEO, prompt: '' },
           'test',
         ),

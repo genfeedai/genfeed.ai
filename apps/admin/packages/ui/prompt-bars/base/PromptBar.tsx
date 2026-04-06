@@ -12,7 +12,6 @@ import {
   IngredientCategory,
   IngredientFormat,
   ModelCategory,
-  type ModelKey,
   type QualityTier,
   type SubscriptionTier,
 } from '@genfeedai/enums';
@@ -279,7 +278,7 @@ function PromptBar({
     [watchedModels],
   );
   const watchedModel = (normalizedWatchedModels[0] ||
-    currentConfig.defaultModel) as ModelKey;
+    currentConfig.defaultModel) as string;
   const watchedFormat = useWatch({
     control: form.control,
     name: 'format',
@@ -820,12 +819,12 @@ function PromptBar({
 
   const videoDurations = useMemo(() => {
     if (normalizedWatchedModels.length === 0) {
-      return [...getModelDurations(watchedModel as ModelKey)];
+      return [...getModelDurations(watchedModel as string)];
     }
     return getUnionFromAllModels<number>(((modelKey) => {
       const durations = getModelDurations(modelKey);
       return Array.from(durations);
-    }) as (modelKey: ModelKey) => number[]);
+    }) as (modelKey: string) => number[]);
   }, [normalizedWatchedModels, watchedModel, getUnionFromAllModels]);
 
   const formatIcon = useMemo(() => {

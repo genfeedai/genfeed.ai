@@ -3,7 +3,6 @@ import type {
   IngredientCategory,
   IngredientFormat,
   ModelCategory,
-  ModelKey,
 } from '@genfeedai/enums';
 import type {
   IAsset,
@@ -203,8 +202,8 @@ export interface PromptBarActionsRowProps {
   isGenerating: boolean;
   isEnhancing: boolean;
   normalizedWatchedModels: string[];
-  getMinFromAllModels: (getter: (modelKey: ModelKey) => number) => number;
-  getModelMaxOutputs: (modelKey: ModelKey) => number;
+  getMinFromAllModels: (getter: (modelKey: string) => number) => number;
+  getModelMaxOutputs: (modelKey: string) => number;
   refocusTextarea: () => void;
   controlClass: string;
   isGenerateDisabled: boolean;

@@ -1,7 +1,6 @@
 import type {
   CostTier,
   ModelCategory,
-  ModelKey,
   ModelProvider,
   PricingType,
   QualityTier,
@@ -11,7 +10,7 @@ import type { IBaseEntity } from '../index';
 
 export interface IModel extends IBaseEntity {
   label: string;
-  key: ModelKey;
+  key: string;
   category: ModelCategory;
   provider: ModelProvider;
   cost: number;

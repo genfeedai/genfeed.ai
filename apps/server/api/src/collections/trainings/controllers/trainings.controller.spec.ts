@@ -1,8 +1,8 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { TrainingsController } from '@api/collections/trainings/controllers/trainings.controller';
-import { CreateTrainingDto } from '@api/collections/trainings/dto/create-training.dto';
-import { TrainingsQueryDto } from '@api/collections/trainings/dto/trainings-query.dto';
+import type { CreateTrainingDto } from '@api/collections/trainings/dto/create-training.dto';
+import type { TrainingsQueryDto } from '@api/collections/trainings/dto/trainings-query.dto';
 import { TrainingEntity } from '@api/collections/trainings/entities/training.entity';
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
@@ -16,14 +16,11 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
 import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
-import {
-  IngredientCategory,
-  IngredientStatus,
-  ModelKey,
-} from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { type PipelineStage, Types } from 'mongoose';
 
@@ -340,7 +337,7 @@ describe('TrainingsController', () => {
       } as never);
 
       modelsService.findOne.mockResolvedValueOnce({
-        key: `${ModelKey.REPLICATE_FAST_FLUX_TRAINER}:version123`,
+        key: `${MODEL_KEYS.REPLICATE_FAST_FLUX_TRAINER}:version123`,
       } as never);
 
       const mockTraining = {
