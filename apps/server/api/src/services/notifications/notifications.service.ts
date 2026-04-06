@@ -8,10 +8,7 @@ import type {
   ITelegramMessageOptions,
 } from '@genfeedai/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
-import {
-  buildNodeRedisSocketOptions,
-  parseRedisConnection,
-} from '@libs/redis/redis-connection.utils';
+import { parseRedisConnection } from '@libs/redis/redis-connection.utils';
 import {
   Injectable,
   type OnModuleDestroy,
@@ -34,7 +31,8 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
     const config = parseRedisConnection(this.configService);
     this.publisher = createClient({
       socket: {
-        ...buildNodeRedisSocketOptions(config, 10_000),
+        connectTimeout: 10_000,
+        ...(config.tls ? { tls: true as const } : {}),
       },
       url: config.url,
     });

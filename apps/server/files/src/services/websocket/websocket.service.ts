@@ -1,9 +1,6 @@
 import type { ConfigService } from '@files/config/config.service';
 import type { JobProgress } from '@files/shared/interfaces/job.interface';
-import {
-  buildNodeRedisSocketOptions,
-  parseRedisConnection,
-} from '@libs/redis/redis-connection.utils';
+import { parseRedisConnection } from '@libs/redis/redis-connection.utils';
 import { Injectable, Logger } from '@nestjs/common';
 import { createClient, type RedisClientType } from 'redis';
 
@@ -23,7 +20,10 @@ export class WebSocketService {
       const config = parseRedisConnection(this.configService);
 
       this.redisPublisher = createClient({
-        socket: buildNodeRedisSocketOptions(config),
+        socket: {
+          connectTimeout: 3_000,
+          ...(config.tls ? { tls: true as const } : {}),
+        },
         url: config.url,
       });
       this.redisPublisher.on('error', (err) => {

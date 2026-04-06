@@ -7,10 +7,7 @@ import {
   type OnModuleInit,
 } from '@nestjs/common';
 import { createClient, type RedisClientType } from 'redis';
-import {
-  buildNodeRedisSocketOptions,
-  parseRedisConnection,
-} from './redis-connection.utils';
+import { parseRedisConnection } from './redis-connection.utils';
 
 @Injectable()
 export class RedisService
@@ -50,8 +47,9 @@ export class RedisService
     const config = parseRedisConnection(this.configService);
     const CONNECT_TIMEOUT = 3_000;
     const socketOptions = {
-      ...buildNodeRedisSocketOptions(config, CONNECT_TIMEOUT),
+      connectTimeout: CONNECT_TIMEOUT,
       reconnectStrategy: () => false as const, // Don't retry - fail fast
+      ...(config.tls ? { tls: true as const } : {}),
     };
 
     try {
