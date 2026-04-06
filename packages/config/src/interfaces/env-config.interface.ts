@@ -69,6 +69,9 @@ export interface IEnvConfig {
   STRIPE_COUPON_CREDITS_PACKS_V2_ENTERPRISE?: string;
 
   // === General AI ===
+  AGENT_CONTEXT_COMPRESSION_ENABLED?: string;
+  AGENT_CONTEXT_COMPRESSION_MODEL?: string;
+  AGENT_CONTEXT_WINDOW_SIZE?: number;
   MAX_TOKENS?: number;
 
   // === OpenAI ===
