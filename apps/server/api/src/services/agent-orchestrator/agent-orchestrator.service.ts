@@ -1,24 +1,24 @@
-import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
+import type { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
 import type { AgentMemoryDocument } from '@api/collections/agent-memories/schemas/agent-memory.schema';
-import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
+import type { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import type { AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
-import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
-import { CreateAgentRunDto } from '@api/collections/agent-runs/dto/create-agent-run.dto';
-import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
-import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
-import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import type { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import type { CreateAgentRunDto } from '@api/collections/agent-runs/dto/create-agent-run.dto';
+import type { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
+import type { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
+import type { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { resolveEffectiveAgentExecutionConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { SettingsService } from '@api/collections/settings/services/settings.service';
+import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import type { SettingsService } from '@api/collections/settings/services/settings.service';
 import {
   fromPromiseEffect,
   runEffectPromise,
 } from '@api/helpers/utils/effect/effect.util';
-import { AgentMessageBusService } from '@api/services/agent-campaign/agent-message-bus.service';
-import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
-import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
+import type { AgentMessageBusService } from '@api/services/agent-campaign/agent-message-bus.service';
+import type { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
+import type { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import {
   AGENT_CREDIT_COSTS,
   AGENT_MAX_TOOL_ROUNDS,
@@ -34,22 +34,31 @@ import {
 } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
 import { ONBOARDING_SYSTEM_PROMPT } from '@api/services/agent-orchestrator/constants/onboarding-system-prompt.constant';
 import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
-import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import type { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { getToolDefinitions } from '@api/services/agent-orchestrator/tools/agent-tool-registry';
 import { sanitizeAgentOutputText } from '@api/services/agent-orchestrator/utils/sanitize-agent-output.util';
-import { AgentExecutionLaneService } from '@api/services/agent-threading/services/agent-execution-lane.service';
-import { AgentProfileResolverService } from '@api/services/agent-threading/services/agent-profile-resolver.service';
-import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
-import {
+import type { AgentExecutionLaneService } from '@api/services/agent-threading/services/agent-execution-lane.service';
+import type { AgentProfileResolverService } from '@api/services/agent-threading/services/agent-profile-resolver.service';
+import type { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
+import type {
   AgentThreadEngineService,
-  type AppendAgentThreadEventParams,
+  AppendAgentThreadEventParams,
 } from '@api/services/agent-threading/services/agent-thread-engine.service';
-import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import type { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
+import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import type {
   OpenRouterMessage,
   OpenRouterPlugin,
   OpenRouterTool,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
+import {
+  ActivitySource,
+  AgentAutonomyMode,
+  AgentExecutionTrigger,
+  AgentMessageRole,
+  type AgentType,
+  SubscriptionTier,
+} from '@genfeedai/enums';
 import {
   type AgentDashboardOperation,
   AgentToolName,
@@ -57,16 +66,8 @@ import {
   type AgentUIBlocksEvent,
   type AgentUiAction,
 } from '@genfeedai/interfaces';
-import {
-  ActivitySource,
-  AgentAutonomyMode,
-  AgentExecutionTrigger,
-  AgentMessageRole,
-  AgentType,
-  SubscriptionTier,
-} from '@genfeedai/enums';
 import { TIMEZONES } from '@helpers/formatting/timezone/timezone.helper';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   HttpException,
@@ -420,6 +421,8 @@ export class AgentOrchestratorService {
     private readonly agentExecutionLaneService?: AgentExecutionLaneService,
     @Optional()
     private readonly agentProfileResolverService?: AgentProfileResolverService,
+    @Optional()
+    private readonly threadContextCompressorService?: ThreadContextCompressorService,
   ) {}
 
   async chat(
@@ -714,13 +717,14 @@ export class AgentOrchestratorService {
         );
       }
 
-      const recentMessages =
-        await this.agentMessagesService.getRecentMessages(threadId);
+      const { messages: recentMessages, compressedContext } =
+        await this.resolveThreadMessages(threadId, context.organizationId);
       const history = this.buildMessageHistory(
         recentMessages,
         resolvedSystemPrompt,
         resolvedMemories,
         request.attachments,
+        compressedContext,
       );
       const typeConfig = request.agentType
         ? getAgentTypeConfig(request.agentType)
@@ -1399,13 +1403,16 @@ export class AgentOrchestratorService {
       } | null = null;
 
       // Build thread history from separate messages collection
-      const recentMessages =
-        await this.agentMessagesService.getRecentMessages(threadId);
+      const {
+        messages: recentMessages,
+        compressedContext: streamCompressedCtx,
+      } = await this.resolveThreadMessages(threadId, context.organizationId);
       const history = this.buildMessageHistory(
         recentMessages,
         systemPromptOverride,
         memoryEntries,
         attachments,
+        streamCompressedCtx,
       );
       const typeConfig = agentType ? getAgentTypeConfig(agentType) : null;
       const latestUserMessage =
@@ -2497,14 +2504,17 @@ export class AgentOrchestratorService {
     threadId: string;
     turnCost: number;
   }): Promise<AgentChatResult> {
-    const recentMessages = await this.agentMessagesService.getRecentMessages(
-      params.threadId,
-    );
+    const { messages: recentMessages, compressedContext: planCompressedCtx } =
+      await this.resolveThreadMessages(
+        params.threadId,
+        params.context.organizationId,
+      );
     const history = this.buildMessageHistory(
       recentMessages,
       params.systemPromptOverride,
       params.resolvedMemories,
       params.request.attachments,
+      planCompressedCtx,
     );
 
     const response = await this.llmDispatcher.chatCompletion(
@@ -3608,6 +3618,7 @@ export class AgentOrchestratorService {
     systemPromptOverride?: string,
     memories?: AgentMemoryDocument[],
     attachments?: AgentChatAttachment[],
+    compressedThreadContext?: string,
   ): OpenRouterMessage[] {
     const systemPrompt = (systemPromptOverride || SYSTEM_PROMPT).replace(
       '{{date}}',
@@ -3629,7 +3640,15 @@ export class AgentOrchestratorService {
       }
     }
 
-    // Messages are already limited to last 20 by getRecentMessages()
+    // Inject compressed thread context as a user message if available
+    if (compressedThreadContext) {
+      history.push({
+        content: compressedThreadContext,
+        role: 'user',
+      });
+    }
+
+    // Messages are already limited by getRecentMessages() or getMessagesAfter()
     const lastUserIndex = this.findLastUserMessageIndex(messages);
 
     for (let i = 0; i < messages.length; i++) {
@@ -3662,6 +3681,50 @@ export class AgentOrchestratorService {
     }
 
     return history;
+  }
+
+  /**
+   * Resolve messages and optional compressed context for a thread.
+   * If compaction is available, returns windowed messages + compressed context.
+   * Otherwise falls back to the standard getRecentMessages(20).
+   */
+  private async resolveThreadMessages(
+    threadId: string,
+    organizationId: string,
+  ): Promise<{
+    messages: AgentMessageDocument[];
+    compressedContext?: string;
+  }> {
+    if (!this.threadContextCompressorService) {
+      return {
+        messages: await this.agentMessagesService.getRecentMessages(threadId),
+      };
+    }
+
+    const state = await this.threadContextCompressorService.getStateOrCompact(
+      threadId,
+      organizationId,
+    );
+
+    if (!state) {
+      return {
+        messages: await this.agentMessagesService.getRecentMessages(threadId),
+      };
+    }
+
+    const windowMessages =
+      await this.threadContextCompressorService.getWindowMessages(
+        threadId,
+        state.lastIncorporatedMessageId,
+      );
+
+    const compressedContext =
+      this.threadContextCompressorService.renderStateAsUserMessage(
+        state,
+        windowMessages,
+      );
+
+    return { compressedContext, messages: windowMessages };
   }
 
   private findLastUserMessageIndex(messages: AgentMessageDocument[]): number {
