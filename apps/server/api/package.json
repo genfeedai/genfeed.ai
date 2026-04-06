@@ -22,7 +22,8 @@
   "description": "Genfeed API Service",
   "devDependencies": {
     "@types/rss": "0.0.32",
-    "mongodb": "7.1.1"
+    "mongodb": "7.1.1",
+    "unplugin-swc": "1.4.2"
   },
   "main": "../dist/apps/api/main.js",
   "name": "@genfeedai/api",

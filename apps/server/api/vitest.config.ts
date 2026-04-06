@@ -92,6 +92,7 @@ export default defineConfig({
           decorators: true,
           syntax: 'typescript',
         },
+        target: 'es2020',
         transform: {
           decoratorMetadata: true,
           legacyDecorator: true,
