@@ -106,7 +106,7 @@ export default function ReviewDetailPanel({
 
   useEffect(() => {
     setFeedback(item?.reviewFeedback ?? '');
-  }, [item?.id, item?.reviewFeedback]);
+  }, [item?.reviewFeedback]);
 
   if (!item) {
     return (

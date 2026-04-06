@@ -1,4 +1,4 @@
-import { buildSingleSerializer, type BuiltSerializer } from '../../builders';
+import { type BuiltSerializer, buildSingleSerializer } from '../../builders';
 import { voiceSerializerConfig } from '../../configs';
 
 export const VoiceSerializer: BuiltSerializer = buildSingleSerializer(

@@ -1,17 +1,18 @@
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
-import { ModelsService } from '@api/collections/models/services/models.service';
+import type { ModelsService } from '@api/collections/models/services/models.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import type {
   ModelRecommendation,
   ModelSelectionOptions,
   PromptAnalysis,
 } from '@api/services/router/interfaces/router.interfaces';
-import { ModelCategory, ModelKey } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelCategory } from '@genfeedai/enums';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
-const DEFAULT_IMAGE_MODEL = ModelKey.REPLICATE_GOOGLE_NANO_BANANA;
-const DEFAULT_VIDEO_MODEL = ModelKey.REPLICATE_GOOGLE_VEO_3_1;
+const DEFAULT_IMAGE_MODEL = MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA;
+const DEFAULT_VIDEO_MODEL = MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1;
 
 @Injectable()
 export class RouterService {
@@ -574,13 +575,13 @@ export class RouterService {
       [ModelCategory.IMAGE]: DEFAULT_IMAGE_MODEL,
       [ModelCategory.VIDEO]: DEFAULT_VIDEO_MODEL,
       [ModelCategory.TEXT]: DEFAULT_TEXT_MODEL,
-      [ModelCategory.IMAGE_EDIT]: ModelKey.REPLICATE_LUMA_REFRAME_IMAGE,
-      [ModelCategory.IMAGE_UPSCALE]: ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE,
-      [ModelCategory.VIDEO_EDIT]: ModelKey.REPLICATE_LUMA_REFRAME_VIDEO,
-      [ModelCategory.VIDEO_UPSCALE]: ModelKey.REPLICATE_TOPAZ_VIDEO_UPSCALE,
-      [ModelCategory.MUSIC]: ModelKey.REPLICATE_META_MUSICGEN,
+      [ModelCategory.IMAGE_EDIT]: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
+      [ModelCategory.IMAGE_UPSCALE]: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+      [ModelCategory.VIDEO_EDIT]: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
+      [ModelCategory.VIDEO_UPSCALE]: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+      [ModelCategory.MUSIC]: MODEL_KEYS.REPLICATE_META_MUSICGEN,
       [ModelCategory.VOICE]: 'elevenlabs',
-      [ModelCategory.EMBEDDING]: ModelKey.REPLICATE_OPENAI_GPT_5_2,
+      [ModelCategory.EMBEDDING]: MODEL_KEYS.REPLICATE_OPENAI_GPT_5_2,
     };
 
     this.logger.warn(

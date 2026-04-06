@@ -14,9 +14,15 @@ export interface CommentNavigation {
  */
 export function useCommentNavigation(nodeId: string): CommentNavigation | null {
   const nodes = useWorkflowStore((state) => state.nodes);
-  const getNodesWithComments = useWorkflowStore((state) => state.getNodesWithComments);
-  const markCommentViewed = useWorkflowStore((state) => state.markCommentViewed);
-  const setNavigationTarget = useWorkflowStore((state) => state.setNavigationTarget);
+  const getNodesWithComments = useWorkflowStore(
+    (state) => state.getNodesWithComments,
+  );
+  const markCommentViewed = useWorkflowStore(
+    (state) => state.markCommentViewed,
+  );
+  const setNavigationTarget = useWorkflowStore(
+    (state) => state.setNavigationTarget,
+  );
 
   // Get the current node's comment
   const nodeComment = useMemo(() => {
@@ -43,13 +49,14 @@ export function useCommentNavigation(nodeId: string): CommentNavigation | null {
         setNavigationTarget(targetNode.id);
       }
     },
-    [nodesWithComments, markCommentViewed, setNavigationTarget]
+    [nodesWithComments, markCommentViewed, setNavigationTarget],
   );
 
   const onPrevious = useCallback(() => {
     if (nodesWithComments.length === 0) return;
     // Wrap from first to last
-    const newIndex = currentIndex <= 0 ? nodesWithComments.length - 1 : currentIndex - 1;
+    const newIndex =
+      currentIndex <= 0 ? nodesWithComments.length - 1 : currentIndex - 1;
     navigateTo(newIndex);
   }, [currentIndex, nodesWithComments.length, navigateTo]);
 
@@ -78,14 +85,30 @@ export function useCommentNavigation(nodeId: string): CommentNavigation | null {
  * Returns navigation state and methods for traversing all nodes with comments.
  */
 export function useHeaderCommentNavigation() {
-  const getNodesWithComments = useWorkflowStore((state) => state.getNodesWithComments);
-  const getUnviewedCommentCount = useWorkflowStore((state) => state.getUnviewedCommentCount);
-  const markCommentViewed = useWorkflowStore((state) => state.markCommentViewed);
-  const setNavigationTarget = useWorkflowStore((state) => state.setNavigationTarget);
-  const navigationTargetId = useWorkflowStore((state) => state.navigationTargetId);
+  const getNodesWithComments = useWorkflowStore(
+    (state) => state.getNodesWithComments,
+  );
+  const getUnviewedCommentCount = useWorkflowStore(
+    (state) => state.getUnviewedCommentCount,
+  );
+  const markCommentViewed = useWorkflowStore(
+    (state) => state.markCommentViewed,
+  );
+  const setNavigationTarget = useWorkflowStore(
+    (state) => state.setNavigationTarget,
+  );
+  const navigationTargetId = useWorkflowStore(
+    (state) => state.navigationTargetId,
+  );
 
-  const nodesWithComments = useMemo(() => getNodesWithComments(), [getNodesWithComments]);
-  const unviewedCount = useMemo(() => getUnviewedCommentCount(), [getUnviewedCommentCount]);
+  const nodesWithComments = useMemo(
+    () => getNodesWithComments(),
+    [getNodesWithComments],
+  );
+  const unviewedCount = useMemo(
+    () => getUnviewedCommentCount(),
+    [getUnviewedCommentCount],
+  );
   const totalCount = nodesWithComments.length;
 
   // Find current index based on navigation target
@@ -102,7 +125,7 @@ export function useHeaderCommentNavigation() {
         setNavigationTarget(targetNode.id);
       }
     },
-    [nodesWithComments, markCommentViewed, setNavigationTarget]
+    [nodesWithComments, markCommentViewed, setNavigationTarget],
   );
 
   const goToFirst = useCallback(() => {
@@ -113,13 +136,15 @@ export function useHeaderCommentNavigation() {
 
   const goToPrevious = useCallback(() => {
     if (nodesWithComments.length === 0) return;
-    const newIndex = currentIndex <= 0 ? nodesWithComments.length - 1 : currentIndex - 1;
+    const newIndex =
+      currentIndex <= 0 ? nodesWithComments.length - 1 : currentIndex - 1;
     navigateTo(newIndex);
   }, [currentIndex, nodesWithComments.length, navigateTo]);
 
   const goToNext = useCallback(() => {
     if (nodesWithComments.length === 0) return;
-    const newIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % nodesWithComments.length;
+    const newIndex =
+      currentIndex < 0 ? 0 : (currentIndex + 1) % nodesWithComments.length;
     navigateTo(newIndex);
   }, [currentIndex, nodesWithComments.length, navigateTo]);
 

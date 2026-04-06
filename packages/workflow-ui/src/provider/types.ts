@@ -5,7 +5,7 @@ import type {
   ModelCapability,
   ProviderModel,
 } from '@genfeedai/types';
-import type { ComponentType, ReactNode } from 'react';
+import type { ComponentType } from 'react';
 
 // =============================================================================
 // File Upload

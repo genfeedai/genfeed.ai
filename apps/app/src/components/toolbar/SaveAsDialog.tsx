@@ -12,7 +12,12 @@ interface SaveAsDialogProps {
   onClose: () => void;
 }
 
-export function SaveAsDialog({ isOpen, currentName, onSave, onClose }: SaveAsDialogProps) {
+export function SaveAsDialog({
+  isOpen,
+  currentName,
+  onSave,
+  onClose,
+}: SaveAsDialogProps) {
   const [name, setName] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -31,7 +36,7 @@ export function SaveAsDialog({ isOpen, currentName, onSave, onClose }: SaveAsDia
         onSave(trimmed);
       }
     },
-    [name, onSave]
+    [name, onSave],
   );
 
   const handleKeyDown = useCallback(
@@ -40,7 +45,7 @@ export function SaveAsDialog({ isOpen, currentName, onSave, onClose }: SaveAsDia
         onClose();
       }
     },
-    [onClose]
+    [onClose],
   );
 
   if (!isOpen) return null;

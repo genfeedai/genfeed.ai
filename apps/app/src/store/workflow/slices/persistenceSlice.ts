@@ -36,7 +36,10 @@ export interface PersistenceSlice {
   loadWorkflowById: (id: string, signal?: AbortSignal) => Promise<void>;
   listWorkflows: (signal?: AbortSignal) => Promise<WorkflowData[]>;
   deleteWorkflow: (id: string, signal?: AbortSignal) => Promise<void>;
-  duplicateWorkflowApi: (id: string, signal?: AbortSignal) => Promise<WorkflowData>;
+  duplicateWorkflowApi: (
+    id: string,
+    signal?: AbortSignal,
+  ) => Promise<WorkflowData>;
   createNewWorkflow: (signal?: AbortSignal) => Promise<string>;
   setWorkflowName: (name: string) => void;
   setWorkflowTags: (tags: string[]) => void;
@@ -51,10 +54,12 @@ export interface PersistenceSlice {
   getUnviewedCommentCount: () => number;
 }
 
-export const createPersistenceSlice: StateCreator<WorkflowStore, [], [], PersistenceSlice> = (
-  set,
-  get
-) => ({
+export const createPersistenceSlice: StateCreator<
+  WorkflowStore,
+  [],
+  [],
+  PersistenceSlice
+> = (set, get) => ({
   clearWorkflow: () => {
     set({
       edges: [],
@@ -79,7 +84,7 @@ export const createPersistenceSlice: StateCreator<WorkflowStore, [], [], Persist
         name: 'Untitled Workflow',
         nodes: [],
       },
-      signal
+      signal,
     );
 
     set({
@@ -302,7 +307,15 @@ export const createPersistenceSlice: StateCreator<WorkflowStore, [], [], Persist
   },
 
   saveWorkflow: async (signal) => {
-    const { nodes, edges, edgeStyle, workflowName, workflowTags, workflowId, groups } = get();
+    const {
+      nodes,
+      edges,
+      edgeStyle,
+      workflowName,
+      workflowTags,
+      workflowId,
+      groups,
+    } = get();
     set({ isSaving: true });
 
     try {
@@ -311,13 +324,27 @@ export const createPersistenceSlice: StateCreator<WorkflowStore, [], [], Persist
       if (workflowId) {
         workflow = await workflowsApi.update(
           workflowId,
-          { edgeStyle, edges, groups, name: workflowName, nodes, tags: workflowTags },
-          signal
+          {
+            edgeStyle,
+            edges,
+            groups,
+            name: workflowName,
+            nodes,
+            tags: workflowTags,
+          },
+          signal,
         );
       } else {
         workflow = await workflowsApi.create(
-          { edgeStyle, edges, groups, name: workflowName, nodes, tags: workflowTags },
-          signal
+          {
+            edgeStyle,
+            edges,
+            groups,
+            name: workflowName,
+            nodes,
+            tags: workflowTags,
+          },
+          signal,
         );
       }
 
@@ -352,8 +379,16 @@ export const createPersistenceSlice: StateCreator<WorkflowStore, [], [], Persist
 
   validateWorkflow: () => {
     const { nodes, edges } = get();
-    const errors: { nodeId: string; message: string; severity: 'error' | 'warning' }[] = [];
-    const warnings: { nodeId: string; message: string; severity: 'error' | 'warning' }[] = [];
+    const errors: {
+      nodeId: string;
+      message: string;
+      severity: 'error' | 'warning';
+    }[] = [];
+    const warnings: {
+      nodeId: string;
+      message: string;
+      severity: 'error' | 'warning';
+    }[] = [];
 
     if (nodes.length === 0) {
       errors.push({
@@ -406,7 +441,9 @@ export const createPersistenceSlice: StateCreator<WorkflowStore, [], [], Persist
 
       for (const input of nodeDef.inputs) {
         if (input.required) {
-          const connectionEdge = incomingEdges.find((e) => e.targetHandle === input.id);
+          const connectionEdge = incomingEdges.find(
+            (e) => e.targetHandle === input.id,
+          );
           if (!connectionEdge) {
             errors.push({
               message: `Missing required input: ${input.label}`,
@@ -414,7 +451,9 @@ export const createPersistenceSlice: StateCreator<WorkflowStore, [], [], Persist
               severity: 'error',
             });
           } else {
-            const sourceNode = nodes.find((n) => n.id === connectionEdge.source);
+            const sourceNode = nodes.find(
+              (n) => n.id === connectionEdge.source,
+            );
             if (sourceNode && !hasNodeOutput(sourceNode)) {
               errors.push({
                 message: `${(sourceNode.data as WorkflowNodeData).label} is empty`,
@@ -468,7 +507,8 @@ export const createPersistenceSlice: StateCreator<WorkflowStore, [], [], Persist
           });
         } else if (!refData.cachedInterface) {
           warnings.push({
-            message: 'Subworkflow interface not loaded - refresh to update handles',
+            message:
+              'Subworkflow interface not loaded - refresh to update handles',
             nodeId: node.id,
             severity: 'warning',
           });

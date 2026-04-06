@@ -1,4 +1,5 @@
-import { ModelCategory, ModelKey, ModelProvider } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import { z } from 'zod';
 
@@ -9,7 +10,7 @@ export const modelSchema: z.ZodType<Partial<IModel>> = z.object({
   isActive: z.boolean().default(true),
   isDefault: z.boolean().default(false),
   isHighlighted: z.boolean().default(false),
-  key: z.nativeEnum(ModelKey),
+  key: z.enum(Object.values(MODEL_KEYS) as [string, ...string[]]),
   label: z.string().min(1, 'Label is required'),
   provider: z.nativeEnum(ModelProvider),
 });

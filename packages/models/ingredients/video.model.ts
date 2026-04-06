@@ -1,5 +1,5 @@
-import type { IVideo } from '@genfeedai/interfaces';
 import { IngredientCategory } from '@genfeedai/enums';
+import type { IVideo } from '@genfeedai/interfaces';
 import { Ingredient } from '@models/content/ingredient.model';
 
 export class Video extends Ingredient {

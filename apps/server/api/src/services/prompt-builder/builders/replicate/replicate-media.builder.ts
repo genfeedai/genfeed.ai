@@ -6,7 +6,7 @@ import type {
   TopazImageUpscaleInput,
   TopazVideoUpscaleInput,
 } from '@api/services/prompt-builder/interfaces/replicate-input.interface';
-import { ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -15,27 +15,27 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class ReplicateMediaBuilder extends BaseReplicateBuilder {
-  getSupportedModels(): ModelKey[] {
+  getSupportedModels(): string[] {
     return [
-      ModelKey.REPLICATE_META_MUSICGEN,
-      ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE,
-      ModelKey.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+      MODEL_KEYS.REPLICATE_META_MUSICGEN,
+      MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+      MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
     ];
   }
 
   buildPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): ReplicateMediaInput {
     switch (model) {
-      case ModelKey.REPLICATE_META_MUSICGEN:
+      case MODEL_KEYS.REPLICATE_META_MUSICGEN:
         return this.buildMusicGenPrompt(params, promptText);
 
-      case ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE:
+      case MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE:
         return this.buildTopazImageUpscalePrompt(params);
 
-      case ModelKey.REPLICATE_TOPAZ_VIDEO_UPSCALE:
+      case MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE:
         return this.buildTopazVideoUpscalePrompt(params);
 
       default:

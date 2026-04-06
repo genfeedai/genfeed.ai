@@ -12,8 +12,8 @@
 
 import { runScript } from '@api-scripts/db/connection';
 import { parseArgs, seedDocuments } from '@api-scripts/db/seed-utils';
-import type { IOrganizationCategorySeedDocument } from '@genfeedai/interfaces';
 import { OrganizationCategory } from '@genfeedai/enums';
+import type { IOrganizationCategorySeedDocument } from '@genfeedai/interfaces';
 import { Logger } from '@nestjs/common';
 
 const logger = new Logger('OrgCategoriesSeed');

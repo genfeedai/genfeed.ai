@@ -1,6 +1,6 @@
 import { ORCHESTRATOR_AGENT_TYPE } from '@api/services/agent-orchestrator/constants/agent-type.constants';
-import { AgentToolName } from '@genfeedai/interfaces';
 import { AgentType } from '@genfeedai/enums';
+import { AgentToolName } from '@genfeedai/interfaces';
 
 const CREATE_LIVESTREAM_BOT_TOOL = 'create_livestream_bot' as AgentToolName;
 const MANAGE_LIVESTREAM_BOT_TOOL = 'manage_livestream_bot' as AgentToolName;

@@ -1,5 +1,5 @@
 import { MemberRole } from '@genfeedai/enums';
-import { IClerkPublicMetadata } from '@libs/interfaces/clerk.interface';
+import type { IClerkPublicMetadata } from '@libs/interfaces/clerk.interface';
 
 describe('IClerkPublicMetadata', () => {
   it('should allow valid metadata structure', () => {

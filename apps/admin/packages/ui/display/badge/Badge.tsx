@@ -1,5 +1,5 @@
-import type { IBadgeStatusConfig } from '@genfeedai/interfaces/ui/badge-status-config.interface';
 import { ComponentSize } from '@genfeedai/enums';
+import type { IBadgeStatusConfig } from '@genfeedai/interfaces/ui/badge-status-config.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { BadgeProps } from '@props/ui/display/badge.props';
 import { cva, type VariantProps } from 'class-variance-authority';

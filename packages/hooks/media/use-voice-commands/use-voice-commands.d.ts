@@ -1,14 +1,14 @@
 export type VoiceCommand = {
-    pattern: RegExp;
-    action: (matches: RegExpMatchArray) => void;
-    description: string;
+  pattern: RegExp;
+  action: (matches: RegExpMatchArray) => void;
+  description: string;
 };
 export interface UseVoiceCommandsOptions {
-    onTranscript?: (text: string) => void;
-    commands?: VoiceCommand[];
-    continuous?: boolean;
-    interimResults?: boolean;
-    language?: string;
+  onTranscript?: (text: string) => void;
+  commands?: VoiceCommand[];
+  continuous?: boolean;
+  interimResults?: boolean;
+  language?: string;
 }
 /**
  * Enhanced voice recognition hook with support for voice commands
@@ -27,13 +27,19 @@ export interface UseVoiceCommandsOptions {
  * });
  * ```
  */
-export declare function useVoiceCommands({ onTranscript, commands, continuous, interimResults, language, }?: UseVoiceCommandsOptions): {
-    error: any;
-    isListening: any;
-    isSupported: any;
-    start: () => boolean;
-    stop: () => void;
-    toggle: () => void;
-    transcript: any;
+export declare function useVoiceCommands({
+  onTranscript,
+  commands,
+  continuous,
+  interimResults,
+  language,
+}?: UseVoiceCommandsOptions): {
+  error: any;
+  isListening: any;
+  isSupported: any;
+  start: () => boolean;
+  stop: () => void;
+  toggle: () => void;
+  transcript: any;
 };
 //# sourceMappingURL=use-voice-commands.d.ts.map

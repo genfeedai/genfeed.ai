@@ -1,4 +1,5 @@
-import { AssetScope, FontFamily, ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { AssetScope, FontFamily } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,
@@ -8,7 +9,7 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Types } from 'mongoose';
+import type { Types } from 'mongoose';
 
 export class CreateBrandDto {
   @IsString()
@@ -139,7 +140,7 @@ export class CreateBrandDto {
   @IsOptional()
   @ApiProperty({
     description: 'The default model to use for video generation',
-    enum: Object.values(ModelKey),
+    enum: Object.values(MODEL_KEYS),
     enumName: 'ModelKey',
     required: false,
   })
@@ -149,7 +150,7 @@ export class CreateBrandDto {
   @IsOptional()
   @ApiProperty({
     description: 'The default model to use for image generation',
-    enum: Object.values(ModelKey),
+    enum: Object.values(MODEL_KEYS),
     enumName: 'ModelKey',
     required: false,
   })
@@ -159,7 +160,7 @@ export class CreateBrandDto {
   @IsOptional()
   @ApiProperty({
     description: 'The default model to use for image-to-video conversion',
-    enum: Object.values(ModelKey),
+    enum: Object.values(MODEL_KEYS),
     enumName: 'ModelKey',
     required: false,
   })
@@ -169,7 +170,7 @@ export class CreateBrandDto {
   @IsOptional()
   @ApiProperty({
     description: 'The default model to use for music generation',
-    enum: Object.values(ModelKey),
+    enum: Object.values(MODEL_KEYS),
     enumName: 'ModelKey',
     required: false,
   })

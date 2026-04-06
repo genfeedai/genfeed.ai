@@ -65,7 +65,7 @@ export default function StudioPage() {
     async function loadModels() {
       try {
         const response = await fetch(
-          '/api/providers/models?provider=replicate',
+          '/v1/core/providers/models?provider=replicate',
         );
         if (!response.ok) {
           throw new Error('Failed to load models');
@@ -130,7 +130,7 @@ export default function StudioPage() {
 
   async function pollPrediction(predictionId: string): Promise<string[]> {
     while (true) {
-      const response = await fetch(`/api/status/${predictionId}`, {
+      const response = await fetch(`/v1/core/status/${predictionId}`, {
         cache: 'no-store',
       });
       if (!response.ok) {
@@ -169,7 +169,9 @@ export default function StudioPage() {
 
     try {
       const response = await fetch(
-        mediaType === 'image' ? '/api/replicate/image' : '/api/replicate/video',
+        mediaType === 'image'
+          ? '/v1/core/replicate/image'
+          : '/v1/core/replicate/video',
         {
           body: JSON.stringify({
             config: {
@@ -197,7 +199,7 @@ export default function StudioPage() {
         throw new Error('No assets were returned from Replicate');
       }
 
-      const importResponse = await fetch('/api/studio/import', {
+      const importResponse = await fetch('/v1/core/studio/import', {
         body: JSON.stringify({ urls: outputUrls.slice(0, payload.count) }),
         headers: { 'Content-Type': 'application/json' },
         method: 'POST',
@@ -398,14 +400,16 @@ export default function StudioPage() {
                 >
                   <div className="aspect-video bg-black/40">
                     {result.mediaType === 'image' ? (
+                      // biome-ignore lint/performance/noImgElement: gallery thumbnail
                       <img
-                        src={`/api/gallery/${result.path}`}
+                        src={`/v1/core/gallery/${result.path}`}
                         alt={result.name}
                         className="h-full w-full object-cover"
                       />
                     ) : (
+                      // biome-ignore lint/a11y/useMediaCaption: user-generated content
                       <video
-                        src={`/api/gallery/${result.path}`}
+                        src={`/v1/core/gallery/${result.path}`}
                         className="h-full w-full object-cover"
                         controls
                       />

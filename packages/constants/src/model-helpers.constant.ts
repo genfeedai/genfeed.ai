@@ -1,4 +1,4 @@
-import { ModelCategory, ModelKey } from '@genfeedai/enums';
+import { ModelCategory } from '@genfeedai/enums';
 
 import {
   type ImageModelCapability,
@@ -28,7 +28,7 @@ function resolveCapability(
   modelKey: string,
   capability?: ModelOutputCapability | null,
 ): ModelOutputCapability | undefined {
-  return capability ?? MODEL_OUTPUT_CAPABILITIES[modelKey as ModelKey];
+  return capability ?? MODEL_OUTPUT_CAPABILITIES[modelKey as string];
 }
 
 export function getModelMaxOutputs(

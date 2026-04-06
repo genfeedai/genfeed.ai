@@ -27,6 +27,10 @@ import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { ExpressAdapter } from '@bull-board/express';
 import { getGenfeedCorsOrigins } from '@libs/config/cors.config';
 import { LoggerService } from '@libs/logger/logger.service';
+import {
+  buildBullMQConnection,
+  parseRedisConnection,
+} from '@libs/redis/redis-connection.utils';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import {
@@ -206,23 +210,9 @@ async function main() {
     const serverAdapter = new ExpressAdapter();
     serverAdapter.setBasePath('/admin/queues');
 
-    const redisUrl = configService.get('REDIS_URL');
-    const redisUrlParsed = new URL(redisUrl || 'redis://localhost:6379');
-    const redisPassword =
-      configService.get('REDIS_PASSWORD') || redisUrlParsed.password;
-
+    const redisConfig = parseRedisConnection(configService);
     const defaultQueue = new Queue('default', {
-      connection: {
-        host: redisUrlParsed.hostname || 'localhost',
-        port: Number(redisUrlParsed.port) || 6379,
-        ...(redisPassword && { password: redisPassword }),
-        connectTimeout: 3_000,
-        enableOfflineQueue: false,
-        enableReadyCheck: false,
-        lazyConnect: true,
-        maxRetriesPerRequest: 0,
-        retryStrategy: () => null,
-      },
+      connection: buildBullMQConnection(redisConfig),
     });
 
     createBullBoard({

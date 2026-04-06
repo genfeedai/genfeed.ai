@@ -12,7 +12,7 @@ import {
   type VideoUpscaleModelCapability,
   type VoiceModelCapability,
 } from '@genfeedai/constants';
-import { ModelCategory, type ModelKey } from '@genfeedai/enums';
+import { ModelCategory } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 
 const DEFAULT_MAX_OUTPUTS = 4;
@@ -229,5 +229,5 @@ export function getModelCapabilityByKey(
     return getModelCapability(model);
   }
 
-  return MODEL_OUTPUT_CAPABILITIES[modelKey as ModelKey] ?? null;
+  return MODEL_OUTPUT_CAPABILITIES[modelKey as string] ?? null;
 }

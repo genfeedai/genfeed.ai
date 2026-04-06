@@ -112,7 +112,7 @@ export default function AnalyticsOrganizationOverview({
     };
 
     fetchBrandsData();
-  }, [isSignedIn, dateRange, getAnalyticsService]);
+  }, [isSignedIn, dateRange, getAnalyticsService, endDate, startDate]);
 
   useEffect(() => {
     const fetchPlatformData = async () => {
@@ -148,7 +148,7 @@ export default function AnalyticsOrganizationOverview({
     };
 
     fetchPlatformData();
-  }, [isSignedIn, dateRange, getAnalyticsService, brandId]);
+  }, [isSignedIn, getAnalyticsService, brandId, startDate, endDate]);
 
   const brandChartData: BrandPerformanceData[] = brandsData.map((brand) => ({
     engagement: brand.totalEngagement,

@@ -1,4 +1,5 @@
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
+import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
 import { AssetsModule } from '@api/collections/assets/assets.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { ClipProjectsModule } from '@api/collections/clip-projects/clip-projects.module';
@@ -9,6 +10,7 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { MembersModule } from '@api/collections/members/members.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
+import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
 import { RolesModule } from '@api/collections/roles/roles.module';
@@ -24,6 +26,8 @@ import { ChromaticWebhookController } from '@api/endpoints/webhooks/chromatic/we
 import { ChromaticWebhookService } from '@api/endpoints/webhooks/chromatic/webhooks.chromatic.service';
 import { ClerkWebhookController } from '@api/endpoints/webhooks/clerk/webhooks.clerk.controller';
 import { ClerkWebhookService } from '@api/endpoints/webhooks/clerk/webhooks.clerk.service';
+import { GitHubWebhookController } from '@api/endpoints/webhooks/github/webhooks.github.controller';
+import { GitHubWebhookService } from '@api/endpoints/webhooks/github/webhooks.github.service';
 import { HeygenWebhookController } from '@api/endpoints/webhooks/heygen/webhooks.heygen.controller';
 import { HeygenWebhookService } from '@api/endpoints/webhooks/heygen/webhooks.heygen.service';
 import { KlingWebhookController } from '@api/endpoints/webhooks/klingai/webhooks.kling.controller';
@@ -65,6 +69,7 @@ import { MongooseModule } from '@nestjs/mongoose';
   controllers: [
     ChromaticWebhookController,
     ClerkWebhookController,
+    GitHubWebhookController,
     HeygenWebhookController,
     KlingWebhookController,
     LeonardoaiWebhookController,
@@ -76,6 +81,7 @@ import { MongooseModule } from '@nestjs/mongoose';
   exports: [WebhooksService],
   imports: [
     ActivitiesModule,
+    ApiKeysModule,
     AssetsModule,
     forwardRef(() => BotGatewayModule),
     BrandsModule,
@@ -115,7 +121,9 @@ import { MongooseModule } from '@nestjs/mongoose';
     ActivityUpdateService,
     AutoMergeService,
     ChromaticWebhookService,
+    ModelRegistrationService,
     ClerkWebhookService,
+    GitHubWebhookService,
     HeygenWebhookService,
     KlingWebhookService,
     LeonardoaiWebhookService,

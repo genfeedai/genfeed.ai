@@ -1,6 +1,6 @@
-import { cn } from '../lib/utils';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { forwardRef, type HTMLAttributes } from 'react';
+import { cn } from '../lib/utils';
 
 const dlVariants = cva('', {
   defaultVariants: { variant: 'default' },
@@ -81,10 +81,10 @@ const DefinitionDetail = forwardRef<HTMLElement, DefinitionDetailProps>(
 DefinitionDetail.displayName = 'DefinitionDetail';
 
 export {
-  ddVariants,
   DefinitionDetail,
   DefinitionList,
   DefinitionTerm,
+  ddVariants,
   dlVariants,
   dtVariants,
 };

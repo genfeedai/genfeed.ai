@@ -1,9 +1,9 @@
 'use client';
 
-import type { NavigationTab } from '@genfeedai/interfaces/ui/navigation.interface';
 import { useModelsContext } from '@contexts/models/models-context/models-context';
 import { useTrainingsContext } from '@contexts/models/trainings-context/trainings-context';
 import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import type { NavigationTab } from '@genfeedai/interfaces/ui/navigation.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import Button from '@ui/buttons/base/Button';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';

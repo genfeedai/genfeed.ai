@@ -171,6 +171,7 @@ export default function BrandDetailIdentityCard({
     catalog,
     orgSettings?.defaultVoiceId,
     orgDefaultVoiceRef,
+    orgSettings?.defaultVoiceRef,
   ]);
 
   const selectedAvatar = useMemo(

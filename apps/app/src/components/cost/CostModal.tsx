@@ -5,6 +5,7 @@ import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import Button from '@ui/buttons/base/Button';
 import { DollarSign, X } from 'lucide-react';
 import { memo, useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
 import { CostBreakdownTab } from './CostBreakdownTab';
 import { ExecutionHistoryTab } from './ExecutionHistoryTab';
 

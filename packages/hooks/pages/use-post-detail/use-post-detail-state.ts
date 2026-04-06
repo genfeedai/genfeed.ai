@@ -1,7 +1,5 @@
 'use client';
 
-import type { ICredential, IPost } from '@genfeedai/interfaces';
-import type { AnalyticsStat } from '@genfeedai/interfaces/analytics/analytics-ui.interface';
 import {
   CredentialPlatform,
   IngredientFormat,
@@ -9,6 +7,8 @@ import {
   PostCategory,
   PostStatus,
 } from '@genfeedai/enums';
+import type { ICredential, IPost } from '@genfeedai/interfaces';
+import type { AnalyticsStat } from '@genfeedai/interfaces/analytics/analytics-ui.interface';
 import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -455,7 +455,7 @@ export function usePostDetailState({
   const handleUpdateChild = useCallback(
     (childId: string, updates: Partial<IPost>) => {
       setPost((prevPost) => {
-        if (!prevPost || !prevPost.children) {
+        if (!prevPost?.children) {
           return prevPost;
         }
         return {

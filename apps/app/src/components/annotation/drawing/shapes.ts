@@ -15,7 +15,7 @@ export interface CanvasState {
 export function drawShape(
   ctx: CanvasRenderingContext2D,
   shape: AnnotationShape | Partial<AnnotationShape>,
-  isSelected: boolean = false
+  isSelected: boolean = false,
 ): void {
   ctx.strokeStyle = shape.strokeColor ?? '#ef4444';
   ctx.lineWidth = shape.strokeWidth ?? 3;
@@ -28,7 +28,12 @@ export function drawShape(
 
   switch (shape.type) {
     case 'rectangle': {
-      const s = shape as { x: number; y: number; width: number; height: number };
+      const s = shape as {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      };
       if (shape.fillColor) {
         ctx.fillRect(s.x, s.y, s.width, s.height);
       }
@@ -61,12 +66,12 @@ export function drawShape(
         ctx.moveTo(x2, y2);
         ctx.lineTo(
           x2 - headLength * Math.cos(angle - Math.PI / 6),
-          y2 - headLength * Math.sin(angle - Math.PI / 6)
+          y2 - headLength * Math.sin(angle - Math.PI / 6),
         );
         ctx.moveTo(x2, y2);
         ctx.lineTo(
           x2 - headLength * Math.cos(angle + Math.PI / 6),
-          y2 - headLength * Math.sin(angle + Math.PI / 6)
+          y2 - headLength * Math.sin(angle + Math.PI / 6),
         );
         ctx.stroke();
       }
@@ -85,7 +90,12 @@ export function drawShape(
       break;
     }
     case 'text': {
-      const s = shape as { x: number; y: number; text: string; fontSize: number };
+      const s = shape as {
+        x: number;
+        y: number;
+        text: string;
+        fontSize: number;
+      };
       ctx.font = `${s.fontSize ?? 16}px sans-serif`;
       ctx.fillStyle = shape.strokeColor ?? '#ef4444';
       ctx.fillText(s.text, s.x, s.y);
@@ -100,7 +110,12 @@ export function drawShape(
     ctx.setLineDash([5, 5]);
     const bounds = getShapeBounds(shape);
     if (bounds) {
-      ctx.strokeRect(bounds.x - 5, bounds.y - 5, bounds.width + 10, bounds.height + 10);
+      ctx.strokeRect(
+        bounds.x - 5,
+        bounds.y - 5,
+        bounds.width + 10,
+        bounds.height + 10,
+      );
     }
     ctx.setLineDash([]);
   }
@@ -110,16 +125,26 @@ export function drawShape(
  * Get the bounding box of a shape
  */
 export function getShapeBounds(
-  shape: AnnotationShape | Partial<AnnotationShape>
+  shape: AnnotationShape | Partial<AnnotationShape>,
 ): { x: number; y: number; width: number; height: number } | null {
   switch (shape.type) {
     case 'rectangle': {
-      const s = shape as { x: number; y: number; width: number; height: number };
+      const s = shape as {
+        x: number;
+        y: number;
+        width: number;
+        height: number;
+      };
       return { height: s.height, width: s.width, x: s.x, y: s.y };
     }
     case 'circle': {
       const s = shape as { x: number; y: number; radius: number };
-      return { height: s.radius * 2, width: s.radius * 2, x: s.x - s.radius, y: s.y - s.radius };
+      return {
+        height: s.radius * 2,
+        width: s.radius * 2,
+        x: s.x - s.radius,
+        y: s.y - s.radius,
+      };
     }
     case 'arrow':
     case 'freehand': {
@@ -138,7 +163,12 @@ export function getShapeBounds(
       return { height: maxY - minY, width: maxX - minX, x: minX, y: minY };
     }
     case 'text': {
-      const s = shape as { x: number; y: number; text: string; fontSize: number };
+      const s = shape as {
+        x: number;
+        y: number;
+        text: string;
+        fontSize: number;
+      };
       return {
         height: s.fontSize ?? 16,
         width: s.text.length * 10,
@@ -157,7 +187,7 @@ export function getShapeBounds(
 export function isPointInShape(
   x: number,
   y: number,
-  shape: AnnotationShape | Partial<AnnotationShape>
+  shape: AnnotationShape | Partial<AnnotationShape>,
 ): boolean {
   const bounds = getShapeBounds(shape);
   if (!bounds) return false;

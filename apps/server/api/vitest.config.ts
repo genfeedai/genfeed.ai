@@ -92,6 +92,7 @@ export default defineConfig({
           decorators: true,
           syntax: 'typescript',
         },
+        target: 'es2020',
         transform: {
           decoratorMetadata: true,
           legacyDecorator: true,
@@ -113,6 +114,14 @@ export default defineConfig({
       {
         find: '@files',
         replacement: path.resolve(__dirname, '../files/src'),
+      },
+      {
+        find: '@genfeedai/constants',
+        replacement: path.resolve(__dirname, '../../../packages/constants/src'),
+      },
+      {
+        find: '@genfeedai/enums',
+        replacement: path.resolve(__dirname, '../../../packages/enums/src'),
       },
       {
         find: '@genfeedai/types',

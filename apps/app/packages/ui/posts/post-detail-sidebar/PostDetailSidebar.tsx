@@ -1,12 +1,12 @@
 'use client';
 
-import type { IImage, IVideo } from '@genfeedai/interfaces';
 import type { IEvaluation } from '@genfeedai/client/models';
 import {
   ButtonVariant,
   CredentialPlatform,
   PostStatus,
 } from '@genfeedai/enums';
+import type { IImage, IVideo } from '@genfeedai/interfaces';
 import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import { useEvaluation } from '@hooks/ui/evaluation/use-evaluation/use-evaluation';
 import type { PostDetailSidebarProps } from '@props/components/post-detail-sidebar.props';

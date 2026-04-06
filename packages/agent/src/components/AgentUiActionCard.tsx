@@ -1,7 +1,7 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
 import Button from '@ui/buttons/base/Button';
-import { type ReactElement } from 'react';
+import type { ReactElement } from 'react';
 
 interface AgentUiActionCardProps {
   action: AgentUiAction;

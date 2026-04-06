@@ -5,8 +5,8 @@ import {
   OrgIntegration,
   type OrgIntegrationDocument,
 } from '@api/endpoints/integrations/schemas/org-integration.schema';
-import { REDIS_EVENTS } from '@genfeedai/integrations';
 import { IntegrationPlatform } from '@genfeedai/enums';
+import { REDIS_EVENTS } from '@genfeedai/integrations';
 import { CryptoService } from '@libs/crypto/crypto.service';
 import { RedisService } from '@libs/redis/redis.service';
 import {

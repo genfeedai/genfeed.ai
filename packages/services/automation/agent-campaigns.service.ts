@@ -1,9 +1,9 @@
+import { API_ENDPOINTS } from '@genfeedai/constants';
 import type {
   IAgentCampaign,
   IAgentCampaignStatusResponse,
 } from '@genfeedai/interfaces';
 import type { IServiceSerializer } from '@genfeedai/interfaces/utils/error.interface';
-import { API_ENDPOINTS } from '@genfeedai/constants';
 import {
   BaseService,
   type JsonApiResponseDocument,

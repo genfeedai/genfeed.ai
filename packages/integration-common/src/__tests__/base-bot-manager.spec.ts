@@ -1,6 +1,6 @@
 import { BaseBotManager } from '@integrations/base-bot-manager';
-import { IntegrationEvent, REDIS_EVENTS } from '@integrations/constants';
-import { OrgIntegration } from '@integrations/types';
+import { type IntegrationEvent, REDIS_EVENTS } from '@integrations/constants';
+import type { OrgIntegration } from '@integrations/types';
 import type { Mocked } from 'vitest';
 
 // Create a concrete implementation for testing

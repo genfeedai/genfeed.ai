@@ -15,8 +15,8 @@ import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { User } from '@clerk/backend';
-import { LensSerializer } from '@genfeedai/serializers';
 import { MemberRole } from '@genfeedai/enums';
+import { LensSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,

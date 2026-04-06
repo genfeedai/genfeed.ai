@@ -3,6 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import Button from '@ui/buttons/base/Button';
 import { Input } from '@ui/primitives/input';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { ChevronDown, Loader2, Plus, Workflow } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -17,6 +18,7 @@ interface WorkflowSwitcherProps {
 
 function WorkflowSwitcherComponent({ className }: WorkflowSwitcherProps) {
   const router = useRouter();
+  const { href } = useOrgUrl();
 
   const {
     workflowName,
@@ -141,7 +143,7 @@ function WorkflowSwitcherComponent({ className }: WorkflowSwitcherProps) {
         }
 
         // Navigate to selected workflow
-        router.push(`/workflows/${selectedWorkflow._id}`);
+        router.push(href(`/workflows/${selectedWorkflow._id}`));
       } catch (error) {
         logger.error('Failed to switch workflow', error, {
           context: 'WorkflowSwitcher',
@@ -149,7 +151,7 @@ function WorkflowSwitcherComponent({ className }: WorkflowSwitcherProps) {
         setIsSwitching(false);
       }
     },
-    [workflowId, isDirty, saveWorkflow, router],
+    [workflowId, isDirty, saveWorkflow, router, href],
   );
 
   const handleNewWorkflow = useCallback(async () => {
@@ -162,14 +164,14 @@ function WorkflowSwitcherComponent({ className }: WorkflowSwitcherProps) {
         await saveWorkflow();
       }
 
-      router.push('/workflows/new');
+      router.push(href('/workflows/new'));
     } catch (error) {
       logger.error('Failed to create new workflow', error, {
         context: 'WorkflowSwitcher',
       });
       setIsSwitching(false);
     }
-  }, [isDirty, saveWorkflow, router]);
+  }, [isDirty, saveWorkflow, router, href]);
 
   // Filter out current workflow from list (memoized to avoid re-computation on each render)
   const otherWorkflows = useMemo(

@@ -1,7 +1,7 @@
-import type { ITag } from '@genfeedai/interfaces';
 import { TagSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import { TagCategory } from '@genfeedai/enums';
+import type { ITag } from '@genfeedai/interfaces';
 import { Tag } from '@models/content/tag.model';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

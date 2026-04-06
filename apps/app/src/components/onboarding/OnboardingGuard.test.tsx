@@ -69,7 +69,7 @@ describe('OnboardingGuard', () => {
     const { container } = render(
       <OnboardingGuard>
         <div>App content</div>
-      </OnboardingGuard>
+      </OnboardingGuard>,
     );
 
     expect(container.innerHTML).toBe('');
@@ -85,7 +85,7 @@ describe('OnboardingGuard', () => {
     render(
       <OnboardingGuard>
         <div>App content</div>
-      </OnboardingGuard>
+      </OnboardingGuard>,
     );
 
     await waitFor(() => {
@@ -107,7 +107,7 @@ describe('OnboardingGuard', () => {
     render(
       <OnboardingGuard>
         <div>App content</div>
-      </OnboardingGuard>
+      </OnboardingGuard>,
     );
 
     await waitFor(() => {
@@ -126,7 +126,7 @@ describe('OnboardingGuard', () => {
     render(
       <OnboardingGuard>
         <div>Onboarding page</div>
-      </OnboardingGuard>
+      </OnboardingGuard>,
     );
 
     await waitFor(() => {
@@ -151,7 +151,7 @@ describe('OnboardingGuard', () => {
     render(
       <OnboardingGuard>
         <div>App content</div>
-      </OnboardingGuard>
+      </OnboardingGuard>,
     );
 
     await waitFor(() => {
@@ -176,7 +176,7 @@ describe('OnboardingGuard', () => {
     render(
       <OnboardingGuard>
         <div>App content</div>
-      </OnboardingGuard>
+      </OnboardingGuard>,
     );
 
     await waitFor(() => {
@@ -199,7 +199,7 @@ describe('OnboardingGuard', () => {
     render(
       <OnboardingGuard>
         <div>App content</div>
-      </OnboardingGuard>
+      </OnboardingGuard>,
     );
 
     await waitFor(() => {
@@ -210,7 +210,10 @@ describe('OnboardingGuard', () => {
   });
 
   it('should not treat AbortError as a failure', () => {
-    const abortError = new DOMException('The operation was aborted', 'AbortError');
+    const abortError = new DOMException(
+      'The operation was aborted',
+      'AbortError',
+    );
     mockGetState.mockReturnValue({
       hasSeenWelcome: false,
       setHasSeenWelcome: mockSetHasSeenWelcome,
@@ -220,7 +223,7 @@ describe('OnboardingGuard', () => {
     const { container } = render(
       <OnboardingGuard>
         <div>App content</div>
-      </OnboardingGuard>
+      </OnboardingGuard>,
     );
 
     // AbortError means cleanup happened — component should not set isReady

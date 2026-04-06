@@ -1,5 +1,5 @@
-import { ModelKey } from '@genfeedai/enums';
-import { registerDecorator, ValidationOptions } from 'class-validator';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { registerDecorator, type ValidationOptions } from 'class-validator';
 
 export function IsModelKeyOrTraining(validationOptions?: ValidationOptions) {
   return (object: object, propertyName: string) => {
@@ -20,7 +20,7 @@ export function IsModelKeyOrTraining(validationOptions?: ValidationOptions) {
             return false;
           }
 
-          const known = (Object.values(ModelKey) as string[]).includes(value);
+          const known = (Object.values(MODEL_KEYS) as string[]).includes(value);
           const isTrainer = value.startsWith('replicate/fast-flux-trainer');
           // Accept Replicate destinations like "owner/model[:version]"
           const looksLikeReplicateDestination =

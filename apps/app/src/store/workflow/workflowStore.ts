@@ -1,6 +1,6 @@
 import { temporal } from 'zundo';
-import { create } from 'zustand';
 import type { StateCreator } from 'zustand';
+import { create } from 'zustand';
 import { temporalStateEquals } from './helpers/equality';
 import { createChatSlice } from './slices/chatSlice';
 import { createEdgeSlice } from './slices/edgeSlice';
@@ -71,5 +71,5 @@ export const useWorkflowStore = create<WorkflowStore>()(
       groups: state.groups,
       nodes: state.nodes,
     }),
-  })
+  }),
 );

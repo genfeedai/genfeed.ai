@@ -94,7 +94,8 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
         case 'ArrowDown':
           event.preventDefault();
           if (selectableIndices.length > 0) {
-            const currentSelectableIndex = selectableIndices.indexOf(selectedIndex);
+            const currentSelectableIndex =
+              selectableIndices.indexOf(selectedIndex);
             const nextIndex =
               currentSelectableIndex === -1
                 ? 0
@@ -105,7 +106,8 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
         case 'ArrowUp':
           event.preventDefault();
           if (selectableIndices.length > 0) {
-            const currentSelectableIndex = selectableIndices.indexOf(selectedIndex);
+            const currentSelectableIndex =
+              selectableIndices.indexOf(selectedIndex);
             const prevIndex =
               currentSelectableIndex === -1
                 ? selectableIndices.length - 1
@@ -138,7 +140,7 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
         onClose();
       }
     },
-    [onClose]
+    [onClose],
   );
 
   return (

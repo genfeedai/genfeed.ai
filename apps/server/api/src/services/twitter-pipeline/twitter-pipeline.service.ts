@@ -2,13 +2,13 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
+import { CredentialPlatform } from '@genfeedai/enums';
 import type {
   ITwitterOpportunity,
   ITwitterPublishResult,
   ITwitterSearchResult,
   ITwitterVoiceConfig,
 } from '@genfeedai/interfaces';
-import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

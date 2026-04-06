@@ -24,6 +24,7 @@ import type {
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   AdsResearchService,
   type UnifiedAdAccountOption,
@@ -188,8 +189,6 @@ function getMetricValue(
       return item.metrics.roas;
     case 'conversions':
       return item.metrics.conversions;
-    case 'spendEfficiency':
-    case 'performanceScore':
     default:
       return item.metrics.performanceScore ?? item.metricValue;
   }
@@ -205,7 +204,6 @@ function getMetricLabel(metric: AdsResearchMetric): string {
       return 'Conversions';
     case 'spendEfficiency':
       return 'Efficiency';
-    case 'performanceScore':
     default:
       return 'Score';
   }
@@ -261,16 +259,9 @@ function AdGridCard({
   const previewUrl = item.previewUrl || item.imageUrls?.[0];
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
       onClick={() => onSelect(item)}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          onSelect(item);
-        }
-      }}
       className={cn(
         'group rounded-xl border border-white/[0.06] bg-card p-4 text-left transition-all duration-200 hover:border-white/[0.10]',
         isSelected && 'border-primary/45 shadow-lg shadow-primary/10',
@@ -316,6 +307,7 @@ function AdGridCard({
 
       {previewUrl && (
         <div className="mt-3 overflow-hidden rounded-lg border border-white/[0.06] bg-black/20">
+          {/* biome-ignore lint/performance/noImgElement: dynamic external ad preview URLs */}
           <img
             src={previewUrl}
             alt={item.title}
@@ -336,7 +328,7 @@ function AdGridCard({
           </span>
         )}
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -494,6 +486,8 @@ function AdPackPanel({ adPack }: { adPack: AdPack }) {
 }
 
 function LaunchPrepPanel({ prep }: { prep: CampaignLaunchPrep }) {
+  const { href } = useOrgUrl();
+
   return (
     <div className="space-y-4 rounded-xl bg-amber-500/5 p-4">
       <div className="flex items-center justify-between gap-3">
@@ -549,7 +543,7 @@ function LaunchPrepPanel({ prep }: { prep: CampaignLaunchPrep }) {
 
       {prep.workflowId && (
         <Link
-          href={`/workflows/${prep.workflowId}`}
+          href={href(`/workflows/${prep.workflowId}`)}
           className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
         >
           Open linked workflow
@@ -563,6 +557,7 @@ function LaunchPrepPanel({ prep }: { prep: CampaignLaunchPrep }) {
 function DetailSidebar({
   detail,
   detailLoading,
+  href,
   onClose,
   onRunAction,
   busyAction,
@@ -573,6 +568,7 @@ function DetailSidebar({
 }: {
   detail: AdsResearchDetail | null;
   detailLoading: boolean;
+  href: (path: string) => string;
   selectedAd: SelectedAdRef;
   onClose: () => void;
   onRunAction: (action: 'ad_pack' | 'workflow' | 'launch_prep') => void;
@@ -773,7 +769,7 @@ function DetailSidebar({
                     </p>
                   )}
                   <Link
-                    href={`/workflows/${workflowResult.workflowId}`}
+                    href={href(`/workflows/${workflowResult.workflowId}`)}
                     className="inline-flex items-center gap-2 text-sm font-medium text-primary transition-colors hover:text-primary/80"
                   >
                     Open workflow editor
@@ -797,6 +793,7 @@ export default function AdsResearchPageClient({
 }: {
   initialPlatform?: AdsResearchPlatform | 'all';
 }) {
+  const { href } = useOrgUrl();
   const { brandId, credentials, isReady, selectedBrand } = useBrand();
   const getAdsResearchService = useAuthedService((token: string) =>
     AdsResearchService.getInstance(token),
@@ -844,6 +841,7 @@ export default function AdsResearchPageClient({
     }
   }, [channel, showChannelFilter]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset ad account when credential changes
   useEffect(() => {
     setAdAccountId('');
   }, [credentialId]);
@@ -980,7 +978,6 @@ export default function AdsResearchPageClient({
           return (b.metrics.ctr ?? 0) - (a.metrics.ctr ?? 0);
         case 'roas':
           return (b.metrics.roas ?? 0) - (a.metrics.roas ?? 0);
-        case 'score':
         default:
           return (
             (b.metrics.performanceScore ?? b.metricValue ?? 0) -
@@ -1449,6 +1446,7 @@ export default function AdsResearchPageClient({
         <DetailSidebar
           detail={detail ?? null}
           detailLoading={detailLoading}
+          href={href}
           selectedAd={selectedAd}
           onClose={handleCloseDetail}
           onRunAction={runAction}

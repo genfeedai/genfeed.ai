@@ -14,7 +14,9 @@
       "@genfeedai/desktop-contracts": [
         "../../../packages/desktop-contracts/src/index.ts"
       ],
-      "@genfeedai/desktop-core": ["../../../packages/desktop-core/src/index.ts"],
+      "@genfeedai/desktop-core": [
+        "../../../packages/desktop-core/src/index.ts"
+      ],
       "@genfeedai/interfaces": ["../../../packages/interfaces/src/index.ts"],
       "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
       "@configs/*": ["../../../configs/*"],

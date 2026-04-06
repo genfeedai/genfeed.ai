@@ -1,4 +1,4 @@
-import { IngredientFormat, ModelKey } from '@genfeedai/enums';
+import { IngredientFormat } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -56,11 +56,11 @@ export class BatchInterpolationDto {
   @IsString()
   @ApiProperty({
     description: 'The model key to use for interpolation',
-    enum: ModelKey,
+    enum: string,
     enumName: 'ModelKey',
     example: 'replicate-google-veo-3-1',
   })
-  modelKey!: ModelKey;
+  modelKey!: string;
 
   @ApiProperty({
     default: false,

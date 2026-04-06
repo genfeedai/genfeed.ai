@@ -15,11 +15,11 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { MediumService } from '@api/services/integrations/medium/services/medium.service';
 import type { User } from '@clerk/backend';
+import { CredentialPlatform } from '@genfeedai/enums';
 import {
   CredentialOAuthSerializer,
   CredentialSerializer,
 } from '@genfeedai/serializers';
-import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {

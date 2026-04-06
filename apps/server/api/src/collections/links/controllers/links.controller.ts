@@ -13,7 +13,10 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import type { User } from '@clerk/backend';
-import type { JsonApiSingleResponse, PopulateOption } from '@genfeedai/interfaces';
+import type {
+  JsonApiSingleResponse,
+  PopulateOption,
+} from '@genfeedai/interfaces';
 import { LinkSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

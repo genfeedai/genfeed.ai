@@ -28,7 +28,7 @@ import {
   loadModelSchema,
   schemaHasField,
 } from '@api/services/prompt-builder/utils/replicate-schema.util';
-import { ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   calculateAspectRatio,
   getDefaultAspectRatio,
@@ -46,41 +46,41 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
   private readonly logger = new Logger(ReplicateImageBuilder.name);
 
   /** Models with dedicated builder methods (switch-case routing) */
-  private static readonly DEDICATED_MODELS = new Set<ModelKey>([
+  private static readonly DEDICATED_MODELS = new Set<string>([
     // Google Imagen
-    ModelKey.REPLICATE_GOOGLE_IMAGEN_3,
-    ModelKey.REPLICATE_GOOGLE_IMAGEN_3_FAST,
-    ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
-    ModelKey.REPLICATE_GOOGLE_IMAGEN_4_FAST,
-    ModelKey.REPLICATE_GOOGLE_IMAGEN_4_ULTRA,
+    MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
+    MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3_FAST,
+    MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+    MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_FAST,
+    MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_ULTRA,
     // Google Nano Banana
-    ModelKey.REPLICATE_GOOGLE_NANO_BANANA,
-    ModelKey.REPLICATE_GOOGLE_NANO_BANANA_PRO,
+    MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+    MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_PRO,
     // Ideogram
-    ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_CHARACTER,
-    ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED,
-    ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_QUALITY,
-    ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO,
+    MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_CHARACTER,
+    MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED,
+    MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_QUALITY,
+    MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO,
     // ByteDance SeeDream
-    ModelKey.REPLICATE_BYTEDANCE_SEEDREAM_4,
-    ModelKey.REPLICATE_BYTEDANCE_SEEDREAM_4_5,
+    MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4,
+    MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4_5,
     // Black Forest Labs FLUX
-    ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO,
-    ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
-    ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
-    ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_2_FLEX,
-    ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO,
-    ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO,
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV,
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO,
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_FLEX,
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO,
+    MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
     // Qwen
-    ModelKey.REPLICATE_QWEN_QWEN_IMAGE,
+    MODEL_KEYS.REPLICATE_QWEN_QWEN_IMAGE,
     // RunwayML
-    ModelKey.REPLICATE_RUNWAYML_GEN4_IMAGE_TURBO,
+    MODEL_KEYS.REPLICATE_RUNWAYML_GEN4_IMAGE_TURBO,
     // Luma
-    ModelKey.REPLICATE_LUMA_REFRAME_IMAGE,
-    ModelKey.REPLICATE_LUMA_REFRAME_VIDEO,
+    MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
+    MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
   ]);
 
-  getSupportedModels(): ModelKey[] {
+  getSupportedModels(): string[] {
     return [...ReplicateImageBuilder.DEDICATED_MODELS];
   }
 
@@ -88,12 +88,12 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
    * Returns true for dedicated models AND any model key (generic fallback).
    * This allows new DB-only models to use the generic builder without enum entries.
    */
-  supportsModel(_model: ModelKey): boolean {
+  supportsModel(_model: string): boolean {
     return true;
   }
 
   buildPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): ReplicateImageInput {
@@ -116,75 +116,75 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
   }
 
   private buildDedicatedPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
     negativePrompt: string,
   ): ReplicateImageInput {
     switch (model) {
       // Google Imagen
-      case ModelKey.REPLICATE_GOOGLE_IMAGEN_3:
-      case ModelKey.REPLICATE_GOOGLE_IMAGEN_3_FAST:
-      case ModelKey.REPLICATE_GOOGLE_IMAGEN_4:
-      case ModelKey.REPLICATE_GOOGLE_IMAGEN_4_FAST:
-      case ModelKey.REPLICATE_GOOGLE_IMAGEN_4_ULTRA:
+      case MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3:
+      case MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3_FAST:
+      case MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4:
+      case MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_FAST:
+      case MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_ULTRA:
         return this.buildImagenPrompt(model, params, promptText);
 
       // Google Nano Banana
-      case ModelKey.REPLICATE_GOOGLE_NANO_BANANA:
+      case MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA:
         return this.buildNanoBananaPrompt(model, params, promptText);
 
-      case ModelKey.REPLICATE_GOOGLE_NANO_BANANA_PRO:
+      case MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_PRO:
         return this.buildNanoBananaProPrompt(model, params, promptText);
 
       // Ideogram
-      case ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_CHARACTER:
+      case MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_CHARACTER:
         return this.buildIdeogramCharacterPrompt(model, params, promptText);
 
-      case ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED:
-      case ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_QUALITY:
-      case ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO:
+      case MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED:
+      case MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_QUALITY:
+      case MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO:
         return this.buildIdeogramV3Prompt(model, params, promptText);
 
       // ByteDance SeeDream
-      case ModelKey.REPLICATE_BYTEDANCE_SEEDREAM_4:
+      case MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4:
         return this.buildSeeDream4Prompt(model, params, promptText);
 
-      case ModelKey.REPLICATE_BYTEDANCE_SEEDREAM_4_5:
+      case MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4_5:
         return this.buildSeeDream45Prompt(model, params, promptText);
 
       // FLUX
-      case ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO:
+      case MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO:
         return this.buildFlux11ProPrompt(model, params, promptText);
 
-      case ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV:
+      case MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV:
         return this.buildFlux2DevPrompt(model, params, promptText);
 
-      case ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO:
+      case MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO:
         return this.buildFlux2ProPrompt(model, params, promptText);
 
-      case ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_2_FLEX:
+      case MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_FLEX:
         return this.buildFlux2FlexPrompt(model, params, promptText);
 
-      case ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO:
+      case MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO:
         return this.buildFluxKontextProPrompt(model, params, promptText);
 
-      case ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL:
+      case MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL:
         return this.buildFluxSchnellPrompt(model, params, promptText);
 
       // Qwen
-      case ModelKey.REPLICATE_QWEN_QWEN_IMAGE:
+      case MODEL_KEYS.REPLICATE_QWEN_QWEN_IMAGE:
         return this.buildQwenImagePrompt(params, promptText, negativePrompt);
 
       // RunwayML
-      case ModelKey.REPLICATE_RUNWAYML_GEN4_IMAGE_TURBO:
+      case MODEL_KEYS.REPLICATE_RUNWAYML_GEN4_IMAGE_TURBO:
         return this.buildGen4ImageTurboPrompt(model, params, promptText);
 
       // Luma
-      case ModelKey.REPLICATE_LUMA_REFRAME_IMAGE:
+      case MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE:
         return this.buildLumaReframeImagePrompt(model, params, promptText);
 
-      case ModelKey.REPLICATE_LUMA_REFRAME_VIDEO:
+      case MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO:
         return this.buildLumaReframeVideoPrompt(model, params, promptText);
 
       default:
@@ -199,7 +199,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
    * Without a schema, falls back to safe defaults.
    */
   private buildGenericImagePrompt(
-    model: ModelKey | string,
+    model: string | string,
     params: PromptBuilderParams,
     promptText: string,
   ): GenericImageInput {
@@ -284,7 +284,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
   }
 
   private buildImagenPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): ImagenInput {
@@ -303,7 +303,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
   }
 
   private buildNanoBananaPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): NanoBananaInput {
@@ -330,7 +330,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
   }
 
   private buildNanoBananaProPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): NanoBananaProInput {
@@ -362,7 +362,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
   }
 
   private buildIdeogramCharacterPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): IdeogramCharacterInput {
@@ -399,7 +399,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
   }
 
   private buildIdeogramV3Prompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): IdeogramV3Input {
@@ -431,7 +431,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
   }
 
   private buildSeeDream4Prompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): SeeDream4Input {
@@ -458,7 +458,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
   }
 
   private buildSeeDream45Prompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): SeeDream45Input {
@@ -485,7 +485,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
   }
 
   private buildFlux11ProPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): Flux11ProInput {
@@ -524,7 +524,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
   }
 
   private buildFlux2DevPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): Flux2DevInput {
@@ -563,7 +563,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
   }
 
   private buildFlux2ProPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): Flux2ProInput {
@@ -607,7 +607,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
   }
 
   private buildFlux2FlexPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): Flux2FlexInput {
@@ -654,7 +654,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
   }
 
   private buildFluxKontextProPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): FluxKontextProInput {
@@ -687,7 +687,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
   }
 
   private buildFluxSchnellPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): FluxSchnellInput {
@@ -726,7 +726,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
     );
     const aspectRatio =
       calculatedAspectRatio ||
-      getDefaultAspectRatio(ModelKey.REPLICATE_QWEN_QWEN_IMAGE);
+      getDefaultAspectRatio(MODEL_KEYS.REPLICATE_QWEN_QWEN_IMAGE);
 
     const input: QwenImageInput = {
       aspect_ratio: aspectRatio,
@@ -754,7 +754,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
   }
 
   private buildGen4ImageTurboPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): Gen4ImageTurboInput {
@@ -782,7 +782,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
   }
 
   private buildLumaReframeImagePrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): LumaReframeImageInput {
@@ -801,7 +801,7 @@ export class ReplicateImageBuilder extends BaseReplicateBuilder {
   }
 
   private buildLumaReframeVideoPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): LumaReframeVideoInput {

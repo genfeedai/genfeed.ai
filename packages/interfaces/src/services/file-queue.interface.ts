@@ -3,7 +3,7 @@
  * Used by FileQueueService for type-safe job processing
  */
 
-import { JobState } from '@genfeedai/enums';
+import type { JobState } from '@genfeedai/enums';
 
 export interface IFileProcessingJob {
   id?: string;

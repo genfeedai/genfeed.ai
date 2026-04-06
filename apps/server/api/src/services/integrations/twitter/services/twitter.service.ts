@@ -5,13 +5,13 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { ConfigService } from '@api/config/config.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { htmlToText } from '@api/shared/utils/html-to-text/html-to-text.util';
-import type { ITwitterSearchResult } from '@genfeedai/interfaces';
 import {
   ActivityKey,
   ActivitySource,
   CredentialPlatform,
 } from '@genfeedai/enums';
 import { SocialUrlHelper } from '@genfeedai/helpers';
+import type { ITwitterSearchResult } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';

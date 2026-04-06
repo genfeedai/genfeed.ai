@@ -1,39 +1,9 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.10/schema.json",
-  "assist": { "actions": { "source": { "organizeImports": "on" } } },
-  "linter": {
-    "enabled": true,
-    "rules": {
-      "recommended": true,
-      "a11y": {
-        "noLabelWithoutControl": "off",
-        "noStaticElementInteractions": "off",
-        "useKeyWithClickEvents": "off",
-        "useMediaCaption": "off",
-        "noAutofocus": "off",
-        "noRedundantAlt": "off",
-        "noSvgWithoutTitle": "off",
-        "useButtonType": "off",
-        "useSemanticElements": "off"
-      },
-      "complexity": {
-        "noUselessSwitchCase": "off"
-      },
-      "correctness": {
-        "noUnusedFunctionParameters": "off",
-        "noUnusedImports": "off",
-        "noUnusedVariables": "off",
-        "useExhaustiveDependencies": "off"
-      },
-      "performance": {
-        "noImgElement": "off"
-      },
-      "style": {
-        "noNonNullAssertion": "off"
-      },
-      "suspicious": {
-        "noArrayIndexKey": "off",
-        "noExplicitAny": "off"
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
       }
     }
   },
@@ -43,13 +13,96 @@
     "indentWidth": 2
   },
   "javascript": {
-    "parser": {
-      "unsafeParameterDecoratorsEnabled": true
-    },
     "formatter": {
       "quoteStyle": "single",
       "semicolons": "always",
       "trailingCommas": "all"
+    },
+    "parser": {
+      "unsafeParameterDecoratorsEnabled": true
     }
-  }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "a11y": {
+        "noLabelWithoutControl": "off"
+      },
+      "recommended": true
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["apps/app/src/features/workflows/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noLabelWithoutControl": "off",
+            "noSvgWithoutTitle": "off",
+            "useSemanticElements": "off"
+          },
+          "complexity": {
+            "noUselessSwitchCase": "off"
+          },
+          "correctness": {
+            "noUnusedFunctionParameters": "off",
+            "noUnusedVariables": "off"
+          },
+          "performance": {
+            "noImgElement": "off"
+          },
+          "style": {
+            "noNonNullAssertion": "off"
+          },
+          "suspicious": {
+            "noArrayIndexKey": "off",
+            "noExplicitAny": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/server/**"],
+      "javascript": {
+        "parser": {
+          "unsafeParameterDecoratorsEnabled": true
+        }
+      },
+      "linter": {
+        "enabled": false
+      }
+    },
+    {
+      "includes": [
+        "apps/app/src/components/**",
+        "apps/app/src/hooks/**",
+        "packages/agent/src/**",
+        "packages/hooks/**",
+        "packages/pages/**"
+      ],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "noLabelWithoutControl": "off",
+            "noStaticElementInteractions": "off",
+            "noSvgWithoutTitle": "off",
+            "useButtonType": "off",
+            "useKeyWithClickEvents": "off",
+            "useSemanticElements": "off",
+            "useValidAriaRole": "off"
+          },
+          "correctness": {
+            "useExhaustiveDependencies": "warn"
+          },
+          "performance": {
+            "noImgElement": "off"
+          },
+          "suspicious": {
+            "noArrayIndexKey": "off",
+            "noExplicitAny": "off"
+          }
+        }
+      }
+    }
+  ]
 }

@@ -37,8 +37,18 @@ describe('GenerateWorkflowModal', () => {
     ],
     name: 'Generated Workflow',
     nodes: [
-      { data: { label: 'Prompt' }, id: 'node-1', position: { x: 0, y: 0 }, type: 'prompt' },
-      { data: { label: 'Image Gen' }, id: 'node-2', position: { x: 300, y: 0 }, type: 'imageGen' },
+      {
+        data: { label: 'Prompt' },
+        id: 'node-1',
+        position: { x: 0, y: 0 },
+        type: 'prompt',
+      },
+      {
+        data: { label: 'Image Gen' },
+        id: 'node-2',
+        position: { x: 300, y: 0 },
+        type: 'imageGen',
+      },
     ],
   };
 
@@ -83,7 +93,9 @@ describe('GenerateWorkflowModal', () => {
       render(<GenerateWorkflowModal />);
 
       expect(screen.getByText('Describe your workflow')).toBeInTheDocument();
-      expect(screen.getByPlaceholderText(/Generate an image from a prompt/)).toBeInTheDocument();
+      expect(
+        screen.getByPlaceholderText(/Generate an image from a prompt/),
+      ).toBeInTheDocument();
     });
 
     it('should render example prompts', () => {
@@ -112,8 +124,12 @@ describe('GenerateWorkflowModal', () => {
     it('should update description on input', () => {
       render(<GenerateWorkflowModal />);
 
-      const textarea = screen.getByPlaceholderText(/Generate an image from a prompt/);
-      fireEvent.change(textarea, { target: { value: 'My workflow description' } });
+      const textarea = screen.getByPlaceholderText(
+        /Generate an image from a prompt/,
+      );
+      fireEvent.change(textarea, {
+        target: { value: 'My workflow description' },
+      });
 
       expect(textarea).toHaveValue('My workflow description');
     });
@@ -124,14 +140,20 @@ describe('GenerateWorkflowModal', () => {
       const exampleButton = screen.getByText(/Generate an image from/);
       fireEvent.click(exampleButton);
 
-      const textarea = screen.getByPlaceholderText(/Generate an image from a prompt/);
-      expect(textarea).toHaveValue('Generate an image from a prompt and convert it to a video');
+      const textarea = screen.getByPlaceholderText(
+        /Generate an image from a prompt/,
+      );
+      expect(textarea).toHaveValue(
+        'Generate an image from a prompt and convert it to a video',
+      );
     });
 
     it('should select content level', () => {
       render(<GenerateWorkflowModal />);
 
-      const fullContentButton = screen.getByText('Full Content').closest('button');
+      const fullContentButton = screen
+        .getByText('Full Content')
+        .closest('button');
       if (fullContentButton) fireEvent.click(fullContentButton);
 
       expect(fullContentButton).toHaveClass('border-primary');
@@ -140,17 +162,23 @@ describe('GenerateWorkflowModal', () => {
     it('should disable generate button without description', () => {
       render(<GenerateWorkflowModal />);
 
-      const generateButton = screen.getByText('Generate Workflow').closest('button');
+      const generateButton = screen
+        .getByText('Generate Workflow')
+        .closest('button');
       expect(generateButton).toBeDisabled();
     });
 
     it('should enable generate button with description', () => {
       render(<GenerateWorkflowModal />);
 
-      const textarea = screen.getByPlaceholderText(/Generate an image from a prompt/);
+      const textarea = screen.getByPlaceholderText(
+        /Generate an image from a prompt/,
+      );
       fireEvent.change(textarea, { target: { value: 'Test description' } });
 
-      const generateButton = screen.getByText('Generate Workflow').closest('button');
+      const generateButton = screen
+        .getByText('Generate Workflow')
+        .closest('button');
       expect(generateButton).not.toBeDisabled();
     });
   });
@@ -164,10 +192,14 @@ describe('GenerateWorkflowModal', () => {
 
       render(<GenerateWorkflowModal />);
 
-      const textarea = screen.getByPlaceholderText(/Generate an image from a prompt/);
+      const textarea = screen.getByPlaceholderText(
+        /Generate an image from a prompt/,
+      );
       fireEvent.change(textarea, { target: { value: 'Test description' } });
 
-      const generateButton = screen.getByText('Generate Workflow').closest('button');
+      const generateButton = screen
+        .getByText('Generate Workflow')
+        .closest('button');
       if (generateButton) fireEvent.click(generateButton);
 
       await waitFor(() => {
@@ -189,15 +221,19 @@ describe('GenerateWorkflowModal', () => {
         () =>
           new Promise((resolve) => {
             resolveRequest = resolve;
-          })
+          }),
       );
 
       render(<GenerateWorkflowModal />);
 
-      const textarea = screen.getByPlaceholderText(/Generate an image from a prompt/);
+      const textarea = screen.getByPlaceholderText(
+        /Generate an image from a prompt/,
+      );
       fireEvent.change(textarea, { target: { value: 'Test description' } });
 
-      const generateButton = screen.getByText('Generate Workflow').closest('button');
+      const generateButton = screen
+        .getByText('Generate Workflow')
+        .closest('button');
       if (generateButton) fireEvent.click(generateButton);
 
       expect(screen.getByText('Generating...')).toBeInTheDocument();
@@ -220,14 +256,20 @@ describe('GenerateWorkflowModal', () => {
 
       render(<GenerateWorkflowModal />);
 
-      const textarea = screen.getByPlaceholderText(/Generate an image from a prompt/);
+      const textarea = screen.getByPlaceholderText(
+        /Generate an image from a prompt/,
+      );
       fireEvent.change(textarea, { target: { value: 'Test description' } });
 
-      const generateButton = screen.getByText('Generate Workflow').closest('button');
+      const generateButton = screen
+        .getByText('Generate Workflow')
+        .closest('button');
       if (generateButton) fireEvent.click(generateButton);
 
       await waitFor(() => {
-        expect(screen.getByRole('heading', { name: 'Generated Workflow' })).toBeInTheDocument();
+        expect(
+          screen.getByRole('heading', { name: 'Generated Workflow' }),
+        ).toBeInTheDocument();
         expect(screen.getByText('2 nodes, 1 edges')).toBeInTheDocument();
       });
     });
@@ -240,10 +282,14 @@ describe('GenerateWorkflowModal', () => {
 
       render(<GenerateWorkflowModal />);
 
-      const textarea = screen.getByPlaceholderText(/Generate an image from a prompt/);
+      const textarea = screen.getByPlaceholderText(
+        /Generate an image from a prompt/,
+      );
       fireEvent.change(textarea, { target: { value: 'Test description' } });
 
-      const generateButton = screen.getByText('Generate Workflow').closest('button');
+      const generateButton = screen
+        .getByText('Generate Workflow')
+        .closest('button');
       if (generateButton) fireEvent.click(generateButton);
 
       await waitFor(() => {
@@ -261,10 +307,14 @@ describe('GenerateWorkflowModal', () => {
 
       render(<GenerateWorkflowModal />);
 
-      const textarea = screen.getByPlaceholderText(/Generate an image from a prompt/);
+      const textarea = screen.getByPlaceholderText(
+        /Generate an image from a prompt/,
+      );
       fireEvent.change(textarea, { target: { value: 'Test description' } });
 
-      const generateButton = screen.getByText('Generate Workflow').closest('button');
+      const generateButton = screen
+        .getByText('Generate Workflow')
+        .closest('button');
       if (generateButton) fireEvent.click(generateButton);
 
       await waitFor(() => {
@@ -279,7 +329,7 @@ describe('GenerateWorkflowModal', () => {
           edges: mockGeneratedWorkflow.edges,
           name: 'Generated Workflow',
           nodes: mockGeneratedWorkflow.nodes,
-        })
+        }),
       );
     });
 
@@ -291,10 +341,14 @@ describe('GenerateWorkflowModal', () => {
 
       render(<GenerateWorkflowModal />);
 
-      const textarea = screen.getByPlaceholderText(/Generate an image from a prompt/);
+      const textarea = screen.getByPlaceholderText(
+        /Generate an image from a prompt/,
+      );
       fireEvent.change(textarea, { target: { value: 'Test description' } });
 
-      const generateButton = screen.getByText('Generate Workflow').closest('button');
+      const generateButton = screen
+        .getByText('Generate Workflow')
+        .closest('button');
       if (generateButton) fireEvent.click(generateButton);
 
       await waitFor(() => {
@@ -317,10 +371,14 @@ describe('GenerateWorkflowModal', () => {
 
       render(<GenerateWorkflowModal />);
 
-      const textarea = screen.getByPlaceholderText(/Generate an image from a prompt/);
+      const textarea = screen.getByPlaceholderText(
+        /Generate an image from a prompt/,
+      );
       fireEvent.change(textarea, { target: { value: 'Test description' } });
 
-      const generateButton = screen.getByText('Generate Workflow').closest('button');
+      const generateButton = screen
+        .getByText('Generate Workflow')
+        .closest('button');
       if (generateButton) fireEvent.click(generateButton);
 
       await waitFor(() => {
@@ -333,15 +391,21 @@ describe('GenerateWorkflowModal', () => {
 
       // Try to submit with empty description (shouldn't be possible due to disabled button)
       // This tests the internal validation
-      const textarea = screen.getByPlaceholderText(/Generate an image from a prompt/);
+      const textarea = screen.getByPlaceholderText(
+        /Generate an image from a prompt/,
+      );
       fireEvent.change(textarea, { target: { value: '   ' } });
 
-      const generateButton = screen.getByText('Generate Workflow').closest('button');
+      const generateButton = screen
+        .getByText('Generate Workflow')
+        .closest('button');
       if (generateButton && !generateButton.hasAttribute('disabled')) {
         fireEvent.click(generateButton);
 
         await waitFor(() => {
-          expect(screen.getByText('Please enter a workflow description')).toBeInTheDocument();
+          expect(
+            screen.getByText('Please enter a workflow description'),
+          ).toBeInTheDocument();
         });
       }
     });
@@ -352,7 +416,9 @@ describe('GenerateWorkflowModal', () => {
       render(<GenerateWorkflowModal />);
 
       const closeButtons = screen.getAllByRole('button');
-      const closeButton = closeButtons.find((btn) => btn.querySelector('svg.lucide-x'));
+      const closeButton = closeButtons.find((btn) =>
+        btn.querySelector('svg.lucide-x'),
+      );
       if (closeButton) fireEvent.click(closeButton);
 
       expect(mockToggleAIGenerator).toHaveBeenCalled();
@@ -362,12 +428,16 @@ describe('GenerateWorkflowModal', () => {
       render(<GenerateWorkflowModal />);
 
       // Enter some text
-      const textarea = screen.getByPlaceholderText(/Generate an image from a prompt/);
+      const textarea = screen.getByPlaceholderText(
+        /Generate an image from a prompt/,
+      );
       fireEvent.change(textarea, { target: { value: 'Test description' } });
 
       // Close modal
       const closeButtons = screen.getAllByRole('button');
-      const closeButton = closeButtons.find((btn) => btn.querySelector('svg.lucide-x'));
+      const closeButton = closeButtons.find((btn) =>
+        btn.querySelector('svg.lucide-x'),
+      );
       if (closeButton) fireEvent.click(closeButton);
 
       expect(mockToggleAIGenerator).toHaveBeenCalled();

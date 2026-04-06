@@ -4,6 +4,7 @@ import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { Newsletter } from '@models/content/newsletter.model';
 import { NewslettersService } from '@services/content/newsletters.service';
 import { logger } from '@services/core/logger.service';
@@ -94,6 +95,7 @@ function isEditorDirty(
 
 export default function NewslettersPage() {
   const router = useRouter();
+  const { href } = useOrgUrl();
   const searchParams = useSearchParams();
   const notificationsService = NotificationsService.getInstance();
   const { brandId, isReady, organizationId, selectedBrand } = useBrand();
@@ -699,7 +701,7 @@ export default function NewslettersPage() {
             description="Create or schedule newsletter workflows from Workflows, then review generated issues here."
             action={{
               label: 'Open Workflows',
-              onClick: () => router.push('/workflows'),
+              onClick: () => router.push(href('/workflows')),
               variant: ButtonVariant.SOFT,
             }}
           />

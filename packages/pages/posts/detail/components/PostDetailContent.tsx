@@ -1,7 +1,7 @@
 'use client';
 
-import type { IIngredient, IPost } from '@genfeedai/interfaces';
 import { CredentialPlatform, Platform } from '@genfeedai/enums';
+import type { IIngredient, IPost } from '@genfeedai/interfaces';
 import PostDetailCard from '@pages/posts/detail/components/PostDetailCard';
 import type { PostsService } from '@services/content/posts.service';
 import type { NotificationsService } from '@services/core/notifications.service';

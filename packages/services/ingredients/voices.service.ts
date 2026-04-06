@@ -1,4 +1,4 @@
-import { VoiceProvider } from '@genfeedai/enums';
+import type { VoiceProvider } from '@genfeedai/enums';
 import type { Voice } from '@models/ingredients/voice.model';
 import { IngredientsService } from '@services/content/ingredients.service';
 import type { JsonApiResponseDocument } from '@services/core/base.service';

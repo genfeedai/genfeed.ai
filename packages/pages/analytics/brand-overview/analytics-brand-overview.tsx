@@ -1,9 +1,9 @@
 'use client';
 
-import type { IAnalytics } from '@genfeedai/interfaces';
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { PostStatus } from '@genfeedai/enums';
+import type { IAnalytics } from '@genfeedai/interfaces';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -71,7 +71,7 @@ export interface AnalyticsBrandOverviewProps {
 export default function AnalyticsBrandOverview({
   brandId,
 }: AnalyticsBrandOverviewProps) {
-  const router = useRouter();
+  const _router = useRouter();
   const { dateRange, refreshTrigger } = useAnalyticsContext();
 
   const getBrandsService = useAuthedService((token: string) =>

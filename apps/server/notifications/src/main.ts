@@ -27,10 +27,12 @@ async function main() {
   const port = configService.get('PORT');
 
   // Configure Redis Socket.IO adapter
+  const redisTls = Boolean(configService.get('REDIS_TLS'));
   const redisIoAdapter = new RedisIoAdapter(
     app,
     configService.get('REDIS_URL') || 'redis://localhost:6379',
     logger,
+    redisTls,
   );
 
   try {

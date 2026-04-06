@@ -172,7 +172,7 @@ export function WorkflowTriggerCard({
             </div>
             {executionId && (
               <a
-                href={`/workflows/executions/${executionId}`}
+                href={href(`/workflows/executions/${executionId}`)}
                 className="flex w-full items-center justify-center gap-1 rounded border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
               >
                 View Execution →

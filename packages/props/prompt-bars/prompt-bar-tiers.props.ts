@@ -1,3 +1,11 @@
+import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
+import type {
+  IngredientCategory,
+  IngredientFormat,
+  ModelCategory,
+  QualityTier,
+  SubscriptionTier,
+} from '@genfeedai/enums';
 import type {
   IAsset,
   IElementBlacklist,
@@ -17,15 +25,6 @@ import type {
   ITraining,
 } from '@genfeedai/interfaces';
 import type { IGenerationItem } from '@genfeedai/interfaces/components/generation.interface';
-import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import type {
-  IngredientCategory,
-  IngredientFormat,
-  ModelCategory,
-  ModelKey,
-  QualityTier,
-  SubscriptionTier,
-} from '@genfeedai/enums';
 import type { FormDropdownOption } from '@props/forms/form.props';
 import type { PromptBarSuggestionItem } from '@props/prompt-bars/prompt-bar-suggestion-item.props';
 import type {
@@ -74,7 +73,7 @@ export interface PromptBarEssentialsProps {
   trainingIds: Set<string>;
   normalizedWatchedModels: string[];
   watchedModels: string[];
-  watchedModel: ModelKey;
+  watchedModel: string;
   watchedFormat: IngredientFormat;
   watchedDuration?: number;
   watchedQuality: QualityTier | undefined;
@@ -114,12 +113,10 @@ export interface PromptBarEssentialsProps {
   modelDropdownRef: RefObject<HTMLButtonElement | null>;
   promptBarHeight: number;
 
-  getModelDefaultDuration: (modelKey: ModelKey) => number | undefined;
-  getDefaultVideoResolution: (
-    modelKey: ModelKey | string,
-  ) => string | undefined;
-  getMinFromAllModels: (getter: (modelKey: ModelKey) => number) => number;
-  getModelMaxOutputs: (modelKey: ModelKey) => number;
+  getModelDefaultDuration: (modelKey: string) => number | undefined;
+  getDefaultVideoResolution: (modelKey: string | string) => string | undefined;
+  getMinFromAllModels: (getter: (modelKey: string) => number) => number;
+  getModelMaxOutputs: (modelKey: string) => number;
 
   setTextValue: Dispatch<SetStateAction<string>>;
 

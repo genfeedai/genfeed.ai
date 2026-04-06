@@ -1,7 +1,7 @@
 'use client';
 
-import type { IIngredient } from '@genfeedai/interfaces';
 import { IngredientCategory, MediaType } from '@genfeedai/enums';
+import type { IIngredient } from '@genfeedai/interfaces';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import type { ModalConfirmProps } from '@props/modals/modal.props';
 import ModalConfirm from '@ui/modals/system/confirm/ModalConfirm';

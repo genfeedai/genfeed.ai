@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { WorkflowFile } from '@genfeedai/types';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import Button from '@ui/buttons/base/Button';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
   getNodesBounds,
   getViewportForBounds,
@@ -33,6 +34,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
 import {
   Tooltip,
   TooltipContent,
@@ -86,6 +88,7 @@ function isValidWorkflow(data: unknown): data is WorkflowFile {
 
 export function Toolbar() {
   const router = useRouter();
+  const { href } = useOrgUrl();
   const {
     exportWorkflow,
     workflowId,
@@ -210,32 +213,19 @@ export function Toolbar() {
     input.click();
   }, []);
 
-  const handleOpenFolder = useCallback(async () => {
-    if (!workflowId) return;
-    try {
-      await fetch('/api/open-folder', {
-        body: JSON.stringify({ workflowId }),
-        headers: { 'Content-Type': 'application/json' },
-        method: 'POST',
-      });
-    } catch (error) {
-      logger.error('Failed to open output folder', error, {
-        context: 'Toolbar',
-      });
-    }
-  }, [workflowId]);
+  // handleOpenFolder removed — desktop-only, not available in web
 
   const handleDuplicate = useCallback(async () => {
     if (!workflowId) return;
     try {
       const duplicated = await duplicateWorkflowApi(workflowId);
-      router.push(`/workflows/${duplicated._id}`);
+      router.push(href(`/workflows/${duplicated._id}`));
     } catch (error) {
       logger.error('Failed to duplicate workflow', error, {
         context: 'Toolbar',
       });
     }
-  }, [workflowId, duplicateWorkflowApi, router]);
+  }, [workflowId, duplicateWorkflowApi, router, href]);
 
   const handleSaveAs = useCallback(
     async (newName: string) => {
@@ -244,7 +234,9 @@ export function Toolbar() {
         const duplicated = await duplicateWorkflowApi(workflowId);
         // Navigate to the duplicated workflow - the name will be set on the new workflow
         router.push(
-          `/workflows/${duplicated._id}?rename=${encodeURIComponent(newName)}`,
+          href(
+            `/workflows/${duplicated._id}?rename=${encodeURIComponent(newName)}`,
+          ),
         );
         setShowSaveAsDialog(false);
       } catch (error) {
@@ -253,7 +245,7 @@ export function Toolbar() {
         });
       }
     },
-    [workflowId, duplicateWorkflowApi, router],
+    [workflowId, duplicateWorkflowApi, router, href],
   );
 
   const handleScreenshot = useCallback(async () => {
@@ -560,23 +552,6 @@ export function Toolbar() {
           </TooltipContent>
         </Tooltip>
 
-        {/* Open Output Folder */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="text-muted-foreground"
-              onClick={handleOpenFolder}
-              isDisabled={!workflowId}
-            >
-              <FolderOpen className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            <p>Open output folder</p>
-          </TooltipContent>
-        </Tooltip>
 
         {/* Settings */}
         <Tooltip>

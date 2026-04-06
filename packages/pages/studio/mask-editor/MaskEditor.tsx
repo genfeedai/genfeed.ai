@@ -1,10 +1,10 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type {
   IMaskDrawingState,
   IMaskEditorProps,
 } from '@genfeedai/interfaces/components/mask-editor.interface';
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import FormRange from '@ui/forms/selectors/range/form-range/FormRange';

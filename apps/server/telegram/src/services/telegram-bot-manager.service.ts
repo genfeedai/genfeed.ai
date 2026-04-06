@@ -1,3 +1,4 @@
+import { ParseMode } from '@genfeedai/enums';
 import {
   BaseBotManager,
   extractWorkflowExecutionSnapshot,
@@ -12,7 +13,6 @@ import {
   WorkflowInput,
   WorkflowSession,
 } from '@genfeedai/integrations';
-import { ParseMode } from '@genfeedai/enums';
 import { RedisService } from '@libs/redis/redis.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';

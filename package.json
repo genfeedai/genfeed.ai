@@ -1,6 +1,26 @@
 {
   "name": "genfeed.ai",
+  "description": "The open source AI OS for content creation",
   "private": true,
+  "license": "AGPL-3.0",
+  "homepage": "https://genfeed.ai",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/genfeedai/genfeed.ai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/genfeedai/genfeed.ai/issues"
+  },
+  "keywords": [
+    "ai",
+    "content-creation",
+    "workflow",
+    "video-generation",
+    "image-generation",
+    "publishing",
+    "self-hosted",
+    "open-source"
+  ],
   "workspaces": [
     "apps/server/*",
     "apps/app",
@@ -138,10 +158,10 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
-    "@remotion/bundler": "^4.0.445",
-    "@remotion/cli": "^4.0.445",
-    "@remotion/player": "^4.0.445",
-    "@remotion/renderer": "^4.0.445",
+    "@remotion/bundler": "^4.0.446",
+    "@remotion/cli": "^4.0.446",
+    "@remotion/player": "^4.0.446",
+    "@remotion/renderer": "^4.0.446",
     "@sentry/nestjs": "^10.47.0",
     "@slack/bolt": "^4.6.0",
     "@slack/web-api": "^7.15.0",
@@ -207,7 +227,7 @@
     "recharts": "^3.8.1",
     "redis": "^5.11.0",
     "reflect-metadata": "^0.2.2",
-    "remotion": "^4.0.445",
+    "remotion": "^4.0.446",
     "replicate": "^1.4.0",
     "resend": "^6.10.0",
     "rxjs": "^7.8.2",

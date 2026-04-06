@@ -3,7 +3,7 @@ import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
   createNewRepostTriggerExecutor,
   type NewRepostChecker,
-  NewRepostTriggerExecutor,
+  type NewRepostTriggerExecutor,
 } from '@workflow-engine/executors/saas/new-repost-trigger-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

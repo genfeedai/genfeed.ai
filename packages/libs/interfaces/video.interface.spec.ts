@@ -1,4 +1,4 @@
-import { ImagesToVideoConfig } from '@libs/interfaces/video.interface';
+import type { ImagesToVideoConfig } from '@libs/interfaces/video.interface';
 
 describe('ImagesToVideoConfig', () => {
   it('should have required video config properties', () => {

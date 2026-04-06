@@ -15,7 +15,9 @@ interface RootProps {
   launchContext?: EditorLaunchContext;
 }
 
-const fallbackComposition = createCompositionFromLaunchContext({ assetPaths: [] });
+const fallbackComposition = createCompositionFromLaunchContext({
+  assetPaths: [],
+});
 
 export const REMOTION_COMPOSITION_ID = 'CoreEditorComposition';
 

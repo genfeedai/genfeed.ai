@@ -22,12 +22,6 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { User } from '@clerk/backend';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
-import {
-  IngredientSerializer,
-  IngredientUploadSerializer,
-  PresignedUploadSerializer,
-} from '@genfeedai/serializers';
 import {
   AssetScope,
   FileInputType,
@@ -35,7 +29,14 @@ import {
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/enums';
+import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import {
+  IngredientSerializer,
+  IngredientUploadSerializer,
+  PresignedUploadSerializer,
+} from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpService } from '@nestjs/axios';
 import {
   BadRequestException,
@@ -238,7 +239,7 @@ export class ImagesUploadsController {
       // @ts-expect-error TS2345
       ingredient._id.toString(),
       user.id,
-      `user-${user.id}`,
+      getUserRoomName(user.id),
     );
 
     return serializeSingle(request, IngredientSerializer, ingredient);

@@ -1,7 +1,7 @@
 import type { IPromptBuilder } from '@api/services/prompt-builder/interfaces/prompt-builder.interface';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import type { ReplicateInput } from '@api/services/prompt-builder/interfaces/replicate-input.interface';
-import { ModelKey, ModelProvider } from '@genfeedai/enums';
+import type { ModelProvider } from '@genfeedai/enums';
 
 /**
  * Abstract base class for prompt builders
@@ -17,7 +17,7 @@ export abstract class BasePromptBuilder implements IPromptBuilder {
    * @param promptText - Pre-rendered prompt text (from template or raw)
    */
   abstract buildPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): ReplicateInput;
@@ -26,7 +26,7 @@ export abstract class BasePromptBuilder implements IPromptBuilder {
    * Check if this builder supports the given model
    * Must be implemented by each provider
    */
-  abstract supportsModel(model: ModelKey): boolean;
+  abstract supportsModel(model: string): boolean;
 
   /**
    * Get the provider this builder is for

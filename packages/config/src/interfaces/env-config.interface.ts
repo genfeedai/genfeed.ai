@@ -29,11 +29,12 @@ export interface IEnvConfig {
   BULL_BOARD_AUTH_TOKEN?: string;
 
   // === MongoDB ===
-  MONGODB_URL?: string; // Base connection string — all named DBs derived at runtime
+  MONGODB_URI?: string; // Base connection string — all named DBs derived at runtime
 
   // === Redis ===
   REDIS_URL?: string;
   REDIS_PASSWORD?: string;
+  REDIS_TLS?: boolean;
 
   // === AWS / S3 ===
   AWS_ACCESS_KEY_ID?: string;
@@ -49,11 +50,8 @@ export interface IEnvConfig {
 
   // === Sentry ===
   SENTRY_DSN?: string;
+  SENTRY_ENABLED?: boolean;
   SENTRY_ENVIRONMENT?: string;
-  SENTRY_AUTH_TOKEN_API?: string;
-  SENTRY_AUTH_TOKEN_FILES?: string;
-  SENTRY_AUTH_TOKEN_MCP?: string;
-  SENTRY_AUTH_TOKEN_NOTIFICATIONS?: string;
 
   // === Stripe ===
   STRIPE_SECRET_KEY?: string;
@@ -69,33 +67,13 @@ export interface IEnvConfig {
   STRIPE_COUPON_CREDITS_PACKS_V2_ENTERPRISE?: string;
 
   // === General AI ===
+  AGENT_CONTEXT_COMPRESSION_ENABLED?: string;
+  AGENT_CONTEXT_COMPRESSION_MODEL?: string;
+  AGENT_CONTEXT_WINDOW_SIZE?: number;
   MAX_TOKENS?: number;
 
   // === OpenAI ===
   OPENAI_KEY?: string;
-  OPENAI_WEBHOOK_SECRET?: string;
-  OPENAI_ASSISTANTS_COST?: number;
-  OPENAI_ASSISTANTS_ACCOUNT_DESCRIPTION?: string;
-  OPENAI_ASSISTANTS_SCRIPT?: string;
-  OPENAI_ASSISTANTS_SCRIPT_DESCRIPTION?: string;
-  OPENAI_ASSISTANTS_SCRIPT_IDEA?: string;
-  OPENAI_ASSISTANTS_MODELS_GPT_IMAGE_1?: string;
-  OPENAI_ASSISTANTS_MODELS_KLINGAI?: string;
-  OPENAI_ASSISTANTS_MODELS_LEONARDOAI?: string;
-  OPENAI_ASSISTANTS_MODELS_GOOGLE_IMAGEN?: string;
-  OPENAI_ASSISTANTS_MODELS_GOOGLE_MUSICGEN?: string;
-  OPENAI_ASSISTANTS_PRESETS_DESCRIPTION_TEXT?: string;
-  OPENAI_ASSISTANTS_PRESETS_DESCRIPTION_IMAGE?: string;
-  OPENAI_ASSISTANTS_PRESETS_DESCRIPTION_VIDEO?: string;
-  OPENAI_ASSISTANTS_PRESETS_DESCRIPTION_MUSIC?: string;
-  OPENAI_ASSISTANTS_PRESETS_DESCRIPTION_IMAGE_TO_VIDEO?: string;
-  OPENAI_ASSISTANTS_POST_CONTENT?: string;
-  OPENAI_ASSISTANTS_ARTICLES?: string;
-  OPENAI_IMAGE_MODEL?: string;
-  OPENAI_IMAGE_SIZE?: string;
-  OPENAI_IMAGE_QUALITY?: string;
-  OPENAI_IMAGE_OUTPUT_FORMAT?: string;
-  OPENAI_IMAGE_OUTPUT_COMPRESSION?: number;
 
   // === fal.ai ===
   FAL_API_KEY?: string;
@@ -125,19 +103,14 @@ export interface IEnvConfig {
   // === HeyGen ===
   HEYGEN_KEY?: string;
 
-  // === RunwayML ===
-  RUNWAYML_KEY?: string;
-
   // === Hedra ===
   HEDRA_KEY?: string;
-  HEDRA_URL?: string;
 
   // === Higgsfield ===
   HIGGSFIELD_API_KEY?: string;
   HIGGSFIELD_API_SECRET?: string;
 
   // === Darkroom (self-hosted GPU) ===
-  DARKROOM_API_URL?: string;
   DARKROOM_COMFYUI_URL?: string;
   DARKROOM_CLOUDFRONT_DISTRIBUTION_ID?: string;
 

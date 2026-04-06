@@ -1,7 +1,16 @@
-import type { EdgeStyle, NodeType, WorkflowEdge, WorkflowNode } from '@genfeedai/types';
+import type {
+  EdgeStyle,
+  NodeType,
+  WorkflowEdge,
+  WorkflowNode,
+} from '@genfeedai/types';
 import { CONNECTION_RULES, NODE_DEFINITIONS } from '@genfeedai/types';
 import type { Connection, EdgeChange, NodeChange } from '@xyflow/react';
-import { applyEdgeChanges, applyNodeChanges, addEdge as rfAddEdge } from '@xyflow/react';
+import {
+  applyEdgeChanges,
+  applyNodeChanges,
+  addEdge as rfAddEdge,
+} from '@xyflow/react';
 import type { StateCreator } from 'zustand';
 import { generateId, getHandleType } from '../helpers/nodeHelpers';
 import type { WorkflowStore } from '../types';
@@ -17,11 +26,14 @@ export interface EdgeSlice {
   findCompatibleHandle: (
     sourceNodeId: string,
     sourceHandleId: string | null,
-    targetNodeId: string
+    targetNodeId: string,
   ) => string | null;
 }
 
-export const createEdgeSlice: StateCreator<WorkflowStore, [], [], EdgeSlice> = (set, get) => ({
+export const createEdgeSlice: StateCreator<WorkflowStore, [], [], EdgeSlice> = (
+  set,
+  get,
+) => ({
   findCompatibleHandle: (sourceNodeId, sourceHandleId, targetNodeId) => {
     const { nodes, edges } = get();
 
@@ -30,7 +42,11 @@ export const createEdgeSlice: StateCreator<WorkflowStore, [], [], EdgeSlice> = (
 
     if (!sourceNode || !targetNode) return null;
 
-    const sourceType = getHandleType(sourceNode.type as NodeType, sourceHandleId, 'source');
+    const sourceType = getHandleType(
+      sourceNode.type as NodeType,
+      sourceHandleId,
+      'source',
+    );
 
     if (!sourceType) return null;
 
@@ -38,7 +54,7 @@ export const createEdgeSlice: StateCreator<WorkflowStore, [], [], EdgeSlice> = (
     if (!targetDef) return null;
 
     const existingTargetHandles = new Set(
-      edges.filter((e) => e.target === targetNodeId).map((e) => e.targetHandle)
+      edges.filter((e) => e.target === targetNodeId).map((e) => e.targetHandle),
     );
 
     for (const input of targetDef.inputs) {
@@ -65,12 +81,12 @@ export const createEdgeSlice: StateCreator<WorkflowStore, [], [], EdgeSlice> = (
     const sourceType = getHandleType(
       sourceNode.type as NodeType,
       connection.sourceHandle ?? null,
-      'source'
+      'source',
     );
     const targetType = getHandleType(
       targetNode.type as NodeType,
       connection.targetHandle ?? null,
-      'target'
+      'target',
     );
 
     if (!sourceType || !targetType) return false;
@@ -89,7 +105,7 @@ export const createEdgeSlice: StateCreator<WorkflowStore, [], [], EdgeSlice> = (
           id: generateId(),
           type: state.edgeStyle,
         },
-        state.edges
+        state.edges,
       ) as WorkflowEdge[],
       isDirty: true,
     }));
@@ -104,7 +120,10 @@ export const createEdgeSlice: StateCreator<WorkflowStore, [], [], EdgeSlice> = (
 
   onEdgesChange: (changes) => {
     const hasMeaningfulChange = changes.some(
-      (change) => change.type === 'add' || change.type === 'remove' || change.type === 'replace'
+      (change) =>
+        change.type === 'add' ||
+        change.type === 'remove' ||
+        change.type === 'replace',
     );
 
     set((state) => ({
@@ -114,7 +133,10 @@ export const createEdgeSlice: StateCreator<WorkflowStore, [], [], EdgeSlice> = (
   },
   onNodesChange: (changes) => {
     const hasMeaningfulChange = changes.some(
-      (change) => change.type === 'add' || change.type === 'remove' || change.type === 'replace'
+      (change) =>
+        change.type === 'add' ||
+        change.type === 'remove' ||
+        change.type === 'replace',
     );
 
     set((state) => ({
@@ -149,7 +171,7 @@ export const createEdgeSlice: StateCreator<WorkflowStore, [], [], EdgeSlice> = (
                 hasPause: !edge.data?.hasPause,
               },
             }
-          : edge
+          : edge,
       ),
       isDirty: true,
     }));

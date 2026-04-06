@@ -1,5 +1,5 @@
-import type { IIngredient } from '@genfeedai/interfaces';
 import { IngredientCategory, IngredientExtension } from '@genfeedai/enums';
+import type { IIngredient } from '@genfeedai/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import IngredientTabsInfo from '@ui/ingredients/tabs/info/IngredientTabsInfo';
 import { describe, expect, it, vi } from 'vitest';

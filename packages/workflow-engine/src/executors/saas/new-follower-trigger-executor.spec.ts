@@ -3,7 +3,7 @@ import type { ExecutorInput } from '@workflow-engine/executors/base-executor';
 import {
   createNewFollowerTriggerExecutor,
   type NewFollowerChecker,
-  NewFollowerTriggerExecutor,
+  type NewFollowerTriggerExecutor,
 } from '@workflow-engine/executors/saas/new-follower-trigger-executor';
 import type { ExecutableNode } from '@workflow-engine/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

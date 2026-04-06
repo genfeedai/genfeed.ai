@@ -7,7 +7,9 @@ vi.mock('@/lib/api', () => ({
   promptsApi: {
     create: vi.fn().mockResolvedValue({ _id: 'new-item' }),
     delete: vi.fn().mockResolvedValue({}),
-    duplicate: vi.fn().mockResolvedValue({ _id: 'duplicated-item', name: 'Copy' }),
+    duplicate: vi
+      .fn()
+      .mockResolvedValue({ _id: 'duplicated-item', name: 'Copy' }),
     getAll: vi.fn().mockResolvedValue([]),
     getFeatured: vi.fn().mockResolvedValue([]),
     update: vi.fn().mockResolvedValue({ _id: 'updated-item' }),
@@ -96,7 +98,9 @@ describe('usePromptLibraryStore', () => {
 
         setCategoryFilter('landscape');
 
-        expect(usePromptLibraryStore.getState().categoryFilter).toBe('landscape');
+        expect(usePromptLibraryStore.getState().categoryFilter).toBe(
+          'landscape',
+        );
       });
 
       it('should clear the category filter', () => {
@@ -214,13 +218,15 @@ describe('usePromptLibraryStore', () => {
             category: 'landscape',
             search: 'sunset',
           }),
-          undefined
+          undefined,
         );
       });
 
       it('should set error on failure', async () => {
         const { promptsApi } = await import('@/lib/api');
-        vi.mocked(promptsApi.getAll).mockRejectedValueOnce(new Error('API Error'));
+        vi.mocked(promptsApi.getAll).mockRejectedValueOnce(
+          new Error('API Error'),
+        );
 
         const { loadItems } = usePromptLibraryStore.getState();
         await loadItems();
@@ -253,7 +259,9 @@ describe('usePromptLibraryStore', () => {
         const { loadFeatured } = usePromptLibraryStore.getState();
         await loadFeatured();
 
-        expect(usePromptLibraryStore.getState().featuredItems).toEqual([featuredItem]);
+        expect(usePromptLibraryStore.getState().featuredItems).toEqual([
+          featuredItem,
+        ]);
       });
     });
 
@@ -276,7 +284,9 @@ describe('usePromptLibraryStore', () => {
 
       it('should throw and set error on failure', async () => {
         const { promptsApi } = await import('@/lib/api');
-        vi.mocked(promptsApi.create).mockRejectedValueOnce(new Error('Create failed'));
+        vi.mocked(promptsApi.create).mockRejectedValueOnce(
+          new Error('Create failed'),
+        );
 
         const { createItem } = usePromptLibraryStore.getState();
 
@@ -284,7 +294,7 @@ describe('usePromptLibraryStore', () => {
           createItem({
             name: 'Test',
             promptText: 'Test prompt',
-          })
+          }),
         ).rejects.toThrow('Create failed');
 
         expect(usePromptLibraryStore.getState().error).toBe('Create failed');
@@ -318,7 +328,9 @@ describe('usePromptLibraryStore', () => {
         const { updateItem } = usePromptLibraryStore.getState();
         await updateItem('item-1', { name: 'Updated' });
 
-        expect(usePromptLibraryStore.getState().selectedItem?.name).toBe('Updated');
+        expect(usePromptLibraryStore.getState().selectedItem?.name).toBe(
+          'Updated',
+        );
       });
     });
 
@@ -349,7 +361,11 @@ describe('usePromptLibraryStore', () => {
       it('should add duplicated item to list', async () => {
         usePromptLibraryStore.setState({ items: [mockItem] });
         const { promptsApi } = await import('@/lib/api');
-        const duplicatedItem = { ...mockItem, _id: 'item-2', name: 'Test Prompt (Copy)' };
+        const duplicatedItem = {
+          ...mockItem,
+          _id: 'item-2',
+          name: 'Test Prompt (Copy)',
+        };
         vi.mocked(promptsApi.duplicate).mockResolvedValueOnce(duplicatedItem);
 
         const { duplicateItem } = usePromptLibraryStore.getState();

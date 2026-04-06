@@ -1,9 +1,7 @@
-import {
-  type ImageModelCapability,
+import { type ImageModelCapability,
   MODEL_OUTPUT_CAPABILITIES,
-  type VideoModelCapability,
-} from '@genfeedai/constants';
-import { ModelCategory, ModelKey, ModelProvider } from '@genfeedai/enums';
+  type VideoModelCapability,, MODEL_KEYS } from '@genfeedai/constants';
+import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 
 import {
@@ -21,7 +19,7 @@ function createMockModel(overrides: Partial<IModel> = {}): IModel {
     isActive: true,
     isDefault: false,
     isDeleted: false,
-    key: ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+    key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
     label: 'Test Model',
     provider: ModelProvider.REPLICATE,
     updatedAt: '2025-01-01T00:00:00.000Z',
@@ -45,10 +43,10 @@ describe('getModelCapabilityFromDoc', () => {
     const result = getModelCapabilityFromDoc(model);
 
     expect(result).not.toBeNull();
-    expect(result!.category).toBe(ModelCategory.IMAGE);
-    expect(result!.maxOutputs).toBe(8);
-    expect(result!.isBatchSupported).toBe(true);
-    expect(result!.maxReferences).toBe(5);
+    expect(result?.category).toBe(ModelCategory.IMAGE);
+    expect(result?.maxOutputs).toBe(8);
+    expect(result?.isBatchSupported).toBe(true);
+    expect(result?.maxReferences).toBe(5);
 
     const imageResult = result as ImageModelCapability;
     expect(imageResult.aspectRatios).toEqual(['1:1', '16:9']);
@@ -76,9 +74,9 @@ describe('getModelCapabilityFromDoc', () => {
     const result = getModelCapabilityFromDoc(model);
 
     expect(result).not.toBeNull();
-    expect(result!.maxOutputs).toBe(2);
-    expect(result!.isBatchSupported).toBe(false);
-    expect(result!.maxReferences).toBe(1);
+    expect(result?.maxOutputs).toBe(2);
+    expect(result?.isBatchSupported).toBe(false);
+    expect(result?.maxReferences).toBe(1);
 
     const imageResult = result as ImageModelCapability;
     expect(imageResult.aspectRatios).toBeUndefined();
@@ -109,7 +107,7 @@ describe('getModelCapabilityFromDoc', () => {
     const result = getModelCapabilityFromDoc(model);
 
     expect(result).not.toBeNull();
-    expect(result!.category).toBe(ModelCategory.VIDEO);
+    expect(result?.category).toBe(ModelCategory.VIDEO);
 
     const videoResult = result as VideoModelCapability;
     expect(videoResult.hasEndFrame).toBe(true);
@@ -148,20 +146,20 @@ describe('getModelCapability', () => {
     const result = getModelCapability(model);
 
     expect(result).not.toBeNull();
-    expect(result!.maxOutputs).toBe(10);
-    expect(result!.isBatchSupported).toBe(true);
-    expect(result!.maxReferences).toBe(3);
+    expect(result?.maxOutputs).toBe(10);
+    expect(result?.isBatchSupported).toBe(true);
+    expect(result?.maxReferences).toBe(3);
   });
 
   it('should fall back to constant when DB fields are missing', () => {
     const model = createMockModel({
-      key: ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+      key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
       maxOutputs: undefined,
     });
 
     const result = getModelCapability(model);
     const expected =
-      MODEL_OUTPUT_CAPABILITIES[ModelKey.REPLICATE_GOOGLE_IMAGEN_4];
+      MODEL_OUTPUT_CAPABILITIES[MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4];
 
     expect(result).not.toBeNull();
     expect(result).toEqual(expected);
@@ -169,7 +167,7 @@ describe('getModelCapability', () => {
 
   it('should return null when both DB fields and constant are missing', () => {
     const model = createMockModel({
-      key: 'nonexistent/model' as ModelKey,
+      key: 'nonexistent/model' as string,
       maxOutputs: undefined,
     });
 
@@ -182,7 +180,7 @@ describe('getModelCapability', () => {
     const model = createMockModel({
       category: ModelCategory.IMAGE,
       isBatchSupported: true,
-      key: ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+      key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
       maxOutputs: 99,
       maxReferences: 50,
     });
@@ -190,9 +188,9 @@ describe('getModelCapability', () => {
     const result = getModelCapability(model);
 
     expect(result).not.toBeNull();
-    expect(result!.maxOutputs).toBe(99);
-    expect(result!.isBatchSupported).toBe(true);
-    expect(result!.maxReferences).toBe(50);
+    expect(result?.maxOutputs).toBe(99);
+    expect(result?.isBatchSupported).toBe(true);
+    expect(result?.maxReferences).toBe(50);
   });
 });
 
@@ -206,19 +204,21 @@ describe('getModelCapabilityByKey', () => {
     });
 
     const result = getModelCapabilityByKey(
-      ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+      MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
       model,
     );
 
     expect(result).not.toBeNull();
-    expect(result!.maxOutputs).toBe(20);
-    expect(result!.isBatchSupported).toBe(true);
+    expect(result?.maxOutputs).toBe(20);
+    expect(result?.isBatchSupported).toBe(true);
   });
 
   it('should fall back to constant when no model is provided', () => {
-    const result = getModelCapabilityByKey(ModelKey.REPLICATE_GOOGLE_IMAGEN_4);
+    const result = getModelCapabilityByKey(
+      MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+    );
     const expected =
-      MODEL_OUTPUT_CAPABILITIES[ModelKey.REPLICATE_GOOGLE_IMAGEN_4];
+      MODEL_OUTPUT_CAPABILITIES[MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4];
 
     expect(result).not.toBeNull();
     expect(result).toEqual(expected);
@@ -233,16 +233,16 @@ describe('getModelCapabilityByKey', () => {
   it('should use model DB fields via getModelCapability when model is provided', () => {
     const model = createMockModel({
       category: ModelCategory.IMAGE,
-      key: ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+      key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
       maxOutputs: 15,
     });
 
     const result = getModelCapabilityByKey(
-      ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+      MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
       model,
     );
 
     expect(result).not.toBeNull();
-    expect(result!.maxOutputs).toBe(15);
+    expect(result?.maxOutputs).toBe(15);
   });
 });

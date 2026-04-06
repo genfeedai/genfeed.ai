@@ -1,7 +1,7 @@
 'use client';
 
-import type { IEditorTextOverlay, IEditorTrack } from '@genfeedai/interfaces';
 import { ButtonSize, ButtonVariant, EditorTrackType } from '@genfeedai/enums';
+import type { IEditorTextOverlay, IEditorTrack } from '@genfeedai/interfaces';
 import Button from '@ui/buttons/base/Button';
 import { ColorInput } from '@ui/primitives/color-input';
 import {
@@ -420,7 +420,7 @@ export function EditorTextPanel({
                   onValueChange={([x]) =>
                     handleUpdateTextOverlay({
                       position: {
-                        ...selectedTextClip.textOverlay!.position,
+                        ...selectedTextClip.textOverlay?.position,
                         x,
                       },
                     })
@@ -441,7 +441,7 @@ export function EditorTextPanel({
                   onValueChange={([y]) =>
                     handleUpdateTextOverlay({
                       position: {
-                        ...selectedTextClip.textOverlay!.position,
+                        ...selectedTextClip.textOverlay?.position,
                         y,
                       },
                     })

@@ -1,6 +1,6 @@
-import type { MediaConfig } from '@genfeedai/interfaces/ui/media-config.interface';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
-import { ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import type { MediaConfig } from '@genfeedai/interfaces/ui/media-config.interface';
 import type { PromptBarSecondaryControlsRowProps } from '@props/prompt-bars/prompt-bar-layout.props';
 import { render } from '@testing-library/react';
 import PromptBarSecondaryControlsRow from '@ui/prompt-bars/components/secondary-controls-row/PromptBarSecondaryControlsRow';
@@ -33,7 +33,7 @@ describe('PromptBarSecondaryControlsRow', () => {
   const currentConfig: MediaConfig = {
     assetType: 'image',
     buttons: { presets: true, tags: true },
-    defaultModel: ModelKey.REPLICATE_GOOGLE_IMAGEN_3,
+    defaultModel: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
     placeholder: 'Describe your image',
   };
 

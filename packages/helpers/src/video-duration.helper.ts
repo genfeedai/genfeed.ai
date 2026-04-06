@@ -2,7 +2,6 @@ import {
   getModelDefaultDuration,
   getModelDurations,
 } from '@genfeedai/constants';
-import type { ModelKey } from '@genfeedai/enums';
 
 export function formatDuration(seconds?: number | null): string {
   if (!seconds) {
@@ -60,7 +59,7 @@ export class DurationUtil {
   }
 
   static validateDurationForModel(
-    model: ModelKey,
+    model: string,
     requestedDuration?: number,
   ): number {
     const allowedDurations = getModelDurations(model);

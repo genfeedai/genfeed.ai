@@ -11,6 +11,7 @@ const mockOpenModal = vi.fn();
 
 // Import mocked modules at top level (vi.mock is hoisted above these imports)
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
+
 const mockedUIStore = vi.mocked(useUIStore);
 
 vi.mock('@/components/ui/select', () => ({
@@ -20,9 +21,13 @@ vi.mock('@/components/ui/select', () => ({
   SelectContent: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="select-content">{children}</div>
   ),
-  SelectItem: ({ children, value }: { children: React.ReactNode; value: string }) => (
-    <div data-testid={`select-item-${value}`}>{children}</div>
-  ),
+  SelectItem: ({
+    children,
+    value,
+  }: {
+    children: React.ReactNode;
+    value: string;
+  }) => <div data-testid={`select-item-${value}`}>{children}</div>,
   SelectTrigger: ({ children }: { children: React.ReactNode }) => (
     <button data-testid="select-trigger">{children}</button>
   ),
@@ -89,45 +94,55 @@ vi.mock('@/store/settingsStore', () => ({
       name: 'Replicate',
     },
   },
-  useSettingsStore: vi.fn((selector?: (state: Record<string, unknown>) => unknown) => {
-    const state = {
-      clearLLMProviderKey: vi.fn(),
-      debugMode: false,
-      defaults: {
-        imageModel: 'nano-banana-pro',
-        imageProvider: 'replicate',
-        videoModel: 'veo-3.1',
-        videoProvider: 'replicate',
-      },
-      edgeStyle: 'default',
-      llm: {
-        activeProvider: 'anthropic',
-        providers: {
-          anthropic: { apiKey: null, defaultModel: 'claude-sonnet-4-6', enabled: false },
-          openai: { apiKey: null, defaultModel: 'gpt-4.1-mini', enabled: false },
-          replicate: {
-            apiKey: null,
-            defaultModel: 'meta/meta-llama-3.1-405b-instruct',
-            enabled: false,
+  useSettingsStore: vi.fn(
+    (selector?: (state: Record<string, unknown>) => unknown) => {
+      const state = {
+        clearLLMProviderKey: vi.fn(),
+        debugMode: false,
+        defaults: {
+          imageModel: 'nano-banana-pro',
+          imageProvider: 'replicate',
+          videoModel: 'veo-3.1',
+          videoProvider: 'replicate',
+        },
+        edgeStyle: 'default',
+        llm: {
+          activeProvider: 'anthropic',
+          providers: {
+            anthropic: {
+              apiKey: null,
+              defaultModel: 'claude-sonnet-4-6',
+              enabled: false,
+            },
+            openai: {
+              apiKey: null,
+              defaultModel: 'gpt-4.1-mini',
+              enabled: false,
+            },
+            replicate: {
+              apiKey: null,
+              defaultModel: 'meta/meta-llama-3.1-405b-instruct',
+              enabled: false,
+            },
           },
         },
-      },
-      providers: {
-        fal: { apiKey: null, enabled: true },
-        huggingface: { apiKey: null, enabled: true },
-        replicate: { apiKey: null, enabled: true },
-      },
-      setDebugMode: mockSetDebugMode,
-      setDefaultModel: mockSetDefaultModel,
-      setEdgeStyle: mockSetEdgeStyle,
-      setLLMActiveProvider: vi.fn(),
-      setLLMProviderEnabled: vi.fn(),
-      setLLMProviderKey: vi.fn(),
-      setShowMinimap: mockSetShowMinimap,
-      showMinimap: true,
-    };
-    return selector ? selector(state) : state;
-  }),
+        providers: {
+          fal: { apiKey: null, enabled: true },
+          huggingface: { apiKey: null, enabled: true },
+          replicate: { apiKey: null, enabled: true },
+        },
+        setDebugMode: mockSetDebugMode,
+        setDefaultModel: mockSetDefaultModel,
+        setEdgeStyle: mockSetEdgeStyle,
+        setLLMActiveProvider: vi.fn(),
+        setLLMProviderEnabled: vi.fn(),
+        setLLMProviderKey: vi.fn(),
+        setShowMinimap: mockSetShowMinimap,
+        showMinimap: true,
+      };
+      return selector ? selector(state) : state;
+    },
+  ),
 }));
 
 vi.mock('@genfeedai/workflow-ui/stores', () => ({
@@ -182,7 +197,9 @@ describe('SettingsModal', () => {
       fireEvent.click(screen.getByText('API Keys'));
 
       expect(screen.getByText('AI Assistant (BYOK)')).toBeInTheDocument();
-      expect(screen.getByText('Content Generation (Server)')).toBeInTheDocument();
+      expect(
+        screen.getByText('Content Generation (Server)'),
+      ).toBeInTheDocument();
     });
 
     it('should switch to appearance tab', () => {
@@ -229,7 +246,9 @@ describe('SettingsModal', () => {
       render(<SettingsModal />);
 
       const closeButtons = screen.getAllByRole('button');
-      const closeButton = closeButtons.find((btn) => btn.querySelector('svg.lucide-x'));
+      const closeButton = closeButtons.find((btn) =>
+        btn.querySelector('svg.lucide-x'),
+      );
       if (closeButton) fireEvent.click(closeButton);
 
       expect(mockCloseModal).toHaveBeenCalled();
@@ -267,7 +286,9 @@ describe('SettingsModal - API Keys Tab', () => {
 
     fireEvent.click(screen.getByText('API Keys'));
 
-    expect(screen.getByText('Configured via .env files on the server')).toBeInTheDocument();
+    expect(
+      screen.getByText('Configured via .env files on the server'),
+    ).toBeInTheDocument();
   });
 
   it('should render provider names in API key status list', () => {

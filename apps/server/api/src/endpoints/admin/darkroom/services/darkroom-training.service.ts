@@ -1,8 +1,9 @@
-import { PersonasService } from '@api/collections/personas/services/personas.service';
-import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
-import { ConfigService } from '@api/config/config.service';
+import type { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
+import type { PersonasService } from '@api/collections/personas/services/personas.service';
+import type { TrainingsService } from '@api/collections/trainings/services/trainings.service';
+import type { ConfigService } from '@api/config/config.service';
 import { LoraStatus, TrainingStage, TrainingStatus } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
@@ -66,6 +67,7 @@ export class DarkroomTrainingService {
     private readonly personasService: PersonasService,
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
+    private readonly modelRegistrationService: ModelRegistrationService,
   ) {
     this.imagesApiUrl = this.configService.get('GPU_IMAGES_URL') ?? '';
   }
@@ -277,6 +279,25 @@ export class DarkroomTrainingService {
         await this.updateStage(trainingId, TrainingStage.COMPLETED, 100, {
           loraName,
         });
+
+        // Register trained model in the model registry
+        try {
+          const completedTraining = await this.trainingsService.findOne({
+            _id: trainingId,
+          });
+          if (completedTraining) {
+            await this.modelRegistrationService.createFromTraining(
+              completedTraining,
+            );
+          }
+        } catch (err) {
+          // Non-fatal: reconciliation job will retry
+          this.loggerService.error(caller, {
+            error: err instanceof Error ? err.message : String(err),
+            message: `Failed to register Darkroom model from training ${trainingId}`,
+            trainingId,
+          });
+        }
 
         this.loggerService.log(caller, {
           gpuJobId,

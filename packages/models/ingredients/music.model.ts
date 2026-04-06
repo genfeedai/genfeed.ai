@@ -1,5 +1,5 @@
-import type { IMusic } from '@genfeedai/interfaces';
 import { IngredientCategory } from '@genfeedai/enums';
+import type { IMusic } from '@genfeedai/interfaces';
 import { Ingredient } from '@models/content/ingredient.model';
 
 export class Music extends Ingredient implements IMusic {

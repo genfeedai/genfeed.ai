@@ -1,5 +1,5 @@
-import type { IPreset } from '@genfeedai/interfaces';
 import type { Platform } from '@genfeedai/enums';
+import type { IPreset } from '@genfeedai/interfaces';
 
 /**
  * Props for content enhancement prompt bars (Post, Article, etc.)

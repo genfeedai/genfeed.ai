@@ -1,9 +1,7 @@
-import { buildSingleSerializer, type BuiltSerializer } from '../../builders';
+import { type BuiltSerializer, buildSingleSerializer } from '../../builders';
 import { elementBlacklistSerializerConfig } from '../../configs';
 
-export const ElementBlacklistSerializer: BuiltSerializer = buildSingleSerializer(
-  'server',
-  elementBlacklistSerializerConfig,
-);
+export const ElementBlacklistSerializer: BuiltSerializer =
+  buildSingleSerializer('server', elementBlacklistSerializerConfig);
 
 export { ElementBlacklistSerializer as BlacklistSerializer };

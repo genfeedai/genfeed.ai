@@ -1,7 +1,7 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import type { IBotResolvedUser } from '@genfeedai/interfaces';
 import { CredentialPlatform } from '@genfeedai/enums';
+import type { IBotResolvedUser } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

@@ -1,11 +1,11 @@
+import { StripeCheckoutSerializer } from '@genfeedai/client/serializers';
+import { SubscriptionStatus } from '@genfeedai/enums';
 import type {
   CreateCheckoutSessionDto,
   IBillingPortalResponse,
   ICheckoutSessionResponse,
   IClerkPublicData,
 } from '@genfeedai/interfaces';
-import { StripeCheckoutSerializer } from '@genfeedai/client/serializers';
-import { SubscriptionStatus } from '@genfeedai/enums';
 import {
   deserializeResource,
   type JsonApiResponseDocument,

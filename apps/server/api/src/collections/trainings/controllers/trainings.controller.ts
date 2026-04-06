@@ -1,15 +1,15 @@
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
-import { CreateTrainingDto } from '@api/collections/trainings/dto/create-training.dto';
-import { TrainingsQueryDto } from '@api/collections/trainings/dto/trainings-query.dto';
-import { UpdateTrainingDto } from '@api/collections/trainings/dto/update-training.dto';
+import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { ModelsService } from '@api/collections/models/services/models.service';
+import type { CreateTrainingDto } from '@api/collections/trainings/dto/create-training.dto';
+import type { TrainingsQueryDto } from '@api/collections/trainings/dto/trainings-query.dto';
+import type { UpdateTrainingDto } from '@api/collections/trainings/dto/update-training.dto';
 import { TrainingEntity } from '@api/collections/trainings/entities/training.entity';
 import {
   Training,
   type TrainingDocument,
 } from '@api/collections/trainings/schemas/training.schema';
-import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
-import { ConfigService } from '@api/config/config.service';
+import type { TrainingsService } from '@api/collections/trainings/services/trainings.service';
+import type { ConfigService } from '@api/config/config.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -28,21 +28,21 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { TrainingFilterUtil } from '@api/helpers/utils/training-filter/training-filter.util';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import {
+  ActivitySource,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
 import { TrainingSerializer } from '@genfeedai/serializers';
-import {
-  ActivitySource,
-  IngredientCategory,
-  IngredientStatus,
-  ModelKey,
-} from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
@@ -282,7 +282,7 @@ export class TrainingsController extends BaseCRUDController<
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @Credits({
     description: 'Model training',
-    modelKey: ModelKey.REPLICATE_FAST_FLUX_TRAINER,
+    modelKey: MODEL_KEYS.REPLICATE_FAST_FLUX_TRAINER,
     source: ActivitySource.MODELS_TRAINING,
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -361,7 +361,7 @@ export class TrainingsController extends BaseCRUDController<
         try {
           const defaultTrainer = await this.modelsService.findOne({
             isDefault: true,
-            key: { $regex: `^${ModelKey.REPLICATE_FAST_FLUX_TRAINER}` },
+            key: { $regex: `^${MODEL_KEYS.REPLICATE_FAST_FLUX_TRAINER}` },
             provider: 'replicate',
           });
           resolvedModel = defaultTrainer?.key;

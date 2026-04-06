@@ -31,7 +31,7 @@ function PreviewNodeComponent({ data }: PreviewNodeProps) {
 
 // Generate preview node types from NODE_DEFINITIONS
 const previewNodeTypes: NodeTypes = Object.fromEntries(
-  Object.keys(NODE_DEFINITIONS).map((key) => [key, PreviewNodeComponent])
+  Object.keys(NODE_DEFINITIONS).map((key) => [key, PreviewNodeComponent]),
 );
 
 interface WorkflowPreviewProps {
@@ -61,7 +61,9 @@ function WorkflowPreviewInner({ nodes, edges }: WorkflowPreviewProps) {
       visited.add(nodeId);
       const sources = incomingEdges.get(nodeId) ?? [];
       const depth =
-        sources.length === 0 ? 0 : Math.max(...sources.map((s) => getDepth(s, visited))) + 1;
+        sources.length === 0
+          ? 0
+          : Math.max(...sources.map((s) => getDepth(s, visited))) + 1;
       depths.set(nodeId, depth);
       return depth;
     };
@@ -107,7 +109,7 @@ function WorkflowPreviewInner({ nodes, edges }: WorkflowPreviewProps) {
         ...edge,
         style: { stroke: '#525252', strokeWidth: 1 },
       })),
-    [edges]
+    [edges],
   );
 
   if (nodes.length === 0) {
@@ -143,7 +145,9 @@ function WorkflowPreviewInner({ nodes, edges }: WorkflowPreviewProps) {
   );
 }
 
-export const WorkflowPreview = memo(function WorkflowPreview(props: WorkflowPreviewProps) {
+export const WorkflowPreview = memo(function WorkflowPreview(
+  props: WorkflowPreviewProps,
+) {
   return (
     <ReactFlowProvider>
       <WorkflowPreviewInner {...props} />

@@ -3,7 +3,7 @@ import type {
   ComfyUIPrompt,
   ComfyUIWorkflowTemplate,
 } from '@genfeedai/types';
-import { ComfyUIClient } from './client';
+import type { ComfyUIClient } from './client';
 
 /**
  * Resolves a ComfyUI workflow template with user-provided inputs,

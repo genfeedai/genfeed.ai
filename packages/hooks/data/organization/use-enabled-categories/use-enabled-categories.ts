@@ -1,5 +1,5 @@
-import type { IOrganizationSetting } from '@genfeedai/interfaces';
 import { IngredientCategory } from '@genfeedai/enums';
+import type { IOrganizationSetting } from '@genfeedai/interfaces';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { useMemo } from 'react';
 

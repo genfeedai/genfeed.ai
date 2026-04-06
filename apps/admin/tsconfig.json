@@ -18,9 +18,7 @@
       "@contexts/*": ["../../packages/contexts/*"],
       "@genfeedai/client": ["../../packages/client/dist/index"],
       "@genfeedai/client/*": ["../../packages/client/dist/*"],
-      "@genfeedai/client/schemas": [
-        "../../packages/client/dist/schemas/index"
-      ],
+      "@genfeedai/client/schemas": ["../../packages/client/dist/schemas/index"],
       "@genfeedai/client/schemas/*": [
         "../../packages/client/dist/schemas/*/index",
         "../../packages/client/dist/schemas/*"
@@ -45,7 +43,6 @@
       "@ui-constants/*": ["./packages/ui/constants/*"],
       "@ui/*": ["./packages/ui/*"],
       "@utils/*": ["../../packages/utils/*"],
-      "@workflow-cloud/*": ["../../packages/workflow-cloud/src/*"],
       "@workflow-engine/*": ["../../packages/workflow-engine/src/*"],
       "@workflow-saas/*": ["../../packages/workflow-saas/src/*"]
     }

@@ -1,17 +1,17 @@
 'use client';
 
-import type {
-  IFilters,
-  IFolder,
-  IIngredient,
-  IMediaEventData,
-} from '@genfeedai/interfaces';
 import type { AssetScope } from '@genfeedai/enums';
 import {
   IngredientCategory,
   ModalEnum,
   WebSocketEventStatus,
 } from '@genfeedai/enums';
+import type {
+  IFilters,
+  IFolder,
+  IIngredient,
+  IMediaEventData,
+} from '@genfeedai/interfaces';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';

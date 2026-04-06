@@ -1,8 +1,8 @@
 'use client';
 
-import type { IOrganizationSetting } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { AgentAutonomyMode } from '@genfeedai/enums';
+import type { IOrganizationSetting } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { logger } from '@services/core/logger.service';

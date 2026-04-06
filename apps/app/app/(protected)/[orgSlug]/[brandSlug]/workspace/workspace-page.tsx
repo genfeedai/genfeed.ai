@@ -320,7 +320,7 @@ const WorkspaceBrandMentionList = forwardRef<
 
   useEffect(() => {
     setSelectedIndex(0);
-  }, [items]);
+  }, []);
 
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }: { event: KeyboardEvent }) => {
@@ -506,7 +506,7 @@ function useWorkspaceTaskLinkedRunSummary(
     getEmptyLinkedRunSummary(),
   );
   const [isLoading, setIsLoading] = useState(false);
-  const linkedRunIdsKey = useMemo(
+  const _linkedRunIdsKey = useMemo(
     () => task?.linkedRunIds.join('|') ?? '',
     [task?.linkedRunIds],
   );
@@ -604,7 +604,7 @@ function useWorkspaceTaskLinkedRunSummary(
       isCancelled = true;
       controller.abort();
     };
-  }, [getToken, linkedRunIdsKey, task]);
+  }, [getToken, task]);
 
   return {
     ...summary,
@@ -654,7 +654,7 @@ function useWorkspaceTaskLinkedOutputs(
   const [summary, setSummary] = useState<WorkspaceTaskLinkedOutputSummary>(
     getEmptyLinkedOutputSummary(),
   );
-  const linkedOutputIdsKey = useMemo(
+  const _linkedOutputIdsKey = useMemo(
     () => task?.linkedOutputIds.join('|') ?? '',
     [task?.linkedOutputIds],
   );
@@ -738,7 +738,7 @@ function useWorkspaceTaskLinkedOutputs(
     return () => {
       isCancelled = true;
     };
-  }, [getToken, linkedOutputIdsKey, task]);
+  }, [getToken, task]);
 
   return summary;
 }
@@ -1555,7 +1555,6 @@ export default function WorkspacePageContent({
         return unreadInboxTasks;
       case 'all':
         return queueTasks;
-      case 'recent':
       default:
         return recentInboxTasks;
     }
@@ -1585,6 +1584,7 @@ export default function WorkspacePageContent({
       initialStats,
       inProgressTasks.length,
       queueTasks.length,
+      initialReviewInbox.recentItems.length,
     ],
   );
 

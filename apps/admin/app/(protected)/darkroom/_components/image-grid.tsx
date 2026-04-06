@@ -1,7 +1,7 @@
 'use client';
 
-import type { IDarkroomAsset } from '@genfeedai/interfaces';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type { IDarkroomAsset } from '@genfeedai/interfaces';
 import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import { Checkbox } from '@ui/primitives/checkbox';

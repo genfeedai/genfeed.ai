@@ -1,4 +1,3 @@
-import type { ModelKey } from '@genfeedai/enums';
 import { usePromptBarEnhancement } from '@hooks/prompt-bar/use-prompt-bar-enhancement/use-prompt-bar-enhancement';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -78,7 +77,7 @@ const createBaseOptions = () => ({
   setTextValue: vi.fn(),
   subscribe: vi.fn().mockReturnValue(vi.fn()),
   textareaRef: { current: { style: { height: '0' }, value: '' } },
-  watchedModel: 'google/veo-3.1' as ModelKey,
+  watchedModel: 'google/veo-3.1' as string,
 });
 
 describe('usePromptBarEnhancement', () => {

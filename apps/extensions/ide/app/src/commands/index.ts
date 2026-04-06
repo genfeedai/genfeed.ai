@@ -17,7 +17,6 @@ import {
   type CampaignAuthoringContext,
   IngredientFormat,
   MODEL_DISPLAY_NAMES,
-  type ModelKey,
   type PromptTemplate,
   type RunActionType,
   type RunRecord,
@@ -838,7 +837,7 @@ export function registerCommands(
         async () => {
           const result = await ApiService.getInstance().generateImage({
             format: formatMap[selectedFormat.label],
-            model: selectedModel?.description as ModelKey,
+            model: selectedModel?.description as string,
             text: prompt,
             waitForCompletion: true,
           });

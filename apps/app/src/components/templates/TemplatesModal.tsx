@@ -5,6 +5,7 @@ import type { EdgeStyle } from '@genfeedai/types';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import Button from '@ui/buttons/base/Button';
 import { Input } from '@ui/primitives/input';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { ArrowLeft, ArrowRight, ExternalLink, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
@@ -149,6 +150,7 @@ function TemplateSection({
 
 function TemplatesModalComponent() {
   const router = useRouter();
+  const { href } = useOrgUrl();
   const { activeModal, closeModal } = useUIStore();
   const { loadWorkflow, saveWorkflow } = useWorkflowStore();
 
@@ -281,7 +283,7 @@ function TemplatesModalComponent() {
 
         const savedWorkflow = await saveWorkflow();
         closeModal();
-        router.push(`/workflows/${savedWorkflow._id}`);
+        router.push(href(`/workflows/${savedWorkflow._id}`));
       } catch (err) {
         setError(
           err instanceof Error ? err.message : 'Failed to create workflow',
@@ -290,7 +292,7 @@ function TemplatesModalComponent() {
         setIsSaving(false);
       }
     },
-    [loadWorkflow, saveWorkflow, closeModal, router],
+    [loadWorkflow, saveWorkflow, closeModal, router, href],
   );
 
   const toggleProvider = useCallback((provider: ProviderName) => {

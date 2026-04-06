@@ -80,7 +80,7 @@ function AIGeneratorPanelComponent() {
         role: m.role,
       }));
 
-      const response = await fetch('/api/ai/generate-workflow', {
+      const response = await fetch('/v1/core/ai/generate-workflow', {
         body: JSON.stringify({
           conversationHistory,
           prompt: userMessage.content,

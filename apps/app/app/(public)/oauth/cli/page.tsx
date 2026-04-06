@@ -466,7 +466,11 @@ function CopyKeyFallback({
         key:
       </p>
       <div className="flex items-center gap-2">
-        <Code display="block" size="sm" className="flex-1 border border-white/10 text-white/70 truncate select-all">
+        <Code
+          display="block"
+          size="sm"
+          className="flex-1 border border-white/10 text-white/70 truncate select-all"
+        >
           {apiKey}
         </Code>
         <Button

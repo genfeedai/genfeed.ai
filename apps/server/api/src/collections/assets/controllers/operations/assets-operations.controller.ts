@@ -6,17 +6,17 @@
  * - Create assets from ingredients
  */
 
-import { CreateAssetDto } from '@api/collections/assets/dto/create-asset.dto';
-import { CreateFromIngredientDto } from '@api/collections/assets/dto/create-from-ingredient.dto';
-import { GenerateAssetDto } from '@api/collections/assets/dto/generate-asset.dto';
+import type { CreateAssetDto } from '@api/collections/assets/dto/create-asset.dto';
+import type { CreateFromIngredientDto } from '@api/collections/assets/dto/create-from-ingredient.dto';
+import type { GenerateAssetDto } from '@api/collections/assets/dto/generate-asset.dto';
 import { AssetEntity } from '@api/collections/assets/entities/asset.entity';
-import { AssetsService } from '@api/collections/assets/services/assets.service';
+import type { AssetsService } from '@api/collections/assets/services/assets.service';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { ConfigService } from '@api/config/config.service';
-import { ValidationConfigService } from '@api/config/services/validation.config';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { ConfigService } from '@api/config/config.service';
+import type { ValidationConfigService } from '@api/config/services/validation.config';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -33,14 +33,13 @@ import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { CacheService } from '@api/services/cache/services/cache.service';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import type { CacheService } from '@api/services/cache/services/cache.service';
+import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import type { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import type { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import type { User } from '@clerk/backend';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
-import { AssetSerializer } from '@genfeedai/serializers';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivitySource,
   AssetCategory,
@@ -48,8 +47,9 @@ import {
   FileInputType,
   IngredientCategory,
   ModelCategory,
-  ModelKey,
 } from '@genfeedai/enums';
+import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import { AssetSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
@@ -164,8 +164,8 @@ export class AssetsOperationsController {
     }
 
     const selectedModel = this.configService.isProduction
-      ? ModelKey.REPLICATE_GOOGLE_NANO_BANANA
-      : ModelKey.REPLICATE_GOOGLE_IMAGEN_3_FAST;
+      ? MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA
+      : MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3_FAST;
 
     // Build enhanced prompt using brand information
     let enhancedPrompt = text;
@@ -235,7 +235,7 @@ export class AssetsOperationsController {
     );
 
     const { input: promptParams } = await this.promptBuilderService.buildPrompt(
-      selectedModel as ModelKey,
+      selectedModel as string,
       {
         brand: brand
           ? {
@@ -255,7 +255,7 @@ export class AssetsOperationsController {
     );
 
     const generationId = await this.replicateService.generateTextToImage(
-      selectedModel as ModelKey,
+      selectedModel as string,
       promptParams,
     );
 

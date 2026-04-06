@@ -4,8 +4,9 @@ import type {
   VideoCompleteEvent,
   VideoProgressEvent,
 } from '@libs/interfaces/websockets.interface';
-import { RedisService } from '@libs/redis/redis.service';
+import type { RedisService } from '@libs/redis/redis.service';
 import { Injectable } from '@nestjs/common';
+import { getUserRoomName } from './room-name.util';
 
 @Injectable()
 export class WebSocketService {
@@ -22,7 +23,7 @@ export class WebSocketService {
   }
 
   private getRoom(userId: string, room?: string): string {
-    return room ?? `user-${userId}`;
+    return room ?? getUserRoomName(userId);
   }
 
   async publishVideoProgress(

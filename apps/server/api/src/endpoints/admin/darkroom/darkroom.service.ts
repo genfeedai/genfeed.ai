@@ -1,26 +1,26 @@
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CreatorScraperService } from '@api/collections/content-intelligence/services/creator-scraper.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { CreatorScraperService } from '@api/collections/content-intelligence/services/creator-scraper.service';
+import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import type { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
-import { PersonasService } from '@api/collections/personas/services/personas.service';
+import type { PersonasService } from '@api/collections/personas/services/personas.service';
 import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
-import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
-import { ConfigService } from '@api/config/config.service';
+import type { TrainingsService } from '@api/collections/trainings/services/trainings.service';
+import type { ConfigService } from '@api/config/config.service';
 import type { GenerateImageDto } from '@api/endpoints/admin/darkroom/dto/generate-image.dto';
 import type { DarkroomGenerationJob } from '@api/endpoints/admin/darkroom/interfaces/darkroom-generation-job.interface';
-import { DarkroomTrainingService } from '@api/endpoints/admin/darkroom/services/darkroom-training.service';
+import type { DarkroomTrainingService } from '@api/endpoints/admin/darkroom/services/darkroom-training.service';
 import { getErrorMessage } from '@api/helpers/utils/error/get-error-message.util';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
-import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
-import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
-import { FleetService } from '@api/services/integrations/fleet/fleet.service';
-import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
-import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
-import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
+import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import type { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
+import type { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
+import type { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
+import type { FleetService } from '@api/services/integrations/fleet/fleet.service';
+import type { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import type { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import type { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import {
   CloudFrontClient,
@@ -32,23 +32,23 @@ import {
   StartInstancesCommand,
   StopInstancesCommand,
 } from '@aws-sdk/client-ec2';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import type { DarkroomReviewStatus } from '@genfeedai/enums';
 import {
   ContentIntelligencePlatform,
-  ContentRating,
+  type ContentRating,
   CredentialPlatform,
-  DarkroomAssetLabel,
+  type DarkroomAssetLabel,
   DarkroomReviewStatus as DarkroomReviewStatusEnum,
   FileInputType,
   IngredientCategory,
   IngredientStatus,
   LoraStatus,
-  ModelKey,
   TrainingCategory,
   TrainingProvider,
   TrainingStage,
 } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   BadRequestException,
@@ -383,7 +383,7 @@ export class DarkroomService {
     const steps = data.steps ?? autoTuned.steps;
     const loraRank = data.loraRank ?? autoTuned.rank;
     const learningRate = data.learningRate ?? autoTuned.learningRate;
-    const baseModel = data.baseModel ?? ModelKey.GENFEED_AI_Z_IMAGE_TURBO;
+    const baseModel = data.baseModel ?? MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO;
     const triggerWord = persona.triggerWord ?? data.personaSlug;
     const loraName = data.loraName ?? `${triggerWord}_zimage`;
 
@@ -885,7 +885,7 @@ export class DarkroomService {
     }
 
     // Determine model and parameters
-    const model = options.model || ModelKey.GENFEED_AI_FLUX2_DEV;
+    const model = options.model || MODEL_KEYS.GENFEED_AI_FLUX2_DEV;
     const comfyParams: Record<string, unknown> = {
       prompt,
     };
@@ -1153,11 +1153,11 @@ export class DarkroomService {
       generationError: undefined,
       generationProgress: 5,
       generationPrompt: dto.prompt,
-      generationSource: dto.model || ModelKey.GENFEED_AI_FLUX2_DEV,
+      generationSource: dto.model || MODEL_KEYS.GENFEED_AI_FLUX2_DEV,
       generationStage: 'queued',
       generationStartedAt: new Date(),
       loraUsed: loraPath,
-      modelUsed: dto.model || ModelKey.GENFEED_AI_FLUX2_DEV,
+      modelUsed: dto.model || MODEL_KEYS.GENFEED_AI_FLUX2_DEV,
       negativePrompt: dto.negativePrompt,
       organization: ObjectIdUtil.toObjectId(organizationId)!,
       persona: persona._id,

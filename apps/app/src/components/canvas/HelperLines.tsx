@@ -32,15 +32,19 @@ function HelperLinesComponent({ draggingNodeId }: HelperLinesProps) {
         return;
       }
 
-      const otherNodes = nodes.filter((n) => n.id !== draggingId && !n.selected);
+      const otherNodes = nodes.filter(
+        (n) => n.id !== draggingId && !n.selected,
+      );
       if (otherNodes.length === 0) {
         setLines([]);
         return;
       }
 
       // Get dragging node bounds (using default size if not available)
-      const dragWidth = draggingNode.measured?.width ?? draggingNode.width ?? 220;
-      const dragHeight = draggingNode.measured?.height ?? draggingNode.height ?? 100;
+      const dragWidth =
+        draggingNode.measured?.width ?? draggingNode.width ?? 220;
+      const dragHeight =
+        draggingNode.measured?.height ?? draggingNode.height ?? 100;
       const dragLeft = draggingNode.position.x;
       const dragRight = dragLeft + dragWidth;
       const dragTop = draggingNode.position.y;
@@ -66,7 +70,11 @@ function HelperLinesComponent({ draggingNodeId }: HelperLinesProps) {
           { dragPos: dragLeft, label: 'left-right', nodePos: nodeRight },
           { dragPos: dragRight, label: 'right-left', nodePos: nodeLeft },
           { dragPos: dragRight, label: 'right-right', nodePos: nodeRight },
-          { dragPos: dragCenterX, label: 'center-center-x', nodePos: nodeCenterX },
+          {
+            dragPos: dragCenterX,
+            label: 'center-center-x',
+            nodePos: nodeCenterX,
+          },
         ];
 
         for (const check of verticalChecks) {
@@ -86,7 +94,11 @@ function HelperLinesComponent({ draggingNodeId }: HelperLinesProps) {
           { dragPos: dragTop, label: 'top-bottom', nodePos: nodeBottom },
           { dragPos: dragBottom, label: 'bottom-top', nodePos: nodeTop },
           { dragPos: dragBottom, label: 'bottom-bottom', nodePos: nodeBottom },
-          { dragPos: dragCenterY, label: 'center-center-y', nodePos: nodeCenterY },
+          {
+            dragPos: dragCenterY,
+            label: 'center-center-y',
+            nodePos: nodeCenterY,
+          },
         ];
 
         for (const check of horizontalChecks) {
@@ -111,7 +123,8 @@ function HelperLinesComponent({ draggingNodeId }: HelperLinesProps) {
           seenPositions.add(key);
           // Extend line to cover all matching nodes
           const existingLine = uniqueLines.find(
-            (l) => l.type === line.type && Math.abs(l.position - line.position) < 1
+            (l) =>
+              l.type === line.type && Math.abs(l.position - line.position) < 1,
           );
           if (existingLine) {
             existingLine.start = Math.min(existingLine.start, line.start);
@@ -124,7 +137,7 @@ function HelperLinesComponent({ draggingNodeId }: HelperLinesProps) {
 
       setLines(uniqueLines);
     },
-    [nodes]
+    [nodes],
   );
 
   // Update helper lines when dragging node changes position

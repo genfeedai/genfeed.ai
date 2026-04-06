@@ -1,6 +1,6 @@
 import { LoggerModule } from '@libs/logger/logger.module';
 import { RedisService } from '@libs/redis/redis.service';
-import { DynamicModule, Global, Module, Type } from '@nestjs/common';
+import { type DynamicModule, Global, Module, type Type } from '@nestjs/common';
 
 export interface RedisModuleOptions {
   /** The ConfigModule to import */

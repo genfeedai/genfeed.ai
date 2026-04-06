@@ -1,3 +1,10 @@
+import {
+  ArticleCategory,
+  ArticleStatus,
+  AssetCategory,
+  AssetParent,
+  AssetScope,
+} from '@genfeedai/enums';
 import type {
   IArticle,
   IAsset,
@@ -8,13 +15,6 @@ import type {
   ITag,
   IUser,
 } from '@genfeedai/interfaces';
-import {
-  ArticleCategory,
-  ArticleStatus,
-  AssetCategory,
-  AssetParent,
-  AssetScope,
-} from '@genfeedai/enums';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/client/models', () => ({

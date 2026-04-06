@@ -1,4 +1,4 @@
-import { ActivitySource, type ByokProvider } from '@genfeedai/enums';
+import type { ActivitySource, ByokProvider } from '@genfeedai/enums';
 
 /**
  * Configuration for the @Credits decorator.

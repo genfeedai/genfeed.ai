@@ -4,7 +4,7 @@ import {
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { act, render, screen } from '@testing-library/react';
-import { type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@ui/buttons/base/Button', () => ({

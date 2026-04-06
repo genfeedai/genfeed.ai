@@ -1,6 +1,6 @@
-import type { IPreset } from '@genfeedai/interfaces';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { ModelCategory } from '@genfeedai/enums';
+import type { IPreset } from '@genfeedai/interfaces';
 import type { PromptBarMetadataSelectorsProps } from '@props/prompt-bars/prompt-bar-metadata-selectors.props';
 import { render } from '@testing-library/react';
 import PromptBarMetadataSelectors from '@ui/prompt-bars/components/metadata-selectors/PromptBarMetadataSelectors';

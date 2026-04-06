@@ -1,32 +1,66 @@
 import { ModelSchema } from '@api/collections/models/schemas/model.schema';
-import { getModelToken } from '@nestjs/mongoose';
-import { Test, TestingModule } from '@nestjs/testing';
 
 describe('ModelSchema', () => {
-  let _module: TestingModule;
-
-  beforeEach(async () => {
-    _module = await Test.createTestingModule({
-      providers: [
-        {
-          provide: getModelToken('Model'),
-          useValue: {
-            create: vi.fn(),
-            find: vi.fn(),
-            findById: vi.fn(),
-            findOne: vi.fn(),
-            save: vi.fn(),
-          },
-        },
-      ],
-    }).compile();
-  });
-
   it('should be defined', () => {
     expect(ModelSchema).toBeDefined();
   });
 
-  // it('should have required fields', () => {
-  //   // Test schema structure
-  // });
+  describe('Dynamic Registry Fields (v6)', () => {
+    it('should have organization field with ref Organization and default null', () => {
+      const path = ModelSchema.path('organization');
+      expect(path).toBeDefined();
+      expect((path as { options: Record<string, unknown> }).options.ref).toBe(
+        'Organization',
+      );
+      expect(
+        (path as { options: Record<string, unknown> }).options.default,
+      ).toBeNull();
+    });
+
+    it('should have training field with ref Training and default null', () => {
+      const path = ModelSchema.path('training');
+      expect(path).toBeDefined();
+      expect((path as { options: Record<string, unknown> }).options.ref).toBe(
+        'Training',
+      );
+      expect(
+        (path as { options: Record<string, unknown> }).options.default,
+      ).toBeNull();
+    });
+
+    it('should have parentModel field with ref Model and default null', () => {
+      const path = ModelSchema.path('parentModel');
+      expect(path).toBeDefined();
+      expect((path as { options: Record<string, unknown> }).options.ref).toBe(
+        'Model',
+      );
+      expect(
+        (path as { options: Record<string, unknown> }).options.default,
+      ).toBeNull();
+    });
+
+    it('should have providerModelId String field with default null', () => {
+      const path = ModelSchema.path('providerModelId');
+      expect(path).toBeDefined();
+      expect(
+        (path as { options: Record<string, unknown> }).options.default,
+      ).toBeNull();
+    });
+
+    it('should have providerConfig Mixed field with default null', () => {
+      const path = ModelSchema.path('providerConfig');
+      expect(path).toBeDefined();
+      expect(
+        (path as { options: Record<string, unknown> }).options.default,
+      ).toBeNull();
+    });
+
+    it('should have triggerWord String field with default null', () => {
+      const path = ModelSchema.path('triggerWord');
+      expect(path).toBeDefined();
+      expect(
+        (path as { options: Record<string, unknown> }).options.default,
+      ).toBeNull();
+    });
+  });
 });

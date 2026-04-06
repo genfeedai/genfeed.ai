@@ -13,8 +13,8 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ImagesTransformationsController } from '@api/collections/images/controllers/transformations/images-transformations.controller';
-import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
-import { ImageEditDto } from '@api/collections/images/dto/image-edit.dto';
+import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
+import type { ImageEditDto } from '@api/collections/images/dto/image-edit.dto';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
@@ -32,10 +32,10 @@ import { RouterService } from '@api/services/router/router.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { User } from '@clerk/backend';
-import { ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { Types } from 'mongoose';
 
@@ -112,7 +112,7 @@ describe('ImagesTransformationsController', () => {
     modelsService: {
       findOne: vi.fn().mockResolvedValue({
         cost: 5,
-        key: ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        key: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
       }),
     },
     notificationsPublisherService: {
@@ -138,7 +138,7 @@ describe('ImagesTransformationsController', () => {
     routerService: {
       getDefaultModel: vi
         .fn()
-        .mockResolvedValue(ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE),
+        .mockResolvedValue(MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE),
     },
     sharedService: {
       saveDocuments: vi.fn().mockResolvedValue({
@@ -394,7 +394,7 @@ describe('ImagesTransformationsController', () => {
   describe('upscaleImage', () => {
     it('should upscale an image', async () => {
       const imageEditDto: ImageEditDto = {
-        model: ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        model: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
         outputFormat: 'jpg',
         upscaleFactor: '4x',
       };
@@ -440,7 +440,7 @@ describe('ImagesTransformationsController', () => {
       expect(
         mockServices.promptBuilderService.buildPrompt,
       ).toHaveBeenCalledWith(
-        ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
         expect.objectContaining({
           enhance_model: 'Low Resolution V2',
           output_format: 'jpg',

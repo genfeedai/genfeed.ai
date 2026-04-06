@@ -18,7 +18,7 @@ export default function IngredientTabsSharing({
   const notificationsService = NotificationsService.getInstance();
 
   const handleCopyLink = async () => {
-    if (!ingredient || !ingredient.category) {
+    if (!ingredient?.category) {
       return;
     }
 

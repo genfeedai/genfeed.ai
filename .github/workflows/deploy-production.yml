@@ -1,4 +1,6 @@
 # Production Deployment — thin caller for the reusable _deploy.yml workflow
+# ONLY triggers on master push. Contributors PR against develop; maintainers
+# merge develop → master to deploy. No external contributor can trigger this.
 
 name: Deploy Production
 

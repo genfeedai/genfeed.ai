@@ -1,5 +1,5 @@
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
-  ModelKey,
   TrainingCategory,
   TrainingProvider,
   TrainingStage,
@@ -136,12 +136,12 @@ export class Training {
   isActive!: boolean;
 
   @Prop({
-    default: ModelKey.GENFEED_AI_Z_IMAGE_TURBO,
+    default: MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
     required: false,
     type: String,
   })
   @ApiProperty({
-    default: ModelKey.GENFEED_AI_Z_IMAGE_TURBO,
+    default: MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
     description: 'Base model used for training',
   })
   baseModel?: string;

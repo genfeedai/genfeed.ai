@@ -12,7 +12,7 @@ interface ResolvePostSignupIntentInput {
 }
 
 function extractDomain(email?: string | null): string | null {
-  if (!email || !email.includes('@')) {
+  if (!email?.includes('@')) {
     return null;
   }
 

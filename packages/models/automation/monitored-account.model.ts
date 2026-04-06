@@ -1,5 +1,5 @@
-import type { IMonitoredAccount } from '@genfeedai/interfaces';
 import { MonitoredAccount as BaseMonitoredAccount } from '@genfeedai/client/models';
+import type { IMonitoredAccount } from '@genfeedai/interfaces';
 
 export class MonitoredAccount extends BaseMonitoredAccount {
   constructor(partial: Partial<IMonitoredAccount> = {}) {

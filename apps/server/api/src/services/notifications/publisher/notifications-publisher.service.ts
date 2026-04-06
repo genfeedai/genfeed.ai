@@ -1,13 +1,14 @@
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { Status } from '@genfeedai/enums';
 import type {
   IBackgroundTaskUpdatePayload,
   IMediaResult,
   INotificationData,
 } from '@genfeedai/interfaces';
-import { Status } from '@genfeedai/enums';
 import { RedisService } from '@libs/redis/redis.service';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
 import { Types } from 'mongoose';
 
@@ -326,7 +327,7 @@ export class NotificationsPublisherService {
       remainingDurationMs: data.remainingDurationMs,
       resultId: data.resultId,
       resultType: data.resultType,
-      room: data.room || `user-${data.userId}`,
+      room: data.room || getUserRoomName(data.userId),
       startedAt: data.startedAt,
       status: data.status,
       taskId: data.taskId,
