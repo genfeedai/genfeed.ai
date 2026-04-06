@@ -71,8 +71,9 @@ describe('ModelsService', () => {
   it('findAllActive queries for active non-deleted models', async () => {
     const activeModels = [{ key: 'model-1' }, { key: 'model-2' }];
     mockModel.find.mockReturnValue({
-      exec: vi.fn().mockResolvedValue(activeModels),
-      lean: vi.fn(),
+      lean: vi
+        .fn()
+        .mockReturnValue({ exec: vi.fn().mockResolvedValue(activeModels) }),
     });
     const result = await service.findAllActive();
     expect(result).toEqual(activeModels);
@@ -95,7 +96,7 @@ describe('ModelsService', () => {
 
   it('findAllActive returns empty array when no active models', async () => {
     mockModel.find.mockReturnValue({
-      exec: vi.fn().mockResolvedValue([]),
+      lean: vi.fn().mockReturnValue({ exec: vi.fn().mockResolvedValue([]) }),
     });
     const result = await service.findAllActive();
     expect(result).toEqual([]);
