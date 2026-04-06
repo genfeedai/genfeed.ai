@@ -63,15 +63,16 @@ export function parseRedisConnection(configService: {
 
 /**
  * Build node-redis v4 createClient socket options (for pub/sub, cache, etc.)
+ * Returns a properly typed object for createClient({ socket: ... }).
  */
 export function buildNodeRedisSocketOptions(
   config: ParsedRedisConfig,
   connectTimeout = 3_000,
-) {
-  return {
-    connectTimeout,
-    ...(config.tls && { tls: true }),
-  };
+): { connectTimeout: number; tls: true } | { connectTimeout: number } {
+  if (config.tls) {
+    return { connectTimeout, tls: true };
+  }
+  return { connectTimeout };
 }
 
 /**
