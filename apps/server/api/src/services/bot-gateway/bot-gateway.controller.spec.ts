@@ -5,8 +5,8 @@ import { SlackBotAdapter } from '@api/services/bot-gateway/adapters/slack-bot.ad
 import { TelegramBotAdapter } from '@api/services/bot-gateway/adapters/telegram-bot.adapter';
 import { BotGatewayController } from '@api/services/bot-gateway/bot-gateway.controller';
 import { BotGatewayService } from '@api/services/bot-gateway/bot-gateway.service';
-import type { IBotPlatformAdapter, IBotResponse } from '@genfeedai/interfaces';
 import { BotInteractionType, BotResponseType } from '@genfeedai/enums';
+import type { IBotPlatformAdapter, IBotResponse } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

@@ -17,11 +17,6 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { User } from '@clerk/backend';
-import type {
-  ITextOverlayBodyParams,
-  ITrimVideoBodyParams,
-} from '@genfeedai/interfaces';
-import { IngredientSerializer } from '@genfeedai/serializers';
 import {
   FileInputType,
   IngredientCategory,
@@ -30,9 +25,14 @@ import {
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/enums';
+import type {
+  ITextOverlayBodyParams,
+  ITrimVideoBodyParams,
+} from '@genfeedai/interfaces';
+import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
   Body,
   Controller,

@@ -15,13 +15,13 @@ import {
   type BatchDocument,
   type ContentMixConfig,
 } from '@api/services/batch-generation/schemas/batch.schema';
-import type { IBatchSummary } from '@genfeedai/interfaces';
 import {
   BatchItemStatus,
   BatchStatus,
   ContentFormat,
   PostStatus,
 } from '@genfeedai/enums';
+import type { IBatchSummary } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';

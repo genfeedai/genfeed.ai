@@ -61,8 +61,6 @@ import { PollingService } from '@api/shared/services/polling/polling.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { User } from '@clerk/backend';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
-import { IngredientSerializer } from '@genfeedai/serializers';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
 import {
   ActivityEntityModel,
@@ -81,6 +79,8 @@ import {
   TagCategory,
   TagKey,
 } from '@genfeedai/enums';
+import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {

@@ -10,7 +10,6 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { User } from '@clerk/backend';
-import type { IFileProcessingParams } from '@genfeedai/interfaces';
 import {
   EditorTrackType,
   FileInputType,
@@ -20,6 +19,7 @@ import {
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/enums';
+import type { IFileProcessingParams } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {

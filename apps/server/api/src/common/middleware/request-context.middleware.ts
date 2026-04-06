@@ -5,8 +5,8 @@ import {
 } from '@api/collections/organizations/schemas/organization.schema';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import {
-  User as UserSchema,
   type UserDocument,
+  User as UserSchema,
 } from '@api/collections/users/schemas/user.schema';
 import {
   buildRcKey,
@@ -15,8 +15,8 @@ import {
   RC_TTL,
 } from '@api/common/constants/request-context-cache.constants';
 import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
-import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
 import type { User } from '@clerk/backend';
 import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { LoggerService } from '@libs/logger/logger.service';

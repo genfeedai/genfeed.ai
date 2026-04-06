@@ -27,11 +27,6 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import type { User } from '@clerk/backend';
-import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
-import {
-  CaptionSerializer,
-  IngredientSerializer,
-} from '@genfeedai/serializers';
 import {
   AssetScope,
   FileInputType,
@@ -42,6 +37,11 @@ import {
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/enums';
+import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
+import {
+  CaptionSerializer,
+  IngredientSerializer,
+} from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {

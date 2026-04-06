@@ -11,6 +11,7 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import { ArticleStatus, AssetScope, IngredientStatus } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -22,7 +23,6 @@ import {
   LinkSerializer,
   VideoSerializer,
 } from '@genfeedai/serializers';
-import { ArticleStatus, AssetScope, IngredientStatus } from '@genfeedai/enums';
 import { Public } from '@libs/decorators/public.decorator';
 import { PublicApiFilter } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';

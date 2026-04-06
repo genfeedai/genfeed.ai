@@ -4,8 +4,8 @@ import { AgentRunsService } from '@api/collections/agent-runs/services/agent-run
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { isOrchestratorAgentType } from '@api/services/agent-orchestrator/constants/agent-type.constants';
-import type { IAgentCampaignStatusResponse } from '@genfeedai/interfaces';
 import { AgentExecutionTrigger } from '@genfeedai/enums';
+import type { IAgentCampaignStatusResponse } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

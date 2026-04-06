@@ -6,6 +6,12 @@ import {
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import {
+  WorkflowExecutionStatus,
+  WorkflowExecutionTrigger,
+  WorkflowLifecycle,
+  WorkflowStatus,
+} from '@genfeedai/enums';
 import type {
   ExecutableEdge,
   ExecutableNode,
@@ -14,12 +20,6 @@ import type {
   NodeExecutionResult,
   NodeStatusChangeEvent,
 } from '@genfeedai/workflow-engine';
-import {
-  WorkflowExecutionStatus,
-  WorkflowExecutionTrigger,
-  WorkflowLifecycle,
-  WorkflowStatus,
-} from '@genfeedai/enums';
 import { buildWorkflowEtaSnapshot } from '@helpers/generation-eta.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

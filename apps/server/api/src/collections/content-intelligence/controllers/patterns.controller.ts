@@ -12,11 +12,11 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import type { User } from '@clerk/backend';
+import { ContentPatternType } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
-import { ContentPatternType } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller, Delete, Get, Param, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';

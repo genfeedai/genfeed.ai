@@ -20,12 +20,12 @@ import {
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
 } from '@genfeedai/interfaces';
 import { CaptionSerializer } from '@genfeedai/serializers';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

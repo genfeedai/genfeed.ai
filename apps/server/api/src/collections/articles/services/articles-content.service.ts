@@ -32,11 +32,6 @@ import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pric
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import type {
-  ArticleCreatePayload,
-  ArticleGenerationResponse,
-  GeneratedArticleData,
-} from '@genfeedai/interfaces/content/article.interface';
 import {
   ArticleCategory,
   ArticleStatus,
@@ -48,6 +43,11 @@ import {
   PromptTemplateKey,
   SystemPromptKey,
 } from '@genfeedai/enums';
+import type {
+  ArticleCreatePayload,
+  ArticleGenerationResponse,
+  GeneratedArticleData,
+} from '@genfeedai/interfaces/content/article.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
 import { Types } from 'mongoose';

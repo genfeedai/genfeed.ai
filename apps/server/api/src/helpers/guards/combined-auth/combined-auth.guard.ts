@@ -1,5 +1,6 @@
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
+import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { IS_PUBLIC_KEY } from '@libs/decorators/public.decorator';
 import {
   type CanActivate,
@@ -7,7 +8,6 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { Observable } from 'rxjs';
 
 /**

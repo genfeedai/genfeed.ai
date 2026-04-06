@@ -20,8 +20,6 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { User } from '@clerk/backend';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
-import { IngredientSerializer } from '@genfeedai/serializers';
 import {
   ActivitySource,
   ByokProvider,
@@ -32,9 +30,11 @@ import {
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/enums';
+import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { getUserRoomName } from '@libs/websockets/room-name.util';
 import {
   Body,
   Controller,

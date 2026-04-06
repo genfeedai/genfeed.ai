@@ -24,6 +24,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import type { User } from '@clerk/backend';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -32,7 +33,6 @@ import {
   IngredientSerializer,
   TrainingSerializer,
 } from '@genfeedai/serializers';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   Controller,
