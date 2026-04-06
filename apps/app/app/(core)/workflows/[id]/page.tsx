@@ -1,55 +1,76 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type { ProviderModel } from '@genfeedai/types';
+import { WorkflowEditorShell } from '@genfeedai/workflow-ui';
+import { DebugPanel } from '@genfeedai/workflow-ui/panels';
+import type { WorkflowUIConfig } from '@genfeedai/workflow-ui/provider';
+import { WorkflowUIProvider } from '@genfeedai/workflow-ui/provider';
+import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import Button from '@ui/buttons/base/Button';
 import { ReactFlowProvider } from '@xyflow/react';
 import dynamic from 'next/dynamic';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import { WorkflowEditorShell } from '@genfeedai/workflow-ui';
-import { DebugPanel } from '@genfeedai/workflow-ui/panels';
-import { WorkflowUIProvider } from '@genfeedai/workflow-ui/provider';
-import type { WorkflowUIConfig } from '@genfeedai/workflow-ui/provider';
-import { RunWorkflowConfirmationModal } from '@/components/RunWorkflowConfirmationModal';
-import { Toolbar } from '@/components/toolbar';
 import { CommandPalette } from '@/components/command-palette';
 import { ModelBrowserModal } from '@/components/models/ModelBrowserModal';
 import { AIGeneratorPanel } from '@/components/panels/AIGeneratorPanel';
 import { ChatPanel } from '@/components/panels/ChatPanel';
 import { PromptEditorModal } from '@/components/prompt-editor/PromptEditorModal';
-import { CreatePromptModal, PromptLibraryModal, PromptPicker } from '@/components/prompt-library';
+import {
+  CreatePromptModal,
+  PromptLibraryModal,
+  PromptPicker,
+} from '@/components/prompt-library';
+import { RunWorkflowConfirmationModal } from '@/components/RunWorkflowConfirmationModal';
+import { Toolbar } from '@/components/toolbar';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
-import { apiClient } from '@/lib/api/client';
 import { promptsApi, workflowsApi } from '@/lib/api';
+import { apiClient } from '@/lib/api/client';
 import { usePromptLibraryStore } from '@/store/promptLibraryStore';
 import { useSettingsStore } from '@/store/settingsStore';
-import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 // Dynamic imports for less frequently used modals to reduce initial bundle
 const AnnotationModal = dynamic(
-  () => import('@/components/annotation/AnnotationModal').then((mod) => mod.AnnotationModal),
-  { ssr: false }
+  () =>
+    import('@/components/annotation/AnnotationModal').then(
+      (mod) => mod.AnnotationModal,
+    ),
+  { ssr: false },
 );
-const CostModal = dynamic(() => import('@/components/cost').then((mod) => mod.CostModal), {
-  ssr: false,
-});
+const CostModal = dynamic(
+  () => import('@/components/cost').then((mod) => mod.CostModal),
+  {
+    ssr: false,
+  },
+);
 const GenerateWorkflowModal = dynamic(
   () =>
-    import('@/components/workflow/GenerateWorkflowModal').then((mod) => mod.GenerateWorkflowModal),
-  { ssr: false }
+    import('@/components/workflow/GenerateWorkflowModal').then(
+      (mod) => mod.GenerateWorkflowModal,
+    ),
+  { ssr: false },
 );
 const TemplatesModal = dynamic(
-  () => import('@/components/templates/TemplatesModal').then((mod) => mod.TemplatesModal),
-  { ssr: false }
+  () =>
+    import('@/components/templates/TemplatesModal').then(
+      (mod) => mod.TemplatesModal,
+    ),
+  { ssr: false },
 );
 const WelcomeModal = dynamic(
-  () => import('@/components/welcome/WelcomeModal').then((mod) => mod.WelcomeModal),
-  { ssr: false }
+  () =>
+    import('@/components/welcome/WelcomeModal').then((mod) => mod.WelcomeModal),
+  { ssr: false },
 );
 const SettingsModal = dynamic(
-  () => import('@/components/settings/SettingsModal').then((mod) => mod.SettingsModal),
-  { ssr: false }
+  () =>
+    import('@/components/settings/SettingsModal').then(
+      (mod) => mod.SettingsModal,
+    ),
+  { ssr: false },
 );
 
 export default function WorkflowEditorPage() {
@@ -59,11 +80,14 @@ export default function WorkflowEditorPage() {
   const workflowId = params.id as string;
   const renameParam = searchParams.get('rename');
 
-  const { showAIGenerator, showDebugPanel, activeModal, openModal } = useUIStore();
+  const { showAIGenerator, showDebugPanel, activeModal, openModal } =
+    useUIStore();
   const hasSeenWelcome = useSettingsStore((s) => s.hasSeenWelcome);
   const autoSaveEnabled = useSettingsStore((s) => s.autoSaveEnabled);
   const debugMode = useSettingsStore((s) => s.debugMode);
-  const isCreatePromptModalOpen = usePromptLibraryStore((s) => s.isCreateModalOpen);
+  const isCreatePromptModalOpen = usePromptLibraryStore(
+    (s) => s.isCreateModalOpen,
+  );
   const {
     loadWorkflowById,
     createNewWorkflow,
@@ -79,7 +103,10 @@ export default function WorkflowEditorPage() {
     () => ({
       fileUpload: {
         uploadFile: async (path: string, file: File) => {
-          const result = await apiClient.uploadFile<{ url: string; filename: string }>(path, file);
+          const result = await apiClient.uploadFile<{
+            url: string;
+            filename: string;
+          }>(path, file);
           return result;
         },
       },
@@ -87,25 +114,29 @@ export default function WorkflowEditorPage() {
       modelSchema: {
         fetchModelSchema: async (
           modelId: string,
-          signal?: AbortSignal
+          signal?: AbortSignal,
         ): Promise<ProviderModel | null> => {
           const response = await fetch(
             `/api/providers/models?query=${encodeURIComponent(modelId)}`,
-            { signal }
+            { signal },
           );
           if (!response.ok) return null;
           const data = await response.json();
-          return data.models?.find((m: { id: string }) => m.id === modelId) ?? null;
+          return (
+            data.models?.find((m: { id: string }) => m.id === modelId) ?? null
+          );
         },
       },
       PromptPicker,
       promptLibrary: promptsApi,
       workflowsApi: {
         setThumbnail: (workflowId, thumbnailUrl, nodeId, signal) =>
-          workflowsApi.setThumbnail(workflowId, thumbnailUrl, nodeId, signal).then(() => {}),
+          workflowsApi
+            .setThumbnail(workflowId, thumbnailUrl, nodeId, signal)
+            .then(() => {}),
       },
     }),
-    []
+    [],
   );
 
   // Initialize auto-save (triggers 2.5s after last change)
@@ -130,7 +161,9 @@ export default function WorkflowEditorPage() {
         }
       } catch (err) {
         if (controller.signal.aborted) return;
-        setError(err instanceof Error ? err.message : 'Failed to load workflow');
+        setError(
+          err instanceof Error ? err.message : 'Failed to load workflow',
+        );
       }
     }
 
@@ -159,14 +192,21 @@ export default function WorkflowEditorPage() {
   // 1. Currently loading
   // 2. Creating new workflow
   // 3. Workflow not yet loaded (requested ID doesn't match loaded ID)
-  const isWorkflowNotLoaded = workflowId !== 'new' && workflowId !== currentWorkflowId;
-  if (isLoading || (workflowId === 'new' && !currentWorkflowId) || isWorkflowNotLoaded) {
+  const isWorkflowNotLoaded =
+    workflowId !== 'new' && workflowId !== currentWorkflowId;
+  if (
+    isLoading ||
+    (workflowId === 'new' && !currentWorkflowId) ||
+    isWorkflowNotLoaded
+  ) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-[var(--background)]">
         <div className="flex flex-col items-center gap-4">
           <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
           <p className="text-[var(--muted-foreground)]">
-            {workflowId === 'new' ? 'Creating workflow...' : 'Loading workflow...'}
+            {workflowId === 'new'
+              ? 'Creating workflow...'
+              : 'Loading workflow...'}
           </p>
         </div>
       </div>
@@ -186,18 +226,20 @@ export default function WorkflowEditorPage() {
           </h2>
           <p className="text-[var(--muted-foreground)]">{error}</p>
           <div className="flex gap-3">
-            <button
+            <Button
+              variant={ButtonVariant.SECONDARY}
               onClick={() => router.push('/workflows')}
-              className="px-4 py-2 text-sm bg-[var(--secondary)] text-[var(--foreground)] rounded-lg hover:opacity-90 transition"
+              className="px-4 py-2 text-sm rounded-lg"
             >
               Go to Dashboard
-            </button>
-            <button
+            </Button>
+            <Button
+              variant={ButtonVariant.DEFAULT}
               onClick={() => router.push('/workflows/new')}
-              className="px-4 py-2 text-sm bg-white text-black rounded-lg hover:bg-white/90 transition"
+              className="px-4 py-2 text-sm rounded-lg"
             >
               Create New Workflow
-            </button>
+            </Button>
           </div>
         </div>
       </div>

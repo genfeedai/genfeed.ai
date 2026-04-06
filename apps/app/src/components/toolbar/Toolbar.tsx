@@ -1,6 +1,15 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { WorkflowFile } from '@genfeedai/types';
+import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import Button from '@ui/buttons/base/Button';
+import {
+  getNodesBounds,
+  getViewportForBounds,
+  useReactFlow,
+} from '@xyflow/react';
+import { toPng } from 'html-to-image';
 import {
   AlertCircle,
   BookMarked,
@@ -24,19 +33,20 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useReactFlow, getNodesBounds, getViewportForBounds } from '@xyflow/react';
-import { toPng } from 'html-to-image';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { TagEditor } from '@/components/workflow/TagEditor';
 import { WorkflowSwitcher } from '@/components/workflow/WorkflowSwitcher';
 import { usePaneActions } from '@/hooks/usePaneActions';
 import { logger } from '@/lib/logger';
 import { calculateWorkflowCost } from '@/lib/replicate/client';
 import { useExecutionStore } from '@/store/executionStore';
 import { useSettingsStore } from '@/store/settingsStore';
-import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { useWorkflowStore } from '@/store/workflowStore';
-import { TagEditor } from '@/components/workflow/TagEditor';
 import { CommentNavigator } from './CommentNavigator';
 import { SaveAsDialog } from './SaveAsDialog';
 import { SaveIndicator } from './SaveIndicator';
@@ -91,7 +101,9 @@ export function Toolbar() {
   const [canRedo, setCanRedo] = useState(false);
   const [showSaveAsDialog, setShowSaveAsDialog] = useState(false);
   const validationErrors = useExecutionStore((state) => state.validationErrors);
-  const clearValidationErrors = useExecutionStore((state) => state.clearValidationErrors);
+  const clearValidationErrors = useExecutionStore(
+    (state) => state.clearValidationErrors,
+  );
   const estimatedCost = useExecutionStore((state) => state.estimatedCost);
   const actualCost = useExecutionStore((state) => state.actualCost);
   const setEstimatedCost = useExecutionStore((state) => state.setEstimatedCost);
@@ -128,7 +140,7 @@ export function Toolbar() {
         resolution: node.data.resolution,
         type: node.type,
       })),
-    [nodes]
+    [nodes],
   );
 
   // Track previous cost data to avoid unnecessary recalculations
@@ -175,17 +187,23 @@ export function Toolbar() {
           const data = JSON.parse(event.target?.result as string);
 
           if (!isValidWorkflow(data)) {
-            logger.error('Invalid workflow file structure', null, { context: 'Toolbar' });
+            logger.error('Invalid workflow file structure', null, {
+              context: 'Toolbar',
+            });
             return;
           }
 
           useWorkflowStore.getState().loadWorkflow(data);
         } catch (error) {
-          logger.error('Failed to parse workflow file', error, { context: 'Toolbar' });
+          logger.error('Failed to parse workflow file', error, {
+            context: 'Toolbar',
+          });
         }
       };
       reader.onerror = () => {
-        logger.error('Failed to read workflow file', reader.error, { context: 'Toolbar' });
+        logger.error('Failed to read workflow file', reader.error, {
+          context: 'Toolbar',
+        });
       };
       reader.readAsText(file);
     };
@@ -201,7 +219,9 @@ export function Toolbar() {
         method: 'POST',
       });
     } catch (error) {
-      logger.error('Failed to open output folder', error, { context: 'Toolbar' });
+      logger.error('Failed to open output folder', error, {
+        context: 'Toolbar',
+      });
     }
   }, [workflowId]);
 
@@ -211,7 +231,9 @@ export function Toolbar() {
       const duplicated = await duplicateWorkflowApi(workflowId);
       router.push(`/workflows/${duplicated._id}`);
     } catch (error) {
-      logger.error('Failed to duplicate workflow', error, { context: 'Toolbar' });
+      logger.error('Failed to duplicate workflow', error, {
+        context: 'Toolbar',
+      });
     }
   }, [workflowId, duplicateWorkflowApi, router]);
 
@@ -221,13 +243,17 @@ export function Toolbar() {
       try {
         const duplicated = await duplicateWorkflowApi(workflowId);
         // Navigate to the duplicated workflow - the name will be set on the new workflow
-        router.push(`/workflows/${duplicated._id}?rename=${encodeURIComponent(newName)}`);
+        router.push(
+          `/workflows/${duplicated._id}?rename=${encodeURIComponent(newName)}`,
+        );
         setShowSaveAsDialog(false);
       } catch (error) {
-        logger.error('Failed to save workflow as copy', error, { context: 'Toolbar' });
+        logger.error('Failed to save workflow as copy', error, {
+          context: 'Toolbar',
+        });
       }
     },
-    [workflowId, duplicateWorkflowApi, router]
+    [workflowId, duplicateWorkflowApi, router],
   );
 
   const handleScreenshot = useCallback(async () => {
@@ -237,9 +263,18 @@ export function Toolbar() {
     const imageWidth = 1920;
     const imageHeight = 1080;
     const bounds = getNodesBounds(allNodes);
-    const viewport = getViewportForBounds(bounds, imageWidth, imageHeight, 0.5, 2, 0.15);
+    const viewport = getViewportForBounds(
+      bounds,
+      imageWidth,
+      imageHeight,
+      0.5,
+      2,
+      0.15,
+    );
 
-    const viewportEl = document.querySelector<HTMLElement>('.react-flow__viewport');
+    const viewportEl = document.querySelector<HTMLElement>(
+      '.react-flow__viewport',
+    );
     if (!viewportEl) return;
 
     try {
@@ -256,7 +291,9 @@ export function Toolbar() {
         width: imageWidth,
       });
 
-      const safeName = (workflowName || 'workflow').toLowerCase().replace(/\s+/g, '-');
+      const safeName = (workflowName || 'workflow')
+        .toLowerCase()
+        .replace(/\s+/g, '-');
       const link = document.createElement('a');
       link.href = dataUrl;
       link.download = `${safeName}-screenshot.png`;
@@ -264,7 +301,9 @@ export function Toolbar() {
       link.click();
       document.body.removeChild(link);
     } catch (error) {
-      logger.error('Failed to capture workflow screenshot', error, { context: 'Toolbar' });
+      logger.error('Failed to capture workflow screenshot', error, {
+        context: 'Toolbar',
+      });
     }
   }, [getNodes, workflowName]);
 
@@ -301,7 +340,7 @@ export function Toolbar() {
         onClick: handleLoad,
       },
     ],
-    [handleSave, handleLoad, handleDuplicate, workflowId]
+    [handleSave, handleLoad, handleDuplicate, workflowId],
   );
 
   const resourcesMenuItems: DropdownItem[] = useMemo(
@@ -342,7 +381,7 @@ export function Toolbar() {
         onClick: () => window.open('https://marketplace.genfeed.ai', '_blank'),
       },
     ],
-    [openModal, toggleAIGenerator, toggleChat]
+    [openModal, toggleAIGenerator, toggleChat],
   );
 
   return (
@@ -389,13 +428,15 @@ export function Toolbar() {
         {debugMode && (
           <Tooltip>
             <TooltipTrigger asChild>
-              <button
+              <Button
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
                 onClick={() => openModal('settings')}
                 className="flex items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-sm text-amber-500 transition hover:bg-amber-500/20"
               >
                 <Bug className="h-4 w-4" />
                 <span className="font-medium">Debug</span>
-              </button>
+              </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom">
               <p>Debug mode active - API calls are mocked</p>
@@ -406,7 +447,11 @@ export function Toolbar() {
         {/* Auto-layout Button */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="sm" onClick={() => autoLayout('LR')}>
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
+              onClick={() => autoLayout('LR')}
+            >
               <LayoutGrid className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
@@ -418,7 +463,12 @@ export function Toolbar() {
         {/* Undo/Redo Buttons */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="sm" onClick={() => undo()} disabled={!canUndo}>
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
+              onClick={() => undo()}
+              isDisabled={!canUndo}
+            >
               <Undo2 className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
@@ -428,7 +478,12 @@ export function Toolbar() {
         </Tooltip>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="ghost" size="sm" onClick={() => redo()} disabled={!canRedo}>
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
+              onClick={() => redo()}
+              isDisabled={!canRedo}
+            >
               <Redo2 className="h-4 w-4" />
             </Button>
           </TooltipTrigger>
@@ -443,18 +498,25 @@ export function Toolbar() {
         {/* Cost Indicator */}
         <Tooltip>
           <TooltipTrigger asChild>
-            <button
+            <Button
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
               onClick={() => openModal('cost')}
               className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm text-muted-foreground transition hover:bg-secondary hover:text-foreground"
             >
               <DollarSign className="h-4 w-4" />
               <span className="font-medium tabular-nums">
-                {actualCost > 0 ? actualCost.toFixed(2) : estimatedCost.toFixed(2)}
+                {actualCost > 0
+                  ? actualCost.toFixed(2)
+                  : estimatedCost.toFixed(2)}
               </span>
-            </button>
+            </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom">
-            <p>Estimated cost{actualCost > 0 ? ` (actual: $${actualCost.toFixed(2)})` : ''}</p>
+            <p>
+              Estimated cost
+              {actualCost > 0 ? ` (actual: $${actualCost.toFixed(2)})` : ''}
+            </p>
           </TooltipContent>
         </Tooltip>
 
@@ -506,7 +568,7 @@ export function Toolbar() {
               size="icon-sm"
               className="text-muted-foreground"
               onClick={handleOpenFolder}
-              disabled={!workflowId}
+              isDisabled={!workflowId}
             >
               <FolderOpen className="h-4 w-4" />
             </Button>
@@ -539,7 +601,9 @@ export function Toolbar() {
             <div className="flex items-start gap-3">
               <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
               <div className="min-w-0 flex-1">
-                <h4 className="mb-2 text-sm font-medium text-destructive">Cannot run workflow</h4>
+                <h4 className="mb-2 text-sm font-medium text-destructive">
+                  Cannot run workflow
+                </h4>
                 <ul className="space-y-1">
                   {uniqueErrorMessages.slice(0, 5).map((message) => (
                     <li key={message} className="text-xs text-destructive/80">
@@ -553,7 +617,11 @@ export function Toolbar() {
                   )}
                 </ul>
               </div>
-              <Button variant="ghost" size="icon-sm" onClick={clearValidationErrors}>
+              <Button
+                variant={ButtonVariant.GHOST}
+                size={ButtonSize.ICON}
+                onClick={clearValidationErrors}
+              >
                 <X className="h-4 w-4 text-destructive" />
               </Button>
             </div>

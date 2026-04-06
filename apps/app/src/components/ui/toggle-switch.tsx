@@ -1,5 +1,7 @@
-import { cn } from '@/lib/utils';
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import { forwardRef } from 'react';
+import { cn } from '@/lib/utils';
 
 export interface ToggleSwitchProps {
   checked: boolean;
@@ -10,27 +12,31 @@ export interface ToggleSwitchProps {
 }
 
 const ToggleSwitch = forwardRef<HTMLButtonElement, ToggleSwitchProps>(
-  ({ checked, onCheckedChange, activeColor = 'bg-primary', className }, ref) => (
-    <button
+  (
+    { checked, onCheckedChange, activeColor = 'bg-primary', className },
+    ref,
+  ) => (
+    <Button
       ref={ref}
-      type="button"
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
       role="switch"
       aria-checked={checked}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
         'relative h-6 w-11 rounded-full transition-colors',
         checked ? activeColor : 'bg-border',
-        className
+        className,
       )}
     >
       <span
         className={cn(
           'absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform',
-          checked ? 'translate-x-5' : 'translate-x-0'
+          checked ? 'translate-x-5' : 'translate-x-0',
         )}
       />
-    </button>
-  )
+    </Button>
+  ),
 );
 ToggleSwitch.displayName = 'ToggleSwitch';
 

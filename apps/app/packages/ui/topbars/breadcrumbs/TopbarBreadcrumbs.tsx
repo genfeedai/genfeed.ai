@@ -1,7 +1,9 @@
 'use client';
 
 import { useSidebarNavigation } from '@contexts/ui/sidebar-navigation-context';
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import Button from '@ui/buttons/base/Button';
 
 interface TopbarBreadcrumbsProps {
   /** Override the first segment label (e.g. "Admin" when no BrandProvider) */
@@ -28,8 +30,9 @@ export default function TopbarBreadcrumbs({
   return (
     <nav className="flex items-center gap-2 text-sm" aria-label="Breadcrumb">
       {groupLabel && activePageLabel ? (
-        <button
-          type="button"
+        <Button
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           onClick={exitNestedGroup}
           className={cn(
             'hidden sm:inline text-foreground/50 hover:text-foreground/80 transition-colors duration-150',
@@ -37,7 +40,7 @@ export default function TopbarBreadcrumbs({
           )}
         >
           {groupLabel}
-        </button>
+        </Button>
       ) : groupLabel ? (
         <span className="text-foreground/70 font-medium truncate max-w-truncate-lg">
           {groupLabel}

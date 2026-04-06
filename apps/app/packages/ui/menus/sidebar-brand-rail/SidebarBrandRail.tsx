@@ -2,12 +2,14 @@
 
 import { useUser } from '@clerk/nextjs';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useBrandOverlay } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
 import { UsersService } from '@services/organization/users.service';
+import Button from '@ui/buttons/base/Button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
@@ -74,9 +76,10 @@ function RailButton({
 }) {
   return (
     <SimpleTooltip label={ariaLabel} position="right">
-      <button
-        type="button"
-        aria-label={ariaLabel}
+      <Button
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
+        ariaLabel={ariaLabel}
         aria-pressed={active}
         data-testid={testId}
         data-active={active ? 'true' : 'false'}
@@ -89,7 +92,7 @@ function RailButton({
         )}
       >
         {children}
-      </button>
+      </Button>
     </SimpleTooltip>
   );
 }

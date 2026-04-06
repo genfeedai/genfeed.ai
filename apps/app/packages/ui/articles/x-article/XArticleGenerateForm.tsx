@@ -7,6 +7,7 @@ import Card from '@ui/card/Card';
 import FormControl from '@ui/forms/base/form-control/FormControl';
 import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
 import FormDropdown from '@ui/forms/selectors/dropdown/form-dropdown/FormDropdown';
+import { Textarea } from '@ui/primitives/textarea';
 import type { ChangeEvent } from 'react';
 import { useState } from 'react';
 import { HiSparkles } from 'react-icons/hi2';
@@ -58,8 +59,7 @@ export default function XArticleGenerateForm({
         </div>
 
         <FormControl label="Prompt">
-          <textarea
-            className="w-full rounded border border-white/[0.08] bg-white/5 px-3 py-2 text-sm placeholder:text-foreground/40 focus:border-white/20 focus:outline-none focus:ring-1 focus:ring-white/20"
+          <Textarea
             rows={4}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}

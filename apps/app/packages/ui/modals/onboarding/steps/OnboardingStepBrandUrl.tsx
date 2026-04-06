@@ -3,6 +3,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import Button from '@ui/buttons/base/Button';
 import FormControl from '@ui/forms/base/form-control/FormControl';
+import { Input } from '@ui/primitives/input';
 import { HiOutlineGlobeAlt } from 'react-icons/hi2';
 
 export interface OnboardingStepBrandUrlProps {
@@ -36,13 +37,13 @@ export default function OnboardingStepBrandUrl({
         <FormControl label="Website URL">
           <div className="relative">
             <HiOutlineGlobeAlt className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-            <input
+            <Input
               type="url"
               value={value}
               onChange={(e) => onChange(e.target.value)}
               placeholder="https://yourcompany.com"
               disabled={isDisabled}
-              className="w-full pl-10 pr-4 py-3 border border-input bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+              className="pl-10 pr-4 py-3"
             />
           </div>
         </FormControl>

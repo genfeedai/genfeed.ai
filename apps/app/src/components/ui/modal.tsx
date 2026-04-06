@@ -1,9 +1,10 @@
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { X } from 'lucide-react';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import type { LucideIcon } from 'lucide-react';
-import { memo, useEffect, type ReactNode } from 'react';
+import { X } from 'lucide-react';
+import { memo, type ReactNode, useEffect } from 'react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -56,7 +57,11 @@ function ModalComponent({
               {Icon && <Icon className="h-5 w-5 text-primary" />}
               <h2 className="text-lg font-semibold text-foreground">{title}</h2>
             </div>
-            <Button variant="ghost" size="icon-sm" onClick={onClose}>
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.SM}
+              onClick={onClose}
+            >
               <X className="h-5 w-5" />
             </Button>
           </div>
@@ -79,22 +84,30 @@ interface ModalTabsProps<T extends string> {
   onTabChange: (tab: T) => void;
 }
 
-function ModalTabsComponent<T extends string>({ tabs, activeTab, onTabChange }: ModalTabsProps<T>) {
+function ModalTabsComponent<T extends string>({
+  tabs,
+  activeTab,
+  onTabChange,
+}: ModalTabsProps<T>) {
   return (
     <div className="flex border-b border-border px-6">
       {tabs.map((tab) => (
-        <button
+        <Button
           key={tab.id}
           onClick={() => onTabChange(tab.id)}
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           className={`relative px-4 py-3 text-sm font-medium transition ${
-            activeTab === tab.id ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+            activeTab === tab.id
+              ? 'text-foreground'
+              : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           {tab.label}
           {activeTab === tab.id && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
           )}
-        </button>
+        </Button>
       ))}
     </div>
   );

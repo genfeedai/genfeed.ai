@@ -1,8 +1,19 @@
 'use client';
 
-import { type CSSProperties, type ReactNode, useCallback, useEffect, useState } from 'react';
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
+import {
+  type CSSProperties,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useState,
+} from 'react';
 import { cn } from '@/lib/utils';
-import CoreSidebar, { SIDEBAR_COLLAPSED_WIDTH, SIDEBAR_WIDTH } from './CoreSidebar';
+import CoreSidebar, {
+  SIDEBAR_COLLAPSED_WIDTH,
+  SIDEBAR_WIDTH,
+} from './CoreSidebar';
 import CoreTopbar from './CoreTopbar';
 
 const SIDEBAR_TRANSITION_DURATION_MS = 300;
@@ -31,7 +42,13 @@ function persistSidebarCollapsed(value: boolean): void {
 }
 
 /** Desktop sidebar rail — animates width, clips overflow. */
-function DesktopSidebar({ children, isCollapsed }: { children: ReactNode; isCollapsed: boolean }) {
+function DesktopSidebar({
+  children,
+  isCollapsed,
+}: {
+  children: ReactNode;
+  isCollapsed: boolean;
+}) {
   const targetWidth = isCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH;
 
   return (
@@ -40,7 +57,7 @@ function DesktopSidebar({ children, isCollapsed }: { children: ReactNode; isColl
       className={cn(
         'fixed inset-y-0 left-0 z-30 hidden flex-col overflow-hidden md:flex',
         'bg-background/95 shadow-[18px_0_48px_rgba(0,0,0,0.18)]',
-        !isCollapsed && 'border-r border-white/[0.12]'
+        !isCollapsed && 'border-r border-white/[0.12]',
       )}
       style={{
         minWidth: targetWidth,
@@ -60,7 +77,8 @@ interface CoreAppShellProps {
 export default function CoreAppShell({ children }: CoreAppShellProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
-  const [isSidebarPreferenceLoaded, setIsSidebarPreferenceLoaded] = useState(false);
+  const [isSidebarPreferenceLoaded, setIsSidebarPreferenceLoaded] =
+    useState(false);
 
   const handleCloseSidebar = useCallback(() => {
     setIsSidebarOpen(false);
@@ -94,7 +112,9 @@ export default function CoreAppShell({ children }: CoreAppShellProps) {
     const handleKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement;
       const isEditable =
-        target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable;
       if (isEditable) return;
 
       if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
@@ -119,14 +139,19 @@ export default function CoreAppShell({ children }: CoreAppShellProps) {
     return;
   }, [isSidebarOpen]);
 
-  const desktopSidebarWidth = isDesktopCollapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_WIDTH;
+  const desktopSidebarWidth = isDesktopCollapsed
+    ? SIDEBAR_COLLAPSED_WIDTH
+    : SIDEBAR_WIDTH;
 
   const layoutStyle = {
     '--desktop-sidebar-width': `${desktopSidebarWidth}px`,
   } as CSSProperties;
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-background" style={layoutStyle}>
+    <div
+      className="min-h-screen overflow-x-hidden bg-background"
+      style={layoutStyle}
+    >
       {/* Desktop sidebar */}
       <DesktopSidebar isCollapsed={isDesktopCollapsed}>
         <CoreSidebar
@@ -141,19 +166,20 @@ export default function CoreAppShell({ children }: CoreAppShellProps) {
           'fixed inset-0 z-40 transition-opacity duration-200 md:hidden',
           isSidebarOpen
             ? 'flex pointer-events-auto opacity-100'
-            : 'hidden pointer-events-none opacity-0'
+            : 'hidden pointer-events-none opacity-0',
         )}
       >
-        <button
-          type="button"
-          aria-label="Close navigation"
+        <Button
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+          ariaLabel="Close navigation"
           className="absolute inset-0 bg-black/60"
           onClick={handleCloseSidebar}
         />
         <div
           className={cn(
             'relative h-full max-w-[85vw] bg-background shadow-2xl transition-transform duration-200',
-            isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+            isSidebarOpen ? 'translate-x-0' : '-translate-x-full',
           )}
           style={{ width: SIDEBAR_WIDTH }}
         >
@@ -172,14 +198,20 @@ export default function CoreAppShell({ children }: CoreAppShellProps) {
           className={cn(
             'fixed top-0 right-0 left-0 z-50 h-16',
             'md:left-[var(--desktop-sidebar-width)]',
-            'border-b border-white/[0.08] bg-background/80 backdrop-blur-xl'
+            'border-b border-white/[0.08] bg-background/80 backdrop-blur-xl',
           )}
         >
-          <CoreTopbar isMenuOpen={isSidebarOpen} onMenuToggle={handleToggleSidebar} />
+          <CoreTopbar
+            isMenuOpen={isSidebarOpen}
+            onMenuToggle={handleToggleSidebar}
+          />
         </div>
 
         {/* Main content */}
-        <main data-testid="core-main-content" className="relative z-0 bg-background pt-16">
+        <main
+          data-testid="core-main-content"
+          className="relative z-0 bg-background pt-16"
+        >
           {children}
         </main>
       </section>

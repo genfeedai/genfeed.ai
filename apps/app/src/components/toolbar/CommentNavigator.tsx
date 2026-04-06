@@ -1,15 +1,27 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import { ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useHeaderCommentNavigation } from '@/hooks/useCommentNavigation';
 
 /**
  * Comment navigation indicator
  */
 export function CommentNavigator() {
-  const { totalCount, unviewedCount, currentIndex, hasComments, goToPrevious, goToNext } =
-    useHeaderCommentNavigation();
+  const {
+    totalCount,
+    unviewedCount,
+    currentIndex,
+    hasComments,
+    goToPrevious,
+    goToNext,
+  } = useHeaderCommentNavigation();
 
   if (!hasComments) return null;
 
@@ -17,12 +29,13 @@ export function CommentNavigator() {
     <div className="flex items-center gap-1">
       <Tooltip>
         <TooltipTrigger asChild>
-          <button
+          <Button
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
             onClick={goToPrevious}
-            className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground transition hover:bg-secondary hover:text-foreground"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
+            className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground"
+            icon={<ChevronLeft className="h-4 w-4" />}
+          />
         </TooltipTrigger>
         <TooltipContent side="bottom">
           <p>Previous comment</p>
@@ -54,12 +67,13 @@ export function CommentNavigator() {
 
       <Tooltip>
         <TooltipTrigger asChild>
-          <button
+          <Button
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
             onClick={goToNext}
-            className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground transition hover:bg-secondary hover:text-foreground"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
+            className="flex h-7 w-7 items-center justify-center rounded text-muted-foreground hover:bg-secondary hover:text-foreground"
+            icon={<ChevronRight className="h-4 w-4" />}
+          />
         </TooltipTrigger>
         <TooltipContent side="bottom">
           <p>Next comment</p>

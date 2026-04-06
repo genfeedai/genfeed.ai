@@ -1,5 +1,7 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import {
   AlertCircle,
   CheckCircle,
@@ -96,10 +98,16 @@ function getVarianceColor(variance: number): string {
 
 interface ExecutionRowProps {
   execution: ExecutionHistoryItem;
-  onLoadDetails: (executionId: string, signal: AbortSignal) => Promise<ExecutionJobCost[]>;
+  onLoadDetails: (
+    executionId: string,
+    signal: AbortSignal,
+  ) => Promise<ExecutionJobCost[]>;
 }
 
-const ExecutionRow = memo(function ExecutionRow({ execution, onLoadDetails }: ExecutionRowProps) {
+const ExecutionRow = memo(function ExecutionRow({
+  execution,
+  onLoadDetails,
+}: ExecutionRowProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [jobCosts, setJobCosts] = useState<ExecutionJobCost[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -114,7 +122,9 @@ const ExecutionRow = memo(function ExecutionRow({ execution, onLoadDetails }: Ex
 
   const variance =
     execution.actualCost > 0 && execution.estimatedCost > 0
-      ? ((execution.actualCost - execution.estimatedCost) / execution.estimatedCost) * 100
+      ? ((execution.actualCost - execution.estimatedCost) /
+          execution.estimatedCost) *
+        100
       : null;
 
   const handleExpand = async () => {
@@ -145,8 +155,10 @@ const ExecutionRow = memo(function ExecutionRow({ execution, onLoadDetails }: Ex
 
   return (
     <div className="rounded-lg border border-border">
-      <button
+      <Button
         onClick={handleExpand}
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
         className="flex w-full items-center justify-between p-3 text-left transition hover:bg-secondary/30"
       >
         <div className="flex items-center gap-3">
@@ -155,7 +167,9 @@ const ExecutionRow = memo(function ExecutionRow({ execution, onLoadDetails }: Ex
             <div className="text-sm font-medium text-foreground">
               {formatDate(execution.startedAt)}
             </div>
-            <div className="text-xs capitalize text-muted-foreground">{execution.status}</div>
+            <div className="text-xs capitalize text-muted-foreground">
+              {execution.status}
+            </div>
           </div>
         </div>
 
@@ -173,7 +187,9 @@ const ExecutionRow = memo(function ExecutionRow({ execution, onLoadDetails }: Ex
             </div>
           </div>
           {variance !== null && (
-            <div className={`text-sm font-medium ${getVarianceColor(variance)}`}>
+            <div
+              className={`text-sm font-medium ${getVarianceColor(variance)}`}
+            >
               {variance > 0 ? '+' : ''}
               {variance.toFixed(1)}%
             </div>
@@ -186,12 +202,14 @@ const ExecutionRow = memo(function ExecutionRow({ execution, onLoadDetails }: Ex
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
           )}
         </div>
-      </button>
+      </Button>
 
       {isExpanded && jobCosts && (
         <div className="border-t border-border">
           {jobCosts.length === 0 ? (
-            <div className="p-4 text-center text-sm text-muted-foreground">No job cost data</div>
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              No job cost data
+            </div>
           ) : (
             <div className="divide-y divide-border/50">
               {jobCosts.map((job, index) => (
@@ -200,7 +218,9 @@ const ExecutionRow = memo(function ExecutionRow({ execution, onLoadDetails }: Ex
                   className="flex items-center justify-between px-4 py-2"
                 >
                   <div className="flex flex-col">
-                    <span className="text-sm text-foreground">{job.nodeType}</span>
+                    <span className="text-sm text-foreground">
+                      {job.nodeType}
+                    </span>
                     <span className="text-xs text-muted-foreground">
                       {job.predictionId.slice(0, 8)}...
                     </span>
@@ -248,12 +268,14 @@ function ExecutionHistoryTabComponent() {
       try {
         const response = await apiClient.get<ExecutionsResponse>(
           `/workflows/${workflowId}/executions?limit=20`,
-          { signal: controller.signal }
+          { signal: controller.signal },
         );
         setExecutions(response.data ?? []);
       } catch (err) {
         if (controller.signal.aborted) return;
-        setError(err instanceof Error ? err.message : 'Failed to load executions');
+        setError(
+          err instanceof Error ? err.message : 'Failed to load executions',
+        );
       } finally {
         if (!controller.signal.aborted) {
           setIsLoading(false);
@@ -267,22 +289,28 @@ function ExecutionHistoryTabComponent() {
   }, [workflowId]);
 
   // Clear cache when workflowId changes to prevent stale data
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally reset cache on workflowId change
+  // Reset cache when workflowId changes to prevent stale data
   useEffect(() => {
     costCacheRef.current = new Map();
   }, [workflowId]);
 
   // Load cost details for an execution - stable callback that doesn't depend on cache state
   const loadCostDetails = useCallback(
-    async (executionId: string, signal: AbortSignal): Promise<ExecutionJobCost[]> => {
+    async (
+      executionId: string,
+      signal: AbortSignal,
+    ): Promise<ExecutionJobCost[]> => {
       // Check cache first
       const cached = costCacheRef.current.get(executionId);
       if (cached) return cached;
 
       try {
-        const costs = await apiClient.get<ExecutionJobCost[]>(`/executions/${executionId}/costs`, {
-          signal,
-        });
+        const costs = await apiClient.get<ExecutionJobCost[]>(
+          `/executions/${executionId}/costs`,
+          {
+            signal,
+          },
+        );
 
         if (signal.aborted) return [];
 
@@ -300,7 +328,7 @@ function ExecutionHistoryTabComponent() {
         return [];
       }
     },
-    [] // No dependencies - uses ref for cache
+    [], // No dependencies - uses ref for cache
   );
 
   // Loading state
@@ -338,13 +366,21 @@ function ExecutionHistoryTabComponent() {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-medium text-foreground">Recent Executions</h3>
-        <span className="text-xs text-muted-foreground">{executions.length} total</span>
+        <h3 className="text-sm font-medium text-foreground">
+          Recent Executions
+        </h3>
+        <span className="text-xs text-muted-foreground">
+          {executions.length} total
+        </span>
       </div>
 
       <div className="space-y-2">
         {executions.map((execution) => (
-          <ExecutionRow key={execution._id} execution={execution} onLoadDetails={loadCostDetails} />
+          <ExecutionRow
+            key={execution._id}
+            execution={execution}
+            onLoadDetails={loadCostDetails}
+          />
         ))}
       </div>
     </div>

@@ -1,5 +1,8 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
+import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import Button from '@ui/buttons/base/Button';
 import {
   BookOpen,
   FolderOpen,
@@ -9,11 +12,10 @@ import {
   Sparkles,
   X,
 } from 'lucide-react';
-import { XIcon } from '@/components/toolbar/icons';
 import { memo, useCallback, useRef } from 'react';
+import { XIcon } from '@/components/toolbar/icons';
 import { logger } from '@/lib/logger';
 import { useSettingsStore } from '@/store/settingsStore';
-import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 interface ActionCardProps {
@@ -24,9 +26,17 @@ interface ActionCardProps {
   badge?: string;
 }
 
-function ActionCard({ icon, title, description, onClick, badge }: ActionCardProps) {
+function ActionCard({
+  icon,
+  title,
+  description,
+  onClick,
+  badge,
+}: ActionCardProps) {
   return (
-    <button
+    <Button
+      variant={ButtonVariant.GHOST}
+      withWrapper={false}
       onClick={onClick}
       className="flex w-full items-center gap-3 rounded-lg bg-secondary/50 p-3 text-left transition hover:bg-secondary"
     >
@@ -44,7 +54,7 @@ function ActionCard({ icon, title, description, onClick, badge }: ActionCardProp
         </div>
         <p className="text-sm text-muted-foreground">{description}</p>
       </div>
-    </button>
+    </Button>
   );
 }
 
@@ -105,14 +115,18 @@ function WelcomeModalComponent() {
 
           // Basic validation
           if (!data.nodes || !data.edges || !data.name) {
-            logger.error('Invalid workflow file', null, { context: 'WelcomeModal' });
+            logger.error('Invalid workflow file', null, {
+              context: 'WelcomeModal',
+            });
             return;
           }
 
           useWorkflowStore.getState().loadWorkflow(data);
           handleClose();
         } catch (error) {
-          logger.error('Failed to parse workflow file', error, { context: 'WelcomeModal' });
+          logger.error('Failed to parse workflow file', error, {
+            context: 'WelcomeModal',
+          });
         }
       };
       reader.readAsText(file);
@@ -120,7 +134,7 @@ function WelcomeModalComponent() {
       // Reset input
       e.target.value = '';
     },
-    [handleClose]
+    [handleClose],
   );
 
   const handleAIGenerator = useCallback(() => {
@@ -136,13 +150,15 @@ function WelcomeModalComponent() {
       {/* Modal */}
       <div className="fixed left-1/2 top-1/2 z-50 w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 rounded-xl bg-card p-6 shadow-2xl">
         {/* Close button */}
-        <button
+        <Button
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
           onClick={handleClose}
           className="absolute right-3 top-3 rounded-md p-1.5 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
-          aria-label="Close"
+          ariaLabel="Close"
         >
           <X className="h-5 w-5" />
-        </button>
+        </Button>
 
         <div className="flex gap-8">
           {/* Left side - Branding */}
@@ -159,8 +175,8 @@ function WelcomeModalComponent() {
 
             {/* Description */}
             <p className="mb-8 text-sm leading-relaxed text-muted-foreground">
-              A node-based workflow editor for AI content generation. Connect nodes to build
-              pipelines that generate images and videos.
+              A node-based workflow editor for AI content generation. Connect
+              nodes to build pipelines that generate images and videos.
             </p>
 
             {/* Links */}
@@ -198,7 +214,9 @@ function WelcomeModalComponent() {
               onClick={handleImport}
             />
             <ActionCard
-              icon={<LayoutTemplate className="h-5 w-5 text-muted-foreground" />}
+              icon={
+                <LayoutTemplate className="h-5 w-5 text-muted-foreground" />
+              }
               title="Templates"
               description="Pre-built workflows"
               onClick={handleTemplates}

@@ -1,11 +1,13 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { EdgeStyle } from '@genfeedai/types';
+import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
 import { ArrowLeft, ArrowRight, ExternalLink, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { WorkflowPreview } from '@/components/WorkflowPreview';
 import { type TemplateData, templatesApi } from '@/lib/api/templates';
 import {
@@ -16,7 +18,6 @@ import {
   getProviderColor,
   type ProviderName,
 } from '@/lib/template-utils';
-import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 type CategoryFilter = 'all' | 'simple' | 'advanced' | 'community';
@@ -67,7 +68,9 @@ function TemplateCard({
       <div className="flex flex-1 flex-col p-3">
         <h3 className="font-medium text-foreground">{template.name}</h3>
         {template.description && (
-          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{template.description}</p>
+          <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+            {template.description}
+          </p>
         )}
 
         {/* Provider chips */}
@@ -98,11 +101,11 @@ function TemplateCard({
 
         {/* Use workflow button */}
         <Button
-          variant="ghost"
-          size="sm"
+          variant={ButtonVariant.GHOST}
+          size={ButtonSize.SM}
           className="mt-3 w-full justify-between text-primary hover:bg-primary/10 hover:text-primary"
           onClick={() => onSelect(template)}
-          disabled={isLoading}
+          isDisabled={isLoading}
         >
           Use workflow
           <ArrowRight className="h-4 w-4" />
@@ -157,7 +160,9 @@ function TemplatesModalComponent() {
   // Filter state
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
-  const [selectedProviders, setSelectedProviders] = useState<Set<ProviderName>>(new Set());
+  const [selectedProviders, setSelectedProviders] = useState<Set<ProviderName>>(
+    new Set(),
+  );
 
   const isOpen = activeModal === 'templates';
 
@@ -214,7 +219,9 @@ function TemplatesModalComponent() {
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
         const matchesName = template.name.toLowerCase().includes(query);
-        const matchesDescription = template.description?.toLowerCase().includes(query);
+        const matchesDescription = template.description
+          ?.toLowerCase()
+          .includes(query);
         if (!matchesName && !matchesDescription) {
           return false;
         }
@@ -222,16 +229,20 @@ function TemplatesModalComponent() {
 
       // Category filter
       if (categoryFilter === 'simple') {
-        if (!template.isSystem || template.difficulty !== 'simple') return false;
+        if (!template.isSystem || template.difficulty !== 'simple')
+          return false;
       } else if (categoryFilter === 'advanced') {
-        if (!template.isSystem || template.difficulty !== 'advanced') return false;
+        if (!template.isSystem || template.difficulty !== 'advanced')
+          return false;
       } else if (categoryFilter === 'community') {
         if (template.isSystem) return false;
       }
 
       // Provider filter
       if (selectedProviders.size > 0) {
-        const hasSelectedProvider = template.providers.some((p) => selectedProviders.has(p));
+        const hasSelectedProvider = template.providers.some((p) =>
+          selectedProviders.has(p),
+        );
         if (!hasSelectedProvider) return false;
       }
 
@@ -242,11 +253,11 @@ function TemplatesModalComponent() {
   // Split into system and community templates
   const systemTemplates = useMemo(
     () => filteredTemplates.filter((t) => t.isSystem),
-    [filteredTemplates]
+    [filteredTemplates],
   );
   const communityTemplates = useMemo(
     () => filteredTemplates.filter((t) => !t.isSystem),
-    [filteredTemplates]
+    [filteredTemplates],
   );
 
   const handleSelectTemplate = useCallback(
@@ -272,12 +283,14 @@ function TemplatesModalComponent() {
         closeModal();
         router.push(`/workflows/${savedWorkflow._id}`);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to create workflow');
+        setError(
+          err instanceof Error ? err.message : 'Failed to create workflow',
+        );
       } finally {
         setIsSaving(false);
       }
     },
-    [loadWorkflow, saveWorkflow, closeModal, router]
+    [loadWorkflow, saveWorkflow, closeModal, router],
   );
 
   const toggleProvider = useCallback((provider: ProviderName) => {
@@ -305,13 +318,15 @@ function TemplatesModalComponent() {
         <div className="flex w-64 flex-shrink-0 flex-col border-r border-border bg-card">
           {/* Sidebar Header */}
           <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-            <button
+            <Button
               onClick={closeModal}
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
               className="flex items-center gap-1 text-sm text-muted-foreground transition hover:text-foreground"
             >
               <ArrowLeft className="h-4 w-4" />
               Back
-            </button>
+            </Button>
           </div>
 
           <div className="px-4 py-4">
@@ -403,7 +418,9 @@ function TemplatesModalComponent() {
             <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80 backdrop-blur-sm">
               <div className="flex flex-col items-center gap-3">
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                <p className="text-sm text-muted-foreground">Creating workflow...</p>
+                <p className="text-sm text-muted-foreground">
+                  Creating workflow...
+                </p>
               </div>
             </div>
           )}
@@ -415,7 +432,10 @@ function TemplatesModalComponent() {
           ) : error ? (
             <div className="flex h-full flex-col items-center justify-center gap-2 text-destructive">
               <p>{error}</p>
-              <Button variant="secondary" onClick={() => window.location.reload()}>
+              <Button
+                variant={ButtonVariant.SECONDARY}
+                onClick={() => window.location.reload()}
+              >
                 Retry
               </Button>
             </div>
@@ -450,7 +470,11 @@ function TemplatesModalComponent() {
                 </>
               ) : (
                 <TemplateSection
-                  title={categoryFilter === 'simple' ? 'Simple Workflows' : 'Advanced Workflows'}
+                  title={
+                    categoryFilter === 'simple'
+                      ? 'Simple Workflows'
+                      : 'Advanced Workflows'
+                  }
                   templates={systemTemplates}
                   onSelect={handleSelectTemplate}
                   isLoading={isSaving}

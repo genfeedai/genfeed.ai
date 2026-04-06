@@ -1,9 +1,11 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import { Menu, Moon, Sun, X } from 'lucide-react';
-import { useTheme } from 'next-themes';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -12,7 +14,10 @@ interface CoreTopbarProps {
   onMenuToggle?: () => void;
 }
 
-export default function CoreTopbar({ isMenuOpen, onMenuToggle }: CoreTopbarProps) {
+export default function CoreTopbar({
+  isMenuOpen,
+  onMenuToggle,
+}: CoreTopbarProps) {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
@@ -29,17 +34,22 @@ export default function CoreTopbar({ isMenuOpen, onMenuToggle }: CoreTopbarProps
         <div className="flex items-center gap-2">
           {/* Mobile hamburger */}
           {onMenuToggle ? (
-            <button
-              type="button"
+            <Button
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
               onClick={onMenuToggle}
-              aria-label={isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
-              className="inline-flex h-10 w-10 items-center justify-center text-muted-foreground hover:bg-white/[0.06] hover:text-foreground transition-colors md:hidden"
-            >
-              <ToggleIcon className="h-5 w-5" />
-            </button>
+              ariaLabel={
+                isMenuOpen ? 'Close navigation menu' : 'Open navigation menu'
+              }
+              className="inline-flex h-10 w-10 items-center justify-center text-muted-foreground hover:bg-white/[0.06] hover:text-foreground md:hidden"
+              icon={<ToggleIcon className="h-5 w-5" />}
+            />
           ) : null}
 
-          <Link href="/workspace/overview" className="flex items-center gap-2.5">
+          <Link
+            href="/workspace/overview"
+            className="flex items-center gap-2.5"
+          >
             <Image
               src="https://cdn.genfeed.ai/assets/branding/logo-white.png"
               alt="Genfeed"
@@ -57,17 +67,25 @@ export default function CoreTopbar({ isMenuOpen, onMenuToggle }: CoreTopbarProps
         </div>
 
         <div className="flex items-center gap-1">
-          <button
-            type="button"
-            aria-label="Toggle theme"
+          <Button
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.ICON}
+            ariaLabel="Toggle theme"
             onClick={() => setTheme(isDark ? 'light' : 'dark')}
             className={cn(
               'flex h-8 w-8 items-center justify-center text-muted-foreground',
-              'transition-colors hover:bg-white/[0.06] hover:text-foreground'
+              'hover:bg-white/[0.06] hover:text-foreground',
             )}
-          >
-            {mounted ? isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" /> : null}
-          </button>
+            icon={
+              mounted ? (
+                isDark ? (
+                  <Sun className="h-4 w-4" />
+                ) : (
+                  <Moon className="h-4 w-4" />
+                )
+              ) : undefined
+            }
+          />
         </div>
       </div>
     </header>

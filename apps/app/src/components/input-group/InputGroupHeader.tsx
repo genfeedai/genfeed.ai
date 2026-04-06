@@ -1,6 +1,8 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type { ActionConfig, ActionUIPattern } from '@genfeedai/types';
+import Button from '@ui/buttons/base/Button';
 import { clsx } from 'clsx';
 import { Check, ChevronDown, ChevronRight, X } from 'lucide-react';
 import { memo, type ReactNode } from 'react';
@@ -58,48 +60,54 @@ function InputGroupHeaderComponent({
     <div className={clsx('flex items-start gap-2', className)}>
       {/* Collapse Toggle */}
       {collapsible && (
-        <button
-          type="button"
+        <Button
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
           onClick={onCollapseToggle}
           className="p-0.5 rounded hover:bg-[var(--border)] transition-colors shrink-0 mt-0.5"
-          aria-expanded={!collapsed}
-          aria-label={collapsed ? 'Expand section' : 'Collapse section'}
+          ariaLabel={collapsed ? 'Expand section' : 'Collapse section'}
         >
           {collapsed ? (
             <ChevronRight className="w-4 h-4 text-[var(--muted-foreground)]" />
           ) : (
             <ChevronDown className="w-4 h-4 text-[var(--muted-foreground)]" />
           )}
-        </button>
+        </Button>
       )}
 
       {/* Title & Description */}
       <div className="flex-1 min-w-0">
-        <h3 className="text-sm font-medium text-[var(--foreground)] truncate">{title}</h3>
+        <h3 className="text-sm font-medium text-[var(--foreground)] truncate">
+          {title}
+        </h3>
         {description && (
-          <p className="text-xs text-[var(--muted-foreground)] mt-0.5">{description}</p>
+          <p className="text-xs text-[var(--muted-foreground)] mt-0.5">
+            {description}
+          </p>
         )}
       </div>
 
       {/* Edit Mode Actions */}
       {isEditing && (
         <div className="flex items-center gap-1">
-          <button
-            type="button"
+          <Button
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
             onClick={onSave}
             className="p-1.5 rounded bg-green-500/10 hover:bg-green-500/20 text-green-400 transition-colors"
-            aria-label="Save changes"
+            ariaLabel="Save changes"
           >
             <Check className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
             onClick={onCancel}
             className="p-1.5 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors"
-            aria-label="Cancel changes"
+            ariaLabel="Cancel changes"
           >
             <X className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
       )}
 

@@ -7,6 +7,7 @@ import Button from '@ui/buttons/base/Button';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
 import FormDropdown from '@ui/forms/selectors/dropdown/form-dropdown/FormDropdown';
+import { Textarea } from '@ui/primitives/textarea';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
 import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -177,13 +178,13 @@ export default function PromptBarArticle({
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col space-y-2">
-            <textarea
+            <Textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Describe how you want to enhance your content..."
               disabled={isEnhancing}
-              className="bg-white/5 border border-white/15 focus:border-primary focus:outline-none text-sm h-24 w-full px-3 py-2 resize-none"
+              className="h-24 resize-none"
               rows={3}
             />
 

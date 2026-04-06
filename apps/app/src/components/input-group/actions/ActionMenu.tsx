@@ -1,9 +1,18 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type { ActionConfig, MenuAlign, MenuSide } from '@genfeedai/types';
+import Button from '@ui/buttons/base/Button';
 import { clsx } from 'clsx';
 import { MoreVertical } from 'lucide-react';
-import { memo, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import {
+  memo,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
 interface ActionMenuProps {
   actions: ActionConfig<ReactNode>[];
@@ -75,7 +84,10 @@ function ActionMenuComponent({
           event.preventDefault();
           if (selectableIndices.length > 0) {
             const currentIdx = selectableIndices.indexOf(selectedIndex);
-            const nextIdx = currentIdx === -1 ? 0 : (currentIdx + 1) % selectableIndices.length;
+            const nextIdx =
+              currentIdx === -1
+                ? 0
+                : (currentIdx + 1) % selectableIndices.length;
             setSelectedIndex(selectableIndices[nextIdx]);
           }
           break;
@@ -86,7 +98,8 @@ function ActionMenuComponent({
             const prevIdx =
               currentIdx === -1
                 ? selectableIndices.length - 1
-                : (currentIdx - 1 + selectableIndices.length) % selectableIndices.length;
+                : (currentIdx - 1 + selectableIndices.length) %
+                  selectableIndices.length;
             setSelectedIndex(selectableIndices[prevIdx]);
           }
           break;
@@ -122,21 +135,22 @@ function ActionMenuComponent({
   return (
     <div ref={menuRef} className={clsx('relative', className)}>
       {/* Trigger Button */}
-      <button
+      <Button
         ref={triggerRef}
-        type="button"
         onClick={handleToggle}
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
         className={clsx(
           'p-1 rounded transition-colors',
           'hover:bg-[var(--border)] text-[var(--muted-foreground)] hover:text-[var(--foreground)]',
-          isOpen && 'bg-[var(--border)]'
+          isOpen && 'bg-[var(--border)]',
         )}
         aria-haspopup="menu"
         aria-expanded={isOpen}
-        aria-label={triggerLabel || 'Open menu'}
+        ariaLabel={triggerLabel || 'Open menu'}
       >
         {triggerIcon || <MoreVertical className="w-4 h-4" />}
-      </button>
+      </Button>
 
       {/* Menu Dropdown */}
       {isOpen && (
@@ -145,16 +159,17 @@ function ActionMenuComponent({
             'absolute z-50 min-w-[160px] py-1',
             'bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg',
             ALIGN_CLASSES[align],
-            SIDE_CLASSES[side]
+            SIDE_CLASSES[side],
           )}
           role="menu"
         >
           {visibleActions.map((action, index) => (
-            <button
+            <Button
               key={action.id}
-              type="button"
               onClick={() => handleItemClick(action)}
-              disabled={action.disabled}
+              isDisabled={action.disabled}
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
               className={clsx(
                 'w-full flex items-center gap-2 px-3 py-1.5 text-sm text-left',
                 'transition-colors',
@@ -162,17 +177,21 @@ function ActionMenuComponent({
                   ? 'text-red-400 hover:bg-red-500/10'
                   : 'text-[var(--foreground)] hover:bg-[var(--border)]',
                 action.disabled && 'opacity-50 cursor-not-allowed',
-                index === selectedIndex && 'bg-[var(--border)]'
+                index === selectedIndex && 'bg-[var(--border)]',
               )}
               role="menuitem"
               tabIndex={-1}
             >
-              {action.icon && <span className="w-4 h-4 shrink-0">{action.icon}</span>}
+              {action.icon && (
+                <span className="w-4 h-4 shrink-0">{action.icon}</span>
+              )}
               <span className="flex-1">{action.label}</span>
               {action.shortcut && (
-                <span className="text-xs text-[var(--muted-foreground)]">{action.shortcut}</span>
+                <span className="text-xs text-[var(--muted-foreground)]">
+                  {action.shortcut}
+                </span>
               )}
-            </button>
+            </Button>
           ))}
         </div>
       )}

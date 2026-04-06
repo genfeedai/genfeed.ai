@@ -1,7 +1,13 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import { Check, Cloud, CloudOff, Loader2 } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
@@ -18,13 +24,15 @@ export function SaveIndicator() {
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <button
+          <Button
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
             onClick={toggleAutoSave}
             className="flex items-center gap-1.5 text-muted-foreground text-xs hover:text-foreground transition-colors"
           >
             <CloudOff className="h-3.5 w-3.5" />
             <span>Auto-save off</span>
-          </button>
+          </Button>
         </TooltipTrigger>
         <TooltipContent side="bottom">
           <p>Click to enable auto-save</p>
@@ -54,13 +62,15 @@ export function SaveIndicator() {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <button
+        <Button
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
           onClick={toggleAutoSave}
           className="flex items-center gap-1.5 text-green-500 text-xs hover:text-green-400 transition-colors"
         >
           <Check className="h-3.5 w-3.5" />
           <span>Saved</span>
-        </button>
+        </Button>
       </TooltipTrigger>
       <TooltipContent side="bottom">
         <p>Click to disable auto-save</p>

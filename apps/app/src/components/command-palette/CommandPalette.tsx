@@ -1,12 +1,15 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import { Kbd } from '@genfeedai/ui';
+import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useCommandPaletteStore } from '@/store/commandPaletteStore';
 import { useExecutionStore } from '@/store/executionStore';
 import { useRunWorkflowConfirmationStore } from '@/store/runWorkflowConfirmationStore';
-import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { useWorkflowStore } from '@/store/workflowStore';
 import {
   CATEGORY_LABELS,
@@ -23,12 +26,18 @@ interface CommandItemProps {
   onMouseEnter: () => void;
 }
 
-function CommandItem({ command, isSelected, onSelect, onMouseEnter }: CommandItemProps) {
+function CommandItem({
+  command,
+  isSelected,
+  onSelect,
+  onMouseEnter,
+}: CommandItemProps) {
   const Icon = command.icon;
 
   return (
-    <button
-      type="button"
+    <Button
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
       onClick={onSelect}
       onMouseEnter={onMouseEnter}
       className={`
@@ -39,11 +48,15 @@ function CommandItem({ command, isSelected, onSelect, onMouseEnter }: CommandIte
       <Icon className="h-4 w-4 shrink-0" />
       <span className="flex-1 truncate">{command.label}</span>
       {command.shortcut && (
-        <Kbd variant="muted" size="xs" className="ml-auto shrink-0 text-muted-foreground">
+        <Kbd
+          variant="muted"
+          size="xs"
+          className="ml-auto shrink-0 text-muted-foreground"
+        >
           {command.shortcut}
         </Kbd>
       )}
-    </button>
+    </Button>
   );
 }
 
@@ -64,19 +77,30 @@ export function CommandPalette() {
   } = useCommandPaletteStore();
 
   const executeWorkflow = useExecutionStore((state) => state.executeWorkflow);
-  const executeSelectedNodes = useExecutionStore((state) => state.executeSelectedNodes);
+  const executeSelectedNodes = useExecutionStore(
+    (state) => state.executeSelectedNodes,
+  );
   const stopExecution = useExecutionStore((state) => state.stopExecution);
-  const requestConfirmation = useRunWorkflowConfirmationStore((state) => state.requestConfirmation);
+  const requestConfirmation = useRunWorkflowConfirmationStore(
+    (state) => state.requestConfirmation,
+  );
   const isRunning = useExecutionStore((state) => state.isRunning);
   const { openModal, toggleAIGenerator } = useUIStore();
   const { addNode, exportWorkflow, selectedNodeIds } = useWorkflowStore();
 
   // Filter and group commands
-  const filteredCommands = useMemo(() => filterCommands(COMMANDS, searchQuery), [searchQuery]);
+  const filteredCommands = useMemo(
+    () => filterCommands(COMMANDS, searchQuery),
+    [searchQuery],
+  );
 
   const groupedCommands = useMemo(
-    () => groupCommandsByCategory(filteredCommands, searchQuery ? [] : recentCommands),
-    [filteredCommands, recentCommands, searchQuery]
+    () =>
+      groupCommandsByCategory(
+        filteredCommands,
+        searchQuery ? [] : recentCommands,
+      ),
+    [filteredCommands, recentCommands, searchQuery],
   );
 
   // Flatten for keyboard navigation
@@ -106,7 +130,9 @@ export function CommandPalette() {
           break;
         case 'save-workflow': {
           const workflow = exportWorkflow();
-          const blob = new Blob([JSON.stringify(workflow, null, 2)], { type: 'application/json' });
+          const blob = new Blob([JSON.stringify(workflow, null, 2)], {
+            type: 'application/json',
+          });
           const url = URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = url;
@@ -132,7 +158,10 @@ export function CommandPalette() {
         default:
           // Handle node addition
           if (command.nodeType) {
-            const position = { x: window.innerWidth / 2 - 150, y: window.innerHeight / 2 - 150 };
+            const position = {
+              x: window.innerWidth / 2 - 150,
+              y: window.innerHeight / 2 - 150,
+            };
             addNode(command.nodeType, position);
           }
           break;
@@ -152,7 +181,7 @@ export function CommandPalette() {
       toggleAIGenerator,
       router,
       addNode,
-    ]
+    ],
   );
 
   // Focus input when palette opens
@@ -174,7 +203,9 @@ export function CommandPalette() {
           break;
         case 'ArrowDown':
           e.preventDefault();
-          setSelectedIndex(Math.min(selectedIndex + 1, flatCommands.length - 1));
+          setSelectedIndex(
+            Math.min(selectedIndex + 1, flatCommands.length - 1),
+          );
           break;
         case 'ArrowUp':
           e.preventDefault();
@@ -191,13 +222,22 @@ export function CommandPalette() {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, selectedIndex, flatCommands, close, setSelectedIndex, executeCommand]);
+  }, [
+    isOpen,
+    selectedIndex,
+    flatCommands,
+    close,
+    setSelectedIndex,
+    executeCommand,
+  ]);
 
   // Scroll selected item into view
   useEffect(() => {
     if (!listRef.current || flatCommands.length === 0) return;
 
-    const selectedElement = listRef.current.querySelector(`[data-index="${selectedIndex}"]`);
+    const selectedElement = listRef.current.querySelector(
+      `[data-index="${selectedIndex}"]`,
+    );
     if (selectedElement && 'scrollIntoView' in selectedElement) {
       selectedElement.scrollIntoView({ block: 'nearest' });
     }
@@ -235,13 +275,13 @@ export function CommandPalette() {
               d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
             />
           </svg>
-          <input
+          <Input
             ref={inputRef}
             type="text"
             value={searchQuery}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Type a command or search..."
-            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+            className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none border-none shadow-none"
           />
           <Kbd variant="muted" size="xs" className="text-muted-foreground">
             ESC
@@ -255,46 +295,56 @@ export function CommandPalette() {
               No commands found
             </div>
           ) : (
-            Array.from(groupedCommands.entries()).map(([category, commands]) => {
-              // Calculate starting index for this category
-              let startIndex = 0;
-              for (const [cat, cmds] of groupedCommands.entries()) {
-                if (cat === category) break;
-                startIndex += cmds.length;
-              }
+            Array.from(groupedCommands.entries()).map(
+              ([category, commands]) => {
+                // Calculate starting index for this category
+                let startIndex = 0;
+                for (const [cat, cmds] of groupedCommands.entries()) {
+                  if (cat === category) break;
+                  startIndex += cmds.length;
+                }
 
-              return (
-                <div key={category}>
-                  <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                    {CATEGORY_LABELS[category]}
+                return (
+                  <div key={category}>
+                    <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                      {CATEGORY_LABELS[category]}
+                    </div>
+                    {commands.map((command, idx) => {
+                      const globalIndex = startIndex + idx;
+                      return (
+                        <div key={command.id} data-index={globalIndex}>
+                          <CommandItem
+                            command={command}
+                            isSelected={selectedIndex === globalIndex}
+                            onSelect={() => executeCommand(command)}
+                            onMouseEnter={() => setSelectedIndex(globalIndex)}
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
-                  {commands.map((command, idx) => {
-                    const globalIndex = startIndex + idx;
-                    return (
-                      <div key={command.id} data-index={globalIndex}>
-                        <CommandItem
-                          command={command}
-                          isSelected={selectedIndex === globalIndex}
-                          onSelect={() => executeCommand(command)}
-                          onMouseEnter={() => setSelectedIndex(globalIndex)}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-              );
-            })
+                );
+              },
+            )
           )}
         </div>
 
         {/* Footer hint */}
         <div className="flex items-center justify-between border-t border-border px-4 py-2 text-[10px] text-muted-foreground">
           <span>
-            <Kbd variant="muted" size="xs" className="px-1">↑</Kbd>{' '}
-            <Kbd variant="muted" size="xs" className="px-1">↓</Kbd> to navigate
+            <Kbd variant="muted" size="xs" className="px-1">
+              ↑
+            </Kbd>{' '}
+            <Kbd variant="muted" size="xs" className="px-1">
+              ↓
+            </Kbd>{' '}
+            to navigate
           </span>
           <span>
-            <Kbd variant="muted" size="xs" className="px-1">Enter</Kbd> to select
+            <Kbd variant="muted" size="xs" className="px-1">
+              Enter
+            </Kbd>{' '}
+            to select
           </span>
         </div>
       </div>
