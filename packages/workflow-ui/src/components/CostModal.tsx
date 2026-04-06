@@ -75,6 +75,7 @@ export function CostModal() {
             <>
               {/* Table */}
               <div className="max-h-[40vh] overflow-y-auto">
+                {/* TODO: migrate to @ui/primitives/table */}
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="text-left text-xs text-[var(--muted-foreground)] border-b border-[var(--border)]">

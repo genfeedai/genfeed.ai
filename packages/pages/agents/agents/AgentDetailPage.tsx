@@ -1,6 +1,11 @@
 'use client';
 
 import { AgentType, ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import {
+  DefinitionDetail,
+  DefinitionList,
+  DefinitionTerm,
+} from '@genfeedai/ui';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAgentRuns } from '@hooks/data/agent-runs/use-agent-runs';
 import { useAgentStrategy } from '@hooks/data/agent-strategies/use-agent-strategy';
@@ -15,16 +20,19 @@ import {
 } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import {
-  DefinitionDetail,
-  DefinitionList,
-  DefinitionTerm,
-} from '@genfeedai/ui';
 import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@ui/primitives/table';
 import { formatDistanceToNow } from 'date-fns';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -318,10 +326,16 @@ export default function AgentDetailPage({ agentId }: AgentDetailPageProps) {
               </Badge>
             </div>
 
-            <DefinitionList variant="grid" className="mt-4 gap-3 text-sm md:grid-cols-2">
+            <DefinitionList
+              variant="grid"
+              className="mt-4 gap-3 text-sm md:grid-cols-2"
+            >
               <InsetSurface className="p-3" density="compact" tone="contrast">
                 <DefinitionTerm>Opportunity</DefinitionTerm>
-                <DefinitionDetail variant="inline" className="mt-1 text-foreground/85">
+                <DefinitionDetail
+                  variant="inline"
+                  className="mt-1 text-foreground/85"
+                >
                   {selectedOpportunity?.topic ??
                     (isOpportunitiesLoading
                       ? 'Loading opportunity...'
@@ -330,20 +344,29 @@ export default function AgentDetailPage({ agentId }: AgentDetailPageProps) {
               </InsetSurface>
               <InsetSurface className="p-3" density="compact" tone="contrast">
                 <DefinitionTerm>Status</DefinitionTerm>
-                <DefinitionDetail variant="inline" className="mt-1 capitalize text-foreground/85">
+                <DefinitionDetail
+                  variant="inline"
+                  className="mt-1 capitalize text-foreground/85"
+                >
                   {selectedOpportunity?.status ??
                     (isOpportunitiesLoading ? 'Loading' : 'Unavailable')}
                 </DefinitionDetail>
               </InsetSurface>
               <InsetSurface className="p-3" density="compact" tone="contrast">
                 <DefinitionTerm>Reason</DefinitionTerm>
-                <DefinitionDetail variant="inline" className="mt-1 text-foreground/85">
+                <DefinitionDetail
+                  variant="inline"
+                  className="mt-1 text-foreground/85"
+                >
                   {selectedOpportunity?.decisionReason ?? 'Not recorded'}
                 </DefinitionDetail>
               </InsetSurface>
               <InsetSurface className="p-3" density="compact" tone="contrast">
                 <DefinitionTerm>Expected traffic</DefinitionTerm>
-                <DefinitionDetail variant="inline" className="mt-1 text-foreground/85">
+                <DefinitionDetail
+                  variant="inline"
+                  className="mt-1 text-foreground/85"
+                >
                   {selectedOpportunity?.expectedTrafficScore ?? 'Not recorded'}
                 </DefinitionDetail>
               </InsetSurface>
@@ -370,28 +393,28 @@ export default function AgentDetailPage({ agentId }: AgentDetailPageProps) {
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full caption-bottom text-sm">
-                <thead>
-                  <tr className="border-b border-white/5">
-                    <th className="h-12 w-10 px-2 text-left" />
-                    <th className="h-12 px-4 text-left text-[10px] font-black uppercase tracking-widest text-white/20">
+              <Table className="w-full caption-bottom text-sm">
+                <TableHeader>
+                  <TableRow className="border-b border-white/5">
+                    <TableHead className="h-12 w-10 px-2 text-left" />
+                    <TableHead className="h-12 px-4 text-left text-[10px] font-black uppercase tracking-widest text-white/20">
                       Status
-                    </th>
-                    <th className="h-12 px-4 text-left text-[10px] font-black uppercase tracking-widest text-white/20">
+                    </TableHead>
+                    <TableHead className="h-12 px-4 text-left text-[10px] font-black uppercase tracking-widest text-white/20">
                       Credits
-                    </th>
-                    <th className="h-12 px-4 text-left text-[10px] font-black uppercase tracking-widest text-white/20">
+                    </TableHead>
+                    <TableHead className="h-12 px-4 text-left text-[10px] font-black uppercase tracking-widest text-white/20">
                       Model
-                    </th>
-                    <th className="h-12 px-4 text-left text-[10px] font-black uppercase tracking-widest text-white/20">
+                    </TableHead>
+                    <TableHead className="h-12 px-4 text-left text-[10px] font-black uppercase tracking-widest text-white/20">
                       Duration
-                    </th>
-                    <th className="h-12 px-4 text-left text-[10px] font-black uppercase tracking-widest text-white/20">
+                    </TableHead>
+                    <TableHead className="h-12 px-4 text-left text-[10px] font-black uppercase tracking-widest text-white/20">
                       Started
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {recentRuns.map((run) => {
                     const isExpanded = expandedRunId === run.id;
                     return (
@@ -403,8 +426,8 @@ export default function AgentDetailPage({ agentId }: AgentDetailPageProps) {
                       />
                     );
                   })}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
         </div>
@@ -416,45 +439,45 @@ export default function AgentDetailPage({ agentId }: AgentDetailPageProps) {
 function RunRow({ run, isExpanded, onToggle }: AgentRunRowProps) {
   return (
     <>
-      <tr
+      <TableRow
         className="cursor-pointer border-b border-white/5 transition-all duration-200 hover:bg-white/[0.02]"
         onClick={() => onToggle(run.id)}
       >
-        <td className="px-2 py-4 align-middle">
+        <TableCell className="px-2 py-4 align-middle">
           {isExpanded ? (
             <HiChevronDown className="size-4 text-foreground/40" />
           ) : (
             <HiChevronRight className="size-4 text-foreground/40" />
           )}
-        </td>
-        <td className="px-4 py-4 align-middle">
+        </TableCell>
+        <TableCell className="px-4 py-4 align-middle">
           <Badge variant={RUN_STATUS_VARIANTS[run.status] ?? 'secondary'}>
             {run.status}
           </Badge>
-        </td>
-        <td className="px-4 py-4 align-middle text-sm">
+        </TableCell>
+        <TableCell className="px-4 py-4 align-middle text-sm">
           {run.creditsUsed ?? 0}
-        </td>
-        <td
+        </TableCell>
+        <TableCell
           className="max-w-[18rem] px-4 py-4 align-middle text-sm text-foreground/60"
           title={getRunModelLabel(run)}
         >
           <span className="block truncate">{getRunModelLabel(run)}</span>
-        </td>
-        <td className="px-4 py-4 align-middle text-sm text-foreground/60">
+        </TableCell>
+        <TableCell className="px-4 py-4 align-middle text-sm text-foreground/60">
           {run.durationMs ? `${Math.round(run.durationMs / 1000)}s` : '\u2014'}
-        </td>
-        <td className="px-4 py-4 align-middle text-sm text-foreground/60">
+        </TableCell>
+        <TableCell className="px-4 py-4 align-middle text-sm text-foreground/60">
           {run.startedAt
             ? formatDistanceToNow(new Date(run.startedAt), {
                 addSuffix: true,
               })
             : '\u2014'}
-        </td>
-      </tr>
+        </TableCell>
+      </TableRow>
       {isExpanded && (
-        <tr>
-          <td
+        <TableRow>
+          <TableCell
             colSpan={6}
             className="border-b border-white/5 bg-foreground/[0.02]"
           >
@@ -477,8 +500,8 @@ function RunRow({ run, isExpanded, onToggle }: AgentRunRowProps) {
               </div>
               <AgentRunContentGrid runId={run.id} />
             </div>
-          </td>
-        </tr>
+          </TableCell>
+        </TableRow>
       )}
     </>
   );

@@ -6,6 +6,11 @@ import {
   selectUpdateNodeData,
   useWorkflowStore,
 } from '@genfeedai/workflow-ui/stores';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@ui/src/primitives/collapsible';
 import { NodeBadge } from '@workflow-cloud/components/ui/badge';
 import {
   NodeButton,
@@ -140,9 +145,7 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
           <div>
             <label className="text-xs text-muted-foreground">Webhook URL</label>
             <div className="flex items-center gap-2 mt-1">
-              <Code className="flex-1 truncate">
-                {data.webhookUrl}
-              </Code>
+              <Code className="flex-1 truncate">{data.webhookUrl}</Code>
               <NodeIconButton
                 onClick={() => copyToClipboard(data.webhookUrl!, 'url')}
                 title="Copy URL"
@@ -200,16 +203,21 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
           )}
 
           {/* Usage Example */}
-          <details className="text-xs">
-            <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
+          <Collapsible className="text-xs">
+            <CollapsibleTrigger
+              showArrow={false}
+              className="cursor-pointer py-0 text-muted-foreground hover:text-foreground hover:no-underline"
+            >
               View example request
-            </summary>
-            <Pre size="xs" className="mt-2">
-              {`curl -X POST "${data.webhookUrl}" \\
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <Pre size="xs" className="mt-2">
+                {`curl -X POST "${data.webhookUrl}" \\
   -H "Content-Type: application/json" \\${curlAuthHeader}
   -d '{"key": "value"}'`}
-            </Pre>
-          </details>
+              </Pre>
+            </CollapsibleContent>
+          </Collapsible>
 
           {/* Stats */}
           <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-white/[0.08]">

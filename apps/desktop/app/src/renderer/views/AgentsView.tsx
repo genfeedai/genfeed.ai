@@ -1,4 +1,6 @@
 import type { IDesktopAgent } from '@genfeedai/desktop-contracts';
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 function timeAgo(dateStr: string): string {
@@ -68,14 +70,15 @@ const AgentCard = ({
           </div>
         </div>
         <div className="agent-card-actions">
-          <button
-            className="primary-button small"
+          <Button
+            className="small"
             disabled={isRunning}
             onClick={() => onRun(agent.id)}
             type="button"
+            variant={ButtonVariant.DEFAULT}
           >
             {isRunning ? 'Running...' : '▶ Run'}
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -87,14 +90,15 @@ const AgentCard = ({
 
       {agent.recentRuns.length > 0 && (
         <div className="agent-runs-section">
-          <button
-            className="ghost-button small"
+          <Button
+            className="small"
             onClick={() => setExpanded(!expanded)}
             type="button"
+            variant={ButtonVariant.GHOST}
           >
             {expanded ? '▾ Hide runs' : '▸ View runs'} (
             {String(agent.recentRuns.length)})
-          </button>
+          </Button>
 
           {expanded && (
             <div className="agent-runs-list">
@@ -178,13 +182,14 @@ export const AgentsView = () => {
       <div className="view-header">
         <h2>Agents</h2>
         <span className="muted-text">{agents.length} agent strategies</span>
-        <button
-          className="ghost-button small"
+        <Button
+          className="small"
           onClick={() => void loadAgents()}
           type="button"
+          variant={ButtonVariant.GHOST}
         >
           Refresh
-        </button>
+        </Button>
       </div>
 
       {loading && <p className="muted-text">Loading agents...</p>}

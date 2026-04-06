@@ -65,8 +65,9 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
       )}
     >
       {/* Reject button */}
-      <button
-        type="button"
+      <Button
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
         onClick={handleReject}
         className={cn(
           'absolute top-3 right-3 z-10',
@@ -76,10 +77,9 @@ const GeneratedPromptCard = memo(function GeneratedPromptCard({
           'transition-all duration-200',
           'opacity-0 group-hover:opacity-100',
         )}
-        aria-label="Dismiss prompt"
-      >
-        <HiXMark className="w-4 h-4" />
-      </button>
+        ariaLabel="Dismiss prompt"
+        icon={<HiXMark className="w-4 h-4" />}
+      />
 
       <div className="p-5 space-y-4">
         {/* Prompt text */}

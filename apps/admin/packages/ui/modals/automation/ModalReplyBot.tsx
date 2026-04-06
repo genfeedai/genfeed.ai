@@ -1,4 +1,3 @@
-import type { IReplyBotConfig, IReplyBotRateLimits } from '@genfeedai/interfaces';
 import {
   type ReplyBotConfigSchema,
   replyBotConfigSchema,
@@ -11,6 +10,10 @@ import {
   ReplyBotPlatform,
   ReplyBotType,
 } from '@genfeedai/enums';
+import type {
+  IReplyBotConfig,
+  IReplyBotRateLimits,
+} from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
@@ -25,6 +28,14 @@ import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
 import FormTextarea from '@ui/forms/inputs/textarea/form-textarea/FormTextarea';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Input } from '@ui/primitives/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import { type ChangeEvent, useEffect } from 'react';
 import {
   FaInstagram,
@@ -272,19 +283,26 @@ export default function ModalReplyBot({
           </FormControl>
 
           <FormControl label="Bot Type">
-            <select
-              name="type"
-              className="h-10 border border-input px-3 w-full bg-background"
+            <Select
               value={form.watch('type')}
-              onChange={handleChange}
+              onValueChange={(value) => {
+                handleChange({
+                  target: { name: 'type', value },
+                } as ChangeEvent<HTMLSelectElement>);
+              }}
               disabled={isSubmitting}
             >
-              {BOT_TYPES.map(({ type, label, description }) => (
-                <option key={type} value={type}>
-                  {label} - {description}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {BOT_TYPES.map(({ type, label, description }) => (
+                  <SelectItem key={type} value={type}>
+                    {label} - {description}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </FormControl>
 
           <FormControl label="Platform">
@@ -319,19 +337,26 @@ export default function ModalReplyBot({
           </FormControl>
 
           <FormControl label="Action Type">
-            <select
-              name="actionType"
-              className="h-10 border border-input px-3 w-full bg-background"
+            <Select
               value={form.watch('actionType')}
-              onChange={handleChange}
+              onValueChange={(value) => {
+                handleChange({
+                  target: { name: 'actionType', value },
+                } as ChangeEvent<HTMLSelectElement>);
+              }}
               disabled={isSubmitting}
             >
-              {ACTION_TYPES.map(({ type, label }) => (
-                <option key={type} value={type}>
-                  {label}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ACTION_TYPES.map(({ type, label }) => (
+                  <SelectItem key={type} value={type}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </FormControl>
 
           <div className="flex items-center gap-4 my-4">
@@ -373,9 +398,8 @@ export default function ModalReplyBot({
 
           <div className="grid grid-cols-2 gap-4">
             <FormControl label="Max Replies/Hour">
-              <input
+              <Input
                 type="number"
-                className="h-10 border border-input px-3 w-full"
                 value={rateLimits.maxRepliesPerHour}
                 onChange={(e) =>
                   handleRateLimitChange(
@@ -390,9 +414,8 @@ export default function ModalReplyBot({
             </FormControl>
 
             <FormControl label="Max Replies/Day">
-              <input
+              <Input
                 type="number"
-                className="h-10 border border-input px-3 w-full"
                 value={rateLimits.maxRepliesPerDay}
                 onChange={(e) =>
                   handleRateLimitChange(
@@ -409,9 +432,8 @@ export default function ModalReplyBot({
             {showDmSettings && (
               <>
                 <FormControl label="Max DMs/Hour">
-                  <input
+                  <Input
                     type="number"
-                    className="h-10 border border-input px-3 w-full"
                     value={rateLimits.maxDmsPerHour}
                     onChange={(e) =>
                       handleRateLimitChange(
@@ -426,9 +448,8 @@ export default function ModalReplyBot({
                 </FormControl>
 
                 <FormControl label="Max DMs/Day">
-                  <input
+                  <Input
                     type="number"
-                    className="h-10 border border-input px-3 w-full"
                     value={rateLimits.maxDmsPerDay}
                     onChange={(e) =>
                       handleRateLimitChange(
@@ -445,9 +466,8 @@ export default function ModalReplyBot({
             )}
 
             <FormControl label="Cooldown (minutes)">
-              <input
+              <Input
                 type="number"
-                className="h-10 border border-input px-3 w-full"
                 value={rateLimits.cooldownMinutes}
                 onChange={(e) =>
                   handleRateLimitChange(

@@ -1,7 +1,7 @@
 'use client';
 
+import { ButtonVariant, IngredientCategory } from '@genfeedai/enums';
 import type { IAsset, IImage } from '@genfeedai/interfaces';
-import { IngredientCategory } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { PromptBarFrameControlsProps } from '@props/studio/prompt-bar.props';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -243,15 +243,15 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
     onClick: (e: MouseEvent) => void,
     title: string,
   ) => (
-    <button
-      type="button"
+    <Button
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
       onClick={onClick}
-      aria-label={title}
+      ariaLabel={title}
       className="absolute top-0 right-0 w-4 h-4 bg-black/70 hover:bg-error rounded-bl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-      title={title}
-    >
-      <HiXMark className="w-3 h-3 text-white" />
-    </button>
+      tooltip={title}
+      icon={<HiXMark className="w-3 h-3 text-white" />}
+    />
   );
 
   return (

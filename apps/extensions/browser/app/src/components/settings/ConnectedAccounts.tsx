@@ -1,3 +1,5 @@
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import { type ReactElement, useEffect, useState } from 'react';
 
 import { useBrandStore } from '~store/use-brand-store';
@@ -125,22 +127,21 @@ export function ConnectedAccounts(): ReactElement {
                 </span>
               )}
             </div>
-            <button
+            <Button
               type="button"
+              variant={
+                isConnected ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT
+              }
               onClick={() => handleConnect(key, connectEndpoint)}
               disabled={connecting === key}
-              className={`rounded px-3 py-1 text-xs font-medium transition-colors ${
-                isConnected
-                  ? 'bg-secondary text-secondary-foreground hover:bg-accent'
-                  : 'bg-primary text-primary-foreground hover:bg-primary/90'
-              } disabled:opacity-50`}
+              className="rounded px-3 py-1 text-xs font-medium"
             >
               {connecting === key
                 ? 'Connecting...'
                 : isConnected
                   ? 'Reconnect'
                   : 'Connect'}
-            </button>
+            </Button>
           </div>
         );
       })}

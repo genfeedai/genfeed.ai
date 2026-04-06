@@ -1,8 +1,10 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import Button from '@ui/buttons/base/Button';
 import MenuItem from '@ui/menus/item/MenuItem';
 import { usePathname } from 'next/navigation';
 import { Fragment, useCallback, useMemo } from 'react';
@@ -78,21 +80,22 @@ export default function SidebarNested({
     <div className="flex flex-col h-full w-full bg-background">
       {/* Back button — styled as a menu row */}
       <div className="px-3 pt-2 pb-1 flex-shrink-0">
-        <button
-          type="button"
+        <Button
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           onClick={onBack}
           className={cn(
             'flex h-9 w-full items-center gap-3 rounded-lg px-3 py-2 transition-colors duration-200 group cursor-pointer',
             'text-white/80 hover:bg-white/[0.04]',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
           )}
-          aria-label={`Back to ${backLabel ?? groupLabel}`}
+          ariaLabel={`Back to ${backLabel ?? groupLabel}`}
         >
           <HiArrowLeft className="w-4 h-4 text-white/60 group-hover:text-white transition-colors duration-200" />
           <span className="text-sm font-medium text-white/90">
             {backLabel ?? groupLabel}
           </span>
-        </button>
+        </Button>
       </div>
 
       {/* Item list */}

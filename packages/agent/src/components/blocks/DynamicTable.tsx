@@ -1,6 +1,14 @@
 'use client';
 
 import type { TableBlock, TableColumnConfig } from '@genfeedai/interfaces';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@ui/primitives/table';
 import { type ReactElement, useMemo, useState } from 'react';
 
 interface DynamicTableProps {
@@ -82,11 +90,11 @@ function DynamicTable({ block }: DynamicTableProps): ReactElement {
 
   return (
     <div className="overflow-x-auto rounded-lg border border-border">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="border-b border-border bg-muted/50">
+      <Table className="w-full text-sm">
+        <TableHeader>
+          <TableRow className="border-b border-border bg-muted/50">
             {columns.map((col) => (
-              <th
+              <TableHead
                 key={col.key}
                 className={`px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground ${getAlignClass(col.align)} ${
                   col.sortable
@@ -103,19 +111,22 @@ function DynamicTable({ block }: DynamicTableProps): ReactElement {
                     </span>
                   )}
                 </span>
-              </th>
+              </TableHead>
             ))}
-          </tr>
-        </thead>
-        <tbody>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {isLoading ? (
             Array.from({ length: 4 }).map((_, rowIndex) => (
-              <tr
+              <TableRow
                 key={`table-loading-${rowIndex}`}
                 className="border-b border-border"
               >
                 {columns.map((col) => (
-                  <td key={`${col.key}-${rowIndex}`} className="px-4 py-3">
+                  <TableCell
+                    key={`${col.key}-${rowIndex}`}
+                    className="px-4 py-3"
+                  >
                     <div
                       className="h-4 animate-pulse rounded bg-muted/70"
                       style={{
@@ -123,38 +134,38 @@ function DynamicTable({ block }: DynamicTableProps): ReactElement {
                         width: `${55 + ((rowIndex + col.key.length) % 4) * 10}%`,
                       }}
                     />
-                  </td>
+                  </TableCell>
                 ))}
-              </tr>
+              </TableRow>
             ))
           ) : sortedRows.length === 0 ? (
-            <tr>
-              <td
+            <TableRow>
+              <TableCell
                 colSpan={columns.length}
                 className="px-4 py-8 text-center text-muted-foreground"
               >
                 No data available
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           ) : (
             sortedRows.map((row, rowIndex) => (
-              <tr
+              <TableRow
                 key={rowIndex}
                 className="border-b border-border transition-colors last:border-b-0 hover:bg-accent/30"
               >
                 {columns.map((col) => (
-                  <td
+                  <TableCell
                     key={col.key}
                     className={`px-4 py-2.5 text-foreground ${getAlignClass(col.align)}`}
                   >
                     {row[col.key] != null ? String(row[col.key]) : '\u2014'}
-                  </td>
+                  </TableCell>
                 ))}
-              </tr>
+              </TableRow>
             ))
           )}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 }

@@ -1,3 +1,5 @@
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 
 export function AutoPostToggle(): ReactElement {
@@ -14,15 +16,16 @@ export function AutoPostToggle(): ReactElement {
           Automatically post generated content
         </p>
       </div>
-      <button
+      <Button
         type="button"
+        variant={ButtonVariant.UNSTYLED}
         role="switch"
         aria-checked={false}
         disabled
         className="relative h-5 w-9 shrink-0 cursor-not-allowed rounded-full bg-border"
       >
         <span className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white" />
-      </button>
+      </Button>
     </label>
   );
 }

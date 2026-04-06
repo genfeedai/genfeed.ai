@@ -1,5 +1,7 @@
 import type { IDesktopIngredient } from '@genfeedai/desktop-contracts';
+import { ButtonVariant } from '@genfeedai/enums';
 import { DropZone } from '@renderer/components/DropZone';
+import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useState } from 'react';
 
 const PLATFORM_FILTERS = [
@@ -85,31 +87,34 @@ export const LibraryView = ({ workspaceId }: LibraryViewProps) => {
       <div className="library-filters">
         <div className="pill-group">
           {PLATFORM_FILTERS.map((pf) => (
-            <button
+            <Button
               className={`pill-button ${platformFilter === pf.value ? 'pill-active' : ''}`}
               key={pf.value}
               onClick={() => setPlatformFilter(pf.value)}
               type="button"
+              variant={ButtonVariant.UNSTYLED}
             >
               {pf.label}
-            </button>
+            </Button>
           ))}
         </div>
         <div className="pill-group">
-          <button
+          <Button
             className={`pill-button ${sortBy === 'votes' ? 'pill-active' : ''}`}
             onClick={() => setSortBy('votes')}
             type="button"
+            variant={ButtonVariant.UNSTYLED}
           >
             By Votes
-          </button>
-          <button
+          </Button>
+          <Button
             className={`pill-button ${sortBy === 'date' ? 'pill-active' : ''}`}
             onClick={() => setSortBy('date')}
             type="button"
+            variant={ButtonVariant.UNSTYLED}
           >
             By Date
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -143,13 +148,14 @@ export const LibraryView = ({ workspaceId }: LibraryViewProps) => {
               <p className="ingredient-content">{ingredient.content}</p>
               <div className="ingredient-footer">
                 <span className="vote-count">▲ {ingredient.totalVotes}</span>
-                <button
-                  className="ghost-button small"
+                <Button
+                  className="small"
                   onClick={() => void handleCopy(ingredient)}
                   type="button"
+                  variant={ButtonVariant.GHOST}
                 >
                   {copiedId === ingredient.id ? '✓ Copied' : 'Copy'}
-                </button>
+                </Button>
               </div>
             </div>
           ))}

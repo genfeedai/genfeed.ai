@@ -1,3 +1,6 @@
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
+import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useEffect, useState } from 'react';
 import { LoadingSpinner } from '~components/ui';
 import { authService } from '~services/auth.service';
@@ -193,16 +196,17 @@ export function ReplyPage({
           <h2 className="text-sm font-semibold text-foreground">
             Reply Options
           </h2>
-          <button
+          <Button
             type="button"
+            variant={ButtonVariant.GHOST}
             onClick={() => {
               setStep('input');
               setReplies([]);
             }}
-            className="text-xs text-muted-foreground hover:text-foreground"
+            className="text-xs"
           >
             ← Back
-          </button>
+          </Button>
         </div>
 
         <div className="rounded border border-border bg-muted px-3 py-2 text-xs text-muted-foreground line-clamp-3">
@@ -213,27 +217,29 @@ export function ReplyPage({
           {replies.map((reply, i) => (
             <div key={i} className="rounded border border-border bg-card p-3">
               <p className="mb-2 text-sm text-foreground">{reply.text}</p>
-              <button
+              <Button
                 type="button"
+                variant={ButtonVariant.GHOST}
                 onClick={() => handleCopy(reply.text, i)}
                 className="w-full rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20"
               >
                 {copiedIndex === i ? '✓ Copied' : 'Copy reply'}
-              </button>
+              </Button>
             </div>
           ))}
         </div>
 
-        <button
+        <Button
           type="button"
+          variant={ButtonVariant.OUTLINE}
           onClick={() => {
             setStep('input');
             setReplies([]);
           }}
-          className="mt-auto rounded border border-border bg-muted px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted/80"
+          className="mt-auto"
         >
           Generate more
-        </button>
+        </Button>
       </div>
     );
   }
@@ -254,7 +260,7 @@ export function ReplyPage({
         <label className="text-xs font-medium text-muted-foreground">
           Post to reply to
         </label>
-        <textarea
+        <Textarea
           value={postContent}
           onChange={(e) => setPostContent(e.target.value)}
           placeholder="Paste the post content here…"
@@ -284,9 +290,10 @@ export function ReplyPage({
         </label>
         <div className="grid grid-cols-2 gap-1.5">
           {TONES.map((t) => (
-            <button
+            <Button
               key={t.value}
               type="button"
+              variant={ButtonVariant.UNSTYLED}
               onClick={() => setTone(t.value)}
               title={t.description}
               className={`rounded border px-2 py-1.5 text-xs font-medium transition-colors ${
@@ -296,19 +303,20 @@ export function ReplyPage({
               }`}
             >
               {t.label}
-            </button>
+            </Button>
           ))}
         </div>
       </div>
 
-      <button
+      <Button
         type="button"
+        variant={ButtonVariant.DEFAULT}
         onClick={handleGenerate}
         disabled={!postContent.trim()}
-        className="mt-auto rounded bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-auto rounded shadow"
       >
         Generate replies →
-      </button>
+      </Button>
     </div>
   );
 }

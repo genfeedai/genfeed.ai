@@ -1,7 +1,7 @@
 'use client';
 
-import type { ITextOverlayErrors } from '@genfeedai/interfaces/ui/text-overlay-errors.interface';
 import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import type { ITextOverlayErrors } from '@genfeedai/interfaces/ui/text-overlay-errors.interface';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { ModalTextOverlayProps } from '@props/modals/modal.props';
@@ -12,6 +12,13 @@ import Button from '@ui/buttons/base/Button';
 import FormControl from '@ui/forms/base/form-control/FormControl';
 import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
 import Modal from '@ui/modals/modal/Modal';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import { useState } from 'react';
 
 export default function ModalTextOverlay({
@@ -102,32 +109,34 @@ export default function ModalTextOverlay({
         </FormControl>
 
         <FormControl label="Position">
-          <select
-            className="h-10 border border-input px-3 w-full bg-background"
-            value={position}
-            onChange={(e) => setPosition(e.target.value)}
-          >
-            <option value="top">Top</option>
-            <option value="center">Center</option>
-            <option value="bottom">Bottom</option>
-            <option value="top-left">Top Left</option>
-            <option value="top-right">Top Right</option>
-            <option value="bottom-left">Bottom Left</option>
-            <option value="bottom-right">Bottom Right</option>
-          </select>
+          <Select value={position} onValueChange={setPosition}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="top">Top</SelectItem>
+              <SelectItem value="center">Center</SelectItem>
+              <SelectItem value="bottom">Bottom</SelectItem>
+              <SelectItem value="top-left">Top Left</SelectItem>
+              <SelectItem value="top-right">Top Right</SelectItem>
+              <SelectItem value="bottom-left">Bottom Left</SelectItem>
+              <SelectItem value="bottom-right">Bottom Right</SelectItem>
+            </SelectContent>
+          </Select>
         </FormControl>
 
         <FormControl label="Font Size">
-          <select
-            className="h-10 border border-input px-3 w-full bg-background"
-            value={fontSize}
-            onChange={(e) => setFontSize(e.target.value)}
-          >
-            <option value="small">Small</option>
-            <option value="medium">Medium</option>
-            <option value="large">Large</option>
-            <option value="extra-large">Extra Large</option>
-          </select>
+          <Select value={fontSize} onValueChange={setFontSize}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="small">Small</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="large">Large</SelectItem>
+              <SelectItem value="extra-large">Extra Large</SelectItem>
+            </SelectContent>
+          </Select>
         </FormControl>
       </div>
 

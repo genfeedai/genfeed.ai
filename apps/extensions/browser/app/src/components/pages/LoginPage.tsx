@@ -1,4 +1,6 @@
 import { SignInButton } from '@clerk/chrome-extension';
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { useThemeLogo } from '~hooks/ui/use-theme-logo/use-theme-logo';
 
@@ -20,12 +22,13 @@ export default function LoginPage() {
 
       <div className="w-full max-w-xs space-y-4">
         <SignInButton mode="modal">
-          <button
+          <Button
             type="button"
-            className="inline-flex items-center justify-center h-9 px-4 py-2 w-full text-sm font-medium bg-primary text-primary-foreground shadow hover:bg-primary/90 transition-colors"
+            variant={ButtonVariant.DEFAULT}
+            className="w-full shadow"
           >
             Sign in with Genfeed
-          </button>
+          </Button>
         </SignInButton>
 
         <p className="text-xs text-muted-foreground text-center">

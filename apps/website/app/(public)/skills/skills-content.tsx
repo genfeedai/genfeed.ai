@@ -12,6 +12,7 @@ import {
   TERMINAL_COMMANDS,
 } from '@public/skills/_data';
 import { EnvironmentService } from '@services/core/environment.service';
+import BaseButton from '@ui/buttons/base/Button';
 import { Button } from '@ui/primitives/button';
 import {
   CtaSection,
@@ -49,8 +50,9 @@ function InstallCommand(): React.ReactElement {
   }
 
   return (
-    <button
-      type="button"
+    <BaseButton
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
       onClick={handleCopy}
       className="group inline-flex items-center gap-3 px-6 py-3 bg-fill/5 border border-edge/10 hover:border-edge/20 transition-all font-mono text-sm cursor-pointer"
     >
@@ -61,7 +63,7 @@ function InstallCommand(): React.ReactElement {
       ) : (
         <LuCopy className="h-4 w-4 text-surface/30 group-hover:text-surface/60 transition-colors" />
       )}
-    </button>
+    </BaseButton>
   );
 }
 

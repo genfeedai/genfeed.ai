@@ -2,6 +2,7 @@
 
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { TagInputProps } from '@props/tags/tag-input.props';
+import { Input } from '@ui/primitives/input';
 import TagBadge from '@ui/tags/badge/TagBadge';
 import type { KeyboardEvent } from 'react';
 import { useState } from 'react';
@@ -49,14 +50,14 @@ export default function TagInput({
 
       {/* Input Field */}
       <div className="relative">
-        <input
+        <Input
           type="text"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={isDisabled || isAdding}
-          className="w-full px-3 py-2 pl-9 text-sm bg-background border border-white/[0.08] focus:outline-none focus:border-primary disabled:opacity-50"
+          className="pl-9"
         />
 
         <HiPlus

@@ -4,7 +4,9 @@ import type {
   IDesktopThread,
   IDesktopWorkspace,
 } from '@genfeedai/desktop-contracts';
+import { ButtonVariant } from '@genfeedai/enums';
 import type { NavView } from '@renderer/nav-view';
+import { Button } from '@ui/primitives/button';
 
 interface NavItem {
   icon: string;
@@ -80,17 +82,23 @@ export const Sidebar = ({
       </div>
 
       {/* New thread button */}
-      <button className="new-thread-button" onClick={onNewThread} type="button">
+      <Button
+        className="new-thread-button"
+        onClick={onNewThread}
+        type="button"
+        variant={ButtonVariant.UNSTYLED}
+      >
         <span>＋</span> New thread
-      </button>
-      <button
-        className="ghost-button sidebar-action-button"
+      </Button>
+      <Button
+        className="sidebar-action-button"
         onClick={onOpenWorkspace}
         type="button"
+        variant={ButtonVariant.GHOST}
       >
         <span className="nav-icon">📁</span>
         <span>Open workspace</span>
-      </button>
+      </Button>
 
       {workspaces[0] && (
         <div className="sidebar-workspace-card">
@@ -112,15 +120,16 @@ export const Sidebar = ({
       {/* Nav items */}
       <nav className="sidebar-nav">
         {NAV_ITEMS.map((item) => (
-          <button
+          <Button
             className={`nav-item ${activeView === item.id ? 'active' : ''}`}
             key={item.id}
             onClick={() => onNavigate(item.id)}
             type="button"
+            variant={ButtonVariant.UNSTYLED}
           >
             <span className="nav-icon">{item.icon}</span>
             <span className="nav-label">{item.label}</span>
-          </button>
+          </Button>
         ))}
       </nav>
 
@@ -142,7 +151,7 @@ export const Sidebar = ({
                 <span className="nav-icon">📁</span> {ws.name}
               </span>
               {wsThreads.map((thread) => (
-                <button
+                <Button
                   className={`thread-item ${
                     activeView === 'conversation' &&
                     activeThreadId === thread.id
@@ -152,6 +161,7 @@ export const Sidebar = ({
                   key={thread.id}
                   onClick={() => onSelectThread(thread.id)}
                   type="button"
+                  variant={ButtonVariant.UNSTYLED}
                 >
                   <span className="thread-title">{thread.title}</span>
                   <span className="thread-meta">
@@ -162,7 +172,7 @@ export const Sidebar = ({
                       <span className="thread-status-badge">Awaiting</span>
                     )}
                   </span>
-                </button>
+                </Button>
               ))}
             </div>
           );
@@ -177,7 +187,7 @@ export const Sidebar = ({
               </span>
             )}
             {ungrouped.map((thread) => (
-              <button
+              <Button
                 className={`thread-item ${
                   activeView === 'conversation' && activeThreadId === thread.id
                     ? 'active'
@@ -186,6 +196,7 @@ export const Sidebar = ({
                 key={thread.id}
                 onClick={() => onSelectThread(thread.id)}
                 type="button"
+                variant={ButtonVariant.UNSTYLED}
               >
                 <span className="thread-title">{thread.title}</span>
                 <span className="thread-meta">
@@ -196,7 +207,7 @@ export const Sidebar = ({
                     <span className="thread-status-badge">Awaiting</span>
                   )}
                 </span>
-              </button>
+              </Button>
             ))}
           </div>
         )}
@@ -227,14 +238,15 @@ export const Sidebar = ({
           </div>
         </div>
 
-        <button
+        <Button
           className="nav-item logout-btn"
           onClick={onLogout}
           type="button"
+          variant={ButtonVariant.UNSTYLED}
         >
           <span className="nav-icon">🚪</span>
           <span className="nav-label">Sign Out</span>
-        </button>
+        </Button>
       </div>
     </aside>
   );

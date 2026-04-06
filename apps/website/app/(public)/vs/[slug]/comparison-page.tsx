@@ -1,5 +1,13 @@
 import type { Competitor } from '@data/competitors.data';
 import Card from '@ui/card/Card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@ui/primitives/table';
 import ButtonRequestAccess from '@web-components/buttons/request-access/button-request-access/ButtonRequestAccess';
 import PageLayout from '@web-components/PageLayout';
 import Link from 'next/link';
@@ -45,32 +53,34 @@ export default function ComparisonPage({
       </section>
 
       <section className="max-w-5xl mx-auto pb-20">
-        <div className="overflow-x-auto">
-          <table className="table table-zebra w-full">
-            <thead>
-              <tr>
-                <th className="text-lg">Feature</th>
-                <th className="text-lg text-center">{competitor.name}</th>
-                <th className="text-lg text-center bg-primary/10">Genfeed</th>
-              </tr>
-            </thead>
-            <tbody>
-              {competitor.comparisonTable.map(
-                (row: (typeof competitor.comparisonTable)[0]) => (
-                  <tr key={row.feature}>
-                    <td className="font-semibold">{row.feature}</td>
-                    <td className="text-center">
-                      <ComparisonCell value={row.competitor} />
-                    </td>
-                    <td className="text-center bg-primary/5">
-                      <ComparisonCell value={row.genfeed} isBold />
-                    </td>
-                  </tr>
-                ),
-              )}
-            </tbody>
-          </table>
-        </div>
+        <Table className="table table-zebra w-full">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-lg">Feature</TableHead>
+              <TableHead className="text-lg text-center">
+                {competitor.name}
+              </TableHead>
+              <TableHead className="text-lg text-center bg-primary/10">
+                Genfeed
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {competitor.comparisonTable.map(
+              (row: (typeof competitor.comparisonTable)[0]) => (
+                <TableRow key={row.feature}>
+                  <TableCell className="font-semibold">{row.feature}</TableCell>
+                  <TableCell className="text-center">
+                    <ComparisonCell value={row.competitor} />
+                  </TableCell>
+                  <TableCell className="text-center bg-primary/5">
+                    <ComparisonCell value={row.genfeed} isBold />
+                  </TableCell>
+                </TableRow>
+              ),
+            )}
+          </TableBody>
+        </Table>
       </section>
 
       <section className="max-w-4xl mx-auto pb-20">

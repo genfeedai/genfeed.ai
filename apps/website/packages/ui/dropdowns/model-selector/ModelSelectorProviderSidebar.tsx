@@ -1,8 +1,10 @@
 'use client';
 
 import { MODEL_BRANDS } from '@genfeedai/constants/model-brands.constant';
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { ModelSelectorProviderSidebarProps } from '@props/ui/model-selector/model-selector.props';
+import Button from '@ui/buttons/base/Button';
 import { memo, useCallback } from 'react';
 import { HiSquares2X2, HiStar } from 'react-icons/hi2';
 
@@ -85,10 +87,11 @@ function SidebarButton({
   color: string;
 }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
       onClick={onClick}
-      title={tooltip}
+      tooltip={tooltip}
       className={cn(
         'w-8 h-8 rounded flex items-center justify-center transition-all relative',
         isActive
@@ -104,7 +107,7 @@ function SidebarButton({
         />
       )}
       {children}
-    </button>
+    </Button>
   );
 }
 
