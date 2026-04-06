@@ -1,5 +1,6 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { closeModal, openModal } from '@helpers/ui/modal/modal.helper';
@@ -8,11 +9,12 @@ import {
   type IssueComment,
   IssueCommentsService,
 } from '@services/management/issue-comments.service';
-import {
-  type Issue,
-  type IssueLinkedEntityModel,
-  type IssueStatus,
+import type {
+  Issue,
+  IssueLinkedEntityModel,
+  IssueStatus,
 } from '@services/management/issues.service';
+import Button from '@ui/buttons/base/Button';
 import EntityOverlayShell from '@ui/overlays/entity/EntityOverlayShell';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -209,15 +211,16 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
           {comments.length > 0 ? (
             <div className="rounded border border-white/5">
               {!showAllComments && hiddenCommentCount > 0 && (
-                <button
-                  type="button"
+                <Button
+                  variant={ButtonVariant.GHOST}
+                  withWrapper={false}
                   className="flex w-full items-center justify-center gap-1.5 border-b border-white/5 py-2 text-[11px] text-white/40 transition-colors hover:bg-white/[0.02] hover:text-white/60"
                   onClick={() => setShowAllComments(true)}
                 >
                   <HiChevronDown className="h-3 w-3" />
                   Show {hiddenCommentCount} earlier{' '}
                   {hiddenCommentCount === 1 ? 'comment' : 'comments'}
-                </button>
+                </Button>
               )}
               {visibleComments.map((comment) => {
                 const isAgent = comment.isAgentComment;
