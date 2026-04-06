@@ -1,9 +1,5 @@
-import {
-  ModelCategory,
-  ModelKey,
-  ModelProvider,
-  Platform,
-} from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelCategory, ModelProvider, Platform } from '@genfeedai/enums';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { type Document, Types } from 'mongoose';
 
@@ -59,11 +55,11 @@ export class Preset {
   category!: ModelCategory;
 
   @Prop({
-    enum: Object.values(ModelKey),
+    enum: Object.values(MODEL_KEYS),
     required: false,
     type: String,
   })
-  model?: ModelKey;
+  model?: string;
 
   @Prop({
     enum: Object.values(ModelProvider),

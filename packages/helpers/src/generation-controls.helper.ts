@@ -1,13 +1,9 @@
-import type { IModel } from '@genfeedai/interfaces';
 import {
   getModelDefaultDuration,
   getModelDurations,
 } from '@genfeedai/constants';
-import {
-  IngredientFormat,
-  ModelCategory,
-  type ModelKey,
-} from '@genfeedai/enums';
+import { IngredientFormat, type ModelCategory } from '@genfeedai/enums';
+import type { IModel } from '@genfeedai/interfaces';
 
 import {
   getAspectRatiosFromModel,
@@ -119,7 +115,7 @@ export function resolveGenerationModelControls(
     model?.durations && model.durations.length > 0
       ? [...model.durations]
       : model
-        ? [...getModelDurations(model.key as ModelKey)]
+        ? [...getModelDurations(model.key as string)]
         : [];
   const durationOptions =
     durationOptionsFromModel.length > 0
@@ -144,7 +140,7 @@ export function resolveGenerationModelControls(
   const defaultDuration = model
     ? (model.defaultDuration ??
       capabilityDefaultDuration ??
-      getModelDefaultDuration(model.key as ModelKey) ??
+      getModelDefaultDuration(model.key as string) ??
       durationOptions[0])
     : durationOptions[0];
 

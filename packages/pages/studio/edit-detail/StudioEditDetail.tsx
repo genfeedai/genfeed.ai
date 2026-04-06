@@ -1,5 +1,18 @@
 'use client';
 
+import { useAssetSelection } from '@contexts/ui/asset-selection-context';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { editFormSchema } from '@genfeedai/client/schemas';
+import { ITEMS_PER_PAGE, MODEL_KEYS } from '@genfeedai/constants';
+import {
+  ButtonSize,
+  ButtonVariant,
+  ImageFormat,
+  IngredientCategory,
+  IngredientFormat,
+  IngredientStatus,
+  VideoResolution,
+} from '@genfeedai/enums';
 import type {
   IEditFormData,
   IIngredient,
@@ -14,20 +27,6 @@ import type {
   MediaResult,
   VideoUpscalePayload,
 } from '@genfeedai/interfaces/studio/studio-edit.interface';
-import { useAssetSelection } from '@contexts/ui/asset-selection-context';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { editFormSchema } from '@genfeedai/client/schemas';
-import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import {
-  ButtonSize,
-  ButtonVariant,
-  ImageFormat,
-  IngredientCategory,
-  IngredientFormat,
-  IngredientStatus,
-  ModelKey,
-  VideoResolution,
-} from '@genfeedai/enums';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
@@ -133,7 +132,7 @@ export default function StudioEditDetail({
 
   useEffect(() => {
     return () => {
-      socketSubscriptionsRef.current.forEach((unsubscribe) => unsubscribe());
+      for (const unsubscribe of socketSubscriptionsRef.current) unsubscribe();
       socketSubscriptionsRef.current = [];
     };
   }, []);
@@ -302,12 +301,12 @@ export default function StudioEditDetail({
           selectedIngredient.category === IngredientCategory.VIDEO;
 
         const isReframeModel =
-          formData.model === ModelKey.REPLICATE_LUMA_REFRAME_IMAGE ||
-          formData.model === ModelKey.REPLICATE_LUMA_REFRAME_VIDEO;
+          formData.model === MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE ||
+          formData.model === MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO;
 
         const isTopazUpscaleModel =
-          formData.model === ModelKey.REPLICATE_TOPAZ_VIDEO_UPSCALE ||
-          formData.model === ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE;
+          formData.model === MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE ||
+          formData.model === MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE;
 
         const service = isVideo
           ? await getVideosService()
@@ -706,12 +705,13 @@ export default function StudioEditDetail({
                       })}
 
                       {results.map((result) => (
-                        <div
+                        <button
                           key={result.id}
+                          type="button"
                           onClick={() =>
                             router.push(href(`/edit/${result.id}`))
                           }
-                          className="cursor-pointer"
+                          className="cursor-pointer w-full text-left bg-transparent border-0 p-0"
                         >
                           <Card className="p-3 bg-card hover:shadow-lg transition-all">
                             <div className="aspect-video bg-background overflow-hidden mb-2">
@@ -749,7 +749,7 @@ export default function StudioEditDetail({
                               </p>
                             )}
                           </Card>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </div>

@@ -1,7 +1,6 @@
 // Note: Replicate returns dynamic model identifiers (e.g., "genfeedai/<id>")
 
-import { ReplicateStatus } from '@api/services/integrations/replicate/helpers/replicate.enum';
-import { ModelKey } from '@genfeedai/enums';
+import type { ReplicateStatus } from '@api/services/integrations/replicate/helpers/replicate.enum';
 
 export interface HeyGenWebhookPayload {
   event_type: string;
@@ -15,7 +14,7 @@ export interface ReplicateWebhookPayload {
   // Common fields
   id: string;
   status: ReplicateStatus; // 'completed' | 'failed' (sometimes 'succeeded' from API — treat as completed)
-  model?: ModelKey | string; // Present for prediction (media) callbacks; can be ModelKey enum or dynamic string (e.g., 'genfeedai/<id>')
+  model?: string | string; // Present for prediction (media) callbacks; can be ModelKey enum or dynamic string (e.g., 'genfeedai/<id>')
   version?: string; // For training callbacks, this is the model version hash
   output?: unknown; // String for media; object/array/null for some models
   error?: string; // Error message when status is 'failed'

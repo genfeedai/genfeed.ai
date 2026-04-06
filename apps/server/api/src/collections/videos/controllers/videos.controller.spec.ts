@@ -23,8 +23,8 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { VideosController } from '@api/collections/videos/controllers/videos.controller';
-import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
-import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
+import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import type { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
 import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import type { VoteDocument } from '@api/collections/votes/schemas/vote.schema';
@@ -43,15 +43,15 @@ import { PollingService } from '@api/shared/services/polling/polling.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   IngredientCategory,
   IngredientStatus,
   ModelCategory,
-  ModelKey,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, StreamableFile } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import type {
   Request as ExpressRequest,
   Response as ExpressResponse,
@@ -127,7 +127,7 @@ describe('VideosController', () => {
         values: ['excellence'],
       },
     },
-    defaultVideoModel: ModelKey.KLINGAI_V2,
+    defaultVideoModel: MODEL_KEYS.KLINGAI_V2,
     description: 'Test brand description',
     label: 'Test Brand',
     organization: mockOrgId,
@@ -178,7 +178,7 @@ describe('VideosController', () => {
     _id: new Types.ObjectId(),
     category: ModelCategory.VIDEO,
     cost: 10,
-    key: ModelKey.KLINGAI_V2,
+    key: MODEL_KEYS.KLINGAI_V2,
   };
 
   beforeEach(async () => {
@@ -346,10 +346,10 @@ describe('VideosController', () => {
         {
           provide: RouterService,
           useValue: {
-            getDefaultModel: vi.fn().mockResolvedValue(ModelKey.KLINGAI_V2),
+            getDefaultModel: vi.fn().mockResolvedValue(MODEL_KEYS.KLINGAI_V2),
             selectModel: vi.fn().mockResolvedValue({
               reason: 'Best model for video generation',
-              selectedModel: ModelKey.KLINGAI_V2,
+              selectedModel: MODEL_KEYS.KLINGAI_V2,
             }),
           },
         },
@@ -889,7 +889,7 @@ describe('VideosController', () => {
   describe('create', () => {
     const baseCreateDto: CreateVideoDto = {
       height: 1080,
-      model: ModelKey.KLINGAI_V2,
+      model: MODEL_KEYS.KLINGAI_V2,
       text: 'Generate a beautiful sunset video',
       width: 1920,
     };
@@ -919,7 +919,7 @@ describe('VideosController', () => {
     it('should create a video with Replicate model', async () => {
       const dto: CreateVideoDto = {
         ...baseCreateDto,
-        model: ModelKey.REPLICATE_GOOGLE_VEO_2,
+        model: MODEL_KEYS.REPLICATE_GOOGLE_VEO_2,
       };
 
       await controller.create(mockRequest, dto, mockUser);

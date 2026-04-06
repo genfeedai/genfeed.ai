@@ -1,5 +1,5 @@
-import type { IModel } from '@genfeedai/interfaces';
 import { type ModelSchema, modelSchema } from '@genfeedai/client/schemas';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   AlertCategory,
   ButtonSize,
@@ -7,9 +7,9 @@ import {
   ComponentSize,
   ModalEnum,
   ModelCategory,
-  ModelKey,
   ModelProvider,
 } from '@genfeedai/enums';
+import type { IModel } from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
@@ -48,7 +48,7 @@ export default function ModalModel({
   );
 
   const modelKeys = useMemo(
-    () => Object.values(ModelKey) as IModel['key'][],
+    () => Object.values(MODEL_KEYS) as IModel['key'][],
     [],
   );
 
@@ -59,7 +59,7 @@ export default function ModalModel({
       description: '',
       key:
         modelKeys[0] ??
-        (ModelKey.REPLICATE_GOOGLE_IMAGEN_4_FAST as IModel['key']),
+        (MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_FAST as IModel['key']),
       label: '',
       provider: modelProviders[0] ?? ModelProvider.REPLICATE,
     }),
@@ -346,7 +346,6 @@ export default function ModalModel({
               </span>
             </div>
           </div>
-
           <ModalActions>
             <Button
               label="Close"
@@ -367,7 +366,6 @@ export default function ModalModel({
               </div>
             </Alert>
           )}
-
           <FormControl label="Label">
             <FormInput
               type="text"
@@ -379,7 +377,6 @@ export default function ModalModel({
               isDisabled={isSubmitting}
             />
           </FormControl>
-
           <FormControl label="Description">
             <FormInput
               type="text"
@@ -390,7 +387,6 @@ export default function ModalModel({
               isDisabled={isSubmitting}
             />
           </FormControl>
-
           <FormControl label="Key">
             <FormInput
               type="text"
@@ -402,7 +398,6 @@ export default function ModalModel({
               isDisabled={isSubmitting}
             />
           </FormControl>
-
           <div className="grid grid-cols-2 gap-2">
             <FormSelect
               name="provider"
@@ -430,7 +425,6 @@ export default function ModalModel({
               ))}
             </FormSelect>
           </div>
-
           <FormControl label="Cost" className="mt-4">
             <FormInput
               type="number"
@@ -442,7 +436,6 @@ export default function ModalModel({
               isDisabled={isSubmitting}
             />
           </FormControl>
-
           <ModalActions>
             <Button
               label="Cancel"

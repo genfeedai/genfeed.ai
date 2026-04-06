@@ -1,6 +1,6 @@
-import { CreateAvatarVideoDto } from '@api/collections/videos/dto/create-avatar-video.dto';
-import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
-import { VideosService } from '@api/collections/videos/services/videos.service';
+import type { CreateAvatarVideoDto } from '@api/collections/videos/dto/create-avatar-video.dto';
+import type { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
+import type { VideosService } from '@api/collections/videos/services/videos.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -10,9 +10,10 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import type { User } from '@clerk/backend';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ActivitySource } from '@genfeedai/enums';
 import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
-import { ActivitySource, ModelKey } from '@genfeedai/enums';
 import {
   Body,
   Controller,
@@ -36,7 +37,7 @@ export class AvatarVideoController {
   @Post('avatar')
   @Credits({
     description: 'Avatar video generation',
-    modelKey: ModelKey.HEYGEN_AVATAR,
+    modelKey: MODEL_KEYS.HEYGEN_AVATAR,
     source: ActivitySource.VIDEO_GENERATION,
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })

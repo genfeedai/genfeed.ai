@@ -14,11 +14,11 @@ vi.mock('@genfeedai/workflows', () => ({
   buildZImageTurboPrompt: vi.fn(() => ({ nodes: 'z-image-turbo' })),
 }));
 
-import { ConfigService } from '@api/config/config.service';
+import type { ConfigService } from '@api/config/config.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
-import { ModelKey } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
-import { HttpService } from '@nestjs/axios';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import type { LoggerService } from '@libs/logger/logger.service';
+import type { HttpService } from '@nestjs/axios';
 import { of, throwError } from 'rxjs';
 
 describe('ComfyUIService', () => {
@@ -114,11 +114,14 @@ describe('ComfyUIService', () => {
     it('should generate image with FLUX_DEV model', async () => {
       setupSuccessfulRun();
 
-      const result = await service.generateImage(ModelKey.GENFEED_AI_FLUX_DEV, {
-        height: 512,
-        prompt: 'a cat',
-        width: 512,
-      });
+      const result = await service.generateImage(
+        MODEL_KEYS.GENFEED_AI_FLUX_DEV,
+        {
+          height: 512,
+          prompt: 'a cat',
+          width: 512,
+        },
+      );
 
       expect(result.filename).toBe('output_001.png');
       expect(result.imageBuffer).toBeInstanceOf(Buffer);
@@ -127,7 +130,7 @@ describe('ComfyUIService', () => {
     it('should queue prompt and poll history', async () => {
       setupSuccessfulRun();
 
-      await service.generateImage(ModelKey.GENFEED_AI_FLUX_DEV, {
+      await service.generateImage(MODEL_KEYS.GENFEED_AI_FLUX_DEV, {
         prompt: 'test',
       });
 
@@ -147,7 +150,9 @@ describe('ComfyUIService', () => {
       httpPostMock.mockReturnValueOnce(of({ data: {}, status: 400 }));
 
       await expect(
-        service.generateImage(ModelKey.GENFEED_AI_FLUX_DEV, { prompt: 'fail' }),
+        service.generateImage(MODEL_KEYS.GENFEED_AI_FLUX_DEV, {
+          prompt: 'fail',
+        }),
       ).rejects.toThrow('ComfyUI /prompt failed (400)');
     });
 
@@ -175,7 +180,9 @@ describe('ComfyUIService', () => {
       );
 
       await expect(
-        service.generateImage(ModelKey.GENFEED_AI_FLUX_DEV, { prompt: 'err' }),
+        service.generateImage(MODEL_KEYS.GENFEED_AI_FLUX_DEV, {
+          prompt: 'err',
+        }),
       ).rejects.toThrow(`ComfyUI prompt ${promptId} failed`);
     });
 
@@ -199,7 +206,7 @@ describe('ComfyUIService', () => {
       );
 
       await expect(
-        service.generateImage(ModelKey.GENFEED_AI_FLUX_DEV, {
+        service.generateImage(MODEL_KEYS.GENFEED_AI_FLUX_DEV, {
           prompt: 'no-output',
         }),
       ).rejects.toThrow('ComfyUI produced no output');
@@ -215,7 +222,7 @@ describe('ComfyUIService', () => {
       setupSuccessfulRun();
 
       const result = await service.generateImage(
-        ModelKey.GENFEED_AI_FLUX2_DEV,
+        MODEL_KEYS.GENFEED_AI_FLUX2_DEV,
         {
           guidance: 3.5,
           prompt: 'a portrait',
@@ -228,7 +235,7 @@ describe('ComfyUIService', () => {
       setupSuccessfulRun();
 
       const result = await service.generateImage(
-        ModelKey.GENFEED_AI_Z_IMAGE_TURBO_LORA,
+        MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO_LORA,
         {
           loraPath: 'my_lora.safetensors',
           prompt: 'lora test',
@@ -241,7 +248,9 @@ describe('ComfyUIService', () => {
       httpPostMock.mockReturnValue(throwError(() => new Error('network fail')));
 
       await expect(
-        service.generateImage(ModelKey.GENFEED_AI_FLUX_DEV, { prompt: 'boom' }),
+        service.generateImage(MODEL_KEYS.GENFEED_AI_FLUX_DEV, {
+          prompt: 'boom',
+        }),
       ).rejects.toThrow('network fail');
       expect(loggerMock.error).toHaveBeenCalled();
     });

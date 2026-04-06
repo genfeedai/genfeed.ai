@@ -1,9 +1,9 @@
-import type { ModelCategory, ModelKey } from '@genfeedai/enums';
+import type { ModelCategory } from '@genfeedai/enums';
 
 export interface MediaConfig {
   placeholder: string;
   assetType: string;
-  defaultModel: ModelKey;
+  defaultModel: string;
   presetType?: ModelCategory;
   generateLabel?: string;
   buttons?: {

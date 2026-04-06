@@ -1,4 +1,4 @@
-import { ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import { describe, expect, it } from 'vitest';
 import {
   getModelDefaultDuration,
@@ -35,7 +35,7 @@ describe('model-helpers.constant', () => {
     });
 
     it('returns number for known model', () => {
-      const result = getModelMaxOutputs(ModelKey.REPLICATE_GOOGLE_IMAGEN_3);
+      const result = getModelMaxOutputs(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3);
       expect(typeof result).toBe('number');
       expect(result).toBeGreaterThan(0);
     });
@@ -101,7 +101,7 @@ describe('model-helpers.constant', () => {
     });
 
     it('returns true for Imagen 3', () => {
-      expect(isImagenModel(ModelKey.REPLICATE_GOOGLE_IMAGEN_3)).toBe(true);
+      expect(isImagenModel(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3)).toBe(true);
     });
   });
 
@@ -152,7 +152,7 @@ describe('model-helpers.constant', () => {
 
     it('returns true when Imagen model present', () => {
       expect(
-        hasAnyImagenModel([UNKNOWN, ModelKey.REPLICATE_GOOGLE_IMAGEN_3]),
+        hasAnyImagenModel([UNKNOWN, MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3]),
       ).toBe(true);
     });
   });
@@ -164,15 +164,15 @@ describe('model-helpers.constant', () => {
 
     it('returns false when mixed models', () => {
       expect(
-        isOnlyImagenModels([UNKNOWN, ModelKey.REPLICATE_GOOGLE_IMAGEN_3]),
+        isOnlyImagenModels([UNKNOWN, MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3]),
       ).toBe(false);
     });
 
     it('returns true when all Imagen', () => {
       expect(
         isOnlyImagenModels([
-          ModelKey.REPLICATE_GOOGLE_IMAGEN_3,
-          ModelKey.REPLICATE_GOOGLE_IMAGEN_3_FAST,
+          MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
+          MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3_FAST,
         ]),
       ).toBe(true);
     });

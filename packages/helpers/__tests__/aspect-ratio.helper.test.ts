@@ -1,5 +1,5 @@
-import { ModelCategory, ModelKey } from '@genfeedai/enums';
-
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelCategory } from '@genfeedai/enums';
 import {
   calculateAspectRatio,
   convertRatioToOrientation,
@@ -11,30 +11,30 @@ import {
 
 vi.mock('@genfeedai/constants', () => ({
   MODEL_OUTPUT_CAPABILITIES: {
-    [ModelKey.REPLICATE_GOOGLE_VEO_3]: {
+    [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3]: {
       aspectRatios: ['16:9', '9:16', '1:1'],
       category: ModelCategory.VIDEO,
       defaultAspectRatio: '16:9',
       usesOrientation: false,
     },
-    [ModelKey.REPLICATE_OPENAI_SORA_2]: {
+    [MODEL_KEYS.REPLICATE_OPENAI_SORA_2]: {
       aspectRatios: ['16:9', '9:16'],
       category: ModelCategory.VIDEO,
       defaultAspectRatio: '16:9',
       usesOrientation: true,
     },
-    [ModelKey.REPLICATE_GOOGLE_IMAGEN_3]: {
+    [MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3]: {
       aspectRatios: ['1:1', '16:9', '9:16', '4:3', '3:4'],
       category: ModelCategory.IMAGE,
       defaultAspectRatio: '1:1',
     },
-    [ModelKey.REPLICATE_META_MUSICGEN]: {
+    [MODEL_KEYS.REPLICATE_META_MUSICGEN]: {
       category: ModelCategory.MUSIC,
     },
-    [ModelKey.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1]: {
+    [MODEL_KEYS.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1]: {
       category: ModelCategory.TEXT,
     },
-    [ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE]: {
+    [MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE]: {
       category: ModelCategory.IMAGE_UPSCALE,
     },
   },
@@ -43,13 +43,13 @@ vi.mock('@genfeedai/constants', () => ({
 describe('aspect-ratio.helper', () => {
   describe('getDefaultAspectRatio', () => {
     it('should return model-specific default for video models', () => {
-      expect(getDefaultAspectRatio(ModelKey.REPLICATE_GOOGLE_VEO_3)).toBe(
+      expect(getDefaultAspectRatio(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3)).toBe(
         '16:9',
       );
     });
 
     it('should return model-specific default for image models', () => {
-      expect(getDefaultAspectRatio(ModelKey.REPLICATE_GOOGLE_IMAGEN_3)).toBe(
+      expect(getDefaultAspectRatio(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3)).toBe(
         '1:1',
       );
     });
@@ -59,34 +59,34 @@ describe('aspect-ratio.helper', () => {
     });
 
     it('should return 16:9 for categories without aspect ratio', () => {
-      expect(getDefaultAspectRatio(ModelKey.REPLICATE_META_MUSICGEN)).toBe(
+      expect(getDefaultAspectRatio(MODEL_KEYS.REPLICATE_META_MUSICGEN)).toBe(
         '16:9',
       );
       expect(
-        getDefaultAspectRatio(ModelKey.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1),
+        getDefaultAspectRatio(MODEL_KEYS.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1),
       ).toBe('16:9');
     });
   });
 
   describe('getAspectRatiosForModel', () => {
     it('should return available aspect ratios for video models', () => {
-      const ratios = getAspectRatiosForModel(ModelKey.REPLICATE_GOOGLE_VEO_3);
+      const ratios = getAspectRatiosForModel(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3);
       expect(ratios).toEqual(['16:9', '9:16', '1:1']);
     });
 
     it('should return available aspect ratios for image models', () => {
       const ratios = getAspectRatiosForModel(
-        ModelKey.REPLICATE_GOOGLE_IMAGEN_3,
+        MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
       );
       expect(ratios).toEqual(['1:1', '16:9', '9:16', '4:3', '3:4']);
     });
 
     it('should return empty array for categories without aspect ratio', () => {
-      expect(getAspectRatiosForModel(ModelKey.REPLICATE_META_MUSICGEN)).toEqual(
-        [],
-      );
       expect(
-        getAspectRatiosForModel(ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE),
+        getAspectRatiosForModel(MODEL_KEYS.REPLICATE_META_MUSICGEN),
+      ).toEqual([]);
+      expect(
+        getAspectRatiosForModel(MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE),
       ).toEqual([]);
     });
 
@@ -99,25 +99,25 @@ describe('aspect-ratio.helper', () => {
   describe('normalizeAspectRatioForModel', () => {
     it('should return same ratio if supported', () => {
       expect(
-        normalizeAspectRatioForModel(ModelKey.REPLICATE_GOOGLE_VEO_3, '16:9'),
+        normalizeAspectRatioForModel(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3, '16:9'),
       ).toBe('16:9');
       expect(
-        normalizeAspectRatioForModel(ModelKey.REPLICATE_GOOGLE_VEO_3, '9:16'),
+        normalizeAspectRatioForModel(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3, '9:16'),
       ).toBe('9:16');
     });
 
     it('should return default ratio if not supported and no orientation mode', () => {
       expect(
-        normalizeAspectRatioForModel(ModelKey.REPLICATE_GOOGLE_VEO_3, '4:3'),
+        normalizeAspectRatioForModel(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3, '4:3'),
       ).toBe('16:9');
     });
 
     it('should convert to orientation for models that use orientation mode', () => {
       expect(
-        normalizeAspectRatioForModel(ModelKey.REPLICATE_OPENAI_SORA_2, '4:3'),
+        normalizeAspectRatioForModel(MODEL_KEYS.REPLICATE_OPENAI_SORA_2, '4:3'),
       ).toBe('landscape');
       expect(
-        normalizeAspectRatioForModel(ModelKey.REPLICATE_OPENAI_SORA_2, '3:4'),
+        normalizeAspectRatioForModel(MODEL_KEYS.REPLICATE_OPENAI_SORA_2, '3:4'),
       ).toBe('portrait');
     });
   });
@@ -169,28 +169,28 @@ describe('aspect-ratio.helper', () => {
   describe('isAspectRatioSupported', () => {
     it('should return true for supported ratios', () => {
       expect(
-        isAspectRatioSupported(ModelKey.REPLICATE_GOOGLE_VEO_3, '16:9'),
+        isAspectRatioSupported(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3, '16:9'),
       ).toBe(true);
       expect(
-        isAspectRatioSupported(ModelKey.REPLICATE_GOOGLE_VEO_3, '9:16'),
+        isAspectRatioSupported(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3, '9:16'),
       ).toBe(true);
       expect(
-        isAspectRatioSupported(ModelKey.REPLICATE_GOOGLE_VEO_3, '1:1'),
+        isAspectRatioSupported(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3, '1:1'),
       ).toBe(true);
     });
 
     it('should return false for unsupported ratios', () => {
       expect(
-        isAspectRatioSupported(ModelKey.REPLICATE_GOOGLE_VEO_3, '4:3'),
+        isAspectRatioSupported(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3, '4:3'),
       ).toBe(false);
       expect(
-        isAspectRatioSupported(ModelKey.REPLICATE_GOOGLE_VEO_3, '21:9'),
+        isAspectRatioSupported(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3, '21:9'),
       ).toBe(false);
     });
 
     it('should return false for models without aspect ratios', () => {
       expect(
-        isAspectRatioSupported(ModelKey.REPLICATE_META_MUSICGEN, '16:9'),
+        isAspectRatioSupported(MODEL_KEYS.REPLICATE_META_MUSICGEN, '16:9'),
       ).toBe(false);
     });
   });

@@ -1,22 +1,25 @@
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { ConfigService } from '@api/config/config.service';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import type { ConfigService } from '@api/config/config.service';
 import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
-import { SharedService } from '@api/shared/services/shared/shared.service';
+import type { SharedService } from '@api/shared/services/shared/shared.service';
 import type { User } from '@clerk/backend';
-import type { IBotCallbackContext, IBotResolvedUser } from '@genfeedai/interfaces';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivitySource,
   BotCommandType,
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
-  ModelKey,
 } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
+import type {
+  IBotCallbackContext,
+  IBotResolvedUser,
+} from '@genfeedai/interfaces';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { Types } from 'mongoose';
@@ -143,19 +146,19 @@ export class BotGenerationService {
           organization: new Types.ObjectId(resolvedUser.organizationId),
         });
       const defaultModel = isImage
-        ? resolveGenerationDefaultModel<ModelKey>({
-            brandDefault: brand.defaultImageModel as ModelKey | undefined,
+        ? resolveGenerationDefaultModel<string>({
+            brandDefault: brand.defaultImageModel as string | undefined,
             organizationDefault: organizationSettings?.defaultImageModel as
-              | ModelKey
+              | string
               | undefined,
-            systemDefault: ModelKey.REPLICATE_OPENAI_GPT_IMAGE_1_5,
+            systemDefault: MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5,
           })
-        : resolveGenerationDefaultModel<ModelKey>({
-            brandDefault: brand.defaultVideoModel as ModelKey | undefined,
+        : resolveGenerationDefaultModel<string>({
+            brandDefault: brand.defaultVideoModel as string | undefined,
             organizationDefault: organizationSettings?.defaultVideoModel as
-              | ModelKey
+              | string
               | undefined,
-            systemDefault: 'replicate_kling_video' as unknown as ModelKey,
+            systemDefault: 'replicate_kling_video' as unknown as string,
           });
 
       // Create synthetic user object for SharedService

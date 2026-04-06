@@ -1,5 +1,4 @@
 import type { IModel } from '@genfeedai/interfaces';
-import type { ModelKey } from '@genfeedai/enums';
 import { usePromptBarModels } from '@hooks/prompt-bar/use-prompt-bar-models/use-prompt-bar-models';
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -60,7 +59,7 @@ const baseOptions = {
   models: [] as IModel[],
   normalizedWatchedModels: [] as string[],
   trainings: [],
-  watchedModel: 'default-model' as ModelKey,
+  watchedModel: 'default-model' as string,
 };
 
 describe('usePromptBarModels', () => {
@@ -107,9 +106,9 @@ describe('usePromptBarModels', () => {
   describe('Selected Models', () => {
     it('filters models based on watched model keys', () => {
       const models = [
-        createMockModel({ id: '1', key: 'model-a' as ModelKey }),
-        createMockModel({ id: '2', key: 'model-b' as ModelKey }),
-        createMockModel({ id: '3', key: 'model-c' as ModelKey }),
+        createMockModel({ id: '1', key: 'model-a' as string }),
+        createMockModel({ id: '2', key: 'model-b' as string }),
+        createMockModel({ id: '3', key: 'model-c' as string }),
       ];
 
       const { result } = renderHook(() =>
@@ -130,7 +129,7 @@ describe('usePromptBarModels', () => {
     });
 
     it('returns empty array when no models match', () => {
-      const models = [createMockModel({ key: 'model-a' as ModelKey })];
+      const models = [createMockModel({ key: 'model-a' as string })];
 
       const { result } = renderHook(() =>
         usePromptBarModels({
@@ -154,7 +153,7 @@ describe('usePromptBarModels', () => {
       );
 
       const hasModelA = result.current.hasAnyModel(
-        (modelKey) => modelKey === ('model-a' as ModelKey),
+        (modelKey) => modelKey === ('model-a' as string),
       );
       expect(hasModelA).toBe(true);
     });
@@ -168,7 +167,7 @@ describe('usePromptBarModels', () => {
       );
 
       const hasModelC = result.current.hasAnyModel(
-        (modelKey) => modelKey === ('model-c' as ModelKey),
+        (modelKey) => modelKey === ('model-c' as string),
       );
       expect(hasModelC).toBe(false);
     });
@@ -248,7 +247,7 @@ describe('usePromptBarModels', () => {
         usePromptBarModels({
           ...baseOptions,
           normalizedWatchedModels: [],
-          watchedModel: 'default-model' as ModelKey,
+          watchedModel: 'default-model' as string,
         }),
       );
 

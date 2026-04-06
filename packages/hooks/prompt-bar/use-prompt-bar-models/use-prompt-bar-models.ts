@@ -1,4 +1,3 @@
-import type { IModel } from '@genfeedai/interfaces';
 import {
   getModelMaxReferences,
   hasAnyAudioToggle,
@@ -12,7 +11,7 @@ import {
   isReferencesMandatory,
   supportsMultipleReferences as modelSupportsMultipleReferences,
 } from '@genfeedai/constants';
-import type { ModelKey } from '@genfeedai/enums';
+import type { IModel } from '@genfeedai/interfaces';
 import type {
   UsePromptBarModelsOptions,
   UsePromptBarModelsReturn,
@@ -41,18 +40,18 @@ export function usePromptBarModels(
   );
 
   const hasAnyModel = useCallback(
-    (predicate: (modelKey: ModelKey) => boolean): boolean =>
+    (predicate: (modelKey: string) => boolean): boolean =>
       normalizedWatchedModels.some((modelKey: string) =>
-        predicate(modelKey as ModelKey),
+        predicate(modelKey as string),
       ),
     [normalizedWatchedModels],
   );
 
   const getUnionFromAllModels = useCallback(
-    <T extends number | string>(getter: (modelKey: ModelKey) => T[]): T[] => {
+    <T extends number | string>(getter: (modelKey: string) => T[]): T[] => {
       const allValues = new Set<T>();
       for (const modelKey of normalizedWatchedModels) {
-        for (const value of getter(modelKey as ModelKey)) {
+        for (const value of getter(modelKey as string)) {
           allValues.add(value);
         }
       }
@@ -66,13 +65,13 @@ export function usePromptBarModels(
   );
 
   const getMinFromAllModels = useCallback(
-    (getter: (modelKey: ModelKey) => number): number => {
+    (getter: (modelKey: string) => number): number => {
       if (normalizedWatchedModels.length === 0) {
         return getter(watchedModel);
       }
       return Math.min(
         ...normalizedWatchedModels.map((modelKey: string) =>
-          getter(modelKey as ModelKey),
+          getter(modelKey as string),
         ),
       );
     },

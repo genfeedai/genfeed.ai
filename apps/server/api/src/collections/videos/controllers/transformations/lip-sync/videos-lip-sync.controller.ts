@@ -1,10 +1,10 @@
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { CreateLipSyncDto } from '@api/collections/videos/dto/create-lip-sync.dto';
-import { VideosService } from '@api/collections/videos/services/videos.service';
-import { ConfigService } from '@api/config/config.service';
+import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { CreateLipSyncDto } from '@api/collections/videos/dto/create-lip-sync.dto';
+import type { VideosService } from '@api/collections/videos/services/videos.service';
+import type { ConfigService } from '@api/config/config.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -14,25 +14,25 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { ByokService } from '@api/services/byok/byok.service';
-import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import { SharedService } from '@api/shared/services/shared/shared.service';
+import type { ByokService } from '@api/services/byok/byok.service';
+import type { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import type { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
+import type { SharedService } from '@api/shared/services/shared/shared.service';
 import type { User } from '@clerk/backend';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
-import { IngredientSerializer } from '@genfeedai/serializers';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivitySource,
   ByokProvider,
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
-  ModelKey,
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import { IngredientSerializer } from '@genfeedai/serializers';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   Body,
@@ -69,7 +69,7 @@ export class VideosLipSyncController {
   @Post('lip-sync')
   @Credits({
     description: 'Lip-sync photo avatar video generation',
-    modelKey: ModelKey.HEYGEN_AVATAR,
+    modelKey: MODEL_KEYS.HEYGEN_AVATAR,
     source: ActivitySource.VIDEO_GENERATION,
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
@@ -190,7 +190,7 @@ export class VideosLipSyncController {
           ),
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
-          model: ModelKey.HEYGEN_AVATAR,
+          model: MODEL_KEYS.HEYGEN_AVATAR,
           organization: new Types.ObjectId(publicMetadata.organization),
           parent: new Types.ObjectId(createLipSyncDto.parent),
           // Store references for traceability
@@ -238,7 +238,7 @@ export class VideosLipSyncController {
           publicMetadata.organization,
           publicMetadata.user,
           creditsToDeduct,
-          `Lip-sync video generation - ${ModelKey.HEYGEN_AVATAR}`,
+          `Lip-sync video generation - ${MODEL_KEYS.HEYGEN_AVATAR}`,
           ActivitySource.VIDEO_GENERATION,
         );
       }

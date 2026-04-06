@@ -1,4 +1,5 @@
-import { ModelCategory, ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelCategory } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 import { MODEL_OUTPUT_CAPABILITIES } from './model-capabilities.constant';
 
@@ -18,9 +19,9 @@ describe('model-capabilities.constant', () => {
   });
 
   it('model keys are valid ModelKey values', () => {
-    const enumValues = new Set(Object.values(ModelKey));
+    const enumValues = new Set(Object.values(MODEL_KEYS));
     for (const key of Object.keys(MODEL_OUTPUT_CAPABILITIES)) {
-      expect(enumValues.has(key as ModelKey)).toBe(true);
+      expect(enumValues.has(key as string)).toBe(true);
     }
   });
 

@@ -1,16 +1,16 @@
-import { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CaptionEntity } from '@api/collections/captions/entities/caption.entity';
-import { CaptionsService } from '@api/collections/captions/services/captions.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type { CaptionsService } from '@api/collections/captions/services/captions.service';
+import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { MusicsService } from '@api/collections/musics/services/musics.service';
-import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
-import { PostsService } from '@api/collections/posts/services/posts.service';
-import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
-import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
+import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { MusicsService } from '@api/collections/musics/services/musics.service';
+import type { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
+import type { PostsService } from '@api/collections/posts/services/posts.service';
+import type { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
+import type { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
 import {
   isWorkflowInputNodeType,
   normalizeWorkflowNodeTypeToCanonical,
@@ -21,17 +21,32 @@ import type {
   WorkflowStep,
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
-import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
-import { ConfigService } from '@api/config/config.service';
-import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
-import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
-import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
-import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { WhisperService } from '@api/services/whisper/whisper.service';
-import { SharedService } from '@api/shared/services/shared/shared.service';
+import type { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
+import type { ConfigService } from '@api/config/config.service';
+import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import type { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import type { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
+import type { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import type { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import type { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import type { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import type { WhisperService } from '@api/services/whisper/whisper.service';
+import type { SharedService } from '@api/shared/services/shared/shared.service';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import {
+  CaptionFormat,
+  CaptionLanguage,
+  type CredentialPlatform,
+  FileInputType,
+  IngredientCategory,
+  IngredientStatus,
+  MetadataExtension,
+  ModelCategory,
+  MusicSourceType,
+  PostCategory,
+  PostStatus,
+  TransformationCategory,
+} from '@genfeedai/enums';
 import type {
   ExecutableEdge,
   ExecutableNode,
@@ -57,22 +72,7 @@ import {
   type NodeExecutor,
   WorkflowEngine,
 } from '@genfeedai/workflow-engine';
-import {
-  CaptionFormat,
-  CaptionLanguage,
-  CredentialPlatform,
-  FileInputType,
-  IngredientCategory,
-  IngredientStatus,
-  MetadataExtension,
-  ModelCategory,
-  ModelKey,
-  MusicSourceType,
-  PostCategory,
-  PostStatus,
-  TransformationCategory,
-} from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { Types } from 'mongoose';
 
@@ -356,7 +356,7 @@ export class WorkflowEngineAdapterService {
       const seed = typeof params.seed === 'number' ? params.seed : undefined;
 
       const { input } = await promptBuilderService.buildPrompt(
-        model as ModelKey,
+        model as string,
         {
           height,
           modelCategory: ModelCategory.IMAGE,
@@ -612,7 +612,7 @@ export class WorkflowEngineAdapterService {
             brandId,
             category: IngredientCategory.VIDEO,
             extension: MetadataExtension.MP4,
-            model: ModelKey.HEYGEN_AVATAR,
+            model: MODEL_KEYS.HEYGEN_AVATAR,
             organizationId: context.organizationId,
             parentIngredientId,
             references: [parentIngredientId, audioIngredientId],
@@ -1132,8 +1132,8 @@ export class WorkflowEngineAdapterService {
         const isVideo = outputCategory === IngredientCategory.VIDEO;
         const model =
           outputCategory === IngredientCategory.VIDEO
-            ? ModelKey.REPLICATE_LUMA_REFRAME_VIDEO
-            : ModelKey.REPLICATE_LUMA_REFRAME_IMAGE;
+            ? MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO
+            : MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE;
         const inputKey = isVideo ? 'video' : 'image';
         const parentIngredientId = this.extractIngredientId(mediaUrl);
         const brandId = await this.resolveBrandIdFromInputOrFail(
@@ -1208,8 +1208,8 @@ export class WorkflowEngineAdapterService {
         const outputCategory = this.resolveMediaOutputCategory(mediaUrl);
         const isVideo = outputCategory === IngredientCategory.VIDEO;
         const model = isVideo
-          ? ModelKey.REPLICATE_TOPAZ_VIDEO_UPSCALE
-          : ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE;
+          ? MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE
+          : MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE;
         const inputKey = isVideo ? 'video' : 'image';
         const parentIngredientId = this.extractIngredientId(mediaUrl);
         const brandId = await this.resolveBrandIdFromInputOrFail(

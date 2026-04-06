@@ -1,4 +1,4 @@
-import { ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   createPromptBarVoiceCommands,
   DURATION_VOICE_ALIASES,
@@ -10,15 +10,17 @@ import { describe, expect, it, vi } from 'vitest';
 
 describe('MODEL_VOICE_ALIASES', () => {
   it('maps "runway" to RUNWAYML model key', () => {
-    expect(MODEL_VOICE_ALIASES.runway).toBe(ModelKey.RUNWAYML);
+    expect(MODEL_VOICE_ALIASES.runway).toBe(MODEL_KEYS.RUNWAYML);
   });
 
   it('maps "sdxl" to SDXL model key', () => {
-    expect(MODEL_VOICE_ALIASES.sdxl).toBe(ModelKey.SDXL);
+    expect(MODEL_VOICE_ALIASES.sdxl).toBe(MODEL_KEYS.SDXL);
   });
 
   it('maps "veo 3" to VEO_3 model key', () => {
-    expect(MODEL_VOICE_ALIASES['veo 3']).toBe(ModelKey.REPLICATE_GOOGLE_VEO_3);
+    expect(MODEL_VOICE_ALIASES['veo 3']).toBe(
+      MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
+    );
   });
 
   it('maps "kling" and "kling v2" to the same key', () => {
@@ -91,7 +93,7 @@ describe('createPromptBarVoiceCommands', () => {
 
     const match = 'change model to runway'.match(modelCmd.pattern)!;
     modelCmd.action(match);
-    expect(setValue).toHaveBeenCalledWith('model', ModelKey.RUNWAYML);
+    expect(setValue).toHaveBeenCalledWith('model', MODEL_KEYS.RUNWAYML);
   });
 
   it('format command calls setValue("format", "landscape")', () => {

@@ -68,7 +68,7 @@ import type { PollingService } from '@api/shared/services/polling/polling.servic
 import type { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { User } from '@clerk/backend';
-import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
+import { MODEL_KEYS, MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -78,7 +78,6 @@ import {
   MemberRole,
   MetadataExtension,
   ModelCategory,
-  ModelKey,
   PricingType,
   PromptCategory,
   PromptStatus,
@@ -739,7 +738,7 @@ export class VideosController {
       : [];
 
     // Model selection: auto-select > user-provided > brand default > system default
-    let model: ModelKey;
+    let model: string;
     let routerReason: string | undefined;
 
     if (createVideoDto.autoSelectModel) {
@@ -755,29 +754,29 @@ export class VideosController {
         prompt: createVideoDto.text || '',
         speech: createVideoDto.speech,
       });
-      model = recommendation.selectedModel as ModelKey;
+      model = recommendation.selectedModel as string;
       routerReason = recommendation.reason;
 
       this.loggerService.log('Auto model routing selected', routerReason);
     } else {
       // Manual selection: user-provided > brand default > system default
-      model = resolveGenerationDefaultModel<ModelKey>({
+      model = resolveGenerationDefaultModel<string>({
         brandDefault: (isImageToVideoRequest({
           endFrame: createVideoDto.endFrame,
           references: referenceIds,
         })
           ? brand.defaultImageToVideoModel
-          : brand.defaultVideoModel) as ModelKey | undefined,
-        explicit: createVideoDto.model as ModelKey | undefined,
+          : brand.defaultVideoModel) as string | undefined,
+        explicit: createVideoDto.model as string | undefined,
         organizationDefault: (isImageToVideoRequest({
           endFrame: createVideoDto.endFrame,
           references: referenceIds,
         })
           ? organizationSettings?.defaultImageToVideoModel
-          : organizationSettings?.defaultVideoModel) as ModelKey | undefined,
+          : organizationSettings?.defaultVideoModel) as string | undefined,
         systemDefault: (await this.routerService.getDefaultModel(
           ModelCategory.VIDEO,
-        )) as ModelKey,
+        )) as string,
       });
     }
 
@@ -1029,7 +1028,7 @@ export class VideosController {
       let generationId: string | null;
 
       switch (model) {
-        case ModelKey.KLINGAI_V2:
+        case MODEL_KEYS.KLINGAI_V2:
           // KlingAI uses its own service for queue management
           generationId = await this.klingAIService.queueGenerateTextToVideo(
             promptInput.prompt || '',
@@ -1037,11 +1036,11 @@ export class VideosController {
           );
           break;
 
-        case ModelKey.FAL_SEEDANCE_2_0:
-        case ModelKey.FAL_KLING_VIDEO:
-        case ModelKey.FAL_LUMA_DREAM_MACHINE:
-        case ModelKey.FAL_RUNWAY_GEN3:
-        case ModelKey.FAL_STABLE_VIDEO: {
+        case MODEL_KEYS.FAL_SEEDANCE_2_0:
+        case MODEL_KEYS.FAL_KLING_VIDEO:
+        case MODEL_KEYS.FAL_LUMA_DREAM_MACHINE:
+        case MODEL_KEYS.FAL_RUNWAY_GEN3:
+        case MODEL_KEYS.FAL_STABLE_VIDEO: {
           const falResult = await this.falService.generateVideo(model, {
             prompt: promptInput.prompt || '',
             ...(createVideoDto.duration && {
@@ -1273,7 +1272,7 @@ export class VideosController {
             let additionalGenerationId: string | null = null;
 
             switch (model) {
-              case ModelKey.KLINGAI_V2:
+              case MODEL_KEYS.KLINGAI_V2:
                 additionalGenerationId =
                   await this.klingAIService.queueGenerateTextToVideo(
                     promptInput.prompt || '',
@@ -1281,11 +1280,11 @@ export class VideosController {
                   );
                 break;
 
-              case ModelKey.FAL_SEEDANCE_2_0:
-              case ModelKey.FAL_KLING_VIDEO:
-              case ModelKey.FAL_LUMA_DREAM_MACHINE:
-              case ModelKey.FAL_RUNWAY_GEN3:
-              case ModelKey.FAL_STABLE_VIDEO: {
+              case MODEL_KEYS.FAL_SEEDANCE_2_0:
+              case MODEL_KEYS.FAL_KLING_VIDEO:
+              case MODEL_KEYS.FAL_LUMA_DREAM_MACHINE:
+              case MODEL_KEYS.FAL_RUNWAY_GEN3:
+              case MODEL_KEYS.FAL_STABLE_VIDEO: {
                 const falResult = await this.falService.generateVideo(model, {
                   prompt: promptInput.prompt || '',
                   ...(createVideoDto.duration && {

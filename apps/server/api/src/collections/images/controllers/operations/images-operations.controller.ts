@@ -62,7 +62,7 @@ import type { PollingService } from '@api/shared/services/polling/polling.servic
 import type { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { User } from '@clerk/backend';
-import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
+import { MODEL_KEYS, MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -73,7 +73,6 @@ import {
   MemberRole,
   MetadataExtension,
   ModelCategory,
-  ModelKey,
   PricingType,
   PromptCategory,
   PromptStatus,
@@ -200,7 +199,7 @@ export class ImagesOperationsController {
     );
 
     // Model selection: auto-select > user-provided > brand default > system default
-    let model: ModelKey;
+    let model: string;
     let routerReason: string | undefined;
 
     if (createImageDto.autoSelectModel) {
@@ -219,7 +218,7 @@ export class ImagesOperationsController {
         prioritize: createImageDto.prioritize || 'balanced',
         prompt: promptString,
       });
-      model = recommendation.selectedModel as ModelKey;
+      model = recommendation.selectedModel as string;
       routerReason = recommendation.reason;
 
       this.loggerService.log('Auto model routing selected', {
@@ -232,25 +231,25 @@ export class ImagesOperationsController {
       // Manual selection: user-provided > brand default > system default
       const userModel =
         createImageDto.model &&
-        Object.values(ModelKey).includes(createImageDto.model as ModelKey)
-          ? (createImageDto.model as ModelKey)
+        Object.values(MODEL_KEYS).includes(createImageDto.model as string)
+          ? (createImageDto.model as string)
           : undefined;
       const brandDefaultModel =
         brand.defaultImageModel &&
-        Object.values(ModelKey).includes(brand.defaultImageModel as ModelKey)
-          ? (brand.defaultImageModel as ModelKey)
+        Object.values(MODEL_KEYS).includes(brand.defaultImageModel as string)
+          ? (brand.defaultImageModel as string)
           : undefined;
       const organizationDefaultModel =
         organizationSettings?.defaultImageModel &&
-        Object.values(ModelKey).includes(
-          organizationSettings.defaultImageModel as ModelKey,
+        Object.values(MODEL_KEYS).includes(
+          organizationSettings.defaultImageModel as string,
         )
-          ? (organizationSettings.defaultImageModel as ModelKey)
+          ? (organizationSettings.defaultImageModel as string)
           : undefined;
       const systemDefaultModel = (await this.routerService.getDefaultModel(
         ModelCategory.IMAGE,
-      )) as ModelKey;
-      model = resolveGenerationDefaultModel<ModelKey>({
+      )) as string;
+      model = resolveGenerationDefaultModel<string>({
         brandDefault: brandDefaultModel,
         explicit: userModel,
         organizationDefault: organizationDefaultModel,
@@ -324,15 +323,15 @@ export class ImagesOperationsController {
     }
 
     const replicateModels = [
-      ModelKey.REPLICATE_GOOGLE_IMAGEN_3,
-      ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
-      ModelKey.REPLICATE_GOOGLE_IMAGEN_4_FAST,
-      ModelKey.REPLICATE_GOOGLE_IMAGEN_4_ULTRA,
+      MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
+      MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+      MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_FAST,
+      MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_ULTRA,
     ];
 
-    const isLeonardoAI = model === ModelKey.LEONARDOAI;
-    const isKlingAI = model === ModelKey.KLINGAI_V2;
-    const isSDXL = model === ModelKey.SDXL;
+    const isLeonardoAI = model === MODEL_KEYS.LEONARDOAI;
+    const isKlingAI = model === MODEL_KEYS.KLINGAI_V2;
+    const isSDXL = model === MODEL_KEYS.SDXL;
     const isGenfeedAi = isGenfeedAiDestination(model);
     const isFal = isFalDestination(model);
     const isKnownReplicateModel = replicateModels.includes(model);
@@ -393,7 +392,7 @@ export class ImagesOperationsController {
           ? new Types.ObjectId(createImageDto.brand)
           : new Types.ObjectId(publicMetadata.brand),
         category: PromptCategory.MODELS_PROMPT_IMAGE,
-        model: createImageDto.model as ModelKey,
+        model: createImageDto.model as string,
         organization: new Types.ObjectId(publicMetadata.organization),
         original:
           typeof promptOriginal === 'string'

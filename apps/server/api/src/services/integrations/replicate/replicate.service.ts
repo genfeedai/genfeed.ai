@@ -1,6 +1,6 @@
-import { ConfigService } from '@api/config/config.service';
-import { ModelKey } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { ConfigService } from '@api/config/config.service';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import Replicate from 'replicate';
@@ -304,7 +304,7 @@ export class ReplicateService {
       const client = this.getClientForRequest(apiKeyOverride);
       const prediction = await client.predictions.create({
         input: { text },
-        version: ModelKey.REPLICATE_OPENAI_CLIP,
+        version: MODEL_KEYS.REPLICATE_OPENAI_CLIP,
       });
 
       // Wait for the prediction to complete
