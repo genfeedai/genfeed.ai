@@ -1,8 +1,8 @@
 'use client';
 
-import { DesktopGate } from '@genfeedai/workflow';
 import type { LayoutProps } from '@props/layout/layout.props';
 import { ErrorBoundary } from '@ui/error';
+import { DesktopGate } from '@/features/workflows/components/DesktopGate';
 
 export default function WorkflowDetailLayout({ children }: LayoutProps) {
   return (
