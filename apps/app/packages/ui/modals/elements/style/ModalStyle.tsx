@@ -1,15 +1,15 @@
-import type { IElementStyle } from '@genfeedai/interfaces';
 import {
   type ElementStyleSchema,
   elementStyleSchema,
 } from '@genfeedai/client/schemas';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   AlertCategory,
   ButtonSize,
   ButtonVariant,
   ModalEnum,
-  ModelKey,
 } from '@genfeedai/enums';
+import type { IElementStyle } from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
@@ -116,7 +116,7 @@ export default function ModalStyle({
               size={ButtonSize.XS}
               isDisabled={isSubmitting}
               onClick={() => {
-                const allModels = Object.values(ModelKey);
+                const allModels = Object.values(MODEL_KEYS);
                 form.setValue('models', allModels, {
                   shouldValidate: true,
                 });
@@ -142,7 +142,7 @@ export default function ModalStyle({
             />
           </div>
           <div className="space-y-2 p-3 bg-background max-h-48 overflow-y-auto">
-            {Object.values(ModelKey).map((model: ModelKey) => (
+            {Object.values(MODEL_KEYS).map((model: string) => (
               <FormCheckbox
                 key={model}
                 name={`model-${model}`}

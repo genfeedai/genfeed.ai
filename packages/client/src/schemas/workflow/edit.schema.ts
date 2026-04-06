@@ -1,13 +1,14 @@
-import { IngredientFormat, ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { IngredientFormat } from '@genfeedai/enums';
 import { z } from 'zod';
 
 const UPSCALE_MODELS = [
-  ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE,
-  ModelKey.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+  MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+  MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
 ];
 
 function isUpscaleModel(model: string): boolean {
-  return UPSCALE_MODELS.includes(model as ModelKey);
+  return UPSCALE_MODELS.includes(model as string);
 }
 
 export const editFormSchema = z

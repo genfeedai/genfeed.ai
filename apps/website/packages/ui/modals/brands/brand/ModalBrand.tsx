@@ -1,7 +1,7 @@
 'use client';
 
-import type { IBrand, IFontFamily, ILink, IModel } from '@genfeedai/interfaces';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   AlertCategory,
   AssetCategory,
@@ -11,10 +11,10 @@ import {
   CredentialPlatform,
   LinkCategory,
   ModalEnum,
-  ModelKey,
   PromptCategory,
   SystemPromptKey,
 } from '@genfeedai/enums';
+import type { IBrand, IFontFamily, ILink, IModel } from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
@@ -30,7 +30,7 @@ import { useFormSubmitWithState } from '@hooks/utils/use-form-submit/use-form-su
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { Prompt } from '@models/content/prompt.model';
 import { Brand } from '@models/organization/brand.model';
-import { Link } from '@models/social/link.model';
+import type { Link } from '@models/social/link.model';
 import BrandDetailBanner from '@pages/brands/components/banner/BrandDetailBanner';
 import BrandDetailSidebar from '@pages/brands/components/detail-sidebar/BrandDetailSidebar';
 import BrandDetailOverview from '@pages/brands/components/overview/BrandDetailOverview';
@@ -1051,7 +1051,8 @@ export default function BrandOverlay({
 
   const generateCost = useMemo(() => {
     const modelToUse =
-      activeBrand?.defaultImageModel || ModelKey.REPLICATE_GOOGLE_IMAGEN_4_FAST;
+      activeBrand?.defaultImageModel ||
+      MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_FAST;
     const model = imageModels.find(
       (imageModel) => imageModel.key === modelToUse,
     );

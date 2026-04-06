@@ -2,7 +2,7 @@ import {
   MODEL_OUTPUT_CAPABILITIES,
   type ModelOutputCapability,
 } from '@genfeedai/constants';
-import { ModelCategory, type ModelKey } from '@genfeedai/enums';
+import { ModelCategory } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import { getModelCapability } from './model-capability.helper';
 
@@ -23,14 +23,14 @@ const DEFAULT_ASPECT_RATIO_BY_CATEGORY: Record<string, string> = {
 };
 
 function getModelAspectRatioConfig(
-  modelKey: ModelKey | string,
+  modelKey: string | string,
   capability?: ModelOutputCapability | null,
 ): {
   available: readonly string[];
   default: string;
   usesOrientation?: boolean;
 } {
-  const cap = capability ?? MODEL_OUTPUT_CAPABILITIES[modelKey as ModelKey];
+  const cap = capability ?? MODEL_OUTPUT_CAPABILITIES[modelKey as string];
   if (!cap) {
     return { available: ['1:1', '9:16', '16:9'], default: '16:9' };
   }
@@ -58,21 +58,21 @@ function getModelAspectRatioConfig(
 }
 
 export function getDefaultAspectRatio(
-  modelKey: ModelKey | string,
+  modelKey: string | string,
   capability?: ModelOutputCapability | null,
 ): string {
   return getModelAspectRatioConfig(modelKey, capability).default;
 }
 
 export function getAspectRatiosForModel(
-  modelKey: ModelKey | string,
+  modelKey: string | string,
   capability?: ModelOutputCapability | null,
 ): readonly string[] {
   return getModelAspectRatioConfig(modelKey, capability).available;
 }
 
 export function normalizeAspectRatioForModel(
-  modelKey: ModelKey | string,
+  modelKey: string | string,
   aspectRatio: string,
   capability?: ModelOutputCapability | null,
 ): string {
@@ -128,7 +128,7 @@ function calculateGCD(a: number, b: number): number {
 }
 
 export function isAspectRatioSupported(
-  modelKey: ModelKey | string,
+  modelKey: string | string,
   aspectRatio: string,
   capability?: ModelOutputCapability | null,
 ): boolean {

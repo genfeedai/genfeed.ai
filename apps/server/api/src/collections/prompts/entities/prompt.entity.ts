@@ -1,12 +1,11 @@
-import { Prompt } from '@api/collections/prompts/schemas/prompt.schema';
+import type { Prompt } from '@api/collections/prompts/schemas/prompt.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
-import {
+import type {
   AssetScope,
-  ModelKey,
   PromptCategory,
   PromptStatus,
 } from '@genfeedai/enums';
-import { Types } from 'mongoose';
+import type { Types } from 'mongoose';
 
 export class PromptEntity extends BaseEntity implements Prompt {
   declare readonly user: Types.ObjectId;
@@ -31,7 +30,7 @@ export class PromptEntity extends BaseEntity implements Prompt {
   declare readonly tags?: Types.ObjectId[];
 
   // Model-specific fields
-  declare readonly model?: ModelKey;
+  declare readonly model?: string;
 
   // Additional metadata
   declare readonly duration?: number;

@@ -1,6 +1,5 @@
 'use client';
 
-import type { IAsset, IImage, IIngredient } from '@genfeedai/interfaces';
 import { useAssetSelection } from '@contexts/ui/asset-selection-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
@@ -13,10 +12,10 @@ import {
   IngredientCategory,
   IngredientFormat,
   ModelCategory,
-  type ModelKey,
   type QualityTier,
   type SubscriptionTier,
 } from '@genfeedai/enums';
+import type { IAsset, IImage, IIngredient } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import {
   getDefaultVideoResolution,
@@ -279,7 +278,7 @@ function PromptBar({
     [watchedModels],
   );
   const watchedModel = (normalizedWatchedModels[0] ||
-    currentConfig.defaultModel) as ModelKey;
+    currentConfig.defaultModel) as string;
   const watchedFormat = useWatch({
     control: form.control,
     name: 'format',
@@ -820,12 +819,12 @@ function PromptBar({
 
   const videoDurations = useMemo(() => {
     if (normalizedWatchedModels.length === 0) {
-      return [...getModelDurations(watchedModel as ModelKey)];
+      return [...getModelDurations(watchedModel as string)];
     }
     return getUnionFromAllModels<number>(((modelKey) => {
       const durations = getModelDurations(modelKey);
       return Array.from(durations);
-    }) as (modelKey: ModelKey) => number[]);
+    }) as (modelKey: string) => number[]);
   }, [normalizedWatchedModels, watchedModel, getUnionFromAllModels]);
 
   const formatIcon = useMemo(() => {

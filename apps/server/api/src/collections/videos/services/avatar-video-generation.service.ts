@@ -1,37 +1,37 @@
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { type AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
-import { VideosService } from '@api/collections/videos/services/videos.service';
-import { type VoiceDocument } from '@api/collections/voices/schemas/voice.schema';
-import { VoicesService } from '@api/collections/voices/services/voices.service';
-import { ConfigService } from '@api/config/config.service';
+import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import type { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
+import type { VideosService } from '@api/collections/videos/services/videos.service';
+import type { VoiceDocument } from '@api/collections/voices/schemas/voice.schema';
+import type { VoicesService } from '@api/collections/voices/services/voices.service';
+import type { ConfigService } from '@api/config/config.service';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { ByokService } from '@api/services/byok/byok.service';
-import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
-import { FleetService } from '@api/services/integrations/fleet/fleet.service';
-import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import type { ByokService } from '@api/services/byok/byok.service';
+import type { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
+import type { FleetService } from '@api/services/integrations/fleet/fleet.service';
+import type { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { DefaultVoiceRef } from '@api/shared/default-voice-ref/default-voice-ref.schema';
-import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import { SharedService } from '@api/shared/services/shared/shared.service';
+import type { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
+import type { SharedService } from '@api/shared/services/shared/shared.service';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivitySource,
   ByokProvider,
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
-  ModelKey,
   VoiceProvider,
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   HttpException,
@@ -131,7 +131,7 @@ export class AvatarVideoGenerationService {
           brand: new Types.ObjectId(brand._id),
           category: IngredientCategory.AVATAR,
           extension: MetadataExtension.MP4,
-          model: ModelKey.HEYGEN_AVATAR,
+          model: MODEL_KEYS.HEYGEN_AVATAR,
           organization: new Types.ObjectId(context.organizationId),
           parent:
             resolvedIdentity.photoIngredientId != null
@@ -173,7 +173,7 @@ export class AvatarVideoGenerationService {
         context.organizationId,
         context.userId,
         1,
-        `Avatar video generation - ${ModelKey.HEYGEN_AVATAR}`,
+        `Avatar video generation - ${MODEL_KEYS.HEYGEN_AVATAR}`,
         ActivitySource.VIDEO_GENERATION,
       );
 

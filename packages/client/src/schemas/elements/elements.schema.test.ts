@@ -9,7 +9,8 @@ import {
   getElementSchema,
 } from '@genfeedai/client/schemas/elements/element.schema';
 import { modelSchema } from '@genfeedai/client/schemas/elements/model.schema';
-import { ModelCategory, ModelKey, ModelProvider } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import { describe, expect, it } from 'vitest';
 
 describe('element schemas', () => {
@@ -106,7 +107,7 @@ describe('element schemas', () => {
         modelSchema.safeParse({
           category: ModelCategory.IMAGE,
           cost: 0,
-          key: ModelKey.REPLICATE_GOOGLE_IMAGEN_3,
+          key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
           label: 'Imagen 3',
           provider: ModelProvider.REPLICATE,
         }).success,
@@ -118,7 +119,7 @@ describe('element schemas', () => {
         modelSchema.safeParse({
           category: ModelCategory.IMAGE,
           cost: -1,
-          key: ModelKey.REPLICATE_GOOGLE_IMAGEN_3,
+          key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
           label: 'L',
           provider: ModelProvider.REPLICATE,
         }).success,
@@ -130,7 +131,7 @@ describe('element schemas', () => {
         modelSchema.safeParse({
           category: ModelCategory.IMAGE,
           cost: 0,
-          key: ModelKey.REPLICATE_GOOGLE_IMAGEN_3,
+          key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
           label: '',
           provider: ModelProvider.REPLICATE,
         }).success,

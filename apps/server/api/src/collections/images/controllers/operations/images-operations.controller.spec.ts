@@ -36,8 +36,8 @@ import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ImagesOperationsController } from '@api/collections/images/controllers/operations/images-operations.controller';
-import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
-import { SplitImageDto } from '@api/collections/images/dto/split-image.dto';
+import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
+import type { SplitImageDto } from '@api/collections/images/dto/split-image.dto';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import type { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -70,18 +70,18 @@ import { FailedGenerationService } from '@api/shared/services/failed-generation/
 import { PollingService } from '@api/shared/services/polling/polling.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { User } from '@clerk/backend';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   FileInputType,
   IngredientCategory,
   IngredientStatus,
   ModelCategory,
-  ModelKey,
   TagCategory,
   TagKey,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { Types } from 'mongoose';
 
@@ -143,7 +143,7 @@ describe('ImagesOperationsController', () => {
         values: ['excellence'],
       },
     },
-    defaultImageModel: ModelKey.LEONARDOAI,
+    defaultImageModel: MODEL_KEYS.LEONARDOAI,
     description: 'Test brand description',
     label: 'Test Brand',
     organization: mockOrgId,
@@ -160,7 +160,7 @@ describe('ImagesOperationsController', () => {
     metadata: {
       _id: mockMetadataId,
       height: 1080,
-      model: ModelKey.LEONARDOAI,
+      model: MODEL_KEYS.LEONARDOAI,
       width: 1920,
     },
     organization: mockOrgId,
@@ -307,7 +307,7 @@ describe('ImagesOperationsController', () => {
           provide: OrganizationSettingsService,
           useValue: {
             findOne: vi.fn().mockResolvedValue({
-              defaultImageModel: ModelKey.LEONARDOAI,
+              defaultImageModel: MODEL_KEYS.LEONARDOAI,
             }),
           },
         },
@@ -380,10 +380,10 @@ describe('ImagesOperationsController', () => {
         {
           provide: RouterService,
           useValue: {
-            getDefaultModel: vi.fn().mockResolvedValue(ModelKey.LEONARDOAI),
+            getDefaultModel: vi.fn().mockResolvedValue(MODEL_KEYS.LEONARDOAI),
             selectModel: vi.fn().mockResolvedValue({
               reason: 'Best model for image generation',
-              selectedModel: ModelKey.LEONARDOAI,
+              selectedModel: MODEL_KEYS.LEONARDOAI,
             }),
           },
         },
@@ -499,7 +499,7 @@ describe('ImagesOperationsController', () => {
     it('should throw HttpException for unsupported model', async () => {
       const dto: CreateImageDto = {
         ...baseCreateDto,
-        model: ModelKey.RUNWAYML,
+        model: MODEL_KEYS.RUNWAYML,
       };
 
       await expect(
@@ -510,7 +510,7 @@ describe('ImagesOperationsController', () => {
     it('should create an image with KlingAI model', async () => {
       const dto: CreateImageDto = {
         ...baseCreateDto,
-        model: ModelKey.KLINGAI_V2,
+        model: MODEL_KEYS.KLINGAI_V2,
       };
 
       const result = await controller.create(mockRequest, dto, mockUser);
@@ -526,7 +526,7 @@ describe('ImagesOperationsController', () => {
     it('should create an image with LeonardoAI model', async () => {
       const dto: CreateImageDto = {
         ...baseCreateDto,
-        model: ModelKey.LEONARDOAI,
+        model: MODEL_KEYS.LEONARDOAI,
       };
 
       const result = await controller.create(mockRequest, dto, mockUser);
@@ -542,7 +542,7 @@ describe('ImagesOperationsController', () => {
     it('should create an image with Replicate model', async () => {
       const dto: CreateImageDto = {
         ...baseCreateDto,
-        model: ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+        model: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
       };
 
       const result = await controller.create(mockRequest, dto, mockUser);
@@ -555,7 +555,7 @@ describe('ImagesOperationsController', () => {
     it('should handle Replicate model by destination string', async () => {
       const dto: CreateImageDto = {
         ...baseCreateDto,
-        model: 'black-forest-labs/flux-2-pro' as ModelKey,
+        model: 'black-forest-labs/flux-2-pro' as string,
       };
 
       const result = await controller.create(mockRequest, dto, mockUser);
@@ -586,7 +586,7 @@ describe('ImagesOperationsController', () => {
     it('should fall back to default model when model is invalid', async () => {
       const dto: CreateImageDto = {
         ...baseCreateDto,
-        model: 'invalid-model' as ModelKey,
+        model: 'invalid-model' as string,
       };
 
       const result = await controller.create(mockRequest, dto, mockUser);
@@ -625,7 +625,7 @@ describe('ImagesOperationsController', () => {
     it('should handle multiple outputs for Replicate models', async () => {
       const dto: CreateImageDto = {
         ...baseCreateDto,
-        model: ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+        model: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
         outputs: 3,
       };
 
@@ -638,7 +638,7 @@ describe('ImagesOperationsController', () => {
     it('should route genfeed-ai models to ComfyUI instead of Replicate', async () => {
       const dto: CreateImageDto = {
         ...baseCreateDto,
-        model: ModelKey.GENFEED_AI_Z_IMAGE_TURBO,
+        model: MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
         waitForCompletion: true,
       };
 
@@ -651,7 +651,7 @@ describe('ImagesOperationsController', () => {
       const result = await controller.create(mockRequest, dto, mockUser);
 
       expect(comfyUIService.generateImage).toHaveBeenCalledWith(
-        ModelKey.GENFEED_AI_Z_IMAGE_TURBO,
+        MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
         expect.objectContaining({
           height: dto.height,
           prompt: 'Test prompt',
@@ -673,7 +673,7 @@ describe('ImagesOperationsController', () => {
     it('should handle waitForCompletion for LeonardoAI', async () => {
       const dto: CreateImageDto = {
         ...baseCreateDto,
-        model: ModelKey.LEONARDOAI,
+        model: MODEL_KEYS.LEONARDOAI,
         waitForCompletion: true,
       };
 
@@ -695,7 +695,7 @@ describe('ImagesOperationsController', () => {
     it('should handle waitForCompletion timeout', async () => {
       const dto: CreateImageDto = {
         ...baseCreateDto,
-        model: ModelKey.LEONARDOAI,
+        model: MODEL_KEYS.LEONARDOAI,
         waitForCompletion: true,
       };
 
@@ -717,7 +717,7 @@ describe('ImagesOperationsController', () => {
     it('should handle KlingAI generation failure', async () => {
       const dto: CreateImageDto = {
         ...baseCreateDto,
-        model: ModelKey.KLINGAI_V2,
+        model: MODEL_KEYS.KLINGAI_V2,
         waitForCompletion: true,
       };
 
@@ -737,7 +737,7 @@ describe('ImagesOperationsController', () => {
     it('should handle LeonardoAI generation failure', async () => {
       const dto: CreateImageDto = {
         ...baseCreateDto,
-        model: ModelKey.LEONARDOAI,
+        model: MODEL_KEYS.LEONARDOAI,
         waitForCompletion: true,
       };
 
@@ -757,7 +757,7 @@ describe('ImagesOperationsController', () => {
     it('should handle null generation ID from KlingAI', async () => {
       const dto: CreateImageDto = {
         ...baseCreateDto,
-        model: ModelKey.KLINGAI_V2,
+        model: MODEL_KEYS.KLINGAI_V2,
         waitForCompletion: true,
       };
 
@@ -780,7 +780,7 @@ describe('ImagesOperationsController', () => {
         camera: 'wide angle',
         lens: 'fish eye',
         lighting: 'natural',
-        model: ModelKey.LEONARDOAI,
+        model: MODEL_KEYS.LEONARDOAI,
         mood: 'dramatic',
         scene: 'outdoor',
         style: 'cinematic',
@@ -794,7 +794,7 @@ describe('ImagesOperationsController', () => {
     it('should handle prompt template option', async () => {
       const dto: CreateImageDto = {
         ...baseCreateDto,
-        model: ModelKey.LEONARDOAI,
+        model: MODEL_KEYS.LEONARDOAI,
         promptTemplate: 'image.product.default',
         useTemplate: true,
       };
@@ -806,7 +806,7 @@ describe('ImagesOperationsController', () => {
 
     it('should use default dimensions if not provided', async () => {
       const dto: CreateImageDto = {
-        model: ModelKey.LEONARDOAI,
+        model: MODEL_KEYS.LEONARDOAI,
         text: 'Test prompt',
       };
 
@@ -825,7 +825,7 @@ describe('ImagesOperationsController', () => {
     it('should handle waitForCompletion for Replicate', async () => {
       const dto: CreateImageDto = {
         ...baseCreateDto,
-        model: ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+        model: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
         waitForCompletion: true,
       };
 
@@ -1152,7 +1152,7 @@ describe('ImagesOperationsController', () => {
     it('should handle Replicate generation failure gracefully', async () => {
       const dto: CreateImageDto = {
         height: 1080,
-        model: ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+        model: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
         text: 'Test',
         waitForCompletion: true,
         width: 1920,

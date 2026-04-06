@@ -1,7 +1,7 @@
-import { ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
 
-const DEFAULT_IMAGE_MODEL = ModelKey.REPLICATE_GOOGLE_NANO_BANANA;
-const DEFAULT_VIDEO_MODEL = ModelKey.REPLICATE_GOOGLE_VEO_3_1;
+const DEFAULT_IMAGE_MODEL = MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA;
+const DEFAULT_VIDEO_MODEL = MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1;
 
 type DesktopEnvironmentOverrides = Partial<{
   apiEndpoint: string;
@@ -187,13 +187,13 @@ export const EnvironmentService = {
     return `${this.assetsEndpoint}/branding/logo.svg`;
   },
 
-  get MODELS_DEFAULT(): { image: ModelKey; video: ModelKey } {
+  get MODELS_DEFAULT(): { image: string; video: string } {
     return {
       image: this.isDevelopment
-        ? ModelKey.REPLICATE_GOOGLE_IMAGEN_3
+        ? MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3
         : DEFAULT_IMAGE_MODEL,
       video: this.isDevelopment
-        ? ModelKey.REPLICATE_GOOGLE_VEO_2
+        ? MODEL_KEYS.REPLICATE_GOOGLE_VEO_2
         : DEFAULT_VIDEO_MODEL,
     };
   },

@@ -1,8 +1,8 @@
-import { ConfigService } from '@api/config/config.service';
+import type { ConfigService } from '@api/config/config.service';
 import { BasePromptBuilder } from '@api/services/prompt-builder/builders/base-prompt.builder';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import type { ReplicateInput } from '@api/services/prompt-builder/interfaces/replicate-input.interface';
-import { ModelKey, ModelProvider } from '@genfeedai/enums';
+import { ModelProvider } from '@genfeedai/enums';
 
 /**
  * Base class for Replicate-specific prompt builders.
@@ -70,9 +70,9 @@ export abstract class BaseReplicateBuilder extends BasePromptBuilder {
   /**
    * Each specialized builder must implement this to list supported models.
    */
-  abstract getSupportedModels(): ModelKey[];
+  abstract getSupportedModels(): string[];
 
-  supportsModel(model: ModelKey): boolean {
+  supportsModel(model: string): boolean {
     return this.getSupportedModels().includes(model);
   }
 
@@ -81,7 +81,7 @@ export abstract class BaseReplicateBuilder extends BasePromptBuilder {
    * Must be implemented by each specialized builder.
    */
   abstract buildPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): ReplicateInput;

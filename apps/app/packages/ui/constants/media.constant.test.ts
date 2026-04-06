@@ -1,16 +1,17 @@
-import { IngredientCategory, ModelCategory, ModelKey } from '@genfeedai/enums';
+import { IngredientCategory, ModelCategory } from '@genfeedai/enums';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock EnvironmentService
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {
     MODELS_DEFAULT: {
-      image: ModelKey.REPLICATE_FLUX_SCHNELL,
-      video: ModelKey.REPLICATE_HUNYUAN,
+      image: MODEL_KEYS.REPLICATE_FLUX_SCHNELL,
+      video: MODEL_KEYS.REPLICATE_HUNYUAN,
     },
   },
 }));
 
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   getCategoryFromRoute,
   getConfigForCategoryType,
@@ -52,7 +53,7 @@ describe('media.constant', () => {
       expect(config).toBeDefined();
       expect(config?.assetType).toBe('music');
       expect(config?.presetType).toBe(ModelCategory.MUSIC);
-      expect(config?.defaultModel).toBe(ModelKey.REPLICATE_META_MUSICGEN);
+      expect(config?.defaultModel).toBe(MODEL_KEYS.REPLICATE_META_MUSICGEN);
     });
 
     it('should have config for TEXT category', () => {

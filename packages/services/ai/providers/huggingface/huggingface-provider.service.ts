@@ -1,5 +1,6 @@
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
-import { ModelCategory, ModelKey, ModelProvider } from '@genfeedai/enums';
 import { logger } from '@services/core/logger.service';
 
 /**
@@ -216,7 +217,7 @@ export class HuggingFaceProviderService {
       description: hfModel.description || `${name} via HuggingFace`,
       isActive: true,
       isDefault: false,
-      key: key as ModelKey,
+      key: key as string,
       label: name,
       minCost: 0,
       pricingType: 'per-request',
@@ -406,7 +407,7 @@ export class HuggingFaceProviderService {
           'High-quality image generation with Stable Diffusion XL via HuggingFace',
         isActive: true,
         isDefault: false,
-        key: ModelKey.HF_SDXL,
+        key: MODEL_KEYS.HF_SDXL,
         label: 'Stable Diffusion XL',
         minCost: 0,
         pricingType: 'per-request',
@@ -424,7 +425,7 @@ export class HuggingFaceProviderService {
           'Fast image generation with FLUX.1 Schnell via HuggingFace',
         isActive: true,
         isDefault: false,
-        key: ModelKey.HF_FLUX_SCHNELL,
+        key: MODEL_KEYS.HF_FLUX_SCHNELL,
         label: 'FLUX.1 Schnell',
         minCost: 0,
         pricingType: 'per-request',
@@ -443,7 +444,7 @@ export class HuggingFaceProviderService {
           'Meta Llama 3.2 3B Instruct for text generation via HuggingFace',
         isActive: true,
         isDefault: false,
-        key: ModelKey.HF_LLAMA_3_2_3B,
+        key: MODEL_KEYS.HF_LLAMA_3_2_3B,
         label: 'Llama 3.2 3B Instruct',
         minCost: 0,
         pricingType: 'per-request',
@@ -460,7 +461,7 @@ export class HuggingFaceProviderService {
         description: 'Mistral 7B Instruct for text generation via HuggingFace',
         isActive: true,
         isDefault: false,
-        key: ModelKey.HF_MISTRAL_7B,
+        key: MODEL_KEYS.HF_MISTRAL_7B,
         label: 'Mistral 7B Instruct v0.3',
         minCost: 0,
         pricingType: 'per-request',
@@ -479,7 +480,7 @@ export class HuggingFaceProviderService {
           'OpenAI Whisper Large v3 for speech recognition via HuggingFace',
         isActive: true,
         isDefault: false,
-        key: ModelKey.HF_WHISPER_LARGE_V3,
+        key: MODEL_KEYS.HF_WHISPER_LARGE_V3,
         label: 'Whisper Large v3',
         minCost: 0,
         pricingType: 'per-request',
@@ -496,7 +497,7 @@ export class HuggingFaceProviderService {
         description: 'Facebook MMS Text-to-Speech for English via HuggingFace',
         isActive: true,
         isDefault: false,
-        key: ModelKey.HF_MMS_TTS_ENG,
+        key: MODEL_KEYS.HF_MMS_TTS_ENG,
         label: 'MMS TTS English',
         minCost: 0,
         pricingType: 'per-request',
@@ -515,7 +516,7 @@ export class HuggingFaceProviderService {
           'Stable Video Diffusion for image-to-video generation via HuggingFace',
         isActive: true,
         isDefault: false,
-        key: ModelKey.HF_STABLE_VIDEO_DIFFUSION,
+        key: MODEL_KEYS.HF_STABLE_VIDEO_DIFFUSION,
         label: 'Stable Video Diffusion',
         minCost: 0,
         pricingType: 'per-request',

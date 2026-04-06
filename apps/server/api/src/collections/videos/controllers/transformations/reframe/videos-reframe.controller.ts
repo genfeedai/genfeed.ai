@@ -1,14 +1,14 @@
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
+import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { ModelsService } from '@api/collections/models/services/models.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
-import { PromptsService } from '@api/collections/prompts/services/prompts.service';
-import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
-import { VideosService } from '@api/collections/videos/services/videos.service';
-import { ConfigService } from '@api/config/config.service';
+import type { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
+import type { VideosService } from '@api/collections/videos/services/videos.service';
+import type { ConfigService } from '@api/config/config.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -22,15 +22,14 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import { SharedService } from '@api/shared/services/shared/shared.service';
+import type { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import type { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import type { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
+import type { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { User } from '@clerk/backend';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
-import { IngredientSerializer } from '@genfeedai/serializers';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -39,12 +38,13 @@ import {
   IngredientStatus,
   MetadataExtension,
   ModelCategory,
-  ModelKey,
   PromptCategory,
   PromptStatus,
   TransformationCategory,
 } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import { IngredientSerializer } from '@genfeedai/serializers';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   Body,
@@ -84,7 +84,7 @@ export class VideosReframeController {
   @UseGuards(SubscriptionGuard, CreditsGuard, ModelsGuard)
   @Credits({
     description: 'Video reframe',
-    modelKey: ModelKey.REPLICATE_LUMA_REFRAME_VIDEO,
+    modelKey: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
     source: ActivitySource.VIDEO_REFRAME,
   })
   @ValidateModel({ category: ModelCategory.VIDEO_EDIT })
@@ -162,7 +162,7 @@ export class VideosReframeController {
           ? new Types.ObjectId(parent.brand)
           : new Types.ObjectId(publicMetadata.brand),
         category: PromptCategory.MODELS_PROMPT_VIDEO,
-        model: ModelKey.REPLICATE_LUMA_REFRAME_VIDEO,
+        model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
         organization: new Types.ObjectId(publicMetadata.organization),
         original:
           typeof promptText === 'string'
@@ -183,7 +183,7 @@ export class VideosReframeController {
         duration: parentMetadata.duration,
         extension: MetadataExtension.MP4,
         height: targetHeight,
-        model: ModelKey.REPLICATE_LUMA_REFRAME_VIDEO,
+        model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
         organization: isValidObjectId(parent.organization)
           ? new Types.ObjectId(parent.organization)
           : new Types.ObjectId(publicMetadata.organization),
@@ -214,7 +214,7 @@ export class VideosReframeController {
         user: new Types.ObjectId(publicMetadata.user),
         value: JSON.stringify({
           ingredientId: ingredientData._id.toString(),
-          model: ModelKey.REPLICATE_LUMA_REFRAME_VIDEO,
+          model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
           sourceId: parent._id.toString(),
           type: 'transformation',
         }),
@@ -239,7 +239,7 @@ export class VideosReframeController {
 
       const { input: promptParams } =
         await this.promptBuilderService.buildPrompt(
-          ModelKey.REPLICATE_LUMA_REFRAME_VIDEO,
+          MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
           {
             brand: ingredientData.brand,
             camera: createVideoDto.camera,
@@ -259,13 +259,13 @@ export class VideosReframeController {
         );
 
       const generationId = await this.replicateService.generateTextToVideo(
-        ModelKey.REPLICATE_LUMA_REFRAME_VIDEO,
+        MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
         promptParams,
       );
 
       if (generationId) {
         const modelData = await this.modelsService.findOne({
-          key: ModelKey.REPLICATE_LUMA_REFRAME_VIDEO,
+          key: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
         });
         const creditsToDeduct = modelData?.cost || 10;
 
@@ -274,14 +274,14 @@ export class VideosReframeController {
             publicMetadata.organization,
             publicMetadata.user,
             creditsToDeduct,
-            `Video reframe - ${ModelKey.REPLICATE_LUMA_REFRAME_VIDEO}`,
+            `Video reframe - ${MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO}`,
             ActivitySource.VIDEO_REFRAME,
           );
 
           this.loggerService.log('Credits deducted after video reframe', {
             credits: creditsToDeduct,
             generationId,
-            model: ModelKey.REPLICATE_LUMA_REFRAME_VIDEO,
+            model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
             organizationId: publicMetadata.organization,
             userId: publicMetadata.user,
           });

@@ -6,16 +6,16 @@
  * - Upscale: Enhance image resolution and quality
  */
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
-import { ImageEditDto } from '@api/collections/images/dto/image-edit.dto';
-import { ImagesService } from '@api/collections/images/services/images.service';
+import type { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
+import type { ImageEditDto } from '@api/collections/images/dto/image-edit.dto';
+import type { ImagesService } from '@api/collections/images/services/images.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
+import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { ModelsService } from '@api/collections/models/services/models.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
-import { PromptsService } from '@api/collections/prompts/services/prompts.service';
-import { ConfigService } from '@api/config/config.service';
+import type { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import type { ConfigService } from '@api/config/config.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -34,24 +34,20 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { RouterService } from '@api/services/router/router.service';
+import type { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import type { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import type { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import type { RouterService } from '@api/services/router/router.service';
 import {
   RateLimit,
   RateLimitPresets,
 } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import { SharedService } from '@api/shared/services/shared/shared.service';
+import type { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
+import type { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { User } from '@clerk/backend';
-import type {
-  IResizeBodyParams,
-  JsonApiSingleResponse,
-} from '@genfeedai/interfaces';
-import { IngredientSerializer } from '@genfeedai/serializers';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -60,12 +56,16 @@ import {
   IngredientStatus,
   MetadataExtension,
   ModelCategory,
-  ModelKey,
   PromptCategory,
   PromptStatus,
   TransformationCategory,
 } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
+import type {
+  IResizeBodyParams,
+  JsonApiSingleResponse,
+} from '@genfeedai/interfaces';
+import { IngredientSerializer } from '@genfeedai/serializers';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   Body,
@@ -193,7 +193,7 @@ export class ImagesTransformationsController {
   @UseGuards(SubscriptionGuard, CreditsGuard, ModelsGuard)
   @Credits({
     description: 'Image reframe',
-    modelKey: ModelKey.REPLICATE_LUMA_REFRAME_IMAGE,
+    modelKey: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
     source: ActivitySource.IMAGE_REFRAME,
   })
   @ValidateModel({ category: ModelCategory.IMAGE_EDIT })
@@ -258,7 +258,7 @@ export class ImagesTransformationsController {
           ? new Types.ObjectId(parent.brand)
           : new Types.ObjectId(publicMetadata.brand),
         category: PromptCategory.MODELS_PROMPT_IMAGE,
-        model: ModelKey.REPLICATE_LUMA_REFRAME_IMAGE,
+        model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
         organization: new Types.ObjectId(publicMetadata.organization),
         original:
           typeof promptText === 'string'
@@ -279,7 +279,7 @@ export class ImagesTransformationsController {
         category: IngredientCategory.IMAGE,
         extension: MetadataExtension.JPEG,
         height: targetHeight,
-        model: ModelKey.REPLICATE_LUMA_REFRAME_IMAGE,
+        model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
         organization: isValidObjectId(parent.organization)
           ? new Types.ObjectId(parent.organization)
           : new Types.ObjectId(publicMetadata.organization),
@@ -310,7 +310,7 @@ export class ImagesTransformationsController {
         user: new Types.ObjectId(publicMetadata.user),
         value: JSON.stringify({
           ingredientId: ingredientData._id.toString(),
-          model: ModelKey.REPLICATE_LUMA_REFRAME_IMAGE,
+          model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
           sourceId: parent._id.toString(),
           type: 'transformation',
         }),
@@ -336,7 +336,7 @@ export class ImagesTransformationsController {
 
       // Build provider-specific prompt using universal prompt builder
       const promptResult = await this.promptBuilderService.buildPrompt(
-        ModelKey.REPLICATE_LUMA_REFRAME_IMAGE,
+        MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
         {
           brand: ingredientData.brand,
           height: targetHeight,
@@ -354,7 +354,7 @@ export class ImagesTransformationsController {
       );
 
       const generationId = await this.replicateService.generateTextToImage(
-        ModelKey.REPLICATE_LUMA_REFRAME_IMAGE,
+        MODEL_KEYS.REPLICATE_LUMA_REFRAME_IMAGE,
         promptResult.input,
       );
 
@@ -397,7 +397,7 @@ export class ImagesTransformationsController {
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   @Credits({
     description: 'Image upscaling',
-    modelKey: ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+    modelKey: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
     source: ActivitySource.IMAGE_UPSCALE,
   })
   @ValidateModel({ category: ModelCategory.IMAGE_EDIT })
@@ -442,7 +442,7 @@ export class ImagesTransformationsController {
       imageEditDto.model ||
       ((await this.routerService.getDefaultModel(
         ModelCategory.IMAGE_UPSCALE,
-      )) as ModelKey);
+      )) as string);
 
     const { metadataData, ingredientData } =
       await this.sharedService.saveDocuments(user, {
@@ -501,7 +501,7 @@ export class ImagesTransformationsController {
       // Build provider-specific input using universal prompt builder
       // Note: Topaz Image Upscale doesn't use a prompt, but we pass empty string for consistency
       const promptResult = await this.promptBuilderService.buildPrompt(
-        ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
         {
           modelCategory:
             ((request as unknown as { selectedModel?: { category?: string } })
@@ -526,7 +526,7 @@ export class ImagesTransformationsController {
       );
 
       const generationId = await this.replicateService.runModel(
-        ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
         promptResult.input,
       );
 

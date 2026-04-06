@@ -1,9 +1,7 @@
-import {
-  type ImageModelCapability,
+import { type ImageModelCapability,
   MODEL_OUTPUT_CAPABILITIES,
-  type VideoModelCapability,
-} from '@genfeedai/constants';
-import { ModelCategory, ModelKey, ModelProvider } from '@genfeedai/enums';
+  type VideoModelCapability,, MODEL_KEYS } from '@genfeedai/constants';
+import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 
 import {
@@ -21,7 +19,7 @@ function createMockModel(overrides: Partial<IModel> = {}): IModel {
     isActive: true,
     isDefault: false,
     isDeleted: false,
-    key: ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+    key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
     label: 'Test Model',
     provider: ModelProvider.REPLICATE,
     updatedAt: '2025-01-01T00:00:00.000Z',
@@ -155,13 +153,13 @@ describe('getModelCapability', () => {
 
   it('should fall back to constant when DB fields are missing', () => {
     const model = createMockModel({
-      key: ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+      key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
       maxOutputs: undefined,
     });
 
     const result = getModelCapability(model);
     const expected =
-      MODEL_OUTPUT_CAPABILITIES[ModelKey.REPLICATE_GOOGLE_IMAGEN_4];
+      MODEL_OUTPUT_CAPABILITIES[MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4];
 
     expect(result).not.toBeNull();
     expect(result).toEqual(expected);
@@ -169,7 +167,7 @@ describe('getModelCapability', () => {
 
   it('should return null when both DB fields and constant are missing', () => {
     const model = createMockModel({
-      key: 'nonexistent/model' as ModelKey,
+      key: 'nonexistent/model' as string,
       maxOutputs: undefined,
     });
 
@@ -182,7 +180,7 @@ describe('getModelCapability', () => {
     const model = createMockModel({
       category: ModelCategory.IMAGE,
       isBatchSupported: true,
-      key: ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+      key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
       maxOutputs: 99,
       maxReferences: 50,
     });
@@ -206,7 +204,7 @@ describe('getModelCapabilityByKey', () => {
     });
 
     const result = getModelCapabilityByKey(
-      ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+      MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
       model,
     );
 
@@ -216,9 +214,11 @@ describe('getModelCapabilityByKey', () => {
   });
 
   it('should fall back to constant when no model is provided', () => {
-    const result = getModelCapabilityByKey(ModelKey.REPLICATE_GOOGLE_IMAGEN_4);
+    const result = getModelCapabilityByKey(
+      MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
+    );
     const expected =
-      MODEL_OUTPUT_CAPABILITIES[ModelKey.REPLICATE_GOOGLE_IMAGEN_4];
+      MODEL_OUTPUT_CAPABILITIES[MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4];
 
     expect(result).not.toBeNull();
     expect(result).toEqual(expected);
@@ -233,12 +233,12 @@ describe('getModelCapabilityByKey', () => {
   it('should use model DB fields via getModelCapability when model is provided', () => {
     const model = createMockModel({
       category: ModelCategory.IMAGE,
-      key: ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+      key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
       maxOutputs: 15,
     });
 
     const result = getModelCapabilityByKey(
-      ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+      MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
       model,
     );
 

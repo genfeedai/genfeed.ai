@@ -1,14 +1,14 @@
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import { ModelsService } from '@api/collections/models/services/models.service';
-import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
-import { MusicsService } from '@api/collections/musics/services/musics.service';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import type { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { ModelsService } from '@api/collections/models/services/models.service';
+import type { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
+import type { MusicsService } from '@api/collections/musics/services/musics.service';
+import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
-import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import type { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -24,17 +24,15 @@ import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { RouterService } from '@api/services/router/router.service';
-import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import { PollingService } from '@api/shared/services/polling/polling.service';
-import { SharedService } from '@api/shared/services/shared/shared.service';
+import type { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import type { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import type { RouterService } from '@api/services/router/router.service';
+import type { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
+import type { PollingService } from '@api/shared/services/polling/polling.service';
+import type { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { User } from '@clerk/backend';
-import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
-import { MusicSerializer } from '@genfeedai/serializers';
 import {
   ActivityEntityModel,
   ActivityKey,
@@ -43,10 +41,11 @@ import {
   IngredientStatus,
   MetadataExtension,
   ModelCategory,
-  ModelKey,
   PromptCategory,
 } from '@genfeedai/enums';
-import { LoggerService } from '@libs/logger/logger.service';
+import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
+import { MusicSerializer } from '@genfeedai/serializers';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   Body,
@@ -127,7 +126,7 @@ export class MusicsOperationsController {
     );
 
     // Model selection: auto-select > user-provided > brand default > system default
-    let model: ModelKey;
+    let model: string;
     let routerReason: string | undefined;
 
     if (createMusicDto.autoSelectModel) {
@@ -137,7 +136,7 @@ export class MusicsOperationsController {
         prioritize: createMusicDto.prioritize || 'balanced',
         prompt: createMusicDto.text,
       });
-      model = recommendation.selectedModel as ModelKey;
+      model = recommendation.selectedModel as string;
       routerReason = recommendation.reason;
 
       this.loggerService.log('Auto model routing selected', {
@@ -147,15 +146,15 @@ export class MusicsOperationsController {
         service: this.constructorName,
       });
     } else {
-      model = resolveGenerationDefaultModel<ModelKey>({
-        brandDefault: brand?.defaultMusicModel as ModelKey | undefined,
-        explicit: createMusicDto.model as ModelKey | undefined,
+      model = resolveGenerationDefaultModel<string>({
+        brandDefault: brand?.defaultMusicModel as string | undefined,
+        explicit: createMusicDto.model as string | undefined,
         organizationDefault: organizationSettings?.defaultMusicModel as
-          | ModelKey
+          | string
           | undefined,
         systemDefault: (await this.routerService.getDefaultModel(
           ModelCategory.MUSIC,
-        )) as ModelKey,
+        )) as string,
       });
     }
 

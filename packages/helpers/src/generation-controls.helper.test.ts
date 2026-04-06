@@ -1,6 +1,6 @@
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
-import { ModelCategory, ModelKey, ModelProvider } from '@genfeedai/enums';
-
 import {
   DEFAULT_VIDEO_DURATION_OPTIONS,
   filterModelsByAspectRatio,
@@ -18,7 +18,7 @@ function createMockModel(overrides: Partial<IModel> = {}): IModel {
     isActive: true,
     isDefault: false,
     isDeleted: false,
-    key: ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+    key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
     label: 'Test Model',
     maxOutputs: 4,
     provider: ModelProvider.REPLICATE,
@@ -49,13 +49,13 @@ describe('generation-controls.helper', () => {
         aspectRatios: ['1:1', '9:16'],
         category: ModelCategory.IMAGE,
         id: 'image-portrait',
-        key: ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+        key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
       });
       const landscapeVideoModel = createMockModel({
         aspectRatios: ['16:9'],
         category: ModelCategory.VIDEO,
         id: 'video-landscape',
-        key: ModelKey.REPLICATE_GOOGLE_VEO_3,
+        key: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
       });
 
       expect(
@@ -92,7 +92,7 @@ describe('generation-controls.helper', () => {
         durations: [5, 8, 10],
         hasDurationEditing: false,
         id: 'video-model',
-        key: ModelKey.REPLICATE_GOOGLE_VEO_3,
+        key: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
       });
 
       expect(resolveGenerationModelControls(videoModel, 'video')).toEqual({

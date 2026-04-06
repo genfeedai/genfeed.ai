@@ -1,5 +1,6 @@
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { IngredientCategory } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
-import { IngredientCategory, ModelKey } from '@genfeedai/enums';
 import { useEnhanceUpscale } from '@hooks/ui/ingredient/use-enhance-upscale/use-enhance-upscale';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -14,14 +15,14 @@ vi.mock('@hooks/data/elements/use-elements/use-elements', () => ({
     imageEditModels: [
       {
         cost: 10,
-        key: ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        key: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
         name: 'Topaz Image Upscale',
       },
     ],
     videoEditModels: [
       {
         cost: 20,
-        key: ModelKey.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+        key: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
         name: 'Topaz Video Upscale',
       },
     ],
@@ -122,7 +123,7 @@ describe('useEnhanceUpscale', () => {
       expect(result.current.upscaleConfirmData).toEqual({
         cost: 10,
         ingredient,
-        modelKey: ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        modelKey: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
       });
     });
 
@@ -141,7 +142,7 @@ describe('useEnhanceUpscale', () => {
       expect(result.current.upscaleConfirmData).toEqual({
         cost: 20,
         ingredient,
-        modelKey: ModelKey.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+        modelKey: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
       });
     });
 
@@ -180,7 +181,7 @@ describe('useEnhanceUpscale', () => {
       expect(result.current.enhanceConfirmData).toEqual({
         cost: 10,
         ingredient,
-        modelKey: ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        modelKey: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
       });
     });
 
@@ -199,7 +200,7 @@ describe('useEnhanceUpscale', () => {
       expect(result.current.enhanceConfirmData).toEqual({
         cost: 20,
         ingredient,
-        modelKey: ModelKey.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+        modelKey: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
       });
     });
 
@@ -243,7 +244,7 @@ describe('useEnhanceUpscale', () => {
       expect(mockGetImagesService).toHaveBeenCalled();
       expect(mockPostUpscale).toHaveBeenCalledWith('img-123', {
         faceEnhancement: true,
-        model: ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+        model: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
         subjectDetection: 'Foreground',
         upscaleFactor: '4x',
       });
@@ -268,7 +269,7 @@ describe('useEnhanceUpscale', () => {
 
       expect(mockGetVideosService).toHaveBeenCalled();
       expect(mockPostUpscale).toHaveBeenCalledWith('vid-123', {
-        model: ModelKey.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+        model: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
         targetFps: 30,
         targetResolution: '1080p',
       });

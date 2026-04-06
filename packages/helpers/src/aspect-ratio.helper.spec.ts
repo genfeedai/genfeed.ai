@@ -1,11 +1,9 @@
-import {
-  ASPECT_RATIOS,
+import { ASPECT_RATIOS,
   type ImageModelCapability,
   MODEL_OUTPUT_CAPABILITIES,
   type ModelOutputCapability,
-  type VideoModelCapability,
-} from '@genfeedai/constants';
-import { ModelCategory, ModelKey, ModelProvider } from '@genfeedai/enums';
+  type VideoModelCapability,, MODEL_KEYS } from '@genfeedai/constants';
+import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 
 import {
@@ -21,9 +19,9 @@ import {
   normalizeAspectRatioFromModel,
 } from '@helpers/aspect-ratio.helper';
 
-const IMAGEN_4_KEY = ModelKey.REPLICATE_GOOGLE_IMAGEN_4;
-const VEO_2_KEY = ModelKey.REPLICATE_GOOGLE_VEO_2;
-const SORA_2_KEY = ModelKey.REPLICATE_OPENAI_SORA_2;
+const IMAGEN_4_KEY = MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4;
+const VEO_2_KEY = MODEL_KEYS.REPLICATE_GOOGLE_VEO_2;
+const SORA_2_KEY = MODEL_KEYS.REPLICATE_OPENAI_SORA_2;
 
 describe('getDefaultAspectRatio', () => {
   it('should return correct default with just string key (backward compat)', () => {
@@ -307,7 +305,7 @@ function createMockModel(overrides: Partial<ModelLike> = {}): ModelLike {
     isActive: true,
     isDefault: false,
     isDeleted: false,
-    key: ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+    key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
     label: 'Test Model',
     provider: ModelProvider.REPLICATE,
     updatedAt: '2025-01-01T00:00:00.000Z',
@@ -329,7 +327,7 @@ describe('getDefaultAspectRatioFromModel', () => {
 
   it('should fall back to constant when no DB fields', () => {
     const model = createMockModel({
-      key: ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+      key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
       maxOutputs: undefined,
     });
 

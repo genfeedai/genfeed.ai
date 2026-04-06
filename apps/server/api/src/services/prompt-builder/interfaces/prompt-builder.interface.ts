@@ -1,6 +1,6 @@
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import type { ReplicateInput } from '@api/services/prompt-builder/interfaces/replicate-input.interface';
-import { ModelKey, ModelProvider } from '@genfeedai/enums';
+import type { ModelProvider } from '@genfeedai/enums';
 
 /**
  * Base interface for all prompt builders
@@ -15,7 +15,7 @@ export interface IPromptBuilder {
    * @returns Provider-specific formatted parameters
    */
   buildPrompt(
-    model: ModelKey,
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): ReplicateInput;
@@ -25,7 +25,7 @@ export interface IPromptBuilder {
    * @param model - Model key to check
    * @returns true if this builder supports the model
    */
-  supportsModel(model: ModelKey): boolean;
+  supportsModel(model: string): boolean;
 
   /**
    * Get the provider this builder is for

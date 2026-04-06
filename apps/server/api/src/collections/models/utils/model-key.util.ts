@@ -1,4 +1,4 @@
-import { ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
 
 export function baseModelKey(key?: string): string | undefined {
   if (!key || typeof key !== 'string') {
@@ -21,7 +21,7 @@ export function isTrainingKey(key?: unknown): boolean {
 
 export function isTrainerKey(key?: string): boolean {
   const base = baseModelKey(key);
-  return base === ModelKey.REPLICATE_FAST_FLUX_TRAINER;
+  return base === MODEL_KEYS.REPLICATE_FAST_FLUX_TRAINER;
 }
 
 export function isFalDestination(key?: string): boolean {
