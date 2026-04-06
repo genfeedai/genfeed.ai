@@ -2,7 +2,8 @@ import { TemplatesService } from '@api/collections/templates/services/templates.
 import { ReplicatePromptBuilder } from '@api/services/prompt-builder/builders/replicate-prompt.builder';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import { ModelCategory, ModelKey, ModelProvider } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
@@ -81,7 +82,7 @@ describe('PromptBuilderService', () => {
 
     it('should return input from builder when no template found', async () => {
       const result = await service.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_IMAGEN_3,
+        MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
         baseParams,
       );
 
@@ -99,7 +100,7 @@ describe('PromptBuilderService', () => {
       });
 
       const result = await service.buildPrompt(
-        ModelKey.REPLICATE_GOOGLE_IMAGEN_3,
+        MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
         baseParams,
       );
 
@@ -120,7 +121,10 @@ describe('PromptBuilderService', () => {
         version: 1,
       });
 
-      await service.buildPrompt(ModelKey.REPLICATE_GOOGLE_IMAGEN_3, baseParams);
+      await service.buildPrompt(
+        MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
+        baseParams,
+      );
 
       expect(templatesService.updateMetadata).toHaveBeenCalledWith(
         expect.any(String),
@@ -129,7 +133,7 @@ describe('PromptBuilderService', () => {
     });
 
     it('should skip templates when useTemplate is false', async () => {
-      await service.buildPrompt(ModelKey.REPLICATE_GOOGLE_IMAGEN_3, {
+      await service.buildPrompt(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3, {
         ...baseParams,
         useTemplate: false,
       });
@@ -145,7 +149,7 @@ describe('PromptBuilderService', () => {
         isActive: true,
       });
 
-      await service.buildPrompt(ModelKey.REPLICATE_GOOGLE_IMAGEN_3, {
+      await service.buildPrompt(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3, {
         ...baseParams,
         brand: { label: 'MyBrand' },
         isBrandingEnabled: true,
@@ -169,7 +173,7 @@ describe('PromptBuilderService', () => {
         }); // system prompt
 
       const result = await service.buildPrompt(
-        ModelKey.REPLICATE_OPENAI_GPT_5_2,
+        MODEL_KEYS.REPLICATE_OPENAI_GPT_5_2,
         {
           modelCategory: ModelCategory.TEXT,
           prompt: 'Explain AI',
@@ -181,7 +185,7 @@ describe('PromptBuilderService', () => {
 
     it('should use explicit systemPrompt when provided for TEXT models', async () => {
       const result = await service.buildPrompt(
-        ModelKey.REPLICATE_OPENAI_GPT_5_2,
+        MODEL_KEYS.REPLICATE_OPENAI_GPT_5_2,
         {
           modelCategory: ModelCategory.TEXT,
           prompt: 'Explain AI',
@@ -199,7 +203,7 @@ describe('PromptBuilderService', () => {
 
       // All models fall back to REPLICATE provider
       const result = await service.buildPrompt(
-        'unknown/model' as ModelKey,
+        'unknown/model' as string,
         baseParams,
       );
 
@@ -215,7 +219,7 @@ describe('PromptBuilderService', () => {
         version: 1,
       });
 
-      await service.buildPrompt(ModelKey.REPLICATE_GOOGLE_IMAGEN_3, {
+      await service.buildPrompt(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3, {
         ...baseParams,
         camera: 'wide angle',
         mood: 'dramatic',
@@ -241,7 +245,7 @@ describe('PromptBuilderService', () => {
         version: 1,
       });
 
-      await service.buildPrompt(ModelKey.REPLICATE_GOOGLE_IMAGEN_3, {
+      await service.buildPrompt(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3, {
         ...baseParams,
         mood: '',
         style: undefined,
@@ -259,7 +263,7 @@ describe('PromptBuilderService', () => {
         templatesService.getPromptByKey as ReturnType<typeof vi.fn>
       ).mockResolvedValue(null);
 
-      await service.buildPrompt(ModelKey.REPLICATE_GOOGLE_IMAGEN_3, {
+      await service.buildPrompt(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3, {
         ...baseParams,
         promptTemplate: 'preset.cinematic',
       });
@@ -275,9 +279,9 @@ describe('PromptBuilderService', () => {
 
   describe('isModelSupported', () => {
     it('should return true for supported models', () => {
-      expect(service.isModelSupported(ModelKey.REPLICATE_GOOGLE_IMAGEN_3)).toBe(
-        true,
-      );
+      expect(
+        service.isModelSupported(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3),
+      ).toBe(true);
     });
 
     it('should return true even for unknown models (fallback to REPLICATE)', () => {
@@ -287,14 +291,14 @@ describe('PromptBuilderService', () => {
       ).mockReturnValue(false);
 
       // getProviderFromModelKey always returns REPLICATE, so builder is found
-      expect(service.isModelSupported('unknown/model' as ModelKey)).toBe(true);
+      expect(service.isModelSupported('unknown/model' as string)).toBe(true);
     });
   });
 
   describe('getProviderForModel', () => {
     it('should return REPLICATE for supported models', () => {
       expect(
-        service.getProviderForModel(ModelKey.REPLICATE_GOOGLE_IMAGEN_3),
+        service.getProviderForModel(MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3),
       ).toBe(ModelProvider.REPLICATE);
     });
 
@@ -304,7 +308,7 @@ describe('PromptBuilderService', () => {
         replicateBuilder.supportsModel as ReturnType<typeof vi.fn>
       ).mockReturnValue(false);
 
-      expect(service.getProviderForModel('unknown/model' as ModelKey)).toBe(
+      expect(service.getProviderForModel('unknown/model' as string)).toBe(
         ModelProvider.REPLICATE,
       );
     });

@@ -1,4 +1,5 @@
-import { ModelCategory, ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelCategory } from '@genfeedai/enums';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { type Document, Types } from 'mongoose';
 
@@ -56,11 +57,11 @@ export class ElementStyle {
 
   @Prop({
     default: [],
-    enum: Object.values(ModelKey),
+    enum: Object.values(MODEL_KEYS),
     required: false,
     type: [String],
   })
-  models?: ModelKey[];
+  models?: string[];
 
   @Prop({ default: false, type: Boolean })
   isDeleted!: boolean;

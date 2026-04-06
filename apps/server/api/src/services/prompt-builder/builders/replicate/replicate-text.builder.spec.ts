@@ -12,7 +12,8 @@ vi.mock('@genfeedai/helpers', async () => ({
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { ReplicateTextBuilder } from '@api/services/prompt-builder/builders/replicate/replicate-text.builder';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
-import { ModelCategory, ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelCategory } from '@genfeedai/enums';
 
 const makeParams = (
   overrides: Partial<PromptBuilderParams> = {},
@@ -38,12 +39,14 @@ describe('ReplicateTextBuilder', () => {
     it('returns all supported text models', () => {
       const models = builder.getSupportedModels();
       expect(models).toContain(DEFAULT_TEXT_MODEL);
-      expect(models).toContain(ModelKey.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1);
-      expect(models).toContain(ModelKey.REPLICATE_OPENAI_GPT_5_2);
-      expect(models).toContain(ModelKey.REPLICATE_OPENAI_GPT_IMAGE_1_5);
-      expect(models).toContain(ModelKey.REPLICATE_GOOGLE_GEMINI_2_5_FLASH);
-      expect(models).toContain(ModelKey.REPLICATE_GOOGLE_GEMINI_3_PRO);
-      expect(models).toContain(ModelKey.REPLICATE_META_LLAMA_3_1_405B_INSTRUCT);
+      expect(models).toContain(MODEL_KEYS.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1);
+      expect(models).toContain(MODEL_KEYS.REPLICATE_OPENAI_GPT_5_2);
+      expect(models).toContain(MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5);
+      expect(models).toContain(MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_2_5_FLASH);
+      expect(models).toContain(MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO);
+      expect(models).toContain(
+        MODEL_KEYS.REPLICATE_META_LLAMA_3_1_405B_INSTRUCT,
+      );
       expect(models.length).toBe(7);
     });
   });
@@ -53,7 +56,7 @@ describe('ReplicateTextBuilder', () => {
   describe('buildPrompt — unsupported model', () => {
     it('throws for an unknown model key', () => {
       expect(() =>
-        builder.buildPrompt('unknown/model' as ModelKey, makeParams(), 'hi'),
+        builder.buildPrompt('unknown/model' as string, makeParams(), 'hi'),
       ).toThrow('Unsupported text model');
     });
   });
@@ -61,7 +64,7 @@ describe('ReplicateTextBuilder', () => {
   // ─── DeepSeekR1 ────────────────────────────────────────────────────────────
 
   describe('DeepSeek R1', () => {
-    const model = ModelKey.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1;
+    const model = MODEL_KEYS.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1;
 
     it('uses defaults when params are empty', () => {
       const result = builder.buildPrompt(
@@ -98,7 +101,7 @@ describe('ReplicateTextBuilder', () => {
   // ─── GPT-5.2 ───────────────────────────────────────────────────────────────
 
   describe('GPT 5.2', () => {
-    const model = ModelKey.REPLICATE_OPENAI_GPT_5_2;
+    const model = MODEL_KEYS.REPLICATE_OPENAI_GPT_5_2;
 
     it('builds basic input with prompt', () => {
       const result = builder.buildPrompt(
@@ -145,7 +148,7 @@ describe('ReplicateTextBuilder', () => {
   // ─── GPT Image 1.5 ─────────────────────────────────────────────────────────
 
   describe('GPT Image 1.5', () => {
-    const model = ModelKey.REPLICATE_OPENAI_GPT_IMAGE_1_5;
+    const model = MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5;
 
     it('builds input with prompt and default aspect ratio', () => {
       const result = builder.buildPrompt(
@@ -202,7 +205,7 @@ describe('ReplicateTextBuilder', () => {
   // ─── Gemini 2.5 Flash ──────────────────────────────────────────────────────
 
   describe('Gemini 2.5 Flash', () => {
-    const model = ModelKey.REPLICATE_GOOGLE_GEMINI_2_5_FLASH;
+    const model = MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_2_5_FLASH;
 
     it('builds with defaults', () => {
       const result = builder.buildPrompt(
@@ -238,7 +241,7 @@ describe('ReplicateTextBuilder', () => {
   // ─── Gemini 3 Pro ──────────────────────────────────────────────────────────
 
   describe('Gemini 3 Pro', () => {
-    const model = ModelKey.REPLICATE_GOOGLE_GEMINI_3_PRO;
+    const model = MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO;
 
     it('uses default max_output_tokens of 65535', () => {
       const result = builder.buildPrompt(model, makeParams(), 'q') as AnyInput;
@@ -262,7 +265,7 @@ describe('ReplicateTextBuilder', () => {
   // ─── Llama 3.1 405B ────────────────────────────────────────────────────────
 
   describe('Llama 3.1 405B', () => {
-    const model = ModelKey.REPLICATE_META_LLAMA_3_1_405B_INSTRUCT;
+    const model = MODEL_KEYS.REPLICATE_META_LLAMA_3_1_405B_INSTRUCT;
 
     it('builds with defaults', () => {
       const result = builder.buildPrompt(

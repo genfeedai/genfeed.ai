@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   AlertCategory,
   AssetCategory,
@@ -10,7 +11,6 @@ import {
   CredentialPlatform,
   LinkCategory,
   ModalEnum,
-  ModelKey,
   PromptCategory,
   SystemPromptKey,
 } from '@genfeedai/enums';
@@ -1051,7 +1051,8 @@ export default function BrandOverlay({
 
   const generateCost = useMemo(() => {
     const modelToUse =
-      activeBrand?.defaultImageModel || ModelKey.REPLICATE_GOOGLE_IMAGEN_4_FAST;
+      activeBrand?.defaultImageModel ||
+      MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_FAST;
     const model = imageModels.find(
       (imageModel) => imageModel.key === modelToUse,
     );

@@ -1,6 +1,5 @@
-import { isTrainingKey } from '@api/collections/models/utils/model-key.util';
 import { generateLabel } from '@api/shared/utils/label/label.util';
-import { MetadataExtension, MetadataStyle, ModelKey } from '@genfeedai/enums';
+import { MetadataExtension, MetadataStyle } from '@genfeedai/enums';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { type Document, Types } from 'mongoose';
 
@@ -32,12 +31,8 @@ export class Metadata {
     validate: {
       message: 'Invalid model key',
       validator: (v: unknown) => {
-        if (v == null || v === '') {
-          return true;
-        }
-        return (
-          Object.values(ModelKey).includes(v as ModelKey) || isTrainingKey(v)
-        );
+        if (v == null || v === '') return true;
+        return typeof v === 'string';
       },
     },
   })

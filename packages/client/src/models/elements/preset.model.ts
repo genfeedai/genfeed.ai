@@ -1,10 +1,5 @@
 import { BaseEntity } from '@genfeedai/client/models/base/base-entity.model';
-import type {
-  ModelCategory,
-  ModelKey,
-  ModelProvider,
-  Platform,
-} from '@genfeedai/enums';
+import type { ModelCategory, ModelProvider, Platform } from '@genfeedai/enums';
 import type { IBrand, IOrganization, IPreset } from '@genfeedai/interfaces';
 
 export class Preset extends BaseEntity implements IPreset {
@@ -15,7 +10,7 @@ export class Preset extends BaseEntity implements IPreset {
   public declare prompt?: string;
   public declare key: string;
   public declare category: ModelCategory;
-  public declare model?: ModelKey;
+  public declare model?: string;
   public declare provider?: ModelProvider;
   public declare platform?: Platform;
   public declare defaultCamera?: string;

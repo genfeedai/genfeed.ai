@@ -15,8 +15,9 @@ import { FAQ_CATEGORIES } from '@data/faq.data';
 import { integrations } from '@data/integrations.data';
 import { products } from '@data/products.data';
 import { useCases } from '@data/use-cases.data';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/constants/model-capabilities.constant';
-import { ModelCategory, ModelKey } from '@genfeedai/enums';
+import { ModelCategory } from '@genfeedai/enums';
 import { websitePlans } from '@helpers/business/pricing/pricing.helper';
 
 const BASE_URL = 'https://genfeed.ai';
@@ -69,12 +70,12 @@ const MODEL_NAMES: Record<string, string> = {
   'x-ai/grok-4': 'xAI Grok 4',
   'x-ai/grok-4-fast': 'xAI Grok 4 Fast',
   'x-ai/grok-4.1-fast': 'xAI Grok 4.1 Fast',
-  [ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO]: 'FLUX 1.1 Pro',
-  [ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV]: 'FLUX 2 Dev',
-  [ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_2_FLEX]: 'FLUX 2 Flex',
-  [ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO]: 'FLUX 2 Pro',
-  [ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO]: 'FLUX Kontext Pro',
-  [ModelKey.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL]: 'FLUX Schnell',
+  [MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_1_1_PRO]: 'FLUX 1.1 Pro',
+  [MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_DEV]: 'FLUX 2 Dev',
+  [MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_FLEX]: 'FLUX 2 Flex',
+  [MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_2_PRO]: 'FLUX 2 Pro',
+  [MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_KONTEXT_PRO]: 'FLUX Kontext Pro',
+  [MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL]: 'FLUX Schnell',
 };
 
 function getModelName(value: string): string {

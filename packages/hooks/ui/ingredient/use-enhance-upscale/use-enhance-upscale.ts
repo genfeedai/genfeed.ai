@@ -1,4 +1,5 @@
-import { IngredientCategory, ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { IngredientCategory } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import type { MasonryActionStates } from '@genfeedai/interfaces/hooks/hooks.interface';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
@@ -40,13 +41,13 @@ export function useEnhanceUpscale({
   const [enhanceConfirmData, setEnhanceConfirmData] = useState<{
     ingredient: IIngredient | null;
     cost: number;
-    modelKey: ModelKey;
+    modelKey: string;
   } | null>(null);
 
   const [upscaleConfirmData, setUpscaleConfirmData] = useState<{
     ingredient: IIngredient | null;
     cost: number;
-    modelKey: ModelKey;
+    modelKey: string;
   } | null>(null);
 
   const handleUpscale = useCallback(
@@ -65,8 +66,8 @@ export function useEnhanceUpscale({
         (model) =>
           model.key ===
           (isVideo
-            ? ModelKey.REPLICATE_TOPAZ_VIDEO_UPSCALE
-            : ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE),
+            ? MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE
+            : MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE),
       );
 
       if (!topazModel) {
@@ -78,7 +79,7 @@ export function useEnhanceUpscale({
       setUpscaleConfirmData({
         cost,
         ingredient,
-        modelKey: topazModel.key as ModelKey,
+        modelKey: topazModel.key as string,
       });
     },
     [videoEditModels, imageEditModels, notificationsService],
@@ -106,7 +107,7 @@ export function useEnhanceUpscale({
         if (isVideo) {
           const service = await getVideosService();
           return service.postUpscale(ingredient.id, {
-            model: ModelKey.REPLICATE_TOPAZ_VIDEO_UPSCALE,
+            model: MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE,
             targetFps: 30,
             targetResolution: '1080p',
           });
@@ -114,7 +115,7 @@ export function useEnhanceUpscale({
           const service = await getImagesService();
           return service.postUpscale(ingredient.id, {
             faceEnhancement: true,
-            model: ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+            model: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
             subjectDetection: 'Foreground',
             upscaleFactor: '4x',
           });
@@ -151,8 +152,8 @@ export function useEnhanceUpscale({
         (model) =>
           model.key ===
           (isVideo
-            ? ModelKey.REPLICATE_TOPAZ_VIDEO_UPSCALE
-            : ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE),
+            ? MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE
+            : MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE),
       );
 
       if (!topazModel) {
@@ -164,7 +165,7 @@ export function useEnhanceUpscale({
       setEnhanceConfirmData({
         cost,
         ingredient,
-        modelKey: topazModel.key as ModelKey,
+        modelKey: topazModel.key as string,
       });
     },
     [videoEditModels, imageEditModels, notificationsService],

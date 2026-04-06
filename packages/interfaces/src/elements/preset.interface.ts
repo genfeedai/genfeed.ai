@@ -1,9 +1,4 @@
-import type {
-  ModelCategory,
-  ModelKey,
-  ModelProvider,
-  Platform,
-} from '@genfeedai/enums';
+import type { ModelCategory, ModelProvider, Platform } from '@genfeedai/enums';
 import type { IBaseEntity, IBrand, IOrganization } from '../index';
 
 export interface IPreset extends IBaseEntity {
@@ -16,7 +11,7 @@ export interface IPreset extends IBaseEntity {
   prompt?: string;
   key: string;
   category: ModelCategory;
-  model?: ModelKey;
+  model?: string;
   provider?: ModelProvider;
   platform?: Platform;
 

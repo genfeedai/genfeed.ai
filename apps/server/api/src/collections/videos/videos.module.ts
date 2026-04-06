@@ -12,6 +12,7 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
+import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { MusicsModule } from '@api/collections/musics/musics.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PostsModule } from '@api/collections/posts/posts.module';
@@ -87,6 +88,7 @@ import { forwardRef, Module } from '@nestjs/common';
   providers: [
     CreditsGuard,
     CreditsInterceptor,
+    ModelRegistrationService,
     ModelsGuard,
     VideoMusicOrchestrationService,
     VideosService,

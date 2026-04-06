@@ -1,4 +1,5 @@
-import { ModelCategory, ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelCategory } from '@genfeedai/enums';
 
 import type {
   ImageModelCapability,
@@ -20,9 +21,9 @@ import {
   supportsMultipleReferences,
 } from './model-helpers.constant';
 
-const IMAGEN_4_KEY = ModelKey.REPLICATE_GOOGLE_IMAGEN_4;
-const VEO_2_KEY = ModelKey.REPLICATE_GOOGLE_VEO_2;
-const MUSICGEN_KEY = ModelKey.REPLICATE_META_MUSICGEN;
+const IMAGEN_4_KEY = MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4;
+const VEO_2_KEY = MODEL_KEYS.REPLICATE_GOOGLE_VEO_2;
+const MUSICGEN_KEY = MODEL_KEYS.REPLICATE_META_MUSICGEN;
 
 describe('getModelMaxOutputs', () => {
   it('should return correct value from constant', () => {

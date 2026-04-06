@@ -1,4 +1,4 @@
-import { ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   getDefaultVideoResolution,
   getVideoResolutionsByModel,
@@ -24,7 +24,7 @@ describe('videoModelResolutions', () => {
 describe('getVideoResolutionsByModel', () => {
   it('returns resolutions array for a known model', () => {
     const resolutions = getVideoResolutionsByModel(
-      ModelKey.REPLICATE_GOOGLE_VEO_3,
+      MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
     );
     expect(resolutions).toEqual([
       { label: '720p', value: '720p' },
@@ -38,7 +38,7 @@ describe('getVideoResolutionsByModel', () => {
 
   it('returns correct resolutions for WAN video model', () => {
     const resolutions = getVideoResolutionsByModel(
-      ModelKey.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
+      MODEL_KEYS.REPLICATE_WAN_VIDEO_WAN_2_2_I2V_FAST,
     );
     expect(resolutions.map((r) => r.value)).toContain('480p');
     expect(resolutions.map((r) => r.value)).toContain('720p');
@@ -47,7 +47,7 @@ describe('getVideoResolutionsByModel', () => {
 
 describe('getDefaultVideoResolution', () => {
   it('returns the default resolution for a known model', () => {
-    expect(getDefaultVideoResolution(ModelKey.REPLICATE_GOOGLE_VEO_3)).toBe(
+    expect(getDefaultVideoResolution(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3)).toBe(
       '1080p',
     );
   });
@@ -58,14 +58,14 @@ describe('getDefaultVideoResolution', () => {
 
   it('returns "standard"/"high" for Sora Pro', () => {
     expect(
-      getDefaultVideoResolution(ModelKey.REPLICATE_OPENAI_SORA_2_PRO),
+      getDefaultVideoResolution(MODEL_KEYS.REPLICATE_OPENAI_SORA_2_PRO),
     ).toBe('high');
   });
 });
 
 describe('hasResolutionOptions', () => {
   it('returns true for a model with resolution config', () => {
-    expect(hasResolutionOptions(ModelKey.REPLICATE_GOOGLE_VEO_3)).toBe(true);
+    expect(hasResolutionOptions(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3)).toBe(true);
   });
 
   it('returns false for an unknown model', () => {

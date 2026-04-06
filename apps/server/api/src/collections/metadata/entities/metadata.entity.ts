@@ -1,8 +1,8 @@
-import { Ingredient } from '@api/collections/ingredients/schemas/ingredient.schema';
-import { Metadata } from '@api/collections/metadata/schemas/metadata.schema';
+import type { Ingredient } from '@api/collections/ingredients/schemas/ingredient.schema';
+import type { Metadata } from '@api/collections/metadata/schemas/metadata.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
-import { MetadataExtension, MetadataStyle, ModelKey } from '@genfeedai/enums';
-import { Types } from 'mongoose';
+import type { MetadataExtension, MetadataStyle } from '@genfeedai/enums';
+import type { Types } from 'mongoose';
 
 export class MetadataEntity extends BaseEntity implements Metadata {
   declare readonly prompt?: Types.ObjectId;
@@ -15,7 +15,7 @@ export class MetadataEntity extends BaseEntity implements Metadata {
   declare readonly result: string;
   declare readonly error?: string;
   declare readonly assistant: string;
-  declare readonly model: ModelKey;
+  declare readonly model: string;
   declare readonly style: MetadataStyle;
   declare readonly extension: MetadataExtension;
   declare readonly width: number;

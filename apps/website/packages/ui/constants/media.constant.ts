@@ -1,4 +1,5 @@
-import { IngredientCategory, ModelCategory, ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { IngredientCategory, ModelCategory } from '@genfeedai/enums';
 import type { MediaConfig } from '@genfeedai/interfaces/ui/media-config.interface';
 import { EnvironmentService } from '@services/core/environment.service';
 
@@ -68,7 +69,7 @@ export const MEDIA_TYPE_CONFIGS: Partial<
       tags: false,
     },
     defaultModel:
-      ModelKey.REPLICATE_META_MUSICGEN as MediaConfig['defaultModel'],
+      MODEL_KEYS.REPLICATE_META_MUSICGEN as MediaConfig['defaultModel'],
     placeholder: 'Describe the music you want to create...',
     presetType: ModelCategory.MUSIC,
   },
@@ -91,7 +92,7 @@ export const MEDIA_TYPE_CONFIGS: Partial<
       upload: false,
     },
     defaultModel:
-      ModelKey.REPLICATE_GOOGLE_IMAGEN_3 as MediaConfig['defaultModel'],
+      MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3 as MediaConfig['defaultModel'],
     generateLabel: 'Generate Article',
     placeholder: 'What article topic should we explore?',
     presetType: ModelCategory.TEXT,

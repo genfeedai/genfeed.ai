@@ -7,7 +7,7 @@ import {
   trainingEditSchema,
   trainingSchema,
 } from '@genfeedai/client/schemas/workflow/training.schema';
-import { ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
 import { describe, expect, it } from 'vitest';
 
 describe('workflow schemas', () => {
@@ -113,7 +113,7 @@ describe('workflow schemas', () => {
     it('accepts empty text for upscale model', () => {
       expect(
         editFormSchema.safeParse({
-          model: ModelKey.REPLICATE_TOPAZ_IMAGE_UPSCALE,
+          model: MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
           text: '',
         }).success,
       ).toBe(true);

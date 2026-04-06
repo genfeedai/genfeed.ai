@@ -1,8 +1,4 @@
-import {
-  IngredientCategory,
-  ModelCategory,
-  type ModelKey,
-} from '@genfeedai/enums';
+import { IngredientCategory, ModelCategory } from '@genfeedai/enums';
 import type {
   UsePromptBarFiltersOptions,
   UsePromptBarFiltersReturn,
@@ -40,7 +36,7 @@ export function usePromptBarFilters(
         normalizedWatchedModels.length > 0
       ) {
         return normalizedWatchedModels.some((modelKey: string) =>
-          style.models?.includes(modelKey as ModelKey),
+          style.models?.includes(modelKey as string),
         );
       }
 

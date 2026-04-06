@@ -1,16 +1,20 @@
 import type { ConfigService } from '@api/config/config.service';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import type { ReplicateInput } from '@api/services/prompt-builder/interfaces/replicate-input.interface';
-import { ModelKey, ModelProvider } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelProvider } from '@genfeedai/enums';
 import { BaseReplicateBuilder } from './base-replicate.builder';
 
 class TestReplicateBuilder extends BaseReplicateBuilder {
-  getSupportedModels(): ModelKey[] {
-    return [ModelKey.REPLICATE_GOOGLE_VEO_3, ModelKey.REPLICATE_OPENAI_SORA_2];
+  getSupportedModels(): string[] {
+    return [
+      MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
+      MODEL_KEYS.REPLICATE_OPENAI_SORA_2,
+    ];
   }
 
   buildPrompt(
-    _model: ModelKey,
+    _model: string,
     _params: PromptBuilderParams,
     _promptText: string,
   ): ReplicateInput {
@@ -51,14 +55,16 @@ describe('BaseReplicateBuilder', () => {
 
   describe('supportsModel', () => {
     it('should return true for supported models', () => {
-      expect(builder.supportsModel(ModelKey.REPLICATE_GOOGLE_VEO_3)).toBe(true);
-      expect(builder.supportsModel(ModelKey.REPLICATE_OPENAI_SORA_2)).toBe(
+      expect(builder.supportsModel(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3)).toBe(
+        true,
+      );
+      expect(builder.supportsModel(MODEL_KEYS.REPLICATE_OPENAI_SORA_2)).toBe(
         true,
       );
     });
 
     it('should return false for unsupported models', () => {
-      expect(builder.supportsModel(ModelKey.REPLICATE_META_MUSICGEN)).toBe(
+      expect(builder.supportsModel(MODEL_KEYS.REPLICATE_META_MUSICGEN)).toBe(
         false,
       );
     });

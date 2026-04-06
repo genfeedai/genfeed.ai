@@ -1,20 +1,18 @@
-import { Model } from '@api/collections/models/schemas/model.schema';
-import { ModelsService } from '@api/collections/models/services/models.service';
+import type { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import {
-  baseModelKey,
   isFalDestination,
   isReplicateDestination,
   isReplicateVersionId,
 } from '@api/collections/models/utils/model-key.util';
-import { ModelCategory } from '@genfeedai/enums';
+import type { ModelCategory } from '@genfeedai/enums';
 import {
-  CanActivate,
-  ExecutionContext,
-  HttpException,
-  HttpStatus,
+  type CanActivate,
+  type ExecutionContext,
+  ForbiddenException,
   Injectable,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { Types } from 'mongoose';
 
 export interface ModelValidationOptions {
   category: ModelCategory;
@@ -27,7 +25,7 @@ export const ValidateModel =
 @Injectable()
 export class ModelsGuard implements CanActivate {
   constructor(
-    private readonly modelsService: ModelsService,
+    private readonly modelRegistrationService: ModelRegistrationService,
     private readonly reflector: Reflector,
   ) {}
 
@@ -55,40 +53,20 @@ export class ModelsGuard implements CanActivate {
       return true;
     }
 
-    const validModels = await this.getValidModelsByCategory(options.category);
-    const validModelKeys = validModels.map((model) => model.key);
-    const normalized = baseModelKey(modelKey);
+    const rawOrgId = request.context?.organizationId;
 
-    if (!normalized || !validModelKeys.includes(normalized)) {
-      throw new HttpException(
-        {
-          detail: `Invalid model for ${options.category} generation. Valid models: ${validModelKeys.join(',')}`,
-          title: 'Validation failed',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
+    if (!rawOrgId || !Types.ObjectId.isValid(rawOrgId)) {
+      throw new ForbiddenException('Organization context is required');
     }
 
-    request.validModels = validModels;
-    request.selectedModel = validModels.find((m) => m.key === normalized);
-
-    return true;
-  }
-
-  private async getValidModelsByCategory(category: string): Promise<Model[]> {
-    const models = await this.modelsService.findAll(
-      [
-        {
-          $match: {
-            category,
-            isDefault: true,
-            isDeleted: false,
-          },
-        },
-      ],
-      { pagination: false },
+    const organizationId = new Types.ObjectId(rawOrgId);
+    const model = await this.modelRegistrationService.validateModelForOrg(
+      modelKey,
+      organizationId,
     );
 
-    return models.docs || [];
+    request.selectedModel = model;
+
+    return true;
   }
 }

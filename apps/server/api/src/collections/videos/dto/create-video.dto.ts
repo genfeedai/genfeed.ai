@@ -2,7 +2,6 @@ import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ing
 import { CreateMetadataDto } from '@api/collections/metadata/dto/create-metadata.dto';
 import {
   IngredientCategory,
-  ModelKey,
   RouterPriority,
   VideoEaseCurve,
   VideoTransition,
@@ -22,7 +21,7 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { Types } from 'mongoose';
+import type { Types } from 'mongoose';
 
 export class CreateVideoWithCaptionsDto {
   @IsMongoId()
@@ -393,11 +392,11 @@ export class CreateVideoDto extends OmitType(CreateIngredientDto, [
   @IsOptional()
   @ApiProperty({
     description: 'The model to use for video generation',
-    enum: ModelKey,
+    enum: string,
     enumName: 'ModelKey',
     required: false,
   })
-  readonly model?: ModelKey;
+  readonly model?: string;
 
   @IsBoolean()
   @IsOptional()

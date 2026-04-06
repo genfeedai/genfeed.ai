@@ -1,11 +1,6 @@
-import {
-  ModelCategory,
-  ModelKey,
-  ModelProvider,
-  QualityTier,
-} from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { ModelCategory, ModelProvider, QualityTier } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
-
 import {
   DEFAULT_QUALITY_TIER,
   getQualityTierForModel,
@@ -19,31 +14,31 @@ import {
 
 vi.mock('@genfeedai/constants', () => ({
   MODEL_OUTPUT_CAPABILITIES: {
-    [ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO]: {
+    [MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO]: {
       aspectRatios: ['1:1', '16:9', '9:16'],
       category: ModelCategory.IMAGE,
     },
-    [ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED]: {
+    [MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED]: {
       aspectRatios: ['1:1', '16:9', '9:16'],
       category: ModelCategory.IMAGE,
     },
-    [ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_QUALITY]: {
+    [MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_QUALITY]: {
       aspectRatios: ['1:1', '16:9', '9:16'],
       category: ModelCategory.IMAGE,
     },
-    [ModelKey.REPLICATE_GOOGLE_VEO_3_FAST]: {
+    [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST]: {
       aspectRatios: ['16:9', '9:16'],
       category: ModelCategory.VIDEO,
     },
-    [ModelKey.REPLICATE_GOOGLE_VEO_3]: {
+    [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3]: {
       aspectRatios: ['16:9', '9:16'],
       category: ModelCategory.VIDEO,
     },
-    [ModelKey.REPLICATE_GOOGLE_VEO_3_1]: {
+    [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1]: {
       aspectRatios: ['16:9', '9:16'],
       category: ModelCategory.VIDEO,
     },
-    [ModelKey.REPLICATE_META_MUSICGEN]: {
+    [MODEL_KEYS.REPLICATE_META_MUSICGEN]: {
       category: ModelCategory.MUSIC,
     },
   },
@@ -52,25 +47,25 @@ vi.mock('@genfeedai/constants', () => ({
 vi.mock('../src/aspect-ratio.helper', () => ({
   isAspectRatioSupported: vi.fn((modelKey: string, aspectRatio: string) => {
     const supported: Record<string, string[]> = {
-      [ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO]: [
+      [MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO]: [
         '1:1',
         '16:9',
         '9:16',
       ],
-      [ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED]: [
+      [MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED]: [
         '1:1',
         '16:9',
         '9:16',
       ],
-      [ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_QUALITY]: [
+      [MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_QUALITY]: [
         '1:1',
         '16:9',
         '9:16',
       ],
-      [ModelKey.REPLICATE_GOOGLE_VEO_3_FAST]: ['16:9', '9:16'],
-      [ModelKey.REPLICATE_GOOGLE_VEO_3]: ['16:9', '9:16'],
-      [ModelKey.REPLICATE_GOOGLE_VEO_3_1]: ['16:9', '9:16'],
-      [ModelKey.REPLICATE_META_MUSICGEN]: [],
+      [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST]: ['16:9', '9:16'],
+      [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3]: ['16:9', '9:16'],
+      [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1]: ['16:9', '9:16'],
+      [MODEL_KEYS.REPLICATE_META_MUSICGEN]: [],
       'high-image': ['1:1', '16:9', '9:16'],
       'standard-image': ['1:1', '16:9', '9:16'],
       'ultra-image': ['1:1', '16:9', '9:16'],
@@ -120,15 +115,15 @@ describe('quality-routing.helper', () => {
 
   describe('resolveQualityToModel', () => {
     const imageModels = [
-      ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO,
-      ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED,
-      ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_QUALITY,
+      MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO,
+      MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED,
+      MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_QUALITY,
     ];
 
     const videoModels = [
-      ModelKey.REPLICATE_GOOGLE_VEO_3_FAST,
-      ModelKey.REPLICATE_GOOGLE_VEO_3,
-      ModelKey.REPLICATE_GOOGLE_VEO_3_1,
+      MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST,
+      MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
+      MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
     ];
 
     it('should return standard image model for standard quality', () => {
@@ -138,7 +133,7 @@ describe('quality-routing.helper', () => {
         'landscape',
         imageModels,
       );
-      expect(result).toBe(ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO);
+      expect(result).toBe(MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO);
     });
 
     it('should return premium image model for premium quality', () => {
@@ -148,7 +143,9 @@ describe('quality-routing.helper', () => {
         'landscape',
         imageModels,
       );
-      expect(result).toBe(ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED);
+      expect(result).toBe(
+        MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED,
+      );
     });
 
     it('should return ultra image model for ultra quality', () => {
@@ -158,7 +155,7 @@ describe('quality-routing.helper', () => {
         'landscape',
         imageModels,
       );
-      expect(result).toBe(ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_QUALITY);
+      expect(result).toBe(MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_QUALITY);
     });
 
     it('should return standard video model for standard quality', () => {
@@ -168,7 +165,7 @@ describe('quality-routing.helper', () => {
         'landscape',
         videoModels,
       );
-      expect(result).toBe(ModelKey.REPLICATE_GOOGLE_VEO_3_FAST);
+      expect(result).toBe(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST);
     });
 
     it('should return premium video model for premium quality', () => {
@@ -178,7 +175,7 @@ describe('quality-routing.helper', () => {
         'landscape',
         videoModels,
       );
-      expect(result).toBe(ModelKey.REPLICATE_GOOGLE_VEO_3);
+      expect(result).toBe(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3);
     });
 
     it('should return ultra video model for ultra quality', () => {
@@ -188,18 +185,20 @@ describe('quality-routing.helper', () => {
         'landscape',
         videoModels,
       );
-      expect(result).toBe(ModelKey.REPLICATE_GOOGLE_VEO_3_1);
+      expect(result).toBe(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1);
     });
 
     it('should fallback to lower tier when requested tier not available', () => {
-      const limitedModels = [ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO];
+      const limitedModels = [
+        MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO,
+      ];
       const result = resolveQualityToModel(
         QualityTier.ULTRA,
         ModelCategory.IMAGE,
         'landscape',
         limitedModels,
       );
-      expect(result).toBe(ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO);
+      expect(result).toBe(MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO);
     });
 
     it('should return null for unsupported categories', () => {
@@ -227,13 +226,13 @@ describe('quality-routing.helper', () => {
     it('should return STANDARD for standard tier models', () => {
       expect(
         getQualityTierForModel(
-          ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO,
+          MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO,
           ModelCategory.IMAGE,
         ),
       ).toBe(QualityTier.STANDARD);
       expect(
         getQualityTierForModel(
-          ModelKey.REPLICATE_GOOGLE_VEO_3_FAST,
+          MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST,
           ModelCategory.VIDEO,
         ),
       ).toBe(QualityTier.STANDARD);
@@ -242,13 +241,13 @@ describe('quality-routing.helper', () => {
     it('should return PREMIUM for premium tier models', () => {
       expect(
         getQualityTierForModel(
-          ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED,
+          MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED,
           ModelCategory.IMAGE,
         ),
       ).toBe(QualityTier.HIGH);
       expect(
         getQualityTierForModel(
-          ModelKey.REPLICATE_GOOGLE_VEO_3,
+          MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
           ModelCategory.VIDEO,
         ),
       ).toBe(QualityTier.HIGH);
@@ -257,13 +256,13 @@ describe('quality-routing.helper', () => {
     it('should return ULTRA for ultra tier models', () => {
       expect(
         getQualityTierForModel(
-          ModelKey.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_QUALITY,
+          MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_QUALITY,
           ModelCategory.IMAGE,
         ),
       ).toBe(QualityTier.ULTRA);
       expect(
         getQualityTierForModel(
-          ModelKey.REPLICATE_GOOGLE_VEO_3_1,
+          MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
           ModelCategory.VIDEO,
         ),
       ).toBe(QualityTier.ULTRA);
@@ -278,7 +277,7 @@ describe('quality-routing.helper', () => {
     it('should return DEFAULT_QUALITY_TIER for unsupported categories', () => {
       expect(
         getQualityTierForModel(
-          ModelKey.REPLICATE_GOOGLE_VEO_3,
+          MODEL_KEYS.REPLICATE_GOOGLE_VEO_3,
           ModelCategory.TEXT,
         ),
       ).toBe(DEFAULT_QUALITY_TIER);
@@ -352,7 +351,7 @@ describe('quality-routing.helper', () => {
       isActive: true,
       isDefault: false,
       isDeleted: false,
-      key: ModelKey.REPLICATE_GOOGLE_IMAGEN_4,
+      key: MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
       label: 'Test Model',
       provider: ModelProvider.REPLICATE,
       updatedAt: '2025-01-01T00:00:00.000Z',
@@ -365,12 +364,12 @@ describe('quality-routing.helper', () => {
       const models = [
         createMockModel({
           id: 'standard',
-          key: 'standard-image' as ModelKey,
+          key: 'standard-image' as string,
           qualityTier: QualityTier.STANDARD,
         }),
         createMockModel({
           id: 'high',
-          key: 'high-image' as ModelKey,
+          key: 'high-image' as string,
           qualityTier: QualityTier.HIGH,
         }),
       ];
@@ -390,7 +389,7 @@ describe('quality-routing.helper', () => {
       const models = [
         createMockModel({
           id: 'standard',
-          key: 'standard-image' as ModelKey,
+          key: 'standard-image' as string,
           qualityTier: QualityTier.STANDARD,
         }),
       ];
@@ -411,12 +410,12 @@ describe('quality-routing.helper', () => {
         createMockModel({
           id: 'inactive',
           isActive: false,
-          key: 'high-image' as ModelKey,
+          key: 'high-image' as string,
           qualityTier: QualityTier.HIGH,
         }),
         createMockModel({
           id: 'active-standard',
-          key: 'standard-image' as ModelKey,
+          key: 'standard-image' as string,
           qualityTier: QualityTier.STANDARD,
         }),
       ];
@@ -437,12 +436,12 @@ describe('quality-routing.helper', () => {
         createMockModel({
           id: 'deleted',
           isDeleted: true,
-          key: 'high-image' as ModelKey,
+          key: 'high-image' as string,
           qualityTier: QualityTier.HIGH,
         }),
         createMockModel({
           id: 'active-standard',
-          key: 'standard-image' as ModelKey,
+          key: 'standard-image' as string,
           qualityTier: QualityTier.STANDARD,
         }),
       ];
@@ -463,13 +462,13 @@ describe('quality-routing.helper', () => {
         createMockModel({
           category: ModelCategory.VIDEO,
           id: 'video-model',
-          key: 'high-image' as ModelKey,
+          key: 'high-image' as string,
           qualityTier: QualityTier.HIGH,
         }),
         createMockModel({
           category: ModelCategory.IMAGE,
           id: 'image-model',
-          key: 'standard-image' as ModelKey,
+          key: 'standard-image' as string,
           qualityTier: QualityTier.STANDARD,
         }),
       ];
@@ -500,7 +499,7 @@ describe('quality-routing.helper', () => {
       const models = [
         createMockModel({
           id: 'no-tier',
-          key: 'standard-image' as ModelKey,
+          key: 'standard-image' as string,
         }),
       ];
 
@@ -519,17 +518,17 @@ describe('quality-routing.helper', () => {
       const models = [
         createMockModel({
           id: 'standard',
-          key: 'standard-image' as ModelKey,
+          key: 'standard-image' as string,
           qualityTier: QualityTier.STANDARD,
         }),
         createMockModel({
           id: 'high',
-          key: 'high-image' as ModelKey,
+          key: 'high-image' as string,
           qualityTier: QualityTier.HIGH,
         }),
         createMockModel({
           id: 'ultra',
-          key: 'ultra-image' as ModelKey,
+          key: 'ultra-image' as string,
           qualityTier: QualityTier.ULTRA,
         }),
       ];

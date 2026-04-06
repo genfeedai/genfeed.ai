@@ -7,7 +7,7 @@ import {
   SpeedTier,
 } from '@genfeedai/enums';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import type { Document } from 'mongoose';
+import mongoose, { type Document, Types } from 'mongoose';
 
 export type ModelDocument = Model & Document;
 
@@ -315,6 +315,37 @@ export class Model {
   /** Date when this model was auto-deprecated */
   @Prop({ required: false, type: Date })
   deprecatedAt?: Date;
+
+  // --- Dynamic Registry Fields (v6) ---
+
+  @Prop({ type: Types.ObjectId, ref: 'Organization', default: null })
+  organization?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'Training', default: null })
+  training?: Types.ObjectId;
+
+  @Prop({ type: Types.ObjectId, ref: 'Model', default: null })
+  parentModel?: Types.ObjectId;
+
+  @Prop({ type: String, default: null })
+  providerModelId?: string;
+
+  @Prop({ type: mongoose.Schema.Types.Mixed, default: null })
+  providerConfig?: Record<string, unknown>;
+
+  @Prop({ type: String, default: null })
+  triggerWord?: string;
 }
 
 export const ModelSchema = SchemaFactory.createForClass(Model);
+
+// --- Dynamic Registry Indexes (v6) ---
+ModelSchema.index({ isActive: 1, isDeleted: 1, organization: 1 });
+ModelSchema.index(
+  { training: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { training: { $exists: true, $ne: null } },
+  },
+);
+ModelSchema.index({ parentModel: 1 });

@@ -1,4 +1,4 @@
-import { ModelCategory, ModelKey, ModelProvider } from '@genfeedai/enums';
+import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsBoolean, IsNumber, IsOptional, IsString } from 'class-validator';
 
@@ -27,11 +27,10 @@ export class CreateModelDto {
   @IsString()
   @ApiProperty({
     description: 'The unique identifier key for the model',
-    enum: ModelKey,
-    enumName: 'ModelKey',
+    type: String,
     required: true,
   })
-  readonly key!: ModelKey;
+  readonly key!: string;
 
   @IsString()
   @ApiProperty({

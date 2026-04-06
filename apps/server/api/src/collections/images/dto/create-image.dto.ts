@@ -1,6 +1,7 @@
 import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { CreateMetadataDto } from '@api/collections/metadata/dto/create-metadata.dto';
-import { ModelKey, RouterPriority } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { RouterPriority } from '@genfeedai/enums';
 import { ApiProperty, OmitType } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
@@ -52,7 +53,7 @@ export class CreateImageDto extends OmitType(CreateIngredientDto, [
   @IsString()
   @IsOptional()
   @ApiProperty({
-    default: ModelKey.REPLICATE_OPENAI_GPT_IMAGE_1_5,
+    default: MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5,
     description:
       'The model to use for image generation. Can be a ModelKey enum value or a custom model path (e.g., Replicate destination or training model ID).',
   })

@@ -1,11 +1,11 @@
 'use client';
 
+import { MODEL_KEYS } from '@genfeedai/constants';
 import {
   AlertCategory,
   AssetCategory,
   AssetScope,
   LinkCategory,
-  ModelKey,
 } from '@genfeedai/enums';
 import type { ILink } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -83,7 +83,7 @@ export default function BrandDetail() {
       return 5;
     }
     const modelToUse =
-      brand.defaultImageModel || ModelKey.REPLICATE_GOOGLE_IMAGEN_4_FAST;
+      brand.defaultImageModel || MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_FAST;
     const model = imageModels.find((m) => m.key === modelToUse);
     return model?.cost || 5;
   }, [brand, generateModalType, imageModels]);

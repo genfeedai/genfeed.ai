@@ -3,7 +3,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
-import { BackgroundMusicDto } from '@api/collections/videos/dto/create-video.dto';
+import type { BackgroundMusicDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { ConfigService } from '@api/config/config.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
@@ -15,12 +15,12 @@ import { RouterService } from '@api/services/router/router.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { PollingService } from '@api/shared/services/polling/polling.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
-import { IngredientStatus, ModelKey } from '@genfeedai/enums';
+import { MODEL_KEYS } from '@genfeedai/constants';
+import { IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpStatus } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
-
 import {
   type OrchestrationContext,
   VideoMusicOrchestrationService,
@@ -70,7 +70,7 @@ describe('VideoMusicOrchestrationService', () => {
       waitForIngredientCompletion: vi.fn().mockResolvedValue(undefined),
     };
     routerService = {
-      getDefaultModel: vi.fn().mockResolvedValue(ModelKey.MUSICGEN),
+      getDefaultModel: vi.fn().mockResolvedValue(MODEL_KEYS.MUSICGEN),
     };
     promptsService = {
       create: vi.fn().mockResolvedValue({ _id: new Types.ObjectId() }),
