@@ -1,5 +1,12 @@
 'use client';
 
+import {
+  AssetScope,
+  ButtonSize,
+  ButtonVariant,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/enums';
 import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
 import {
   type BatchItemStatus,
@@ -8,11 +15,6 @@ import {
   createWorkflowApiService,
   type WorkflowSummary,
 } from '@genfeedai/workflow';
-import {
-  AssetScope,
-  IngredientCategory,
-  IngredientStatus,
-} from '@genfeedai/enums';
 import { downloadIngredient } from '@helpers/media/download/download.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { usePostModal } from '@providers/global-modals/global-modals.provider';
@@ -21,6 +23,7 @@ import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
+import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import {
   Select,
@@ -667,16 +670,16 @@ export default function BatchWorkflowPage() {
               <p>3. Run once and come back later with the batch URL.</p>
             </InsetSurface>
 
-            <button
-              type="button"
+            <Button
+              variant={ButtonVariant.DEFAULT}
               onClick={handleRunBatch}
               disabled={!canRunBatch}
-              className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-xl"
             >
               {isStartingBatch
                 ? 'Starting batch…'
                 : `Run Batch (${files.length})`}
-            </button>
+            </Button>
           </div>
 
           <div className="space-y-5">
@@ -691,6 +694,7 @@ export default function BatchWorkflowPage() {
               <input type="file" {...getInputProps()} />
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/5">
                 <svg
+                  aria-hidden="true"
                   className="h-8 w-8 text-muted-foreground"
                   fill="none"
                   stroke="currentColor"
@@ -726,13 +730,13 @@ export default function BatchWorkflowPage() {
                       </span>
                     )}
                   </p>
-                  <button
-                    type="button"
+                  <Button
+                    variant={ButtonVariant.GHOST}
                     onClick={clearFiles}
-                    className="text-sm text-red-300 hover:text-red-200"
+                    className="text-red-300 hover:text-red-200"
                   >
                     Clear all
-                  </button>
+                  </Button>
                 </div>
 
                 <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 xl:grid-cols-8">
@@ -752,13 +756,14 @@ export default function BatchWorkflowPage() {
                           file.ingredientId ? '' : 'opacity-60'
                         }`}
                       />
-                      <button
-                        type="button"
+                      <Button
+                        variant={ButtonVariant.UNSTYLED}
+                        size={ButtonSize.XS}
                         onClick={() => removeFile(index)}
                         className="absolute right-2 top-2 hidden rounded-full bg-black/60 px-2 py-1 text-xs text-white group-hover:block"
                       >
                         Remove
-                      </button>
+                      </Button>
                       <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 text-[11px] text-white">
                         {file.ingredientId ? 'Uploaded' : 'Uploading…'}
                       </div>
@@ -796,9 +801,9 @@ export default function BatchWorkflowPage() {
         ) : (
           <div className="space-y-3">
             {recentJobs.map((job) => (
-              <button
+              <Button
                 key={job._id}
-                type="button"
+                variant={ButtonVariant.UNSTYLED}
                 onClick={() => void handleOpenRecentJob(job._id)}
                 className="w-full rounded-xl border border-white/10 bg-background/40 px-4 py-4 text-left transition hover:border-white/20 hover:bg-background/60"
               >
@@ -832,7 +837,7 @@ export default function BatchWorkflowPage() {
                     processed
                   </p>
                 </div>
-              </button>
+              </Button>
             ))}
           </div>
         )}
@@ -869,13 +874,13 @@ export default function BatchWorkflowPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
+              <Button
+                variant={ButtonVariant.OUTLINE}
                 onClick={handleBackToComposer}
-                className="rounded-xl border border-white/10 bg-background/40 px-4 py-2 text-sm text-foreground hover:bg-background/60"
+                className="rounded-xl"
               >
                 Back to batch setup
-              </button>
+              </Button>
               <Badge
                 className={getStatusClasses(activeBatchStatus.status)}
                 variant="ghost"
@@ -925,68 +930,75 @@ export default function BatchWorkflowPage() {
             </div>
 
             <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
+              <Button
+                variant={ButtonVariant.OUTLINE}
+                size={ButtonSize.SM}
                 onClick={() =>
                   setSelectedOutputIds(
                     new Set(availableOutputs.map(({ item }) => item._id)),
                   )
                 }
                 disabled={availableOutputs.length === 0}
-                className="rounded-xl border border-white/10 bg-background/40 px-3 py-2 text-sm text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl"
               >
                 Select all
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant={ButtonVariant.OUTLINE}
+                size={ButtonSize.SM}
                 onClick={() => setSelectedOutputIds(new Set())}
                 disabled={!hasSelectedOutputs}
-                className="rounded-xl border border-white/10 bg-background/40 px-3 py-2 text-sm text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl"
               >
                 Clear selection
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant={ButtonVariant.OUTLINE}
+                size={ButtonSize.SM}
                 onClick={() => void handleDownload('all')}
                 disabled={availableOutputs.length === 0 || isRunningBulkAction}
-                className="rounded-xl border border-white/10 bg-background/40 px-3 py-2 text-sm text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl"
               >
                 Download all
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant={ButtonVariant.OUTLINE}
+                size={ButtonSize.SM}
                 onClick={() => void handleDownload('selected')}
                 disabled={!hasSelectedOutputs || isRunningBulkAction}
-                className="rounded-xl border border-white/10 bg-background/40 px-3 py-2 text-sm text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl"
               >
                 Download selected
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant={ButtonVariant.OUTLINE}
+                size={ButtonSize.SM}
                 onClick={() => handlePublish('all')}
                 disabled={availableOutputs.length === 0}
-                className="rounded-xl border border-white/10 bg-background/40 px-3 py-2 text-sm text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl"
               >
                 Publish all
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant={ButtonVariant.OUTLINE}
+                size={ButtonSize.SM}
                 onClick={() => handlePublish('selected')}
                 disabled={!hasSelectedOutputs}
-                className="rounded-xl border border-white/10 bg-background/40 px-3 py-2 text-sm text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl"
               >
                 Publish selected
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant={ButtonVariant.OUTLINE}
+                size={ButtonSize.SM}
                 onClick={() =>
                   handleOpenInLibrary(hasSelectedOutputs ? 'selected' : 'all')
                 }
                 disabled={availableOutputs.length === 0}
-                className="rounded-xl border border-white/10 bg-background/40 px-3 py-2 text-sm text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-xl"
               >
                 Open in library
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -1083,34 +1095,37 @@ export default function BatchWorkflowPage() {
                       )}
 
                     <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
+                      <Button
+                        variant={ButtonVariant.OUTLINE}
+                        size={ButtonSize.XS}
                         onClick={() =>
                           ingredient && void downloadIngredient(ingredient)
                         }
                         disabled={!ingredient}
-                        className="rounded-xl border border-white/10 bg-background/40 px-3 py-2 text-xs text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-xl"
                       >
                         Download
-                      </button>
-                      <button
-                        type="button"
+                      </Button>
+                      <Button
+                        variant={ButtonVariant.OUTLINE}
+                        size={ButtonSize.XS}
                         onClick={() =>
                           ingredient && openPostBatchModal(ingredient)
                         }
                         disabled={!ingredient}
-                        className="rounded-xl border border-white/10 bg-background/40 px-3 py-2 text-xs text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-xl"
                       >
                         Publish
-                      </button>
-                      <button
-                        type="button"
+                      </Button>
+                      <Button
+                        variant={ButtonVariant.OUTLINE}
+                        size={ButtonSize.XS}
                         onClick={() => libraryPath && router.push(libraryPath)}
                         disabled={!libraryPath}
-                        className="rounded-xl border border-white/10 bg-background/40 px-3 py-2 text-xs text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-xl"
                       >
                         Open in library
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </article>
@@ -1137,13 +1152,13 @@ export default function BatchWorkflowPage() {
           </div>
 
           {activeBatchStatus && (
-            <button
-              type="button"
+            <Button
+              variant={ButtonVariant.OUTLINE}
               onClick={handleBackToComposer}
-              className="rounded-xl border border-white/10 bg-background/40 px-4 py-2 text-sm text-foreground hover:bg-background/60"
+              className="rounded-xl"
             >
               New batch
-            </button>
+            </Button>
           )}
         </div>
       </header>
