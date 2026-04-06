@@ -1,10 +1,11 @@
 'use client';
 
-import type { IModel } from '@genfeedai/interfaces';
 import { getBrandConfig } from '@genfeedai/constants/model-brands.constant';
-import { RouterPriority } from '@genfeedai/enums';
+import { ButtonVariant, RouterPriority } from '@genfeedai/enums';
+import type { IModel } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { ModelSelectorPopoverProps } from '@props/ui/model-selector/model-selector.props';
+import Button from '@ui/buttons/base/Button';
 import ModelSelectorFamilyItem from '@ui/dropdowns/model-selector/ModelSelectorFamilyItem';
 import ModelSelectorModelItem from '@ui/dropdowns/model-selector/ModelSelectorModelItem';
 import ModelSelectorProviderSidebar from '@ui/dropdowns/model-selector/ModelSelectorProviderSidebar';
@@ -631,8 +632,9 @@ function SourceTabButton({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
       onClick={onClick}
       className={cn(
         'rounded px-2.5 py-1.5 text-xs font-medium transition-colors',
@@ -642,7 +644,7 @@ function SourceTabButton({
       )}
     >
       {label}
-    </button>
+    </Button>
   );
 }
 

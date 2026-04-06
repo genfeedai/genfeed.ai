@@ -57,6 +57,16 @@ for file in "$@"; do
   [[ "$file" == *.spec.* ]] && continue
   [[ "$file" == *.stories.* ]] && continue
 
+  # Skip apps with their own UI systems (no shared @ui access)
+  [[ "$file" == *apps/extensions/* ]] && continue
+  [[ "$file" == *apps/desktop/* ]] && continue
+  [[ "$file" == *packages/workflow-cloud/src/components/ui/* ]] && continue
+  [[ "$file" == *packages/workflow-ui/* ]] && continue
+  [[ "$file" == *packages/workflow-cloud/* ]] && continue
+
+  # Skip local UI wrappers (e.g. src/components/ui/textarea.tsx)
+  [[ "$file" == */src/components/ui/* ]] && continue
+
   # Skip legitimate primitive/wrapper paths
   [[ "$file" == */primitives/* ]] && continue
   [[ "$file" == */buttons/base/* ]] && continue

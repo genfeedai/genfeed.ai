@@ -1,3 +1,5 @@
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import { useState } from 'react';
 import { LoadingSpinner } from '~components/ui';
 import type { DetectedContent } from '~services/content-detector.service';
@@ -66,10 +68,11 @@ export function YouTubeQuickAction({ content }: { content: DetectedContent }) {
           </div>
         </div>
 
-        <button
+        <Button
           type="button"
+          variant={ButtonVariant.DEFAULT}
           onClick={handleSendTranscript}
-          className="inline-flex items-center justify-center gap-2 h-8 px-3 mt-3 w-full text-xs font-medium bg-primary text-primary-foreground shadow hover:bg-primary/90 transition-colors disabled:pointer-events-none disabled:opacity-50"
+          className="mt-3 w-full shadow"
           disabled={isProcessing}
         >
           {isProcessing ? (
@@ -80,7 +83,7 @@ export function YouTubeQuickAction({ content }: { content: DetectedContent }) {
           ) : (
             'Generate Transcript & Article'
           )}
-        </button>
+        </Button>
       </div>
     </div>
   );

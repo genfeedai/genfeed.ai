@@ -11,6 +11,7 @@
       "@workflow-cloud/*": ["../../../packages/workflow-cloud/src/*"],
       "@workflow-engine/*": ["../../../packages/workflow-engine/src/*"],
       "@workflow-saas/*": ["../../../packages/workflow-saas/src/*"],
+      "@ui/*": ["../../../../packages/ui/src/*"],
       "~*": ["./src/*"]
     }
   },

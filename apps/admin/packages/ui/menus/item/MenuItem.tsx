@@ -1,7 +1,8 @@
-import { ComponentSize } from '@genfeedai/enums';
+import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { MenuItemProps } from '@props/navigation/menu.props';
 import ComingSoonBadge from '@ui/badges/ComingSoonBadge';
+import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Link from 'next/link';
@@ -175,14 +176,15 @@ export default function MenuItem({
         {contentBody}
       </Link>
     ) : (
-      <button
-        type="button"
+      <Button
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
         onClick={onClick}
         className={cn(contentClasses, 'cursor-pointer')}
-        aria-label={accessibleLabel}
+        ariaLabel={accessibleLabel}
       >
         {contentBody}
-      </button>
+      </Button>
     );
 
   // Wrap with Tooltip when collapsed to render tooltip outside scroll container

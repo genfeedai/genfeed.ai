@@ -1,3 +1,5 @@
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '../buttons/base/Button';
 import { cn } from '../lib/utils';
 
 export type ContentType = 'image' | 'video' | 'text';
@@ -24,9 +26,11 @@ export function ContentTypePresets({
   return (
     <div className={cn('flex gap-1', className)}>
       {types.map((type) => (
-        <button
+        <Button
           key={type}
-          type="button"
+          variant={
+            selected === type ? ButtonVariant.OUTLINE : ButtonVariant.GHOST
+          }
           onClick={() => onChange(type)}
           className={cn(
             'px-3 py-1.5 text-xs font-medium capitalize transition-colors',
@@ -34,9 +38,8 @@ export function ContentTypePresets({
               ? 'border border-foreground/30 text-foreground'
               : 'border border-border text-muted-foreground hover:text-foreground',
           )}
-        >
-          {LABELS[type]}
-        </button>
+          label={LABELS[type]}
+        />
       ))}
     </div>
   );

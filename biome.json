@@ -11,6 +11,7 @@
         "useKeyWithClickEvents": "off",
         "useMediaCaption": "off",
         "noSvgWithoutTitle": "off",
+        "useButtonType": "off",
         "useSemanticElements": "off"
       },
       "complexity": {

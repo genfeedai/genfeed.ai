@@ -1,10 +1,13 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type {
   SwitcherDropdownItem,
   SwitcherDropdownProps,
 } from '@props/ui/menus/switcher-dropdown.props';
+import Button from '@ui/buttons/base/Button';
+import { Input } from '@ui/primitives/input';
 import {
   Popover,
   PopoverPanelContent,
@@ -101,14 +104,14 @@ export default function SwitcherDropdown({
       },
     )
   ) : (
-    <button
-      type="button"
+    <Button
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
       className={className}
-      disabled={isDisabled}
-      aria-disabled={isDisabled}
+      isDisabled={isDisabled}
     >
       {renderedTrigger}
-    </button>
+    </Button>
   );
 
   if (!isMounted) {
@@ -143,13 +146,13 @@ export default function SwitcherDropdown({
           <div className="px-2 pt-1.5 pb-1">
             <div className="relative">
               <HiMagnifyingGlass className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40" />
-              <input
+              <Input
                 ref={searchInputRef}
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder={searchPlaceholder}
-                className="w-full rounded-lg border border-white/[0.08] bg-white/[0.04] py-1.5 pl-8 pr-3 text-sm text-white placeholder-white/30 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                className="py-1.5 pl-8 pr-3"
               />
             </div>
           </div>
@@ -175,9 +178,10 @@ export default function SwitcherDropdown({
               const ActionIcon = action.icon;
 
               return (
-                <button
+                <Button
                   key={action.label}
-                  type="button"
+                  variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
                   onClick={() => {
                     close();
                     action.onAction();
@@ -190,7 +194,7 @@ export default function SwitcherDropdown({
                     <HiPlus className="w-3.5 h-3.5 flex-shrink-0" />
                   )}
                   <span>{action.label}</span>
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -208,10 +212,11 @@ function SwitcherItem({
   onSelect: (id: string) => void;
 }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
       onClick={() => !item.isActive && onSelect(item.id)}
-      disabled={item.isActive}
+      isDisabled={item.isActive}
       className={cn(
         'flex w-full items-center gap-2.5 px-3 py-2 text-sm transition-colors duration-150',
         item.isActive
@@ -250,6 +255,6 @@ function SwitcherItem({
       {item.isActive && (
         <HiCheck className="w-3.5 h-3.5 text-primary flex-shrink-0" />
       )}
-    </button>
+    </Button>
   );
 }

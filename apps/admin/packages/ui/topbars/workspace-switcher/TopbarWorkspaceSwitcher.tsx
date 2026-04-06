@@ -2,6 +2,7 @@
 
 import { useUser } from '@clerk/nextjs';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
@@ -10,12 +11,15 @@ import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { UsersService } from '@services/organization/users.service';
+import Button from '@ui/buttons/base/Button';
 import { Modal } from '@ui/modals/compound/Modal';
+import { Input } from '@ui/primitives/input';
 import {
   Popover,
   PopoverPanelContent,
   PopoverTrigger,
 } from '@ui/primitives/popover';
+import { Textarea } from '@ui/primitives/textarea';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -198,16 +202,17 @@ export default function TopbarWorkspaceSwitcher() {
         }}
       >
         <PopoverTrigger asChild>
-          <button
-            type="button"
-            aria-label="Switch organization and brand"
+          <Button
+            variant={ButtonVariant.UNSTYLED}
+            withWrapper={false}
+            ariaLabel="Switch organization and brand"
             className={cn(
               'flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors',
               'hover:bg-white/[0.06]',
               isOpen && 'bg-white/[0.06]',
               isBusy && 'cursor-not-allowed opacity-60',
             )}
-            disabled={isBusy}
+            isDisabled={isBusy}
           >
             <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-white/[0.08]">
               {logoUrl ? (
@@ -239,7 +244,7 @@ export default function TopbarWorkspaceSwitcher() {
                 isOpen && 'rotate-180',
               )}
             />
-          </button>
+          </Button>
         </PopoverTrigger>
 
         <PopoverPanelContent
@@ -320,14 +325,13 @@ export default function TopbarWorkspaceSwitcher() {
                 <label className="text-xs font-medium text-white/70">
                   Name <span className="text-red-400">*</span>
                 </label>
-                <input
+                <Input
                   type="text"
                   value={newOrganizationLabel}
                   onChange={(event) =>
                     setNewOrganizationLabel(event.target.value)
                   }
                   placeholder="My Organization"
-                  className="w-full rounded-lg border border-white/[0.12] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder-white/30 focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/50"
                   onKeyDown={(event) => {
                     if (event.key === 'Enter') {
                       void handleCreateOrganization();
@@ -340,14 +344,14 @@ export default function TopbarWorkspaceSwitcher() {
                 <label className="text-xs font-medium text-white/70">
                   Description <span className="text-white/30">(optional)</span>
                 </label>
-                <textarea
+                <Textarea
                   value={newOrganizationDescription}
                   onChange={(event) =>
                     setNewOrganizationDescription(event.target.value)
                   }
                   placeholder="What does this organization do?"
                   rows={2}
-                  className="w-full resize-none rounded-lg border border-white/[0.12] bg-white/[0.04] px-3 py-2 text-sm text-white placeholder-white/30 focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/50"
+                  className="resize-none"
                 />
               </div>
 
@@ -361,29 +365,26 @@ export default function TopbarWorkspaceSwitcher() {
 
           <Modal.Footer>
             <Modal.CloseButton asChild>
-              <button
-                type="button"
+              <Button
+                variant={ButtonVariant.GHOST}
+                withWrapper={false}
                 className="px-4 py-2 text-sm text-white/60 transition-colors hover:text-white"
               >
                 Cancel
-              </button>
+              </Button>
             </Modal.CloseButton>
-            <button
-              type="button"
-              disabled={
+            <Button
+              variant={ButtonVariant.DEFAULT}
+              withWrapper={false}
+              isDisabled={
                 isCreatingOrganization ||
                 newOrganizationLabel.trim().length === 0
               }
               onClick={() => void handleCreateOrganization()}
-              className={cn(
-                'rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90',
-                (isCreatingOrganization ||
-                  newOrganizationLabel.trim().length === 0) &&
-                  'cursor-not-allowed opacity-50',
-              )}
+              className="rounded-lg px-4 py-2 text-sm font-medium"
             >
-              {isCreatingOrganization ? 'Creating…' : 'Create'}
-            </button>
+              {isCreatingOrganization ? 'Creating\u2026' : 'Create'}
+            </Button>
           </Modal.Footer>
         </Modal.Content>
       </Modal.Root>
@@ -418,15 +419,16 @@ function WorkspaceSwitcherSection({
       ) : (
         <div className="space-y-1">
           {items.map((item) => (
-            <button
+            <Button
               key={item.id}
-              type="button"
+              variant={ButtonVariant.UNSTYLED}
+              withWrapper={false}
               onClick={() => {
                 if (!item.isActive) {
                   onSelect(item.id);
                 }
               }}
-              disabled={item.isActive}
+              isDisabled={item.isActive}
               className={cn(
                 'flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm transition-colors',
                 item.isActive
@@ -464,7 +466,7 @@ function WorkspaceSwitcherSection({
               {item.isActive ? (
                 <HiCheck className="h-3.5 w-3.5 flex-shrink-0 text-primary" />
               ) : null}
-            </button>
+            </Button>
           ))}
         </div>
       )}
@@ -480,13 +482,14 @@ function WorkspaceActionButton({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
       onClick={onClick}
       className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-white/60 transition-colors hover:bg-white/[0.06] hover:text-white"
     >
       <HiPlus className="h-3.5 w-3.5 flex-shrink-0" />
       <span>{label}</span>
-    </button>
+    </Button>
   );
 }

@@ -15,6 +15,7 @@ import type {
   PostEnhancementBarProps,
   TweetTone,
 } from '@ui/posts/enhancement-bar/PostEnhancementBar.props';
+import { Input } from '@ui/primitives/input';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
@@ -233,14 +234,14 @@ export default function PostEnhancementBar({
 
       {/* Custom Prompt Input + Enhance Button */}
       <div className="flex flex-1 items-center gap-2">
-        <input
+        <Input
           type="text"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={isEnhancing}
-          className="h-9 min-h-0 flex-1 bg-background border border-white/[0.08] px-3 text-sm focus:outline-none focus:border-primary"
+          className="h-9 min-h-0 flex-1"
         />
 
         <Button

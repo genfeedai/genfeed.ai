@@ -1,3 +1,5 @@
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useState } from 'react';
 import {
   EmptyState,
@@ -78,13 +80,14 @@ export default function VideosPage() {
       <EmptyState
         title={error}
         action={
-          <button
+          <Button
             type="button"
+            variant={ButtonVariant.LINK}
             onClick={loadVideos}
-            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+            className="text-blue-600 hover:text-blue-700"
           >
             Try again
-          </button>
+          </Button>
         }
       />
     );
@@ -106,20 +109,22 @@ export default function VideosPage() {
         <h3 className="text-sm font-medium text-gray-700">
           Your Videos ({videos.length})
         </h3>
-        <button
+        <Button
           type="button"
+          variant={ButtonVariant.GHOST}
           onClick={loadVideos}
-          className="text-blue-600 hover:text-blue-700 text-sm"
+          className="text-blue-600 hover:text-blue-700"
           title="Refresh"
         >
           <RefreshIcon />
-        </button>
+        </Button>
       </div>
 
       <div className="space-y-2 max-h-96 overflow-y-auto">
         {videos.map((video) => (
-          <button
+          <Button
             type="button"
+            variant={ButtonVariant.UNSTYLED}
             key={video.id}
             className="w-full text-left border border-gray-200 p-3 hover:border-gray-300 transition-colors cursor-pointer"
             onClick={() => openVideo(video.url)}
@@ -154,7 +159,7 @@ export default function VideosPage() {
                 </div>
               </div>
             </div>
-          </button>
+          </Button>
         ))}
       </div>
     </div>

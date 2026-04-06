@@ -1,7 +1,9 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { ModelSelectorModelItemProps } from '@props/ui/model-selector/model-selector.props';
+import Button from '@ui/buttons/base/Button';
 import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCostBadge';
 import FormCheckbox from '@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox';
 import { CommandItem } from '@ui/primitives/command';
@@ -89,8 +91,9 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
         ) : null}
       </div>
 
-      <button
-        type="button"
+      <Button
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
         onClick={handleFavoriteClick}
         className={cn(
           'mt-0.5 p-0.5 rounded hover:bg-white/10 transition-colors shrink-0',
@@ -100,7 +103,7 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
         )}
       >
         <HiStar className={cn('h-3.5 w-3.5', isFavorite && 'fill-current')} />
-      </button>
+      </Button>
     </CommandItem>
   );
 });

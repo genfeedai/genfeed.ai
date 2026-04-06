@@ -10,7 +10,17 @@ import type {
   IDesktopThread,
   IDesktopWorkspace,
 } from '@genfeedai/desktop-contracts';
+import { ButtonVariant } from '@genfeedai/enums';
 import { DropZone } from '@renderer/components/DropZone';
+import { Button } from '@ui/primitives/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const PLATFORM_OPTIONS: Array<{
@@ -143,25 +153,27 @@ const GeneratedContentCard = ({
         </div>
       )}
       <div className="generated-card-actions">
-        <button
-          className="ghost-button small"
+        <Button
+          className="small"
           onClick={() => void handleCopy()}
           type="button"
+          variant={ButtonVariant.GHOST}
         >
           {copied ? '✓ Copied' : '📋 Copy'}
-        </button>
-        <button
-          className="ghost-button small"
+        </Button>
+        <Button
+          className="small"
           disabled={isPublishing || publishResult !== undefined}
           onClick={() => void handlePublish()}
           type="button"
+          variant={ButtonVariant.GHOST}
         >
           {publishResult
             ? 'Published'
             : isPublishing
               ? 'Publishing...'
               : '🚀 Publish'}
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -704,16 +716,17 @@ export const ConversationView = ({
         <aside className="conversation-sidepanel panel-card">
           <div className="conversation-panel-header">
             <h3>Saved Runs</h3>
-            <button
-              className="ghost-button small"
+            <Button
+              className="small"
               onClick={() => {
                 setSelectedDraftId(null);
                 setInput('');
               }}
               type="button"
+              variant={ButtonVariant.GHOST}
             >
               New
-            </button>
+            </Button>
           </div>
 
           {!workspaceId && (
@@ -734,13 +747,14 @@ export const ConversationView = ({
 
           <div className="draft-list">
             {drafts.map((draft) => (
-              <button
+              <Button
                 className={`draft-list-item ${
                   selectedDraftId === draft.id ? 'active' : ''
                 }`}
                 key={draft.id}
                 onClick={() => setSelectedDraftId(draft.id)}
                 type="button"
+                variant={ButtonVariant.UNSTYLED}
               >
                 <span className="draft-list-title">{draft.title}</span>
                 <span className="draft-list-meta">
@@ -756,7 +770,7 @@ export const ConversationView = ({
                   <span>
                     {draft.sourceType === 'trend' ? 'Trend' : 'Prompt'}
                   </span>
-                  <button
+                  <Button
                     aria-label={`Delete draft ${draft.title}`}
                     className="draft-list-delete"
                     onClick={(event) => {
@@ -764,11 +778,12 @@ export const ConversationView = ({
                       void handleDeleteDraft(draft.id);
                     }}
                     type="button"
+                    variant={ButtonVariant.GHOST}
                   >
                     ✕
-                  </button>
+                  </Button>
                 </span>
-              </button>
+              </Button>
             ))}
           </div>
         </aside>
@@ -779,38 +794,46 @@ export const ConversationView = ({
               <label className="composer-label" htmlFor="desktop-platform">
                 Platform
               </label>
-              <select
-                id="desktop-platform"
-                onChange={(event) =>
-                  setPlatform(event.target.value as DesktopContentPlatform)
+              <Select
+                onValueChange={(value) =>
+                  setPlatform(value as DesktopContentPlatform)
                 }
                 value={platform}
               >
-                {PLATFORM_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id="desktop-platform">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PLATFORM_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="composer-control-group">
               <label className="composer-label" htmlFor="desktop-content-type">
                 Output
               </label>
-              <select
-                id="desktop-content-type"
-                onChange={(event) =>
-                  setContentType(event.target.value as DesktopContentType)
+              <Select
+                onValueChange={(value) =>
+                  setContentType(value as DesktopContentType)
                 }
                 value={contentType}
               >
-                {TYPE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id="desktop-content-type">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TYPE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="composer-control-group">
@@ -820,55 +843,65 @@ export const ConversationView = ({
               >
                 Intent
               </label>
-              <select
-                id="desktop-publish-intent"
-                onChange={(event) =>
-                  setPublishIntent(event.target.value as DesktopPublishIntent)
+              <Select
+                onValueChange={(value) =>
+                  setPublishIntent(value as DesktopPublishIntent)
                 }
                 value={publishIntent}
               >
-                {PUBLISH_INTENT_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id="desktop-publish-intent">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PUBLISH_INTENT_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="composer-control-group composer-project-group">
               <label className="composer-label" htmlFor="desktop-project-link">
                 Cloud project
               </label>
-              <select
-                id="desktop-project-link"
-                onChange={(event) => void handleProjectLink(event.target.value)}
+              <Select
+                onValueChange={(value) => void handleProjectLink(value)}
                 value={workspace?.linkedProjectId ?? ''}
               >
-                <option value="">Not linked</option>
-                {projects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id="desktop-project-link">
+                  <SelectValue placeholder="Not linked" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Not linked</SelectItem>
+                  {projects.map((project) => (
+                    <SelectItem key={project.id} value={project.id}>
+                      {project.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
-            <button
-              className="ghost-button small"
+            <Button
+              className="small"
               disabled={!workspaceId || !input.trim()}
               onClick={() => void handleSaveDraft()}
               type="button"
+              variant={ButtonVariant.GHOST}
             >
               Save draft
-            </button>
-            <button
-              className="ghost-button small"
+            </Button>
+            <Button
+              className="small"
               disabled={!workspaceId}
               onClick={() => void handleImportAssets()}
               type="button"
+              variant={ButtonVariant.GHOST}
             >
               Import assets
-            </button>
+            </Button>
           </div>
 
           <DropZone
@@ -914,7 +947,7 @@ export const ConversationView = ({
           </DropZone>
 
           <div className="conversation-input-bar">
-            <textarea
+            <Textarea
               className="conversation-input"
               onChange={(event) => setInput(event.target.value)}
               onKeyDown={handleKeyDown}
@@ -928,14 +961,15 @@ export const ConversationView = ({
                 {PLATFORM_OPTIONS.find((option) => option.value === platform)
                   ?.description ?? 'Content generation'}
               </span>
-              <button
-                className="primary-button send-button"
+              <Button
+                className="send-button"
                 disabled={!input.trim() || isGenerating || !workspaceId}
                 onClick={() => void handleSend()}
                 type="button"
+                variant={ButtonVariant.DEFAULT}
               >
                 {isGenerating ? 'Generating...' : 'Generate'}
-              </button>
+              </Button>
             </div>
           </div>
         </section>

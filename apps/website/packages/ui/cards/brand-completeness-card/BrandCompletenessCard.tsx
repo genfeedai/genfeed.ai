@@ -1,8 +1,10 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import type { BrandCompletenessGroup } from '@genfeedai/helpers';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useBrandCompleteness } from '@hooks/utils/use-brand-completeness/use-brand-completeness';
+import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -45,8 +47,9 @@ function GroupRow({ group }: { group: BrandCompletenessGroup }) {
 
   return (
     <div>
-      <button
-        type="button"
+      <Button
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
         onClick={() => setExpanded(!isExpanded)}
         className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors duration-150 hover:bg-white/[0.04]"
       >
@@ -79,7 +82,7 @@ function GroupRow({ group }: { group: BrandCompletenessGroup }) {
             {group.score}%
           </span>
         </div>
-      </button>
+      </Button>
 
       {isExpanded && incompleteFields.length > 0 && (
         <div className="ml-6 flex flex-col gap-0.5 pb-1">

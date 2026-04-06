@@ -1,7 +1,9 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { ModelSelectorFamilyItemProps } from '@props/ui/model-selector/model-selector.props';
+import Button from '@ui/buttons/base/Button';
 import { memo } from 'react';
 import { HiChevronDown, HiChevronRight } from 'react-icons/hi2';
 
@@ -44,11 +46,12 @@ const ModelSelectorFamilyItem = memo(function ModelSelectorFamilyItem({
   const ChevronIcon = isExpanded ? HiChevronDown : HiChevronRight;
 
   return (
-    <button
-      type="button"
+    <Button
+      variant={ButtonVariant.UNSTYLED}
+      withWrapper={false}
       onClick={onToggle}
       aria-expanded={isExpanded}
-      aria-label={familyLabel}
+      ariaLabel={familyLabel}
       className={cn(
         'group flex w-full items-center gap-2.5 rounded px-2 py-2 text-left transition-colors',
         'hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/20',
@@ -70,7 +73,7 @@ const ModelSelectorFamilyItem = memo(function ModelSelectorFamilyItem({
           </span>
         </div>
       </div>
-    </button>
+    </Button>
   );
 });
 

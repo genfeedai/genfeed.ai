@@ -9,6 +9,7 @@ import {
 import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
+import { Progress } from '@ui/primitives/progress';
 import { formatDistanceToNow } from 'date-fns';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -143,11 +144,7 @@ function ExecutionItem({
                 <span>Progress</span>
                 <span>{execution.progress}%</span>
               </div>
-              <progress
-                className="w-full h-2 bg-muted rounded-full overflow-hidden [&::-webkit-progress-bar]:bg-muted [&::-webkit-progress-value]:bg-primary [&::-moz-progress-bar]:bg-primary"
-                value={execution.progress}
-                max={100}
-              />
+              <Progress className="h-2" value={execution.progress} />
             </div>
           )}
 

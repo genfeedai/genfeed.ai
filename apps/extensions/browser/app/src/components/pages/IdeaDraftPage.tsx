@@ -1,3 +1,13 @@
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useEffect, useState } from 'react';
 import { LoadingSpinner } from '~components/ui';
 import { authService } from '~services/auth.service';
@@ -134,22 +144,23 @@ export function IdeaDraftPage({
           Open the GenFeed app to edit and publish it.
         </p>
         <div className="flex gap-2">
-          <button
+          <Button
             type="button"
+            variant={ButtonVariant.OUTLINE}
             onClick={handleReset}
-            className="rounded border border-border bg-muted px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-muted/80"
           >
             Save another
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant={ButtonVariant.DEFAULT}
             onClick={() =>
               chrome.tabs.create({ url: 'https://app.genfeed.ai/posts' })
             }
-            className="rounded bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90"
+            className="shadow"
           >
             Open Drafts →
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -182,7 +193,7 @@ export function IdeaDraftPage({
         <label className="text-xs font-medium text-muted-foreground">
           Content / Idea
         </label>
-        <textarea
+        <Textarea
           value={content}
           onChange={(e) => handleContentChange(e.target.value)}
           placeholder="Highlighted text or idea to save…"
@@ -208,27 +219,32 @@ export function IdeaDraftPage({
         <label className="text-xs font-medium text-muted-foreground">
           Platform
         </label>
-        <select
+        <Select
           value={platform}
-          onChange={(e) => setPlatform(e.target.value as SocialPlatform)}
-          className="rounded border border-border bg-input px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          onValueChange={(value) => setPlatform(value as SocialPlatform)}
         >
-          {PLATFORMS.map((p) => (
-            <option key={p.value} value={p.value}>
-              {p.label}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="rounded border border-border bg-input px-2 py-1.5 text-sm text-foreground">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PLATFORMS.map((p) => (
+              <SelectItem key={p.value} value={p.value}>
+                {p.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
-      <button
+      <Button
         type="button"
+        variant={ButtonVariant.DEFAULT}
         onClick={handleSave}
         disabled={!content.trim()}
-        className="mt-auto rounded bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+        className="mt-auto rounded shadow"
       >
         Save to Drafts →
-      </button>
+      </Button>
     </div>
   );
 }

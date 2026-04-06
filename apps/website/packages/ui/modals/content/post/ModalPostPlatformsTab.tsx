@@ -19,6 +19,8 @@ import Button from '@ui/buttons/base/Button';
 import FormControl from '@ui/forms/base/form-control/FormControl';
 import FormCheckbox from '@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox';
 import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
+import { Input } from '@ui/primitives/input';
+import { Textarea } from '@ui/primitives/textarea';
 import { WebSocketPaths } from '@utils/network/websocket.util';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { IconType } from 'react-icons';
@@ -478,9 +480,8 @@ export default function ModalPostPlatformsTab({
                             }
                           />
                         </div>
-                        <input
+                        <Input
                           type="text"
-                          className="h-10 border border-input px-3 w-full"
                           value={config.label}
                           onChange={(event) => {
                             if (!isEnabled) {
@@ -528,8 +529,8 @@ export default function ModalPostPlatformsTab({
                         />
                       </div>
 
-                      <textarea
-                        className={`border border-input px-3 py-2 w-full ${isTwitter ? 'h-20' : 'h-24'}`}
+                      <Textarea
+                        className={isTwitter ? 'h-20' : 'h-24'}
                         value={config.description}
                         onChange={(event) => {
                           if (!isEnabled) {
@@ -576,9 +577,8 @@ export default function ModalPostPlatformsTab({
                     />
 
                     {config.overrideSchedule && (
-                      <input
+                      <Input
                         type="datetime-local"
-                        className="h-10 border border-input px-3 w-full"
                         value={config.customScheduledDate}
                         onChange={(event) => {
                           if (!isEnabled) {

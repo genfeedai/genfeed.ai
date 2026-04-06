@@ -1,3 +1,5 @@
+import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 import { useState } from 'react';
 import { LoadingSpinner } from '~components/ui';
@@ -143,10 +145,11 @@ export function BookmarkQuickAction({
           </p>
         </div>
 
-        <button
+        <Button
           type="button"
+          variant={ButtonVariant.DEFAULT}
           onClick={handleBookmark}
-          className="inline-flex items-center justify-center gap-2 h-8 px-3 w-full text-xs font-medium bg-primary text-primary-foreground shadow hover:bg-primary/90 transition-colors disabled:pointer-events-none disabled:opacity-50"
+          className="w-full shadow"
           disabled={isSaving}
         >
           {isSaving ? (
@@ -157,7 +160,7 @@ export function BookmarkQuickAction({
           ) : (
             config.buttonText
           )}
-        </button>
+        </Button>
       </div>
     </div>
   );

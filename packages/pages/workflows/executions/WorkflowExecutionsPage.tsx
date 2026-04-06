@@ -1,10 +1,18 @@
 'use client';
 
-import { type ExecutionResult } from '@genfeedai/workflow';
 import { ButtonVariant } from '@genfeedai/enums';
+import type { ExecutionResult } from '@genfeedai/workflow';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import Button from '@ui/buttons/base/Button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@ui/primitives/table';
 import { createWorkflowApiService } from '@workflow-cloud/services/workflow-api';
 import { getExecutionEtaDisplayState } from '@workflow-cloud/utils/eta-display';
 import {
@@ -172,30 +180,30 @@ export default function WorkflowExecutionsPage() {
         ) : (
           <>
             <div className="overflow-hidden border border-white/[0.08]">
-              <table className="w-full">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-sm font-medium">
+              <Table className="w-full">
+                <TableHeader className="bg-muted/50">
+                  <TableRow>
+                    <TableHead className="px-4 py-3 text-left text-sm font-medium">
                       Workflow
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">
+                    </TableHead>
+                    <TableHead className="px-4 py-3 text-left text-sm font-medium">
                       Status
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">
+                    </TableHead>
+                    <TableHead className="px-4 py-3 text-left text-sm font-medium">
                       Progress
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">
+                    </TableHead>
+                    <TableHead className="px-4 py-3 text-left text-sm font-medium">
                       Started
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">
+                    </TableHead>
+                    <TableHead className="px-4 py-3 text-left text-sm font-medium">
                       Duration
-                    </th>
-                    <th className="px-4 py-3 text-left text-sm font-medium">
+                    </TableHead>
+                    <TableHead className="px-4 py-3 text-left text-sm font-medium">
                       Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-border">
                   {executions.map((execution) => {
                     const startedAt = execution.startedAt
                       ? new Date(execution.startedAt)
@@ -210,8 +218,11 @@ export default function WorkflowExecutionsPage() {
                     });
 
                     return (
-                      <tr key={execution._id} className="hover:bg-muted/30">
-                        <td className="px-4 py-3">
+                      <TableRow
+                        key={execution._id}
+                        className="hover:bg-muted/30"
+                      >
+                        <TableCell className="px-4 py-3">
                           <Link
                             href={`/workflows/${getWorkflowId(execution.workflow)}`}
                             className="font-medium hover:text-primary"
@@ -221,8 +232,8 @@ export default function WorkflowExecutionsPage() {
                           <div className="text-xs text-muted-foreground">
                             {execution._id.slice(0, 8)}...
                           </div>
-                        </td>
-                        <td className="px-4 py-3">
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
                           <span
                             className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs ${getStatusColor(
                               execution.status,
@@ -235,8 +246,8 @@ export default function WorkflowExecutionsPage() {
                               {etaDisplay.phaseLabel}
                             </div>
                           )}
-                        </td>
-                        <td className="px-4 py-3">
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <div className="h-2 w-16 rounded-full bg-muted">
                               <div
@@ -250,13 +261,13 @@ export default function WorkflowExecutionsPage() {
                               {execution.progress}%
                             </span>
                           </div>
-                        </td>
-                        <td className="px-4 py-3 text-sm">
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-sm">
                           {startedAt
                             ? startedAt.toLocaleString()
                             : new Date(execution.createdAt).toLocaleString()}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-sm">
                           {etaDisplay.actualDurationLabel ??
                             (durationSec !== null ? `${durationSec}s` : '—')}
                           {etaDisplay.etaLabel && (
@@ -264,20 +275,20 @@ export default function WorkflowExecutionsPage() {
                               {etaDisplay.etaLabel}
                             </div>
                           )}
-                        </td>
-                        <td className="px-4 py-3">
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
                           <Link
                             href={`/workflows/${getWorkflowId(execution.workflow)}?execution=${execution._id}`}
                             className="text-sm text-primary hover:underline"
                           >
                             View Details
                           </Link>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     );
                   })}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
 
             {/* Pagination */}

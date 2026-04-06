@@ -8,6 +8,14 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { VideosService } from '@services/ingredients/videos.service';
 import Button from '@ui/buttons/base/Button';
 import FormControl from '@ui/forms/base/form-control/FormControl';
+import { Input } from '@ui/primitives/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import { useState } from 'react';
 import { HiXMark } from 'react-icons/hi2';
 
@@ -94,9 +102,8 @@ export default function TextOverlayPanel({
                 error={!text.trim() && isSubmitting ? 'Text is required' : ''}
                 isRequired
               >
-                <input
+                <Input
                   type="text"
-                  className="h-10 border border-input px-3 w-full"
                   value={text}
                   onChange={(e) => setText(e.target.value)}
                   placeholder="Enter text to overlay on video"
@@ -104,32 +111,34 @@ export default function TextOverlayPanel({
               </FormControl>
 
               <FormControl label="Position">
-                <select
-                  className="h-10 border border-input px-3 w-full bg-background"
-                  value={position}
-                  onChange={(e) => setPosition(e.target.value)}
-                >
-                  <option value="top">Top</option>
-                  <option value="center">Center</option>
-                  <option value="bottom">Bottom</option>
-                  <option value="top-left">Top Left</option>
-                  <option value="top-right">Top Right</option>
-                  <option value="bottom-left">Bottom Left</option>
-                  <option value="bottom-right">Bottom Right</option>
-                </select>
+                <Select value={position} onValueChange={setPosition}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select position" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="top">Top</SelectItem>
+                    <SelectItem value="center">Center</SelectItem>
+                    <SelectItem value="bottom">Bottom</SelectItem>
+                    <SelectItem value="top-left">Top Left</SelectItem>
+                    <SelectItem value="top-right">Top Right</SelectItem>
+                    <SelectItem value="bottom-left">Bottom Left</SelectItem>
+                    <SelectItem value="bottom-right">Bottom Right</SelectItem>
+                  </SelectContent>
+                </Select>
               </FormControl>
 
               <FormControl label="Font Size">
-                <select
-                  className="h-10 border border-input px-3 w-full bg-background"
-                  value={fontSize}
-                  onChange={(e) => setFontSize(e.target.value)}
-                >
-                  <option value="small">Small</option>
-                  <option value="medium">Medium</option>
-                  <option value="large">Large</option>
-                  <option value="extra-large">Extra Large</option>
-                </select>
+                <Select value={fontSize} onValueChange={setFontSize}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select font size" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="small">Small</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="large">Large</SelectItem>
+                    <SelectItem value="extra-large">Extra Large</SelectItem>
+                  </SelectContent>
+                </Select>
               </FormControl>
 
               {/* Preview section */}
