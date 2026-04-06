@@ -2,6 +2,7 @@
 
 import { ChevronRight } from 'lucide-react';
 import { type ReactNode, useCallback, useRef, useState } from 'react';
+import { Button } from '../../ui/button';
 import type { ContextMenuItemConfig } from './ContextMenu';
 import { ContextMenuSeparator } from './ContextMenuSeparator';
 
@@ -69,14 +70,13 @@ export function ContextMenuItem({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <button
+      <Button
+        variant="ghost"
         onClick={hasSubmenu ? undefined : onClick}
         disabled={disabled}
         className={`
-          w-full flex items-center gap-3 px-3 py-2 text-left text-sm rounded-md
-          transition-colors outline-none
+          w-full flex items-center gap-3 px-3 py-2 text-left text-sm rounded-md h-auto justify-start
           ${isSelected || showSubmenu ? 'bg-[var(--secondary)]' : ''}
-          ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[var(--secondary)] cursor-pointer'}
           ${danger && !disabled ? 'text-red-400 hover:text-red-300' : 'text-[var(--foreground)]'}
         `}
       >
@@ -96,7 +96,7 @@ export function ContextMenuItem({
         {hasSubmenu && (
           <ChevronRight className="w-4 h-4 text-[var(--muted-foreground)]" />
         )}
-      </button>
+      </Button>
 
       {/* Submenu */}
       {hasSubmenu && showSubmenu && (
@@ -111,14 +111,13 @@ export function ContextMenuItem({
             }
 
             return (
-              <button
+              <Button
                 key={item.id}
+                variant="ghost"
                 onClick={() => handleSubmenuClick(item)}
                 disabled={item.disabled}
                 className={`
-                  w-full flex items-center gap-3 px-3 py-2 text-left text-sm rounded-md
-                  transition-colors outline-none
-                  ${item.disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[var(--secondary)] cursor-pointer'}
+                  w-full flex items-center gap-3 px-3 py-2 text-left text-sm rounded-md h-auto justify-start
                   ${item.danger && !item.disabled ? 'text-red-400 hover:text-red-300' : 'text-[var(--foreground)]'}
                 `}
               >
@@ -135,7 +134,7 @@ export function ContextMenuItem({
                     {item.shortcut}
                   </span>
                 )}
-              </button>
+              </Button>
             );
           })}
         </div>

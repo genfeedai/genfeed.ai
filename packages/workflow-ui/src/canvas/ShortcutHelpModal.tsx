@@ -4,6 +4,7 @@ import { Kbd } from '@genfeedai/ui';
 import { Keyboard, Search, X } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { useUIStore } from '../stores/uiStore';
+import { Button } from '../ui/button';
 
 interface ShortcutItem {
   keys: string;
@@ -149,12 +150,9 @@ export function ShortcutHelpModal() {
             <Keyboard className="w-4 h-4 text-[var(--muted-foreground)]" />
             <span className="text-sm font-medium">Keyboard Shortcuts</span>
           </div>
-          <button
-            onClick={handleClose}
-            className="p-1 rounded hover:bg-[var(--secondary)] transition-colors"
-          >
+          <Button variant="ghost" size="icon-sm" onClick={handleClose}>
             <X className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
 
         {/* Content */}
@@ -185,7 +183,10 @@ export function ShortcutHelpModal() {
                       className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-secondary/50"
                     >
                       <span className="text-sm">{shortcut.description}</span>
-                      <Kbd variant="muted" className="px-2 py-1 border border-border">
+                      <Kbd
+                        variant="muted"
+                        className="px-2 py-1 border border-border"
+                      >
                         {shortcut.keys}
                       </Kbd>
                     </div>

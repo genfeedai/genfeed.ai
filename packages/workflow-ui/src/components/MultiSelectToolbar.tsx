@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { useWorkflowStore } from '../stores/workflowStore';
+import { Button } from '../ui/button';
 
 const NODE_GAP = 32;
 const EST_NODE_WIDTH = 280;
@@ -167,51 +168,56 @@ function MultiSelectToolbarComponent({
       <div className="h-4 w-px bg-[var(--border)]" />
 
       {/* Stack Horizontal */}
-      <button
+      <Button
+        variant="ghost"
+        size="icon-sm"
         onClick={stackHorizontal}
         title="Stack horizontal"
-        className="flex h-7 w-7 items-center justify-center rounded text-[var(--muted-foreground)] transition hover:bg-[var(--secondary)] hover:text-[var(--foreground)]"
       >
         <AlignHorizontalSpaceAround className="h-3.5 w-3.5" />
-      </button>
+      </Button>
 
       {/* Stack Vertical */}
-      <button
+      <Button
+        variant="ghost"
+        size="icon-sm"
         onClick={stackVertical}
         title="Stack vertical"
-        className="flex h-7 w-7 items-center justify-center rounded text-[var(--muted-foreground)] transition hover:bg-[var(--secondary)] hover:text-[var(--foreground)]"
       >
         <AlignVerticalSpaceAround className="h-3.5 w-3.5" />
-      </button>
+      </Button>
 
       {/* Grid */}
-      <button
+      <Button
+        variant="ghost"
+        size="icon-sm"
         onClick={arrangeGrid}
         title="Arrange as grid"
-        className="flex h-7 w-7 items-center justify-center rounded text-[var(--muted-foreground)] transition hover:bg-[var(--secondary)] hover:text-[var(--foreground)]"
       >
         <Grid3X3 className="h-3.5 w-3.5" />
-      </button>
+      </Button>
 
       <div className="h-4 w-px bg-[var(--border)]" />
 
       {/* Group / Ungroup */}
       {selectedGroup ? (
-        <button
+        <Button
+          variant="ghost"
+          size="icon-sm"
           onClick={handleUngroup}
           title="Ungroup"
-          className="flex h-7 w-7 items-center justify-center rounded text-[var(--muted-foreground)] transition hover:bg-[var(--secondary)] hover:text-[var(--foreground)]"
         >
           <Ungroup className="h-3.5 w-3.5" />
-        </button>
+        </Button>
       ) : (
-        <button
+        <Button
+          variant="ghost"
+          size="icon-sm"
           onClick={handleGroup}
           title="Group"
-          className="flex h-7 w-7 items-center justify-center rounded text-[var(--muted-foreground)] transition hover:bg-[var(--secondary)] hover:text-[var(--foreground)]"
         >
           <Group className="h-3.5 w-3.5" />
-        </button>
+        </Button>
       )}
     </div>
   );

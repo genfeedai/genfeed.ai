@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { ImageHistoryItem } from '../stores/workflow/types';
 import { useWorkflowStore } from '../stores/workflowStore';
+import { Button } from '../ui/button';
 
 const EMPTY_HISTORY: ImageHistoryItem[] = [];
 
@@ -44,10 +45,11 @@ function FanItem({
   const delay = index * 30;
 
   return (
-    <button
+    <Button
+      variant="ghost"
       draggable
       onDragStart={(e) => onDragStart(e, item)}
-      className="absolute w-14 h-14 rounded-lg overflow-hidden border-2 border-neutral-600 hover:border-blue-500 shadow-lg cursor-grab active:cursor-grabbing transition-colors duration-150 animate-fan-enter group"
+      className="absolute w-14 h-14 rounded-lg overflow-hidden border-2 border-neutral-600 hover:border-blue-500 shadow-lg cursor-grab active:cursor-grabbing transition-colors duration-150 animate-fan-enter group p-0"
       style={
         {
           '--fan-x': `${x}px`,
@@ -64,7 +66,7 @@ function FanItem({
         className="w-full h-full object-cover pointer-events-none"
         draggable={false}
       />
-    </button>
+    </Button>
   );
 }
 
@@ -130,16 +132,20 @@ function HistorySidebar({
           All History ({history.length})
         </span>
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={onClear}
-            className="text-[10px] text-neutral-500 hover:text-red-400 transition-colors"
+            className="text-[10px] text-neutral-500 hover:text-red-400 p-0 h-auto"
             title="Clear all history"
           >
             Clear All
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
             onClick={onClose}
-            className="w-5 h-5 rounded hover:bg-neutral-700 flex items-center justify-center text-neutral-400 hover:text-white transition-colors"
+            className="w-5 h-5 text-neutral-400 hover:bg-neutral-700 hover:text-white"
             title="Close"
           >
             <svg
@@ -155,7 +161,7 @@ function HistorySidebar({
                 d="M6 18L18 6M6 6l12 12"
               />
             </svg>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -286,10 +292,12 @@ export function GlobalImageHistory() {
 
   return (
     <div ref={drawerRef} className="absolute bottom-4 right-64 z-10">
-      <button
+      <Button
         ref={triggerRef}
+        variant="outline"
+        size="icon-sm"
         onClick={() => setIsOpen(!isOpen)}
-        className="relative w-8 h-8 rounded-lg flex items-center justify-center bg-neutral-800 hover:bg-neutral-700 border border-neutral-600 text-neutral-400 hover:text-white shadow-lg transition-colors"
+        className="relative bg-neutral-800 hover:bg-neutral-700 border-neutral-600 text-neutral-400 hover:text-white shadow-lg"
         title={`${history.length} image${history.length > 1 ? 's' : ''} in history`}
       >
         <svg
@@ -308,7 +316,7 @@ export function GlobalImageHistory() {
         <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-blue-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
           {history.length > 99 ? '99+' : history.length}
         </span>
-      </button>
+      </Button>
 
       {isOpen && (
         <div
@@ -334,9 +342,11 @@ export function GlobalImageHistory() {
                 fanItems.length,
               );
               return (
-                <button
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={handleShowAll}
-                  className="absolute animate-fan-enter bg-neutral-800 hover:bg-neutral-700 border border-neutral-600 rounded-lg px-2 py-1 text-[10px] text-neutral-300 hover:text-white shadow-lg transition-colors whitespace-nowrap"
+                  className="absolute animate-fan-enter bg-neutral-800 hover:bg-neutral-700 border-neutral-600 text-[10px] text-neutral-300 hover:text-white shadow-lg whitespace-nowrap px-2 py-1 h-auto"
                   style={
                     {
                       '--fan-x': `${topItemPos.x}px`,
@@ -346,7 +356,7 @@ export function GlobalImageHistory() {
                   }
                 >
                   +{history.length - 10} more
-                </button>
+                </Button>
               );
             })()}
         </div>

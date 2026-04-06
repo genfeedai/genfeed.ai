@@ -1,7 +1,9 @@
 'use client';
 
+import { Input } from '@ui/primitives/input';
 import { X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Button } from '../ui/button';
 
 interface SaveAsDialogProps {
   isOpen: boolean;
@@ -57,12 +59,9 @@ export function SaveAsDialog({
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-foreground">Save As</h2>
-          <button
-            onClick={onClose}
-            className="flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground transition hover:bg-secondary hover:text-foreground"
-          >
+          <Button variant="ghost" size="icon-sm" onClick={onClose}>
             <X className="h-4 w-4" />
-          </button>
+          </Button>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -73,7 +72,7 @@ export function SaveAsDialog({
             >
               Workflow Name
             </label>
-            <input
+            <Input
               ref={inputRef}
               id="workflow-name"
               type="text"
@@ -81,25 +80,17 @@ export function SaveAsDialog({
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter workflow name"
               autoFocus
-              className="w-full rounded-md border border-border bg-secondary px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-ring"
+              className="w-full"
             />
           </div>
 
           <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:bg-secondary"
-            >
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={!name.trim()}
-              className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            </Button>
+            <Button type="submit" variant="default" disabled={!name.trim()}>
               Save
-            </button>
+            </Button>
           </div>
         </form>
       </div>

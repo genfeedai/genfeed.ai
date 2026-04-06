@@ -5,6 +5,7 @@ import type {
   PromptConstructorNodeData,
   PromptNodeData,
 } from '@genfeedai/types';
+import { Textarea } from '@ui/primitives/textarea';
 import type { NodeProps } from '@xyflow/react';
 import { Expand } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -157,7 +158,7 @@ function PromptConstructorNodeComponent(props: NodeProps) {
 
         {/* Template textarea with autocomplete */}
         <div className="relative flex-1 flex flex-col">
-          <textarea
+          <Textarea
             ref={textareaRef}
             value={localTemplate}
             onChange={handleChange}
@@ -165,7 +166,7 @@ function PromptConstructorNodeComponent(props: NodeProps) {
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             placeholder="Type @ to insert variables..."
-            className="nodrag nopan nowheel w-full flex-1 min-h-[70px] px-2 py-1.5 text-sm bg-background border border-border rounded resize-none focus:outline-none focus:ring-1 focus:ring-primary placeholder:text-muted-foreground"
+            className="nodrag nopan nowheel w-full flex-1 min-h-[70px] resize-none"
             title={resolvedPreview ? `Preview: ${resolvedPreview}` : undefined}
           />
 
@@ -179,13 +180,14 @@ function PromptConstructorNodeComponent(props: NodeProps) {
               }}
             >
               {filteredAutocompleteVars.map((variable, index) => (
-                <button
+                <Button
                   key={variable.nodeId}
+                  variant="ghost"
                   onMouseDown={(e) => {
                     e.preventDefault();
                     handleAutocompleteSelect(variable.name);
                   }}
-                  className={`w-full px-3 py-2 text-left text-[11px] flex flex-col gap-0.5 transition-colors ${
+                  className={`w-full px-3 py-2 text-left text-[11px] flex flex-col gap-0.5 h-auto items-start rounded-none ${
                     index === selectedAutocompleteIndex
                       ? 'bg-accent text-accent-foreground'
                       : 'text-muted-foreground hover:bg-accent'
@@ -197,7 +199,7 @@ function PromptConstructorNodeComponent(props: NodeProps) {
                   <div className="text-muted-foreground truncate max-w-[200px]">
                     {variable.value || '(empty)'}
                   </div>
-                </button>
+                </Button>
               ))}
             </div>
           )}

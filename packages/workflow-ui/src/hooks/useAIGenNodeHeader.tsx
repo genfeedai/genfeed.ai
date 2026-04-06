@@ -28,15 +28,16 @@ export function useAIGenNodeHeader({
 } {
   const titleElement = useMemo(
     () => (
-      <button
-        className={`flex flex-1 items-center gap-1 text-sm font-medium text-left text-foreground ${isProcessing ? 'opacity-50 cursor-default' : 'hover:text-foreground/80 cursor-pointer'}`}
+      <Button
+        variant="ghost"
+        className={`flex flex-1 items-center gap-1 text-sm font-medium text-left text-foreground h-auto p-0 ${isProcessing ? 'opacity-50 cursor-default' : 'hover:text-foreground/80 cursor-pointer'}`}
         onClick={() => !isProcessing && onModelBrowse()}
         title="Browse models"
         disabled={isProcessing}
       >
         <span className="truncate">{modelDisplayName}</span>
         <ChevronDown className="h-3 w-3 shrink-0" />
-      </button>
+      </Button>
     ),
     [modelDisplayName, isProcessing, onModelBrowse],
   );
