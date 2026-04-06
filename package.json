@@ -70,6 +70,9 @@
     ],
     "*.{js,ts,jsx,tsx,json,css}": [
       "biome check --write --no-errors-on-unmatched"
+    ],
+    "*.tsx": [
+      "bash scripts/lint-no-raw-html.sh"
     ]
   },
   "devDependencies": {
