@@ -392,8 +392,7 @@ export class CreateVideoDto extends OmitType(CreateIngredientDto, [
   @IsOptional()
   @ApiProperty({
     description: 'The model to use for video generation',
-    enum: string,
-    enumName: 'ModelKey',
+    type: String,
     required: false,
   })
   readonly model?: string;

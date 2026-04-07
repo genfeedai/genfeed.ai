@@ -73,8 +73,7 @@ export class CreateMusicDto extends OmitType(CreateIngredientDto, [
   })
   @ApiProperty({
     description: 'Model key or genfeedai/<id>',
-    enum: string,
-    enumName: 'ModelKey',
+    type: String,
     required: false,
   })
   readonly model?: string;
