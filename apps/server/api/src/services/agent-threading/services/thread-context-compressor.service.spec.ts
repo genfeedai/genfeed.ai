@@ -49,6 +49,7 @@ describe('ThreadContextCompressorService', () => {
   let llmDispatcher: Record<string, ReturnType<typeof vi.fn>>;
   let cacheService: Record<string, ReturnType<typeof vi.fn>>;
   let configService: Record<string, ReturnType<typeof vi.fn>>;
+  let loggerService: Record<string, ReturnType<typeof vi.fn>>;
 
   beforeEach(async () => {
     model = {
@@ -61,8 +62,9 @@ describe('ThreadContextCompressorService', () => {
     messagesService = {
       countMessages: vi.fn().mockResolvedValue(0),
       countMessagesAfter: vi.fn().mockResolvedValue(0),
+      getAllMessages: vi.fn().mockResolvedValue([]),
+      getAllMessagesAfter: vi.fn().mockResolvedValue([]),
       getMessagesAfter: vi.fn().mockResolvedValue([]),
-      getRecentMessages: vi.fn().mockResolvedValue([]),
     };
 
     llmDispatcher = {
@@ -89,6 +91,13 @@ describe('ThreadContextCompressorService', () => {
       }),
     };
 
+    loggerService = {
+      debug: vi.fn(),
+      error: vi.fn(),
+      log: vi.fn(),
+      warn: vi.fn(),
+    };
+
     const module = await Test.createTestingModule({
       providers: [
         ThreadContextCompressorService,
@@ -100,15 +109,7 @@ describe('ThreadContextCompressorService', () => {
         { provide: LlmDispatcherService, useValue: llmDispatcher },
         { provide: CacheService, useValue: cacheService },
         { provide: ConfigService, useValue: configService },
-        {
-          provide: LoggerService,
-          useValue: {
-            debug: vi.fn(),
-            error: vi.fn(),
-            log: vi.fn(),
-            warn: vi.fn(),
-          },
-        },
+        { provide: LoggerService, useValue: loggerService },
       ],
     }).compile();
 
@@ -137,7 +138,7 @@ describe('ThreadContextCompressorService', () => {
       const messages = Array.from({ length: 10 }, (_, i) =>
         makeMessage(i % 2 === 0 ? 'user' : 'assistant', `msg ${i}`),
       );
-      messagesService.getRecentMessages.mockResolvedValue(messages);
+      messagesService.getAllMessages.mockResolvedValue(messages);
       model.findOneAndUpdate.mockResolvedValue({
         toObject: () => ({ _id: makeObjectId(), version: 1 }),
       });
@@ -157,7 +158,7 @@ describe('ThreadContextCompressorService', () => {
         version: 1,
       };
       cacheService.get.mockResolvedValue(existingState);
-      messagesService.countMessagesAfter.mockResolvedValue(3); // fits in window of 5
+      messagesService.countMessagesAfter.mockResolvedValue(3);
 
       const result = await service.getStateOrCompact(threadId, orgId);
 
@@ -173,12 +174,12 @@ describe('ThreadContextCompressorService', () => {
         version: 1,
       };
       cacheService.get.mockResolvedValue(existingState);
-      messagesService.countMessagesAfter.mockResolvedValue(8); // exceeds window of 5
+      messagesService.countMessagesAfter.mockResolvedValue(8);
 
       const messages = Array.from({ length: 13 }, (_, i) =>
         makeMessage(i % 2 === 0 ? 'user' : 'assistant', `msg ${i}`),
       );
-      messagesService.getRecentMessages.mockResolvedValue(messages);
+      messagesService.getAllMessagesAfter.mockResolvedValue(messages);
       model.findOne.mockReturnValue({
         lean: vi.fn().mockResolvedValue(existingState),
       });
@@ -227,13 +228,183 @@ describe('ThreadContextCompressorService', () => {
       const messages = Array.from({ length: 10 }, (_, i) =>
         makeMessage(i % 2 === 0 ? 'user' : 'assistant', `msg ${i}`),
       );
-      messagesService.getRecentMessages.mockResolvedValue(messages);
+      messagesService.getAllMessages.mockResolvedValue(messages);
       model.findOneAndUpdate.mockResolvedValue({
         toObject: () => ({ _id: makeObjectId(), version: 1 }),
       });
 
       await service.compressIfNeeded(threadId, orgId);
       expect(cacheService.withLock).toHaveBeenCalled();
+    });
+  });
+
+  // -----------------------------------------------------------
+  // Parse failure safety
+  // -----------------------------------------------------------
+  describe('parse failure safety', () => {
+    it('does not advance lastIncorporatedMessageId when LLM returns garbage', async () => {
+      messagesService.countMessages.mockResolvedValue(10);
+      const messages = Array.from({ length: 10 }, (_, i) =>
+        makeMessage(i % 2 === 0 ? 'user' : 'assistant', `msg ${i}`),
+      );
+      messagesService.getAllMessages.mockResolvedValue(messages);
+
+      llmDispatcher.chatCompletion.mockResolvedValue(
+        makeLlmResponse('This is not a valid compression response at all.'),
+      );
+
+      await service.compressIfNeeded(threadId, orgId);
+
+      expect(model.findOneAndUpdate).not.toHaveBeenCalled();
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining('no valid sections'),
+        undefined,
+      );
+    });
+
+    it('does not advance state when LLM returns empty response', async () => {
+      messagesService.countMessages.mockResolvedValue(10);
+      const messages = Array.from({ length: 10 }, (_, i) =>
+        makeMessage(i % 2 === 0 ? 'user' : 'assistant', `msg ${i}`),
+      );
+      messagesService.getAllMessages.mockResolvedValue(messages);
+
+      llmDispatcher.chatCompletion.mockResolvedValue(makeLlmResponse(''));
+
+      await service.compressIfNeeded(threadId, orgId);
+
+      expect(model.findOneAndUpdate).not.toHaveBeenCalled();
+    });
+
+    it('advances state when LLM returns valid structured response', async () => {
+      messagesService.countMessages.mockResolvedValue(10);
+      const messages = Array.from({ length: 10 }, (_, i) =>
+        makeMessage(i % 2 === 0 ? 'user' : 'assistant', `msg ${i}`),
+      );
+      messagesService.getAllMessages.mockResolvedValue(messages);
+      model.findOneAndUpdate.mockResolvedValue({
+        toObject: () => ({ _id: makeObjectId(), version: 1 }),
+      });
+
+      await service.compressIfNeeded(threadId, orgId);
+
+      expect(model.findOneAndUpdate).toHaveBeenCalled();
+    });
+  });
+
+  // -----------------------------------------------------------
+  // Cursor-based pagination (no 200 cap)
+  // -----------------------------------------------------------
+  describe('cursor-based pagination', () => {
+    it('uses getAllMessages when no prior state exists', async () => {
+      messagesService.countMessages.mockResolvedValue(10);
+      const messages = Array.from({ length: 10 }, (_, i) =>
+        makeMessage(i % 2 === 0 ? 'user' : 'assistant', `msg ${i}`),
+      );
+      messagesService.getAllMessages.mockResolvedValue(messages);
+      model.findOneAndUpdate.mockResolvedValue({
+        toObject: () => ({ _id: makeObjectId(), version: 1 }),
+      });
+
+      await service.compressIfNeeded(threadId, orgId);
+
+      expect(messagesService.getAllMessages).toHaveBeenCalledWith(threadId);
+    });
+
+    it('uses getAllMessagesAfter with cursor when state exists', async () => {
+      const lastMsgId = makeObjectId();
+      const existingState = {
+        _id: makeObjectId(),
+        lastIncorporatedMessageId: lastMsgId,
+        messageCount: 50,
+        version: 3,
+      };
+      messagesService.countMessages.mockResolvedValue(100);
+      cacheService.get.mockResolvedValue(existingState);
+      messagesService.countMessagesAfter.mockResolvedValue(20);
+
+      const messages = Array.from({ length: 20 }, (_, i) =>
+        makeMessage(i % 2 === 0 ? 'user' : 'assistant', `msg ${i}`),
+      );
+      messagesService.getAllMessagesAfter.mockResolvedValue(messages);
+      model.findOne.mockReturnValue({
+        lean: vi.fn().mockResolvedValue(existingState),
+      });
+      model.findOneAndUpdate.mockResolvedValue({
+        toObject: () => ({ ...existingState, version: 4 }),
+      });
+
+      await service.getStateOrCompact(threadId, orgId);
+
+      expect(messagesService.getAllMessagesAfter).toHaveBeenCalledWith(
+        threadId,
+        lastMsgId,
+      );
+    });
+  });
+
+  // -----------------------------------------------------------
+  // messageCount correctness
+  // -----------------------------------------------------------
+  describe('messageCount', () => {
+    it('sets messageCount to compressBoundary on first compression', async () => {
+      messagesService.countMessages.mockResolvedValue(10);
+      const messages = Array.from({ length: 10 }, (_, i) =>
+        makeMessage(i % 2 === 0 ? 'user' : 'assistant', `msg ${i}`),
+      );
+      messagesService.getAllMessages.mockResolvedValue(messages);
+      model.findOneAndUpdate.mockResolvedValue({
+        toObject: () => ({ _id: makeObjectId(), version: 1 }),
+      });
+
+      await service.compressIfNeeded(threadId, orgId);
+
+      // 10 messages - 5 window = 5 compressed
+      expect(model.findOneAndUpdate).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.objectContaining({
+          $set: expect.objectContaining({
+            messageCount: 5,
+          }),
+        }),
+        expect.any(Object),
+      );
+    });
+
+    it('increments messageCount on incremental compression', async () => {
+      const existingState = {
+        _id: makeObjectId(),
+        lastIncorporatedMessageId: makeObjectId(),
+        messageCount: 20,
+        version: 2,
+      };
+      messagesService.countMessages.mockResolvedValue(40);
+      cacheService.get.mockResolvedValue(existingState);
+      messagesService.countMessagesAfter.mockResolvedValue(15);
+
+      const messages = Array.from({ length: 15 }, (_, i) =>
+        makeMessage(i % 2 === 0 ? 'user' : 'assistant', `msg ${i}`),
+      );
+      messagesService.getAllMessagesAfter.mockResolvedValue(messages);
+      model.findOne.mockReturnValue({
+        lean: vi.fn().mockResolvedValue(existingState),
+      });
+      model.findOneAndUpdate.mockResolvedValue({
+        toObject: () => ({ ...existingState, version: 3 }),
+      });
+
+      await service.getStateOrCompact(threadId, orgId);
+
+      // previousCount (20) + compressBoundary (15 - 5 window = 10) = 30
+      expect(model.findOneAndUpdate).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.objectContaining({
+          $set: expect.objectContaining({
+            messageCount: 30,
+          }),
+        }),
+        expect.any(Object),
+      );
     });
   });
 
@@ -317,7 +488,6 @@ describe('ThreadContextCompressorService', () => {
 
       const result = service.renderStateAsUserMessage(state, windowMessages);
 
-      // Short artifacts (<=50 chars) skip dedup
       expect(result).toContain('## Current Artifact');
     });
   });
@@ -331,7 +501,7 @@ describe('ThreadContextCompressorService', () => {
       const messages = Array.from({ length: 10 }, (_, i) =>
         makeMessage(i % 2 === 0 ? 'user' : 'assistant', `msg ${i}`),
       );
-      messagesService.getRecentMessages.mockResolvedValue(messages);
+      messagesService.getAllMessages.mockResolvedValue(messages);
       model.findOneAndUpdate.mockResolvedValue({
         toObject: () => ({ _id: makeObjectId(), version: 1 }),
       });
@@ -346,7 +516,7 @@ describe('ThreadContextCompressorService', () => {
     });
 
     it('skips compression when lock is not acquired', async () => {
-      cacheService.withLock.mockResolvedValue(null); // lock not acquired
+      cacheService.withLock.mockResolvedValue(null);
       messagesService.countMessages.mockResolvedValue(10);
 
       await service.compressIfNeeded(threadId, orgId);
@@ -380,7 +550,7 @@ describe('ThreadContextCompressorService', () => {
       const messages = Array.from({ length: 10 }, (_, i) =>
         makeMessage(i % 2 === 0 ? 'user' : 'assistant', `msg ${i}`),
       );
-      messagesService.getRecentMessages.mockResolvedValue(messages);
+      messagesService.getAllMessages.mockResolvedValue(messages);
 
       const updatedDoc = {
         _id: makeObjectId(),
@@ -393,7 +563,6 @@ describe('ThreadContextCompressorService', () => {
 
       await service.compressIfNeeded(threadId, orgId);
 
-      // Should set cache with the new state
       expect(cacheService.set).toHaveBeenCalledWith(
         expect.stringContaining('thread-compact:state:'),
         expect.objectContaining({ version: 1 }),
