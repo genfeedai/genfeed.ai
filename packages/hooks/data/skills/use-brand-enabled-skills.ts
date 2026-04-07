@@ -37,15 +37,12 @@ export function useBrandEnabledSkills(): UseBrandEnabledSkillsReturn {
         ((selectedBrand as Record<string, unknown>)._id as string);
       if (!brandId) return;
 
-      // Use functional update to derive next state from the latest value,
-      // preventing stale closures when multiple toggles fire in quick succession.
-      let nextSlugs: string[] = [];
-      setEnabledSlugs((prev) => {
-        nextSlugs = prev.includes(slug)
-          ? prev.filter((s) => s !== slug)
-          : [...prev, slug];
-        return nextSlugs;
-      });
+      // Capture pre-toggle state for rollback, then optimistically update.
+      const previousSlugs = enabledSlugs;
+      const nextSlugs = previousSlugs.includes(slug)
+        ? previousSlugs.filter((s) => s !== slug)
+        : [...previousSlugs, slug];
+      setEnabledSlugs(nextSlugs);
 
       try {
         const token = await resolveClerkToken(getToken);
@@ -69,15 +66,11 @@ export function useBrandEnabledSkills(): UseBrandEnabledSkillsReturn {
           );
         }
       } catch {
-        // Revert on failure using functional update to avoid stale state
-        setEnabledSlugs((prev) =>
-          slug && !prev.includes(slug)
-            ? [...prev, slug]
-            : prev.filter((s) => s !== slug),
-        );
+        // Restore exact pre-request state on failure
+        setEnabledSlugs(previousSlugs);
       }
     },
-    [getToken, selectedBrand],
+    [enabledSlugs, getToken, selectedBrand],
   );
 
   return { enabledSlugs, isLoading, toggleSkill };
