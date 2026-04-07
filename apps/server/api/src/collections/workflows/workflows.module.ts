@@ -28,14 +28,12 @@ import {
 import { InstagramSocialAdapter } from '@api/collections/workflows/services/adapters/instagram-social.adapter';
 import { SocialAdapterFactory } from '@api/collections/workflows/services/adapters/social-adapter.factory';
 import { TwitterSocialAdapter } from '@api/collections/workflows/services/adapters/twitter-social.adapter';
-import { BatchWorkflowProcessor } from '@api/collections/workflows/services/batch-workflow.processor';
 import { BatchWorkflowService } from '@api/collections/workflows/services/batch-workflow.service';
 import {
   BATCH_WORKFLOW_QUEUE,
   BatchWorkflowQueueService,
 } from '@api/collections/workflows/services/batch-workflow-queue.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
-import { WorkflowExecutionProcessor } from '@api/collections/workflows/services/workflow-execution.processor';
 import {
   WORKFLOW_EXECUTION_QUEUE,
   WorkflowExecutionQueueService,
@@ -177,13 +175,12 @@ import mongooseAggregatePaginateV2 from 'mongoose-aggregate-paginate-v2';
     TwitterSocialAdapter,
     InstagramSocialAdapter,
     SocialAdapterFactory,
-    BatchWorkflowProcessor,
+    // BatchWorkflowProcessor + WorkflowExecutionProcessor moved to workers (issue #84)
     BatchWorkflowQueueService,
     BatchWorkflowService,
     WorkflowEngineAdapterService,
     WorkflowExecutorService,
     WorkflowExecutionQueueService,
-    WorkflowExecutionProcessor,
     WorkflowFormatConverterService,
     WorkflowGenerationService,
     WorkflowSchedulerService,

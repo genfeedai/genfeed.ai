@@ -1,6 +1,5 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { BatchContentController } from '@api/services/batch-content/batch-content.controller';
-import { BatchContentProcessor } from '@api/services/batch-content/batch-content.processor';
 import { BatchContentService } from '@api/services/batch-content/batch-content.service';
 import { BatchContentQueueService } from '@api/services/batch-content/batch-content-queue.service';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
@@ -27,10 +26,7 @@ import { forwardRef, Module } from '@nestjs/common';
       name: 'batch-content',
     }),
   ],
-  providers: [
-    BatchContentService,
-    BatchContentQueueService,
-    BatchContentProcessor,
-  ],
+  // BatchContentProcessor moved to workers ProcessorsModule (issue #84)
+  providers: [BatchContentService, BatchContentQueueService],
 })
 export class BatchContentModule {}

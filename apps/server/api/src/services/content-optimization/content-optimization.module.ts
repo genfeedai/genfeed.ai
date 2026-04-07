@@ -2,7 +2,6 @@ import { BrandMemoryModule } from '@api/collections/brand-memory/brand-memory.mo
 import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
 import { ConfigModule } from '@api/config/config.module';
 import { ContentOptimizationController } from '@api/services/content-optimization/content-optimization.controller';
-import { ContentOptimizationProcessor } from '@api/services/content-optimization/content-optimization.processor';
 import { ContentOptimizationService } from '@api/services/content-optimization/content-optimization.service';
 import { ContentOptimizationQueueService } from '@api/services/content-optimization/content-optimization-queue.service';
 import { OpenAiLlmModule } from '@api/services/integrations/openai-llm/openai-llm.module';
@@ -29,10 +28,7 @@ import { forwardRef, Module } from '@nestjs/common';
       name: 'content-optimization',
     }),
   ],
-  providers: [
-    ContentOptimizationService,
-    ContentOptimizationProcessor,
-    ContentOptimizationQueueService,
-  ],
+  // ContentOptimizationProcessor moved to workers ProcessorsModule (issue #84)
+  providers: [ContentOptimizationService, ContentOptimizationQueueService],
 })
 export class ContentOptimizationModule {}
