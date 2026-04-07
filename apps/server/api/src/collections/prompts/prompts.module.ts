@@ -21,8 +21,7 @@ import { ConfigService } from '@api/config/config.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
-import { ListingsModule } from '@api/marketplace/listings/listings.module';
-import { SellersModule } from '@api/marketplace/sellers/sellers.module';
+import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
@@ -47,9 +46,8 @@ import mongooseAggregatePaginateV2 from 'mongoose-aggregate-paginate-v2';
     forwardRef(() => BrandsModule),
     forwardRef(() => CreditsModule),
     forwardRef(() => IngredientsModule),
-    forwardRef(() => ListingsModule),
+    forwardRef(() => MarketplaceIntegrationModule),
     ModelsModule,
-    forwardRef(() => SellersModule),
     forwardRef(() => TemplatesModule),
     MongooseModule.forFeatureAsync(
       [

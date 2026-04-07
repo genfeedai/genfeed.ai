@@ -27,7 +27,7 @@ import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { ConfigModule } from '@api/config/config.module';
 import { AiActionsModule } from '@api/endpoints/ai-actions/ai-actions.module';
 import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
-import { MarketplaceModule } from '@api/marketplace/marketplace.module';
+import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
 import { AgentMessageBusModule } from '@api/services/agent-campaign/agent-message-bus.module';
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
@@ -76,7 +76,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => ClerkModule),
     LoggerModule,
     LlmDispatcherModule,
-    MarketplaceModule,
+    MarketplaceIntegrationModule,
     OrganizationSettingsModule,
     forwardRef(() => OrganizationsModule),
     forwardRef(() => PostsModule),

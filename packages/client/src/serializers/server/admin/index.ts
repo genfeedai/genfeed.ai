@@ -29,5 +29,4 @@ export * from '../../server/admin/darkroom-upload-dataset-result.serializer';
 export * from '../../server/admin/darkroom-voice.serializer';
 export * from '../../server/admin/lead.serializer';
 export * from '../../server/admin/lead-activity.serializer';
-export * from '../../server/admin/marketplace-analytics-overview.serializer';
 export * from '../../server/admin/revenue-record.serializer';

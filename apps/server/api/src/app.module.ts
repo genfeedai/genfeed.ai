@@ -125,7 +125,7 @@ import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { CombinedAuthGuard } from '@api/helpers/guards/combined-auth/combined-auth.guard';
 import { MemoryModule } from '@api/helpers/memory/memory.module';
-import { MarketplaceModule } from '@api/marketplace/marketplace.module';
+import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
 import { ClerkClientProvider } from '@api/providers/clerk.provider';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { SelfHostedSeedModule } from '@api/seeds/self-hosted-seed.module';
@@ -269,23 +269,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
         }),
       }),
     }),
-    // Marketplace database (sellers, listings, purchases)
-    MongooseModule.forRootAsync({
-      connectionName: DB_CONNECTIONS.MARKETPLACE,
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connectTimeoutMS: 10_000,
-        dbName: DB_CONNECTIONS.MARKETPLACE,
-        maxPoolSize: 10,
-        serverSelectionTimeoutMS: 5_000,
-        uri: config.get('MONGODB_URI'),
-        ...(config.isProduction && {
-          tls: true,
-          tlsAllowInvalidCertificates: false,
-        }),
-      }),
-    }),
     // Fanvue database (subscribers, content, earnings)
     MongooseModule.forRootAsync({
       connectionName: DB_CONNECTIONS.FANVUE,
@@ -418,7 +401,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
     InsightsModule,
     TasksModule,
     LinksModule,
-    // MarketplaceModule — EE (gated below)
+    MarketplaceIntegrationModule,
     MembersModule,
     MetadataModule,
     ModelsModule,
@@ -575,12 +558,7 @@ import { SentryModule } from '@sentry/nestjs/setup';
 
     // EE-only modules (require GENFEED_LICENSE_KEY)
     ...(isEEEnabled()
-      ? [
-          CreditsModule,
-          UserSubscriptionsModule,
-          // MarketplaceModule — separate repo
-          BusinessAnalyticsModule,
-        ]
+      ? [CreditsModule, UserSubscriptionsModule, BusinessAnalyticsModule]
       : []),
   ],
   providers: [
