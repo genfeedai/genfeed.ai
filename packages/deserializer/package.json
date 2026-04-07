@@ -29,7 +29,7 @@
   "scripts": {
     "build": "tsc --build --force",
     "prepack": "npm run build",
-    "typecheck": "tsc --noEmit"
+    "type-check": "tsc --noEmit"
   },
   "sideEffects": false,
   "types": "./dist/index.d.ts",
