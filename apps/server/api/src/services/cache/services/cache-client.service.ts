@@ -1,5 +1,5 @@
-import type { ConfigService } from '@api/config/config.service';
-import type { LoggerService } from '@libs/logger/logger.service';
+import { ConfigService } from '@api/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { parseRedisConnection } from '@libs/redis/redis-connection.utils';
 import {
   Injectable,
