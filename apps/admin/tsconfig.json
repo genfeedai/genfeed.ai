@@ -12,7 +12,11 @@
       "@genfeedai/types": ["../../packages/types/src/index.ts"],
       "@genfeedai/types/*": ["../../packages/types/src/*"],
       "@genfeedai/workflow-saas": ["../../packages/workflow-saas/src/index.ts"],
-      "@components/*": ["./packages/ui/*", "./packages/components/*"],
+      "@components/*": [
+        "./packages/ui/*",
+        "../../packages/ui/src/components/*",
+        "./packages/components/*"
+      ],
       "@config/*": ["./packages/config/*"],
       "@configs/*": ["../../packages/next-config/*"],
       "@contexts/*": ["../../packages/contexts/*"],
@@ -40,8 +44,11 @@
       "@services/*": ["../../packages/services/*"],
       "@shared/*": ["../../packages/*", "../../../tests/*"],
       "@styles/*": ["../../packages/styles/*"],
-      "@ui-constants/*": ["./packages/ui/constants/*"],
-      "@ui/*": ["./packages/ui/*"],
+      "@ui-constants/*": [
+        "./packages/ui/constants/*",
+        "../../packages/ui/src/components/constants/*"
+      ],
+      "@ui/*": ["./packages/ui/*", "../../packages/ui/src/components/*"],
       "@utils/*": ["../../packages/utils/*"],
       "@workflow-engine/*": ["../../packages/workflow-engine/src/*"],
       "@workflow-saas/*": ["../../packages/workflow-saas/src/*"]
