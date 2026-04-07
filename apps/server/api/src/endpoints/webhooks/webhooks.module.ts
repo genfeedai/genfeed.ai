@@ -49,7 +49,6 @@ import { VercelWebhookController } from '@api/endpoints/webhooks/vercel/webhooks
 import { VercelWebhookService } from '@api/endpoints/webhooks/vercel/webhooks.vercel.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { TransactionModule } from '@api/helpers/utils/transaction/transaction.module';
-import { PurchasesModule } from '@api/marketplace/purchases/purchases.module';
 import { BotGatewayModule } from '@api/services/bot-gateway/bot-gateway.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
@@ -102,7 +101,6 @@ import { MongooseModule } from '@nestjs/mongoose';
     NotificationsPublisherModule,
     OrganizationSettingsModule,
     OrganizationsModule,
-    PurchasesModule,
     RolesModule,
     SettingsModule,
     StripeModule,

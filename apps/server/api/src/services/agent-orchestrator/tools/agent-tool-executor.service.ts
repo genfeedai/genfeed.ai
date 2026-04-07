@@ -35,9 +35,8 @@ import {
 } from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { runEffectPromise } from '@api/helpers/utils/effect/effect.util';
-import { ListingsService } from '@api/marketplace/listings/services/listings.service';
-import { InstallService } from '@api/marketplace/purchases/services/install.service';
-import { PurchasesService } from '@api/marketplace/purchases/services/purchases.service';
+import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
+import { MarketplaceInstallService } from '@api/marketplace-integration/marketplace-install.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { AgentSpawnService } from '@api/services/agent-spawn/agent-spawn.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
@@ -324,11 +323,11 @@ export class AgentToolExecutorService {
       | WorkflowGenerationService
       | undefined,
     @Optional()
-    private readonly listingsService: ListingsService | undefined,
+    private readonly marketplaceApiClient: MarketplaceApiClient | undefined,
     @Optional()
-    private readonly purchasesService: PurchasesService | undefined,
-    @Optional()
-    private readonly installService: InstallService | undefined,
+    private readonly marketplaceInstallService:
+      | MarketplaceInstallService
+      | undefined,
     private readonly trendsService: TrendsService,
     private readonly aiActionsService: AiActionsService,
     private readonly analyticsService: AnalyticsService,
@@ -565,7 +564,7 @@ export class AgentToolExecutorService {
       return bestSeeded;
     }
 
-    if (!this.listingsService) {
+    if (!this.marketplaceApiClient) {
       return bestSeeded && bestSeeded.confidence >= 104 ? bestSeeded : null;
     }
 
@@ -576,13 +575,13 @@ export class AgentToolExecutorService {
       params.platform,
     ).join(' ');
 
-    const officialListings = await this.listingsService.getPublicListings({
+    const officialListings = await this.marketplaceApiClient.searchListings({
       isOfficial: true,
       limit: 12,
       search: listingQuery || undefined,
       sort: '-publishedAt',
       type: 'workflow',
-    } as never);
+    });
 
     const listingDocs = Array.isArray(
       (officialListings as { docs?: unknown[] }).docs,
@@ -4578,11 +4577,7 @@ export class AgentToolExecutorService {
       };
     }
 
-    if (
-      !this.purchasesService ||
-      !this.installService ||
-      !this.listingsService
-    ) {
+    if (!this.marketplaceApiClient || !this.marketplaceInstallService) {
       return {
         creditsUsed: 0,
         error: 'Marketplace install services are unavailable.',
@@ -4590,10 +4585,7 @@ export class AgentToolExecutorService {
       };
     }
 
-    const listing = await this.listingsService.findOne({
-      _id: source.id,
-      isDeleted: false,
-    });
+    const listing = await this.marketplaceApiClient.getListing(source.id);
 
     if (!listing) {
       return {
@@ -4603,7 +4595,7 @@ export class AgentToolExecutorService {
       };
     }
 
-    const ownership = await this.purchasesService.checkListingOwnership(
+    const ownership = await this.marketplaceApiClient.checkListingOwnership(
       source.id,
       ctx.userId,
       ctx.organizationId,
@@ -4642,17 +4634,18 @@ export class AgentToolExecutorService {
 
     const purchase =
       ownership.purchase ??
-      (await this.purchasesService.claimFreeItem(
+      (await this.marketplaceApiClient.claimFreeItem(
         source.id,
         ctx.userId,
         ctx.organizationId,
       ));
 
-    const installResult = await this.installService.installToWorkspace(
-      source.id,
-      ctx.userId,
-      ctx.organizationId,
-    );
+    const installResult =
+      await this.marketplaceInstallService.installToWorkspace(
+        source.id,
+        ctx.userId,
+        ctx.organizationId,
+      );
 
     await this.applyInstalledWorkflowContext(
       installResult.resourceId,
@@ -4672,7 +4665,7 @@ export class AgentToolExecutorService {
         id: installResult.resourceId,
         installedFrom: source.kind,
         nextRunAt,
-        purchaseId: String(purchase._id),
+        purchaseId: purchase ? String(purchase._id) : undefined,
       },
       nextActions: [
         {

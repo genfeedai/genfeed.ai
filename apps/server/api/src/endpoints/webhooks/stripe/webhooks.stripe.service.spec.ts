@@ -11,8 +11,6 @@ import { RequestContextCacheService } from '@api/common/services/request-context
 import { ConfigService } from '@api/config/config.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
-import { CheckoutService } from '@api/marketplace/purchases/services/checkout.service';
-import { PurchasesService } from '@api/marketplace/purchases/services/purchases.service';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { SkillReceipt } from '@api/skills-pro/schemas/skill-receipt.schema';
@@ -28,7 +26,6 @@ describe('StripeWebhookService', () => {
   let subscriptionAttributionsService: vi.Mocked<SubscriptionAttributionsService>;
   let stripeService: vi.Mocked<StripeService>;
   let usersService: vi.Mocked<UsersService>;
-  let purchasesService: vi.Mocked<PurchasesService>;
   let loggerService: { error: vi.Mock; log: vi.Mock; warn: vi.Mock };
 
   const organizationId = new Types.ObjectId();
@@ -136,19 +133,6 @@ describe('StripeWebhookService', () => {
           },
         },
         {
-          provide: CheckoutService,
-          useValue: {
-            handleSuccessfulCheckout: vi.fn(),
-          },
-        },
-        {
-          provide: PurchasesService,
-          useValue: {
-            findOne: vi.fn(),
-            patch: vi.fn(),
-          },
-        },
-        {
           provide: OrganizationsService,
           useValue: {
             findOne: vi.fn(),
@@ -208,7 +192,6 @@ describe('StripeWebhookService', () => {
     );
     stripeService = module.get(StripeService);
     usersService = module.get(UsersService);
-    purchasesService = module.get(PurchasesService);
     loggerService = module.get(LoggerService);
   });
 
@@ -241,149 +224,7 @@ describe('StripeWebhookService', () => {
     );
   });
 
-  describe('charge.dispute.created', () => {
-    const purchaseId = new Types.ObjectId();
-
-    it('marks purchase as disputed when payment intent matches', async () => {
-      const dispute = {
-        id: 'dp_123',
-        payment_intent: 'pi_abc',
-        reason: 'fraudulent',
-        status: 'needs_response',
-      } as unknown as Stripe.Dispute;
-
-      purchasesService.findOne.mockResolvedValue({
-        _id: purchaseId,
-        stripePaymentIntentId: 'pi_abc',
-      } as any);
-      purchasesService.patch.mockResolvedValue({} as any);
-
-      await service.handleWebhookEvent(
-        { data: { object: dispute }, type: 'charge.dispute.created' } as any,
-        '/webhook',
-      );
-
-      expect(purchasesService.findOne).toHaveBeenCalledWith({
-        stripePaymentIntentId: 'pi_abc',
-      });
-      expect(purchasesService.patch).toHaveBeenCalledWith(
-        purchaseId.toString(),
-        { status: 'disputed' },
-      );
-    });
-
-    it('logs warning when no purchase found for dispute', async () => {
-      const dispute = {
-        id: 'dp_456',
-        payment_intent: 'pi_notfound',
-        reason: 'general',
-        status: 'needs_response',
-      } as unknown as Stripe.Dispute;
-
-      purchasesService.findOne.mockResolvedValue(null);
-
-      await service.handleWebhookEvent(
-        { data: { object: dispute }, type: 'charge.dispute.created' } as any,
-        '/webhook',
-      );
-
-      expect(purchasesService.patch).not.toHaveBeenCalled();
-      expect(loggerService.warn).toHaveBeenCalled();
-    });
-  });
-
-  describe('charge.dispute.closed', () => {
-    const purchaseId = new Types.ObjectId();
-
-    it('restores purchase to completed when dispute is won', async () => {
-      const dispute = {
-        id: 'dp_789',
-        payment_intent: 'pi_won',
-        status: 'won',
-      } as unknown as Stripe.Dispute;
-
-      purchasesService.findOne.mockResolvedValue({
-        _id: purchaseId,
-      } as any);
-      purchasesService.patch.mockResolvedValue({} as any);
-
-      await service.handleWebhookEvent(
-        { data: { object: dispute }, type: 'charge.dispute.closed' } as any,
-        '/webhook',
-      );
-
-      expect(purchasesService.patch).toHaveBeenCalledWith(
-        purchaseId.toString(),
-        { status: 'completed' },
-      );
-    });
-
-    it('keeps purchase disputed when dispute is lost', async () => {
-      const dispute = {
-        id: 'dp_lost',
-        payment_intent: 'pi_lost',
-        status: 'lost',
-      } as unknown as Stripe.Dispute;
-
-      purchasesService.findOne.mockResolvedValue({
-        _id: purchaseId,
-      } as any);
-      purchasesService.patch.mockResolvedValue({} as any);
-
-      await service.handleWebhookEvent(
-        { data: { object: dispute }, type: 'charge.dispute.closed' } as any,
-        '/webhook',
-      );
-
-      expect(purchasesService.patch).toHaveBeenCalledWith(
-        purchaseId.toString(),
-        { status: 'disputed' },
-      );
-    });
-  });
-
-  describe('charge.refunded', () => {
-    const purchaseId = new Types.ObjectId();
-
-    it('marks purchase as refunded', async () => {
-      const charge = {
-        amount_refunded: 2999,
-        id: 'ch_ref',
-        payment_intent: 'pi_refund',
-      } as unknown as Stripe.Charge;
-
-      purchasesService.findOne.mockResolvedValue({
-        _id: purchaseId,
-      } as any);
-      purchasesService.patch.mockResolvedValue({} as any);
-
-      await service.handleWebhookEvent(
-        { data: { object: charge }, type: 'charge.refunded' } as any,
-        '/webhook',
-      );
-
-      expect(purchasesService.patch).toHaveBeenCalledWith(
-        purchaseId.toString(),
-        { status: 'refunded' },
-      );
-    });
-
-    it('logs warning when no purchase found for refund', async () => {
-      const charge = {
-        amount_refunded: 1000,
-        id: 'ch_nopurchase',
-        payment_intent: 'pi_nope',
-      } as unknown as Stripe.Charge;
-
-      purchasesService.findOne.mockResolvedValue(null);
-
-      await service.handleWebhookEvent(
-        { data: { object: charge }, type: 'charge.refunded' } as any,
-        '/webhook',
-      );
-
-      expect(purchasesService.patch).not.toHaveBeenCalled();
-      expect(loggerService.warn).toHaveBeenCalled();
-    });
-  });
+  // NOTE: charge.dispute.created, charge.dispute.closed, and charge.refunded
+  // tests were removed — marketplace purchase webhooks are now handled by the
+  // extracted marketplace service.
 });
