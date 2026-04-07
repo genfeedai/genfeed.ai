@@ -13,5 +13,4 @@ export const DB_CONNECTIONS = {
   CLOUD: 'cloud',
   CRM: 'crm',
   FANVUE: 'fanvue',
-  MARKETPLACE: 'marketplace',
 } as const;

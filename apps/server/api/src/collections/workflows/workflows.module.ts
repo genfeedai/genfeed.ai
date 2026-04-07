@@ -46,8 +46,7 @@ import { WorkflowGenerationService } from '@api/collections/workflows/services/w
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
-import { ListingsModule } from '@api/marketplace/listings/listings.module';
-import { SellersModule } from '@api/marketplace/sellers/sellers.module';
+import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
@@ -82,10 +81,9 @@ import mongooseAggregatePaginateV2 from 'mongoose-aggregate-paginate-v2';
     forwardRef(() => MetadataModule),
     forwardRef(() => MusicsModule),
     forwardRef(() => NewslettersModule),
-    forwardRef(() => ListingsModule),
+    forwardRef(() => MarketplaceIntegrationModule),
     forwardRef(() => NotificationsPublisherModule),
     forwardRef(() => PostsModule),
-    forwardRef(() => SellersModule),
     forwardRef(() => SharedModule),
     forwardRef(() => VideosModule),
     forwardRef(() => VideoGenerationModule),

@@ -2,7 +2,7 @@ import { PromptsService } from '@api/collections/prompts/services/prompts.servic
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { ListingsService } from '@api/marketplace/listings/services/listings.service';
+import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { ListingType, PromptCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -28,10 +28,10 @@ const PROMPT_CATEGORY_MAP: Record<string, PromptCategory> = {
 };
 
 @Injectable()
-export class InstallService {
+export class MarketplaceInstallService {
   constructor(
     private readonly logger: LoggerService,
-    private readonly listingsService: ListingsService,
+    private readonly marketplaceApiClient: MarketplaceApiClient,
     private readonly workflowsService: WorkflowsService,
     private readonly promptsService: PromptsService,
     private readonly skillsService: SkillsService,
@@ -43,45 +43,40 @@ export class InstallService {
     userId: string,
     organizationId: string,
   ): Promise<InstallResult> {
-    const listing = await this.listingsService.findOne({ _id: listingId });
-    if (!listing) {
+    const listingData =
+      await this.marketplaceApiClient.getListingDownloadData(listingId);
+
+    if (!listingData) {
       throw new NotFoundException('Listing not found');
     }
 
-    const downloadData = listing.downloadData || {};
+    const { downloadData, title, type } = listingData;
 
-    switch (listing.type) {
+    switch (type) {
       case ListingType.WORKFLOW:
         return this.installWorkflow(
           downloadData,
           listingId,
-          listing.title,
+          title,
           userId,
           organizationId,
         );
 
       case ListingType.PROMPT:
       case ListingType.PRESET:
-        return this.installPrompt(
-          downloadData,
-          listing.title,
-          userId,
-          organizationId,
-        );
+        return this.installPrompt(downloadData, title, userId, organizationId);
 
       case ListingType.SKILL:
         return this.installSkill(
           downloadData,
-          listing.title,
+          title,
           listingId,
           userId,
           organizationId,
         );
 
       default:
-        throw new BadRequestException(
-          `Unsupported listing type: ${listing.type}`,
-        );
+        throw new BadRequestException(`Unsupported listing type: ${type}`);
     }
   }
 
@@ -94,7 +89,7 @@ export class InstallService {
   ): Promise<InstallResult> {
     this.logger.log(
       `Installing workflow "${title}" for user ${userId}`,
-      'InstallService',
+      'MarketplaceInstallService',
     );
 
     const workflow = await this.workflowsService.createWorkflow(
@@ -133,7 +128,7 @@ export class InstallService {
   ): Promise<InstallResult> {
     this.logger.log(
       `Installing prompt "${title}" for user ${userId}`,
-      'InstallService',
+      'MarketplaceInstallService',
     );
 
     const category =
@@ -165,7 +160,7 @@ export class InstallService {
   ): Promise<InstallResult> {
     this.logger.log(
       `Installing skill "${title}" for user ${userId}`,
-      'InstallService',
+      'MarketplaceInstallService',
     );
 
     const slug =

@@ -51,8 +51,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { ListingsService } from '@api/marketplace/listings/services/listings.service';
-import { SellersService } from '@api/marketplace/sellers/services/sellers.service';
+import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
 import { ListingType, WorkflowTrigger } from '@genfeedai/enums';
@@ -74,6 +73,7 @@ import {
   HttpException,
   HttpStatus,
   NotFoundException,
+  Optional,
   Param,
   Patch,
   Post,
@@ -106,8 +106,8 @@ export class WorkflowsController {
     private readonly workflowsService: WorkflowsService,
     private readonly workflowExecutorService: WorkflowExecutorService,
     private readonly workflowSchedulerService: WorkflowSchedulerService,
-    private readonly listingsService: ListingsService,
-    private readonly sellersService: SellersService,
+    @Optional()
+    private readonly marketplaceApiClient: MarketplaceApiClient | undefined,
     private readonly workflowGenerationService: WorkflowGenerationService,
     private readonly formatConverterService: WorkflowFormatConverterService,
     private readonly batchWorkflowService: BatchWorkflowService,
@@ -567,55 +567,61 @@ export class WorkflowsController {
       isTemplate: true,
     });
 
-    // Create marketplace listing if seller profile exists
-    const seller = await this.sellersService.findByUserId(publicMetadata.user);
-
+    // Create marketplace listing if seller profile exists and marketplace API is available
     let listingId: string | undefined;
 
-    if (seller) {
-      const nodes = (workflow as WorkflowDocument).nodes || [];
-      const edges = (workflow as WorkflowDocument).edges || [];
-      const nodeTypes = [
-        ...new Set(nodes.map((n: { type: string }) => n.type)),
-      ];
-
-      const listing = await this.listingsService.createListing(
-        seller._id.toString(),
-        publicMetadata.organization,
-        {
-          description:
-            (workflow as WorkflowDocument).description ||
-            workflow.name ||
-            'A workflow published from the builder',
-          downloadData: {
-            edges,
-            name: workflow.name,
-            nodes,
-            version: 1,
-          },
-          previewData: {
-            connections: edges.length,
-            nodes: nodes.length,
-            nodeTypes,
-          },
-          price: 0,
-          shortDescription:
-            (workflow as WorkflowDocument).description?.slice(0, 300) ||
-            workflow.name ||
-            'Workflow',
-          tags: ['community', 'workflow'],
-          title: workflow.name || 'Untitled Workflow',
-          type: ListingType.WORKFLOW,
-        },
+    if (this.marketplaceApiClient) {
+      const seller = await this.marketplaceApiClient.getSellerByUserId(
+        publicMetadata.user,
       );
 
-      // Auto-approve (submit for review)
-      await this.listingsService.submitForReview(
-        listing._id.toString(),
-        seller._id.toString(),
-      );
+      if (seller) {
+        const nodes = (workflow as WorkflowDocument).nodes || [];
+        const edges = (workflow as WorkflowDocument).edges || [];
+        const nodeTypes = [
+          ...new Set(nodes.map((n: { type: string }) => n.type)),
+        ];
 
-      listingId = listing._id.toString();
+        const listing = await this.marketplaceApiClient.createListing(
+          seller._id.toString(),
+          publicMetadata.organization,
+          {
+            description:
+              (workflow as WorkflowDocument).description ||
+              workflow.name ||
+              'A workflow published from the builder',
+            downloadData: {
+              edges,
+              name: workflow.name,
+              nodes,
+              version: 1,
+            },
+            previewData: {
+              connections: edges.length,
+              nodes: nodes.length,
+              nodeTypes,
+            },
+            price: 0,
+            shortDescription:
+              (workflow as WorkflowDocument).description?.slice(0, 300) ||
+              workflow.name ||
+              'Workflow',
+            tags: ['community', 'workflow'],
+            title: workflow.name || 'Untitled Workflow',
+            type: ListingType.WORKFLOW,
+          },
+        );
+
+        if (listing) {
+          // Auto-approve (submit for review)
+          await this.marketplaceApiClient.submitForReview(
+            listing._id.toString(),
+            seller._id.toString(),
+          );
+
+          listingId = listing._id.toString();
+        }
+      }
     }
 
     return {
