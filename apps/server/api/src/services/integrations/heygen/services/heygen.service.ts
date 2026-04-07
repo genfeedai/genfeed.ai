@@ -1,4 +1,4 @@
-import type { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
+import { AvatarVideoAspectRatio } from '@api/collections/videos/dto/create-avatar-video.dto';
 import { ConfigService } from '@api/config/config.service';
 import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import { ApiKeyCategory } from '@genfeedai/enums';

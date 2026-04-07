@@ -1,4 +1,4 @@
-import type { CampaignMemoryExtractionJobData } from '@api/services/agent-campaign/campaign-memory-queue.service';
+import { CampaignMemoryExtractionJobData } from '@api/services/agent-campaign/campaign-memory-queue.service';
 import { ContentEngineService } from '@api/services/agent-campaign/content-engine.service';
 import { CAMPAIGN_MEMORY_EXTRACTION_QUEUE } from '@api/services/agent-campaign/orchestrator.constants';
 import { LoggerService } from '@libs/logger/logger.service';

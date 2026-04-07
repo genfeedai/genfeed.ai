@@ -1,6 +1,6 @@
 import { WorkspaceTasksService } from '@api/collections/workspace-tasks/services/workspace-tasks.service';
 import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';
-import type { WorkspaceTaskJobData } from '@api/services/task-orchestration/workspace-task-queue.service';
+import { WorkspaceTaskJobData } from '@api/services/task-orchestration/workspace-task-queue.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { forwardRef, Inject } from '@nestjs/common';

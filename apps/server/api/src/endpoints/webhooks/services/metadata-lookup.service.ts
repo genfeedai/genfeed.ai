@@ -1,6 +1,6 @@
-import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import type { MetadataDocument } from '@api/collections/metadata/schemas/metadata.schema';
+import { MetadataDocument } from '@api/collections/metadata/schemas/metadata.schema';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { categoryToPlural } from '@api/helpers/utils/category-conversion/category-conversion.util';
 import { UserExtractionUtil } from '@api/helpers/utils/user-extraction/user-extraction.util';

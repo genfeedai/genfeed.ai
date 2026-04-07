@@ -1,7 +1,7 @@
 import { HeygenWebhookService } from '@api/endpoints/webhooks/heygen/webhooks.heygen.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { Public } from '@libs/decorators/public.decorator';
-import type { HeygenWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
+import { HeygenWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Body, Controller, HttpCode, Post } from '@nestjs/common';

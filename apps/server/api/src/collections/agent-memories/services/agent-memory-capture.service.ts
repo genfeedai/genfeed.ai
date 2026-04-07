@@ -5,7 +5,7 @@ import type {
 } from '@api/collections/agent-memories/schemas/agent-memory.schema';
 import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
-import type { AddEntryDto } from '@api/collections/contexts/dto/add-entry.dto';
+import { AddEntryDto } from '@api/collections/contexts/dto/add-entry.dto';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

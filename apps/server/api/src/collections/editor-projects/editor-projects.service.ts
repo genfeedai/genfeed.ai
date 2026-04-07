@@ -1,12 +1,12 @@
-import type { CreateEditorProjectDto } from '@api/collections/editor-projects/dto/create-editor-project.dto';
-import type { UpdateEditorProjectDto } from '@api/collections/editor-projects/dto/update-editor-project.dto';
+import { CreateEditorProjectDto } from '@api/collections/editor-projects/dto/create-editor-project.dto';
+import { UpdateEditorProjectDto } from '@api/collections/editor-projects/dto/update-editor-project.dto';
 import {
   EditorProject,
   type EditorProjectDocument,
 } from '@api/collections/editor-projects/schemas/editor-project.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { EditorProjectStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

@@ -1,15 +1,15 @@
-import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import type { ModelsService } from '@api/collections/models/services/models.service';
-import type { CreateTrainingDto } from '@api/collections/trainings/dto/create-training.dto';
-import type { TrainingsQueryDto } from '@api/collections/trainings/dto/trainings-query.dto';
-import type { UpdateTrainingDto } from '@api/collections/trainings/dto/update-training.dto';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
+import { CreateTrainingDto } from '@api/collections/trainings/dto/create-training.dto';
+import { TrainingsQueryDto } from '@api/collections/trainings/dto/trainings-query.dto';
+import { UpdateTrainingDto } from '@api/collections/trainings/dto/update-training.dto';
 import { TrainingEntity } from '@api/collections/trainings/entities/training.entity';
 import {
   Training,
   type TrainingDocument,
 } from '@api/collections/trainings/schemas/training.schema';
-import type { TrainingsService } from '@api/collections/trainings/services/trainings.service';
-import type { ConfigService } from '@api/config/config.service';
+import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
+import { ConfigService } from '@api/config/config.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -28,9 +28,9 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { TrainingFilterUtil } from '@api/helpers/utils/training-filter/training-filter.util';
-import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {

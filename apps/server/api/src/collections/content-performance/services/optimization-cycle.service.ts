@@ -4,7 +4,7 @@ import {
 } from '@api/collections/content-performance/schemas/content-performance.schema';
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { type PipelineStage, Types } from 'mongoose';

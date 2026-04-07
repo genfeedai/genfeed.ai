@@ -1,4 +1,4 @@
-import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { ConfigService } from '@api/config/config.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';

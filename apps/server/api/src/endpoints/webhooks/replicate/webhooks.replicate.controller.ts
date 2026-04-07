@@ -1,13 +1,13 @@
-import type { AssetsService } from '@api/collections/assets/services/assets.service';
-import type { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
-import type { ModelsService } from '@api/collections/models/services/models.service';
-import type { TrainingsService } from '@api/collections/trainings/services/trainings.service';
-import type { ConfigService } from '@api/config/config.service';
-import type { ReplicateWebhookService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.service';
-import type { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
+import { AssetsService } from '@api/collections/assets/services/assets.service';
+import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
+import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
+import { ConfigService } from '@api/config/config.service';
+import { ReplicateWebhookService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.service';
+import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { ReplicateStatus } from '@api/services/integrations/replicate/helpers/replicate.enum';
-import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { supportsMultipleOutputs } from '@genfeedai/constants';
 import {
   IngredientCategory,
@@ -16,8 +16,8 @@ import {
   TrainingStatus,
 } from '@genfeedai/enums';
 import { Public } from '@libs/decorators/public.decorator';
-import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
-import type { LoggerService } from '@libs/logger/logger.service';
+import { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
+import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   Body,

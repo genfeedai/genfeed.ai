@@ -14,7 +14,7 @@ import {
   type AgentThreadSnapshotDocument,
 } from '@api/services/agent-threading/schemas/agent-thread-snapshot.schema';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { AgentExecutionStatus, AgentThreadStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import {

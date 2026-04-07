@@ -1,12 +1,12 @@
-import type { CreateClipResultDto } from '@api/collections/clip-results/dto/create-clip-result.dto';
-import type { UpdateClipResultDto } from '@api/collections/clip-results/dto/update-clip-result.dto';
+import { CreateClipResultDto } from '@api/collections/clip-results/dto/create-clip-result.dto';
+import { UpdateClipResultDto } from '@api/collections/clip-results/dto/update-clip-result.dto';
 import {
   ClipResult,
   type ClipResultDocument,
 } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';

@@ -1,6 +1,6 @@
 import { ContentEngineService } from '@api/services/agent-campaign/content-engine.service';
 import { ORCHESTRATOR_RUN_QUEUE } from '@api/services/agent-campaign/orchestrator.constants';
-import type { OrchestratorRunJobData } from '@api/services/agent-campaign/orchestrator-queue.service';
+import { OrchestratorRunJobData } from '@api/services/agent-campaign/orchestrator-queue.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';

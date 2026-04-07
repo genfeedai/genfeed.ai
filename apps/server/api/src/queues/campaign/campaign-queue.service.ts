@@ -7,12 +7,12 @@
  * - Managing rate-limited job execution
  */
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
-import type { CampaignProcessingJobData } from '@api/queues/campaign/campaign.processor';
+import { CampaignProcessingJobData } from '@api/queues/campaign/campaign.processor';
 import { CampaignStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 import { Queue } from 'bullmq';
 
 @Injectable()
@@ -21,9 +21,10 @@ export class CampaignQueueService implements OnModuleInit {
 
   constructor(
     @InjectQueue('campaign-processing')
+    @Optional()
     private readonly campaignQueue: Queue<CampaignProcessingJobData>,
-    private readonly campaignsService: OutreachCampaignsService,
-    private readonly logger: LoggerService,
+    @Optional() private readonly campaignsService: OutreachCampaignsService,
+    @Optional() private readonly logger: LoggerService,
   ) {}
 
   onModuleInit(): void {

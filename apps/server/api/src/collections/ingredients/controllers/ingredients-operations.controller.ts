@@ -1,6 +1,6 @@
 import { BulkDeleteIngredientsDto } from '@api/collections/ingredients/dto/bulk-delete-ingredients.dto';
 import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
-import type { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
+import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import { UpdateTagsDto } from '@api/collections/ingredients/dto/update-tags.dto';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { UpdateMetadataDto } from '@api/collections/metadata/dto/update-metadata.dto';

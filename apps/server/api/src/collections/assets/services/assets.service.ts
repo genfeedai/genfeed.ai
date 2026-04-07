@@ -1,12 +1,12 @@
-import type { CreateAssetDto } from '@api/collections/assets/dto/create-asset.dto';
-import type { UpdateAssetDto } from '@api/collections/assets/dto/update-asset.dto';
+import { CreateAssetDto } from '@api/collections/assets/dto/create-asset.dto';
+import { UpdateAssetDto } from '@api/collections/assets/dto/update-asset.dto';
 import {
   Asset,
   type AssetDocument,
 } from '@api/collections/assets/schemas/asset.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';

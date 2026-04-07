@@ -1,4 +1,4 @@
-import type { ConfigService } from '@api/config/config.service';
+import { ConfigService } from '@api/config/config.service';
 import type {
   IChatbotMetadata,
   IDiscordEmbed,
@@ -7,7 +7,7 @@ import type {
   INotificationEvent,
   ITelegramMessageOptions,
 } from '@genfeedai/interfaces';
-import type { LoggerService } from '@libs/logger/logger.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { parseRedisConnection } from '@libs/redis/redis-connection.utils';
 import {
   Injectable,

@@ -1,6 +1,6 @@
-import type { AssetQueryDto } from '@api/collections/assets/dto/assets-query.dto';
-import type { UpdateAssetDto } from '@api/collections/assets/dto/update-asset.dto';
-import type { AssetDocument } from '@api/collections/assets/schemas/asset.schema';
+import { AssetQueryDto } from '@api/collections/assets/dto/assets-query.dto';
+import { UpdateAssetDto } from '@api/collections/assets/dto/update-asset.dto';
+import { AssetDocument } from '@api/collections/assets/schemas/asset.schema';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -20,7 +20,7 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
 import { AssetCategory, AssetParent } from '@genfeedai/enums';
 import type {

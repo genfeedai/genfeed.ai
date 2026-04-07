@@ -1,12 +1,12 @@
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import type { Activity } from '@api/collections/activities/schemas/activity.schema';
+import { Activity } from '@api/collections/activities/schemas/activity.schema';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import {
   getActivityLabel,
   getActivityResultType,
 } from '@api/helpers/utils/activity-label/activity-label.util';
-import type { ActivityRoutingInput } from '@api/helpers/utils/activity-routing/activity-routing.util';
 import {
+  ActivityRoutingInput,
   getActivityRouting,
   getFailureActivityRouting,
 } from '@api/helpers/utils/activity-routing/activity-routing.util';

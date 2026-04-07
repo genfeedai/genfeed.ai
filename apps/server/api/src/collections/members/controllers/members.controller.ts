@@ -1,6 +1,6 @@
 import { InviteMemberDto } from '@api/collections/members/dto/invite-member.dto';
 import { MemberEntity } from '@api/collections/members/entities/member.entity';
-import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
+import { MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
 import { Cache } from '@api/helpers/decorators/cache/cache.decorator';
@@ -20,7 +20,7 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
 import { MemberSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';

@@ -16,10 +16,10 @@ import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/colle
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { MatchConditions } from '@api/shared/utils/pipeline-builder/pipeline-builder.types';
+import { MatchConditions } from '@api/shared/utils/pipeline-builder/pipeline-builder.types';
 import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import {
   ActivitySource,
   EvaluationType,

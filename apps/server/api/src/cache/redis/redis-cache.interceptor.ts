@@ -1,6 +1,6 @@
 import { CacheService } from '@api/services/cache/services/cache.service';
-import type { CacheOptions } from '@api/shared/interfaces/cache/cache.interfaces';
-import type { RequestWithBody } from '@libs/interfaces/http.interface';
+import { CacheOptions } from '@api/shared/interfaces/cache/cache.interfaces';
+import { RequestWithBody } from '@libs/interfaces/http.interface';
 import {
   type CallHandler,
   type ExecutionContext,

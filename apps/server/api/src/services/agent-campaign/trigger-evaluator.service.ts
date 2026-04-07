@@ -1,6 +1,6 @@
-import type { AgentCampaignDocument } from '@api/collections/agent-campaigns/schemas/agent-campaign.schema';
+import { AgentCampaignDocument } from '@api/collections/agent-campaigns/schemas/agent-campaign.schema';
 import { AgentCampaignsService } from '@api/collections/agent-campaigns/services/agent-campaigns.service';
-import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
+import { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';

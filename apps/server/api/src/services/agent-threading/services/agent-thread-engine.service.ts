@@ -1,5 +1,5 @@
-import type { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
-import type { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import { AgentMemoriesService } from '@api/collections/agent-memories/services/agent-memories.service';
+import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import {
   fromPromiseEffect,
@@ -26,11 +26,11 @@ import {
   AgentThreadSnapshot,
   type AgentThreadSnapshotDocument,
 } from '@api/services/agent-threading/schemas/agent-thread-snapshot.schema';
-import type { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
-import type { AgentThreadProjectorService } from '@api/services/agent-threading/services/agent-thread-projector.service';
-import type { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
-import type { AgentThreadEventType } from '@api/services/agent-threading/types/agent-thread.types';
-import type { LoggerService } from '@libs/logger/logger.service';
+import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
+import { AgentThreadProjectorService } from '@api/services/agent-threading/services/agent-thread-projector.service';
+import { ThreadContextCompressorService } from '@api/services/agent-threading/services/thread-context-compressor.service';
+import { AgentThreadEventType } from '@api/services/agent-threading/types/agent-thread.types';
+import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   Injectable,

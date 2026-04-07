@@ -1,11 +1,11 @@
-import type { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
-import type { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
-import type { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
-import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
+import { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
+import { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
+import { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
+import { ModelDocument } from '@api/collections/models/schemas/model.schema';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getIsSuperAdmin } from '@api/helpers/utils/clerk/clerk.util';

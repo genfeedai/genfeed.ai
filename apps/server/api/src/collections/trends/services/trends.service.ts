@@ -1,6 +1,6 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import type { TrendIdea } from '@api/collections/trends/dto/trend-ideas.dto';
+import { TrendIdea } from '@api/collections/trends/dto/trend-ideas.dto';
 import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
 import type {
   HistoricalTrendsOptions,
@@ -21,9 +21,9 @@ import {
   Trend,
   type TrendDocument,
 } from '@api/collections/trends/schemas/trend.schema';
-import type { TrendingHashtagDocument } from '@api/collections/trends/schemas/trending-hashtag.schema';
-import type { TrendingSoundDocument } from '@api/collections/trends/schemas/trending-sound.schema';
-import type { TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
+import { TrendingHashtagDocument } from '@api/collections/trends/schemas/trending-hashtag.schema';
+import { TrendingSoundDocument } from '@api/collections/trends/schemas/trending-sound.schema';
+import { TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
 import { TrendAnalysisService } from '@api/collections/trends/services/modules/trend-analysis.service';
 import { TrendContentIdeasService } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import { TrendFetchService } from '@api/collections/trends/services/modules/trend-fetch.service';

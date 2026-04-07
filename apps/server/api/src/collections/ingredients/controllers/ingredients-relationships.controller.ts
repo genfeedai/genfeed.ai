@@ -1,4 +1,4 @@
-import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
@@ -15,7 +15,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,

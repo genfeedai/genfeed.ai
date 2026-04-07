@@ -115,6 +115,7 @@ export function CloudWorkflowToolbar({
                 <Button
                   type="button"
                   variant={ButtonVariant.UNSTYLED}
+                  withWrapper={false}
                   onClick={() => setIsEditing(true)}
                   className="cloud-workflow-title block max-w-full truncate text-left text-sm font-medium text-foreground transition hover:text-white"
                   tooltip="Rename workflow"

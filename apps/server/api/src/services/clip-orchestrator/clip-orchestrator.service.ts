@@ -10,8 +10,8 @@ import {
   PIPELINE_STATES,
   VALID_TRANSITIONS,
 } from '@api/services/clip-orchestrator/clip-run-state.enum';
-import type { ClipRunStepDto } from '@api/services/clip-orchestrator/dto/clip-run-step.dto';
-import type { StartClipRunDto } from '@api/services/clip-orchestrator/dto/start-clip-run.dto';
+import { ClipRunStepDto } from '@api/services/clip-orchestrator/dto/clip-run-step.dto';
+import { StartClipRunDto } from '@api/services/clip-orchestrator/dto/start-clip-run.dto';
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 

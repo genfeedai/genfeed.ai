@@ -1,4 +1,4 @@
-import type { CreditDeductionJobData } from '@api/queues/credit-deduction/credit-deduction-job.interface';
+import { CreditDeductionJobData } from '@api/queues/credit-deduction/credit-deduction-job.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';

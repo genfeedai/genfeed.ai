@@ -9,7 +9,7 @@ import {
 } from '@api/collections/streaks/schemas/streak.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { ActivityKey } from '@genfeedai/enums';
 import {
   IStreakCalendarResponse,

@@ -2,7 +2,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { DistributionsService } from '@api/collections/distributions/services/distributions.service';
 import { ConfigService } from '@api/config/config.service';
 import { QueueService } from '@api/queues/core/queue.service';
-import type { TelegramDistributeJobData } from '@api/queues/telegram-distribute/telegram-distribute.processor';
+import { TelegramDistributeJobData } from '@api/queues/telegram-distribute/telegram-distribute.processor';
 import {
   CredentialPlatform,
   DistributionContentType,

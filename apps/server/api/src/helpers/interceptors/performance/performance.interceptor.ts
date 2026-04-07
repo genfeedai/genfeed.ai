@@ -1,5 +1,5 @@
 import { MemoryMonitorService } from '@api/helpers/memory/monitor/memory-monitor.service';
-import type { PerformanceMetrics } from '@api/shared/interfaces/performance/performance.interface';
+import { PerformanceMetrics } from '@api/shared/interfaces/performance/performance.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   CallHandler,

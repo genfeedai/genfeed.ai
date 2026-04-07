@@ -1,5 +1,5 @@
 import { BatchContentQueueService } from '@api/services/batch-content/batch-content-queue.service';
-import type { BatchContentItemJobData } from '@api/services/batch-content/interfaces/batch-content.interfaces';
+import { BatchContentItemJobData } from '@api/services/batch-content/interfaces/batch-content.interfaces';
 import { SkillExecutorService } from '@api/services/skill-executor/skill-executor.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';

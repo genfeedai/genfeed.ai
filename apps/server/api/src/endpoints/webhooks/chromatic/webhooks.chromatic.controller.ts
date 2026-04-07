@@ -1,7 +1,7 @@
 import { ChromaticWebhookService } from '@api/endpoints/webhooks/chromatic/webhooks.chromatic.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { Public } from '@libs/decorators/public.decorator';
-import type { ChromaticWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
+import { ChromaticWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {

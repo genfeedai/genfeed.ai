@@ -9,16 +9,16 @@
  * This service focuses on data analysis and metrics
  * to help understand article performance and potential.
  */
-import type { ViralityAnalysisResponse } from '@api/collections/articles/dto/analyze-virality.dto';
+import { ViralityAnalysisResponse } from '@api/collections/articles/dto/analyze-virality.dto';
 import {
   Article,
   type ArticleDocument,
 } from '@api/collections/articles/schemas/article.schema';
 import { ArticleAnalyticsService } from '@api/collections/articles/services/article-analytics.service';
-import type { ParsedViralityResponse } from '@api/collections/articles/utils/virality-analysis.mapper';
 import {
   buildViralityAnalysisResponse,
   normalizePerformanceMetrics,
+  ParsedViralityResponse,
 } from '@api/collections/articles/utils/virality-analysis.mapper';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ModelsService } from '@api/collections/models/services/models.service';

@@ -9,7 +9,7 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 import { Queue } from 'bullmq';
 
 // =============================================================================
@@ -62,10 +62,12 @@ export class WorkflowQueueService implements OnModuleInit {
 
   constructor(
     @InjectQueue('workflow-execution')
+    @Optional()
     private readonly executionQueue: Queue<WorkflowExecutionJobData>,
     @InjectQueue('workflow-delay')
+    @Optional()
     private readonly delayQueue: Queue<WorkflowDelayJobData>,
-    private readonly logger: LoggerService,
+    @Optional() private readonly logger: LoggerService,
   ) {}
 
   onModuleInit(): void {

@@ -1,10 +1,10 @@
-import type { CreateApiKeyDto } from '@api/collections/api-keys/dto/create-api-key.dto';
-import type { UpdateApiKeyDto } from '@api/collections/api-keys/dto/update-api-key.dto';
+import { CreateApiKeyDto } from '@api/collections/api-keys/dto/create-api-key.dto';
+import { UpdateApiKeyDto } from '@api/collections/api-keys/dto/update-api-key.dto';
 import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
+import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import {
   serializeCollection,

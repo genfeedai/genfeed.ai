@@ -1,6 +1,6 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
-import type { TrendIdea } from '@api/collections/trends/dto/trend-ideas.dto';
+import { TrendIdea } from '@api/collections/trends/dto/trend-ideas.dto';
 import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';

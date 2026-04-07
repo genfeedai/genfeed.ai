@@ -1,7 +1,7 @@
 import * as crypto from 'node:crypto';
 import { ConfigService } from '@api/config/config.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
-import type { ChromaticWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
+import { ChromaticWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

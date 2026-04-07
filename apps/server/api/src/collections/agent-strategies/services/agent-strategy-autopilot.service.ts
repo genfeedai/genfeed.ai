@@ -1,7 +1,7 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
-import type { AgentStrategyOpportunityDocument } from '@api/collections/agent-strategies/schemas/agent-strategy-opportunity.schema';
-import type { AgentStrategyReportType } from '@api/collections/agent-strategies/schemas/agent-strategy-policy.schema';
+import { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
+import { AgentStrategyOpportunityDocument } from '@api/collections/agent-strategies/schemas/agent-strategy-opportunity.schema';
+import { AgentStrategyReportType } from '@api/collections/agent-strategies/schemas/agent-strategy-policy.schema';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
 import { AgentStrategyReportsService } from '@api/collections/agent-strategies/services/agent-strategy-reports.service';
@@ -16,7 +16,7 @@ import { OptimizersService } from '@api/collections/optimizers/services/optimize
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
-import type { ReviewBatchItemFormat } from '@api/services/batch-generation/constants/review-batch-item-format.constant';
+import { ReviewBatchItemFormat } from '@api/services/batch-generation/constants/review-batch-item-format.constant';
 import { ContentGatewayService } from '@api/services/content-gateway/content-gateway.service';
 import {
   ActivityEntityModel,

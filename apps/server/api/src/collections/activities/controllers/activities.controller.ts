@@ -1,7 +1,7 @@
-import type { ActivitiesQueryDto } from '@api/collections/activities/dto/activities-query.dto';
-import type { BulkUpdateActivitiesDto } from '@api/collections/activities/dto/bulk-update-activities.dto';
-import type { UpdateActivityDto } from '@api/collections/activities/dto/update-activity.dto';
-import type { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
+import { ActivitiesQueryDto } from '@api/collections/activities/dto/activities-query.dto';
+import { BulkUpdateActivitiesDto } from '@api/collections/activities/dto/bulk-update-activities.dto';
+import { UpdateActivityDto } from '@api/collections/activities/dto/update-activity.dto';
+import { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
@@ -17,7 +17,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
 import type {
   JsonApiCollectionResponse,

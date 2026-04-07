@@ -1,14 +1,14 @@
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { AnalyzeYoutubeDto } from '@api/collections/clip-projects/dto/analyze-youtube.dto';
-import type { CreateClipProjectDto } from '@api/collections/clip-projects/dto/create-clip-project.dto';
+import { CreateClipProjectDto } from '@api/collections/clip-projects/dto/create-clip-project.dto';
 import { CreateClipProjectFromYoutubeDto } from '@api/collections/clip-projects/dto/create-clip-project-from-youtube.dto';
 import {
   type GenerateClipHighlightDto,
   GenerateClipsDto,
 } from '@api/collections/clip-projects/dto/generate-clips.dto';
 import { RewriteHighlightDto } from '@api/collections/clip-projects/dto/rewrite-highlight.dto';
-import type { UpdateClipProjectDto } from '@api/collections/clip-projects/dto/update-clip-project.dto';
-import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import { UpdateClipProjectDto } from '@api/collections/clip-projects/dto/update-clip-project.dto';
+import { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
 import { HighlightRewriteService } from '@api/collections/clip-projects/services/highlight-rewrite.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -29,7 +29,7 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
 import { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-factory-queue.service';
-import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
 import type {
   JsonApiCollectionResponse,

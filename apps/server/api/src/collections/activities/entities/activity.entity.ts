@@ -1,4 +1,4 @@
-import type { Activity } from '@api/collections/activities/schemas/activity.schema';
+import { Activity } from '@api/collections/activities/schemas/activity.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import type {
   ActivityEntityModel,

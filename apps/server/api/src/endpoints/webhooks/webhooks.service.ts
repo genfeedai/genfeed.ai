@@ -1,5 +1,5 @@
 import { AssetsService } from '@api/collections/assets/services/assets.service';
-import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { UsersService } from '@api/collections/users/services/users.service';

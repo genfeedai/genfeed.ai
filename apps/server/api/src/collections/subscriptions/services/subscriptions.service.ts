@@ -1,5 +1,5 @@
 import { CustomersService } from '@api/collections/customers/services/customers.service';
-import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { CreateSubscriptionDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
 import { UpdateSubscriptionDto } from '@api/collections/subscriptions/dto/update-subscription.dto';
 import { SubscriptionEntity } from '@api/collections/subscriptions/entities/subscription.entity';
@@ -14,7 +14,7 @@ import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

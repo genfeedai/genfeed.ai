@@ -12,10 +12,10 @@
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
 import { ClipGenerationService } from '@api/collections/clip-projects/services/clip-generation.service';
 import { ConfigService } from '@api/config/config.service';
-import type { ClipFactoryJobData } from '@api/queues/clip-factory/clip-factory.constants';
 import {
   CLIP_FACTORY_CONCURRENCY,
   CLIP_FACTORY_QUEUE,
+  ClipFactoryJobData,
 } from '@api/queues/clip-factory/clip-factory.constants';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { LoggerService } from '@libs/logger/logger.service';

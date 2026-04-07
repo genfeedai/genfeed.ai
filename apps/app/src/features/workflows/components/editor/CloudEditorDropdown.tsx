@@ -76,6 +76,7 @@ export function CloudEditorDropdown({
                 key={item.id}
                 type="button"
                 variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
                 onClick={() => {
                   if (item.disabled || !item.onClick) return;
                   item.onClick();

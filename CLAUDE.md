@@ -87,6 +87,7 @@ bun run test --filter=@genfeedai/[name]  # Run specific package tests
 - **Repo invariant:** All multi-tenant data access code must live under `ee/` or import from `ee/packages/`
 
 ### Files & Git (ALWAYS)
+- **Research the codebase before editing. Never change code you haven't read.**
 - Never commit/push without explicit user approval
 - Search 3+ similar implementations before writing new code
 - Use conventional commits: `fix:`, `feat:`, `refactor:`, `chore:`

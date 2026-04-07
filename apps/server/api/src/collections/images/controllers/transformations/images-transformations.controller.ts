@@ -6,16 +6,16 @@
  * - Upscale: Enhance image resolution and quality
  */
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import type { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import type { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
-import type { ImageEditDto } from '@api/collections/images/dto/image-edit.dto';
-import type { ImagesService } from '@api/collections/images/services/images.service';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { CreateImageDto } from '@api/collections/images/dto/create-image.dto';
+import { ImageEditDto } from '@api/collections/images/dto/image-edit.dto';
+import { ImagesService } from '@api/collections/images/services/images.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
-import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import type { ModelsService } from '@api/collections/models/services/models.service';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
-import type { PromptsService } from '@api/collections/prompts/services/prompts.service';
-import type { ConfigService } from '@api/config/config.service';
+import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import { ConfigService } from '@api/config/config.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -34,17 +34,17 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import type { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
-import type { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
-import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import type { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import type { RouterService } from '@api/services/router/router.service';
+import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { RouterService } from '@api/services/router/router.service';
 import {
   RateLimit,
   RateLimitPresets,
 } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import type { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import type { SharedService } from '@api/shared/services/shared/shared.service';
+import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
+import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type { User } from '@clerk/backend';
 import { MODEL_KEYS } from '@genfeedai/constants';

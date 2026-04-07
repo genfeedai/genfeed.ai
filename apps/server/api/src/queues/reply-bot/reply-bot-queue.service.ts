@@ -1,12 +1,12 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { ReplyBotConfigsService } from '@api/collections/reply-bot-configs/services/reply-bot-configs.service';
-import type { ReplyBotPollingJobData } from '@api/queues/reply-bot/reply-bot-polling.processor';
+import { ReplyBotPollingJobData } from '@api/queues/reply-bot/reply-bot-polling.processor';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { Types } from 'mongoose';
 
@@ -17,10 +17,11 @@ export class ReplyBotQueueService implements OnModuleInit {
   constructor(
     @InjectQueue('reply-bot-polling')
     private readonly pollingQueue: Queue<ReplyBotPollingJobData>,
-    private readonly organizationsService: OrganizationsService,
-    private readonly replyBotConfigsService: ReplyBotConfigsService,
-    private readonly credentialsService: CredentialsService,
-    private readonly logger: LoggerService,
+    @Optional() private readonly organizationsService?: OrganizationsService,
+    @Optional()
+    private readonly replyBotConfigsService?: ReplyBotConfigsService,
+    @Optional() private readonly credentialsService?: CredentialsService,
+    @Optional() private readonly logger?: LoggerService,
   ) {}
 
   onModuleInit(): void {

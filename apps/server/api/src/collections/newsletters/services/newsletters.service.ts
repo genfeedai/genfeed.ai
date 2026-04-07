@@ -12,7 +12,7 @@ import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,

@@ -1,4 +1,4 @@
-import type { ArticleAnalytics } from '@api/collections/articles/schemas/article-analytics.schema';
+import { ArticleAnalytics } from '@api/collections/articles/schemas/article-analytics.schema';
 import type { Types } from 'mongoose';
 
 export class ArticleAnalyticsEntity implements ArticleAnalytics {

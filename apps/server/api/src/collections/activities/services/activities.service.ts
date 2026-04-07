@@ -1,5 +1,5 @@
-import type { CreateActivityDto } from '@api/collections/activities/dto/create-activity.dto';
-import type { UpdateActivityDto } from '@api/collections/activities/dto/update-activity.dto';
+import { CreateActivityDto } from '@api/collections/activities/dto/create-activity.dto';
+import { UpdateActivityDto } from '@api/collections/activities/dto/update-activity.dto';
 import {
   Activity,
   type ActivityDocument,
@@ -7,7 +7,7 @@ import {
 import { StreaksService as StreaksServiceToken } from '@api/collections/streaks/services/streaks.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { ActivityEntityModel } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Inject, Injectable } from '@nestjs/common';

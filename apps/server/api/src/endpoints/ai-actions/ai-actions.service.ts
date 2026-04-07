@@ -1,4 +1,4 @@
-import type { ExecuteAiActionDto } from '@api/endpoints/ai-actions/dto/ai-action.dto';
+import { ExecuteAiActionDto } from '@api/endpoints/ai-actions/dto/ai-action.dto';
 import { AI_ACTION_PROMPTS } from '@api/endpoints/ai-actions/prompts/action-prompts';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { ByokService } from '@api/services/byok/byok.service';

@@ -1,10 +1,10 @@
 import { ContentDraftStatus } from '@api/collections/content-drafts/schemas/content-draft.schema';
 import { ContentDraftsService } from '@api/collections/content-drafts/services/content-drafts.service';
-import type { ContentPlanItemDocument } from '@api/collections/content-plan-items/schemas/content-plan-item.schema';
+import { ContentPlanItemDocument } from '@api/collections/content-plan-items/schemas/content-plan-item.schema';
 import { ContentPlanItemsService } from '@api/collections/content-plan-items/services/content-plan-items.service';
 import { ContentPlansService } from '@api/collections/content-plans/services/content-plans.service';
 import { ContentOrchestrationService } from '@api/services/content-orchestration/content-orchestration.service';
-import type { PipelineStep } from '@api/services/content-orchestration/pipeline.interfaces';
+import { PipelineStep } from '@api/services/content-orchestration/pipeline.interfaces';
 import { SkillExecutorService } from '@api/services/skill-executor/skill-executor.service';
 import {
   ContentPlanItemStatus,

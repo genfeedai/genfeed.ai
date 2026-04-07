@@ -1,5 +1,5 @@
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
-import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import {
   getDefaultModel,
   OpenRouterModelTier,

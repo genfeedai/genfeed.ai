@@ -1,24 +1,24 @@
-import type { BrandsService } from '@api/collections/brands/services/brands.service';
-import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import type { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import type { UsersService } from '@api/collections/users/services/users.service';
-import type { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
-import type { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
-import type { ProactiveOnboardingService } from '@api/endpoints/admin/crm/proactive-onboarding.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { UsersService } from '@api/collections/users/services/users.service';
+import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
+import { ProactiveOnboardingService } from '@api/endpoints/admin/crm/proactive-onboarding.service';
 import type {
   BrandSetupDto,
   ConfirmBrandDataDto,
   UpdateBrandNameDto,
 } from '@api/endpoints/onboarding/dto/brand-setup.dto';
-import type { GeneratePreviewDto } from '@api/endpoints/onboarding/dto/generate-preview.dto';
-import type { ReferenceImageDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
+import { GeneratePreviewDto } from '@api/endpoints/onboarding/dto/generate-preview.dto';
+import { ReferenceImageDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
-import type { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
-import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import type { ClerkService } from '@api/services/integrations/clerk/clerk.service';
-import type { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
-import type { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
+import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
+import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
+import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
 import type { User } from '@clerk/backend';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { FileInputType, type OrganizationCategory } from '@genfeedai/enums';

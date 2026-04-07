@@ -5,7 +5,7 @@ import type {
   BatchStatus,
 } from '@api/services/batch-content/interfaces/batch-content.interfaces';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import type { ContentDraft } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
+import { ContentDraft } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { InjectQueue } from '@nestjs/bullmq';

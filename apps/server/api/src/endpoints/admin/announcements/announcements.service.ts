@@ -1,7 +1,7 @@
-import type { AnnouncementDocument } from '@api/collections/announcements/schemas/announcement.schema';
+import { AnnouncementDocument } from '@api/collections/announcements/schemas/announcement.schema';
 import { AnnouncementsService as AnnouncementsCollectionService } from '@api/collections/announcements/services/announcements.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import type { BroadcastAnnouncementDto } from '@api/endpoints/admin/announcements/dto/broadcast-announcement.dto';
+import { BroadcastAnnouncementDto } from '@api/endpoints/admin/announcements/dto/broadcast-announcement.dto';
 import { getErrorMessage } from '@api/helpers/utils/error/get-error-message.util';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';

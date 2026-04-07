@@ -7,7 +7,7 @@ import {
   AgentSessionBinding,
   type AgentSessionBindingDocument,
 } from '@api/services/agent-threading/schemas/agent-session-binding.schema';
-import type { AgentSessionBindingStatus } from '@api/services/agent-threading/types/agent-thread.types';
+import { AgentSessionBindingStatus } from '@api/services/agent-threading/types/agent-thread.types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
