@@ -30,5 +30,5 @@ export * from '@serializers/configs/admin/darkroom-upload-dataset-result.config'
 export * from '@serializers/configs/admin/darkroom-voice.config';
 export * from '@serializers/configs/admin/lead.config';
 export * from '@serializers/configs/admin/lead-activity.config';
-export * from '@serializers/configs/admin/marketplace-analytics-overview.config';
+
 export * from '@serializers/configs/admin/revenue-record.config';

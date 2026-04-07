@@ -10,7 +10,6 @@ export * from '../server/elements';
 export * from '../server/ingredients';
 export * from '../server/integrations';
 export * from '../server/management';
-export * from '../server/marketplace';
 export * from '../server/organizations';
 export * from '../server/threads';
 export * from '../server/users';

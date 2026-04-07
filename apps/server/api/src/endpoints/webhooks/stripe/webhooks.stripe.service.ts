@@ -12,8 +12,6 @@ import { RequestContextCacheService } from '@api/common/services/request-context
 import { ConfigService } from '@api/config/config.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
-import { CheckoutService } from '@api/marketplace/purchases/services/checkout.service';
-import { PurchasesService } from '@api/marketplace/purchases/services/purchases.service';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import {
@@ -25,7 +23,6 @@ import {
   ActivitySource,
   ByokBillingStatus,
   OrganizationCategory,
-  PurchaseStatus,
   SubscriptionPlan,
   SubscriptionStatus,
   SubscriptionTier,
@@ -54,8 +51,6 @@ export class StripeWebhookService {
     private readonly organizationsService: OrganizationsService,
     private readonly subscriptionAttributionsService: SubscriptionAttributionsService,
     private readonly userSubscriptionsService: UserSubscriptionsService,
-    private readonly checkoutService: CheckoutService,
-    private readonly purchasesService: PurchasesService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     @InjectModel(SkillReceipt.name, DB_CONNECTIONS.CLOUD)
     private readonly skillReceiptModel: Model<SkillReceiptDocument>,
@@ -95,29 +90,8 @@ export class StripeWebhookService {
         break;
       }
 
-      case 'charge.dispute.created': {
-        await this.handleChargeDisputeCreated(
-          event.data.object as Stripe.Dispute,
-          url,
-        );
-        break;
-      }
-
-      case 'charge.dispute.closed': {
-        await this.handleChargeDisputeClosed(
-          event.data.object as Stripe.Dispute,
-          url,
-        );
-        break;
-      }
-
-      case 'charge.refunded': {
-        await this.handleChargeRefunded(
-          event.data.object as Stripe.Charge,
-          url,
-        );
-        break;
-      }
+      // charge.dispute.created, charge.dispute.closed, charge.refunded
+      // for marketplace purchases are now handled by the marketplace service.
 
       case 'customer.created': {
         this.handleCustomerCreated(event.data.object, url);
@@ -421,14 +395,6 @@ export class StripeWebhookService {
         return;
       }
 
-      // Check if this is a marketplace purchase
-      const isMarketplacePurchase = session.metadata?.type === 'marketplace';
-
-      if (isMarketplacePurchase) {
-        await this.handleMarketplaceCheckoutCompleted(session, url);
-        return;
-      }
-
       // Organization-level payment handling below
       if (session.mode === 'subscription') {
         // Subscription checkout - the subscription.created event will handle the creation
@@ -702,56 +668,6 @@ export class StripeWebhookService {
       sessionId: session.id,
       userId,
     });
-  }
-
-  /**
-   * Handle marketplace checkout completion
-   * Completes the purchase and updates listing statistics
-   */
-  private async handleMarketplaceCheckoutCompleted(
-    session: Stripe.Checkout.Session,
-    url: string,
-  ) {
-    try {
-      const purchaseId = session.metadata?.purchaseId;
-      const listingId = session.metadata?.listingId;
-
-      if (!purchaseId) {
-        this.loggerService.warn(
-          `${url} marketplace checkout missing purchaseId`,
-          {
-            sessionId: session.id,
-          },
-        );
-        return;
-      }
-
-      // Complete the purchase using CheckoutService
-      const result =
-        await this.checkoutService.handleSuccessfulCheckout(session);
-
-      if (result.success) {
-        this.loggerService.log(`${url} marketplace purchase completed`, {
-          listingId,
-          purchaseId,
-          sessionId: session.id,
-        });
-      } else {
-        this.loggerService.warn(
-          `${url} marketplace purchase failed to complete`,
-          {
-            listingId,
-            purchaseId,
-            sessionId: session.id,
-          },
-        );
-      }
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `${url} failed to handle marketplace checkout completed`,
-        error,
-      );
-    }
   }
 
   private async handleSkillsProCheckoutCompleted(
@@ -1502,160 +1418,8 @@ export class StripeWebhookService {
     }
   }
 
-  /**
-   * Handle charge.dispute.created — mark the related purchase as disputed
-   */
-  private async handleChargeDisputeCreated(
-    dispute: Stripe.Dispute,
-    url: string,
-  ) {
-    try {
-      const paymentIntentId =
-        typeof dispute.payment_intent === 'string'
-          ? dispute.payment_intent
-          : dispute.payment_intent?.id;
-
-      if (!paymentIntentId) {
-        this.loggerService.warn(`${url} dispute missing payment_intent`, {
-          disputeId: dispute.id,
-        });
-        return;
-      }
-
-      const purchase = await this.purchasesService.findOne({
-        stripePaymentIntentId: paymentIntentId,
-      });
-
-      if (purchase) {
-        await this.purchasesService.patch(purchase._id.toString(), {
-          status: PurchaseStatus.DISPUTED,
-        });
-
-        this.loggerService.log(`${url} purchase marked as disputed`, {
-          disputeId: dispute.id,
-          paymentIntentId,
-          purchaseId: purchase._id,
-          reason: dispute.reason,
-        });
-      } else {
-        this.loggerService.warn(
-          `${url} no purchase found for disputed payment intent`,
-          { disputeId: dispute.id, paymentIntentId },
-        );
-      }
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `${url} failed to handle charge.dispute.created`,
-        error,
-      );
-    }
-  }
-
-  /**
-   * Handle charge.dispute.closed — update purchase based on dispute outcome
-   * If the dispute was won, restore the purchase to completed status
-   */
-  private async handleChargeDisputeClosed(
-    dispute: Stripe.Dispute,
-    url: string,
-  ) {
-    try {
-      const paymentIntentId =
-        typeof dispute.payment_intent === 'string'
-          ? dispute.payment_intent
-          : dispute.payment_intent?.id;
-
-      if (!paymentIntentId) {
-        this.loggerService.warn(
-          `${url} dispute.closed missing payment_intent`,
-          { disputeId: dispute.id },
-        );
-        return;
-      }
-
-      const purchase = await this.purchasesService.findOne({
-        stripePaymentIntentId: paymentIntentId,
-      });
-
-      if (purchase) {
-        // If merchant won the dispute, restore to completed; otherwise keep disputed
-        const newStatus =
-          dispute.status === 'won'
-            ? PurchaseStatus.COMPLETED
-            : PurchaseStatus.DISPUTED;
-
-        await this.purchasesService.patch(purchase._id.toString(), {
-          status: newStatus,
-        });
-
-        this.loggerService.log(`${url} dispute closed`, {
-          disputeId: dispute.id,
-          newStatus,
-          outcome: dispute.status,
-          purchaseId: purchase._id,
-        });
-      } else {
-        this.loggerService.warn(`${url} no purchase found for closed dispute`, {
-          disputeId: dispute.id,
-          paymentIntentId,
-        });
-      }
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `${url} failed to handle charge.dispute.closed`,
-        error,
-      );
-    }
-  }
-
-  /**
-   * Handle charge.refunded — mark the related purchase as refunded
-   */
-  private async handleChargeRefunded(charge: Stripe.Charge, url: string) {
-    try {
-      const paymentIntentId =
-        typeof charge.payment_intent === 'string'
-          ? charge.payment_intent
-          : charge.payment_intent?.id;
-
-      if (!paymentIntentId) {
-        this.loggerService.warn(
-          `${url} refunded charge missing payment_intent`,
-          {
-            chargeId: charge.id,
-          },
-        );
-        return;
-      }
-
-      const purchase = await this.purchasesService.findOne({
-        stripePaymentIntentId: paymentIntentId,
-      });
-
-      if (purchase) {
-        await this.purchasesService.patch(purchase._id.toString(), {
-          status: PurchaseStatus.REFUNDED,
-        });
-
-        this.loggerService.log(`${url} purchase marked as refunded`, {
-          amountRefunded: charge.amount_refunded,
-          chargeId: charge.id,
-          paymentIntentId,
-          purchaseId: purchase._id,
-        });
-      } else {
-        this.loggerService.warn(
-          `${url} no purchase found for refunded charge`,
-          { chargeId: charge.id, paymentIntentId },
-        );
-      }
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `${url} failed to handle charge.refunded`,
-        error,
-      );
-    }
-  }
+  // NOTE: charge.dispute.created, charge.dispute.closed, and charge.refunded
+  // for marketplace purchases are now handled by the marketplace service directly.
 
   private handleCustomerCreated(customer: Stripe.Customer, url: string) {
     try {

@@ -10,7 +10,6 @@ export * from '../configs/elements';
 export * from '../configs/ingredients';
 export * from '../configs/integrations';
 export * from '../configs/management';
-export * from '../configs/marketplace';
 export * from '../configs/organizations';
 export * from '../configs/threads';
 export * from '../configs/users';

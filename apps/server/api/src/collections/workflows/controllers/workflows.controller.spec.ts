@@ -9,8 +9,7 @@ import { WorkflowGenerationService } from '@api/collections/workflows/services/w
 import { WorkflowSchedulerService } from '@api/collections/workflows/services/workflow-scheduler.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
-import { ListingsService } from '@api/marketplace/listings/services/listings.service';
-import { SellersService } from '@api/marketplace/sellers/services/sellers.service';
+import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import type { User } from '@clerk/backend';
 import { WorkflowStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -98,11 +97,7 @@ describe('WorkflowsController', () => {
           useValue: mockWorkflowExecutorService,
         },
         {
-          provide: ListingsService,
-          useValue: {},
-        },
-        {
-          provide: SellersService,
+          provide: MarketplaceApiClient,
           useValue: {},
         },
         {

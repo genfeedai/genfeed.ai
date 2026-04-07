@@ -9,7 +9,6 @@ export * from '../attributes/elements';
 export * from '../attributes/ingredients';
 export * from '../attributes/integrations';
 export * from '../attributes/management';
-export * from '../attributes/marketplace';
 export * from '../attributes/organizations';
 export * from '../attributes/threads';
 export * from '../attributes/users';

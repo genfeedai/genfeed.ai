@@ -50,8 +50,6 @@
     "lint": "bun run scripts/check-request-context-usage.ts && biome lint --write src",
     "seed:demo": "bun run scripts/seeds/demo.seed.ts",
     "seed:demo:dry": "bun run scripts/seeds/demo.seed.ts --dry-run",
-    "seed:marketplace": "bun run scripts/seeds/marketplace.seed.ts",
-    "seed:marketplace:dry": "bun run scripts/seeds/marketplace.seed.ts --dry-run",
     "seed:models": "bun run scripts/seeds/models.seed.ts",
     "seed:models:dry": "bun run scripts/seeds/models.seed.ts --dry-run",
     "seed:workflows": "bun run scripts/seeds/workflows.seed.ts",

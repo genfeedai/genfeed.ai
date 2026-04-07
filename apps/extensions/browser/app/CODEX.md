@@ -14,6 +14,6 @@ Codex-specific entry point. Plasmo-based Chrome/Firefox extension for Genfeed.ai
 
 ## Documentation
 
-- `../../../../.agents/README.md` - Cloud project guide
+- `../../../../.agents/README.md` - Project guide
 - `CLAUDE.md` - Full reference
-- `../../../../CLAUDE.md` - Cloud monorepo reference
+- `../../../../CLAUDE.md` - Monorepo reference

@@ -32,8 +32,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { ListingsService } from '@api/marketplace/listings/services/listings.service';
-import { SellersService } from '@api/marketplace/sellers/services/sellers.service';
+import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
@@ -89,8 +88,8 @@ export class PromptsController {
     private readonly openRouterService: OpenRouterService,
     private readonly websocketService: NotificationsPublisherService,
     @Optional() readonly _templatesService?: TemplatesService,
-    @Optional() private readonly listingsService?: ListingsService,
-    @Optional() private readonly sellersService?: SellersService,
+    @Optional()
+    private readonly marketplaceApiClient?: MarketplaceApiClient,
   ) {}
 
   @Post()
@@ -413,7 +412,7 @@ export class PromptsController {
       return returnNotFound(this.constructorName, promptId);
     }
 
-    if (!this.sellersService || !this.listingsService) {
+    if (!this.marketplaceApiClient) {
       return {
         data: {
           attributes: { message: 'Marketplace services not available' },
@@ -423,7 +422,9 @@ export class PromptsController {
       };
     }
 
-    const seller = await this.sellersService.findByUserId(publicMetadata.user);
+    const seller = await this.marketplaceApiClient.getSellerByUserId(
+      publicMetadata.user,
+    );
 
     if (!seller) {
       return {
@@ -438,7 +439,7 @@ export class PromptsController {
     const promptDoc = prompt as unknown;
     const promptText = promptDoc.text || promptDoc.title || 'Untitled Prompt';
 
-    const listing = await this.listingsService.createListing(
+    const listing = await this.marketplaceApiClient.createListing(
       seller._id.toString(),
       publicMetadata.organization,
       {
@@ -458,12 +459,22 @@ export class PromptsController {
         shortDescription: promptText.slice(0, 300),
         tags: ['community', 'prompt'],
         title: promptDoc.title || 'Untitled Prompt',
-        type: 'prompt' as unknown,
+        type: 'prompt',
       },
     );
 
+    if (!listing) {
+      return {
+        data: {
+          attributes: { message: 'Failed to create marketplace listing' },
+          id: promptId,
+          type: 'error',
+        },
+      };
+    }
+
     // Auto-approve
-    await this.listingsService.submitForReview(
+    await this.marketplaceApiClient.submitForReview(
       listing._id.toString(),
       seller._id.toString(),
     );
