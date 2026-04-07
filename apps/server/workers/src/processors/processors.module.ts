@@ -1,17 +1,14 @@
 /**
- * Processors Module
+ * Processors Module (Workers)
  *
- * Centralizes all BullMQ @Processor workers that were previously running
- * inside the API process. Moving them here ensures heavy job processing
- * does not compete with HTTP request handling for CPU time.
+ * Registers all BullMQ @Processor classes that were previously running
+ * inside the API process. Moving them here ensures the API only serves
+ * HTTP traffic while workers handle background job processing.
  *
- * Queue *producers* (services that enqueue jobs) remain in the API —
- * only the *consumers* (@Processor classes) live here.
- *
- * @see https://github.com/genfeedai/genfeed.ai/issues/84
+ * Issue: #84
  */
 
-// --- Dependency modules ---
+// --- Dependency modules (services/collections these processors inject from) ---
 import { AdBulkUploadJobsModule } from '@api/collections/ad-bulk-upload-jobs/ad-bulk-upload-jobs.module';
 import { AdCreativeMappingsModule } from '@api/collections/ad-creative-mappings/ad-creative-mappings.module';
 import { AdOptimizationAuditLogsModule } from '@api/collections/ad-optimization-audit-logs/ad-optimization-audit-logs.module';
@@ -35,10 +32,10 @@ import { PostsModule } from '@api/collections/posts/posts.module';
 import { ReplyBotConfigsModule } from '@api/collections/reply-bot-configs/reply-bot-configs.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { BatchWorkflowProcessor } from '@api/collections/workflows/services/batch-workflow.processor';
-import { WorkflowExecutionProcessor as CollectionWorkflowExecutionProcessor } from '@api/collections/workflows/services/workflow-execution.processor';
+import { WorkflowExecutionProcessor as CollectionsWorkflowExecutionProcessor } from '@api/collections/workflows/services/workflow-execution.processor';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { WorkspaceTasksModule } from '@api/collections/workspace-tasks/workspace-tasks.module';
-import { ConfigModule as ApiConfigModule } from '@api/config/config.module';
+import { ConfigModule } from '@api/config/config.module';
 // --- queues/ processors ---
 import { AdBulkUploadProcessor } from '@api/queues/ad-bulk-upload/ad-bulk-upload.processor';
 import { AdInsightsAggregationProcessor } from '@api/queues/ad-insights-aggregation/ad-insights-aggregation.processor';
@@ -60,8 +57,8 @@ import { PatternExtractionProcessor } from '@api/queues/pattern-extraction/patte
 import { ReplyBotPollingProcessor } from '@api/queues/reply-bot/reply-bot-polling.processor';
 import { TelegramDistributeProcessor } from '@api/queues/telegram-distribute/telegram-distribute.processor';
 import {
+  WorkflowExecutionProcessor as QueuesWorkflowExecutionProcessor,
   WorkflowDelayProcessor,
-  WorkflowExecutionProcessor,
 } from '@api/queues/workflow/workflow-execution.processor';
 import { AgentCampaignOrchestratorModule } from '@api/services/agent-campaign/agent-campaign-orchestrator.module';
 // --- services/ processors ---
@@ -86,6 +83,7 @@ import { TwitterModule } from '@api/services/integrations/twitter/twitter.module
 import { YoutubeModule } from '@api/services/integrations/youtube/youtube.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
+import { SkillExecutorModule } from '@api/services/skill-executor/skill-executor.module';
 import { TaskOrchestrationModule } from '@api/services/task-orchestration/task-orchestration.module';
 import { WorkspaceTaskProcessor } from '@api/services/task-orchestration/workspace-task.processor';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
@@ -102,7 +100,9 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     LoggerModule,
     HttpModule,
     WorkersQueuesModule,
-    ApiConfigModule,
+
+    // Config
+    forwardRef(() => ConfigModule),
 
     // Collection modules (provide services injected by processors)
     forwardRef(() => AdBulkUploadJobsModule),
@@ -141,6 +141,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     forwardRef(() => NotificationsModule),
     forwardRef(() => PinterestModule),
     forwardRef(() => ReplyBotModule),
+    forwardRef(() => SkillExecutorModule),
     forwardRef(() => TaskOrchestrationModule),
     forwardRef(() => TelegramDistributionModule),
     forwardRef(() => TiktokModule),
@@ -150,7 +151,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     forwardRef(() => YoutubeModule),
   ],
   providers: [
-    // queues/ processors (20 from core queues.module + 2 from dedicated modules)
+    // --- queues/ processors (20) ---
     AdBulkUploadProcessor,
     AdInsightsAggregationProcessor,
     AdOptimizationProcessor,
@@ -170,10 +171,10 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     PatternExtractionProcessor,
     ReplyBotPollingProcessor,
     TelegramDistributeProcessor,
-    WorkflowExecutionProcessor,
+    QueuesWorkflowExecutionProcessor,
     WorkflowDelayProcessor,
 
-    // services/ processors (8)
+    // --- services/ processors (8) ---
     BatchContentProcessor,
     CampaignMemoryProcessor,
     ContentOptimizationProcessor,
@@ -183,10 +184,10 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     WebhookClientProcessor,
     WorkspaceTaskProcessor,
 
-    // collections/ processors (3)
+    // --- collections/ processors (3) ---
     ArticleGenerationProcessor,
     BatchWorkflowProcessor,
-    CollectionWorkflowExecutionProcessor,
+    CollectionsWorkflowExecutionProcessor,
   ],
 })
 export class ProcessorsModule {}

@@ -26,7 +26,6 @@ import { forwardRef, Module } from '@nestjs/common';
       name: 'batch-content',
     }),
   ],
-  // BatchContentProcessor moved to workers ProcessorsModule (issue #84)
   providers: [BatchContentService, BatchContentQueueService],
 })
 export class BatchContentModule {}
