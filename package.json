@@ -66,6 +66,7 @@
     "dev:app:fe": "bunx turbo dev --filter=@genfeedai/app",
     "dev:backend": "bunx turbo dev --filter=@genfeedai/api --filter=@genfeedai/files --filter=@genfeedai/mcp --filter=@genfeedai/notifications --filter=@genfeedai/workers",
     "dev:desktop": "bunx turbo dev --filter=@genfeedai/desktop",
+    "dev:docs": "bunx turbo dev --filter=@genfeedai/docs",
     "dev:frontend": "bunx turbo dev --filter=@genfeedai/app --filter=@genfeedai/website --concurrency=3",
     "dev:website:fe": "bunx turbo dev --filter=@genfeedai/website",
     "docker:build-all": "docker compose -f docker/docker-compose.yml build",

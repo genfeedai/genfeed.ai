@@ -1,0 +1,79 @@
+import { Callout } from 'nextra/components'
+
+# Self-Hosted vs. Cloud
+
+GenFeed is available as an open source core (self-hosted) and a fully managed cloud platform. Here's how to decide.
+
+## Comparison
+
+| | Self-Hosted (Core) | GenFeed Cloud |
+|---|---|---|
+| **Setup** | You manage infrastructure | Instant — sign up and start |
+| **Cost** | Your compute + API costs | Subscription (free tier available) |
+| **Image generation** | Yes | Yes |
+| **Video generation** | Yes | Yes |
+| **Brand kits** | Yes | Yes |
+| **Model selection** | Full control (any model) | Curated best models |
+| **Multi-tenancy** | No | Yes — manage multiple brands |
+| **Publisher** | No | Yes — auto-post to X, LinkedIn, Instagram, YouTube |
+| **Analytics** | No | Yes — engagement, revenue per post |
+| **Team collaboration** | No | Yes — roles, approvals, workspaces |
+| **Manager (templates, ingredients)** | No | Yes |
+| **Studio (full editor)** | No | Yes |
+| **Marketplace** | No | Yes — prompts, workflows, brand kits |
+| **API** | Yes (REST) | Yes (REST + SDK) |
+| **Webhooks** | Yes | Yes |
+| **NSFW content** | Yes (your models) | SFW only |
+| **Support** | Community (GitHub) | Priority support + SLA |
+| **Updates** | Manual (git pull) | Automatic |
+| **License** | AGPL-3.0 | Commercial |
+
+## When to Self-Host
+
+Self-hosting is right for you if:
+
+- You need **NSFW content support** (bring your own models)
+- You want **full control** over models, data, and infrastructure
+- You're a developer who prefers to run their own stack
+- You have existing infrastructure (Kubernetes, Docker, etc.)
+- You need to keep data on-premises for compliance
+
+## When to Use Cloud
+
+GenFeed Cloud is right for you if:
+
+- You want to **start generating content immediately**
+- You need **multi-brand management** (agencies, teams)
+- You want **auto-publishing** to social platforms
+- You need **analytics and performance tracking**
+- You want a **collaborative workspace** for your team
+- You prefer **managed infrastructure** with zero DevOps
+
+## Cost Comparison
+
+### Self-Hosted
+- **Infrastructure:** $20-100/month (VPS or cloud server)
+- **AI API costs:** Variable (Replicate ~$0.003-0.05/image, fal.ai similar)
+- **Your time:** Setup, maintenance, updates, monitoring
+
+### Cloud
+- **Subscription:** Free tier available, paid plans from $29/month
+- **Per-use pricing:** Images and video billed per asset
+- **Your time:** Zero infrastructure management
+
+<Callout type="info">
+**The math:** If you generate fewer than 500 images/month, Cloud is more cost-effective when you factor in infrastructure and maintenance time. Above 500/month, self-hosting saves money — but you lose Publisher, Analytics, and multi-tenancy.
+</Callout>
+
+## Migration Path
+
+Start with either option — migration is straightforward:
+
+**Core → Cloud:** Export your brand kits and templates, import into Cloud. Your content and settings transfer.
+
+**Cloud → Core:** Export your configuration. Self-host with the same brand kits and generation settings.
+
+## Get Started
+
+- **Self-Hosted:** [Self-Host GenFeed in 5 Minutes](/guides/self-host-quickstart)
+- **Cloud:** [Sign up for GenFeed Cloud](https://genfeed.ai)
