@@ -1,0 +1,15 @@
+version = 1
+name = "genfeed"
+
+[setup]
+script = "bun install"
+
+[[actions]]
+name = "Lint"
+icon = "check"
+command = "bunx turbo lint"
+
+[[actions]]
+name = "Type Check"
+icon = "shield"
+command = "bun type-check"
