@@ -81,7 +81,7 @@
     "test": "bunx turbo test",
     "test:e2e": "bunx playwright test",
     "test:e2e:full": "bunx playwright test --config=playwright-full.config.ts",
-    "typecheck": "bunx turbo type-check",
+    "type-check": "bunx turbo type-check",
     "secretlint": "secretlint '**/*'"
   },
   "lint-staged": {
