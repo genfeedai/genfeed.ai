@@ -111,11 +111,12 @@ export default function FormColorPicker({
 
           {displayColorPicker && (
             <>
-              <button
+              <Button
                 type="button"
+                variant={ButtonVariant.UNSTYLED}
                 className="fixed inset-0 z-10"
                 onClick={handleClose}
-                aria-label="Close color picker"
+                ariaLabel="Close color picker"
               />
               <div
                 className={`absolute z-20 mt-2 ${position === 'right' ? 'right-0' : 'left-0'}`}

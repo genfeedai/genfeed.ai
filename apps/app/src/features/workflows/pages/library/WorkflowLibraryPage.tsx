@@ -133,8 +133,9 @@ function WorkflowCardDropdown({
 
   return (
     <div ref={dropdownRef} className="relative">
-      <button
+      <Button
         type="button"
+        variant={ButtonVariant.UNSTYLED}
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -143,12 +144,13 @@ function WorkflowCardDropdown({
         className="rounded p-1 text-foreground/40 transition-colors hover:bg-white/[0.06] hover:text-foreground"
       >
         <HiOutlineEllipsisVertical className="size-4" />
-      </button>
+      </Button>
 
       {isOpen && (
         <div className="absolute right-0 top-7 z-20 min-w-[140px] rounded-lg border border-white/10 bg-card py-1 shadow-lg">
-          <button
+          <Button
             type="button"
+            variant={ButtonVariant.UNSTYLED}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -159,9 +161,10 @@ function WorkflowCardDropdown({
           >
             <HiOutlineDocumentDuplicate className="size-4" />
             Duplicate
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant={ButtonVariant.UNSTYLED}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -172,7 +175,7 @@ function WorkflowCardDropdown({
           >
             <HiOutlineTrash className="size-4" />
             Delete
-          </button>
+          </Button>
         </div>
       )}
     </div>

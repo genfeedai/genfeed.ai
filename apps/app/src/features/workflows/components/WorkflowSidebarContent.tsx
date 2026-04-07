@@ -1,10 +1,12 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import { Kbd } from '@genfeedai/ui';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
+import Button from '@ui/buttons/base/Button';
 import SidebarBackRow from '@ui/menus/sidebar-back-row/SidebarBackRow';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -89,8 +91,9 @@ export function WorkflowSidebarContent({
     <div className="flex h-full flex-col">
       <SidebarBackRow label="Automations" href={href('/overview')} />
       <div className="px-3 py-2">
-        <button
+        <Button
           type="button"
+          variant={ButtonVariant.UNSTYLED}
           onClick={handleOpenSearch}
           className="flex w-full items-center gap-3 rounded border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-white/40 transition-colors duration-150 hover:border-white/[0.12] hover:bg-white/[0.06] hover:text-white/60"
         >
@@ -99,7 +102,7 @@ export function WorkflowSidebarContent({
           <Kbd variant="subtle" size="xs">
             {'\u2318'}K
           </Kbd>
-        </button>
+        </Button>
       </div>
 
       {/* Header */}

@@ -1,5 +1,6 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import { usePaneActions } from '@genfeedai/workflow-ui/hooks';
 import {
   selectIsDirty,
@@ -7,6 +8,7 @@ import {
   useWorkflowStore,
 } from '@genfeedai/workflow-ui/stores';
 import { SaveIndicator, Toolbar } from '@genfeedai/workflow-ui/toolbar';
+import Button from '@ui/buttons/base/Button';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -110,14 +112,15 @@ export function CloudWorkflowToolbar({
                   className="cloud-workflow-title-input h-7 w-full rounded border border-border bg-secondary/70 px-2.5 text-sm font-medium text-foreground outline-none transition focus:border-primary/60 focus:bg-card focus:ring-1 focus:ring-primary/40"
                 />
               ) : (
-                <button
+                <Button
                   type="button"
+                  variant={ButtonVariant.UNSTYLED}
                   onClick={() => setIsEditing(true)}
                   className="cloud-workflow-title block max-w-full truncate text-left text-sm font-medium text-foreground transition hover:text-white"
-                  title="Rename workflow"
+                  tooltip="Rename workflow"
                 >
                   {workflowName || 'Untitled Workflow'}
-                </button>
+                </Button>
               )}
             </div>
           </div>

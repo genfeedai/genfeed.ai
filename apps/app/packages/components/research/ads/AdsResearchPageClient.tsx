@@ -259,8 +259,9 @@ function AdGridCard({
   const previewUrl = item.previewUrl || item.imageUrls?.[0];
 
   return (
-    <button
+    <Button
       type="button"
+      variant={ButtonVariant.UNSTYLED}
       onClick={() => onSelect(item)}
       className={cn(
         'group rounded-xl border border-white/[0.06] bg-card p-4 text-left transition-all duration-200 hover:border-white/[0.10]',
@@ -328,7 +329,7 @@ function AdGridCard({
           </span>
         )}
       </div>
-    </button>
+    </Button>
   );
 }
 

@@ -705,9 +705,10 @@ export default function StudioEditDetail({
                       })}
 
                       {results.map((result) => (
-                        <button
+                        <Button
                           key={result.id}
                           type="button"
+                          variant={ButtonVariant.UNSTYLED}
                           onClick={() =>
                             router.push(href(`/edit/${result.id}`))
                           }
@@ -749,7 +750,7 @@ export default function StudioEditDetail({
                               </p>
                             )}
                           </Card>
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </div>
