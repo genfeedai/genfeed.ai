@@ -175,7 +175,6 @@ import mongooseAggregatePaginateV2 from 'mongoose-aggregate-paginate-v2';
     TwitterSocialAdapter,
     InstagramSocialAdapter,
     SocialAdapterFactory,
-    // BatchWorkflowProcessor + WorkflowExecutionProcessor moved to workers (issue #84)
     BatchWorkflowQueueService,
     BatchWorkflowService,
     WorkflowEngineAdapterService,
