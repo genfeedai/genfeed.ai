@@ -10,8 +10,8 @@
     "@tiptap/react": "3.22.2",
     "@tiptap/starter-kit": "3.22.2",
     "@tiptap/suggestion": "3.22.2",
-    "effect": "^3.21.0",
-    "lucide-react": "^1.7.0",
+    "effect": "3.21.0",
+    "lucide-react": "1.7.0",
     "react-markdown": "10.1.0",
     "remark-gfm": "4.0.1",
     "zustand": "5.0.12"

@@ -1,0 +1,69 @@
+# Configuration
+
+Environment variables and settings for Genfeed Core.
+
+## Environment Variables
+
+Create a `.env.local` file in your project root:
+
+```bash
+cp .env.example .env.local
+```
+
+### Required Variables
+
+```bash
+# Database
+MONGODB_URI=mongodb://localhost:27017/genfeed
+REDIS_URL=redis://localhost:6379
+
+# API Keys (at least one required)
+OPENAI_API_KEY=sk-...
+REPLICATE_API_TOKEN=r8_...
+ANTHROPIC_API_KEY=sk-ant-...
+```
+
+### Optional Variables
+
+```bash
+# ElevenLabs (for voice)
+ELEVENLABS_API_KEY=...
+
+# Google (for Gemini)
+GOOGLE_API_KEY=...
+
+# Storage (defaults to local)
+S3_BUCKET=...
+S3_REGION=...
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+```
+
+## Database Setup
+
+### MongoDB
+
+```bash
+# macOS
+brew install mongodb-community
+brew services start mongodb-community
+
+# Docker
+docker run -d -p 27017:27017 mongo:6
+```
+
+### Redis
+
+```bash
+# macOS
+brew install redis
+brew services start redis
+
+# Docker
+docker run -d -p 6379:6379 redis:7
+```
+
+## Next Steps
+
+- [Installation Guide](/core/installation) — Full setup walkthrough
+- [Contributing](/core/contributing) — How to contribute

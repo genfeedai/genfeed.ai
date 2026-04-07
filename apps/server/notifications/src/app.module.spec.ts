@@ -20,7 +20,7 @@ describe('AppModule (Notifications)', () => {
       DISCORD_CLIENT_ID: process.env.DISCORD_CLIENT_ID || 'discord-client',
       DISCORD_GUILD_ID: process.env.DISCORD_GUILD_ID || 'discord-guild',
       GENFEEDAI_API_URL:
-        process.env.GENFEEDAI_API_URL || 'http://localhost:3001',
+        process.env.GENFEEDAI_API_URL || 'http://localhost:3010',
       NODE_ENV: process.env.NODE_ENV || 'test',
       PORT: process.env.PORT || '3007',
       RESEND_API_KEY: 're_test_key',

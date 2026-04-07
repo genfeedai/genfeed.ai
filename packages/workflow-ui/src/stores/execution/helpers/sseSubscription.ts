@@ -12,7 +12,7 @@ import type {
 import { getOutputUpdate } from './outputHelpers';
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://local.genfeed.ai:3001/api';
+  process.env.NEXT_PUBLIC_API_URL || 'http://local.genfeed.ai:3010/api';
 
 /**
  * Status map for converting execution statuses to node statuses

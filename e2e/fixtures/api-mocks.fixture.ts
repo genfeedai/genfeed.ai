@@ -44,7 +44,7 @@ interface MockAvatarIdentityFixture {
   parent?: string;
 }
 
-const LOCAL_API = 'http://local.genfeed.ai:3001/v1';
+const LOCAL_API = 'http://local.genfeed.ai:3010/v1';
 
 function buildAvatarIdentityFixture(
   overrides: Partial<MockAvatarIdentityFixture>,

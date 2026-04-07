@@ -441,16 +441,16 @@ export class McpController {
             <div class="section">
                 <h2>🔌 Connection Details</h2>
                 <div class="endpoint">
-                    <strong>Server Endpoint:</strong> http://localhost:3004
+                    <strong>Server Endpoint:</strong> http://localhost:3014
                 </div>
                 <div class="endpoint">
-                    <strong>Health Check:</strong> GET http://localhost:3004/v1/health
+                    <strong>Health Check:</strong> GET http://localhost:3014/v1/health
                 </div>
                 <div class="endpoint">
-                    <strong>Configuration:</strong> GET http://localhost:3004/config
+                    <strong>Configuration:</strong> GET http://localhost:3014/config
                 </div>
                 <div class="endpoint">
-                    <strong>Example:</strong> GET http://localhost:3004/example
+                    <strong>Example:</strong> GET http://localhost:3014/example
                 </div>
             </div>
 
@@ -485,7 +485,7 @@ GENFEEDAI_API_URL=https://api.genfeed.ai
       "args": ["/path/to/genfeed/dist/mcp/main.js"],
       "env": {
         "NODE_ENV": "production",
-        "MCP_PORT": "3003",
+        "MCP_PORT": "3014",
         "GENFEEDAI_API_URL": "https://api.genfeed.ai",
         "GENFEED_API_KEY": "your-api-key-here"
       }

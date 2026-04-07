@@ -27,7 +27,7 @@ import {
  *    through without checking subscription / onboarding completion.
  *
  * 3. Backend API  — setupApiMocks intercepts all API calls to both the prod
- *    host (api.genfeed.ai) and the local dev host (local.genfeed.ai:3001).
+ *    host (api.genfeed.ai) and the local dev host (local.genfeed.ai:3010).
  *
  * Route ordering note: Playwright checks routes in REVERSE registration order
  * (last-registered = highest priority). setupClerkMocks() must therefore be
@@ -443,7 +443,7 @@ async function setupClerkMocks(
           captcha_public_key: null,
           captcha_widget_type: null,
           favicon_image_url: null,
-          home_url: 'http://localhost:3102',
+          home_url: 'http://localhost:3000',
           logo_image_url: null,
           preferred_sign_in_strategy: 'password',
           sign_in_url: '/login',
@@ -514,7 +514,7 @@ async function setupClerkMocks(
             captcha_public_key: null,
             captcha_widget_type: null,
             favicon_image_url: null,
-            home_url: 'http://localhost:3102',
+            home_url: 'http://localhost:3000',
             logo_image_url: null,
             preferred_sign_in_strategy: 'password',
             sign_in_url: '/login',
