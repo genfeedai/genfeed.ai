@@ -7,7 +7,6 @@ import { BrandsModule } from '@api/collections/brands/brands.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
-// Processors removed — now in workers ProcessorsModule (issue #84)
 import { CampaignMemoryQueueService } from '@api/services/agent-campaign/campaign-memory-queue.service';
 import { ContentEngineService } from '@api/services/agent-campaign/content-engine.service';
 import {
@@ -70,7 +69,6 @@ import { forwardRef, Module } from '@nestjs/common';
     }),
   ],
   providers: [
-    // Processors moved to workers ProcessorsModule (issue #84)
     CampaignMemoryQueueService,
     ContentEngineService,
     OrchestratorQueueService,

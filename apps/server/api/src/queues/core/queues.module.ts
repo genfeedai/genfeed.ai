@@ -1,21 +1,12 @@
 /**
  * Queues Module
  *
- * BullMQ job queue management: configure Redis-backed queues for async
- * processing. This module is the producer side — it registers queue
- * definitions and queue services that enqueue jobs.
- *
- * All @Processor consumers have been moved to the Workers service
- * (ProcessorsModule) as of issue #84 to prevent heavy jobs from
- * competing with HTTP request handling for CPU time.
+ * BullMQ queue registration and queue service providers for the API process.
+ * Processor classes have been moved to the Workers service (issue #84) --
+ * this module only registers queues and queue services so the API can
+ * enqueue jobs without consuming them.
  */
 
-import { CredentialsModule } from '@api/collections/credentials/credentials.module';
-import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
-import { OutreachCampaignsModule } from '@api/collections/outreach-campaigns/outreach-campaigns.module';
-import { ReplyBotConfigsModule } from '@api/collections/reply-bot-configs/reply-bot-configs.module';
-import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
-import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { ConfigModule } from '@api/config/config.module';
 import { ConfigService } from '@api/config/config.service';
 import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
@@ -29,7 +20,7 @@ import {
   parseRedisConnection,
 } from '@libs/redis/redis-connection.utils';
 import { BullModule } from '@nestjs/bullmq';
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 
 @Module({
   exports: [
@@ -41,14 +32,6 @@ import { forwardRef, Module } from '@nestjs/common';
     WorkspaceTaskQueueService,
   ],
   imports: [
-    // Modules needed by queue services (producers)
-    forwardRef(() => CredentialsModule),
-    forwardRef(() => OrganizationsModule),
-    forwardRef(() => OutreachCampaignsModule),
-    forwardRef(() => ReplyBotConfigsModule),
-    forwardRef(() => WorkflowsModule),
-    forwardRef(() => WorkflowExecutionsModule),
-
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
