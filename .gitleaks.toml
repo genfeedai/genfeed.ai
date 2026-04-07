@@ -13,7 +13,7 @@ keywords = ["gf_live_", "gf_test_"]
 description = "Global allowlist"
 paths = [
   '''node_modules''',
-  '''bun\.lockb''',
+  '''bun\.lock''',
   '''\.secretlintrc\.json''',
   '''\.gitleaks\.toml''',
   '''package-lock\.json''',
