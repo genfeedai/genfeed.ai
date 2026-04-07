@@ -1,0 +1,64 @@
+# Genfeed.ai API Overview
+
+Complete API documentation for integrating with genfeed.ai platform.
+
+## Introduction
+
+genfeed.ai is a B2B AI content creation and distribution platform. The API provides endpoints for content generation, management, distribution, and analytics.
+
+**Base URL:** `https://api.genfeed.ai/v1`
+
+**OpenAPI Spec:** https://api.genfeed.ai/v1/openapi.json
+
+**Authentication:** Clerk JWT tokens
+
+## Quick Start
+
+### 1. Get Authentication Token
+
+Authenticate with Clerk and get JWT token:
+
+```typescript
+import { useAuth } from '@clerk/nextjs';
+
+const { getToken } = useAuth();
+const token = await getToken();
+```
+
+### 2. Make API Request
+
+```typescript
+const response = await fetch('https://api.genfeed.ai/v1/posts', {
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  },
+});
+```
+
+### 3. Handle Response
+
+```typescript
+const data = await response.json();
+console.log(data);
+```
+
+## Core Features
+
+- **Content Generation**: Text, images, videos, music, voice
+- **Content Management**: Posts, ingredients, publications
+- **Account Management**: Social media accounts, credentials
+- **Analytics**: Performance tracking, insights
+- **Workflows**: Automated content creation and distribution
+
+## API Reference
+
+The full OpenAPI specification is available at https://api.genfeed.ai/v1/openapi.json
+
+For interactive API documentation, visit the [API Reference](/api-reference/reference) page.
+
+## Support
+
+- **Documentation**: https://docs.genfeed.ai
+- **API Reference**: https://api.genfeed.ai/v1/openapi.json
+- **Support**: support@genfeed.ai

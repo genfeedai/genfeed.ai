@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { server } from '@/test/mocks/server';
 import { ApiError, apiClient } from './client';
 
-const API_BASE_URL = 'http://local.genfeed.ai:4001/api';
+const API_BASE_URL = 'http://local.genfeed.ai:3010/api';
 
 describe('apiClient', () => {
   const mockResponse = { data: 'test' };

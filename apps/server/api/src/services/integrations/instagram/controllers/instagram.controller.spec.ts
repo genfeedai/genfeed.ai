@@ -107,7 +107,7 @@ describe('InstagramController', () => {
       },
     } as unknown as User;
     const mockRequest = {
-      headers: { host: 'localhost:3001' },
+      headers: { host: 'localhost:3010' },
       protocol: 'http',
       url: '/services/instagram/connect',
     } as unknown as Request;

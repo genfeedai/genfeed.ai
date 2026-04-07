@@ -244,7 +244,7 @@ export class YoutubeProcessor extends WorkerHost {
    */
   private async callWhisperAPI(audioPath: string): Promise<string> {
     // Internal service communication - use localhost
-    const apiUrl = 'http://localhost:3001/speech/transcribe/audio';
+    const apiUrl = 'http://localhost:3010/speech/transcribe/audio';
 
     try {
       // Read the audio file
@@ -280,7 +280,7 @@ export class YoutubeProcessor extends WorkerHost {
     additionalData: unknown = {},
   ): Promise<void> {
     // Internal service communication - use localhost
-    const apiUrl = `http://localhost:3001/transcripts/${transcriptId}`;
+    const apiUrl = `http://localhost:3010/transcripts/${transcriptId}`;
 
     try {
       await firstValueFrom(
@@ -298,7 +298,7 @@ export class YoutubeProcessor extends WorkerHost {
     transcriptId: string,
     update: Record<string, unknown>,
   ): Promise<void> {
-    const apiUrl = `http://localhost:3001/transcripts/${transcriptId}`;
+    const apiUrl = `http://localhost:3010/transcripts/${transcriptId}`;
 
     try {
       await firstValueFrom(this.httpService.patch(apiUrl, update));
@@ -315,7 +315,7 @@ export class YoutubeProcessor extends WorkerHost {
     transcriptText: string,
   ): Promise<void> {
     // Internal service communication - use localhost
-    const apiUrl = `http://localhost:3001/transcripts/${transcriptId}`;
+    const apiUrl = `http://localhost:3010/transcripts/${transcriptId}`;
 
     try {
       await firstValueFrom(
@@ -353,7 +353,7 @@ export class YoutubeProcessor extends WorkerHost {
   private async fetchVideoMetadata(
     youtubeId: string,
   ): Promise<YoutubeMetadata | null> {
-    const apiUrl = `http://localhost:3001/services/youtube/metadata/${youtubeId}`;
+    const apiUrl = `http://localhost:3010/services/youtube/metadata/${youtubeId}`;
 
     try {
       const apiKey = this.configService.get('GENFEEDAI_API_KEY');

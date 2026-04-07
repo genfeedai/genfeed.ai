@@ -9,10 +9,10 @@ describe('ConfigService', () => {
     env.NODE_ENV = 'test';
     env.SENTRY_ENVIRONMENT = 'test';
     env.SENTRY_DSN = 'https://test@sentry.io/test';
-    env.GENFEEDAI_API_URL = 'http://localhost:3001';
+    env.GENFEEDAI_API_URL = 'http://localhost:3010';
     env.GENFEEDAI_APP_URL = 'http://localhost:3000';
     env.GENFEEDAI_CDN_URL = 'http://localhost:3002';
-    env.GENFEEDAI_WEBHOOKS_URL = 'http://localhost:3001';
+    env.GENFEEDAI_WEBHOOKS_URL = 'http://localhost:3010';
     env.AWS_REGION = 'us-west-1';
     env.AWS_S3_BUCKET = 'test-bucket';
     env.AWS_ACCESS_KEY_ID = 'test-key';
@@ -25,7 +25,7 @@ describe('ConfigService', () => {
     env.CLERK_WEBHOOK_SIGNING_SECRET = 'test-secret';
     env.YOUTUBE_CLIENT_ID = 'test-client-id';
     env.YOUTUBE_CLIENT_SECRET = 'test-client-secret';
-    env.YOUTUBE_REDIRECT_URI = 'http://localhost:3001/auth/youtube/callback';
+    env.YOUTUBE_REDIRECT_URI = 'http://localhost:3010/auth/youtube/callback';
     env.YOUTUBE_API_KEY = 'test-youtube-api-key';
     env.REDIS_URL = 'redis://localhost:6379';
     env.KLINGAI_KEY = 'test-kling-key';
@@ -57,29 +57,29 @@ describe('ConfigService', () => {
     env.INSTAGRAM_CLIENT_ID = 'test-instagram-client-id';
     env.INSTAGRAM_CLIENT_SECRET = 'test-instagram-client-secret';
     env.INSTAGRAM_REDIRECT_URI =
-      'http://localhost:3001/auth/instagram/callback';
+      'http://localhost:3010/auth/instagram/callback';
     env.FACEBOOK_GRAPH_URL = 'https://graph.facebook.com';
     env.FACEBOOK_API_VERSION = 'v18.0';
     env.FACEBOOK_APP_ID = 'test-facebook-app-id';
     env.FACEBOOK_APP_SECRET = 'test-facebook-app-secret';
-    env.FACEBOOK_REDIRECT_URI = 'http://localhost:3001/auth/facebook/callback';
+    env.FACEBOOK_REDIRECT_URI = 'http://localhost:3010/auth/facebook/callback';
     env.TWITTER_BEARER_TOKEN = 'test-twitter-bearer';
     env.TWITTER_CONSUMER_KEY = 'test-twitter-consumer-key';
     env.TWITTER_CONSUMER_SECRET = 'test-twitter-consumer-secret';
     env.TWITTER_CLIENT_ID = 'test-twitter-client-id';
     env.TWITTER_CLIENT_SECRET = 'test-twitter-client-secret';
-    env.TWITTER_REDIRECT_URI = 'http://localhost:3001/auth/twitter/callback';
+    env.TWITTER_REDIRECT_URI = 'http://localhost:3010/auth/twitter/callback';
     env.PINTEREST_CLIENT_ID = 'test-pinterest-client-id';
     env.PINTEREST_CLIENT_SECRET = 'test-pinterest-client-secret';
     env.PINTEREST_REDIRECT_URI =
-      'http://localhost:3001/auth/pinterest/callback';
+      'http://localhost:3010/auth/pinterest/callback';
     env.REDDIT_CLIENT_ID = 'test-reddit-client-id';
     env.REDDIT_CLIENT_SECRET = 'test-reddit-client-secret';
-    env.REDDIT_REDIRECT_URI = 'http://localhost:3001/auth/reddit/callback';
+    env.REDDIT_REDIRECT_URI = 'http://localhost:3010/auth/reddit/callback';
     env.REDDIT_USER_AGENT = 'test-reddit-user-agent';
     env.LINKEDIN_CLIENT_ID = 'test-linkedin-client-id';
     env.LINKEDIN_CLIENT_SECRET = 'test-linkedin-client-secret';
-    env.LINKEDIN_REDIRECT_URI = 'http://localhost:3001/auth/linkedin/callback';
+    env.LINKEDIN_REDIRECT_URI = 'http://localhost:3010/auth/linkedin/callback';
     env.NEWS_API_KEY = 'test-news-api-key';
     env.NEWS_API_URL = 'https://newsapi.org/v2';
 
@@ -104,7 +104,7 @@ describe('ConfigService', () => {
   describe('get', () => {
     it('should return environment variable value', () => {
       const apiUrl = configService.get('GENFEEDAI_API_URL');
-      expect(apiUrl).toBe('http://localhost:3001');
+      expect(apiUrl).toBe('http://localhost:3010');
     });
 
     it('should return undefined for non-existent key', () => {

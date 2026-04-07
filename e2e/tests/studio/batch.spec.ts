@@ -4,7 +4,7 @@ import {
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 
-const LOCAL_API = 'http://local.genfeed.ai:3001/v1';
+const LOCAL_API = 'http://local.genfeed.ai:3010/v1';
 
 const workflow = {
   createdAt: '2026-03-15T12:00:00.000Z',

@@ -95,7 +95,7 @@ import { DiscordBotManager } from './discord-bot-manager.service';
 
 const mockConfigService = {
   API_KEY: 'test-key',
-  API_URL: 'http://localhost:3001',
+  API_URL: 'http://localhost:3010',
 };
 
 const mockHttpService = {

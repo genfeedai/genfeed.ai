@@ -1,0 +1,65 @@
+# Genfeed Core (Free & Open Source)
+
+The workflow engine for AI content generation. Self-hosted, bring your own API keys.
+
+## How It Works
+
+```
+Your API Keys → Workflow Engine → AI Content
+(Replicate, OpenAI, etc.)
+```
+
+1. **Connect your API keys** — Replicate, OpenAI, Anthropic, ElevenLabs
+2. **Build workflows** — Visual drag-and-drop pipeline builder
+3. **Generate content** — Text, images, video, audio
+4. **Export anywhere** — Local files, S3, webhooks
+
+## Why Core?
+
+| | Core (Free) | Cloud |
+|---|---|---|
+| **Cost** | Free + API costs | $299/mo |
+| **Data** | Your servers | Our servers |
+| **Limits** | None | Plan-based |
+| **Features** | Workflows, generation | + Orgs, brands, teams |
+
+## Quick Start
+
+```bash
+git clone https://github.com/genfeedai/core.git
+cd core
+bun install
+cp .env.example .env.local
+# Add your API keys to .env.local
+bun dev
+```
+
+Open `http://localhost:3000` and start building workflows.
+
+## What You Get
+
+- **Workflow Engine** — Visual builder for content pipelines
+- **40+ AI Models** — Via Replicate, OpenAI, Anthropic, Google
+- **Multi-Format** — Text, images, video, audio generation
+- **Scheduling** — Cron-based workflow triggers
+- **Webhooks** — Integrate with any system
+- **Full Source** — MIT license, modify freely
+
+## Requirements
+
+| Requirement | Version | Notes |
+|-------------|---------|-------|
+| Node.js | 18.0+ | Runtime |
+| Bun | 1.0+ | Package manager |
+| MongoDB | 6.0+ | Database |
+| Redis | 7.0+ | Queue & cache |
+
+## Documentation
+
+- [**Installation**](/core/installation) — Full setup with MongoDB, Redis, API keys
+- [**Configuration**](/core/configuration) — Environment variables
+- [**Contributing**](/core/contributing) — How to contribute
+
+---
+
+**Want orgs, brands, voices & team features?** [Upgrade to Cloud →](/cloud)

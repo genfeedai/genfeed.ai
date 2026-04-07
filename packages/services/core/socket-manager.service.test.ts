@@ -20,7 +20,7 @@ vi.mock('socket.io-client', () => ({
 
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {
-    wsEndpoint: 'http://localhost:3001',
+    wsEndpoint: 'http://localhost:3013',
   },
 }));
 

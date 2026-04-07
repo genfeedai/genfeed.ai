@@ -81,7 +81,7 @@ describe('DiscordBotManager', () => {
 
     const mockConfigService = {
       API_KEY: 'test-key',
-      API_URL: 'http://localhost:3001',
+      API_URL: 'http://localhost:3010',
       get: vi.fn().mockReturnValue('test-value'),
     };
 

@@ -51,7 +51,7 @@ export class MCPService {
           env: {
             GENFEED_API_KEY: 'your-api-key-here',
             GENFEEDAI_API_URL: 'https://api.genfeed.ai',
-            MCP_PORT: '3003',
+            MCP_PORT: '3014',
             NODE_ENV: 'production',
           },
         },
@@ -81,7 +81,7 @@ export class MCPService {
                   env: {
                     GENFEED_API_KEY: 'your-api-key-here',
                     GENFEEDAI_API_URL: 'https://api.genfeed.ai',
-                    MCP_PORT: '3003',
+                    MCP_PORT: '3014',
                     NODE_ENV: 'production',
                   },
                 },

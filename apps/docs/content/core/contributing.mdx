@@ -1,0 +1,57 @@
+# Contributing
+
+Help make Genfeed Core better for everyone.
+
+## Getting Started
+
+1. Fork the repository
+2. Clone your fork
+3. Create a branch for your feature
+
+```bash
+git clone https://github.com/YOUR_USERNAME/core.git
+cd core
+git checkout -b feature/my-feature
+```
+
+## Development Setup
+
+```bash
+bun install
+cp .env.example .env.local
+# Add your API keys
+bun dev
+```
+
+## Code Style
+
+- TypeScript strict mode
+- Biome for linting and formatting
+- Run before committing:
+
+```bash
+bun run lint
+bun run format
+```
+
+## Pull Requests
+
+1. Keep PRs focused on a single feature/fix
+2. Write clear commit messages
+3. Add tests for new features
+4. Update docs if needed
+
+## Reporting Issues
+
+- Use GitHub Issues
+- Include reproduction steps
+- Share relevant logs
+
+## Community
+
+- [Discord](https://discord.gg/TmfHg42xVb)
+- [GitHub Discussions](https://github.com/genfeedai/core/discussions)
+
+## License
+
+Genfeed Core is AGPL-3.0 licensed. By contributing, you agree to license your contributions under AGPL-3.0.

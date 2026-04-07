@@ -1,0 +1,39 @@
+# Package Ownership and Publish Boundaries
+
+This document defines where `@genfeedai/*` packages are owned and published.
+
+## Canonical ownership
+
+- `@genfeedai/cli` is owned and published from `genfeedai/cli`.
+- Public shared packages are owned and published from `genfeedai/packages`.
+- Cloud-private runtime packages remain in `genfeedai/cloud` and are not published publicly.
+
+## Public package source of truth
+
+`genfeedai/packages` is the canonical source for:
+
+- `@genfeedai/types`
+- `@genfeedai/core`
+- `@genfeedai/workflows`
+- `@genfeedai/prompts`
+- `@genfeedai/workflow-ui`
+- `@genfeedai/deserializer`
+
+## Cloud boundary
+
+`genfeedai/cloud` may consume public packages but does not own public npm publishing for shared packages.
+
+Cloud can define private extension packages (for example workflow extension layers) as long as they extend public contracts from `@genfeedai/workflows`.
+
+## Release ordering
+
+1. Publish shared packages from `genfeedai/packages`.
+2. Update and deploy `genfeedai/cloud` consumers.
+3. Publish `@genfeedai/cli` from `genfeedai/cli`.
+
+## Rules to avoid ownership drift
+
+- Never maintain the same npm package name in multiple repos.
+- Avoid `file:` dependencies for public packages.
+- Treat `workspace:*` as internal only and rewrite before publish.
+- Keep package metadata (`exports`, `files`, `repository`, `license`) publish-safe.

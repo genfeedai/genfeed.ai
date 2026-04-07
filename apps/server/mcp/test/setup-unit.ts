@@ -14,7 +14,7 @@ process.env.PORT = '3010';
 process.env.REDIS_URL = 'redis://localhost:6379';
 
 // Mock MCP service credentials
-process.env.GENFEEDAI_API_URL = 'http://localhost:3001';
+process.env.GENFEEDAI_API_URL = 'http://localhost:3010';
 process.env.MCP_SECRET_KEY = 'test-mock-mcp-secret';
 
 // Clear mocks between tests

@@ -43,10 +43,10 @@ describe('Slack Bot Manager Integration Flow', () => {
   };
 
   const mockIntegration: OrgIntegration = {
-    botToken: 'xoxb-slack-token-123',
+    botToken: 'mock-bot-token-test-123',
     config: {
       allowedUserIds: ['U123456'],
-      appToken: 'xapp-slack-app-token',
+      appToken: 'mock-slack-app-token',
       defaultWorkflow: 'wf-slack-gen',
     },
     createdAt: new Date('2024-01-01'),
@@ -62,7 +62,7 @@ describe('Slack Bot Manager Integration Flow', () => {
 
     const mockConfigService = {
       API_KEY: 'test-api-key',
-      API_URL: 'http://localhost:3001',
+      API_URL: 'http://localhost:3010',
       get: vi.fn().mockReturnValue('test-value'),
       SERVICE_NAME: 'slack',
     };
@@ -114,9 +114,9 @@ describe('Slack Bot Manager Integration Flow', () => {
       const { App } = await import('@slack/bolt');
       expect(App).toHaveBeenCalledWith(
         expect.objectContaining({
-          appToken: 'xapp-slack-app-token',
+          appToken: 'mock-slack-app-token',
           socketMode: true,
-          token: 'xoxb-slack-token-123',
+          token: 'mock-bot-token-test-123',
         }),
       );
     });

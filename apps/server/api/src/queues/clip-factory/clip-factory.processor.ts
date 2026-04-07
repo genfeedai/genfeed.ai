@@ -224,7 +224,7 @@ export class ClipFactoryProcessor extends WorkerHost {
   ): Promise<string> {
     const filesUrl =
       this.configService.get('GENFEEDAI_MICROSERVICES_FILES_URL') ||
-      'http://files.genfeed.ai:3000';
+      'http://localhost:3012';
 
     const response = await firstValueFrom(
       this.httpService.post(

@@ -369,7 +369,7 @@ export class AgentToolExecutorService {
     private readonly adsResearchService: AdsResearchService | undefined,
   ) {
     this.apiBaseUrl =
-      this.configService.get('API_BASE_URL') || 'http://localhost:3001';
+      this.configService.get('API_BASE_URL') || 'http://localhost:3010';
   }
 
   private buildImageVariationPrompt(

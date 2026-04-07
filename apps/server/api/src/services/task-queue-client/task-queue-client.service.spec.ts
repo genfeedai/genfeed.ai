@@ -11,7 +11,7 @@ describe('TaskQueueClientService', () => {
   let service: TaskQueueClientService;
   let httpService: vi.Mocked<HttpService>;
 
-  const mockFilesServiceUrl = 'http://files.genfeed.ai:3000';
+  const mockFilesServiceUrl = 'http://localhost:3012';
 
   const mockTaskJobRequest: TaskJobRequest = {
     assetId: '507f1f77bcf86cd799439014',

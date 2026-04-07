@@ -1,0 +1,26 @@
+{
+  "dependencies": {
+    "next": "16.2.2",
+    "nextra": "4.6.1",
+    "nextra-theme-docs": "4.6.1",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "swagger-ui-react": "5.32.1"
+  },
+  "devDependencies": {
+    "@types/node": "25.5.2",
+    "@types/react": "19.2.14",
+    "prettier": "3.8.1",
+    "typescript": "5.9.3"
+  },
+  "name": "@genfeedai/docs",
+  "private": true,
+  "scripts": {
+    "build": "next build",
+    "dev": "next dev",
+    "format:check": "prettier --check .",
+    "format:fix": "prettier --write .",
+    "start": "next start"
+  },
+  "version": "0.0.0"
+}

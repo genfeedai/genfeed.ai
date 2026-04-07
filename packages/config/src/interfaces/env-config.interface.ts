@@ -50,7 +50,6 @@ export interface IEnvConfig {
 
   // === Sentry ===
   SENTRY_DSN?: string;
-  SENTRY_ENABLED?: boolean;
   SENTRY_ENVIRONMENT?: string;
 
   // === Stripe ===
@@ -71,9 +70,6 @@ export interface IEnvConfig {
   AGENT_CONTEXT_COMPRESSION_MODEL?: string;
   AGENT_CONTEXT_WINDOW_SIZE?: number;
   MAX_TOKENS?: number;
-
-  // === OpenAI ===
-  OPENAI_KEY?: string;
 
   // === fal.ai ===
   FAL_API_KEY?: string;

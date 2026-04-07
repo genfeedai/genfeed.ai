@@ -7,7 +7,7 @@ describe('ConfigService (Files)', () => {
     process.env = {
       ...originalEnv,
       CLERK_SECRET_KEY: 'sk_test_clerk_secret',
-      GENFEEDAI_API_URL: 'http://localhost:3001',
+      GENFEEDAI_API_URL: 'http://localhost:3010',
       GENFEEDAI_CDN_URL: 'https://cdn.genfeed.ai',
       NODE_ENV: 'test',
       PORT: '3002',

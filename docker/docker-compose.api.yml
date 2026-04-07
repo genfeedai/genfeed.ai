@@ -3,9 +3,9 @@
 # Instance IP: Set via INSTANCE_API_IP env var (default: 10.0.8.53)
 # Connects to:
 #   - Redis: redis:6379 (on same instance)
-#   - MCP: mcp:3006 (on same instance)
-#   - Notifications: notifications:3007 (on same instance)
-#   - Files: files:3005 (same instance, same Docker network)
+#   - MCP: mcp:3014 (on same instance)
+#   - Notifications: notifications:3013 (on same instance)
+#   - Files: files:3012 (same instance, same Docker network)
 
 services:
   api:
@@ -14,20 +14,20 @@ services:
     container_name: genfeed-ai-api
     restart: unless-stopped
     ports:
-      - '3001:3001'
+      - '3010:3010'
     env_file:
       - ../.env.production
     environment:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - NODE_ENV=production
-      - PORT=3001
+      - PORT=3010
       - SERVICE_NAME=api-genfeed-ai
       - VERSION=1.0.0
       # Internal service URLs (same instance, same Docker network)
-      - GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL=http://notifications:3007
-      - GENFEEDAI_MICROSERVICES_MCP_URL=http://mcp:3006
+      - GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL=http://notifications:3013
+      - GENFEEDAI_MICROSERVICES_MCP_URL=http://mcp:3014
       # Internal Files service URL (same instance, same Docker network)
-      - GENFEEDAI_MICROSERVICES_FILES_URL=http://files:3005
+      - GENFEEDAI_MICROSERVICES_FILES_URL=http://files:3012
     networks:
       - genfeed-network
     deploy:
@@ -36,7 +36,7 @@ services:
           memory: 1536M
           cpus: '1.5'
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3001/v1/health']
+      test: ['CMD', 'curl', '-f', 'http://localhost:3010/v1/health']
       interval: 30s
       timeout: 10s
       retries: 5

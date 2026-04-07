@@ -29,16 +29,17 @@ describe('CORS Configuration', () => {
         ) as RegExp;
 
         expect(localPattern).toBeDefined();
-        // Server ports
-        expect(localPattern.test('http://localhost:3000')).toBe(true); // Docs
-        expect(localPattern.test('http://localhost:3001')).toBe(true); // API
-        expect(localPattern.test('http://localhost:3010')).toBe(true);
+        // Frontend ports (300x)
+        expect(localPattern.test('http://localhost:3000')).toBe(true); // App
+        expect(localPattern.test('http://localhost:3001')).toBe(true); // Admin
+        expect(localPattern.test('http://localhost:3002')).toBe(true); // Website
+        // Server ports (301x-303x)
+        expect(localPattern.test('http://localhost:3010')).toBe(true); // API
         expect(localPattern.test('http://local.genfeed.ai:3010')).toBe(true);
-        // Web app ports (3100-3108)
-        expect(localPattern.test('http://localhost:3100')).toBe(true); // Academy
-        expect(localPattern.test('http://localhost:3104')).toBe(true); // Login
-        expect(localPattern.test('http://localhost:3108')).toBe(true); // Workflows
-        expect(localPattern.test('http://local.genfeed.ai:3106')).toBe(true); // Studio
+        expect(localPattern.test('http://localhost:3013')).toBe(true); // Notifications
+        expect(localPattern.test('http://localhost:3014')).toBe(true); // MCP
+        expect(localPattern.test('http://localhost:3020')).toBe(true); // Discord
+        expect(localPattern.test('http://local.genfeed.ai:3030')).toBe(true); // Clips
         // Upper boundary
         expect(localPattern.test('http://localhost:3999')).toBe(true);
         // Out of range
