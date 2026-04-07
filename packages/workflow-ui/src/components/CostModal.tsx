@@ -20,7 +20,7 @@ export function CostModal() {
   const { activeModal, closeModal } = useUIStore();
   const nodes = useWorkflowStore((state) => state.nodes);
   const actualCost = useExecutionStore((state) => state.actualCost);
-  const backdropRef = useRef<HTMLDivElement>(null);
+  const backdropRef = useRef<HTMLButtonElement>(null);
 
   const isOpen = activeModal === 'cost';
 
