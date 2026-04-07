@@ -18,3 +18,4 @@ apps/desktop/app/release/
 .env.production
 .env.staging
 .env.local
+.claude/worktrees/

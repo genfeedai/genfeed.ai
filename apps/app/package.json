@@ -14,6 +14,7 @@
     "@genfeedai/workflow-engine": "*",
     "@genfeedai/workflow-saas": "*",
     "@genfeedai/workflow-ui": "*",
+    "@radix-ui/react-collapsible": "^1.1.12",
     "@remotion/player": "4.0.446",
     "@stripe/react-stripe-js": "6.1.0",
     "@stripe/stripe-js": "9.1.0",
