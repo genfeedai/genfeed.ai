@@ -18,7 +18,7 @@ Before you begin, ensure you have:
 
 ### API Keys (Optional but Recommended)
 
-To use AI generation features, you'll need API keys from providers:
+To use AI generation features, you need API keys from at least one provider:
 
 | Provider | For | Get Key |
 |----------|-----|---------|
@@ -58,7 +58,7 @@ Create a `.env.local` file in the project root:
 cp .env.example .env.local
 ```
 
-Edit `.env.local` with your settings:
+Edit `.env.local` with your settings. See [Configuration](/core/configuration) for the full reference.
 
 ```env
 # Database
@@ -76,14 +76,14 @@ NODE_ENV=development
 PORT=3001
 JWT_SECRET=your-secure-random-string
 
-# Optional: External services
+# Optional: External storage
 # AWS_ACCESS_KEY_ID=...
 # AWS_SECRET_ACCESS_KEY=...
 # S3_BUCKET=your-bucket
 ```
 
 <Callout type="warning">
-  **Never Commit API Keys** — Add `.env.local` to your `.gitignore`. Never commit API keys to version control.
+**Never commit API keys.** Add `.env.local` to your `.gitignore`. Never commit API keys or secrets to version control.
 </Callout>
 
 ### 4. Start Services
@@ -127,29 +127,17 @@ Open your browser and visit:
 http://localhost:3001/health
 ```
 
-You should see:
-
-```json
-{
-  "status": "ok",
-  "version": "1.0.0",
-  "services": {
-    "database": "connected",
-    "redis": "connected",
-    "queue": "ready"
-  }
-}
-```
+You should see a JSON response confirming the API, database, and Redis are connected and ready.
 
 ---
 
 ## Running the Frontend (Optional)
 
-Genfeed Core includes the API only. To run a full cloud web interface from the workspace monorepo:
+Genfeed Core includes the API only. To run the full web interface from the workspace monorepo:
 
 ```bash
-# In a separate terminal, from the `cloud/` workspace root
-cd cloud/apps/web/app
+# In a separate terminal, from the monorepo root
+cd apps/app
 bun install
 bun run dev
 ```
@@ -214,27 +202,13 @@ volumes:
 
 ---
 
-## Configuration Reference
-
-### Environment Variables
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `MONGODB_URI` | Yes | - | MongoDB connection string |
-| `REDIS_URL` | Yes | - | Redis connection string |
-| `PORT` | No | 3001 | API server port |
-| `NODE_ENV` | No | development | Environment mode |
-| `JWT_SECRET` | Yes | - | Secret for JWT tokens |
-| `OPENAI_API_KEY` | No | - | OpenAI API key |
-| `REPLICATE_API_TOKEN` | No | - | Replicate API token |
-
-### Resource Requirements
+## Resource Requirements
 
 | Component | Minimum | Recommended |
 |-----------|---------|-------------|
 | CPU | 2 cores | 4+ cores |
 | RAM | 4 GB | 8+ GB |
-| Storage | 20 GB | 100+ GB (for assets) |
+| Storage | 20 GB | 100+ GB (for generated assets) |
 
 ---
 
@@ -299,8 +273,9 @@ bun dev
 
 ## Next Steps
 
-- [API Reference](/api-reference/overview) — Explore the REST API
-- [Documentation](https://docs.genfeed.ai) — Full platform documentation
+- [Configuration](/core/configuration) -- Full environment variable reference
+- [API Reference](/api-reference/overview) -- Explore the REST API
+- [Self-Hosted vs Cloud](/core/self-hosted-vs-cloud) -- Compare editions
 
 ---
 
@@ -308,6 +283,5 @@ bun dev
 
 - **GitHub Issues:** [github.com/genfeedai/core/issues](https://github.com/genfeedai/core/issues)
 - **Discord:** [discord.gg/TmfHg42xVb](https://discord.gg/TmfHg42xVb)
-- **Documentation:** You're here!
 
 For production support, consider [Genfeed Cloud](/deployment/overview) or an [Enterprise License](mailto:enterprise@genfeed.ai).

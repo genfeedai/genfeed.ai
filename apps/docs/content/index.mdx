@@ -1,65 +1,29 @@
-# Welcome
+# Genfeed.ai
 
-Genfeed.ai is an AI-powered content creation platform with two operating modes: self-hosted OSS (`core`) and managed SaaS (`cloud`).
+**Open-source AI OS for content creation.**
 
-## Last Verified
+Genfeed is a full-stack platform for generating images, videos, music, text, and more using AI models. Build automated content pipelines, manage brands, publish to social platforms, and track performance -- all from one system.
 
-- **Date:** 2026-03-24
-- **Implemented state source:** local `cloud/`, `core/`, `cli/`, `docs/` codebases
-- **Delivery state source:** GitHub issues + Mission Control project (#11)
+## Two Ways to Run Genfeed
 
-## Choose Your Edition
-
-| | Core (Self-Hosted) | Cloud (Managed) |
+| | Core (Self-Hosted) | Cloud (Managed SaaS) |
 |---|---|---|
-| Workflow engine | ✅ | ✅ |
-| Self-host | ✅ | — |
-| Organizations / brands / team UX | Limited | ✅ |
-| Publishing + SaaS operations | Build yourself | ✅ |
-| Billing managed by Genfeed | — | ✅ |
-| | [**Self-Host →**](/core) | [**Cloud Docs →**](/cloud) |
+| **What it is** | Open-source engine you deploy on your own infrastructure | Fully managed platform at [app.genfeed.ai](https://app.genfeed.ai) |
+| **License** | AGPL-3.0 (enterprise features under commercial license in `ee/`) | Commercial |
+| **Best for** | Developers wanting full control, privacy, or custom models | Teams, agencies, and creators who want to start immediately |
+| **Includes** | AI generation pipeline, workflow engine, REST API | Everything in Core + organizations, brands, publishing, analytics, team collaboration |
+| | [Self-Host Guide](/core/installation) | [Get Started with Cloud](/getting-started) |
 
----
+For a detailed breakdown, see [Self-Hosted vs Cloud](/core/self-hosted-vs-cloud).
 
-## Dual-State Snapshot
+## Marketplace
 
-### Implemented State (Code)
+[marketplace.genfeed.ai](https://marketplace.genfeed.ai) is a separate cloud product where creators buy and sell workflows, prompts, presets, and brand kits. Marketplace access is available exclusively on Genfeed Cloud.
 
-- `core/`: open-source workflow editor and API.
-- `cloud/`: multi-app SaaS with `admin`, `app`, `chatgpt`, `marketplace`, `website`.
-- `cli/`: terminal workflows for generation and management.
+## Quick Links
 
-### Delivery State (GitHub)
-
-- Active roadmap execution is tracked in GitHub Issues and Mission Control project #11.
-- Documentation should treat project status as planning/delivery metadata, not implementation proof.
-
----
-
-## Quick Start
-
-### Core (Self-Hosted)
-
-```bash
-git clone https://github.com/genfeedai/core.git
-cd core
-bun install
-bun dev
-```
-
-### Cloud
-
-1. Create an account on Genfeed Cloud
-2. Create organization + brand
-3. Start generating and publishing content from the app
-
----
-
-## Documentation
-
-- [**Core**](/core)
-- [**Cloud**](/cloud)
-- [**Guides**](/guides)
-- [**Models**](/models)
-- [**API Reference**](/api-reference/overview)
-- [**FAQ**](/faq)
+- [Getting Started](/getting-started) -- Choose your path and generate your first content
+- [Self-Hosting Guide](/guides/self-host-quickstart) -- Deploy Genfeed Core in minutes
+- [API Reference](/api-reference/overview) -- REST API documentation
+- [Features](/features) -- Full feature breakdown
+- [GitHub](https://github.com/genfeedai/core) -- Source code and issue tracker

@@ -1,53 +1,64 @@
 # Getting Started
 
-This guide covers the fastest path to use Genfeed productively.
+Choose the path that fits your needs, then follow the steps to generate your first content.
 
-## Last Verified
+---
 
-- **Date:** 2026-03-24
-- **Implemented state source:** local repos and app structure
-- **Delivery state source:** GitHub issues/project
+## Cloud (Recommended for most users)
 
-## Choose Your Path
+The fastest way to start. No installation required.
 
-## 1) Genfeed Cloud (Recommended for most teams)
+1. **Sign up** at [app.genfeed.ai](https://app.genfeed.ai)
+2. **Create an organization** -- this is your workspace for brands and team members
+3. **Create a brand** -- define your brand's voice, colors, and guidelines
+4. **Generate content** -- use the Studio to create images, videos, text, or audio
+5. **Publish** -- schedule and post directly to X, LinkedIn, Instagram, YouTube, and more
 
-1. Sign up and create your organization
-2. Add your first brand profile
-3. Connect publishing accounts
-4. Generate content in the app
-5. Publish and track performance
+Cloud includes all Core features plus organizations, multi-brand management, social publishing, analytics, team collaboration, and [Marketplace](https://marketplace.genfeed.ai) access.
 
-## 2) Self-Hosted Core (Developers)
+---
+
+## Core (Self-Hosted)
+
+Run the full generation engine on your own infrastructure. You bring your own API keys and control your data.
+
+For the complete walkthrough, see the [Self-Host Quickstart Guide](/guides/self-host-quickstart).
+
+Quick version:
 
 ```bash
 git clone https://github.com/genfeedai/core.git
 cd core
+cp .env.example .env.local
 bun install
 bun dev
 ```
 
----
-
-## What You’ll Use First
-
-- **App**: content generation and operations
-- **Brand setup**: keep outputs aligned
-- **Publishing flows**: schedule and distribute content
-- **Analytics views**: track outcomes
+Prerequisites: Node.js 18+, Bun (or npm), MongoDB 6+, Redis 7+. Full details in the [Installation Guide](/core/installation).
 
 ---
 
-## Dual-State Note
+## CLI
 
-- Features visible in UI may be ahead of, behind, or different from project-board status.
-- Treat code + running app behavior as implementation truth.
-- Treat GitHub project/issues as delivery planning truth.
+Install the Genfeed CLI for terminal-based workflows:
+
+```bash
+npm install -g @genfeedai/cli
+```
+
+Basic usage:
+
+```bash
+genfeed generate --prompt "A sunset over mountains" --model flux
+genfeed workflows list
+genfeed workflows run my-workflow
+```
 
 ---
 
-## Need Help
+## What to Explore Next
 
-- Docs index: [/](/)
-- Cloud docs: [/cloud](/cloud)
-- Core docs: [/core](/core)
+- [Features](/features) -- Full feature list for Core and Cloud
+- [Self-Hosted vs Cloud](/core/self-hosted-vs-cloud) -- Detailed comparison to help you decide
+- [Configuration](/core/configuration) -- Environment variables and settings
+- [API Reference](/api-reference/overview) -- REST API documentation
