@@ -128,6 +128,7 @@ export {
   TableRow,
 } from './table';
 export { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs';
+export { Textarea, type TextareaProps } from './textarea';
 export { Toggle, toggleVariants } from './toggle';
 export { ToggleGroup, ToggleGroupItem } from './toggle-group';
 export {

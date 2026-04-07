@@ -1,8 +1,8 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import Button from '../buttons/base/Button';
 import { Modal } from '../modals/compound/Modal';
+import { Button } from '../primitives/button';
 import { Textarea } from '../primitives/textarea';
 import { type ContentType, ContentTypePresets } from './ContentTypePresets';
 
@@ -109,27 +109,25 @@ export function TaskComposerModal({
             <Button
               variant={ButtonVariant.GHOST}
               className="px-4 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
-              label="Cancel"
-            />
+            >
+              Cancel
+            </Button>
           </Modal.CloseButton>
           <Button
             variant={ButtonVariant.OUTLINE}
             className="border border-foreground/20 bg-foreground/10 px-4 py-2 text-sm font-medium transition-colors hover:bg-foreground/20 disabled:opacity-50"
-            isDisabled={isSubmitting || !title.trim()}
+            disabled={isSubmitting || !title.trim()}
             onClick={handleSubmit}
-            label={
-              <>
-                {isSubmitting
-                  ? 'Creating...'
-                  : prompt.trim()
-                    ? 'Create & Generate'
-                    : 'Create Task'}
-                {!isSubmitting && (
-                  <span className="ml-2 text-xs text-muted-foreground">⌘↵</span>
-                )}
-              </>
-            }
-          />
+          >
+            {isSubmitting
+              ? 'Creating...'
+              : prompt.trim()
+                ? 'Create & Generate'
+                : 'Create Task'}
+            {!isSubmitting && (
+              <span className="ml-2 text-xs text-muted-foreground">⌘↵</span>
+            )}
+          </Button>
         </Modal.Footer>
       </Modal.Content>
     </Modal.Root>

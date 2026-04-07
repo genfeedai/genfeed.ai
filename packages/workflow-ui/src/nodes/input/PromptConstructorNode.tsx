@@ -5,7 +5,7 @@ import type {
   PromptConstructorNodeData,
   PromptNodeData,
 } from '@genfeedai/types';
-import { Textarea } from '@ui/primitives/textarea';
+import { Textarea } from '@genfeedai/ui';
 import type { NodeProps } from '@xyflow/react';
 import { Expand } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
