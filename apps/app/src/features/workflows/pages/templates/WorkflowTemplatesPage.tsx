@@ -82,6 +82,11 @@ export default function WorkflowTemplatesPage() {
     };
   }, [loadTemplates]);
 
+  // Stable navigation callback — avoids re-running the bootstrap effect
+  // when useOrgUrl() returns a fresh href function on each render.
+  const hrefRef = useRef(href);
+  hrefRef.current = href;
+
   useEffect(() => {
     if (!templateId) {
       return;
@@ -109,7 +114,7 @@ export default function WorkflowTemplatesPage() {
         });
 
         if (!isCancelled) {
-          router.replace(href(`/workflows/${workflow._id}`));
+          router.replace(hrefRef.current(`/workflows/${workflow._id}`));
         }
       } catch (err) {
         logger.error('Failed to bootstrap workflow template', { error: err });
@@ -130,7 +135,7 @@ export default function WorkflowTemplatesPage() {
     return () => {
       isCancelled = true;
     };
-  }, [getService, href, router, templateId]);
+  }, [getService, router, templateId]);
 
   const filteredTemplates =
     selectedCategory === 'all'

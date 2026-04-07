@@ -1,5 +1,6 @@
 import { EventEmitter } from 'node:events';
-import type { LoggerService } from '@libs/logger/logger.service';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { LoggerService } from '@libs/logger/logger.service';
 import {
   Inject,
   Injectable,

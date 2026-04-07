@@ -2,7 +2,8 @@ import type { CreateModelDto } from '@api/collections/models/dto/create-model.dt
 import type { ModelsQueryDto } from '@api/collections/models/dto/models-query.dto';
 import type { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
-import type { ModelsService } from '@api/collections/models/services/models.service';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -23,7 +24,8 @@ import type {
   SortObject,
 } from '@genfeedai/interfaces';
 import { ModelSerializer } from '@genfeedai/serializers';
-import type { LoggerService } from '@libs/logger/logger.service';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
   Controller,
@@ -33,7 +35,8 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import type { ModuleRef } from '@nestjs/core';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { ModuleRef } from '@nestjs/core';
 import { Model, type PipelineStage, Types } from 'mongoose';
 
 @AutoSwagger()

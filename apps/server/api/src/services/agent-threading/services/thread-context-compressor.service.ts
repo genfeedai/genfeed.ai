@@ -263,11 +263,15 @@ export class ThreadContextCompressorService {
         })
         .lean();
 
-      // Fetch messages — getRecentMessages returns chronological order (oldest first)
-      const allMessages = await this.agentMessagesService.getRecentMessages(
-        threadId,
-        200,
-      );
+      // Fetch all messages that need compression.
+      // When state exists, only fetch messages after the last compaction boundary;
+      // otherwise fetch all messages in the thread.
+      const allMessages = existingState?.lastIncorporatedMessageId
+        ? await this.agentMessagesService.getAllMessagesAfter(
+            threadId,
+            existingState.lastIncorporatedMessageId,
+          )
+        : await this.agentMessagesService.getAllMessages(threadId);
 
       if (allMessages.length <= this.windowSize) {
         return;
@@ -332,6 +336,20 @@ export class ThreadContextCompressorService {
       const responseText = response.choices?.[0]?.message?.content || '';
       const parsed = this.parseCompressionResponse(responseText);
 
+      // Validate parse result has at least one meaningful section before advancing state
+      const hasValidContent =
+        parsed.accumulatedRequirements ||
+        parsed.currentArtifact ||
+        parsed.keyDecisions ||
+        parsed.iterationHistory;
+
+      if (!hasValidContent) {
+        this.logger.warn(
+          `${this.constructorName}: Compression parse returned no valid sections for thread ${threadId}, skipping state update to prevent data loss`,
+        );
+        return;
+      }
+
       const currentVersion = existingState?.version ?? 0;
       const previousCount = existingState?.messageCount ?? 0;
 
@@ -350,10 +368,7 @@ export class ThreadContextCompressorService {
             lastIncorporatedMessageId: new Types.ObjectId(
               String(lastCompressedMessage._id),
             ),
-            messageCount:
-              previousCount +
-                (compressBoundary - (existingState ? compressBoundary : 0)) ||
-              compressBoundary,
+            messageCount: previousCount + compressBoundary,
             version: currentVersion + 1,
           },
           $setOnInsert: {

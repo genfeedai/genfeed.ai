@@ -307,16 +307,16 @@ export default function IssuesList() {
             New Issue
           </Button>
           <Select
-            value={statusFilter}
+            value={statusFilter || 'all'}
             onValueChange={(value) =>
-              setStatusFilter(value as IssueStatus | '')
+              setStatusFilter(value === 'all' ? '' : (value as IssueStatus))
             }
           >
             <SelectTrigger className="w-auto text-xs">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Statuses</SelectItem>
+              <SelectItem value="all">All Statuses</SelectItem>
               {STATUS_ORDER.map((s) => (
                 <SelectItem key={s} value={s}>
                   {STATUS_LABELS[s]}
