@@ -78,7 +78,8 @@
         "apps/app/src/hooks/**",
         "packages/agent/src/**",
         "packages/hooks/**",
-        "packages/pages/**"
+        "packages/pages/**",
+        "packages/ui/src/components/**"
       ],
       "linter": {
         "rules": {
@@ -88,18 +89,35 @@
             "noSvgWithoutTitle": "off",
             "useButtonType": "off",
             "useKeyWithClickEvents": "off",
+            "useMediaCaption": "warn",
             "useSemanticElements": "off",
             "useValidAriaRole": "off"
           },
+          "complexity": {
+            "noBannedTypes": "warn"
+          },
           "correctness": {
-            "useExhaustiveDependencies": "warn"
+            "noChildrenProp": "warn",
+            "noUnusedFunctionParameters": "warn",
+            "noUnusedVariables": "warn",
+            "useExhaustiveDependencies": "warn",
+            "useHookAtTopLevel": "warn"
           },
           "performance": {
             "noImgElement": "off"
           },
+          "security": {
+            "noDangerouslySetInnerHtml": "warn"
+          },
+          "style": {
+            "noNonNullAssertion": "warn"
+          },
           "suspicious": {
             "noArrayIndexKey": "off",
-            "noExplicitAny": "off"
+            "noExplicitAny": "off",
+            "noImplicitAnyLet": "warn",
+            "noShadowRestrictedNames": "warn",
+            "useIterableCallbackReturn": "warn"
           }
         }
       }

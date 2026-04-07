@@ -39,8 +39,11 @@
       "@shared/*": ["../../packages/*", "../../../tests/*"],
       "@styles/*": ["./styles/*", "../../packages/styles/*"],
       "@u/*": ["./app/u/*"],
-      "@ui-constants/*": ["./packages/ui/constants/*"],
-      "@ui/*": ["./packages/ui/*"],
+      "@ui-constants/*": [
+        "./packages/ui/constants/*",
+        "../../packages/ui/src/components/constants/*"
+      ],
+      "@ui/*": ["./packages/ui/*", "../../packages/ui/src/components/*"],
       "@utils/*": ["../../packages/utils/*"],
       "@web-components/*": ["./packages/components/*"],
       "@website/*": ["./app/*"],
