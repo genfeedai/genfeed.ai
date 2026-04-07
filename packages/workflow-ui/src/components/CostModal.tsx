@@ -7,7 +7,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@ui/primitives/table';
+} from '@genfeedai/ui';
 import { DollarSign, X } from 'lucide-react';
 import { useMemo, useRef } from 'react';
 import { calculateWorkflowCost, formatCost } from '../lib/costCalculator';
@@ -45,14 +45,15 @@ export function CostModal() {
   if (!isOpen) return null;
 
   const hasActualCost = actualCost > 0;
-  const variance = hasActualCost ? actualCost - breakdown.total : 0;
+  const _variance = hasActualCost ? actualCost - breakdown.total : 0;
 
   return (
-    <div
+    <button
+      type="button"
       ref={backdropRef}
       onClick={handleBackdropClick}
       onKeyDown={handleKeyDown}
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] cursor-default border-none bg-transparent p-0 m-0"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
     >
       <div
@@ -160,6 +161,6 @@ export function CostModal() {
           )}
         </div>
       </div>
-    </div>
+    </button>
   );
 }

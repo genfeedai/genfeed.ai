@@ -1,6 +1,6 @@
 import { ButtonVariant } from '@genfeedai/enums';
-import Button from '../buttons/base/Button';
 import { cn } from '../lib/utils';
+import { Button } from '../primitives/button';
 
 export type ContentType = 'image' | 'video' | 'text';
 
@@ -38,8 +38,9 @@ export function ContentTypePresets({
               ? 'border border-foreground/30 text-foreground'
               : 'border border-border text-muted-foreground hover:text-foreground',
           )}
-          label={LABELS[type]}
-        />
+        >
+          {LABELS[type]}
+        </Button>
       ))}
     </div>
   );

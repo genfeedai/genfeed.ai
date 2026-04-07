@@ -77,6 +77,8 @@ for file in "$@"; do
   [[ "$file" == */display/table/* ]] && continue
   [[ "$file" == */navigation/* ]] && continue
   [[ "$file" == */feedback/* ]] && continue
+  # Skip workflow-ui package (internal UI components with own modal/dialog patterns)
+  [[ "$file" == *packages/workflow-ui/* ]] && continue
 
   # Check for raw HTML elements
   if grep -qnE "$PATTERN" "$file" 2>/dev/null; then

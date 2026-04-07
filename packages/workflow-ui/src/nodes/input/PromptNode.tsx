@@ -1,7 +1,7 @@
 'use client';
 
 import type { IPrompt, PromptNodeData } from '@genfeedai/types';
-import { Textarea } from '@ui/primitives/textarea';
+import { Textarea } from '@genfeedai/ui';
 import type { NodeProps } from '@xyflow/react';
 import { Expand, Save } from 'lucide-react';
 import { memo, useCallback } from 'react';

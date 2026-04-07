@@ -88,6 +88,12 @@ export function NodeSearch() {
     [setSelectedNodeIds, reactFlow, closeModal],
   );
 
+  const handleClose = useCallback(() => {
+    closeModal();
+    setSearch('');
+    setSelectedIndex(0);
+  }, [closeModal]);
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'ArrowDown') {
@@ -109,12 +115,6 @@ export function NodeSearch() {
     [filteredNodes, selectedIndex, handleSelectNode, handleClose],
   );
 
-  const handleClose = () => {
-    closeModal();
-    setSearch('');
-    setSelectedIndex(0);
-  };
-
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === backdropRef.current) {
       handleClose();
@@ -124,10 +124,12 @@ export function NodeSearch() {
   if (!isOpen) return null;
 
   return (
-    <div
+    <button
+      type="button"
       ref={backdropRef}
       onClick={handleBackdropClick}
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]"
+      onKeyDown={(e) => e.key === 'Escape' && handleClose()}
+      className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh] cursor-default border-none bg-transparent p-0 m-0"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
     >
       <div
@@ -147,7 +149,7 @@ export function NodeSearch() {
         </div>
 
         {/* Content */}
-        <div className="p-4" onKeyDown={handleKeyDown}>
+        <div role="listbox" className="p-4" onKeyDown={handleKeyDown}>
           <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
@@ -161,6 +163,7 @@ export function NodeSearch() {
           </div>
 
           <div
+            role="presentation"
             ref={listRef}
             className="max-h-[300px] overflow-y-auto space-y-1"
           >
@@ -220,6 +223,6 @@ export function NodeSearch() {
           )}
         </div>
       </div>
-    </div>
+    </button>
   );
 }

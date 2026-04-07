@@ -1,6 +1,6 @@
 'use client';
 
-import { Input } from '@ui/primitives/input';
+import { Input } from '@genfeedai/ui';
 import { X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '../ui/button';
@@ -52,8 +52,14 @@ export function SaveAsDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/60" onClick={onClose} />
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: modal backdrop overlay */}
       <div
+        className="absolute inset-0 bg-black/60"
+        onClick={onClose}
+        onKeyDown={(e) => e.key === 'Escape' && onClose()}
+      />
+      <div
+        role="dialog"
         className="relative z-10 w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-xl"
         onKeyDown={handleKeyDown}
       >
@@ -77,7 +83,9 @@ export function SaveAsDialog({
               id="workflow-name"
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setName(e.target.value)
+              }
               placeholder="Enter workflow name"
               autoFocus
               className="w-full"
