@@ -56,8 +56,7 @@ export class BatchInterpolationDto {
   @IsString()
   @ApiProperty({
     description: 'The model key to use for interpolation',
-    enum: string,
-    enumName: 'ModelKey',
+    type: String,
     example: 'replicate-google-veo-3-1',
   })
   modelKey!: string;
