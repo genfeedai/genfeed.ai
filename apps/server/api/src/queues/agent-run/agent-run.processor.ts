@@ -12,7 +12,7 @@ import { AgentCampaignExecutionService } from '@api/collections/agent-campaigns/
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { AgentStrategyAutopilotService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.service';
-import type { AgentRunJobData } from '@api/queues/agent-run/agent-run-queue.service';
+import { AgentRunJobData } from '@api/queues/agent-run/agent-run-queue.service';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';

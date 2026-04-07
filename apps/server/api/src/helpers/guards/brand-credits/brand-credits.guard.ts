@@ -5,7 +5,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { ConfigService } from '@api/config/config.service';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ByokService } from '@api/services/byok/byok.service';
-import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   type CanActivate,

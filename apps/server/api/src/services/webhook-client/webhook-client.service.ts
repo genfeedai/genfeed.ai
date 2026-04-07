@@ -1,7 +1,7 @@
 import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import type { WebhookJobData } from '@api/services/webhook-client/webhook-client.processor';
+import { WebhookJobData } from '@api/services/webhook-client/webhook-client.processor';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';

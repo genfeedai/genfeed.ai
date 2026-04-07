@@ -1,5 +1,5 @@
 import { GenerateContentDto } from '@api/collections/content-intelligence/dto/generate-content.dto';
-import type { ContentPatternDocument } from '@api/collections/content-intelligence/schemas/content-pattern.schema';
+import { ContentPatternDocument } from '@api/collections/content-intelligence/schemas/content-pattern.schema';
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
 import { ConfigService } from '@api/config/config.service';

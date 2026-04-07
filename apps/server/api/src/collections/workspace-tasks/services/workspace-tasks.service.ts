@@ -1,7 +1,7 @@
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
-import type { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
+import { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { CreateWorkspaceTaskDto } from '@api/collections/workspace-tasks/dto/create-workspace-task.dto';
 import { UpdateWorkspaceTaskDto } from '@api/collections/workspace-tasks/dto/update-workspace-task.dto';
@@ -12,7 +12,7 @@ import {
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';

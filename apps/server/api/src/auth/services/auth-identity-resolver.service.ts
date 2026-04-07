@@ -1,7 +1,7 @@
 import { UsersService } from '@api/collections/users/services/users.service';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
-import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
 import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, UnauthorizedException } from '@nestjs/common';

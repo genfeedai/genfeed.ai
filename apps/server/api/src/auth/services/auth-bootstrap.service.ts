@@ -7,7 +7,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { AnalyticsAggregationService } from '@api/collections/posts/services/analytics-aggregation.service';
 import { StreaksService } from '@api/collections/streaks/services/streaks.service';
 import { UsersService } from '@api/collections/users/services/users.service';
-import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
+import { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import {
   type AccessBootstrapCachePayload,
   AccessBootstrapCacheService,
@@ -19,8 +19,10 @@ import {
   getStripeSubscriptionStatus,
   getSubscriptionTier,
 } from '@api/helpers/utils/clerk/clerk.util';
-import type { ReviewInboxSummary } from '@api/services/batch-generation/batch-generation.service';
-import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
+import {
+  BatchGenerationService,
+  ReviewInboxSummary,
+} from '@api/services/batch-generation/batch-generation.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
 import type { IAnalytics, IBrand } from '@genfeedai/interfaces';
 import type { AgentRunStats } from '@genfeedai/types';

@@ -5,7 +5,7 @@ import type {
   BatchContentResult,
   BatchStatus,
 } from '@api/services/batch-content/interfaces/batch-content.interfaces';
-import type { ContentDraft } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
+import { ContentDraft } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   ForbiddenException,

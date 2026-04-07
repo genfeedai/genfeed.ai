@@ -1,10 +1,10 @@
-import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
-import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import type { CreateLipSyncDto } from '@api/collections/videos/dto/create-lip-sync.dto';
-import type { VideosService } from '@api/collections/videos/services/videos.service';
-import type { ConfigService } from '@api/config/config.service';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { CreateLipSyncDto } from '@api/collections/videos/dto/create-lip-sync.dto';
+import { VideosService } from '@api/collections/videos/services/videos.service';
+import { ConfigService } from '@api/config/config.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -14,11 +14,11 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import type { ByokService } from '@api/services/byok/byok.service';
-import type { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
-import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import type { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import type { SharedService } from '@api/shared/services/shared/shared.service';
+import { ByokService } from '@api/services/byok/byok.service';
+import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
+import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { User } from '@clerk/backend';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {

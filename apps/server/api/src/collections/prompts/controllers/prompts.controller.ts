@@ -1,4 +1,4 @@
-import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -35,7 +35,7 @@ import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
 import {
   ActivitySource,

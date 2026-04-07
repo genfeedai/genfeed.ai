@@ -14,7 +14,7 @@ import { FileQueueService } from '@api/services/files-microservice/queue/file-qu
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { FileInputType, IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';

@@ -1,7 +1,7 @@
-import type { TemplatesService } from '@api/collections/templates/services/templates.service';
+import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { PromptParser } from '@api/helpers/utils/prompt-parser/prompt-parser.util';
-import type { ReplicatePromptBuilder } from '@api/services/prompt-builder/builders/replicate-prompt.builder';
-import type { IPromptBuilder } from '@api/services/prompt-builder/interfaces/prompt-builder.interface';
+import { ReplicatePromptBuilder } from '@api/services/prompt-builder/builders/replicate-prompt.builder';
+import { IPromptBuilder } from '@api/services/prompt-builder/interfaces/prompt-builder.interface';
 import type {
   BrandingMode,
   PromptBuilderParams,
@@ -16,7 +16,7 @@ import {
   ModelProvider,
   PromptTemplateKey,
 } from '@genfeedai/enums';
-import type { LoggerService } from '@libs/logger/logger.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 

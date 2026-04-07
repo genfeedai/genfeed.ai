@@ -13,7 +13,7 @@ import {
   GenerateTweetsDto,
   TweetTone,
 } from '@api/collections/posts/dto/generate-tweets.dto';
-import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
+import { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';

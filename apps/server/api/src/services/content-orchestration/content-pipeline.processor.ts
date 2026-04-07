@@ -3,7 +3,7 @@ import {
   ContentOrchestrationService,
   type PipelineConfig,
 } from '@api/services/content-orchestration/content-orchestration.service';
-import type { ContentPipelineJobData } from '@api/services/content-orchestration/content-pipeline-queue.service';
+import { ContentPipelineJobData } from '@api/services/content-orchestration/content-pipeline-queue.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';

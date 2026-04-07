@@ -1,7 +1,7 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
 import { CredentialEntity } from '@api/collections/credentials/entities/credential.entity';
-import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
@@ -30,7 +30,7 @@ import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { QuotaService } from '@api/services/quota/quota.service';
-import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type {

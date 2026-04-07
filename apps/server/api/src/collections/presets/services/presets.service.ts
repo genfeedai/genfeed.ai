@@ -1,6 +1,6 @@
 import { CreatePresetDto } from '@api/collections/presets/dto/create-preset.dto';
 import { UpdatePresetDto } from '@api/collections/presets/dto/update-preset.dto';
-import type { PresetDocument } from '@api/collections/presets/schemas/preset.schema';
+import { PresetDocument } from '@api/collections/presets/schemas/preset.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { PopulateOption } from '@genfeedai/interfaces';

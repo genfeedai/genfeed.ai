@@ -1,7 +1,7 @@
 import { BookmarksQueryDto } from '@api/collections/bookmarks/dto/bookmarks-query.dto';
 import { CreateBookmarkDto } from '@api/collections/bookmarks/dto/create-bookmark.dto';
 import { UpdateBookmarkDto } from '@api/collections/bookmarks/dto/update-bookmark.dto';
-import type { BookmarkDocument } from '@api/collections/bookmarks/schemas/bookmark.schema';
+import { BookmarkDocument } from '@api/collections/bookmarks/schemas/bookmark.schema';
 import { BookmarksService } from '@api/collections/bookmarks/services/bookmarks.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -15,7 +15,7 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
 import type {
   JsonApiCollectionResponse,

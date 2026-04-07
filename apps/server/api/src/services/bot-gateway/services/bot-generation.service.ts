@@ -1,11 +1,11 @@
-import type { BrandsService } from '@api/collections/brands/services/brands.service';
-import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import type { ConfigService } from '@api/config/config.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { ConfigService } from '@api/config/config.service';
 import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
-import type { SharedService } from '@api/shared/services/shared/shared.service';
+import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { User } from '@clerk/backend';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {

@@ -17,7 +17,7 @@ import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defau
 import { serializeCollection } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
-import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
 import { IngredientCategory } from '@genfeedai/enums';
 import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';

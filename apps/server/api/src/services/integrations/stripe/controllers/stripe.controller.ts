@@ -1,5 +1,5 @@
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import type { CreateCheckoutSessionDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
+import { CreateCheckoutSessionDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';

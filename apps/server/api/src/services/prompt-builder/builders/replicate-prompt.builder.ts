@@ -8,7 +8,7 @@ import {
   ReplicateTextBuilder,
   ReplicateVideoBuilder,
 } from '@api/services/prompt-builder/builders/replicate';
-import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
+import { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import type {
   ReplicateInput,
   TrainedModelInput,

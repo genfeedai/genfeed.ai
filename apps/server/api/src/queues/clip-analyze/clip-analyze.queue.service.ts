@@ -1,7 +1,7 @@
-import type { ClipAnalyzeJobData } from '@api/queues/clip-analyze/clip-analyze.constants';
 import {
   CLIP_ANALYZE_JOB_NAME,
   CLIP_ANALYZE_QUEUE,
+  ClipAnalyzeJobData,
 } from '@api/queues/clip-analyze/clip-analyze.constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';

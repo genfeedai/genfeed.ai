@@ -1,6 +1,6 @@
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { SelectModelDto } from '@api/services/router/dto/select-model.dto';
-import type { ModelRecommendation } from '@api/services/router/interfaces/router.interfaces';
+import { ModelRecommendation } from '@api/services/router/interfaces/router.interfaces';
 import { RouterService } from '@api/services/router/router.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Body, Controller, Post } from '@nestjs/common';

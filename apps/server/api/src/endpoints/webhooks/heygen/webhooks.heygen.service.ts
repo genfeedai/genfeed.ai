@@ -4,7 +4,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { MicroservicesService } from '@api/services/microservices/microservices.service';
-import type { HeygenWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
+import { HeygenWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

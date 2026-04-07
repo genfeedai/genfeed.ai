@@ -1,12 +1,12 @@
 import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import type { ActivitiesService } from '@api/collections/activities/services/activities.service';
-import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
-import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import type { ModelsService } from '@api/collections/models/services/models.service';
-import type { VideoEditDto } from '@api/collections/videos/dto/video-edit.dto';
-import type { VideosService } from '@api/collections/videos/services/videos.service';
-import type { ConfigService } from '@api/config/config.service';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
+import { VideoEditDto } from '@api/collections/videos/dto/video-edit.dto';
+import { VideosService } from '@api/collections/videos/services/videos.service';
+import { ConfigService } from '@api/config/config.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -23,12 +23,12 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import type { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
-import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import type { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
-import type { RouterService } from '@api/services/router/router.service';
-import type { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
-import type { SharedService } from '@api/shared/services/shared/shared.service';
+import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { RouterService } from '@api/services/router/router.service';
+import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
+import { SharedService } from '@api/shared/services/shared/shared.service';
 import type { User } from '@clerk/backend';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import {

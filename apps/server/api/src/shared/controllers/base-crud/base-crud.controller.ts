@@ -2,7 +2,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
-import type { EntityDocument } from '@api/helpers/types/common/common.types';
+import { EntityDocument } from '@api/helpers/types/common/common.types';
 import {
   getIsSuperAdmin,
   getPublicMetadata,
@@ -22,7 +22,7 @@ import {
   PopulateBuilder,
   PopulatePatterns,
 } from '@api/shared/utils/populate/populate.util';
-import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
 import type {
   IJsonApiSerializer,

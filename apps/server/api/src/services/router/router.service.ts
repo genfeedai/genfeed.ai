@@ -1,5 +1,5 @@
-import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
-import type { ModelsService } from '@api/collections/models/services/models.service';
+import { ModelDocument } from '@api/collections/models/schemas/model.schema';
+import { ModelsService } from '@api/collections/models/services/models.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import type {
   ModelRecommendation,
@@ -8,7 +8,7 @@ import type {
 } from '@api/services/router/interfaces/router.interfaces';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { ModelCategory } from '@genfeedai/enums';
-import type { LoggerService } from '@libs/logger/logger.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 
 const DEFAULT_IMAGE_MODEL = MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA;

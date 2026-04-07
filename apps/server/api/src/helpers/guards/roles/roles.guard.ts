@@ -4,7 +4,7 @@ import {
   getIsSuperAdmin,
   getPublicMetadata,
 } from '@api/helpers/utils/clerk/clerk.util';
-import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
 import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
 import type { User } from '@clerk/backend';
 import { MemberRole } from '@genfeedai/enums';

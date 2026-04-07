@@ -9,7 +9,7 @@ import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { TranscriptStatus } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';

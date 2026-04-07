@@ -1,7 +1,7 @@
-import type { ClipFactoryJobData } from '@api/queues/clip-factory/clip-factory.constants';
 import {
   CLIP_FACTORY_JOB_NAME,
   CLIP_FACTORY_QUEUE,
+  ClipFactoryJobData,
 } from '@api/queues/clip-factory/clip-factory.constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';

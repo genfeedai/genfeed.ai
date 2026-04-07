@@ -94,6 +94,7 @@ export function WorkflowSidebarContent({
         <Button
           type="button"
           variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
           onClick={handleOpenSearch}
           className="flex w-full items-center gap-3 rounded border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-sm text-white/40 transition-colors duration-150 hover:border-white/[0.12] hover:bg-white/[0.06] hover:text-white/60"
         >

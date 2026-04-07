@@ -13,12 +13,12 @@
 
 import { randomUUID } from 'node:crypto';
 import { ClipProjectsService } from '@api/collections/clip-projects/clip-projects.service';
-import type { IHighlight } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import { IHighlight } from '@api/collections/clip-projects/schemas/clip-project.schema';
 import { ConfigService } from '@api/config/config.service';
-import type { ClipAnalyzeJobData } from '@api/queues/clip-analyze/clip-analyze.constants';
 import {
   CLIP_ANALYZE_CONCURRENCY,
   CLIP_ANALYZE_QUEUE,
+  ClipAnalyzeJobData,
 } from '@api/queues/clip-analyze/clip-analyze.constants';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { LoggerService } from '@libs/logger/logger.service';

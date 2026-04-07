@@ -10,7 +10,7 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { InviteMemberDto } from '@api/collections/members/dto/invite-member.dto';
 import { UpdateMemberDto } from '@api/collections/members/dto/update-member.dto';
-import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
+import { MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -38,7 +38,7 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
-import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
 import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 import { MemberSerializer } from '@genfeedai/serializers';

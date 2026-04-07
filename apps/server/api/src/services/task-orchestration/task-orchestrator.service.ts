@@ -1,7 +1,9 @@
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { WorkspaceTasksService } from '@api/collections/workspace-tasks/services/workspace-tasks.service';
-import type { AgentRunJobData } from '@api/queues/agent-run/agent-run-queue.service';
-import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
+import {
+  AgentRunJobData,
+  AgentRunQueueService,
+} from '@api/queues/agent-run/agent-run-queue.service';
 import type {
   DecomposedSubtask,
   TaskDecompositionResult,

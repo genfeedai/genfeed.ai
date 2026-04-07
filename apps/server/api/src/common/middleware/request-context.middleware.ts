@@ -14,9 +14,9 @@ import {
   RC_KEYS_SET_TTL,
   RC_TTL,
 } from '@api/common/constants/request-context-cache.constants';
-import type { IRequestContext } from '@api/common/interfaces/request-context.interface';
+import { IRequestContext } from '@api/common/interfaces/request-context.interface';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
-import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
 import type { User } from '@clerk/backend';
 import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { LoggerService } from '@libs/logger/logger.service';

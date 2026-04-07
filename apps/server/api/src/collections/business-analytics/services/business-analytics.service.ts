@@ -8,7 +8,7 @@ import {
 } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import {
   CreditTransactionCategory,
   IngredientCategory,

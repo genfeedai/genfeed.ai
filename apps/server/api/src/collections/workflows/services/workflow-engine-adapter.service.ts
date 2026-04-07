@@ -1,16 +1,16 @@
-import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CaptionEntity } from '@api/collections/captions/entities/caption.entity';
-import type { CaptionsService } from '@api/collections/captions/services/captions.service';
-import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { CaptionsService } from '@api/collections/captions/services/captions.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
-import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
-import type { MetadataService } from '@api/collections/metadata/services/metadata.service';
-import type { MusicsService } from '@api/collections/musics/services/musics.service';
-import type { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
-import type { PostsService } from '@api/collections/posts/services/posts.service';
-import type { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
-import type { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { MusicsService } from '@api/collections/musics/services/musics.service';
+import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
+import { PostsService } from '@api/collections/posts/services/posts.service';
+import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
+import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
 import {
   isWorkflowInputNodeType,
   normalizeWorkflowNodeTypeToCanonical,

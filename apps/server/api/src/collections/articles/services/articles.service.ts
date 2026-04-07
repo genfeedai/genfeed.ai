@@ -1,5 +1,5 @@
-import type { ViralityAnalysisResponse } from '@api/collections/articles/dto/analyze-virality.dto';
-import type { TwitterThreadResponse } from '@api/collections/articles/dto/article-to-thread.dto';
+import { ViralityAnalysisResponse } from '@api/collections/articles/dto/analyze-virality.dto';
+import { TwitterThreadResponse } from '@api/collections/articles/dto/article-to-thread.dto';
 import { ArticlesQueryDto } from '@api/collections/articles/dto/articles-query.dto';
 import { CreateArticleDto } from '@api/collections/articles/dto/create-article.dto';
 import {
@@ -48,7 +48,7 @@ import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builde
 import { BaseService } from '@api/shared/services/base/base.service';
 import { AggregationCacheUtil } from '@api/shared/utils/aggregation-cache/aggregation-cache.util';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import {
   ActivitySource,
   ArticleCategory,

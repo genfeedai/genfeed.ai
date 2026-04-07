@@ -1,4 +1,4 @@
-import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { IngredientStatus } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';

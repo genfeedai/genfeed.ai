@@ -5,7 +5,7 @@ import {
 } from '@api/collections/bot-activities/schemas/bot-activity.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { BotActivityStatus } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';

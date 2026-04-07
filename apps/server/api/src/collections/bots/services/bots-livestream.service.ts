@@ -16,7 +16,7 @@ import {
 import { ConfigService } from '@api/config/config.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { BotPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

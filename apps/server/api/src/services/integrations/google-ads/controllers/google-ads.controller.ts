@@ -2,7 +2,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
-import type { GoogleAdsMetricsParams } from '@api/services/integrations/google-ads/interfaces/google-ads.interface';
+import { GoogleAdsMetricsParams } from '@api/services/integrations/google-ads/interfaces/google-ads.interface';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
 import { GoogleAdsOAuthService } from '@api/services/integrations/google-ads/services/google-ads-oauth.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';

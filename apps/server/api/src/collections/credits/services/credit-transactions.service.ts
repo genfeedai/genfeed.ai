@@ -8,7 +8,7 @@ import { CacheInvalidationService } from '@api/common/services/cache-invalidatio
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BusinessLogicException } from '@api/helpers/exceptions/business/business-logic.exception';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { CreditTransactionCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

@@ -1,10 +1,12 @@
-import type { WorkflowExecutionJobData } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import {
   WORKFLOW_EXECUTION_QUEUE,
+  WorkflowExecutionJobData,
   WorkflowExecutionQueueService,
 } from '@api/collections/workflows/services/workflow-execution-queue.service';
-import type { DelayResumeJobData } from '@api/collections/workflows/services/workflow-executor.service';
-import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
+import {
+  DelayResumeJobData,
+  WorkflowExecutorService,
+} from '@api/collections/workflows/services/workflow-executor.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';

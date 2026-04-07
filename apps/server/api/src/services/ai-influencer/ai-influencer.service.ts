@@ -1,6 +1,6 @@
-import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
-import type { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
+import { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { ConfigService } from '@api/config/config.service';
 import { FalService } from '@api/services/integrations/fal/fal.service';

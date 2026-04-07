@@ -9,7 +9,7 @@
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 import { Queue } from 'bullmq';
 
 export interface AgentRunJobData {
@@ -41,8 +41,9 @@ export class AgentRunQueueService implements OnModuleInit {
 
   constructor(
     @InjectQueue('agent-run')
+    @Optional()
     private readonly agentRunQueue: Queue<AgentRunJobData>,
-    private readonly logger: LoggerService,
+    @Optional() private readonly logger: LoggerService,
   ) {}
 
   onModuleInit(): void {

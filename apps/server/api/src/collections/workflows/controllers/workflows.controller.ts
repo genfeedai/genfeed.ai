@@ -52,7 +52,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
-import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { User } from '@clerk/backend';
 import { ListingType, WorkflowTrigger } from '@genfeedai/enums';
 import type {

@@ -1,4 +1,4 @@
-import type { FetchResult } from '@api/services/analytics-sync/services/platform-fetchers/youtube-fetcher.service';
+import { FetchResult } from '@api/services/analytics-sync/services/platform-fetchers/youtube-fetcher.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

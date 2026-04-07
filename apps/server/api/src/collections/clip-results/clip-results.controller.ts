@@ -1,7 +1,7 @@
 import { ClipResultsService } from '@api/collections/clip-results/clip-results.service';
-import type { CreateClipResultDto } from '@api/collections/clip-results/dto/create-clip-result.dto';
-import type { UpdateClipResultDto } from '@api/collections/clip-results/dto/update-clip-result.dto';
-import type { ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
+import { CreateClipResultDto } from '@api/collections/clip-results/dto/create-clip-result.dto';
+import { UpdateClipResultDto } from '@api/collections/clip-results/dto/update-clip-result.dto';
+import { ClipResultDocument } from '@api/collections/clip-results/schemas/clip-result.schema';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';

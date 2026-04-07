@@ -1,5 +1,5 @@
 import { CacheService } from '@api/services/cache/services/cache.service';
-import type { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
+import { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
 import type { ClerkClient, User } from '@clerk/backend';
 import { Inject, Injectable } from '@nestjs/common';
 

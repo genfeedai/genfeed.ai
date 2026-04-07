@@ -1,7 +1,7 @@
 import { CacheClientService } from '@api/services/cache/services/cache-client.service';
 import { CacheKeyService } from '@api/services/cache/services/cache-key.service';
 import { CacheTagsService } from '@api/services/cache/services/cache-tags.service';
-import type { ServiceCacheOptions } from '@api/shared/interfaces/cache/cache.interfaces';
+import { ServiceCacheOptions } from '@api/shared/interfaces/cache/cache.interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { RedisClientType } from 'redis';

@@ -10,21 +10,21 @@
  * This service encapsulates all AI-related content operations
  * to keep the main ArticlesService focused on CRUD operations.
  */
-import type { TwitterThreadResponse } from '@api/collections/articles/dto/article-to-thread.dto';
+import { TwitterThreadResponse } from '@api/collections/articles/dto/article-to-thread.dto';
 import {
   ArticleGenerationType,
   type EditArticleWithAIDto,
   type GenerateArticlesDto,
 } from '@api/collections/articles/dto/generate-articles.dto';
-import type { UpdateArticleDto } from '@api/collections/articles/dto/update-article.dto';
-import type { ArticleDocument } from '@api/collections/articles/schemas/article.schema';
-import type { ArticlesService } from '@api/collections/articles/services/articles.service';
-import type { ModelsService } from '@api/collections/models/services/models.service';
+import { UpdateArticleDto } from '@api/collections/articles/dto/update-article.dto';
+import { ArticleDocument } from '@api/collections/articles/schemas/article.schema';
+import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
-import type { PromptsService } from '@api/collections/prompts/services/prompts.service';
-import type { TemplatesService } from '@api/collections/templates/services/templates.service';
-import type { ConfigService } from '@api/config/config.service';
+import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import { TemplatesService } from '@api/collections/templates/services/templates.service';
+import { ConfigService } from '@api/config/config.service';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';

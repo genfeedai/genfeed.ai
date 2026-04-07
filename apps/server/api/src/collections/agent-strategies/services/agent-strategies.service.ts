@@ -6,7 +6,7 @@ import {
 } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { AgentRunStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';

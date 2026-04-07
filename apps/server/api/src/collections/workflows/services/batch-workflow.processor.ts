@@ -1,7 +1,11 @@
-import type { BatchWorkflowItemCompletionInput } from '@api/collections/workflows/services/batch-workflow.service';
-import { BatchWorkflowService } from '@api/collections/workflows/services/batch-workflow.service';
-import type { BatchWorkflowItemJobData } from '@api/collections/workflows/services/batch-workflow-queue.service';
-import { BATCH_WORKFLOW_QUEUE } from '@api/collections/workflows/services/batch-workflow-queue.service';
+import {
+  BatchWorkflowItemCompletionInput,
+  BatchWorkflowService,
+} from '@api/collections/workflows/services/batch-workflow.service';
+import {
+  BATCH_WORKFLOW_QUEUE,
+  BatchWorkflowItemJobData,
+} from '@api/collections/workflows/services/batch-workflow-queue.service';
 import type {
   NodeExecutionSummary,
   WorkflowExecutionResult,

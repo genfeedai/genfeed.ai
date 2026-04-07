@@ -13,7 +13,7 @@ import {
 } from '@api/collections/posts/schemas/post-analytics.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BrandMemorySyncService } from '@api/services/brand-memory/brand-memory-sync.service';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { ContentType, PostCategory } from '@genfeedai/enums';
 import type { IAnalyticsMatchStage } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';

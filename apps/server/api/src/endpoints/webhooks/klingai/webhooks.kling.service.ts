@@ -1,6 +1,6 @@
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { getErrorMessage } from '@api/helpers/utils/error/get-error-message.util';
-import type { KlingAIWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
+import { KlingAIWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

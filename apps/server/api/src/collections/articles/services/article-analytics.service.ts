@@ -1,5 +1,5 @@
-import type { CreateArticleAnalyticsDto } from '@api/collections/articles/dto/create-article-analytics.dto';
-import type { UpdateArticleAnalyticsDto } from '@api/collections/articles/dto/update-article-analytics.dto';
+import { CreateArticleAnalyticsDto } from '@api/collections/articles/dto/create-article-analytics.dto';
+import { UpdateArticleAnalyticsDto } from '@api/collections/articles/dto/update-article-analytics.dto';
 import { ArticleAnalyticsEntity } from '@api/collections/articles/entities/article-analytics.entity';
 import {
   Article,
@@ -15,7 +15,7 @@ import {
 } from '@api/collections/articles/utils/virality-analysis.mapper';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';

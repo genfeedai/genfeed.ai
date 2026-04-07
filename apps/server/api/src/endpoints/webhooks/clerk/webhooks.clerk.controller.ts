@@ -4,7 +4,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { WebhookEvent } from '@clerk/express/webhooks';
 import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { Public } from '@libs/decorators/public.decorator';
-import type { ClerkWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
+import { ClerkWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {

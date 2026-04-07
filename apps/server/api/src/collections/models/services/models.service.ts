@@ -1,13 +1,13 @@
-import type { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
-import type { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
+import { CreateModelDto } from '@api/collections/models/dto/create-model.dto';
+import { UpdateModelDto } from '@api/collections/models/dto/update-model.dto';
 import {
   Model,
   type ModelDocument,
 } from '@api/collections/models/schemas/model.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
-import type { LoggerService } from '@libs/logger/logger.service';
+import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import type { FilterQuery, UpdateQuery } from 'mongoose';

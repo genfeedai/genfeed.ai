@@ -1,4 +1,4 @@
-import type { ConfigService } from '@api/config/config.service';
+import { ConfigService } from '@api/config/config.service';
 
 // ComfyUI types (not yet exported from cloud-types)
 interface ComfyUIOutputFile {
@@ -37,9 +37,9 @@ import {
   buildZImageTurboLoraPrompt,
   buildZImageTurboPrompt,
 } from '@genfeedai/workflows';
-import type { LoggerService } from '@libs/logger/logger.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import type { HttpService } from '@nestjs/axios';
+import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 

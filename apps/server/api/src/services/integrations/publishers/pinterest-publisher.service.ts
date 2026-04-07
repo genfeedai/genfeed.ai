@@ -1,4 +1,4 @@
-import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ConfigService } from '@api/config/config.service';
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';

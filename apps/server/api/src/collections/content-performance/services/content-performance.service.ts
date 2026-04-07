@@ -1,8 +1,8 @@
-import type { CreateContentPerformanceDto } from '@api/collections/content-performance/dto/create-content-performance.dto';
-import type { ImportCsvDto } from '@api/collections/content-performance/dto/import-csv.dto';
-import type { ImportManualDto } from '@api/collections/content-performance/dto/import-manual.dto';
-import type { ManualInputDto } from '@api/collections/content-performance/dto/manual-input.dto';
-import type { QueryContentPerformanceDto } from '@api/collections/content-performance/dto/query-content-performance.dto';
+import { CreateContentPerformanceDto } from '@api/collections/content-performance/dto/create-content-performance.dto';
+import { ImportCsvDto } from '@api/collections/content-performance/dto/import-csv.dto';
+import { ImportManualDto } from '@api/collections/content-performance/dto/import-manual.dto';
+import { ManualInputDto } from '@api/collections/content-performance/dto/manual-input.dto';
+import { QueryContentPerformanceDto } from '@api/collections/content-performance/dto/query-content-performance.dto';
 import {
   ContentPerformance,
   type ContentPerformanceDocument,
@@ -14,7 +14,7 @@ import {
 } from '@api/collections/posts/schemas/post.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { ContentType, PostCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';

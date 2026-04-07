@@ -1,6 +1,6 @@
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { MicroservicesService } from '@api/services/microservices/microservices.service';
-import type { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
+import { ReplicateWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';

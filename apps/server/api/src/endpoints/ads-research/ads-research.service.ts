@@ -1,7 +1,7 @@
-import type { AdPerformance } from '@api/collections/ad-performance/schemas/ad-performance.schema';
+import { AdPerformance } from '@api/collections/ad-performance/schemas/ad-performance.schema';
 import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
 import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
-import type { CreativePattern } from '@api/collections/creative-patterns/schemas/creative-pattern.schema';
+import { CreativePattern } from '@api/collections/creative-patterns/schemas/creative-pattern.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
