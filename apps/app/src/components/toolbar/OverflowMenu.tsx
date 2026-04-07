@@ -79,7 +79,7 @@ export function OverflowMenu({ items }: OverflowMenuProps) {
               {item.external && (
                 <span className="ml-auto text-xs text-muted-foreground">↗</span>
               )}
-</Button>
+            </Button>
           ))}
         </div>
       )}
