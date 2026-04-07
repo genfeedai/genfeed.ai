@@ -61,7 +61,7 @@ export function AppearanceTab() {
               <div className="mt-0.5 text-xs text-muted-foreground">
                 {style.description}
               </div>
-</Button>
+            </Button>
           ))}
         </div>
       </SettingsField>

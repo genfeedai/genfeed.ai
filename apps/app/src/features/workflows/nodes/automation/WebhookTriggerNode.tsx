@@ -1,5 +1,18 @@
 'use client';
 
+import { WorkflowNodeStatus } from '@genfeedai/enums';
+import { Code, Pre } from '@genfeedai/ui';
+import {
+  selectUpdateNodeData,
+  useWorkflowStore,
+} from '@genfeedai/workflow-ui/stores';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@ui/src/primitives/collapsible';
+import type { NodeProps } from '@xyflow/react';
+import { memo, useCallback, useState } from 'react';
 import { NodeBadge } from '@/features/workflows/components/ui/badge';
 import {
   NodeButton,
@@ -22,19 +35,6 @@ import { NodeSelect } from '@/features/workflows/components/ui/inputs';
 import { useNodeExecution } from '@/features/workflows/hooks/useNodeExecution';
 import { coerceNodeData } from '@/features/workflows/nodes/node-data';
 import type { WebhookTriggerNodeData } from '@/features/workflows/nodes/types';
-import { WorkflowNodeStatus } from '@genfeedai/enums';
-import { Code, Pre } from '@genfeedai/ui';
-import {
-  selectUpdateNodeData,
-  useWorkflowStore,
-} from '@genfeedai/workflow-ui/stores';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@ui/src/primitives/collapsible';
-import type { NodeProps } from '@xyflow/react';
-import { memo, useCallback, useState } from 'react';
 
 function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
   const { id } = props;
