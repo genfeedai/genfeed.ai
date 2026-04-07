@@ -37,7 +37,7 @@ COPY package.json bun.lock turbo.json ./
 RUN node -e "\
   const fs=require('fs');\
   const p=JSON.parse(fs.readFileSync('package.json','utf8'));\
-  p.workspaces=['apps/server/*','apps/web','configs','packages/*'];\
+  p.workspaces=['apps/server/*','apps/app','configs','packages/*'];\
   if(p.dependencies?.resend==='~6.9.3') p.dependencies.resend='6.9.3';\
   fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\n');"
 
@@ -47,7 +47,7 @@ RUN --mount=type=bind,source=.,target=/ctx \
       /ctx/configs/package.json \
       /ctx/packages/*/package.json \
       /ctx/apps/server/*/package.json \
-      /ctx/apps/web/package.json; do \
+      /ctx/apps/app/package.json; do \
       [ -f "$f" ] || continue; \
       dir=$(echo "$f" | sed 's|^/ctx/||; s|/package.json$||'); \
       mkdir -p "$dir" && cp "$f" "$dir/package.json"; \
@@ -85,7 +85,7 @@ RUN set -e && \
     wait $pid1 $pid2
 
 # Copy and build Next.js web app
-COPY apps/web/ apps/web/
+COPY apps/app/ apps/app/
 ENV NEXT_PUBLIC_API_URL=/v1
 ENV NEXT_PUBLIC_API_ENDPOINT=http://localhost:4001/v1
 ENV NEXT_PUBLIC_WS_ENDPOINT=http://localhost:3007
@@ -107,9 +107,9 @@ RUN mkdir -p /data/db /data/redis /data/files && \
 COPY --from=builder --chown=appuser /app/apps/server/dist/ apps/server/dist/
 
 # Copy built Next.js app
-COPY --from=builder --chown=appuser /app/apps/web/.next/ apps/web/.next/
-COPY --from=builder --chown=appuser /app/apps/web/public/ apps/web/public/
-COPY --from=builder --chown=appuser /app/apps/web/package.json apps/web/package.json
+COPY --from=builder --chown=appuser /app/apps/app/.next/ apps/app/.next/
+COPY --from=builder --chown=appuser /app/apps/app/public/ apps/app/public/
+COPY --from=builder --chown=appuser /app/apps/app/package.json apps/app/package.json
 
 # Copy runtime deps
 COPY --from=builder --chown=appuser /app/node_modules/ node_modules/

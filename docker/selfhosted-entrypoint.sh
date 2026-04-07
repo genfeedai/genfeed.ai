@@ -5,7 +5,17 @@ set -e
 export MONGODB_URI=${MONGODB_URI:-mongodb://localhost:27017/genfeed}
 export REDIS_URL=${REDIS_URL:-redis://localhost:6379}
 export PORT=${PORT:-4001}
-export TOKEN_ENCRYPTION_KEY=${TOKEN_ENCRYPTION_KEY:-$(head -c 32 /dev/urandom | base64 | tr -d '/+=' | head -c 32)}
+# Persist auto-generated key so restarts can still decrypt existing data
+if [ -z "$TOKEN_ENCRYPTION_KEY" ]; then
+  if [ -f /data/.encryption-key ]; then
+    TOKEN_ENCRYPTION_KEY=$(cat /data/.encryption-key)
+  else
+    TOKEN_ENCRYPTION_KEY=$(head -c 32 /dev/urandom | base64 | tr -d '/+=' | head -c 32)
+    echo -n "$TOKEN_ENCRYPTION_KEY" > /data/.encryption-key
+    chmod 600 /data/.encryption-key
+  fi
+fi
+export TOKEN_ENCRYPTION_KEY
 export GENFEEDAI_MICROSERVICES_FILES_URL=${GENFEEDAI_MICROSERVICES_FILES_URL:-http://localhost:3005}
 export GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL=${GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL:-http://localhost:3007}
 export GENFEEDAI_CDN_URL=${GENFEEDAI_CDN_URL:-http://localhost:3005}
@@ -25,4 +35,4 @@ PORT=3005 node apps/server/dist/apps/files/main.js &
 PORT=3007 node apps/server/dist/apps/notifications/main.js &
 
 # Start Next.js web app (foreground — keeps container alive)
-cd apps/web && bun run start
+cd apps/app && bun run start
