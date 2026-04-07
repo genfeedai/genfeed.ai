@@ -29,7 +29,7 @@ describe('HookRemixService', () => {
   const configMock = {
     get: vi.fn((key: string) => {
       const config: Record<string, string> = {
-        GENFEEDAI_MICROSERVICES_FILES_URL: 'http://files.genfeed.ai:3000',
+        GENFEEDAI_MICROSERVICES_FILES_URL: 'http://localhost:3012',
       };
       return config[key];
     }),
@@ -181,7 +181,7 @@ describe('HookRemixService', () => {
       await service.createHookRemix(baseHookRemixDto, userId, organizationId);
 
       expect(httpPostMock).toHaveBeenCalledWith(
-        'http://files.genfeed.ai:3000/v1/files/process/hook-remix',
+        'http://localhost:3012/v1/files/process/hook-remix',
         expect.objectContaining({
           brandId,
           ctaVideoUrl: mockIngredient.cdnUrl,
@@ -298,7 +298,7 @@ describe('HookRemixService', () => {
 
       expect(result).toEqual(mockStatus);
       expect(httpGetMock).toHaveBeenCalledWith(
-        'http://files.genfeed.ai:3000/v1/files/job/job-123',
+        'http://localhost:3012/v1/files/job/job-123',
       );
     });
 

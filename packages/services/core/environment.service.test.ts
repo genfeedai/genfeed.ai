@@ -112,12 +112,12 @@ describe('EnvironmentService', () => {
       expect(EnvironmentService.currentApp).toBe('marketplace');
     });
 
-    it('detects website on local port 3105', () => {
+    it('detects website on local port 3002', () => {
       Object.defineProperty(window, 'location', {
         configurable: true,
         value: {
           hostname: 'local.genfeed.ai',
-          port: '3105',
+          port: '3002',
         },
       });
 

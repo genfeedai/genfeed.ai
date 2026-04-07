@@ -11,7 +11,7 @@ describe('AvatarVideoGenerationService', () => {
       findOne: vi.fn(),
     };
     const configService = {
-      ingredientsEndpoint: 'http://localhost:3001',
+      ingredientsEndpoint: 'http://localhost:3010',
     };
     const byokService = {
       resolveApiKey: vi.fn(),

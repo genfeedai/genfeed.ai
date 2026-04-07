@@ -31,7 +31,7 @@ describe('AgentToolExecutorService', () => {
     } as unknown as LoggerService;
 
     const configService = {
-      get: vi.fn().mockReturnValue('http://localhost:3001'),
+      get: vi.fn().mockReturnValue('http://localhost:3010'),
     };
 
     const httpService = {} as never;
@@ -2693,7 +2693,7 @@ describe('AgentToolExecutorService', () => {
 
     const serviceWithoutScorer = new AgentToolExecutorService(
       loggerService,
-      { get: vi.fn().mockReturnValue('http://localhost:3001') } as never,
+      { get: vi.fn().mockReturnValue('http://localhost:3010') } as never,
       {} as never,
       postsService as never,
       brandsService as never,

@@ -9,13 +9,13 @@ services:
     container_name: genfeed-ai-mcp
     restart: unless-stopped
     ports:
-      - '3006:3006'
+      - '3014:3014'
     env_file:
       - ../.env.production
     environment:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - NODE_ENV=production
-      - PORT=3006
+      - PORT=3014
       - SERVICE_NAME=mcp
       - VERSION=1.0.0
     networks:
@@ -26,7 +26,7 @@ services:
           memory: 512M
           cpus: '0.5'
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3006/v1/health']
+      test: ['CMD', 'curl', '-f', 'http://localhost:3014/v1/health']
       interval: 30s
       timeout: 10s
       retries: 5

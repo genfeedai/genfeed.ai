@@ -20,8 +20,8 @@ import { defineConfig, devices } from '@playwright/test';
 const isCI = !!process.env.CI;
 const shouldSkipWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === '1';
 const appBaseURL =
-  process.env.APP_BASE_URL || process.env.BASE_URL || 'http://127.0.0.1:3102';
-const adminBaseURL = process.env.ADMIN_BASE_URL || 'http://127.0.0.1:3101';
+  process.env.APP_BASE_URL || process.env.BASE_URL || 'http://127.0.0.1:3000';
+const adminBaseURL = process.env.ADMIN_BASE_URL || 'http://127.0.0.1:3001';
 const appWebServerUrl =
   process.env.PLAYWRIGHT_WEB_SERVER_URL || `${appBaseURL}/playwright-ready`;
 const adminWebServerUrl =
@@ -31,26 +31,26 @@ const appWebAppPath = process.env.PLAYWRIGHT_WEB_APP_PATH || 'apps/app';
 const adminWebAppPath =
   process.env.PLAYWRIGHT_ADMIN_WEB_APP_PATH || 'apps/admin';
 const testApiEndpoint =
-  process.env.NEXT_PUBLIC_API_ENDPOINT || 'http://local.genfeed.ai:3001/v1';
+  process.env.NEXT_PUBLIC_API_ENDPOINT || 'http://local.genfeed.ai:3010/v1';
 const appPlaywrightWebServerEnv = {
   ...process.env,
   NEXT_PUBLIC_API_ENDPOINT: testApiEndpoint,
   NEXT_PUBLIC_APPS_APP_ENDPOINT:
-    process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'http://localhost:3102',
+    process.env.NEXT_PUBLIC_APPS_APP_ENDPOINT || 'http://localhost:3000',
   NEXT_PUBLIC_PLAYWRIGHT_TEST:
     process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST || 'true',
   NEXT_PUBLIC_WS_ENDPOINT:
-    process.env.NEXT_PUBLIC_WS_ENDPOINT || 'http://local.genfeed.ai:3007',
+    process.env.NEXT_PUBLIC_WS_ENDPOINT || 'http://local.genfeed.ai:3013',
   PLAYWRIGHT_TEST: 'true',
 };
 const adminPlaywrightWebServerEnv = {
   ...process.env,
   NEXT_PUBLIC_API_ENDPOINT:
-    process.env.NEXT_PUBLIC_API_ENDPOINT || 'http://local.genfeed.ai:3001/v1',
+    process.env.NEXT_PUBLIC_API_ENDPOINT || 'http://local.genfeed.ai:3010/v1',
   NEXT_PUBLIC_PLAYWRIGHT_TEST:
     process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST || 'true',
   NEXT_PUBLIC_WS_ENDPOINT:
-    process.env.NEXT_PUBLIC_WS_ENDPOINT || 'http://local.genfeed.ai:3007',
+    process.env.NEXT_PUBLIC_WS_ENDPOINT || 'http://local.genfeed.ai:3013',
   PLAYWRIGHT_TEST: 'true',
 };
 const appCiWebServerCommand =

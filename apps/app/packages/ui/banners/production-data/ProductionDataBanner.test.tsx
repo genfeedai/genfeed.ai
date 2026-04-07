@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {
-    apiEndpoint: 'http://localhost:3001/v1',
+    apiEndpoint: 'http://localhost:3010/v1',
   },
 }));
 

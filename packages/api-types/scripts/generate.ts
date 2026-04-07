@@ -7,7 +7,7 @@
  *   OPENAPI_URL - API endpoint URL (used in CI/CD)
  *
  * Usage:
- *   bun run generate                          # Uses OPENAPI_URL or localhost:3001
+ *   bun run generate                          # Uses OPENAPI_URL or localhost:3010
  *   bun run generate --url <api-url>          # Override URL
  *   bun run generate --skip-on-error          # Don't fail if API unreachable (CI)
  *
@@ -34,7 +34,7 @@ const skipOnError = args.includes('--skip-on-error');
 const API_URL =
   urlIndex !== -1 && args[urlIndex + 1]
     ? args[urlIndex + 1]
-    : process.env.OPENAPI_URL || 'http://localhost:3001/v1/openapi.json';
+    : process.env.OPENAPI_URL || 'http://localhost:3010/v1/openapi.json';
 
 async function fetchOpenAPISpec(): Promise<Record<string, unknown>> {
   logger.log(`Fetching OpenAPI spec from: ${API_URL}`);

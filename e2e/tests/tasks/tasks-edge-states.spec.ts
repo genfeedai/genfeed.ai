@@ -132,7 +132,7 @@ async function routeTaskApi(
   handler: (route: Route) => Promise<void>,
 ) {
   await page.route(`**/api.genfeed.ai/**${suffix}`, handler);
-  await page.route(`**/local.genfeed.ai:3001/**${suffix}`, handler);
+  await page.route(`**/local.genfeed.ai:3010/**${suffix}`, handler);
 }
 
 async function mockTaskEdgeStates(

@@ -163,7 +163,7 @@ describe('GenerationActionCard', () => {
           type: 'generation_action_card',
         }}
         apiService={{
-          baseUrl: 'http://local.genfeed.ai:3001',
+          baseUrl: 'http://local.genfeed.ai:3010',
           createPrompt: vi.fn(),
           generateIngredient: vi.fn(),
           getModels: vi.fn().mockResolvedValue([]),
@@ -199,7 +199,7 @@ describe('GenerationActionCard', () => {
           type: 'generation_action_card',
         }}
         apiService={{
-          baseUrl: 'http://local.genfeed.ai:3001',
+          baseUrl: 'http://local.genfeed.ai:3010',
           createPrompt: vi.fn(),
           generateIngredient: vi.fn(),
           getModels: vi.fn().mockResolvedValue([]),
@@ -237,7 +237,7 @@ describe('GenerationActionCard', () => {
           type: 'generation_action_card',
         }}
         apiService={{
-          baseUrl: 'http://local.genfeed.ai:3001',
+          baseUrl: 'http://local.genfeed.ai:3010',
           createPrompt: vi.fn(),
           generateIngredient: vi.fn(),
           getModels: vi.fn().mockResolvedValue([imageModel, videoModel]),
@@ -273,7 +273,7 @@ describe('GenerationActionCard', () => {
           type: 'generation_action_card',
         }}
         apiService={{
-          baseUrl: 'http://local.genfeed.ai:3001',
+          baseUrl: 'http://local.genfeed.ai:3010',
           createPrompt: vi.fn(),
           generateIngredient: vi.fn(),
           getModels: vi.fn().mockResolvedValue([]),
@@ -311,7 +311,7 @@ describe('GenerationActionCard', () => {
           type: 'generation_action_card',
         }}
         apiService={{
-          baseUrl: 'http://local.genfeed.ai:3001',
+          baseUrl: 'http://local.genfeed.ai:3010',
           createPrompt: vi.fn(),
           generateIngredient: vi.fn(),
           getModels: vi.fn().mockResolvedValue([]),
@@ -359,7 +359,7 @@ describe('GenerationActionCard', () => {
           type: 'generation_action_card',
         }}
         apiService={{
-          baseUrl: 'http://local.genfeed.ai:3001',
+          baseUrl: 'http://local.genfeed.ai:3010',
           createPrompt,
           generateIngredient,
           getModels: vi.fn().mockResolvedValue([

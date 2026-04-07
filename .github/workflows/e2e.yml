@@ -133,13 +133,13 @@ jobs:
         env:
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'sk_test_lGlxOC4Eb3Tu9w8zILZg9woi97tuo49IWsx7P3E986' }}
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
-          NEXT_PUBLIC_API_URL: http://localhost:3001
+          NEXT_PUBLIC_API_URL: http://localhost:3010
 
       - name: Run core E2E tests
         run: bun run test:e2e:core
         env:
           CI: true
-          APP_BASE_URL: http://localhost:3102
+          APP_BASE_URL: http://localhost:3000
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'sk_test_lGlxOC4Eb3Tu9w8zILZg9woi97tuo49IWsx7P3E986' }}
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
 

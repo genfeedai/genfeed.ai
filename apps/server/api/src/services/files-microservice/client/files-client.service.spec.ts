@@ -21,7 +21,7 @@ describe('FilesClientService', () => {
   let httpService: vi.Mocked<HttpService>;
   let loggerService: vi.Mocked<LoggerService>;
 
-  const mockFilesServiceUrl = 'http://files.genfeed.ai:3000';
+  const mockFilesServiceUrl = 'http://localhost:3012';
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({

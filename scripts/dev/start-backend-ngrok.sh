@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="$ROOT_DIR/.env.local"
 NGROK_API="http://127.0.0.1:4040/api/tunnels"
-PORT="${1:-3001}"
+PORT="${1:-3010}"
 LOG_FILE="${TMPDIR:-/tmp}/genfeed-backend-ngrok.log"
 
 if ! command -v ngrok >/dev/null 2>&1; then

@@ -17,8 +17,7 @@ export class ConfigService extends getDefaultConfigService() {
 
   get FILES_SERVICE_URL(): string {
     return (
-      this.get('GENFEEDAI_MICROSERVICES_FILES_URL') ||
-      'http://files.genfeed.ai:3000'
+      this.get('GENFEEDAI_MICROSERVICES_FILES_URL') || 'http://localhost:3012'
     );
   }
 
