@@ -4,7 +4,8 @@ import type {
   VideoCompleteEvent,
   VideoProgressEvent,
 } from '@libs/interfaces/websockets.interface';
-import type { RedisService } from '@libs/redis/redis.service';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { RedisService } from '@libs/redis/redis.service';
 import { Injectable } from '@nestjs/common';
 import { getUserRoomName } from './room-name.util';
 

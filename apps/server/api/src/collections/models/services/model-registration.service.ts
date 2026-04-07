@@ -1,4 +1,5 @@
-import type { LoggerService } from '@libs/logger/logger.service';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   ForbiddenException,
@@ -8,7 +9,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import type { Model as MongooseModel } from 'mongoose';
 import { Types } from 'mongoose';
 import { DB_CONNECTIONS } from '../../../constants/database.constants';
-import type { OrganizationSettingsService } from '../../organization-settings/services/organization-settings.service';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { OrganizationSettingsService } from '../../organization-settings/services/organization-settings.service';
 import {
   Training,
   type TrainingDocument,

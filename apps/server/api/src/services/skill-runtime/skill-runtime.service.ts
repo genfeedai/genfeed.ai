@@ -80,12 +80,19 @@ export class SkillRuntimeService {
 
   /**
    * Merges skill tool overrides into the base tool set (additive only).
+   * When baseTools is undefined (no agentType), returns undefined to
+   * preserve unrestricted toolset — skill overrides are not needed
+   * when all tools are already available.
    * Invalid tool names are logged and dropped.
    */
   mergeSkillToolOverrides(
-    baseTools: string[],
+    baseTools: string[] | undefined,
     skills: ResolvedRuntimeSkill[],
-  ): string[] {
+  ): string[] | undefined {
+    if (!baseTools) {
+      return undefined;
+    }
+
     const toolSet = new Set(baseTools);
 
     for (const skill of skills) {

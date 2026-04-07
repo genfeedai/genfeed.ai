@@ -1,4 +1,5 @@
-import type { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import {
   isFalDestination,
   isReplicateDestination,
@@ -64,6 +65,17 @@ export class ModelsGuard implements CanActivate {
       modelKey,
       organizationId,
     );
+
+    // Validate that the model belongs to the requested category
+    if (
+      options.category &&
+      model.category &&
+      model.category !== options.category
+    ) {
+      throw new ForbiddenException(
+        `Model "${modelKey}" is category "${model.category}", but this endpoint requires "${options.category}"`,
+      );
+    }
 
     request.selectedModel = model;
 
