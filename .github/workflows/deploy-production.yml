@@ -1,22 +1,13 @@
 # Production Deployment — thin caller for the reusable _deploy.yml workflow
-# ONLY triggers on master push. Contributors PR against develop; maintainers
-# merge develop → master to deploy. No external contributor can trigger this.
+# Triggers on GitHub release (like cal.com). Contributors PR against develop;
+# maintainers merge develop → master, then create a release to deploy.
+# Manual dispatch is also available for hotfixes.
 
 name: Deploy Production
 
 on:
-  push:
-    branches: [master]
-    paths:
-      - 'apps/server/**'
-      - 'packages/**'
-      - 'package.json'
-      - 'bun.lock'
-      - 'docker/**'
-      - 'scripts/**'
-      - '.github/workflows/deploy-production.yml'
-      - '.github/workflows/_deploy.yml'
-      - '.github/actions/**'
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       force_all:
