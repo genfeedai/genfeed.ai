@@ -45,6 +45,7 @@
     "build:web:parallel": "bunx turbo build --filter=@genfeedai/app --filter=@genfeedai/admin --filter=@genfeedai/website",
     "build:web:sequential": "bunx turbo build --filter=@genfeedai/app --filter=@genfeedai/admin --filter=@genfeedai/website --concurrency=1",
     "check:import-cycles": "bun run scripts/check-import-cycles.ts",
+    "publish:package": "./scripts/publish-package.sh",
     "check:multi-tenancy": "bun run scripts/check-multi-tenancy.ts",
     "check:nested-node-modules": "bun run scripts/check-nested-node-modules.ts",
     "check:package-api-surface": "bun run scripts/check-package-api-surface.ts",
