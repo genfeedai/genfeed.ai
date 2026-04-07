@@ -2,7 +2,7 @@
 
 **Plasmo-based Chrome/Firefox extension.**
 
-Rules auto-load from `../.claude/rules/`. Docs in `../../../../.agents/` and workspace `../../../../../.agents/`.
+Rules auto-load from `.claude/rules/` (symlinked to `.agents/rules/`). Docs in `../../../../.agents/`.
 
 ## Tech Stack
 
@@ -19,5 +19,5 @@ bun run build   # Production build
 
 ## Docs
 
-- `../../../../.agents/README.md` - Cloud project guide
-- `../../../../.agents/SYSTEM/RULES.md` - Cloud standards
+- `../../../../.agents/README.md` - Project guide
+- `../../../../.agents/SYSTEM/RULES.md` - Coding standards

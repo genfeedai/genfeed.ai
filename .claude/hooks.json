@@ -1,0 +1,35 @@
+{
+  "hooks": [
+    {
+      "command": "python3 .claude/hooks/block-sensitive-access.py",
+      "event": "pre-tool-use",
+      "matcher": {
+        "tool": ["Bash"]
+      },
+      "timeout": 5000
+    },
+    {
+      "command": "bun run biome check --write $CLAUDE_FILE_PATH",
+      "event": "post-tool-use",
+      "matcher": {
+        "tool": ["Edit", "Write"]
+      }
+    },
+    {
+      "command": "python3 .claude/hooks/check-multi-tenancy.py",
+      "event": "post-tool-use",
+      "matcher": {
+        "tool": ["Write", "Edit"]
+      },
+      "timeout": 5000
+    },
+    {
+      "command": "python3 .claude/hooks/check-serializer-boundary.py",
+      "event": "post-tool-use",
+      "matcher": {
+        "tool": ["Write", "Edit"]
+      },
+      "timeout": 5000
+    }
+  ]
+}

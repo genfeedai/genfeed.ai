@@ -6,15 +6,10 @@ React Native + Expo app for Genfeed.ai. TypeScript + NativeWind (Tailwind CSS).
 
 **Start here:** `../../../.agents/README.md`
 
-- `../../../.agents/SYSTEM/ARCHITECTURE.md` - Mobile app architecture
+- `../../../.agents/SYSTEM/ARCHITECTURE.md` - System architecture
 - `../../../.agents/SYSTEM/RULES.md` - Coding standards
 - `../../../.agents/SYSTEM/SUMMARY.md` - Current state
+- `../../../.agents/SYSTEM/critical/CROSS-PROJECT-RULES.md` - Project-wide rules
 - GitHub Issues - Mobile tasks and requirements
 
-## Workspace Documentation
-
-- `../../../../.agents/SYSTEM/critical/CROSS-PROJECT-RULES.md` - Workspace rules
-- `../../../../.agents/SYSTEM/architecture/WORKSPACE-ARCHITECTURE.md` - Overall system
-- `../../../../.agents/SOP/` - Standard procedures
-
-**Single source of truth:** Mobile docs are in `../../../.agents/`; shared docs are in workspace `../../../../.agents/`.
+**Single source of truth:** All project docs are in `../../../.agents/`.
