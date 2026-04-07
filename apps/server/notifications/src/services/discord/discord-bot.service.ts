@@ -79,6 +79,10 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
     channelId: string,
     webhookName: string,
   ): Promise<WebhookClient | null> {
+    if (!channelId) {
+      return null;
+    }
+
     const cacheKey = `${channelId}:${webhookName}`;
 
     const cached = this.webhookCache.get(cacheKey);
@@ -260,10 +264,12 @@ export class DiscordBotService implements OnModuleInit, OnModuleDestroy {
     ];
 
     const results = await Promise.all(
-      channels.map(async ({ name, channelId }) => ({
-        name,
-        ...(await this.testChannel(channelId)),
-      })),
+      channels
+        .filter(({ channelId }) => !!channelId)
+        .map(async ({ name, channelId }) => ({
+          name,
+          ...(await this.testChannel(channelId)),
+        })),
     );
 
     return { channels: results, success: true };
