@@ -1,43 +1,93 @@
+import { Callout } from 'nextra/components'
+
 # Configuration
 
-Environment variables and settings for Genfeed Core.
-
-## Environment Variables
-
-Create a `.env.local` file in your project root:
+Environment variables and settings for Genfeed Core. Create a `.env.local` file in your project root:
 
 ```bash
 cp .env.example .env.local
 ```
 
-### Required Variables
+<Callout type="warning">
+**Never commit secrets.** Add `.env.local` to your `.gitignore`. Never commit API keys, tokens, or credentials to version control.
+</Callout>
 
-```bash
-# Database
-MONGODB_URI=mongodb://localhost:27017/genfeed
-REDIS_URL=redis://localhost:6379
+---
 
-# API Keys (at least one required)
-OPENAI_API_KEY=sk-...
-REPLICATE_API_TOKEN=r8_...
-ANTHROPIC_API_KEY=sk-ant-...
-```
+## Database
 
-### Optional Variables
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `MONGODB_URI` | Yes | -- | MongoDB connection string (e.g. `mongodb://localhost:27017/genfeed`) |
+| `REDIS_URL` | Yes | -- | Redis connection string for BullMQ job queues and caching (e.g. `redis://localhost:6379`) |
 
-```bash
-# ElevenLabs (for voice)
-ELEVENLABS_API_KEY=...
+---
 
-# Google (for Gemini)
-GOOGLE_API_KEY=...
+## Authentication
 
-# Storage (defaults to local)
-S3_BUCKET=...
-S3_REGION=...
-AWS_ACCESS_KEY_ID=...
-AWS_SECRET_ACCESS_KEY=...
-```
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `JWT_SECRET` | Yes | -- | Secret key for signing JWT tokens. Use a long random string. |
+| `CLERK_SECRET_KEY` | Cloud only | -- | Clerk backend secret key for user authentication |
+| `CLERK_PUBLISHABLE_KEY` | Cloud only | -- | Clerk frontend publishable key |
+
+---
+
+## AI Providers
+
+Add keys for the providers you want to use. At least one is required for content generation.
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `OPENAI_API_KEY` | No | OpenAI API key for GPT models and DALL-E image generation |
+| `ANTHROPIC_API_KEY` | No | Anthropic API key for Claude models |
+| `GOOGLE_API_KEY` | No | Google API key for Gemini models |
+| `REPLICATE_API_TOKEN` | No | Replicate API token for open-source image and video models (Flux, SDXL, Kling, etc.) |
+| `FAL_KEY` | No | fal.ai API key for fast image and video inference |
+| `ELEVENLABS_API_KEY` | No | ElevenLabs API key for voice synthesis and text-to-speech |
+
+---
+
+## Storage
+
+By default, generated assets are stored locally. For production, configure S3-compatible storage.
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `AWS_ACCESS_KEY_ID` | No | -- | AWS access key for S3 storage |
+| `AWS_SECRET_ACCESS_KEY` | No | -- | AWS secret key for S3 storage |
+| `S3_BUCKET` | No | -- | S3 bucket name for storing generated assets |
+| `S3_REGION` | No | `us-east-1` | AWS region for your S3 bucket |
+
+---
+
+## Payments (Cloud only)
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `STRIPE_SECRET_KEY` | Cloud only | -- | Stripe secret key for subscription billing |
+| `STRIPE_WEBHOOK_SECRET` | Cloud only | -- | Stripe webhook signing secret for payment event verification |
+
+---
+
+## URLs
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `APP_URL` | No | `http://localhost:3102` | Frontend application URL |
+| `API_URL` | No | `http://localhost:3001` | Backend API URL |
+| `MARKETPLACE_API_URL` | No | -- | Marketplace API endpoint (cloud only, for marketplace.genfeed.ai integration) |
+
+---
+
+## Application
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `NODE_ENV` | No | `development` | Environment mode (`development`, `production`, `test`) |
+| `PORT` | No | `3001` | API server port |
+
+---
 
 ## Database Setup
 
@@ -63,7 +113,10 @@ brew services start redis
 docker run -d -p 6379:6379 redis:7
 ```
 
+---
+
 ## Next Steps
 
-- [Installation Guide](/core/installation) — Full setup walkthrough
-- [Contributing](/core/contributing) — How to contribute
+- [Installation Guide](/core/installation) -- Full setup walkthrough
+- [Self-Hosted vs Cloud](/core/self-hosted-vs-cloud) -- Compare editions
+- [Contributing](/core/contributing) -- How to contribute

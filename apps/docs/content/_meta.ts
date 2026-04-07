@@ -1,25 +1,31 @@
 export default {
-  '---': {
+  index: 'Welcome',
+
+  // -- Products --
+  'sep-products': {
     title: 'Products',
     type: 'separator',
   },
-  '----': {
+  core: 'Genfeed Core (OSS)',
+  cloud: 'Genfeed Cloud',
+  deployment: 'Deployment Options',
+
+  // -- Learn --
+  'sep-learn': {
     title: 'Learn',
     type: 'separator',
   },
-  '-----': {
-    title: 'Reference',
-    type: 'separator',
-  },
-  advanced: 'Advanced',
-  'api-reference': 'API Reference',
-  cloud: 'Genfeed Cloud',
-  core: 'Genfeed Core (OSS)',
-  deployment: 'Deployment Options',
-  faq: 'FAQ',
   features: 'Features',
   'getting-started': 'Getting Started',
   guides: 'Guides & Tutorials',
-  index: 'Welcome',
   models: 'AI Models',
+  faq: 'FAQ',
+
+  // -- Reference --
+  'sep-reference': {
+    title: 'Reference',
+    type: 'separator',
+  },
+  'api-reference': 'API Reference',
+  advanced: 'Advanced',
 };
