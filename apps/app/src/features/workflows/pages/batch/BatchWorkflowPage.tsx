@@ -35,13 +35,6 @@ import {
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import {
-  type BatchItemStatus,
-  type BatchJobStatus,
-  type BatchJobSummary,
-  createWorkflowApiService,
-  type WorkflowSummary,
-} from '@/features/workflows/services/workflow-api';
 
 interface UploadedFile {
   file: File;
@@ -708,7 +701,6 @@ export default function BatchWorkflowPage() {
                   stroke="currentColor"
                   strokeWidth={1.5}
                   viewBox="0 0 24 24"
-                  aria-hidden="true"
                 >
                   <title>Upload</title>
                   <path
