@@ -1,5 +1,7 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
+import Button from '@ui/buttons/base/Button';
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { HiOutlineChevronDown } from 'react-icons/hi2';
@@ -52,14 +54,15 @@ export function CloudEditorDropdown({
 
   return (
     <div ref={menuRef} className="relative">
-      <button
+      <Button
         type="button"
+        variant={ButtonVariant.UNSTYLED}
         onClick={() => setIsOpen((current) => !current)}
         className="flex items-center gap-1 rounded px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition hover:bg-secondary hover:text-foreground"
       >
         {label}
         <HiOutlineChevronDown aria-hidden="true" className="h-3.5 w-3.5" />
-      </button>
+      </Button>
 
       {isOpen && (
         <div className="absolute left-0 top-full z-50 mt-1 min-w-[180px] rounded-lg border border-border bg-card py-1 shadow-lg whitespace-nowrap">
@@ -69,15 +72,16 @@ export function CloudEditorDropdown({
             }
 
             return (
-              <button
+              <Button
                 key={item.id}
                 type="button"
+                variant={ButtonVariant.UNSTYLED}
                 onClick={() => {
                   if (item.disabled || !item.onClick) return;
                   item.onClick();
                   setIsOpen(false);
                 }}
-                disabled={item.disabled}
+                isDisabled={item.disabled}
                 className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground transition hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
               >
                 <span className="h-4 w-4 shrink-0">{item.icon}</span>
@@ -87,7 +91,7 @@ export function CloudEditorDropdown({
                     ↗
                   </span>
                 )}
-              </button>
+              </Button>
             );
           })}
         </div>
