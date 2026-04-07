@@ -108,7 +108,7 @@ export default function CreatorsContent() {
               trackingName="creators_hero_click"
               trackingData={{ action: 'core_cta' }}
             >
-              <Link href="/core">
+              <Link href="/pricing">
                 Get Started
                 <LuArrowRight className="h-4 w-4" />
               </Link>
@@ -329,7 +329,7 @@ export default function CreatorsContent() {
                 trackingName="creators_cta_click"
                 trackingData={{ action: 'core_cta' }}
               >
-                <Link href="/core">
+                <Link href="/pricing">
                   Get Started
                   <LuArrowRight className="h-4 w-4" />
                 </Link>

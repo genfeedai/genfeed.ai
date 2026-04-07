@@ -9,7 +9,7 @@ import { HiCheck, HiCloud, HiMap, HiServerStack } from 'react-icons/hi2';
 const paths = [
   {
     cta: 'View Setup Guide',
-    ctaHref: '/core',
+    ctaHref: '/host',
     features: [
       'Full source code access',
       'Deploy on your infrastructure',

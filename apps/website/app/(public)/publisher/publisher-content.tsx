@@ -129,7 +129,7 @@ export default function PublisherContent() {
               trackingName="publisher_hero_click"
               trackingData={{ action: 'core_cta' }}
             >
-              <Link href="/core">Start with Core</Link>
+              <Link href="/pricing">View Plans</Link>
             </ButtonTracked>
           </>
         }

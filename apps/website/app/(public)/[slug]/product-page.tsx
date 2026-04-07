@@ -344,7 +344,7 @@ export default function ProductPage({ product }: { product: Product }) {
             {product.status && product.githubUrl
               ? `Join the ${product.status} program and help shape the future of ${product.name}.`
               : product.githubUrl
-                ? 'Join the open-source community building the future of AI content generation.'
+                ? 'Join thousands of creators building the future of AI content.'
                 : 'Join thousands of creators using Genfeed to generate and publish AI content at scale.'}
           </Text>
           <div className="flex flex-col sm:flex-row items-center gap-4 justify-center">

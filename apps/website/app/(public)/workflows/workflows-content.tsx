@@ -145,7 +145,7 @@ export default function WorkflowsContent() {
               trackingName="workflows_hero_click"
               trackingData={{ action: 'core_cta' }}
             >
-              <Link href="/core">
+              <Link href="/pricing">
                 Open Core
                 <LuArrowRight className="h-4 w-4" />
               </Link>

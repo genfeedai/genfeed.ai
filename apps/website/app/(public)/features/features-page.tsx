@@ -2,7 +2,6 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
-import PricingStrip from '@ui/marketing/PricingStrip';
 import AppLink from '@ui/navigation/link/Link';
 import PageLayout from '@web-components/PageLayout';
 import Image from 'next/image';
@@ -168,14 +167,12 @@ export default function FeaturesPage(): React.ReactElement {
                 Start Creating Today
               </h2>
               <p className="text-surface/40 text-xl mb-12 font-medium">
-                Self-host Core for free or subscribe to a Cloud plan. Upgrade
-                anytime.
+                Start creating in minutes. Choose the plan that fits your team.
               </p>
-              <PricingStrip className="mb-12 max-w-3xl mx-auto" />
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <AppLink
-                  url="/core"
-                  label="Self-Host Free"
+                  url="/pricing"
+                  label="View Plans"
                   variant={ButtonVariant.SECONDARY}
                   size={ButtonSize.PUBLIC}
                   className="tracking-[0.3em]"

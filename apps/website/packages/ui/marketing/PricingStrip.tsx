@@ -8,21 +8,21 @@ import { LuArrowRight } from 'react-icons/lu';
 const PILLAR_COLUMNS = [
   {
     href: '/pricing',
-    label: 'BYOK + Credit Packs',
-    price: 'Free / PAYG',
-    subtitle: 'Self-Serve',
+    label: 'Pro',
+    price: '$499/mo',
+    subtitle: 'Creators',
   },
   {
-    href: '/pricing?tab=services',
-    label: 'Done-For-You',
-    price: 'Monthly Retainer',
-    subtitle: 'Full Service',
+    href: '/pricing',
+    label: 'Scale',
+    price: '$1,499/mo',
+    subtitle: 'Agencies',
   },
   {
-    href: '/pricing?tab=training',
-    label: 'Setup & Training',
-    price: 'One-Time',
-    subtitle: 'Onboarding',
+    href: '/pricing',
+    label: 'Enterprise',
+    price: 'Custom',
+    subtitle: 'Studios',
   },
 ] as const;
 
@@ -40,7 +40,7 @@ export default function PricingStrip({
     >
       <div className="grid grid-cols-1 gap-px md:grid-cols-3">
         {PILLAR_COLUMNS.map((column) => {
-          const isFeatured = column.label === 'Done-For-You';
+          const isFeatured = column.label === 'Scale';
 
           return (
             <div

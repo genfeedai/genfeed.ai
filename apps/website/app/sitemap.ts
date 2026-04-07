@@ -111,7 +111,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       changeFrequency: 'weekly',
       lastModified: new Date(),
-      priority: 0.8,
+      priority: 0.4,
       url: 'https://genfeed.ai/core',
     },
     {
@@ -123,8 +123,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       changeFrequency: 'weekly',
       lastModified: new Date(),
-      priority: 0.8,
+      priority: 0.4,
       url: 'https://genfeed.ai/host',
+    },
+    {
+      changeFrequency: 'monthly',
+      lastModified: new Date(),
+      priority: 0.7,
+      url: 'https://genfeed.ai/services',
     },
     {
       changeFrequency: 'weekly',

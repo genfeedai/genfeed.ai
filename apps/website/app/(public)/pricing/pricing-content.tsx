@@ -2,11 +2,9 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import {
-  contentServiceOffering,
-  creditPackPrice,
-  creditPackTotalCredits,
-  creditsToOutputEstimate,
-  WEBSITE_CREDIT_PACKS,
+  formatOutputs,
+  formatPrice,
+  websitePlans,
 } from '@helpers/business/pricing/pricing.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
@@ -31,40 +29,13 @@ const CALENDLY_URL =
 
 // Tier numbering and short labels for the Neural Noir aesthetic
 const tierMeta: Record<string, { number: string; shortLabel: string }> = {
-  Pro: { number: '02', shortLabel: 'Agency' },
-  Scale: { number: '03', shortLabel: 'Scale' },
-  Starter: { number: '01', shortLabel: 'Starter' },
+  Enterprise: { number: '03', shortLabel: 'Studio' },
+  Pro: { number: '01', shortLabel: 'Agency' },
+  Scale: { number: '02', shortLabel: 'Scale' },
+  'Self-Hosted': { number: '00', shortLabel: 'Deploy' },
 };
 
-interface SecondaryItem {
-  label: string;
-  price: string;
-  href: string;
-  external?: boolean;
-}
-
-const SECONDARY_ITEMS: SecondaryItem[] = [
-  { href: '/sign-up', label: 'BYOK', price: 'Free' },
-  {
-    external: true,
-    href: CALENDLY_URL,
-    label: 'Enterprise',
-    price: 'Book a Call',
-  },
-  {
-    external: true,
-    href: CALENDLY_URL,
-    label: 'Done-For-You',
-    price: 'From $2,500/mo',
-  },
-  {
-    external: true,
-    href: CALENDLY_URL,
-    label: 'Dedicated Server',
-    price: 'Custom',
-  },
-  { external: true, href: CALENDLY_URL, label: 'Training', price: 'From $299' },
-];
+const FEATURED_TIER = 'Scale';
 
 export default function PricingContent() {
   const containerRef = useMarketingEntrance();
@@ -76,29 +47,44 @@ export default function PricingContent() {
         badgeIcon={LuSparkles}
         title={
           <>
-            Choose how you <span className="italic font-light">create.</span>
+            Simple pricing that{' '}
+            <span className="italic font-light">scales.</span>
           </>
         }
-        description="Use our platform yourself, let us create for you, or get help getting started."
+        description="Self-host for free or choose a managed cloud plan. No hidden fees."
       >
-        {/* ── Credit Packs Grid ── */}
+        {/* ── Subscription Plans Grid ── */}
         <WebSection maxWidth="full">
           <SectionHeader
-            title="Credit Packs"
-            description="No subscription. No commitment. Buy credits, use them whenever you need."
+            title="Plans"
+            description="Output-based pricing. Pay for what you create — videos, images, and voice minutes."
             className="[&_h2]:text-5xl mb-4"
           />
-          <NeuralGrid columns={3}>
-            {WEBSITE_CREDIT_PACKS.map((pack) => {
-              const meta = tierMeta[pack.label];
-              const price = creditPackPrice(pack);
-              const totalCredits = creditPackTotalCredits(pack);
-              const estimates = creditsToOutputEstimate(totalCredits);
-              const isPopular = pack.label === 'Pro';
+          <NeuralGrid columns={4}>
+            {websitePlans.map((plan) => {
+              const meta = tierMeta[plan.label];
+              const isPopular = plan.label === FEATURED_TIER;
+              const isSelfHosted = plan.type === 'byok';
+              const isEnterprise = plan.type === 'enterprise';
+              const priceDisplay = isEnterprise
+                ? 'Custom'
+                : formatPrice(plan.price);
+              const outputDisplay = formatOutputs(plan.outputs ?? undefined);
+
+              // Determine CTA href
+              const ctaHref = isSelfHosted
+                ? '/host'
+                : isEnterprise
+                  ? CALENDLY_URL
+                  : plan.ctaHref || `${EnvironmentService.apps.app}/sign-up`;
+
+              const ctaLabel = plan.cta || 'Get Started';
+              const ctaExternal =
+                isEnterprise || (!isSelfHosted && !isEnterprise);
 
               return (
                 <NeuralGridItem
-                  key={pack.label}
+                  key={plan.label}
                   padding="lg"
                   inverted={isPopular}
                   className="relative gsap-card"
@@ -118,7 +104,7 @@ export default function PricingContent() {
                       isPopular ? 'text-inv-fg/30' : 'text-surface/20',
                     )}
                   >
-                    {meta.number} / {meta.shortLabel}
+                    {meta?.number} / {meta?.shortLabel}
                   </div>
 
                   <div className="mb-2">
@@ -128,8 +114,18 @@ export default function PricingContent() {
                         isPopular && 'text-inv-fg',
                       )}
                     >
-                      ${price.toLocaleString()}
+                      {priceDisplay}
                     </span>
+                    {plan.price && !isEnterprise ? (
+                      <span
+                        className={cn(
+                          'text-sm ml-1',
+                          isPopular ? 'text-inv-fg/40' : 'text-surface/40',
+                        )}
+                      >
+                        /mo
+                      </span>
+                    ) : null}
                   </div>
 
                   <div
@@ -138,60 +134,100 @@ export default function PricingContent() {
                       isPopular ? 'text-inv-fg/50' : 'text-surface/40',
                     )}
                   >
-                    {pack.credits.toLocaleString()} credits
-                    {pack.bonus && (
-                      <span
+                    {plan.description}
+                  </div>
+
+                  {/* Output quotas */}
+                  {outputDisplay ? (
+                    <div
+                      className={cn(
+                        'py-6 border-y mb-8',
+                        isPopular ? 'border-inv-fg/10' : 'border-edge/5',
+                      )}
+                    >
+                      {plan.outputs?.videoMinutes ? (
+                        <div
+                          className={cn(
+                            'text-2xl font-bold',
+                            isPopular && 'text-inv-fg',
+                          )}
+                        >
+                          {plan.outputs.videoMinutes} min video
+                        </div>
+                      ) : null}
+                      {plan.outputs?.images ? (
+                        <div
+                          className={cn(
+                            'text-sm mt-1',
+                            isPopular ? 'text-inv-fg/40' : 'text-surface/40',
+                          )}
+                        >
+                          {plan.outputs.images.toLocaleString()} images
+                        </div>
+                      ) : null}
+                      {plan.outputs?.voiceMinutes ? (
+                        <div
+                          className={cn(
+                            'text-sm mt-0.5',
+                            isPopular ? 'text-inv-fg/40' : 'text-surface/40',
+                          )}
+                        >
+                          {plan.outputs.voiceMinutes.toLocaleString()} min voice
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : isEnterprise ? (
+                    <div
+                      className={cn(
+                        'py-6 border-y mb-8',
+                        isPopular ? 'border-inv-fg/10' : 'border-edge/5',
+                      )}
+                    >
+                      <div
                         className={cn(
-                          'ml-2 px-2 py-0.5 text-[10px] font-black uppercase rounded-full',
-                          isPopular
-                            ? 'bg-inv-fg/10 text-inv-fg/60'
-                            : 'bg-fill/10 text-surface/60',
+                          'text-2xl font-bold',
+                          isPopular && 'text-inv-fg',
                         )}
                       >
-                        +{pack.bonus.toLocaleString()} bonus
-                      </span>
-                    )}
-                  </div>
-
-                  <div
-                    className={cn(
-                      'py-6 border-y mb-8',
-                      isPopular ? 'border-inv-fg/10' : 'border-edge/5',
-                    )}
-                  >
+                        Unlimited
+                      </div>
+                      <div
+                        className={cn(
+                          'text-sm mt-1',
+                          isPopular ? 'text-inv-fg/40' : 'text-surface/40',
+                        )}
+                      >
+                        Videos, images, and voice
+                      </div>
+                    </div>
+                  ) : (
                     <div
                       className={cn(
-                        'text-2xl font-bold',
-                        isPopular && 'text-inv-fg',
+                        'py-6 border-y mb-8',
+                        isPopular ? 'border-inv-fg/10' : 'border-edge/5',
                       )}
                     >
-                      ~{estimates.images.toLocaleString()} images
+                      <div
+                        className={cn(
+                          'text-2xl font-bold',
+                          isPopular && 'text-inv-fg',
+                        )}
+                      >
+                        Your keys
+                      </div>
+                      <div
+                        className={cn(
+                          'text-sm mt-1',
+                          isPopular ? 'text-inv-fg/40' : 'text-surface/40',
+                        )}
+                      >
+                        Your infrastructure
+                      </div>
                     </div>
-                    <div
-                      className={cn(
-                        'text-sm mt-1',
-                        isPopular ? 'text-inv-fg/40' : 'text-surface/40',
-                      )}
-                    >
-                      ~{estimates.videoMinutes} min video
-                    </div>
-                    <div
-                      className={cn(
-                        'text-sm mt-0.5',
-                        isPopular ? 'text-inv-fg/40' : 'text-surface/40',
-                      )}
-                    >
-                      ~{estimates.voiceMinutes.toLocaleString()} min voice
-                    </div>
-                  </div>
+                  )}
 
                   <ul className="space-y-4 mb-auto">
-                    {[
-                      'Premium AI models included',
-                      'No subscription needed',
-                      'Credits never expire',
-                      'Email support',
-                    ].map((feature) => (
+                    {plan.features.map((feature) => (
                       <li key={feature} className="flex items-start gap-3">
                         <LuCheck
                           className={cn(
@@ -212,46 +248,28 @@ export default function PricingContent() {
                   </ul>
 
                   <AppLink
-                    url={`${EnvironmentService.apps.app}/sign-up?credits=${pack.credits}`}
-                    label="Buy Credits"
+                    url={ctaHref}
+                    label={ctaLabel}
                     variant={
                       isPopular ? ButtonVariant.BLACK : ButtonVariant.DEFAULT
                     }
                     size={ButtonSize.PUBLIC}
                     className="mt-12 text-center"
+                    {...(ctaExternal
+                      ? { target: '_blank', rel: 'noopener noreferrer' }
+                      : {})}
                   />
                 </NeuralGridItem>
               );
             })}
           </NeuralGrid>
-
-          {/* ── Secondary Offerings ── */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1.5 mt-1.5">
-            {SECONDARY_ITEMS.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="flex items-center justify-between p-4 border border-edge/10 bg-fill/[0.02] hover:border-surface/20 transition-all"
-                {...(item.external
-                  ? { rel: 'noopener noreferrer', target: '_blank' }
-                  : {})}
-              >
-                <span className="text-xs font-black uppercase tracking-widest text-surface/40">
-                  {item.label}
-                </span>
-                <span className="text-sm font-semibold text-surface">
-                  {item.price}
-                </span>
-              </Link>
-            ))}
-          </div>
         </WebSection>
 
         {/* FAQ */}
         <WebSection bg="bordered" maxWidth="md" className="gsap-section">
           <SectionHeader
             title="Common Questions"
-            description="Everything you need to know about pricing, services, and training."
+            description="Everything you need to know about pricing and plans."
             className="[&_h2]:text-5xl"
           />
 
@@ -259,43 +277,33 @@ export default function PricingContent() {
             items={[
               {
                 answer:
-                  'Bring Your Own Key. You provide API keys from AI providers (OpenAI, Anthropic, Replicate, etc.) and use Genfeed completely free. You pay providers directly — we handle the orchestration.',
-                question: "What's BYOK?",
+                  'Genfeed uses output-based pricing. You pay for what you create — videos, images, and voice minutes. Quotas reset monthly on your billing date.',
+                question: 'How does pricing work?',
               },
               {
                 answer:
-                  'No. Credit packs are one-time purchases with no expiration. Buy credits when you need them, use them whenever you want.',
-                question: 'Do I need a subscription?',
+                  'Yes — self-host the platform on your own infrastructure for free. You bring your own AI keys and manage the deployment. Cloud plans start at $499/mo with everything managed for you.',
+                question: 'Is there a free option?',
               },
               {
                 answer:
-                  'Yes — you can have both BYOK keys and credit packs. Use your own keys for free, or spend credits when you want us to handle the AI models.',
-                question: 'Can I use BYOK and credits together?',
+                  'Cloud plans include premium AI models that are auto-selected for best quality — GPT-4, Claude, Runway, ElevenLabs, and more. You never have to choose or configure models.',
+                question: 'What AI models are included?',
               },
               {
                 answer:
-                  'We auto-select premium models (GPT-4, Claude, Runway, ElevenLabs) for best quality when using credits. With BYOK, you use whichever models your API keys support.',
-                question: 'What AI models do you use?',
+                  'When you reach your monthly quota, generation pauses until your next billing cycle. You can upgrade to a higher plan anytime for more capacity.',
+                question: 'What happens when I hit my limit?',
               },
               {
                 answer:
-                  'We set up dedicated infrastructure running open-source AI models (Llama, Mistral, Stable Diffusion, etc.). You get unlimited generation with pricing based on server costs.',
-                question: "What's included in the Dedicated Server option?",
+                  'Yes. All cloud plans are month-to-month with no lock-in. Cancel anytime from your account settings.',
+                question: 'Can I cancel anytime?',
               },
               {
                 answer:
-                  'With the Done-For-You service, you get a dedicated content strategist who handles everything — from content calendar to production to publishing. You just review and approve. It starts at $2,500/month.',
-                question: 'How does the Done-For-You service work?',
-              },
-              {
-                answer:
-                  'Setup packages are one-time. Quick Start gets you running in an hour. Full Onboarding covers your entire team and includes 30 days of support. Training Sessions are custom workshops for advanced use cases.',
-                question: 'What are the training packages?',
-              },
-              {
-                answer:
-                  "Absolutely. Many clients start with a training package to learn the platform, then add Done-For-You for content they don't have time to produce themselves.",
-                question: 'Can I combine services with platform access?',
+                  'Unlimited video, images, and voice generation. Plus SSO, dedicated account manager, SLA, full API access, white-label branding, and custom domains.',
+                question: "What's included in Enterprise?",
               },
             ]}
           />
@@ -313,8 +321,8 @@ export default function PricingContent() {
         {/* CTA Section */}
         <CtaSection
           bg="subtle"
-          title="Ready to Create?"
-          description="Use the platform yourself, let us handle everything, or get started with a training session."
+          title="Ready to Get Started?"
+          description="Start creating content in minutes with a managed cloud plan, or deploy on your own infrastructure."
         >
           <Button size={ButtonSize.PUBLIC} asChild>
             <a
@@ -322,7 +330,7 @@ export default function PricingContent() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              Start Free with BYOK
+              Start Free Trial
             </a>
           </Button>
           <Button
@@ -330,11 +338,21 @@ export default function PricingContent() {
             size={ButtonSize.PUBLIC}
             asChild
           >
-            <Link href={contentServiceOffering.ctaHref} target="_blank">
-              Book a Call
-            </Link>
+            <a href={CALENDLY_URL} target="_blank" rel="noopener noreferrer">
+              Book a Demo
+            </a>
           </Button>
         </CtaSection>
+
+        {/* Services link */}
+        <div className="text-center pb-20">
+          <Link
+            href="/services"
+            className="text-[10px] font-black uppercase tracking-widest text-surface/40 hover:text-surface transition-colors"
+          >
+            Looking for professional services? →
+          </Link>
+        </div>
       </PageLayout>
     </div>
   );
