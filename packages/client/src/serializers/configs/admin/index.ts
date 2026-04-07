@@ -29,5 +29,4 @@ export * from '../../configs/admin/darkroom-upload-dataset-result.config';
 export * from '../../configs/admin/darkroom-voice.config';
 export * from '../../configs/admin/lead.config';
 export * from '../../configs/admin/lead-activity.config';
-export * from '../../configs/admin/marketplace-analytics-overview.config';
 export * from '../../configs/admin/revenue-record.config';
