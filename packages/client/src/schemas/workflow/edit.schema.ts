@@ -8,7 +8,7 @@ const UPSCALE_MODELS = [
 ];
 
 function isUpscaleModel(model: string): boolean {
-  return UPSCALE_MODELS.includes(model as string);
+  return (UPSCALE_MODELS as readonly string[]).includes(model);
 }
 
 export const editFormSchema = z
