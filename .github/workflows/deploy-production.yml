@@ -60,9 +60,8 @@ jobs:
     secrets: inherit
 
   # Deploy all Vercel frontend apps in parallel after backend is up.
-  # Requires GitHub secrets: VERCEL_TOKEN, VERCEL_ORG_ID,
-  # VERCEL_PROJECT_ID_APP, VERCEL_PROJECT_ID_ADMIN,
-  # VERCEL_PROJECT_ID_WEBSITE, VERCEL_PROJECT_ID_DOCS
+  # Secret: VERCEL_TOKEN (auth)
+  # Vars: VERCEL_ORG_ID, VERCEL_PROJECT_ID_APP, _ADMIN, _WEBSITE, _DOCS
   deploy-app:
     name: Deploy app.genfeed.ai
     runs-on: ubuntu-latest
@@ -71,8 +70,8 @@ jobs:
       - uses: actions/checkout@v5
       - run: npx vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_APP }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID_APP }}
 
   deploy-admin:
     name: Deploy admin.genfeed.ai
@@ -82,8 +81,8 @@ jobs:
       - uses: actions/checkout@v5
       - run: npx vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_ADMIN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID_ADMIN }}
 
   deploy-website:
     name: Deploy genfeed.ai
@@ -93,8 +92,8 @@ jobs:
       - uses: actions/checkout@v5
       - run: npx vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEBSITE }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID_WEBSITE }}
 
   deploy-docs:
     name: Deploy docs.genfeed.ai
@@ -104,5 +103,5 @@ jobs:
       - uses: actions/checkout@v5
       - run: npx vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
         env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_DOCS }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID_DOCS }}
