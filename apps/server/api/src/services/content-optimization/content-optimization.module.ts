@@ -28,7 +28,6 @@ import { forwardRef, Module } from '@nestjs/common';
       name: 'content-optimization',
     }),
   ],
-  // ContentOptimizationProcessor moved to workers ProcessorsModule (issue #84)
   providers: [ContentOptimizationService, ContentOptimizationQueueService],
 })
 export class ContentOptimizationModule {}

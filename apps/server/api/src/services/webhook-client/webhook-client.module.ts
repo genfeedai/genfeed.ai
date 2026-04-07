@@ -13,16 +13,15 @@ import { Module } from '@nestjs/common';
       defaultJobOptions: {
         attempts: 5,
         backoff: {
-          delay: 3000, // Start with 3s, then 6s, 12s, 24s, 48s
+          delay: 3000,
           type: 'exponential',
         },
         removeOnComplete: 100,
-        removeOnFail: 200, // Keep more failed jobs for debugging
+        removeOnFail: 200,
       },
       name: 'webhook-client',
     }),
   ],
-  // WebhookClientProcessor moved to workers ProcessorsModule (issue #84)
   providers: [WebhookClientService],
 })
 export class WebhookClientModule {}
