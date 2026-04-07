@@ -5,7 +5,7 @@ import { ForbiddenException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 function makeContext({
-  host = 'localhost:3001',
+  host = 'localhost:3010',
   ip = '127.0.0.1',
   origin,
   referer,
@@ -71,7 +71,7 @@ describe('LocalhostOnlyGuard', () => {
     expect(
       guard.canActivate(
         makeContext({
-          origin: 'http://localhost:3102',
+          origin: 'http://localhost:3000',
         }),
       ),
     ).toBe(true);
@@ -82,7 +82,7 @@ describe('LocalhostOnlyGuard', () => {
       guard.canActivate(
         makeContext({
           forwardedFor: '::ffff:127.0.0.1',
-          host: 'localhost:3001',
+          host: 'localhost:3010',
           ip: '10.10.10.10',
         }),
       ),
@@ -95,7 +95,7 @@ describe('LocalhostOnlyGuard', () => {
         makeContext({
           host: 'api.genfeed.ai',
           ip: '52.10.10.10',
-          origin: 'http://localhost:3102',
+          origin: 'http://localhost:3000',
         }),
       ),
     ).toThrow(ForbiddenException);

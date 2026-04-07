@@ -1024,10 +1024,10 @@ export async function setupApiMocks(
   // which is registered AFTER this function so its handlers take priority.
   // Do NOT add Clerk routes here or they will override the fixture's detailed mocks.
 
-  // The local dev API runs at http://local.genfeed.ai:3001/v1
+  // The local dev API runs at http://local.genfeed.ai:3010/v1
   // Playwright globs don't handle ports well, so we use regex for the catch-all
   // and explicit URL patterns for specific resources.
-  const LOCAL_API = 'http://local.genfeed.ai:3001';
+  const LOCAL_API = 'http://local.genfeed.ai:3010';
   const PROD_API = '**/api.genfeed.ai';
   const PROD_API_V1 = '**/api.genfeed.ai/v1';
 
@@ -1158,7 +1158,7 @@ export async function setupApiMocks(
   // NOTE: Playwright evaluates routes in reverse registration order, so this catch-all
   // must be registered FIRST (before specific routes) to have lowest priority.
   // Since it's registered last here, we restrict it to non-resource paths only.
-  await page.route(/local\.genfeed\.ai:3001\/v1\/health/, async (r) => {
+  await page.route(/local\.genfeed\.ai:3010\/v1\/health/, async (r) => {
     await r.fulfill({
       body: JSON.stringify({ status: 'ok' }),
       contentType: 'application/json',

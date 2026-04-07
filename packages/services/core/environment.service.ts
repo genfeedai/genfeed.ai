@@ -109,13 +109,13 @@ export const EnvironmentService = {
       if (port === '3000') {
         return 'app';
       }
-      if (port === '3010') {
+      if (port === '3001') {
         return 'admin';
       }
       if (port === '3104') {
         return 'marketplace';
       }
-      if (port === '3105') {
+      if (port === '3002') {
         return 'website';
       }
     }

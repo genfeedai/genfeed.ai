@@ -86,7 +86,7 @@ const config = createAppNextConfig({
   pwa: { enabled: true },
   rewrites: async () => [
     {
-      destination: `${process.env.API_URL || 'http://localhost:4001'}/v1/:path*`,
+      destination: `${process.env.API_URL || 'http://localhost:3010'}/v1/:path*`,
       source: '/v1/:path*',
     },
     ...selfHostedRewrites,

@@ -32,12 +32,12 @@ describe('ConfigService (slack)', () => {
 
     it('should return default localhost URL when env var is not set', () => {
       (service as any).setEnv('GENFEEDAI_API_URL', undefined);
-      expect(service.API_URL).toBe('http://localhost:3001');
+      expect(service.API_URL).toBe('http://localhost:3010');
     });
 
     it('should return default when env var is empty string', () => {
       (service as any).setEnv('GENFEEDAI_API_URL', '');
-      expect(service.API_URL).toBe('http://localhost:3001');
+      expect(service.API_URL).toBe('http://localhost:3010');
     });
 
     it('should reflect updated env value', () => {

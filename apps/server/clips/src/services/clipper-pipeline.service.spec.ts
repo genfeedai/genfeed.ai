@@ -8,7 +8,7 @@ describe('ClipperPipelineService', () => {
   const mockHttpService = { get: vi.fn(), patch: vi.fn(), post: vi.fn() };
   const mockConfigService = {
     API_KEY: 'test-key',
-    API_URL: 'http://localhost:3001',
+    API_URL: 'http://localhost:3010',
   };
   const mockLogger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const mockTranscriptionService = {

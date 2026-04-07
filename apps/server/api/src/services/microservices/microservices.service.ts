@@ -55,15 +55,15 @@ export class MicroservicesService implements OnModuleInit {
   private initializeServices() {
     const filesUrl =
       this.configService.get('GENFEEDAI_MICROSERVICES_FILES_URL') ||
-      'http://localhost:3002';
+      'http://localhost:3012';
 
     const notificationsUrl =
       this.configService.get('GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL') ||
-      'http://localhost:3004';
+      'http://localhost:3013';
 
     const MCPUrl =
       this.configService.get('GENFEEDAI_MICROSERVICES_MCP_URL') ||
-      'http://localhost:3003';
+      'http://localhost:3014';
 
     // Log service configuration
     this.loggerService.log(

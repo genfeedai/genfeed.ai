@@ -5,19 +5,19 @@ services:
     container_name: genfeed-ai-slack
     restart: unless-stopped
     ports:
-      - '3008:3008'
+      - '3021:3021'
     env_file:
       - ../.env.production
     environment:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
-      - GENFEEDAI_API_URL=http://api:3001
+      - GENFEEDAI_API_URL=http://api:3010
       - GENFEEDAI_API_KEY=${GENFEEDAI_API_KEY}
       - NODE_ENV=production
-      - PORT=3008
+      - PORT=3021
     networks:
       - genfeed-network
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3008/v1/health']
+      test: ['CMD', 'curl', '-f', 'http://localhost:3021/v1/health']
       interval: 30s
       timeout: 10s
       retries: 5

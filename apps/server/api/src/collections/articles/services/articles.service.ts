@@ -278,7 +278,7 @@ export class ArticlesService extends BaseService<
     transcriptId: string,
   ): Promise<{ transcriptText?: string; videoTitle?: string } | null> {
     // Internal service communication
-    const apiUrl = `http://localhost:3001/transcripts/${transcriptId}`;
+    const apiUrl = `http://localhost:3010/transcripts/${transcriptId}`;
 
     try {
       const response = await fetch(apiUrl);
@@ -300,7 +300,7 @@ export class ArticlesService extends BaseService<
     articleId: string,
   ): Promise<void> {
     // Internal service communication
-    const apiUrl = `http://localhost:3001/transcripts/${transcriptId}`;
+    const apiUrl = `http://localhost:3010/transcripts/${transcriptId}`;
 
     try {
       await fetch(apiUrl, {

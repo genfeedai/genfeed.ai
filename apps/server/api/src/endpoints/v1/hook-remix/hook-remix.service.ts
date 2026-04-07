@@ -28,7 +28,7 @@ export class HookRemixService {
   ) {
     this.filesServiceUrl =
       this.configService.get('GENFEEDAI_MICROSERVICES_FILES_URL') ||
-      'http://files.genfeed.ai:3000';
+      'http://localhost:3012';
   }
 
   async createHookRemix(

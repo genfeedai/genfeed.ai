@@ -6,7 +6,7 @@ describe('AppModule (MCP)', () => {
   beforeEach(() => {
     process.env = {
       ...originalEnv,
-      GENFEEDAI_API_URL: 'http://localhost:3001',
+      GENFEEDAI_API_URL: 'http://localhost:3010',
       NODE_ENV: 'test',
       PORT: '3010',
     };

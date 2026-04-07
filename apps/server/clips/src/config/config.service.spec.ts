@@ -29,10 +29,10 @@ describe('ConfigService (Clips)', () => {
       expect(svc.API_URL).toBe('http://api.example.com');
     });
 
-    it('defaults to localhost:3001 when not configured', () => {
+    it('defaults to localhost:3010 when not configured', () => {
       delete process.env.GENFEEDAI_API_URL;
       const svc = new ConfigService();
-      expect(svc.API_URL).toBe('http://localhost:3001');
+      expect(svc.API_URL).toBe('http://localhost:3010');
     });
   });
 

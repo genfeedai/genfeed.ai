@@ -29,7 +29,7 @@ describe('Slack ConfigService', () => {
 
       const result = service.API_URL;
 
-      expect(result).toBe('http://localhost:3001');
+      expect(result).toBe('http://localhost:3010');
 
       if (original !== undefined) {
         process.env.GENFEEDAI_API_URL = original;

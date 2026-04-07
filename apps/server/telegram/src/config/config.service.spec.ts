@@ -29,7 +29,7 @@ describe('ConfigService (Telegram)', () => {
   it('should return default API_URL when env var is not set', () => {
     delete process.env.GENFEEDAI_API_URL;
     const service = new ConfigService();
-    expect(service.API_URL).toBe('http://localhost:3001');
+    expect(service.API_URL).toBe('http://localhost:3010');
   });
 
   it('should return configured API_URL when env var is set', () => {

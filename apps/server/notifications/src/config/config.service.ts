@@ -27,7 +27,7 @@ const notificationsSchema = Joi.object({
   ...telegramBotSchema,
   ...resendSchema,
   ...twitchSchema,
-  API_BASE_URL: Joi.string().uri().default('http://localhost:3001'),
+  API_BASE_URL: Joi.string().uri().default('http://localhost:3010'),
   API_SECRET_KEY: Joi.string().optional().allow(''),
   GENFEEDAI_API_KEY: Joi.string().optional().allow(''),
   // Notifications-specific

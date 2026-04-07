@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const isCI = !!process.env.CI;
-const websiteBaseURL = process.env.WEBSITE_BASE_URL || 'http://localhost:3105';
+const websiteBaseURL = process.env.WEBSITE_BASE_URL || 'http://localhost:3002';
 const marketplaceBaseURL =
   process.env.MARKETPLACE_BASE_URL || 'http://localhost:3104';
 

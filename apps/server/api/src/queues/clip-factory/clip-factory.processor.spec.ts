@@ -108,7 +108,7 @@ describe('ClipFactoryProcessor', () => {
     };
 
     configService = {
-      get: vi.fn().mockReturnValue('http://files:3000'),
+      get: vi.fn().mockReturnValue('http://localhost:3012'),
     };
 
     // Mock audio download: POST to files service, then GET for polling

@@ -42,7 +42,7 @@ describe('FileQueueService', () => {
     };
 
     const mockConfigService = {
-      get: vi.fn().mockReturnValue('http://files.genfeed.ai:3000'),
+      get: vi.fn().mockReturnValue('http://localhost:3012'),
     };
 
     const mockLoggerService = {
@@ -100,7 +100,7 @@ describe('FileQueueService', () => {
 
       expect(result).toEqual(mockJobResponse);
       expect(httpService.post).toHaveBeenCalledWith(
-        'http://files.genfeed.ai:3000/v1/files/process/video',
+        'http://localhost:3012/v1/files/process/video',
         mockJob,
       );
     });
@@ -130,7 +130,7 @@ describe('FileQueueService', () => {
 
       expect(result).toEqual(mockJobResponse);
       expect(httpService.post).toHaveBeenCalledWith(
-        'http://files.genfeed.ai:3000/v1/files/process/image',
+        'http://localhost:3012/v1/files/process/image',
         mockJob,
       );
     });
@@ -160,7 +160,7 @@ describe('FileQueueService', () => {
 
       expect(result).toEqual(mockJobResponse);
       expect(httpService.post).toHaveBeenCalledWith(
-        'http://files.genfeed.ai:3000/v1/files/process/file',
+        'http://localhost:3012/v1/files/process/file',
         mockJob,
       );
     });
@@ -192,7 +192,7 @@ describe('FileQueueService', () => {
 
       expect(result).toEqual(mockStatus);
       expect(httpService.get).toHaveBeenCalledWith(
-        'http://files.genfeed.ai:3000/v1/files/job/job_123',
+        'http://localhost:3012/v1/files/job/job_123',
       );
     });
 
@@ -267,7 +267,7 @@ describe('FileQueueService', () => {
 
       expect(result).toEqual(mockStats);
       expect(httpService.get).toHaveBeenCalledWith(
-        'http://files.genfeed.ai:3000/v1/files/stats',
+        'http://localhost:3012/v1/files/stats',
       );
     });
 
@@ -300,7 +300,7 @@ describe('FileQueueService', () => {
 
       expect(result).toEqual(mockJobResponse);
       expect(httpService.post).toHaveBeenCalledWith(
-        'http://files.genfeed.ai:3000/v1/files/process/file',
+        'http://localhost:3012/v1/files/process/file',
         expect.objectContaining({
           filePath,
           ingredientId,
@@ -331,7 +331,7 @@ describe('FileQueueService', () => {
 
       expect(result).toEqual(mockJobResponse);
       expect(httpService.post).toHaveBeenCalledWith(
-        'http://files.genfeed.ai:3000/v1/files/process/video',
+        'http://localhost:3012/v1/files/process/video',
         expect.objectContaining({
           ingredientId,
           organizationId: 'system',
@@ -366,7 +366,7 @@ describe('FileQueueService', () => {
 
       expect(result).toEqual(mockJobResponse);
       expect(httpService.post).toHaveBeenCalledWith(
-        'http://files.genfeed.ai:3000/v1/files/process/video',
+        'http://localhost:3012/v1/files/process/video',
         expect.objectContaining({
           ingredientId,
           organizationId: 'system',
@@ -393,7 +393,7 @@ describe('FileQueueService', () => {
       await service.convertToPortrait(ingredientId, videoPath);
 
       expect(httpService.post).toHaveBeenCalledWith(
-        'http://files.genfeed.ai:3000/v1/files/process/video',
+        'http://localhost:3012/v1/files/process/video',
         expect.objectContaining({
           params: {
             height: 1920,
@@ -424,7 +424,7 @@ describe('FileQueueService', () => {
 
       expect(result).toEqual(mockJobResponse);
       expect(httpService.post).toHaveBeenCalledWith(
-        'http://files.genfeed.ai:3000/v1/files/process/file',
+        'http://localhost:3012/v1/files/process/file',
         expect.objectContaining({
           ingredientId,
           organizationId: 'system',
@@ -453,7 +453,7 @@ describe('FileQueueService', () => {
 
       expect(result).toEqual(mockJobResponse);
       expect(httpService.post).toHaveBeenCalledWith(
-        'http://files.genfeed.ai:3000/v1/files/process/file',
+        'http://localhost:3012/v1/files/process/file',
         expect.objectContaining({
           delay: 5000,
           ingredientId,

@@ -49,14 +49,14 @@ describe('proxy', () => {
       {
         cookies: { get: vi.fn() },
         nextUrl: { pathname: '/login' },
-        url: 'http://localhost:3102/login',
+        url: 'http://localhost:3000/login',
       } as never,
       {} as never,
     );
 
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe(
-      'http://localhost:3102/workspace/overview',
+      'http://localhost:3000/workspace/overview',
     );
   });
 
@@ -67,7 +67,7 @@ describe('proxy', () => {
       {
         cookies: { get: vi.fn() },
         nextUrl: { pathname: '/settings/organization/members' },
-        url: 'http://localhost:3102/settings/organization/members',
+        url: 'http://localhost:3000/settings/organization/members',
       } as never,
       {} as never,
     );

@@ -172,7 +172,7 @@ describe('admin proxy', () => {
             name === '__playwright_test' ? { value: 'true' } : undefined,
         },
         nextUrl: { pathname: '/overview' },
-        url: 'http://localhost:3101/overview',
+        url: 'http://localhost:3001/overview',
       } as never,
       {} as never,
     );
