@@ -69,7 +69,7 @@ export default async function RootLayout({
           navbar={navbar}
           footer={footer}
           pageMap={await getPageMap()}
-          docsRepositoryBase="https://github.com/genfeedai/docs/tree/main"
+          docsRepositoryBase="https://github.com/genfeedai/genfeed.ai/tree/master/apps/docs"
           sidebar={{ defaultMenuCollapseLevel: 1, toggleButton: true }}
           toc={{ backToTop: true }}
         >

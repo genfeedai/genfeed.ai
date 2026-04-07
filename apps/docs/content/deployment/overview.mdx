@@ -2,17 +2,7 @@
 
 Genfeed.ai is available in two deployment modes: **Genfeed Cloud** (hosted SaaS) and **Genfeed Core** (self-hosted open source). Choose the option that best fits your needs.
 
-## Quick Comparison
-
-| Feature | Genfeed Cloud | Genfeed Core (OSS) |
-|---------|--------------|-------------------|
-| **Setup Time** | Instant | 15-30 minutes |
-| **Infrastructure** | Fully managed | Self-managed |
-| **Updates** | Automatic | Manual |
-| **Data Location** | Our servers | Your servers |
-| **Cost** | Subscription-based | Free + your infra costs |
-| **Support** | Email + Priority | Community |
-| **Best For** | Teams wanting to start fast | Developers wanting full control |
+For a detailed comparison of self-hosted vs cloud, see [Self-Hosted vs Cloud](/core/self-hosted-vs-cloud).
 
 ---
 
@@ -22,22 +12,22 @@ Genfeed.ai is available in two deployment modes: **Genfeed Cloud** (hosted SaaS)
 
 ### Why Choose Cloud?
 
-- **Zero DevOps** — No servers to manage, no databases to configure
-- **Always Updated** — Get new features and models automatically
-- **Built-in Scaling** — Handle any workload without configuration
-- **Priority Support** — Direct access to our team
-- **Compliance Ready** — SOC2, GDPR compliant infrastructure
+- **Zero DevOps** -- No servers to manage, no databases to configure
+- **Always Updated** -- Get new features and models automatically
+- **Built-in Scaling** -- Handle any workload without configuration
+- **Priority Support** -- Direct access to our team
+- **Compliance Ready** -- SOC2, GDPR compliant infrastructure
 
 ### Getting Started with Cloud
 
-1. Visit [genfeed.ai](https://genfeed.ai)
+1. Visit [app.genfeed.ai](https://app.genfeed.ai)
 2. Create your account
 3. Choose your plan
 4. Start creating content
 
 **That's it.** No installation, no configuration.
 
-[**Start with Genfeed Cloud →**](https://genfeed.ai/signup)
+[**Start with Genfeed Cloud -->**](https://app.genfeed.ai)
 
 ---
 
@@ -47,38 +37,40 @@ Genfeed.ai is available in two deployment modes: **Genfeed Cloud** (hosted SaaS)
 
 ### Why Choose Self-Hosted?
 
-- **Full Control** — Your data stays on your servers
-- **Customizable** — Modify and extend as needed
-- **No Vendor Lock-in** — AGPL-3.0 licensed core
-- **Cost Efficient at Scale** — Pay only for your infrastructure
-- **Air-gapped Deployments** — Works in isolated environments
+- **Full Control** -- Your data stays on your servers
+- **Customizable** -- Modify and extend as needed
+- **No Vendor Lock-in** -- AGPL-3.0 licensed core
+- **Cost Efficient at Scale** -- Pay only for your infrastructure
+- **Air-gapped Deployments** -- Works in isolated environments
 
 ### What's Included in Core?
 
-The open source core includes:
+The open-source core includes:
 
+- AI content generation pipeline (images, video, text, audio)
 - Workflow engine
-- Node execution system
 - REST API
-- Basic templates
-- Single-user mode
+- Brand kits
 - Queue management (BullMQ)
+- Single-user mode
 
 ### What's Cloud-Only?
 
 Some features require Genfeed Cloud:
 
-- Multi-tenancy & organization management
+- Multi-tenancy and organization management
 - Role-based access control (RBAC)
-- SSO/SAML integration
-- Advanced analytics dashboard
-- White-labeling
-- Priority queue management
+- Social publishing (X, LinkedIn, Instagram, YouTube)
+- Analytics dashboard
+- Team collaboration
+- Marketplace access ([marketplace.genfeed.ai](https://marketplace.genfeed.ai))
 - Managed AI model access
 
 ### Getting Started Self-Hosted
 
-[**Self-Hosted Installation Guide →**](/guides/self-host-quickstart)
+[**Self-Hosted Installation Guide -->**](/core/installation)
+
+Quick start: [Self-Host Genfeed in 5 Minutes](/guides/self-host-quickstart)
 
 ---
 
@@ -89,7 +81,7 @@ Many teams use both:
 - **Development/Testing:** Self-hosted Core for local development
 - **Production:** Genfeed Cloud for reliability and scale
 
-The SDK and API are identical between both deployments, making migration seamless.
+The API is compatible between both deployments, making migration straightforward.
 
 ---
 
@@ -103,4 +95,4 @@ The SDK and API are identical between both deployments, making migration seamles
 | Agency managing multiple clients | Genfeed Cloud (Team/Enterprise) |
 | Hobby project | Self-Hosted (free) |
 
-**Still unsure?** [Contact us](mailto:support@genfeed.ai) — we're happy to help you choose.
+**Still unsure?** [Contact us](mailto:support@genfeed.ai) -- we're happy to help you choose.
