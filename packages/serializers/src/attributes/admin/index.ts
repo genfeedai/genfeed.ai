@@ -30,5 +30,5 @@ export * from '@serializers/attributes/admin/darkroom-upload-dataset-result.attr
 export * from '@serializers/attributes/admin/darkroom-voice.attributes';
 export * from '@serializers/attributes/admin/lead.attributes';
 export * from '@serializers/attributes/admin/lead-activity.attributes';
-export * from '@serializers/attributes/admin/marketplace-analytics-overview.attributes';
+
 export * from '@serializers/attributes/admin/revenue-record.attributes';

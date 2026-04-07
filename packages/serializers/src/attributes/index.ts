@@ -10,7 +10,7 @@ export * from '@serializers/attributes/elements';
 export * from '@serializers/attributes/ingredients';
 export * from '@serializers/attributes/integrations';
 export * from '@serializers/attributes/management';
-export * from '@serializers/attributes/marketplace';
+
 export * from '@serializers/attributes/organizations';
 export * from '@serializers/attributes/threads';
 export * from '@serializers/attributes/users';

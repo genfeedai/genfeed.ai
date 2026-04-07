@@ -29,5 +29,4 @@ export * from '../../attributes/admin/darkroom-upload-dataset-result.attributes'
 export * from '../../attributes/admin/darkroom-voice.attributes';
 export * from '../../attributes/admin/lead.attributes';
 export * from '../../attributes/admin/lead-activity.attributes';
-export * from '../../attributes/admin/marketplace-analytics-overview.attributes';
 export * from '../../attributes/admin/revenue-record.attributes';

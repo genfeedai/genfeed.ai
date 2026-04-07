@@ -10,7 +10,7 @@ export * from '@serializers/server/elements';
 export * from '@serializers/server/ingredients';
 export * from '@serializers/server/integrations';
 export * from '@serializers/server/management';
-export * from '@serializers/server/marketplace';
+
 export * from '@serializers/server/organizations';
 export * from '@serializers/server/threads';
 export * from '@serializers/server/users';
