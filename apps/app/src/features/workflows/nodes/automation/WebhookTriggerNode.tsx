@@ -10,7 +10,7 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from '@ui/src/primitives/collapsible';
+} from '@ui/primitives/collapsible';
 import type { NodeProps } from '@xyflow/react';
 import { memo, useCallback, useState } from 'react';
 import { NodeBadge } from '@/features/workflows/components/ui/badge';

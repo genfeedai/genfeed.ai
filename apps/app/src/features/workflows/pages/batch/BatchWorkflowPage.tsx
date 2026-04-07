@@ -8,13 +8,6 @@ import {
   IngredientStatus,
 } from '@genfeedai/enums';
 import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
-import {
-  type BatchItemStatus,
-  type BatchJobStatus,
-  type BatchJobSummary,
-  createWorkflowApiService,
-  type WorkflowSummary,
-} from '@genfeedai/workflow';
 import { downloadIngredient } from '@helpers/media/download/download.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { usePostModal } from '@providers/global-modals/global-modals.provider';
@@ -35,6 +28,13 @@ import {
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
+import type {
+  BatchItemStatus,
+  BatchJobStatus,
+  BatchJobSummary,
+  WorkflowSummary,
+} from '@/features/workflows/services/workflow-api';
+import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
 
 interface UploadedFile {
   file: File;
