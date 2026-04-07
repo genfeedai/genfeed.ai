@@ -2,7 +2,7 @@
   "dependencies": {
     "@genfeedai/config": "workspace:*",
     "@genfeedai/integrations": "workspace:*",
-    "@slack/bolt": "4.6.0"
+    "@slack/bolt": "4.7.0"
   },
   "description": "Genfeed Slack Service",
   "devDependencies": {},
