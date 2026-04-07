@@ -27,7 +27,7 @@ export const FAQ_ITEMS_CORE: FAQItem[] = [
   },
   {
     answer:
-      'Sign up at genfeed.ai, pick a plan, and start creating. You can also self-host Genfeed Core for free with your own AI keys.',
+      'Sign up at genfeed.ai and start creating in minutes. Plans start at $499/mo.',
     question: 'How do I get started?',
   },
   {
@@ -61,7 +61,7 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
-          'Sign up at genfeed.ai, pick a plan, and start creating. You can also self-host Genfeed Core for free with your own AI keys.',
+          'Sign up at genfeed.ai and start creating in minutes. Plans start at $499/mo.',
         question: 'How do I get started?',
       },
     ],
@@ -76,12 +76,12 @@ export const FAQ_CATEGORIES: Omit<FAQCategory, 'icon'>[] = [
       },
       {
         answer:
-          'Pro: $499/month (30 videos + 500 images + 60 min voice). Scale: $1,499/month (100 videos + 2,000 images + 200 min voice). Enterprise: $4,999/month (unlimited everything). Self-hosted Core is free forever.',
+          'Pro: $499/month (30 videos + 500 images + 60 min voice). Scale: $1,499/month (100 videos + 2,000 images + 200 min voice). Enterprise: $4,999/month (unlimited everything).',
         question: 'What are the pricing tiers?',
       },
       {
         answer:
-          'Core is free forever — self-host the full platform with your own AI keys. Paid plans (Pro, Scale, Enterprise) are subscription-based. Cancel anytime if Genfeed does not deliver 10x value.',
+          'Self-host on your own infrastructure for free. Cloud plans start at $499/mo.',
         question: 'Is there a free option?',
       },
       {

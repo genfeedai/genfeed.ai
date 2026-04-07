@@ -169,27 +169,25 @@ export const AVATAR_CREDIT_COSTS = {
  * Output-based pricing for premium positioning
  */
 export const websitePlans: PricingPlanProps[] = [
-  // BYOK Tier - Bring Your Own Key (entry tier, $0)
+  // Self-Hosted Tier - Deploy on your own infrastructure ($0)
   {
-    cta: 'Start Free',
-    ctaHref: '/sign-up',
-    description: 'Use your own AI keys, pay nothing',
+    cta: 'Deploy Free',
+    ctaHref: '/host',
+    description: 'Deploy on your infrastructure',
     features: [
       'Full platform access',
-      'Bring your own AI keys (OpenAI, Anthropic, Replicate, etc.)',
-      'All core features',
-      'Multi-platform publishing',
-      'Content library',
+      'Your own AI keys',
+      'Your own infrastructure',
       'Community support',
+      'AGPL-3.0 license',
     ],
     interval: 'payg',
-    label: 'BYOK',
+    label: 'Self-Hosted',
     outputs: null,
     price: 0,
-    target: 'Developers, creators with own API keys',
+    target: 'Developers and teams who want full control',
     type: 'byok',
-    valueProposition:
-      'Full platform access with your own AI keys. You pay providers directly.',
+    valueProposition: 'Full platform on your servers. You manage everything.',
   },
 
   // Pro Tier - $499/month
@@ -256,7 +254,7 @@ export const websitePlans: PricingPlanProps[] = [
 
   // Enterprise Tier - $4,999/month
   {
-    cta: 'Book a Call',
+    cta: 'Book a Demo',
     ctaHref: CALENDLY_URL,
     description: 'For studios and large teams',
     features: [
@@ -296,6 +294,7 @@ export function getPlanByLabel(label: string): PricingPlanProps | undefined {
  * Get Pro tier plan
  */
 export function getProPlan(): PricingPlanProps {
+  // biome-ignore lint/style/noNonNullAssertion: Pro plan is always present in websitePlans
   return websitePlans.find((plan) => plan.label === 'Pro')!;
 }
 
@@ -303,6 +302,7 @@ export function getProPlan(): PricingPlanProps {
  * Get Scale tier plan
  */
 export function getScalePlan(): PricingPlanProps {
+  // biome-ignore lint/style/noNonNullAssertion: Scale plan is always present in websitePlans
   return websitePlans.find((plan) => plan.label === 'Scale')!;
 }
 
@@ -310,6 +310,7 @@ export function getScalePlan(): PricingPlanProps {
  * Get Enterprise tier plan
  */
 export function getEnterprisePlan(): PricingPlanProps {
+  // biome-ignore lint/style/noNonNullAssertion: Enterprise plan is always present in websitePlans
   return websitePlans.find((plan) => plan.label === 'Enterprise')!;
 }
 

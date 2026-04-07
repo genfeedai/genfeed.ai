@@ -77,7 +77,7 @@ export default function IntegrationsContent() {
             trackingName="integrations_hero_click"
             trackingData={{ action: 'core_cta' }}
           >
-            <Link href="/core">
+            <Link href="/pricing">
               Get Started Free
               <LuArrowRight className="h-4 w-4" />
             </Link>
@@ -191,7 +191,7 @@ export default function IntegrationsContent() {
               trackingName="integrations_cta_click"
               trackingData={{ action: 'core_cta' }}
             >
-              <Link href="/core">
+              <Link href="/pricing">
                 Get Started Free
                 <LuArrowRight className="h-4 w-4" />
               </Link>

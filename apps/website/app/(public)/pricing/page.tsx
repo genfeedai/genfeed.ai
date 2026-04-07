@@ -3,7 +3,7 @@ import PricingContent from '@public/pricing/pricing-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
   'Pricing',
-  'Bring your own AI keys for free, or buy credit packs with no subscription. BYOK is free forever. Credit packs from $999.',
+  'Simple pricing that scales with you. Free self-hosted or managed cloud plans from $499/mo.',
   '/pricing',
 );
 
@@ -11,7 +11,7 @@ const pricingJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'WebPage',
   description:
-    'AI content generation pricing. BYOK (free) or pay-as-you-go credit packs.',
+    'AI content generation pricing. Self-host free or subscribe to managed cloud plans.',
   mainEntity: {
     '@type': 'Product',
     brand: {
@@ -25,36 +25,43 @@ const pricingJsonLd = {
       {
         '@type': 'Offer',
         description:
-          'Bring your own AI keys and use the full platform for free. You pay AI providers directly.',
-        name: 'BYOK',
+          'Self-host the full platform on your own infrastructure with your own AI keys.',
+        name: 'Self-Hosted',
         price: '0',
         priceCurrency: 'USD',
-        url: 'https://genfeed.ai/pricing',
+        url: 'https://genfeed.ai/host',
       },
       {
         '@type': 'Offer',
         description:
-          '99,900 credits for AI content generation. Premium models included.',
-        name: 'Creator Credit Pack',
-        price: '999',
+          'Managed cloud plan for creators and small agencies. 500 images, 5 min video, 60 min voice per month.',
+        name: 'Pro',
+        price: '499',
         priceCurrency: 'USD',
+        priceSpecification: {
+          '@type': 'UnitPriceSpecification',
+          billingDuration: 'P1M',
+        },
         url: 'https://genfeed.ai/pricing',
       },
       {
         '@type': 'Offer',
         description:
-          '275,000 credits with 10% discount. Premium models included.',
-        name: 'Professional Credit Pack',
-        price: '2475',
+          'Managed cloud plan for agencies managing multiple brands. 2,000 images, 15 min video, 200 min voice per month.',
+        name: 'Scale',
+        price: '1499',
         priceCurrency: 'USD',
+        priceSpecification: {
+          '@type': 'UnitPriceSpecification',
+          billingDuration: 'P1M',
+        },
         url: 'https://genfeed.ai/pricing',
       },
       {
         '@type': 'Offer',
         description:
-          '625,000 credits with 20% discount. Priority support included.',
-        name: 'Enterprise Credit Pack',
-        price: '5000',
+          'Enterprise plan with unlimited generation, SSO, SLA, and dedicated support.',
+        name: 'Enterprise',
         priceCurrency: 'USD',
         url: 'https://genfeed.ai/pricing',
       },

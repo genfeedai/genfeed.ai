@@ -265,10 +265,10 @@ export default function HomeShowcase(): React.ReactElement {
               variant={ButtonVariant.BLACK}
               size={ButtonSize.DEFAULT}
               trackingName="showcase_cta_click"
-              trackingData={{ action: 'core_cta' }}
+              trackingData={{ action: 'pricing_cta' }}
             >
-              <Link href="/core">
-                Self-Host Free
+              <Link href="/pricing">
+                View Plans
                 <LuArrowRight className="h-3 w-3" />
               </Link>
             </ButtonTracked>

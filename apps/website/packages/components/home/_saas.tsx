@@ -44,7 +44,7 @@ const SAAS_FEATURES = [
 ];
 
 const CORE_FEATURES = [
-  'Self-hosted, full control',
+  'Full control, your infrastructure',
   'Bring your own API keys',
   'MIT licensed, forever free',
   'Community support',
@@ -154,7 +154,7 @@ export default function HomeSaaS() {
                 Cloud for <span className="font-light">Teams.</span>
               </>
             }
-            description="All the power of the open source platform, without the DevOps. Perfect for agencies, brands, and content teams."
+            description="Full AI content creation platform, without the DevOps. Perfect for agencies, brands, and content teams."
           />
 
           {/* Features grid */}
@@ -185,12 +185,11 @@ export default function HomeSaaS() {
           {/* Comparison */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <ComparisonSection
-              typeLabel="Open Source"
+              typeLabel="Self-Hosted"
               productName="Genfeed Core"
               features={CORE_FEATURES}
               ctaLabel="Get Started"
-              ctaHref={EnvironmentService.github.core}
-              ctaExternal
+              ctaHref="/host"
             />
 
             <ComparisonSection

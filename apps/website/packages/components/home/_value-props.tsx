@@ -38,6 +38,7 @@ function HighlightCard({
   const [isHovered, setIsHovered] = useState(false);
 
   return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: visual-only hover effect for card animation
     <div
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -98,10 +99,11 @@ function HighlightCard({
 const HIGHLIGHTS: Omit<HighlightCardProps, 'delay'>[] = [
   {
     color: 'from-green-500 to-emerald-500',
-    description: 'Full source code access. Deploy anywhere. No vendor lock-in.',
-    features: ['MIT License', 'Community-driven', 'Self-host anywhere'],
+    description:
+      'Full control over your data and infrastructure. No vendor lock-in.',
+    features: ['AGPL-3.0 License', 'Community-driven', 'Deploy anywhere'],
     icon: HiCodeBracket,
-    label: 'Open Source First',
+    label: 'Full Control',
   },
   {
     color: 'from-purple-500 to-pink-500',
@@ -113,7 +115,7 @@ const HIGHLIGHTS: Omit<HighlightCardProps, 'delay'>[] = [
   },
   {
     color: 'from-blue-500 to-cyan-500',
-    description: 'Self-host on your servers. Own your data. Scale infinitely.',
+    description: 'Deploy on your servers. Own your data. Scale infinitely.',
     features: ['Docker ready', 'Data sovereignty', 'Infinite scale'],
     icon: HiServerStack,
     label: 'Your Infrastructure',

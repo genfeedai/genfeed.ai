@@ -72,9 +72,9 @@ describe('pricing.helper', () => {
       expect(websitePlans).toHaveLength(4);
     });
 
-    it('should have BYOK, Pro, Scale, Enterprise labels in order', () => {
+    it('should have Self-Hosted, Pro, Scale, Enterprise labels in order', () => {
       const labels = websitePlans.map((p) => p.label);
-      expect(labels).toEqual(['BYOK', 'Pro', 'Scale', 'Enterprise']);
+      expect(labels).toEqual(['Self-Hosted', 'Pro', 'Scale', 'Enterprise']);
     });
 
     it('should have correct plan types', () => {
@@ -92,9 +92,9 @@ describe('pricing.helper', () => {
       expect(prices).toEqual([0, 499, 1499, 4999]);
     });
 
-    it('BYOK plan should have null outputs', () => {
-      const byok = websitePlans[0];
-      expect(byok.outputs).toBeNull();
+    it('Self-Hosted plan should have null outputs', () => {
+      const selfHosted = websitePlans[0];
+      expect(selfHosted.outputs).toBeNull();
     });
 
     it('Pro plan should have correct outputs', () => {
@@ -132,8 +132,8 @@ describe('pricing.helper', () => {
       expect(getPlanByLabel('scale')?.price).toBe(1499);
     });
 
-    it('should find BYOK plan', () => {
-      expect(getPlanByLabel('byok')?.price).toBe(0);
+    it('should find Self-Hosted plan', () => {
+      expect(getPlanByLabel('self-hosted')?.price).toBe(0);
     });
 
     it('should find Enterprise plan', () => {

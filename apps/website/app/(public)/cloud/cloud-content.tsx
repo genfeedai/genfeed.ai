@@ -1,8 +1,7 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize } from '@genfeedai/enums';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
-import PricingStrip from '@ui/marketing/PricingStrip';
 import { Button } from '@ui/primitives/button';
 import {
   Table,
@@ -272,20 +271,12 @@ export default function CloudContent() {
         <CtaSection
           title="Ready to Get Started?"
           description="Start with Core for free or choose a managed plan. Upgrade when you need more power."
-          beforeButtons={<PricingStrip />}
         >
           <Button size={ButtonSize.PUBLIC} asChild>
             <Link href="/pricing">
               View Pricing
               <LuArrowRight className="h-4 w-4" />
             </Link>
-          </Button>
-          <Button
-            variant={ButtonVariant.SECONDARY}
-            size={ButtonSize.PUBLIC}
-            asChild
-          >
-            <Link href="/core">Self-Host Instead</Link>
           </Button>
         </CtaSection>
       </PageLayout>
