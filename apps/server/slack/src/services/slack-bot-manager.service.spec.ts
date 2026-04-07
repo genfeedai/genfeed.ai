@@ -67,8 +67,8 @@ describe('SlackBotManager', () => {
   };
 
   const makeIntegration = (overrides: Record<string, unknown> = {}) => ({
-    botToken: 'xoxb-test-token',
-    config: { allowedUserIds: [], appToken: 'xapp-test-token' },
+    botToken: 'mock-test-bot-token',
+    config: { allowedUserIds: [], appToken: 'mock-test-app-token' },
     createdAt: new Date(),
     id: 'integration-1',
     orgId: 'org-1',
@@ -81,7 +81,7 @@ describe('SlackBotManager', () => {
   beforeEach(() => {
     mockConfigService = {
       API_KEY: 'test-api-key',
-      API_URL: 'http://localhost:3001',
+      API_URL: 'http://localhost:3010',
     };
 
     mockHttpService = {

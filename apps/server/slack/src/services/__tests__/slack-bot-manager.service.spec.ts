@@ -37,10 +37,10 @@ describe('SlackBotManager', () => {
   let loggerRef: Logger;
 
   const mockIntegration: OrgIntegration = {
-    botToken: 'xoxb-slack-token',
+    botToken: 'mock-bot-token-test',
     config: {
       allowedUserIds: ['U123456', 'U789012'],
-      appToken: 'xapp-app-token',
+      appToken: 'mock-app-token-test',
       defaultWorkflow: 'wf-slack-gen',
     },
     createdAt: new Date('2024-01-01'),
@@ -54,7 +54,7 @@ describe('SlackBotManager', () => {
   beforeEach(async () => {
     const mockConfigService = {
       API_KEY: 'test-key',
-      API_URL: 'http://localhost:3001',
+      API_URL: 'http://localhost:3010',
       get: vi.fn(),
       SERVICE_NAME: 'slack',
     };
@@ -160,9 +160,9 @@ describe('SlackBotManager', () => {
 
       // Verify App was created with correct configuration
       expect(MockAppConstructor).toHaveBeenCalledWith({
-        appToken: 'xapp-app-token',
+        appToken: 'mock-app-token-test',
         socketMode: true,
-        token: 'xoxb-slack-token',
+        token: 'mock-bot-token-test',
       });
 
       expect(mockApp.command).toHaveBeenCalledWith(
@@ -197,7 +197,7 @@ describe('SlackBotManager', () => {
       expect(MockAppConstructor).toHaveBeenCalledWith({
         appToken: undefined,
         socketMode: true,
-        token: 'xoxb-slack-token',
+        token: 'mock-bot-token-test',
       });
     });
 
