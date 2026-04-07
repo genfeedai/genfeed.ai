@@ -61,14 +61,6 @@ import {
   SubscriptionTier,
 } from '@genfeedai/enums';
 import {
-  ActivitySource,
-  AgentAutonomyMode,
-  AgentExecutionTrigger,
-  AgentMessageRole,
-  type AgentType,
-  SubscriptionTier,
-} from '@genfeedai/enums';
-import {
   type AgentDashboardOperation,
   AgentToolName,
   type AgentUIBlock,
@@ -744,13 +736,15 @@ export class AgentOrchestratorService {
       const typeConfig = request.agentType
         ? getAgentTypeConfig(request.agentType)
         : null;
-      // Merge skill tool overrides into the base tool set (additive)
+      // Merge skill tool overrides into the base tool set (additive).
+      // When agentType is unset, pass undefined to preserve unrestricted toolset
+      // instead of [] which would wipe all base tools.
       const syncBaseTools =
         this.skillRuntimeService && context.resolvedSkills?.length
           ? (this.skillRuntimeService.mergeSkillToolOverrides(
-              typeConfig?.defaultTools ?? [],
+              typeConfig?.defaultTools,
               context.resolvedSkills,
-            ) as AgentToolName[])
+            ) as AgentToolName[] | undefined)
           : typeConfig?.defaultTools;
       const tools = this.buildToolDefinitions(
         this.mergeAllowedTools(
@@ -1439,13 +1433,15 @@ export class AgentOrchestratorService {
         streamCompressedCtx,
       );
       const typeConfig = agentType ? getAgentTypeConfig(agentType) : null;
-      // Merge skill tool overrides into the base tool set (additive)
+      // Merge skill tool overrides into the base tool set (additive).
+      // When agentType is unset, pass undefined to preserve unrestricted toolset
+      // instead of [] which would wipe all base tools.
       const baseTools =
         this.skillRuntimeService && context.resolvedSkills?.length
           ? (this.skillRuntimeService.mergeSkillToolOverrides(
-              typeConfig?.defaultTools ?? [],
+              typeConfig?.defaultTools,
               context.resolvedSkills,
-            ) as AgentToolName[])
+            ) as AgentToolName[] | undefined)
           : typeConfig?.defaultTools;
       const latestUserMessage =
         [...history]

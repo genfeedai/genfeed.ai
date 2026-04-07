@@ -1,0 +1,11 @@
+services:
+  genfeed:
+    image: ghcr.io/genfeedai/genfeed.ai:latest
+    ports:
+      - "3102:3102"  # Web UI
+      - "4001:4001"  # API
+    volumes:
+      - genfeed_data:/data
+
+volumes:
+  genfeed_data:

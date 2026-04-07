@@ -1,4 +1,5 @@
-import type { ConfigService } from '@files/config/config.service';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { ConfigService } from '@files/config/config.service';
 import type { JobProgress } from '@files/shared/interfaces/job.interface';
 import { parseRedisConnection } from '@libs/redis/redis-connection.utils';
 import { getUserRoomName } from '@libs/websockets/room-name.util';

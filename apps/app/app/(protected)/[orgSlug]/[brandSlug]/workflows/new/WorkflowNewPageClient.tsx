@@ -28,6 +28,7 @@ import { useCallback, useMemo, useState } from 'react';
 import '@genfeedai/workflow-ui/styles';
 import '@/features/workflows/styles/workflow-scope.scss';
 
+import { ExecutionPanel } from '@/features/workflows/components/ExecutionPanel';
 import { CloudCreditsIndicator } from '@/features/workflows/components/editor/CloudCreditsIndicator';
 import { CloudWorkflowToolbar } from '@/features/workflows/components/editor/CloudWorkflowToolbar';
 import { useCloudWorkflow } from '@/features/workflows/hooks/useCloudWorkflow';
@@ -51,6 +52,10 @@ import WorkflowEditorToolbarNavigation from '../components/WorkflowEditorToolbar
 export default function WorkflowNewPageClient() {
   const { href } = useOrgUrl();
   const [isRunning, setIsRunning] = useState(false);
+  const [showExecutionPanel, setShowExecutionPanel] = useState(false);
+  const [activeExecutionId, setActiveExecutionId] = useState<
+    string | undefined
+  >();
   const getWorkflowService = useAuthedService(createWorkflowApiService);
 
   const {
@@ -133,7 +138,9 @@ export default function WorkflowNewPageClient() {
         throw new Error('Workflow must be saved before it can run');
       }
 
-      await service.execute(runnableWorkflowId);
+      const execution = await service.execute(runnableWorkflowId);
+      setActiveExecutionId(execution?._id);
+      setShowExecutionPanel(true);
     } catch (error) {
       logger.error('Failed to run workflow', {
         error,
@@ -166,6 +173,15 @@ export default function WorkflowNewPageClient() {
 
           <WorkflowEditorShell
             nodeTypes={cloudNodeTypes}
+            rightPanel={
+              showExecutionPanel ? (
+                <ExecutionPanel
+                  workflowId={currentWorkflowId ?? 'new'}
+                  onClose={() => setShowExecutionPanel(false)}
+                  runId={activeExecutionId}
+                />
+              ) : null
+            }
             toolbar={
               <CloudWorkflowToolbar
                 isSaving={isSaving}

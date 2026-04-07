@@ -1,0 +1,126 @@
+# ==================================================
+# Self-Hosted Dockerfile
+# Single image with MongoDB 7, Redis, NestJS services, and Next.js
+# ==================================================
+
+# ==================================================
+# Stage 1: Base — system deps + runtime tools
+# ==================================================
+FROM node:20-bookworm-slim AS base
+
+# MongoDB 7 from official Debian bookworm repo + Redis + tini
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl gnupg redis-server tini && \
+    curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | \
+      gpg --dearmor -o /usr/share/keyrings/mongodb.gpg && \
+    echo "deb [signed-by=/usr/share/keyrings/mongodb.gpg] http://repo.mongodb.org/apt/debian bookworm/mongodb-org/7.0 main" \
+      > /etc/apt/sources.list.d/mongodb.list && \
+    apt-get update && apt-get install -y --no-install-recommends \
+      mongodb-org-server mongodb-org-tools && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN curl -fsSL https://bun.sh/install | bash -s "bun-v1.2.12" && \
+    cp /root/.bun/bin/bun /usr/local/bin/bun
+ENV PATH="/usr/local/bin:${PATH}"
+
+# ==================================================
+# Stage 2: Builder — install deps + build everything
+# ==================================================
+FROM base AS builder
+WORKDIR /app
+ENV NODE_OPTIONS=--max-old-space-size=4096
+
+# Copy workspace manifests for dependency resolution
+COPY package.json bun.lock turbo.json ./
+
+# Narrow workspace to server + web app only
+RUN node -e "\
+  const fs=require('fs');\
+  const p=JSON.parse(fs.readFileSync('package.json','utf8'));\
+  p.workspaces=['apps/server/*','apps/web','configs','packages/*'];\
+  if(p.dependencies?.resend==='~6.9.3') p.dependencies.resend='6.9.3';\
+  fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\n');"
+
+# Copy all workspace package.json files for Bun resolution
+RUN --mount=type=bind,source=.,target=/ctx \
+    for f in \
+      /ctx/configs/package.json \
+      /ctx/packages/*/package.json \
+      /ctx/apps/server/*/package.json \
+      /ctx/apps/web/package.json; do \
+      [ -f "$f" ] || continue; \
+      dir=$(echo "$f" | sed 's|^/ctx/||; s|/package.json$||'); \
+      mkdir -p "$dir" && cp "$f" "$dir/package.json"; \
+    done
+
+RUN --mount=type=cache,id=bun-cache,target=/root/.bun/install/cache \
+    HUSKY=0 bun install
+
+# Copy source
+COPY tsconfig.json tsconfig.build.json tsconfig.server.decorators.json webpack.base.config.js ./
+COPY configs/ configs/
+COPY packages/ packages/
+COPY apps/server/ apps/server/
+
+# Build shared workspace packages
+RUN set -e && \
+    bun --filter @genfeedai/cloud-types build & pid1=$! && \
+    bun --filter @genfeedai/config build & pid2=$! && \
+    bun --filter @genfeedai/workflow-engine build & pid3=$! && \
+    wait $pid1 $pid2 $pid3 && \
+    bun --filter @genfeedai/helpers build && \
+    bun --filter @genfeedai/integration-common build && \
+    bun --filter @genfeedai/cloud-serializers build && \
+    bun --filter @genfeedai/workflow-saas build
+
+# Disable deleteOutDir for parallel builds
+RUN sed -i 's/"deleteOutDir": true/"deleteOutDir": false/' apps/server/nest-cli.json
+
+# Build NestJS services
+RUN bun --filter @genfeedai/api build:prod
+RUN bun --filter @genfeedai/workers build:prod
+RUN set -e && \
+    bun --filter @genfeedai/files build:prod & pid1=$! && \
+    bun --filter @genfeedai/notifications build:prod & pid2=$! && \
+    wait $pid1 $pid2
+
+# Copy and build Next.js web app
+COPY apps/web/ apps/web/
+ENV NEXT_PUBLIC_API_URL=/v1
+ENV NEXT_PUBLIC_API_ENDPOINT=http://localhost:4001/v1
+ENV NEXT_PUBLIC_WS_ENDPOINT=http://localhost:3007
+ENV NEXT_PUBLIC_CDN_URL=http://localhost:3005
+RUN bun --filter @genfeedai/app build
+
+# ==================================================
+# Stage 3: Runtime — minimal production image
+# ==================================================
+FROM base AS runtime
+WORKDIR /app
+
+# Create data dirs + app user
+RUN mkdir -p /data/db /data/redis /data/files && \
+    useradd -m -u 1001 appuser && \
+    chown -R appuser:appuser /data
+
+# Copy built NestJS services
+COPY --from=builder --chown=appuser /app/apps/server/dist/ apps/server/dist/
+
+# Copy built Next.js app
+COPY --from=builder --chown=appuser /app/apps/web/.next/ apps/web/.next/
+COPY --from=builder --chown=appuser /app/apps/web/public/ apps/web/public/
+COPY --from=builder --chown=appuser /app/apps/web/package.json apps/web/package.json
+
+# Copy runtime deps
+COPY --from=builder --chown=appuser /app/node_modules/ node_modules/
+COPY --from=builder --chown=appuser /app/package.json .
+
+# Copy entrypoint
+COPY --chown=appuser docker/selfhosted-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+VOLUME /data
+EXPOSE 3102 4001
+USER appuser
+
+ENTRYPOINT ["tini", "--", "/entrypoint.sh"]
