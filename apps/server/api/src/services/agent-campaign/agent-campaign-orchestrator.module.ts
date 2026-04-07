@@ -7,7 +7,7 @@ import { BrandsModule } from '@api/collections/brands/brands.module';
 import { TrendsModule } from '@api/collections/trends/trends.module';
 import { AnalyticsModule } from '@api/endpoints/analytics/analytics.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
-import { CampaignMemoryProcessor } from '@api/services/agent-campaign/campaign-memory.processor';
+// Processors removed — now in workers ProcessorsModule (issue #84)
 import { CampaignMemoryQueueService } from '@api/services/agent-campaign/campaign-memory-queue.service';
 import { ContentEngineService } from '@api/services/agent-campaign/content-engine.service';
 import {
@@ -15,9 +15,7 @@ import {
   ORCHESTRATOR_RUN_QUEUE,
   TRIGGER_EVALUATION_QUEUE,
 } from '@api/services/agent-campaign/orchestrator.constants';
-import { OrchestratorProcessor } from '@api/services/agent-campaign/orchestrator.processor';
 import { OrchestratorQueueService } from '@api/services/agent-campaign/orchestrator-queue.service';
-import { TriggerEvaluatorProcessor } from '@api/services/agent-campaign/trigger-evaluator.processor';
 import { TriggerEvaluatorService } from '@api/services/agent-campaign/trigger-evaluator.service';
 import { TriggerEvaluatorQueueService } from '@api/services/agent-campaign/trigger-evaluator-queue.service';
 import { LoggerModule } from '@libs/logger/logger.module';
@@ -72,12 +70,10 @@ import { forwardRef, Module } from '@nestjs/common';
     }),
   ],
   providers: [
-    CampaignMemoryProcessor,
+    // Processors moved to workers ProcessorsModule (issue #84)
     CampaignMemoryQueueService,
     ContentEngineService,
-    OrchestratorProcessor,
     OrchestratorQueueService,
-    TriggerEvaluatorProcessor,
     TriggerEvaluatorQueueService,
     TriggerEvaluatorService,
   ],

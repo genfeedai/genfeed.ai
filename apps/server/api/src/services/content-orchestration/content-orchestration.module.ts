@@ -6,7 +6,6 @@ import { ConfigModule } from '@api/config/config.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ContentOrchestrationController } from '@api/services/content-orchestration/content-orchestration.controller';
 import { ContentOrchestrationService } from '@api/services/content-orchestration/content-orchestration.service';
-import { ContentPipelineProcessor } from '@api/services/content-orchestration/content-pipeline.processor';
 import { ContentPipelineQueueService } from '@api/services/content-orchestration/content-pipeline-queue.service';
 import { StepExecutorService } from '@api/services/content-orchestration/step-executor.service';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
@@ -50,9 +49,9 @@ import { forwardRef, Module } from '@nestjs/common';
       name: 'content-pipeline',
     }),
   ],
+  // ContentPipelineProcessor moved to workers ProcessorsModule (issue #84)
   providers: [
     ContentOrchestrationService,
-    ContentPipelineProcessor,
     ContentPipelineQueueService,
     StepExecutorService,
   ],

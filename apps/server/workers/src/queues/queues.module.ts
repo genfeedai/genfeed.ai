@@ -1,10 +1,19 @@
 /**
  * Workers Queues Module
- * Lightweight BullMQ setup using workers' ConfigService (not API's).
- * Only registers queues needed by worker crons — no API-specific queue services.
+ *
+ * Registers all BullMQ queues consumed by workers (both cron-triggered
+ * and processor-consumed). Queue job options mirror the API-side
+ * registrations to ensure consistent retry/backoff behaviour.
  */
 
+import { CLIP_ANALYZE_QUEUE } from '@api/queues/clip-analyze/clip-analyze.constants';
+import { CLIP_FACTORY_QUEUE } from '@api/queues/clip-factory/clip-factory.constants';
 import { QueueService } from '@api/queues/core/queue.service';
+import {
+  CAMPAIGN_MEMORY_EXTRACTION_QUEUE,
+  ORCHESTRATOR_RUN_QUEUE,
+  TRIGGER_EVALUATION_QUEUE,
+} from '@api/services/agent-campaign/orchestrator.constants';
 import {
   buildBullMQConnection,
   parseRedisConnection,
@@ -26,6 +35,7 @@ import { ConfigService } from '@workers/config/config.service';
       },
     }),
     BullModule.registerQueue(
+      // ---------- Existing queues (crons + processors) ----------
       {
         defaultJobOptions: {
           attempts: 3,
@@ -110,7 +120,7 @@ import { ConfigService } from '@workers/config/config.service';
       {
         defaultJobOptions: {
           attempts: 3,
-          backoff: { delay: 2000, type: 'exponential' },
+          backoff: { delay: 10000, type: 'exponential' },
           removeOnComplete: 100,
           removeOnFail: 50,
         },
@@ -151,6 +161,172 @@ import { ConfigService } from '@workers/config/config.service';
           removeOnFail: 50,
         },
         name: 'pattern-extraction',
+      },
+
+      // ---------- Newly registered queues (moved from API) ----------
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 10000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: 'reply-bot-polling',
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 30000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: 'campaign-processing',
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: 'workflow-execution',
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 10000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: 'workflow-delay',
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: 'agent-run',
+      },
+      {
+        defaultJobOptions: {
+          attempts: 2,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: 'workspace-task',
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 2000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 200,
+        },
+        name: 'credit-deduction',
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 1000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: 'batch-content',
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 10000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: 'content-optimization',
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 10000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: 'content-pipeline',
+      },
+      {
+        defaultJobOptions: {
+          attempts: 5,
+          backoff: { delay: 3000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 200,
+        },
+        name: 'webhook-client',
+      },
+      {
+        defaultJobOptions: {
+          attempts: 2,
+          backoff: { delay: 30000, type: 'exponential' },
+          removeOnComplete: 50,
+          removeOnFail: 25,
+        },
+        name: 'article-generation',
+      },
+      {
+        defaultJobOptions: {
+          attempts: 2,
+          backoff: { delay: 30000, type: 'exponential' },
+          removeOnComplete: 50,
+          removeOnFail: 25,
+        },
+        name: CLIP_ANALYZE_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 2,
+          backoff: { delay: 30000, type: 'exponential' },
+          removeOnComplete: 50,
+          removeOnFail: 25,
+        },
+        name: CLIP_FACTORY_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 10000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: ORCHESTRATOR_RUN_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 10000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: CAMPAIGN_MEMORY_EXTRACTION_QUEUE,
+      },
+      {
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: TRIGGER_EVALUATION_QUEUE,
+      },
+      // Note: collections/workflows WorkflowExecutionProcessor also listens on
+      // 'workflow-execution' — both processors share the same queue (registered above).
+      {
+        defaultJobOptions: {
+          attempts: 2,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 200,
+          removeOnFail: 100,
+        },
+        name: 'batch-workflow',
       },
     ),
   ],

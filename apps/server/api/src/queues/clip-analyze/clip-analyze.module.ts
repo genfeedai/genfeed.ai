@@ -1,7 +1,6 @@
 import { ClipProjectsCoreModule } from '@api/collections/clip-projects/clip-projects-core.module';
 import { ConfigModule } from '@api/config/config.module';
 import { CLIP_ANALYZE_QUEUE } from '@api/queues/clip-analyze/clip-analyze.constants';
-import { ClipAnalyzeProcessor } from '@api/queues/clip-analyze/clip-analyze.processor';
 import { ClipAnalyzeQueueService } from '@api/queues/clip-analyze/clip-analyze.queue.service';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { LoggerModule } from '@libs/logger/logger.module';
@@ -27,6 +26,7 @@ import { Module } from '@nestjs/common';
       name: CLIP_ANALYZE_QUEUE,
     }),
   ],
-  providers: [ClipAnalyzeProcessor, ClipAnalyzeQueueService],
+  // ClipAnalyzeProcessor moved to workers ProcessorsModule (issue #84)
+  providers: [ClipAnalyzeQueueService],
 })
 export class ClipAnalyzeModule {}

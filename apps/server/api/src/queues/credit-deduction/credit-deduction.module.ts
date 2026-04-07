@@ -1,5 +1,4 @@
 import { CreditsModule } from '@api/collections/credits/credits.module';
-import { CreditDeductionProcessor } from '@api/queues/credit-deduction/credit-deduction.processor';
 import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { BullModule } from '@nestjs/bullmq';
@@ -23,6 +22,7 @@ import { forwardRef, Module } from '@nestjs/common';
       name: 'credit-deduction',
     }),
   ],
-  providers: [CreditDeductionQueueService, CreditDeductionProcessor],
+  // CreditDeductionProcessor moved to workers ProcessorsModule (issue #84)
+  providers: [CreditDeductionQueueService],
 })
 export class CreditDeductionModule {}

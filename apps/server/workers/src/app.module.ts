@@ -35,6 +35,7 @@ import { CronTiktokModule } from '@workers/crons/tiktok/cron.tiktok.module';
 import { CronTrendsModule } from '@workers/crons/trends/cron.trends.module';
 import { CronWorkflowsModule } from '@workers/crons/workflows/cron.workflows.module';
 import { CronYoutubeModule } from '@workers/crons/youtube/cron.youtube.module';
+import { ProcessorsModule } from '@workers/processors/processors.module';
 import { CronSchedulerControlService } from '@workers/scheduling/cron-scheduler-control.service';
 
 @Module({
@@ -150,6 +151,9 @@ import { CronSchedulerControlService } from '@workers/scheduling/cron-scheduler-
         uri: config.get('MONGODB_URI'),
       }),
     }),
+
+    // BullMQ Processor Modules (moved from API — issue #84)
+    ProcessorsModule,
 
     // Cron Modules (moved from API)
     CronAdInsightsModule,
