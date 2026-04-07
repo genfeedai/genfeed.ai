@@ -42,7 +42,7 @@
     "generate": "bun run scripts/generate.ts --skip-on-error",
     "generate:strict": "bun run scripts/generate.ts",
     "prepublishOnly": "bun run build",
-    "typecheck": "tsc --noEmit"
+    "type-check": "tsc --noEmit"
   },
   "sideEffects": false,
   "types": "./dist/index.d.ts",

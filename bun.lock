@@ -205,7 +205,6 @@
         "@genfeedai/next-config": "*",
         "@genfeedai/serializers": "*",
         "@genfeedai/types": "*",
-        "@genfeedai/workflow": "*",
         "@genfeedai/workflow-engine": "*",
         "@genfeedai/workflow-saas": "*",
         "@genfeedai/workflow-ui": "*",
@@ -294,11 +293,18 @@
         "@genfeedai/next-config": "workspace:*",
         "@genfeedai/ui": "workspace:*",
         "@plasmohq/storage": "1.15.0",
+        "@radix-ui/react-collapsible": "^1.1.12",
+        "@radix-ui/react-select": "^2.2.6",
+        "@radix-ui/react-slot": "^1.2.4",
         "@sentry/browser": "10.47.0",
         "axios": "1.14.0",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.1",
+        "lucide-react": "^1.7.0",
         "plasmo": "0.90.5",
         "react": "19.2.4",
         "react-dom": "19.2.4",
+        "tailwind-merge": "^3.5.0",
         "zustand": "5.0.12",
       },
       "devDependencies": {
@@ -550,7 +556,6 @@
       "dependencies": {
         "@genfeedai/types": "workspace:*",
         "@genfeedai/ui": "workspace:*",
-        "@genfeedai/workflow": "workspace:*",
         "@tiptap/core": "3.22.2",
         "@tiptap/extension-mention": "3.22.2",
         "@tiptap/extension-placeholder": "3.22.2",
@@ -821,18 +826,6 @@
         "typescript": "5.9.3",
       },
     },
-    "packages/storage": {
-      "name": "@genfeedai/storage",
-      "version": "0.0.1",
-      "dependencies": {
-        "@aws-sdk/client-s3": "3.1024.0",
-        "@genfeedai/config": "workspace:*",
-      },
-      "devDependencies": {
-        "@types/node": "25.5.2",
-        "typescript": "5.9.3",
-      },
-    },
     "packages/tools": {
       "name": "@genfeedai/tools",
       "version": "0.1.3",
@@ -898,22 +891,6 @@
         "react": ">=18",
         "react-dom": ">=18",
         "tailwind-merge": "^3.5.0",
-      },
-    },
-    "packages/workflow-cloud": {
-      "name": "@genfeedai/workflow",
-      "version": "0.1.0",
-      "dependencies": {
-        "@genfeedai/constants": "workspace:*",
-        "@genfeedai/types": "workspace:*",
-        "@genfeedai/ui": "workspace:*",
-        "@genfeedai/workflow-engine": "workspace:*",
-        "@genfeedai/workflow-saas": "workspace:*",
-        "@genfeedai/workflow-ui": "workspace:*",
-        "@genfeedai/workflows": "workspace:*",
-        "@xyflow/react": "12.10.2",
-        "zundo": "2.3.0",
-        "zustand": "5.0.12",
       },
     },
     "packages/workflow-engine": {
@@ -1728,8 +1705,6 @@
 
     "@genfeedai/slack": ["@genfeedai/slack@workspace:apps/server/slack"],
 
-    "@genfeedai/storage": ["@genfeedai/storage@workspace:packages/storage"],
-
     "@genfeedai/telegram": ["@genfeedai/telegram@workspace:apps/server/telegram"],
 
     "@genfeedai/tools": ["@genfeedai/tools@workspace:packages/tools"],
@@ -1747,8 +1722,6 @@
     "@genfeedai/website": ["@genfeedai/website@workspace:apps/website"],
 
     "@genfeedai/workers": ["@genfeedai/workers@workspace:apps/server/workers"],
-
-    "@genfeedai/workflow": ["@genfeedai/workflow@workspace:packages/workflow-cloud"],
 
     "@genfeedai/workflow-engine": ["@genfeedai/workflow-engine@workspace:packages/workflow-engine"],
 
@@ -6959,8 +6932,6 @@
     "@genfeedai/prompts/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@genfeedai/serializers/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
-
-    "@genfeedai/storage/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@genfeedai/tools/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 

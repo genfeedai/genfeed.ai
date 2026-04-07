@@ -15,9 +15,11 @@ import {
   ONBOARDING_JOURNEY_MISSIONS,
   type OnboardingJourneyMissionId,
 } from '@genfeedai/types';
-import type { LoggerService } from '@libs/logger/logger.service';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import type { ModuleRef } from '@nestjs/core';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { ModuleRef } from '@nestjs/core';
 import { InjectModel } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 

@@ -185,6 +185,54 @@ export class AgentMessagesService extends BaseService<AgentMessageDocument> {
     });
   }
 
+  /**
+   * Get ALL non-deleted messages in a thread, in chronological order.
+   * Used by compaction to process the full backlog when no prior state exists.
+   */
+  async getAllMessages(roomId: string): Promise<AgentMessageDocument[]> {
+    return (
+      this.model as unknown as {
+        find: (filter: Record<string, unknown>) => {
+          sort: (sort: Record<string, number>) => {
+            lean: () => Promise<AgentMessageDocument[]>;
+          };
+        };
+      }
+    )
+      .find({
+        isDeleted: false,
+        room: new Types.ObjectId(roomId),
+      })
+      .sort({ _id: 1 })
+      .lean() as Promise<AgentMessageDocument[]>;
+  }
+
+  /**
+   * Get ALL non-deleted messages after a boundary, in chronological order.
+   * Used by compaction to process uncompacted messages without a fixed cap.
+   */
+  async getAllMessagesAfter(
+    roomId: string,
+    afterMessageId: Types.ObjectId,
+  ): Promise<AgentMessageDocument[]> {
+    return (
+      this.model as unknown as {
+        find: (filter: Record<string, unknown>) => {
+          sort: (sort: Record<string, number>) => {
+            lean: () => Promise<AgentMessageDocument[]>;
+          };
+        };
+      }
+    )
+      .find({
+        _id: { $gt: afterMessageId },
+        isDeleted: false,
+        room: new Types.ObjectId(roomId),
+      })
+      .sort({ _id: 1 })
+      .lean() as Promise<AgentMessageDocument[]>;
+  }
+
   async copyMessages(
     sourceRoomId: string,
     targetRoomId: string,

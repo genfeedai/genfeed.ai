@@ -41,7 +41,7 @@
     "prepack": "npm run build",
     "test": "vitest run --config vitest.config.ts",
     "test:cov": "vitest run --config vitest.config.ts --coverage",
-    "typecheck": "tsc --noEmit"
+    "type-check": "tsc --noEmit"
   },
   "sideEffects": false,
   "types": "./dist/index.d.ts",

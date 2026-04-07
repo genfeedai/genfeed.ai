@@ -29,7 +29,7 @@
     "build": "tsc --build --force && if [ -d dist/src ]; then mv dist/src/* dist/ 2>/dev/null && rm -rf dist/src; fi",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
-    "typecheck": "tsc --noEmit"
+    "type-check": "tsc --noEmit"
   },
   "sideEffects": false,
   "types": "./dist/index.d.ts",

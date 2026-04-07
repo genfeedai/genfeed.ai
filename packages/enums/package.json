@@ -30,7 +30,7 @@
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "dev": "tsc --watch",
     "prepack": "npm run build",
-    "typecheck": "tsc --noEmit"
+    "type-check": "tsc --noEmit"
   },
   "sideEffects": false,
   "types": "./dist/index.d.ts",

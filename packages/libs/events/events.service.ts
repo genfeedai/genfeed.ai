@@ -1,5 +1,7 @@
-import type { LoggerService } from '@libs/logger/logger.service';
-import type { RedisService } from '@libs/redis/redis.service';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { LoggerService } from '@libs/logger/logger.service';
+// biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
+import { RedisService } from '@libs/redis/redis.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 @Injectable()
