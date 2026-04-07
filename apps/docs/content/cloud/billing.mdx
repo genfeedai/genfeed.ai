@@ -1,0 +1,41 @@
+# Billing & Pricing
+
+This page describes current pricing documentation with explicit implementation/delivery context.
+
+## Last Verified
+
+- **Date:** 2026-03-24
+- **Implemented state source:** `cloud/packages/helpers/src/business/pricing/pricing.helper.ts`
+- **Delivery state source:** product/project planning in GitHub
+
+## Subscription Plans (Current Documented Model)
+
+| Plan | Monthly Price | Notes |
+|---|---:|---|
+| BYOK | $0 | Bring your own provider keys |
+| Pro | $499 | Team/content subscription tier |
+| Scale | $1,499 | Higher-volume subscription tier |
+| Enterprise | $4,999 (reference) | Sales/enterprise engagement path |
+
+## Public Credit Packs (Website subset)
+
+| Pack | Base Credits | Bonus |
+|---|---:|---:|
+| Starter | 9,900 | 0 |
+| Pro | 99,900 | 10,000 |
+| Scale | 499,900 | 100,000 |
+
+> Public pricing copy and checkout behavior can evolve. Always reconcile this page with the current pricing helper and website pricing UI.
+
+## Canonical Implementation Reference
+
+- `cloud/packages/helpers/src/business/pricing/pricing.helper.ts`
+
+## Dual-State Note
+
+- **Implemented state:** values in pricing helper and active checkout flows.
+- **Delivery state:** pricing experiments/migrations tracked in GitHub issues/project items.
+
+## Support
+
+For billing support and enterprise terms, use official support/sales channels listed on Genfeed sites.

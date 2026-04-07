@@ -1,0 +1,67 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: en-US
+reviews:
+  profile: chill
+  high_level_summary: true
+  high_level_summary_in_walkthrough: true
+  review_status: true
+  review_details: false
+  commit_status: true
+  fail_commit_status: false
+  collapse_walkthrough: true
+  changed_files_summary: true
+  sequence_diagrams: false
+  estimate_code_review_effort: true
+  assess_linked_issues: true
+  related_issues: true
+  related_prs: true
+  suggested_labels: false
+  auto_apply_labels: false
+  suggested_reviewers: false
+  auto_assign_reviewers: false
+  in_progress_fortune: false
+  poem: false
+  enable_prompt_for_ai_agents: true
+  path_filters:
+    - "**"
+    - "!**/node_modules/**"
+    - "!**/.next/**"
+    - "!**/dist/**"
+    - "!bun.lock"
+    - "!.agents/SESSIONS/**"
+  path_instructions:
+    - path: "content/**/*.mdx"
+      instructions: >
+        Focus on factual accuracy, broken navigation, stale product references,
+        and instructions that conflict with current shipped behavior. Ignore
+        prose-style preferences unless they create ambiguity or incorrect setup
+        steps.
+    - path: "app/**/*.{ts,tsx}"
+      instructions: >
+        Focus on rendering regressions, metadata issues, broken content loading,
+        and accessibility or navigation problems.
+    - path: ".github/workflows/**/*.{yml,yaml}"
+      instructions: >
+        Focus on whether CI still validates the docs site correctly and whether
+        branch targeting matches the repository workflow.
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    drafts: false
+    base_branches:
+      - develop
+  pre_merge_checks:
+    title:
+      mode: warning
+      requirements: >
+        Title should identify the product/docs area changed and avoid generic
+        wording.
+    description:
+      mode: warning
+    issue_assessment:
+      mode: off
+  tools:
+    github-checks:
+      enabled: true
+

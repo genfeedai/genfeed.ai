@@ -1,0 +1,313 @@
+import { Callout } from 'nextra/components'
+
+# Self-Hosted Installation
+
+Deploy Genfeed Core on your own infrastructure. This guide covers everything from prerequisites to running your first workflow.
+
+## Prerequisites
+
+Before you begin, ensure you have:
+
+| Requirement | Version | Notes |
+|-------------|---------|-------|
+| **Node.js** | 18.0+ | [Download](https://nodejs.org/) |
+| **Bun** | 1.0+ | [Install](https://bun.sh/) (recommended) or use npm |
+| **MongoDB** | 6.0+ | [Install](https://www.mongodb.com/try/download/community) |
+| **Redis** | 7.0+ | [Install](https://redis.io/download/) |
+| **Git** | Latest | [Download](https://git-scm.com/) |
+
+### API Keys (Optional but Recommended)
+
+To use AI generation features, you'll need API keys from providers:
+
+| Provider | For | Get Key |
+|----------|-----|---------|
+| OpenAI | Text generation | [platform.openai.com](https://platform.openai.com/api-keys) |
+| Replicate | Image/Video models | [replicate.com](https://replicate.com/account/api-tokens) |
+| ElevenLabs | Voice synthesis | [elevenlabs.io](https://elevenlabs.io/app/settings/api-keys) |
+| Anthropic | Claude models | [console.anthropic.com](https://console.anthropic.com/) |
+
+---
+
+## Quick Start
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/genfeedai/core.git
+cd core
+```
+
+### 2. Install Dependencies
+
+```bash
+bun install
+```
+
+Or with npm:
+
+```bash
+npm install
+```
+
+### 3. Configure Environment
+
+Create a `.env.local` file in the project root:
+
+```bash
+cp .env.example .env.local
+```
+
+Edit `.env.local` with your settings:
+
+```env
+# Database
+MONGODB_URI=mongodb://localhost:27017/genfeed
+REDIS_URL=redis://localhost:6379
+
+# API Keys (add the ones you need)
+OPENAI_API_KEY=sk-...
+REPLICATE_API_TOKEN=r8_...
+ELEVENLABS_API_KEY=...
+ANTHROPIC_API_KEY=sk-ant-...
+
+# Application
+NODE_ENV=development
+PORT=3001
+JWT_SECRET=your-secure-random-string
+
+# Optional: External services
+# AWS_ACCESS_KEY_ID=...
+# AWS_SECRET_ACCESS_KEY=...
+# S3_BUCKET=your-bucket
+```
+
+<Callout type="warning">
+  **Never Commit API Keys** — Add `.env.local` to your `.gitignore`. Never commit API keys to version control.
+</Callout>
+
+### 4. Start Services
+
+Make sure MongoDB and Redis are running:
+
+```bash
+# Start MongoDB (if not running)
+mongod --dbpath /path/to/your/data
+
+# Start Redis (if not running)
+redis-server
+```
+
+### 5. Run Genfeed Core
+
+```bash
+bun dev
+```
+
+Or with npm:
+
+```bash
+npm run dev
+```
+
+You should see:
+
+```
+[Nest] Starting...
+[API] Listening on http://localhost:3001
+[Queue] BullMQ connected to Redis
+[DB] MongoDB connected
+```
+
+### 6. Verify Installation
+
+Open your browser and visit:
+
+```
+http://localhost:3001/health
+```
+
+You should see:
+
+```json
+{
+  "status": "ok",
+  "version": "1.0.0",
+  "services": {
+    "database": "connected",
+    "redis": "connected",
+    "queue": "ready"
+  }
+}
+```
+
+---
+
+## Running the Frontend (Optional)
+
+Genfeed Core includes the API only. To run a full cloud web interface from the workspace monorepo:
+
+```bash
+# In a separate terminal, from the `cloud/` workspace root
+cd cloud/apps/web/app
+bun install
+bun run dev
+```
+
+The app UI will be available at `http://localhost:3102`.
+
+---
+
+## Docker Deployment
+
+For production deployments, we recommend Docker:
+
+### Using Docker Compose
+
+```bash
+# Clone with Docker config
+git clone https://github.com/genfeedai/core.git
+cd core
+
+# Copy environment file
+cp .env.example .env
+
+# Start all services
+docker-compose up -d
+```
+
+### docker-compose.yml
+
+```yaml
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "3001:3001"
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/genfeed
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - mongo
+      - redis
+
+  mongo:
+    image: mongo:6
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+
+volumes:
+  mongo_data:
+  redis_data:
+```
+
+---
+
+## Configuration Reference
+
+### Environment Variables
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `MONGODB_URI` | Yes | - | MongoDB connection string |
+| `REDIS_URL` | Yes | - | Redis connection string |
+| `PORT` | No | 3001 | API server port |
+| `NODE_ENV` | No | development | Environment mode |
+| `JWT_SECRET` | Yes | - | Secret for JWT tokens |
+| `OPENAI_API_KEY` | No | - | OpenAI API key |
+| `REPLICATE_API_TOKEN` | No | - | Replicate API token |
+
+### Resource Requirements
+
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| CPU | 2 cores | 4+ cores |
+| RAM | 4 GB | 8+ GB |
+| Storage | 20 GB | 100+ GB (for assets) |
+
+---
+
+## Troubleshooting
+
+### MongoDB Connection Failed
+
+```bash
+# Check if MongoDB is running
+mongosh --eval "db.adminCommand('ping')"
+
+# If not, start it
+mongod --dbpath /your/data/path
+```
+
+### Redis Connection Failed
+
+```bash
+# Check if Redis is running
+redis-cli ping
+
+# Should return: PONG
+```
+
+### Port Already in Use
+
+```bash
+# Find what's using the port
+lsof -i :3001
+
+# Use a different port
+PORT=3002 bun run dev:api
+```
+
+### API Keys Not Working
+
+- Verify keys are correctly copied (no extra spaces)
+- Check provider dashboard for rate limits
+- Ensure billing is active on the provider account
+
+---
+
+## Upgrading
+
+To upgrade to a new version:
+
+```bash
+# Pull latest changes
+git pull origin main
+
+# Install new dependencies
+bun install
+
+# Run migrations (if any)
+bun run migrate
+
+# Restart the server
+bun dev
+```
+
+---
+
+## Next Steps
+
+- [API Reference](/api-reference/overview) — Explore the REST API
+- [Documentation](https://docs.genfeed.ai) — Full platform documentation
+
+---
+
+## Need Help?
+
+- **GitHub Issues:** [github.com/genfeedai/core/issues](https://github.com/genfeedai/core/issues)
+- **Discord:** [discord.gg/TmfHg42xVb](https://discord.gg/TmfHg42xVb)
+- **Documentation:** You're here!
+
+For production support, consider [Genfeed Cloud](/deployment/overview) or an [Enterprise License](mailto:enterprise@genfeed.ai).

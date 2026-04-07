@@ -1,0 +1,168 @@
+/* Custom styles for Genfeed.ai documentation */
+
+:root {
+  --primary-color: #000000;
+  --dark-bg: #0a0a0a;
+  --dark-navbar-bg: #111111;
+  --light-bg: #ffffff;
+}
+
+/* Smooth transitions */
+* {
+  transition:
+    background-color 0.3s ease,
+    border-color 0.3s ease,
+    color 0.3s ease;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-thumb {
+  background: #555;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
+/* Code block improvements */
+pre {
+  border-radius: 8px !important;
+}
+
+/* Table improvements */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.dark th,
+.dark td {
+  border-bottom-color: #374151;
+}
+
+th {
+  font-weight: 600;
+}
+
+/* Callout/admonition styles */
+.nx-mt-6.nx-flex.nx-rounded-lg {
+  border-radius: 8px;
+}
+
+/* Footer customization */
+footer {
+  border-top: 1px solid #e5e7eb;
+}
+
+.dark footer {
+  border-top-color: #1f2937;
+}
+
+/* Navigation improvements */
+nav a:hover {
+  opacity: 0.8;
+}
+
+/* Logo styling */
+nav img {
+  height: 24px;
+  width: auto;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+}
+
+/* Swagger UI dark mode overrides */
+.dark .swagger-ui {
+  background-color: transparent;
+}
+
+.dark .swagger-ui .opblock {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.dark .swagger-ui .opblock-summary {
+  border-color: #374151;
+}
+
+.dark .swagger-ui .opblock.opblock-post {
+  border-color: #49cc90;
+  background: rgba(73, 204, 144, 0.1);
+}
+
+.dark .swagger-ui .opblock.opblock-get {
+  border-color: #61affe;
+  background: rgba(97, 175, 254, 0.1);
+}
+
+.dark .swagger-ui .opblock.opblock-put {
+  border-color: #fca130;
+  background: rgba(252, 161, 48, 0.1);
+}
+
+.dark .swagger-ui .opblock.opblock-delete {
+  border-color: #f93e3e;
+  background: rgba(249, 62, 62, 0.1);
+}
+
+.dark .swagger-ui .opblock-section-header {
+  background: #1f2937;
+}
+
+.dark .swagger-ui select,
+.dark .swagger-ui input[type="text"],
+.dark .swagger-ui textarea {
+  background-color: #1f2937;
+  color: #f9fafb;
+  border-color: #374151;
+}
+
+.dark .swagger-ui .scheme-container {
+  background-color: #1f2937;
+  box-shadow: none;
+}
+
+.dark .swagger-ui table thead tr th,
+.dark .swagger-ui table thead tr td {
+  border-color: #374151;
+  color: #f9fafb;
+}
+
+.dark .swagger-ui .parameter__name,
+.dark .swagger-ui .parameter__type,
+.dark .swagger-ui .response-col_status,
+.dark .swagger-ui .response-col_description {
+  color: #f9fafb;
+}

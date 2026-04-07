@@ -1,0 +1,8 @@
+{
+  // Example VSCode settings for the docs project
+  // Copy this file to .vscode/settings.json and customize for your local environment
+
+  // Configure formatters and linters
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true
+}
