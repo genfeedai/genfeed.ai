@@ -46,7 +46,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy:
+  deploy-backend:
     uses: ./.github/workflows/_deploy.yml
     with:
       environment: production
@@ -58,3 +58,51 @@ jobs:
       force_redis: ${{ inputs.force_redis || false }}
       skip_tests: ${{ inputs.skip_tests || false }}
     secrets: inherit
+
+  # Deploy all Vercel frontend apps in parallel after backend is up.
+  # Requires GitHub secrets: VERCEL_TOKEN, VERCEL_ORG_ID,
+  # VERCEL_PROJECT_ID_APP, VERCEL_PROJECT_ID_ADMIN,
+  # VERCEL_PROJECT_ID_WEBSITE, VERCEL_PROJECT_ID_DOCS
+  deploy-app:
+    name: Deploy app.genfeed.ai
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+    steps:
+      - uses: actions/checkout@v5
+      - run: npx vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_APP }}
+
+  deploy-admin:
+    name: Deploy admin.genfeed.ai
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+    steps:
+      - uses: actions/checkout@v5
+      - run: npx vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_ADMIN }}
+
+  deploy-website:
+    name: Deploy genfeed.ai
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+    steps:
+      - uses: actions/checkout@v5
+      - run: npx vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_WEBSITE }}
+
+  deploy-docs:
+    name: Deploy docs.genfeed.ai
+    runs-on: ubuntu-latest
+    needs: deploy-backend
+    steps:
+      - uses: actions/checkout@v5
+      - run: npx vercel deploy --prod --yes --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID_DOCS }}
