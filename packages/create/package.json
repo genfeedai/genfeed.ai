@@ -14,7 +14,7 @@
   "description": "Genfeed.ai — AI OS for content creation. Self-host for free.",
   "devDependencies": {
     "@types/node": "25.5.2",
-    "typescript": "5.9.3",
+    "typescript": "6.0.2",
     "vitest": "4.1.3"
   },
   "files": [

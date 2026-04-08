@@ -5,13 +5,13 @@
     "nextra-theme-docs": "4.6.1",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "swagger-ui-react": "5.32.1"
+    "swagger-ui-react": "5.32.2"
   },
   "devDependencies": {
     "@types/node": "25.5.2",
     "@types/react": "19.2.14",
     "prettier": "3.8.1",
-    "typescript": "5.9.3"
+    "typescript": "6.0.2"
   },
   "name": "@genfeedai/docs",
   "private": true,

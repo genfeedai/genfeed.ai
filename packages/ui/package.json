@@ -6,7 +6,7 @@
     "react": "19.2.4",
     "react-day-picker": "9.14.0",
     "tsc-alias": "1.8.16",
-    "typescript": "5.9.3",
+    "typescript": "6.0.2",
     "vaul": "1.1.2"
   },
   "exports": {

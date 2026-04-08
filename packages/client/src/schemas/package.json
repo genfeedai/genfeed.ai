@@ -4,7 +4,7 @@
     "@genfeedai/enums": "2.3.2"
   },
   "devDependencies": {
-    "typescript": "5.9.3"
+    "typescript": "6.0.2"
   },
   "main": "dist/index.js",
   "name": "@genfeedai/client/schemas",

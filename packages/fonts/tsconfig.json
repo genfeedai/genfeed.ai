@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
       "@genfeedai/fonts/*": ["./*"],
       "@fonts/*": ["./*"]

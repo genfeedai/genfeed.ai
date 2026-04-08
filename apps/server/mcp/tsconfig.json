@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "module": "Node16",
     "moduleResolution": "node16",
     "outDir": "../../dist/apps/mcp",

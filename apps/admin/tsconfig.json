@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
       "@admin/*": ["./app/*"],
       "@api-types/*": ["../../packages/api-types/src/*"],

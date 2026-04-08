@@ -44,7 +44,8 @@
     "skipLibCheck": true,
     "strict": true,
     "strictPropertyInitialization": false,
-    "target": "es2022"
+    "target": "es2022",
+    "types": []
   },
   "exclude": ["node_modules"]
 }

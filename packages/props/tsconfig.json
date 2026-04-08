@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
       "@contexts/*": ["../contexts/*"],
       "@helpers/*": ["../helpers/src/*"],
