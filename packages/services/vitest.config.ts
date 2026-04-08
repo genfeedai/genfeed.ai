@@ -7,13 +7,10 @@ export default defineConfig({
   resolve: {
     alias: [
       // IMPORTANT: More specific aliases must come before less specific ones
-      // Mock client serializers to prevent serializer build errors in unit tests
+      // Mock canonical serializers to keep unit tests isolated from build-time wiring
       {
-        find: '@genfeedai/client/serializers',
-        replacement: path.resolve(
-          __dirname,
-          '__mocks__/client-serializers.mock.ts',
-        ),
+        find: '@genfeedai/serializers',
+        replacement: path.resolve(__dirname, '__mocks__/serializers.mock.ts'),
       },
       {
         find: '@ui-constants',

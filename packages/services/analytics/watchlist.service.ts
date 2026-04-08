@@ -1,4 +1,4 @@
-import { WatchlistSerializer } from '@genfeedai/client/serializers';
+import { WatchlistSerializer } from '@genfeedai/serializers';
 import { Watchlist } from '@models/analytics/watchlist.model';
 import { BaseService } from '@services/core/base.service';
 

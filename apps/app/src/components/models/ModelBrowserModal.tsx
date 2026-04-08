@@ -12,7 +12,7 @@ import {
   ModelUseCaseEnum,
   ProviderTypeEnum,
 } from '@genfeedai/types';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
   AlertTriangle,

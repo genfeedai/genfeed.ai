@@ -140,13 +140,13 @@ export default function TopbarOrganizationSwitcher() {
           <div
             data-testid="organization-switcher-trigger"
             className={cn(
-              'flex items-center gap-2 rounded-md px-2 py-1.5 transition-all cursor-pointer',
+              'flex items-center gap-2 px-2 py-1.5 transition-all cursor-pointer',
               'hover:bg-white/[0.06]',
               isSwitchingOrganization && 'opacity-50 cursor-not-allowed',
               isOpen && 'bg-white/[0.06]',
             )}
           >
-            <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md bg-white/20 text-xs font-semibold text-white">
+            <div className="flex h-6 w-6 flex-shrink-0 items-center justify-center bg-white/20 text-xs font-semibold text-white">
               {displayLabel.charAt(0).toUpperCase()}
             </div>
             <span
@@ -255,7 +255,7 @@ export default function TopbarOrganizationSwitcher() {
                 newOrganizationLabel.trim().length === 0
               }
               onClick={() => void handleCreateOrganization()}
-              className="rounded-lg px-4 py-2 text-sm font-medium"
+              className="px-4 py-2 text-sm font-medium"
             >
               {isCreatingOrganization ? 'Creating\u2026' : 'Create'}
             </Button>

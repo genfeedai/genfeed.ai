@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import {
   ArrowLeft,
   Film,
@@ -244,14 +244,13 @@ export default function GalleryPage() {
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.ICON}
               onClick={handleRefresh}
-              isDisabled={isRefreshing}
+              disabled={isRefreshing}
               className="p-2 rounded-lg"
-              icon={
-                <RefreshCw
-                  className={`w-4 h-4 text-[var(--foreground)] ${isRefreshing ? 'animate-spin' : ''}`}
-                />
-              }
-            />
+            >
+              <RefreshCw
+                className={`w-4 h-4 text-[var(--foreground)] ${isRefreshing ? 'animate-spin' : ''}`}
+              />
+            </Button>
           </div>
         </div>
       </header>
@@ -273,8 +272,8 @@ export default function GalleryPage() {
                   size={ButtonSize.SM}
                   onClick={() => handleFilterChange(type)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
-                  icon={<Icon className="w-4 h-4" />}
                 >
+                  <Icon className="w-4 h-4" />
                   {label}
                   {type !== 'all' && (
                     <span className="text-xs opacity-60">({counts[type]})</span>
@@ -286,10 +285,10 @@ export default function GalleryPage() {
               variant={ButtonVariant.DESTRUCTIVE}
               size={ButtonSize.SM}
               onClick={handleDeleteAll}
-              isDisabled={isDeleting || items.length === 0}
+              disabled={isDeleting || items.length === 0}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium"
-              icon={<Trash2 className="w-4 h-4" />}
             >
+              <Trash2 className="w-4 h-4" />
               {isDeleting
                 ? 'Deleting...'
                 : `Delete ${filter === 'all' ? 'All' : `${filter}s`}`}

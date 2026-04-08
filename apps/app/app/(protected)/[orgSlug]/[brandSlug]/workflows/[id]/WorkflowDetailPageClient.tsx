@@ -10,7 +10,7 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { ReactFlowProvider } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -230,9 +230,9 @@ export default function WorkflowDetailPageClient({
                         variant={ButtonVariant.DEFAULT}
                         size={ButtonSize.SM}
                         onClick={handleRun}
-                        isLoading={isRunning}
+                        disabled={isRunning}
                       >
-                        Run
+                        {isRunning ? 'Running...' : 'Run'}
                       </Button>
                       {lifecycle === 'draft' && (
                         <Button

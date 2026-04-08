@@ -1,7 +1,3 @@
-import {
-  SettingSerializer,
-  UserSerializer,
-} from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type {
   IBrand,
@@ -10,6 +6,7 @@ import type {
   ISetting,
   IUser,
 } from '@genfeedai/interfaces';
+import { SettingSerializer, UserSerializer } from '@genfeedai/serializers';
 import { Setting } from '@models/analytics/setting.model';
 import { User } from '@models/auth/user.model';
 import { Brand } from '@models/organization/brand.model';

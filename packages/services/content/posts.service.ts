@@ -1,5 +1,5 @@
-import { PostSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { PostSerializer } from '@genfeedai/serializers';
 import { Post } from '@models/content/post.model';
 import {
   BaseService,

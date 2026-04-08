@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { InfoBox, SettingsField } from '@/components/ui/settings-section';
 import { ToggleSwitch } from '@/components/ui/toggle-switch';
 import { type EdgeStyle, useSettingsStore } from '@/store/settingsStore';

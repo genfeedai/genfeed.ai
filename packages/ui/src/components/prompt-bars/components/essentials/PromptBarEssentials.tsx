@@ -320,7 +320,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               <Button
                 onClick={onToggleQuickOptions}
                 variant={ButtonVariant.GHOST}
-                className="h-9 rounded-lg px-2 pr-2.5 gap-2 text-white/80 hover:text-white"
+                className="h-9 px-2 pr-2.5 gap-2 text-white/80 hover:text-white"
                 tooltip={
                   references.length > 1
                     ? `${references.length} references selected`
@@ -405,7 +405,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
               <Button
                 label={`${form.watch('outputs') || 1}x`}
                 variant={ButtonVariant.GHOST}
-                className="h-9 rounded-lg px-2.5 gap-1"
+                className="h-9 px-2.5 gap-1"
                 tooltip="Number of outputs"
                 tooltipPosition="top"
                 icon={
@@ -431,7 +431,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
                 <Button
                   label={`${form.watch('outputs') || 1}x`}
                   variant={ButtonVariant.GHOST}
-                  className="h-9 rounded-lg px-2.5 gap-1"
+                  className="h-9 px-2.5 gap-1"
                   tooltip="Number of outputs"
                   tooltipPosition="top"
                   icon={

@@ -68,6 +68,12 @@ export interface ProactiveWorkspaceResponse {
 export interface InstallReadinessResponse {
   authMode: 'clerk' | 'none';
   billingMode: 'cloud_billing' | 'oss_local';
+  localTools: {
+    anyDetected: boolean;
+    claude: boolean;
+    codex: boolean;
+    detected: string[];
+  };
   providers: {
     anyConfigured: boolean;
     configured: string[];

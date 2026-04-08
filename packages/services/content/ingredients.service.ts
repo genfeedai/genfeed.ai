@@ -1,3 +1,10 @@
+import { IngredientCategory } from '@genfeedai/enums';
+import type {
+  IBulkDeleteRequest,
+  IBulkDeleteResult,
+  IIngredient,
+  IPost,
+} from '@genfeedai/interfaces';
 import {
   AvatarSerializer,
   ImageSerializer,
@@ -6,14 +13,7 @@ import {
   MetadataSerializer,
   MusicSerializer,
   VideoSerializer,
-} from '@genfeedai/client/serializers';
-import { IngredientCategory } from '@genfeedai/enums';
-import type {
-  IBulkDeleteRequest,
-  IBulkDeleteResult,
-  IIngredient,
-  IPost,
-} from '@genfeedai/interfaces';
+} from '@genfeedai/serializers';
 import { Avatar } from '@models/ai/avatar.model';
 import { Ingredient } from '@models/content/ingredient.model';
 import { GIF } from '@models/ingredients/gif.model';

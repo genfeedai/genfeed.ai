@@ -4,8 +4,6 @@ import {
   type IOnboardingJourneyMissionState,
   ONBOARDING_JOURNEY_MISSIONS,
   ONBOARDING_JOURNEY_TOTAL_CREDITS,
-  ONBOARDING_SIGNUP_GIFT_CREDITS,
-  ONBOARDING_TOTAL_VISIBLE_CREDITS,
 } from '@genfeedai/types';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import Link from 'next/link';
@@ -77,13 +75,12 @@ export default function ChatJourneyPage() {
               Activation Journey
             </p>
             <h1 className="mt-2 text-3xl font-semibold text-foreground">
-              Start with {ONBOARDING_SIGNUP_GIFT_CREDITS} welcome credits and
-              unlock {ONBOARDING_JOURNEY_TOTAL_CREDITS} more
+              Complete guided missions and unlock more credits as you go
             </h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">
               Finish the guided missions inside GenFeed to improve generation
-              quality, generate your first image early, and unlock more credits
-              as you go.
+              quality, generate your first image early, and keep your workspace
+              moving with additional credits.
             </p>
           </div>
           <Link
@@ -105,10 +102,10 @@ export default function ChatJourneyPage() {
           </div>
           <div className="rounded-xl border border-white/10 bg-black/20 p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              Signup gift
+              Available to unlock
             </p>
             <p className="mt-2 text-2xl font-semibold text-foreground">
-              {ONBOARDING_SIGNUP_GIFT_CREDITS}
+              {remainingJourneyCredits}
             </p>
           </div>
           <div className="rounded-xl border border-white/10 bg-black/20 p-4">
@@ -121,10 +118,10 @@ export default function ChatJourneyPage() {
           </div>
           <div className="rounded-xl border border-white/10 bg-black/20 p-4">
             <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              Total visible
+              Journey total
             </p>
             <p className="mt-2 text-2xl font-semibold text-foreground">
-              {ONBOARDING_TOTAL_VISIBLE_CREDITS}
+              {ONBOARDING_JOURNEY_TOTAL_CREDITS}
             </p>
           </div>
         </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { MoreVertical } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import {
@@ -72,7 +72,7 @@ export function OverflowMenu({ items }: OverflowMenuProps) {
                 item.onClick?.();
                 setIsOpen(false);
               }}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-secondary rounded-none justify-start"
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground hover:bg-secondary justify-start"
             >
               <span className="h-4 w-4 shrink-0">{item.icon}</span>
               <span>{item.label}</span>

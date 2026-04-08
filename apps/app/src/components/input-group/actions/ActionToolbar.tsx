@@ -7,7 +7,7 @@ import type {
   ToolbarSize,
   ToolbarVisibility,
 } from '@genfeedai/types';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { clsx } from 'clsx';
 import { memo, type ReactNode } from 'react';
 

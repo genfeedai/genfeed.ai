@@ -51,7 +51,7 @@ function GroupRow({ group }: { group: BrandCompletenessGroup }) {
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}
         onClick={() => setExpanded(!isExpanded)}
-        className="flex w-full items-center gap-2.5 px-2 py-1.5 rounded-lg text-left transition-colors duration-150 hover:bg-white/[0.04]"
+        className="flex w-full items-center gap-2.5 px-2 py-1.5 text-left transition-colors duration-150 hover:bg-white/[0.04]"
       >
         {isComplete ? (
           <HiCheck className="w-3.5 h-3.5 text-green-400/60 flex-shrink-0" />
@@ -113,7 +113,7 @@ export default function BrandCompletenessCard({
 
   return (
     <Card
-      className="rounded-xl shadow-none"
+      className="shadow-none"
       bodyClassName="gap-0 p-3 sm:p-3"
       data-testid="brand-completeness-card"
     >

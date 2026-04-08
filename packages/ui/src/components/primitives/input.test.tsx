@@ -59,7 +59,6 @@ describe('Input', () => {
     const input = screen.getByRole('textbox');
     expect(input).toHaveClass('custom-class');
     expect(input).toHaveClass('h-9');
-    expect(input).toHaveClass('rounded-lg');
     expect(input).toHaveClass('border');
     expect(input).toHaveClass('bg-transparent');
     expect(input).toHaveClass('border-white/[0.06]');

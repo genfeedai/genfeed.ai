@@ -4,7 +4,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { logger } from '@services/core/logger.service';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import {
   Table,
   TableBody,
@@ -301,7 +301,7 @@ export default function WorkflowExecutionsPage() {
             <div className="mt-4 flex items-center justify-between">
               <Button
                 variant={ButtonVariant.OUTLINE}
-                isDisabled={offset === 0}
+                disabled={offset === 0}
                 onClick={() =>
                   setOffset((prev) => Math.max(0, prev - EXECUTIONS_PER_PAGE))
                 }
@@ -313,7 +313,7 @@ export default function WorkflowExecutionsPage() {
               </span>
               <Button
                 variant={ButtonVariant.OUTLINE}
-                isDisabled={!hasMore}
+                disabled={!hasMore}
                 onClick={() => setOffset((prev) => prev + EXECUTIONS_PER_PAGE)}
               >
                 Next

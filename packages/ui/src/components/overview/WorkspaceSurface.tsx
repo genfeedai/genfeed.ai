@@ -54,7 +54,7 @@ export function WorkspaceSurface({
       className={cn(
         framed
           ? cn('rounded', FRAME_TONE_CLASSES[tone])
-          : 'rounded-none border-0 bg-transparent shadow-none',
+          : 'border-0 bg-transparent shadow-none',
         className,
       )}
     >

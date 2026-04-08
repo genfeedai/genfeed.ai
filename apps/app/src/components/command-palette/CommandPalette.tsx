@@ -4,7 +4,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { Kbd } from '@genfeedai/ui';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef } from 'react';

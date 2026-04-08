@@ -5,7 +5,7 @@
     "@genfeedai/helpers": "workspace:*",
     "ts-jsonapi": "2.1.3"
   },
-  "description": "Genfeed.ai Cloud-only server serializers",
+  "description": "Genfeed.ai canonical JSON:API serializers",
   "devDependencies": {
     "typescript": "6.0.2"
   },

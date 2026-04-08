@@ -1,20 +1,5 @@
-// Framework (was @genfeedai/serializers)
+// Compatibility surface for older consumers.
+// The canonical serializer source of truth is @genfeedai/serializers.
 
-// Client serializer implementations
-export * from './analytics';
-export * from './attributes';
-export * from './automation';
-export * from './billing';
-export * from './builders';
-export * from './collections';
-export * from './common';
-export * from './configs';
-export * from './content';
-export * from './elements';
-export * from './ingredients';
-export * from './integrations';
-export * from './interfaces';
-export * from './management';
-export * from './organizations';
-export * from './relationships';
-export * from './users';
+export * from '@genfeedai/serializers';
+export type { BuiltSerializer, BuiltSerializerMap } from './builders';

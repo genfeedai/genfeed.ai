@@ -1,5 +1,5 @@
-import { CameraSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { CameraSerializer } from '@genfeedai/serializers';
 import { ElementCamera } from '@models/elements/camera.model';
 import { BaseService } from '@services/core/base.service';
 

@@ -1,9 +1,6 @@
-import {
-  ImageEditSerializer,
-  ImageSerializer,
-} from '@genfeedai/client/serializers';
 import type { IImage } from '@genfeedai/interfaces';
 import type { IImageEditParams } from '@genfeedai/interfaces/components/image-edit.interface';
+import { ImageEditSerializer, ImageSerializer } from '@genfeedai/serializers';
 import type { Image } from '@models/ingredients/image.model';
 import type {
   SplitFrameResult,

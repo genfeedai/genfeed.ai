@@ -3,8 +3,8 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
+import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { type ReactNode, useState } from 'react';
@@ -170,10 +170,11 @@ export default function BotToggle({
 
       <div className="flex justify-end">
         <Button
-          label="View Workflow"
           variant={ButtonVariant.SECONDARY}
           onClick={() => router.push(href(editorPath))}
-        />
+        >
+          View Workflow
+        </Button>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
-import { PromptSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { PromptSerializer } from '@genfeedai/serializers';
 import { Prompt } from '@models/content/prompt.model';
 import {
   BaseService,

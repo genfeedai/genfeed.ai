@@ -68,16 +68,14 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
             key={asset.id}
             className={cn(
               'inline-flex max-w-full items-center gap-2 border border-white/10 bg-white/[0.04] text-white/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]',
-              isCompact
-                ? 'h-9 rounded-2xl pl-1.5 pr-1'
-                : 'h-10 rounded-full pl-1.5 pr-1',
+              isCompact ? 'h-9 pl-1.5 pr-1' : 'h-10 pl-1.5 pr-1',
               isDisabled && 'opacity-70',
             )}
           >
             <div
               className={cn(
                 'flex shrink-0 items-center justify-center overflow-hidden border border-white/10 bg-black/20',
-                isCompact ? 'h-6.5 w-6.5 rounded-xl' : 'h-7 w-7 rounded-full',
+                isCompact ? 'h-6.5 w-6.5' : 'h-7 w-7',
               )}
             >
               {asset.previewUrl ? (
@@ -113,7 +111,7 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
             <Button
               type="button"
               variant={undefined}
-              className="h-7 w-7 shrink-0 rounded-full border border-white/10 bg-transparent p-0 text-white/55 hover:bg-white/5 hover:text-white"
+              className="h-7 w-7 shrink-0 border border-white/10 bg-transparent p-0 text-white/55 hover:bg-white/5 hover:text-white"
               icon={<HiXMark className="h-3.5 w-3.5" />}
               onClick={() => onRemoveAttachedAsset(asset.id)}
               isDisabled={isDisabled}
@@ -127,9 +125,7 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
           variant={undefined}
           className={cn(
             'border border-white/10 bg-transparent font-medium text-white/70 hover:bg-white/5 hover:text-white',
-            isCompact
-              ? 'h-9 rounded-2xl px-2.5 text-[11px]'
-              : 'h-10 rounded-full px-3 text-[12px]',
+            isCompact ? 'h-9 px-2.5 text-[11px]' : 'h-10 px-3 text-[12px]',
           )}
           icon={<HiOutlineFolderOpen className="h-3.5 w-3.5" />}
           onClick={onBrowseAssets}
@@ -140,7 +136,7 @@ const PromptBarAttachedAssetsTray = memo(function PromptBarAttachedAssetsTray({
       </div>
 
       {dragError ? (
-        <div className="mt-2 rounded-xl border border-error/30 bg-error/10 px-3 py-2 text-xs text-error">
+        <div className="mt-2 border border-error/30 bg-error/10 px-3 py-2 text-xs text-error">
           {dragError}
         </div>
       ) : null}

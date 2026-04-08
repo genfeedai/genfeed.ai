@@ -14,6 +14,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import type { User } from '@clerk/backend';
+import { isEEEnabled } from '@genfeedai/config';
 import { StripeUrlSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -203,7 +204,7 @@ export class StripeController {
       const result = await this.stripeService.createSetupCheckoutSession(
         subscription.stripeCustomerId,
         `${origin}/agent/onboarding`,
-        `${origin}/onboarding/plan`,
+        `${origin}${isEEEnabled() ? '/onboarding/providers' : '/onboarding/brand'}`,
       );
 
       return serializeSingle(request, StripeUrlSerializer, result);

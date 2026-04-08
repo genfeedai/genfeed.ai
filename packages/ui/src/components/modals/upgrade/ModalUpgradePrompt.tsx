@@ -7,6 +7,7 @@ import {
   SubscriptionTier,
 } from '@genfeedai/enums';
 import { QUALITY_TIER_OPTIONS, TIER_QUALITY_ACCESS } from '@genfeedai/helpers';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { EnvironmentService } from '@services/core/environment.service';
 import Button from '@ui/buttons/base/Button';
 import Modal from '@ui/modals/modal/Modal';
@@ -83,6 +84,7 @@ export default function ModalUpgradePrompt({
   lockedQualityTier,
 }: ModalUpgradePromptProps) {
   const [isNavigating, setIsNavigating] = useState(false);
+  const { orgHref } = useOrgUrl();
 
   const requiredTier = lockedQualityTier
     ? getRequiredTierForQuality(lockedQualityTier)
@@ -95,8 +97,8 @@ export default function ModalUpgradePrompt({
   const handleUpgrade = useCallback(() => {
     setIsNavigating(true);
     const appUrl = EnvironmentService.apps.app;
-    window.location.href = `${appUrl}/onboarding/plans`;
-  }, []);
+    window.location.href = `${appUrl}${orgHref('/settings/organization/billing')}`;
+  }, [orgHref]);
 
   return (
     <Modal id={ModalEnum.UPGRADE_PROMPT} title="Upgrade Your Plan">

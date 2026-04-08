@@ -64,7 +64,11 @@ const makeMocks = () => ({
     ]),
     patch: vi.fn(),
   },
-  organizationsService: { patch: vi.fn() },
+  organizationsService: {
+    findOne: vi.fn(),
+    generateUniqueSlug: vi.fn(),
+    patch: vi.fn(),
+  },
   proactiveOnboardingService: {
     claimWorkspace: vi.fn(),
     getWorkspaceSummary: vi.fn(),
@@ -379,6 +383,7 @@ describe('OnboardingService', () => {
       const brand = { _id: makeObjectId() };
       mocks.brandsService.findOne.mockResolvedValue(brand);
       mocks.brandsService.patch.mockResolvedValue(undefined);
+      mocks.organizationsService.generateUniqueSlug.mockResolvedValue('acme');
       mocks.organizationsService.patch.mockResolvedValue(undefined);
 
       const result = await service.updateBrandName({ brandName: 'Acme' }, user);
@@ -388,7 +393,7 @@ describe('OnboardingService', () => {
       });
       expect(mocks.organizationsService.patch).toHaveBeenCalledWith(
         expect.any(String),
-        { label: 'Acme' },
+        { label: 'Acme', slug: 'acme' },
       );
       expect(result.success).toBe(true);
     });
@@ -549,6 +554,43 @@ describe('OnboardingService', () => {
     });
   });
 
+  describe('getInstallReadiness', () => {
+    it('returns local tool readiness alongside provider readiness', async () => {
+      mocks.organizationsService.findOne.mockResolvedValue({
+        _id: makeObjectId(),
+      });
+      mocks.brandsService.findOne.mockResolvedValue({ _id: makeObjectId() });
+
+      vi.spyOn(service as any, 'getLocalToolReadiness').mockReturnValue({
+        anyDetected: true,
+        claude: true,
+        codex: false,
+        detected: ['claude'],
+      });
+      vi.spyOn(service as any, 'getProviderReadiness').mockReturnValue({
+        anyConfigured: true,
+        configured: ['replicate'],
+        fal: false,
+        imageGenerationReady: true,
+        openai: false,
+        replicate: true,
+        textGenerationReady: false,
+      });
+
+      const result = await service.getInstallReadiness(user);
+
+      expect(result.localTools).toEqual({
+        anyDetected: true,
+        claude: true,
+        codex: false,
+        detected: ['claude'],
+      });
+      expect(result.providers.configured).toEqual(['replicate']);
+      expect(result.workspace.hasBrand).toBe(true);
+      expect(result.workspace.hasOrganization).toBe(true);
+    });
+  });
+
   // =========================================================================
   // setupBrand
   // =========================================================================
@@ -596,6 +638,7 @@ describe('OnboardingService', () => {
       mocks.masterPromptGeneratorService.analyzeBrandVoice.mockResolvedValue(
         brandVoice,
       );
+      mocks.organizationsService.generateUniqueSlug.mockResolvedValue('acme');
       mocks.brandsService.patch.mockResolvedValue(undefined);
       mocks.organizationsService.patch.mockResolvedValue(undefined);
       mocks.organizationSettingsService.findOne.mockResolvedValue({
@@ -693,6 +736,9 @@ describe('OnboardingService', () => {
     it('patches brand fields and syncs org label', async () => {
       mocks.brandsService.findOne.mockResolvedValue(brand);
       mocks.brandsService.patch.mockResolvedValue(undefined);
+      mocks.organizationsService.generateUniqueSlug.mockResolvedValue(
+        'newname',
+      );
       mocks.organizationsService.patch.mockResolvedValue(undefined);
 
       const dto = {
@@ -712,7 +758,7 @@ describe('OnboardingService', () => {
       );
       expect(mocks.organizationsService.patch).toHaveBeenCalledWith(
         expect.any(String),
-        { label: 'NewName' },
+        { label: 'NewName', slug: 'newname' },
       );
       expect(result.success).toBe(true);
     });

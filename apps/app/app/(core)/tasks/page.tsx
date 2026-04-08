@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { Plus } from 'lucide-react';
@@ -127,8 +127,8 @@ export default function TasksPage() {
           size={ButtonSize.SM}
           onClick={() => setShowNewTask(true)}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm"
-          icon={<Plus className="h-3.5 w-3.5" />}
         >
+          <Plus className="h-3.5 w-3.5" />
           New Task
         </Button>
       </div>
@@ -179,7 +179,7 @@ export default function TasksPage() {
               variant={ButtonVariant.OUTLINE}
               size={ButtonSize.XS}
               className="px-3 py-1 text-xs"
-              isDisabled={isCreating || !newTitle.trim()}
+              disabled={isCreating || !newTitle.trim()}
               onClick={createTask}
             >
               {isCreating

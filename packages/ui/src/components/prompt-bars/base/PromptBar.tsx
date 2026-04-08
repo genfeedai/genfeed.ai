@@ -839,9 +839,9 @@ function PromptBar({
   }, [watchedFormat]);
 
   const controlClass =
-    'h-9 rounded-lg px-2.5 gap-1.5 text-sm flex-shrink-0 !border-transparent !bg-transparent !shadow-none text-white/70 hover:!bg-white/5 hover:!text-white';
+    'h-9 px-2.5 gap-1.5 text-sm flex-shrink-0 !border-transparent !bg-transparent !shadow-none text-white/70 hover:!bg-white/5 hover:!text-white';
   const iconButtonClass =
-    'h-9 w-9 rounded-lg p-0 flex items-center justify-center !border-transparent !bg-transparent !shadow-none text-white/70 hover:!bg-white/5 hover:!text-white';
+    'h-9 w-9 p-0 flex items-center justify-center !border-transparent !bg-transparent !shadow-none text-white/70 hover:!bg-white/5 hover:!text-white';
   const textareaRegister = form.register('text');
 
   return (

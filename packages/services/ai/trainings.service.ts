@@ -1,5 +1,5 @@
-import { TrainingSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { TrainingSerializer } from '@genfeedai/serializers';
 import { Training } from '@models/ai/training.model';
 import { Image } from '@models/ingredients/image.model';
 import { PagesService } from '@services/content/pages.service';

@@ -12,5 +12,7 @@ describe('apps/app/app/(onboarding)/onboarding/(wizard)/success/success-content.
       'utf8',
     );
     expect(source).toContain('export ');
+    expect(source).toContain('Starter Credits Ready');
+    expect(source).toContain('ONBOARDING_SIGNUP_GIFT_CREDITS');
   });
 });

@@ -1,5 +1,5 @@
-import { MemberSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { MemberSerializer } from '@genfeedai/serializers';
 import { Member } from '@models/organization/member.model';
 import { BaseService } from '@services/core/base.service';
 

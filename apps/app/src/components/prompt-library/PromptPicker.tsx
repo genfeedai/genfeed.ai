@@ -2,7 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IPrompt } from '@genfeedai/types';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import {
   BookMarked,
   ChevronDown,

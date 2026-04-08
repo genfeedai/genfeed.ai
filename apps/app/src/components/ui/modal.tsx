@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import type { LucideIcon } from 'lucide-react';
 import { X } from 'lucide-react';
 import { memo, type ReactNode, useEffect } from 'react';

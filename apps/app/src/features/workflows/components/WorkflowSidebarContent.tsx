@@ -6,8 +6,8 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
-import Button from '@ui/buttons/base/Button';
 import SidebarBackRow from '@ui/menus/sidebar-back-row/SidebarBackRow';
+import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';

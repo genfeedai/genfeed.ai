@@ -1,9 +1,3 @@
-import {
-  IngredientMergeSerializer,
-  VideoCaptionSerializer,
-  VideoEditSerializer,
-  VideoSerializer,
-} from '@genfeedai/client/serializers';
 import type {
   ICaption,
   IIngredient,
@@ -16,6 +10,12 @@ import type {
   IVideoResizeParams,
   IVideoTextOverlayParams,
 } from '@genfeedai/interfaces/components/video-operations.interface';
+import {
+  IngredientMergeSerializer,
+  VideoCaptionSerializer,
+  VideoEditSerializer,
+  VideoSerializer,
+} from '@genfeedai/serializers';
 import { buildResourcePath } from '@helpers/formatting/url/url.helper';
 import { Caption } from '@models/content/caption.model';
 import type { Video } from '@models/ingredients/video.model';

@@ -187,7 +187,7 @@ function PromptConstructorNodeComponent(props: NodeProps) {
                     e.preventDefault();
                     handleAutocompleteSelect(variable.name);
                   }}
-                  className={`w-full px-3 py-2 text-left text-[11px] flex flex-col gap-0.5 h-auto items-start rounded-none ${
+                  className={`w-full px-3 py-2 text-left text-[11px] flex flex-col gap-0.5 h-auto items-start ${
                     index === selectedAutocompleteIndex
                       ? 'bg-accent text-accent-foreground'
                       : 'text-muted-foreground hover:bg-accent'

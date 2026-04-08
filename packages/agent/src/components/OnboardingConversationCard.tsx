@@ -41,8 +41,6 @@ const ACCOUNT_TYPES = [
 ] as const;
 
 export function OnboardingConversationCard({
-  signupGiftCredits = 0,
-  totalJourneyCredits = 100,
   onStart,
   isDisabled = false,
 }: OnboardingConversationCardProps): ReactElement {
@@ -98,10 +96,9 @@ export function OnboardingConversationCard({
             Tell the agent what you create
           </h3>
           <p className="mt-3 max-w-2xl text-sm leading-6 text-foreground/68">
-            Start with {signupGiftCredits} welcome credits. Share your context
-            and the agent will build your profile, then generate your first
-            image immediately. You can still unlock {totalJourneyCredits} more
-            during onboarding.
+            Share your context and the agent will build your profile, then
+            generate your first image immediately without sending you through
+            another setup form.
           </p>
         </div>
       </div>

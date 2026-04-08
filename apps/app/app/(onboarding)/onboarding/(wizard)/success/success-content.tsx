@@ -3,12 +3,14 @@
 import { useAuth, useSession } from '@clerk/nextjs';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { ButtonVariant } from '@genfeedai/enums';
+import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
 import { logger } from '@services/core/logger.service';
 import { OnboardingFunnelService } from '@services/onboarding/onboarding-funnel.service';
 import { UsersService } from '@services/organization/users.service';
 import Button from '@ui/buttons/base/Button';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { BsPersonBoundingBox } from 'react-icons/bs';
 import {
@@ -43,6 +45,12 @@ const TIMELINE_STEPS = [
     from: { opacity: 0, y: 20 },
     offset: '-=0.4',
     selector: '.success-preview',
+  },
+  {
+    duration: 0.8,
+    from: { opacity: 0, scale: 0.95, y: 16 },
+    offset: '-=0.35',
+    selector: '.success-credit-reveal',
   },
   {
     duration: 0.8,
@@ -136,12 +144,27 @@ export default function SuccessContent() {
         Welcome to <span className="font-light italic">Genfeed!</span>
       </h1>
 
+      <div className="success-credit-reveal opacity-0 mb-8 inline-flex items-center gap-3 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-5 py-3 text-left">
+        <HiSparkles className="h-5 w-5 text-emerald-300" />
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-emerald-200/80">
+            Starter Credits Ready
+          </p>
+          <p className="text-sm text-white">
+            {ONBOARDING_SIGNUP_GIFT_CREDITS} credits are waiting in your
+            workspace.
+          </p>
+        </div>
+      </div>
+
       {/* Preview image */}
       {previewUrl && (
         <div className="success-preview opacity-0 flex justify-center mb-10">
-          <img
+          <Image
             src={previewUrl}
             alt="Your brand preview"
+            width={288}
+            height={288}
             className="w-72 h-72 rounded-lg object-cover border border-white/10"
           />
         </div>
@@ -172,6 +195,7 @@ export default function SuccessContent() {
                 {title}
                 {isSelected && (
                   <svg
+                    aria-hidden="true"
                     className="w-3 h-3"
                     fill="none"
                     viewBox="0 0 24 24"

@@ -1,5 +1,5 @@
-import { LinkSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { LinkSerializer } from '@genfeedai/serializers';
 import { Link } from '@models/social/link.model';
 import { BaseService } from '@services/core/base.service';
 

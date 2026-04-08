@@ -2,7 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import type { ActionConfig, MenuAlign, MenuSide } from '@genfeedai/types';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { clsx } from 'clsx';
 import { MoreVertical } from 'lucide-react';
 import {

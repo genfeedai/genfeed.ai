@@ -56,9 +56,10 @@ Create a `.env.local` file in the project root:
 
 ```bash
 cp .env.example .env.local
+bun run env:sync local
 ```
 
-Edit `.env.local` with your settings. See [Configuration](/core/configuration) for the full reference.
+Edit the root `.env.local` with your settings. See [Configuration](/core/configuration) for the full reference.
 
 ```env
 # Database

@@ -3,7 +3,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Pre } from '@genfeedai/ui';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Bug, ChevronDown, ChevronRight, Copy, Trash2, X } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import type { DebugPayload } from '@/store/execution';

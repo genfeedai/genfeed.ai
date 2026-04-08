@@ -8,7 +8,7 @@ import {
   useWorkflowStore,
 } from '@genfeedai/workflow-ui/stores';
 import { SaveIndicator, Toolbar } from '@genfeedai/workflow-ui/toolbar';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 

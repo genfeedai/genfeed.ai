@@ -25,7 +25,6 @@ describe('Select', () => {
     const trigger = screen.getByRole('combobox');
     expect(trigger).toHaveClass('custom-class');
     expect(trigger).toHaveClass('h-9');
-    expect(trigger).toHaveClass('rounded-lg');
     expect(trigger).toHaveClass('border-white/[0.06]');
   });
 

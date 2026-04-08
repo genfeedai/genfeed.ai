@@ -1,8 +1,3 @@
-import {
-  MemberInvitationSerializer,
-  OrganizationSerializer,
-  OrganizationSettingSerializer,
-} from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import { type AnalyticsMetric, IngredientCategory } from '@genfeedai/enums';
 import type {
@@ -19,6 +14,11 @@ import type {
   ISubscription,
   UpdateMemberData,
 } from '@genfeedai/interfaces';
+import {
+  MemberInvitationSerializer,
+  OrganizationSerializer,
+  OrganizationSettingSerializer,
+} from '@genfeedai/serializers';
 import { deserializeCollection } from '@helpers/data/json-api/json-api.helper';
 import { Avatar } from '@models/ai/avatar.model';
 import { Activity } from '@models/analytics/activity.model';

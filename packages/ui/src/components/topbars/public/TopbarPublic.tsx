@@ -223,7 +223,7 @@ export default function TopbarPublic({
                 type="button"
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                 variant={ButtonVariant.UNSTYLED}
-                className="inline-flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/5 transition-colors"
+                className="inline-flex h-10 w-10 items-center justify-center transition-colors hover:bg-white/5"
                 ariaLabel={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
               >
                 {isMobileMenuOpen ? (

@@ -42,6 +42,7 @@ import { AgentSpawnService } from '@api/services/agent-spawn/agent-spawn.service
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
+import { isEEEnabled } from '@genfeedai/config';
 import {
   AgentType,
   BotCategory,
@@ -1866,19 +1867,27 @@ export class AgentToolExecutorService {
    * Includes a free tier skip path for users not ready to pay.
    */
   private presentPaymentOptions(_ctx: ToolExecutionContext): AgentToolResult {
+    const billingHref = isEEEnabled()
+      ? '/settings/organization/billing'
+      : '/settings/organization/api-keys';
+    const billingLabel = isEEEnabled()
+      ? 'View all plans'
+      : 'Configure providers';
+
     return {
       creditsUsed: 0,
       data: {
         canSkip: true,
-        message:
-          'Choose a credit pack to unlock video generation, monthly content calendars, and more.',
+        message: isEEEnabled()
+          ? 'Choose a credit pack to unlock video generation, monthly content calendars, and more.'
+          : 'Configure provider API keys to unlock generation, workflows, and publishing in your local install.',
       },
       nextActions: [
         {
           ctas: [
             {
-              href: '/settings/organization/billing',
-              label: 'View all plans',
+              href: billingHref,
+              label: billingLabel,
             },
           ],
           id: `payment-cta-${Date.now()}`,

@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Plus, Tag, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';

@@ -2,7 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { BookOpen, HelpCircle, MessageCircle, Store } from 'lucide-react';
 import { XIcon } from '@/components/toolbar/icons';
 import { InfoBox, LinkCard } from '@/components/ui/settings-section';

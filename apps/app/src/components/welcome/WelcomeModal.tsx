@@ -2,7 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import {
   BookOpen,
   FolderOpen,

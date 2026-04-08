@@ -25,7 +25,7 @@ vi.mock('@genfeedai/constants', () => ({
   },
 }));
 
-vi.mock('@genfeedai/client/serializers', () => ({
+vi.mock('@genfeedai/serializers', () => ({
   StyleSerializer: {
     serialize: (data: Record<string, unknown>) => ({
       data: {

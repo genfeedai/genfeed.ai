@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { ChevronRight } from 'lucide-react';
 import { type ReactNode, useCallback, useRef, useState } from 'react';
 import type { ContextMenuItemConfig } from './ContextMenu';

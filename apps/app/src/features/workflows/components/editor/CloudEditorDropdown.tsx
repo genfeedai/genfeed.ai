@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { HiOutlineChevronDown } from 'react-icons/hi2';
@@ -76,13 +76,12 @@ export function CloudEditorDropdown({
                 key={item.id}
                 type="button"
                 variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
                 onClick={() => {
                   if (item.disabled || !item.onClick) return;
                   item.onClick();
                   setIsOpen(false);
                 }}
-                isDisabled={item.disabled}
+                disabled={item.disabled}
                 className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground transition hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
               >
                 <span className="h-4 w-4 shrink-0">{item.icon}</span>

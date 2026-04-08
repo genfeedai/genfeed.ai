@@ -31,13 +31,12 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { EditorContent, ReactRenderer, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import type { SuggestionOptions } from '@tiptap/suggestion';
-import BaseButton from '@ui/buttons/base/Button';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Modal } from '@ui/modals/compound/Modal';
-import { Button } from '@ui/primitives/button';
+import { Button as BaseButton, Button } from '@ui/primitives/button';
 import {
   Sheet,
   SheetContent,

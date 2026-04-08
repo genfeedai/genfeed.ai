@@ -1,5 +1,5 @@
-import { SceneSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { SceneSerializer } from '@genfeedai/serializers';
 import { ElementScene } from '@models/elements/scene.model';
 import { BaseService } from '@services/core/base.service';
 

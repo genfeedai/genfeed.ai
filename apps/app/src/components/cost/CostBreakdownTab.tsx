@@ -2,7 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import type { NodeCostEstimate } from '@genfeedai/types';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import {
   Brain,
   ChevronDown,

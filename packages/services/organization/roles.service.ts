@@ -1,5 +1,5 @@
-import { RoleSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { RoleSerializer } from '@genfeedai/serializers';
 import { Role } from '@models/auth/role.model';
 import { BaseService } from '@services/core/base.service';
 

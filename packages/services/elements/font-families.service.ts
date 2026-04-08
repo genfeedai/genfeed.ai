@@ -1,5 +1,5 @@
-import { FontFamilySerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { FontFamilySerializer } from '@genfeedai/serializers';
 import { FontFamily } from '@models/elements/font-family.model';
 import { BaseService } from '@services/core/base.service';
 

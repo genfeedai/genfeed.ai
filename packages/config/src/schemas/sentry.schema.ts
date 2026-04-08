@@ -16,6 +16,7 @@ export const sentrySchema = {
  * Sentry error tracking - optional (for microservices)
  */
 export const sentryOptionalSchema = {
+  SENTRY_AUTH_TOKEN: Joi.string().optional().allow(''),
   SENTRY_DSN: Joi.string().uri().optional().allow(''),
   SENTRY_ENABLED: Joi.string().valid('true', 'false').optional().allow(''),
   SENTRY_ENVIRONMENT: Joi.string().optional().allow(''),

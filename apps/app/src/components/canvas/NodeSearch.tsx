@@ -5,7 +5,7 @@ import type { WorkflowNode } from '@genfeedai/types';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
 import { Kbd } from '@genfeedai/ui';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { useReactFlow } from '@xyflow/react';
 import { Search } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';

@@ -2,7 +2,7 @@ import { ImagesService } from '@services/ingredients/images.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock serializers to avoid complex build chain
-vi.mock('@genfeedai/client/serializers', () => ({
+vi.mock('@genfeedai/serializers', () => ({
   AvatarSerializer: { serialize: vi.fn((data) => data) },
   ImageEditSerializer: { serialize: vi.fn((data) => data) },
   ImageSerializer: { serialize: vi.fn((data) => data) },

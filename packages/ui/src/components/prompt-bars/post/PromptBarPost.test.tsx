@@ -16,7 +16,6 @@ describe('PromptBarPost', () => {
   it('should render without crashing', () => {
     const { container } = render(<PromptBarPost {...baseProps} />);
     expect(container.firstChild).toBeInTheDocument();
-    expect(container.firstChild).toHaveClass('rounded-3xl');
   });
 
   it('fills prompt when a preset is selected', () => {

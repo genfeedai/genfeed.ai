@@ -91,7 +91,7 @@ export default function FormDateRangePicker({
             onClick={() => handlePresetChange(preset)}
             variant={ButtonVariant.UNSTYLED}
             className={cn(
-              'h-9 rounded-none border-0 px-4 text-sm',
+              'h-9 border-0 px-4 text-sm',
               index > 0 && 'border-l border-white/[0.08]',
               selectedPreset === preset
                 ? 'bg-white text-black hover:bg-white/90'

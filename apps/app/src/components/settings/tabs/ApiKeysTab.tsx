@@ -2,7 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import { Code, Pre } from '@genfeedai/ui';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Check, Code as CodeIcon, Eye, EyeOff, Trash2 } from 'lucide-react';
 import { useCallback, useState } from 'react';

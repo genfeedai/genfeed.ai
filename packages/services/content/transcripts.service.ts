@@ -1,4 +1,4 @@
-import { TranscriptSerializer } from '@genfeedai/client/serializers';
+import { TranscriptSerializer } from '@genfeedai/serializers';
 import { Transcript } from '@models/content/transcript.model';
 import { BaseService } from '@services/core/base.service';
 

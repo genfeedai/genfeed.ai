@@ -1,5 +1,5 @@
-import { AssetSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { AssetSerializer } from '@genfeedai/serializers';
 import { Asset } from '@models/ingredients/asset.model';
 import {
   BaseService,

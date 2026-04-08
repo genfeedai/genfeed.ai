@@ -147,7 +147,7 @@ export default function TopbarCreditsBar() {
           withWrapper={false}
           variant={ButtonVariant.UNSTYLED}
           className={cn(
-            'hidden md:flex items-center gap-2.5 rounded-lg px-3 py-1.5 transition-all hover:bg-white/[0.06]',
+            'hidden md:flex items-center gap-2.5 px-3 py-1.5 transition-all hover:bg-white/[0.06]',
             isOpen && 'bg-white/[0.06]',
           )}
           title={`${fullBalance} ${EnvironmentService.CREDITS_LABEL}`}

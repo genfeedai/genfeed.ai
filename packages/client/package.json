@@ -4,10 +4,11 @@
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
+    "@genfeedai/serializers": "workspace:*",
     "ts-jsonapi": "2.1.3",
     "zod": "4.3.6"
   },
-  "description": "Genfeed.ai shared client models, schemas, and serializers",
+  "description": "Genfeed.ai shared client models, schemas, and compatibility exports",
   "devDependencies": {
     "typescript": "6.0.2"
   },

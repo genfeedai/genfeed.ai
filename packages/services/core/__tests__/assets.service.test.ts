@@ -4,7 +4,7 @@ import type { AxiosInstance } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock modules
-vi.mock('@genfeedai/client/serializers', () => ({
+vi.mock('@genfeedai/serializers', () => ({
   AssetSerializer: { deserialize: vi.fn((d) => d), serialize: vi.fn((d) => d) },
 }));
 

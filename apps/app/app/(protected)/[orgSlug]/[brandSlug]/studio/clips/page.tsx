@@ -11,8 +11,8 @@ import type {
   ProjectState,
   ProviderOption,
 } from '@props/studio/clips.props';
-import Button from '@ui/buttons/base/Button';
 import Spinner from '@ui/feedback/spinner/Spinner';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {

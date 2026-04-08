@@ -2,7 +2,7 @@
 
 import { SignIn } from '@clerk/nextjs';
 import { ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Cloud, CloudOff, Monitor, X } from 'lucide-react';
 import { useState } from 'react';
 import { useCloudSession } from '@/hooks/useCloudSession';

@@ -4,7 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { WorkflowFile } from '@genfeedai/types';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import {
   getNodesBounds,
   getViewportForBounds,

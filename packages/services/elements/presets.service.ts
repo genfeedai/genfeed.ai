@@ -1,5 +1,5 @@
-import { PresetSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { PresetSerializer } from '@genfeedai/serializers';
 import { Preset } from '@models/elements/preset.model';
 import { BaseService } from '@services/core/base.service';
 

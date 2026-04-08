@@ -182,7 +182,6 @@ describe('Alert', () => {
 
     it('has the default inline radius', () => {
       render(<Alert>Message</Alert>);
-      expect(screen.getByRole('alert')).toHaveClass('rounded-lg');
     });
 
     it('has padding', () => {

@@ -1,5 +1,5 @@
-import { FolderSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { FolderSerializer } from '@genfeedai/serializers';
 import { Folder } from '@models/content/folder.model';
 import { BaseService } from '@services/core/base.service';
 

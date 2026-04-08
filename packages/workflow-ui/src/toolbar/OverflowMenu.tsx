@@ -59,7 +59,7 @@ export function OverflowMenu({ items }: OverflowMenuProps) {
                 item.onClick?.();
                 setIsOpen(false);
               }}
-              className="w-full justify-start gap-2.5 px-3 py-2 text-sm text-foreground rounded-none"
+              className="w-full justify-start gap-2.5 px-3 py-2 text-sm text-foreground"
             >
               <span className="h-4 w-4 shrink-0">{item.icon}</span>
               <span>{item.label}</span>

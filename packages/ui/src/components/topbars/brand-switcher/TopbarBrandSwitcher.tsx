@@ -65,7 +65,7 @@ export default function TopbarBrandSwitcher() {
         setIsUpdatingBrand(false);
       }
     },
-    [getUsersService, user, pathname, router],
+    [getUsersService, user, pathname, router, href],
   );
 
   if (brands.length === 0) {
@@ -85,7 +85,7 @@ export default function TopbarBrandSwitcher() {
         <div
           data-testid="brand-switcher-trigger"
           className={cn(
-            'flex items-center gap-2 rounded-md px-2 py-1.5 transition-all cursor-pointer',
+            'flex items-center gap-2 px-2 py-1.5 transition-all cursor-pointer',
             'hover:bg-white/[0.06]',
             isUpdatingBrand && 'opacity-50 cursor-not-allowed',
             isOpen && 'bg-white/[0.06]',

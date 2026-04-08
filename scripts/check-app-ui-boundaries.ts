@@ -1,11 +1,8 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { Logger } from '@nestjs/common';
-import { globSync } from 'glob';
 
 const logger = new Logger('CheckAppUiBoundaries');
-
-const INCLUDE_GLOBS = ['apps/app/**/*.{ts,tsx,js,jsx}'];
 
 const EXCLUDE_GLOBS = [
   '**/*.test.*',
@@ -59,11 +56,11 @@ const LEGACY_BUTTON_IMPORT_ALLOWLIST = new Set([
   'apps/admin/app/(protected)/overview/dashboard/activity-chart.tsx',
   'apps/admin/app/(protected)/overview/dashboard/overview-page.tsx',
   'apps/admin/app/(protected)/organization/components/edit-setting-modal.tsx',
-  'apps/app/app/(onboarding)/onboarding/brand/brand-content.tsx',
-  'apps/app/app/(onboarding)/onboarding/plan/plan-content.tsx',
+  'apps/app/app/(onboarding)/onboarding/(wizard)/brand/brand-content.tsx',
+  'apps/app/app/(onboarding)/onboarding/(wizard)/providers/providers-content.tsx',
+  'apps/app/app/(onboarding)/onboarding/(wizard)/success/success-content.tsx',
   'apps/app/app/(onboarding)/onboarding/post-signup/page.tsx',
-  'apps/app/app/(onboarding)/onboarding/proactive/proactive-content.tsx',
-  'apps/app/app/(onboarding)/onboarding/success/success-content.tsx',
+  'apps/app/app/(onboarding)/onboarding/(wizard)/proactive/proactive-content.tsx',
   'apps/app/app/(protected)/studio/clips/page.tsx',
   'apps/app/packages/components/research/ads/AdsResearchPageClient.tsx',
 ]);
@@ -86,11 +83,7 @@ type Violation =
 
 export function runCheckAppUiBoundaries(): { violations: Violation[] } {
   const rootDir = process.cwd();
-  const files = globSync(INCLUDE_GLOBS, {
-    absolute: true,
-    ignore: EXCLUDE_GLOBS,
-    nodir: true,
-  });
+  const files = collectSourceFiles(path.join(rootDir, 'apps', 'app'));
 
   const violations: Violation[] = [];
 
@@ -133,6 +126,48 @@ export function runCheckAppUiBoundaries(): { violations: Violation[] } {
   }
 
   return { violations };
+}
+
+function shouldSkipPath(relativePath: string): boolean {
+  return EXCLUDE_GLOBS.some((pattern) => {
+    const normalizedPattern = pattern.replaceAll('**/', '');
+    const trimmedPattern = normalizedPattern.replaceAll('/**', '');
+    const escapedPattern = trimmedPattern.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(
+      escapedPattern.replaceAll('*', '.*').replaceAll('?', '.'),
+    );
+
+    return regex.test(relativePath);
+  });
+}
+
+function isSourceFile(fileName: string): boolean {
+  return /\.(ts|tsx|js|jsx)$/.test(fileName);
+}
+
+function collectSourceFiles(dirPath: string): string[] {
+  const entries = readdirSync(dirPath, { withFileTypes: true });
+  const files: string[] = [];
+
+  for (const entry of entries) {
+    const absolutePath = path.join(dirPath, entry.name);
+    const relativePath = path.relative(process.cwd(), absolutePath);
+
+    if (shouldSkipPath(relativePath)) {
+      continue;
+    }
+
+    if (entry.isDirectory()) {
+      files.push(...collectSourceFiles(absolutePath));
+      continue;
+    }
+
+    if (entry.isFile() && isSourceFile(entry.name)) {
+      files.push(absolutePath);
+    }
+  }
+
+  return files;
 }
 
 function isMainModule(): boolean {

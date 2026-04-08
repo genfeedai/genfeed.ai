@@ -1,5 +1,5 @@
-import { CaptionSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { CaptionSerializer } from '@genfeedai/serializers';
 import { Caption } from '@models/content/caption.model';
 import { BaseService } from '@services/core/base.service';
 

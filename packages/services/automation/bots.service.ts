@@ -1,5 +1,5 @@
-import { BotSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { BotSerializer } from '@genfeedai/serializers';
 import { deserializeResource } from '@helpers/data/json-api/json-api.helper';
 import { Bot } from '@models/automation/bot.model';
 import { LivestreamSession } from '@models/automation/livestream-session.model';

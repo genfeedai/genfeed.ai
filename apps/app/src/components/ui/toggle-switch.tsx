@@ -1,5 +1,5 @@
 import { ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { forwardRef } from 'react';
 import { cn } from '@/lib/utils';
 

@@ -2,7 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import type { ActionConfig, RowHelpers } from '@genfeedai/types';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { clsx } from 'clsx';
 import { Plus } from 'lucide-react';
 import { nanoid } from 'nanoid';

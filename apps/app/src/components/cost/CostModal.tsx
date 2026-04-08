@@ -2,7 +2,6 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
-import Button from '@ui/buttons/base/Button';
 import { DollarSign, X } from 'lucide-react';
 import { memo, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -83,7 +82,7 @@ function CostModalComponent() {
               variant={ButtonVariant.GHOST}
               size={ButtonSize.SM}
               onClick={() => setActiveTab(tab.id)}
-              className={`relative px-4 py-3 text-sm font-medium rounded-none ${
+              className={`relative px-4 py-3 text-sm font-medium ${
                 activeTab === tab.id
                   ? 'text-foreground'
                   : 'text-muted-foreground hover:text-foreground'

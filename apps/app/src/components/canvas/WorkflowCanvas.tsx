@@ -29,7 +29,7 @@ import { NODE_DEFINITIONS } from '@genfeedai/types';
 import { useCanvasKeyboardShortcuts } from '@genfeedai/workflow-ui/hooks';
 import { NodeDetailModal, nodeTypes } from '@genfeedai/workflow-ui/nodes';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { GroupOverlay } from '@/components/canvas/GroupOverlay';
 import { HelperLines } from '@/components/canvas/HelperLines';
 import { NodeSearch } from '@/components/canvas/NodeSearch';

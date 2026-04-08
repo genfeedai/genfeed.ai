@@ -1,9 +1,38 @@
 /**
- * Mock for @genfeedai/client/serializers
+ * Mock for @genfeedai/serializers
  * Prevents the real serializers from building (which requires complex config)
  * during unit tests. Services that use serializers should have them mocked here.
  */
 const noop = {};
+
+function serializerNameFromType(type: string): string {
+  return `${type
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join('')}Serializer`;
+}
+
+export function buildSerializer(
+  _packageType: 'client' | 'server',
+  config: { type: string },
+): Record<string, typeof noop> {
+  return {
+    [serializerNameFromType(config.type)]: noop,
+  };
+}
+
+export function buildSingleSerializer(
+  packageType: 'client' | 'server',
+  config: { type: string },
+): typeof noop {
+  return buildSerializer(packageType, config)[
+    serializerNameFromType(config.type)
+  ];
+}
+
+export const newsletterSerializerConfig = {
+  type: 'newsletter',
+} as const;
 
 export const PostSerializer = noop;
 export const ArticleSerializer = noop;

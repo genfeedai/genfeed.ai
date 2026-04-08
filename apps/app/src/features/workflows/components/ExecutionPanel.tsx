@@ -8,7 +8,7 @@ import {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   createWorkflowApiService,

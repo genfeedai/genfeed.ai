@@ -64,7 +64,6 @@ describe('Textarea', () => {
     expect(textarea).toHaveClass('custom-class');
     expect(textarea).toHaveClass('flex');
     expect(textarea).toHaveClass('border');
-    expect(textarea).toHaveClass('rounded-lg');
     expect(textarea).toHaveClass('min-h-textarea');
     expect(textarea).toHaveClass('border-white/[0.06]');
   });

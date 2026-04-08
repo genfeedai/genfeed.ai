@@ -12,7 +12,6 @@ import { OrganizationsService } from '@services/organization/organizations.servi
 import Button from '@ui/buttons/base/Button';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { isEEEnabled, isSelfHosted } from '@/lib/config/edition';
-import { resolvePostSignupOnboardingHref } from './post-signup-onboarding-href.util';
 
 export default function PostSignupPage() {
   const { getToken } = useAuth();
@@ -25,18 +24,9 @@ export default function PostSignupPage() {
   );
 
   const resolveOnboardingHref = useCallback(
-    async (prompt?: string): Promise<string> => {
-      if (!isEEEnabled()) {
+    async (_prompt?: string): Promise<string> => {
+      if (!isEEEnabled() || isSelfHosted()) {
         return '/onboarding/brand';
-      }
-
-      if (isSelfHosted()) {
-        return (
-          resolvePostSignupOnboardingHref({
-            isSelfHosted: true,
-            prompt,
-          }) ?? '/chat/onboarding'
-        );
       }
 
       const token = await resolveClerkToken(getToken);
@@ -44,7 +34,7 @@ export default function PostSignupPage() {
         return '/onboarding/brand';
       }
 
-      const organizations = await OrganizationsService.getInstance(token)
+      await OrganizationsService.getInstance(token)
         .getMyOrganizations()
         .catch((error) => {
           logger.error(
@@ -54,13 +44,7 @@ export default function PostSignupPage() {
           return [];
         });
 
-      return (
-        resolvePostSignupOnboardingHref({
-          isSelfHosted: false,
-          organizations,
-          prompt,
-        }) ?? '/onboarding/brand'
-      );
+      return '/onboarding/brand';
     },
     [getToken],
   );

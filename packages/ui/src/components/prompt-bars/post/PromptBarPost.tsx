@@ -23,9 +23,9 @@ import {
 } from 'react-icons/hi2';
 
 const CONTROL_CLASS =
-  'h-9 rounded-lg px-3 gap-2 text-sm flex-shrink-0 !border-white/10 !bg-white/[0.03] text-white/80 hover:!bg-white/[0.06] hover:text-white';
+  'h-9 px-3 gap-2 text-sm flex-shrink-0 !border-white/10 !bg-white/[0.03] text-white/80 hover:!bg-white/[0.06] hover:text-white';
 const COLLAPSE_BUTTON_CLASS =
-  'h-8 w-8 rounded-full border border-white/10 bg-black/20 p-0 text-white/70 backdrop-blur-sm hover:bg-black/30 hover:text-white';
+  'h-8 w-8 border border-white/10 bg-black/20 p-0 text-white/70 backdrop-blur-sm hover:bg-black/30 hover:text-white';
 
 function PromptBarPost({
   onSubmit,
@@ -225,7 +225,7 @@ function PromptBarPost({
             onKeyDown={handleKeyDown}
             placeholder={promptPlaceholder}
             isDisabled={isEnhancing}
-            className="h-9 flex-1 rounded-lg border border-white/10 bg-white/[0.03] px-3 text-sm text-white/90 focus:border-white/20 focus:outline-none"
+            className="h-9 flex-1 border border-white/10 bg-white/[0.03] px-3 text-sm text-white/90 focus:border-white/20 focus:outline-none"
           />
 
           {(showCountDropdown || showThreadToggle) && (
@@ -237,7 +237,7 @@ function PromptBarPost({
                     label={`${count}x`}
                     variant={ButtonVariant.SECONDARY}
                     size={ButtonSize.SM}
-                    className="h-9 rounded-lg px-3"
+                    className="h-9 px-3"
                     tooltip="Outputs"
                     tooltipPosition="left"
                     icon={<HiSquaresPlus className="w-4 h-4" />}
@@ -262,7 +262,7 @@ function PromptBarPost({
                     variant={
                       isThread ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
                     }
-                    className="h-9 w-9 rounded-lg p-0"
+                    className="h-9 w-9 p-0"
                     icon={<HiQueueList className="w-4 h-4" />}
                     isDisabled={isEnhancing}
                   />
@@ -282,7 +282,7 @@ function PromptBarPost({
               isLoading={isEnhancing}
               isDisabled={!prompt.trim()}
               onClick={handleSubmit}
-              className="h-9 rounded-xl px-3.5"
+              className="h-9 px-3.5"
             />
             <Button
               onClick={() => setIsCollapsed(false)}
@@ -365,7 +365,7 @@ function PromptBarPost({
               onKeyDown={handleKeyDown}
               placeholder={promptPlaceholder}
               isDisabled={isEnhancing}
-              className="min-h-[96px] w-full resize-none rounded-2xl border border-white/10 bg-transparent px-2 py-2 text-sm text-white/90 shadow-none focus:border-transparent focus-visible:ring-0"
+              className="min-h-[96px] w-full resize-none border border-white/10 bg-transparent px-2 py-2 text-sm text-white/90 shadow-none focus:border-transparent focus-visible:ring-0"
             />
 
             <div className="flex flex-wrap items-center justify-end gap-2 border-t border-white/8 pt-2">
@@ -404,7 +404,7 @@ function PromptBarPost({
                   variant={
                     isThread ? ButtonVariant.DEFAULT : ButtonVariant.SECONDARY
                   }
-                  className="h-9 rounded-lg px-3 text-sm"
+                  className="h-9 px-3 text-sm"
                   icon={<HiQueueList className="w-4 h-4" />}
                   isDisabled={isEnhancing}
                 >
@@ -420,7 +420,7 @@ function PromptBarPost({
                 isDisabled={!prompt.trim()}
                 onClick={handleSubmit}
                 type="submit"
-                className="h-9 rounded-xl px-3.5"
+                className="h-9 px-3.5"
               />
             </div>
           </form>

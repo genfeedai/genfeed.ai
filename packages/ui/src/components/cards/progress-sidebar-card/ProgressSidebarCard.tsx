@@ -96,7 +96,7 @@ export default function ProgressSidebarCard() {
     <Card
       variant={CardVariant.DEFAULT}
       className={cn(
-        'mx-3 mb-3 rounded-2xl shadow-none hover:border-white/[0.08]',
+        'mx-3 mb-3 shadow-none hover:border-white/[0.08]',
         SCROLL_FOCUS_OUTER_SHADOW,
       )}
       bodyClassName="gap-0 p-0 sm:p-0"
@@ -112,7 +112,7 @@ export default function ProgressSidebarCard() {
           aria-controls="sidebar-progress-panel"
           isDisabled={isSavingCollapsedPreference}
         >
-          <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl border border-orange-400/20 bg-orange-400/10 text-orange-200">
+          <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center border border-orange-400/20 bg-orange-400/10 text-orange-200">
             <HiMiniSparkles className="h-4 w-4" />
           </div>
           <div className="min-w-0 flex-1">
@@ -149,7 +149,7 @@ export default function ProgressSidebarCard() {
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}
           onClick={() => void hideProgress()}
-          className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg text-white/35 transition-colors duration-150 hover:bg-white/[0.06] hover:text-white/70"
+          className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center text-white/35 transition-colors duration-150 hover:bg-white/[0.06] hover:text-white/70"
           ariaLabel="Hide progress"
           isDisabled={isSaving}
           icon={<HiXMark className="h-4 w-4" />}
@@ -200,7 +200,7 @@ export default function ProgressSidebarCard() {
                 {nextSetupStep ? (
                   <Link
                     href={nextSetupStep.href}
-                    className="inline-flex min-w-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-medium text-white/80 transition-colors hover:bg-white/[0.08]"
+                    className="inline-flex min-w-0 items-center gap-1.5 border border-white/10 bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-medium text-white/80 transition-colors hover:bg-white/[0.08]"
                   >
                     <span className="truncate">Finish setup</span>
                     <HiMiniArrowUpRight className="h-3.5 w-3.5 flex-shrink-0" />

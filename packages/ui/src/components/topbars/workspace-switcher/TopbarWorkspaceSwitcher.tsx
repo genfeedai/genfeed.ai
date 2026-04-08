@@ -207,14 +207,14 @@ export default function TopbarWorkspaceSwitcher() {
             withWrapper={false}
             ariaLabel="Switch organization and brand"
             className={cn(
-              'flex items-center gap-3 rounded-xl px-2.5 py-2 transition-colors',
+              'flex items-center gap-3 px-2.5 py-2 transition-colors',
               'hover:bg-white/[0.06]',
               isOpen && 'bg-white/[0.06]',
               isBusy && 'cursor-not-allowed opacity-60',
             )}
             isDisabled={isBusy}
           >
-            <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-white/[0.08]">
+            <div className="flex h-8 w-8 items-center justify-center overflow-hidden bg-white/[0.08]">
               {logoUrl ? (
                 <Image
                   src={logoUrl}
@@ -381,7 +381,7 @@ export default function TopbarWorkspaceSwitcher() {
                 newOrganizationLabel.trim().length === 0
               }
               onClick={() => void handleCreateOrganization()}
-              className="rounded-lg px-4 py-2 text-sm font-medium"
+              className="px-4 py-2 text-sm font-medium"
             >
               {isCreatingOrganization ? 'Creating\u2026' : 'Create'}
             </Button>
@@ -430,7 +430,7 @@ function WorkspaceSwitcherSection({
               }}
               isDisabled={item.isActive}
               className={cn(
-                'flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-sm transition-colors',
+                'flex w-full items-center gap-2.5 px-2 py-2 text-left text-sm transition-colors',
                 item.isActive
                   ? 'cursor-default bg-white/[0.06] text-white'
                   : 'text-white/70 hover:bg-white/[0.04] hover:text-white',
@@ -486,7 +486,7 @@ function WorkspaceActionButton({
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       onClick={onClick}
-      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-white/60 transition-colors hover:bg-white/[0.06] hover:text-white"
+      className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-white/60 transition-colors hover:bg-white/[0.06] hover:text-white"
     >
       <HiPlus className="h-3.5 w-3.5 flex-shrink-0" />
       <span>{label}</span>

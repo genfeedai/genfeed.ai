@@ -9,7 +9,7 @@ import {
 } from '@helpers/generation-eta.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { ReactFlowProvider } from '@xyflow/react';
 import type { ReactNode } from 'react';
 import '@xyflow/react/dist/style.css';

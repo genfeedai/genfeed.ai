@@ -1,5 +1,5 @@
-import { MoodSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { MoodSerializer } from '@genfeedai/serializers';
 import { ElementMood } from '@models/elements/mood.model';
 import { BaseService } from '@services/core/base.service';
 

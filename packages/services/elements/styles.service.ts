@@ -1,5 +1,5 @@
-import { StyleSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { StyleSerializer } from '@genfeedai/serializers';
 import { ElementStyle } from '@models/elements/style.model';
 import { BaseService } from '@services/core/base.service';
 

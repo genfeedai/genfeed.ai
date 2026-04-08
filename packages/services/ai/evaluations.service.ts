@@ -1,7 +1,7 @@
 import { Evaluation } from '@genfeedai/client/models';
-import { EvaluationSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type { EvaluationType, IngredientCategory } from '@genfeedai/enums';
+import { EvaluationSerializer } from '@genfeedai/serializers';
 import {
   BaseService,
   type JsonApiResponseDocument,

@@ -77,7 +77,7 @@ export default function TopbarInbox() {
               size: ButtonSize.SM,
               variant: ButtonVariant.GHOST,
             }),
-            'inline-flex h-9 min-h-0 items-center gap-2 rounded-full px-3 py-2 text-foreground/70 transition-colors duration-150 hover:bg-background/60 hover:text-foreground/90',
+            'inline-flex h-9 min-h-0 items-center gap-2 px-3 py-2 text-foreground/70 transition-colors duration-150 hover:bg-background/60 hover:text-foreground/90',
           )}
           data-testid="topbar-inbox-trigger"
           type="button"
@@ -211,7 +211,7 @@ export default function TopbarInbox() {
 
         <div className="space-y-2 border-t border-white/[0.08] p-3">
           {activeTaskCount > 0 ? (
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-xs text-foreground/55">
+            <div className="border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-xs text-foreground/55">
               {activeTaskCount} task{activeTaskCount === 1 ? '' : 's'} still
               processing. Track passive execution updates in Activity.
             </div>
@@ -221,14 +221,14 @@ export default function TopbarInbox() {
             <Link
               href="/workspace/inbox/unread"
               onClick={() => setIsOpen(false)}
-              className="inline-flex h-9 items-center justify-center rounded-xl bg-white px-3 py-2 text-sm font-semibold text-black transition-colors duration-150 hover:bg-white/90"
+              className="inline-flex h-9 items-center justify-center bg-white px-3 py-2 text-sm font-semibold text-black transition-colors duration-150 hover:bg-white/90"
             >
               Open Inbox
             </Link>
             <Link
               href="/workspace/activity"
               onClick={() => setIsOpen(false)}
-              className="inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm font-semibold text-foreground transition-colors duration-150 hover:bg-white/[0.06]"
+              className="inline-flex h-9 items-center justify-center gap-2 border border-white/[0.08] bg-white/[0.03] px-3 py-2 text-sm font-semibold text-foreground transition-colors duration-150 hover:bg-white/[0.06]"
             >
               View Activity
               <HiArrowTopRightOnSquare className="h-4 w-4" />

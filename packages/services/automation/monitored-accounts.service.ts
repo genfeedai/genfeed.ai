@@ -1,5 +1,5 @@
-import { MonitoredAccountSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { MonitoredAccountSerializer } from '@genfeedai/serializers';
 import { MonitoredAccount } from '@models/automation/monitored-account.model';
 import {
   BaseService,

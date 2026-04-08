@@ -7,7 +7,7 @@ import {
   type PromptCategory,
 } from '@genfeedai/types';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
   Select,

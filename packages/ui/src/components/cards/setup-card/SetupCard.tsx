@@ -15,7 +15,7 @@ export default function SetupCard() {
   const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
   return (
-    <div className="mx-3 mb-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+    <div className="mx-3 mb-3 border border-white/[0.06] bg-white/[0.03] p-3">
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <span className="text-[11px] font-semibold text-white/60">
@@ -41,7 +41,7 @@ export default function SetupCard() {
             key={step.key}
             href={step.href}
             className={cn(
-              'flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-[12px] transition-colors duration-150',
+              'flex items-center gap-2.5 px-2 py-1.5 text-[12px] transition-colors duration-150',
               step.isCompleted
                 ? 'text-white/30'
                 : 'text-white/60 hover:text-white/80 hover:bg-white/[0.04]',

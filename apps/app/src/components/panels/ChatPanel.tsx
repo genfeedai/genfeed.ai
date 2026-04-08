@@ -2,7 +2,7 @@
 
 import { useChat } from '@ai-sdk/react';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import {
   Select,
   SelectContent,

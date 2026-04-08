@@ -9,7 +9,7 @@ import {
   selectUpdateNodeData,
   useWorkflowStore,
 } from '@genfeedai/workflow-ui/stores';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import type { NodeProps } from '@xyflow/react';
 import { memo, useCallback } from 'react';
 import { NodeBadge } from '@/features/workflows/components/ui/badge';

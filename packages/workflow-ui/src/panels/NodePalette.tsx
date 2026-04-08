@@ -145,7 +145,8 @@ function NodeCard({ type, label, description, icon, category }: NodeCardProps) {
   const colors = CATEGORY_COLORS[category];
 
   return (
-    <div
+    <button
+      type="button"
       draggable
       onDragStart={handleDragStart}
       className={`p-3 bg-[var(--card)] border border-[var(--border)] rounded-lg cursor-grab transition-colors group ${colors.hover}`}
@@ -163,7 +164,7 @@ function NodeCard({ type, label, description, icon, category }: NodeCardProps) {
           </div>
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -185,7 +186,7 @@ function CategorySection({
       <Button
         variant="ghost"
         onClick={onToggle}
-        className="w-full flex items-center gap-2 px-4 py-3 text-left rounded-none h-auto justify-start"
+        className="w-full flex items-center gap-2 px-4 py-3 text-left h-auto justify-start"
       >
         {isExpanded ? (
           <ChevronDown className="w-4 h-4 text-[var(--muted-foreground)]" />

@@ -48,6 +48,12 @@ const TIMELINE_STEPS = [
 const EMPTY_READINESS: InstallReadinessResponse = {
   authMode: 'clerk',
   billingMode: 'oss_local',
+  localTools: {
+    anyDetected: false,
+    claude: false,
+    codex: false,
+    detected: [],
+  },
   providers: {
     anyConfigured: false,
     configured: [],
@@ -131,6 +137,22 @@ export default function ProvidersContent() {
     [readiness.providers],
   );
 
+  const localToolRows = useMemo(
+    () => [
+      {
+        description: 'Recommended for local agent chat and task execution.',
+        enabled: readiness.localTools.codex,
+        key: 'Codex CLI',
+      },
+      {
+        description: 'Recommended for local agent chat and desktop workflows.',
+        enabled: readiness.localTools.claude,
+        key: 'Claude CLI',
+      },
+    ],
+    [readiness.localTools],
+  );
+
   const handleContinue = () => {
     router.push('/onboarding/success');
   };
@@ -157,44 +179,100 @@ export default function ProvidersContent() {
       </h1>
 
       <p className="step-description opacity-0 mb-12 max-w-2xl text-lg text-white/40">
-        Open source installs use environment-based provider detection. We check
-        what is already configured on this instance and send you to the
-        workspace without forcing Stripe or chat onboarding first.
+        Check the local tools and hosted providers available on this install.
+        Claude and Codex help with local agent workflows, while Replicate,
+        fal.ai, and OpenAI power hosted models when you want them.
       </p>
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
-        <div className="space-y-4">
-          {providerRows.map((provider) => (
-            <div
-              key={provider.key}
-              className="provider-card opacity-0 border border-white/[0.08] bg-white/[0.02] p-6"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-lg font-semibold text-white">
-                    {provider.key}
-                  </h2>
-                  <p className="mt-2 text-sm text-white/45">
-                    {provider.description}
-                  </p>
-                </div>
-                <div
-                  className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs ${
-                    provider.enabled
-                      ? 'bg-emerald-500/10 text-emerald-300'
-                      : 'bg-white/[0.06] text-white/45'
-                  }`}
-                >
-                  {provider.enabled ? (
-                    <HiCheckCircle className="h-4 w-4" />
-                  ) : (
-                    <HiKey className="h-4 w-4" />
-                  )}
-                  {provider.enabled ? 'Configured' : 'Missing env key'}
+        <div className="space-y-6">
+          <div className="space-y-4">
+            <div className="provider-card opacity-0 border border-white/[0.08] bg-white/[0.02] p-6">
+              <h2 className="text-lg font-semibold text-white">
+                Local agent tools
+              </h2>
+              <p className="mt-2 text-sm text-white/45">
+                Optional, but recommended for localhost installs that want to
+                use the agent with local CLI tools.
+              </p>
+            </div>
+
+            {localToolRows.map((tool) => (
+              <div
+                key={tool.key}
+                className="provider-card opacity-0 border border-white/[0.08] bg-white/[0.02] p-6"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg font-semibold text-white">
+                      {tool.key}
+                    </h2>
+                    <p className="mt-2 text-sm text-white/45">
+                      {tool.description}
+                    </p>
+                  </div>
+                  <div
+                    className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs ${
+                      tool.enabled
+                        ? 'bg-emerald-500/10 text-emerald-300'
+                        : 'bg-white/[0.06] text-white/45'
+                    }`}
+                  >
+                    {tool.enabled ? (
+                      <HiCheckCircle className="h-4 w-4" />
+                    ) : (
+                      <HiKey className="h-4 w-4" />
+                    )}
+                    {tool.enabled ? 'Detected' : 'Not detected'}
+                  </div>
                 </div>
               </div>
+            ))}
+          </div>
+
+          <div className="space-y-4">
+            <div className="provider-card opacity-0 border border-white/[0.08] bg-white/[0.02] p-6">
+              <h2 className="text-lg font-semibold text-white">
+                Hosted providers
+              </h2>
+              <p className="mt-2 text-sm text-white/45">
+                Connect hosted model providers if you want remote generation and
+                cloud-backed workflows.
+              </p>
             </div>
-          ))}
+
+            {providerRows.map((provider) => (
+              <div
+                key={provider.key}
+                className="provider-card opacity-0 border border-white/[0.08] bg-white/[0.02] p-6"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h2 className="text-lg font-semibold text-white">
+                      {provider.key}
+                    </h2>
+                    <p className="mt-2 text-sm text-white/45">
+                      {provider.description}
+                    </p>
+                  </div>
+                  <div
+                    className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs ${
+                      provider.enabled
+                        ? 'bg-emerald-500/10 text-emerald-300'
+                        : 'bg-white/[0.06] text-white/45'
+                    }`}
+                  >
+                    {provider.enabled ? (
+                      <HiCheckCircle className="h-4 w-4" />
+                    ) : (
+                      <HiKey className="h-4 w-4" />
+                    )}
+                    {provider.enabled ? 'Configured' : 'Missing env key'}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="provider-card opacity-0 space-y-4 border border-white/[0.08] bg-white/[0.02] p-6">
@@ -213,6 +291,16 @@ export default function ProvidersContent() {
               </span>
             </p>
             <p>
+              Local tools:{' '}
+              <span className="text-white">
+                {loading
+                  ? 'checking...'
+                  : readiness.localTools.anyDetected
+                    ? readiness.localTools.detected.join(', ')
+                    : 'none detected'}
+              </span>
+            </p>
+            <p>
               Providers:{' '}
               <span className="text-white">
                 {loading
@@ -225,11 +313,11 @@ export default function ProvidersContent() {
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/45">
-            Add missing keys in{' '}
+            Add missing tools or keys later in{' '}
             <span className="text-white">
               Settings → Organization → API Keys
             </span>{' '}
-            after entering the workspace.
+            or by installing Claude/Codex locally. You can still continue now.
           </div>
 
           {readiness.ui.showCloudUpgradeCta ? (

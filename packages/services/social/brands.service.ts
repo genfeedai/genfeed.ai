@@ -1,4 +1,3 @@
-import { BrandSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type {
   IActivity,
@@ -10,6 +9,7 @@ import type {
   IVideo,
 } from '@genfeedai/interfaces';
 import type { BrandQueryParams } from '@genfeedai/interfaces/utils/query.interface';
+import { BrandSerializer } from '@genfeedai/serializers';
 import {
   deserializeCollection,
   deserializeResource,

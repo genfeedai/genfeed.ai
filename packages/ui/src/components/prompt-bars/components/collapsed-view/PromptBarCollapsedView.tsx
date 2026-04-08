@@ -96,7 +96,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
 
   return (
     <div className="animate-fade-in">
-      <div className="flex items-center gap-1.5 rounded-2xl border border-white/14 bg-[#171717]/58 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_16px_40px_rgba(0,0,0,0.24)] backdrop-blur-xl">
+      <div className="flex items-center gap-1.5 border border-white/14 bg-[#171717]/58 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_16px_40px_rgba(0,0,0,0.24)] backdrop-blur-xl">
         {hasReferences && firstReference && (
           <>
             <Button
@@ -159,7 +159,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
             onChange={handleChange}
             placeholder={placeholder}
             isDisabled={isDisabled}
-            className="h-10 w-full rounded-xl border-0 bg-transparent pl-3 pr-12 text-sm shadow-none focus:border-transparent focus:outline-none focus-visible:ring-0"
+            className="h-10 w-full border-0 bg-transparent pl-3 pr-12 text-sm shadow-none focus:border-transparent focus:outline-none focus-visible:ring-0"
             data-testid="prompt-input"
           />
           <Button

@@ -1,7 +1,7 @@
-import { TagSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import { TagCategory } from '@genfeedai/enums';
 import type { ITag } from '@genfeedai/interfaces';
+import { TagSerializer } from '@genfeedai/serializers';
 import { Tag } from '@models/content/tag.model';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -52,7 +52,7 @@ vi.mock('@services/core/base.service', () => {
 });
 
 // Mock TagSerializer
-vi.mock('@genfeedai/client/serializers', () => ({
+vi.mock('@genfeedai/serializers', () => ({
   TagSerializer: {
     deserialize: vi.fn((data: ITag) => data),
     serialize: vi.fn((data: Partial<ITag>) => ({ data })),

@@ -484,7 +484,8 @@ describe('commands.registry', () => {
       );
     });
 
-    it('billing action should navigate to org-scoped billing URL', () => {
+    it('billing action should navigate to the billing URL when EE is enabled', () => {
+      process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY = 'test-license';
       const settingsCommands = createSettingsCommands(TEST_ORG);
       const billingCmd = settingsCommands.find(
         (c) => c.id === 'settings-billing',
@@ -494,6 +495,20 @@ describe('commands.registry', () => {
 
       expect(window.location.href).toBe(
         `https://app.genfeed.ai/${TEST_ORG}/~/settings/organization/billing`,
+      );
+    });
+
+    it('billing action should navigate to API keys in OSS mode', () => {
+      delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
+      const settingsCommands = createSettingsCommands(TEST_ORG);
+      const billingCmd = settingsCommands.find(
+        (c) => c.id === 'settings-billing',
+      );
+
+      billingCmd?.action();
+
+      expect(window.location.href).toBe(
+        `https://app.genfeed.ai/${TEST_ORG}/~/settings/organization/api-keys`,
       );
     });
   });

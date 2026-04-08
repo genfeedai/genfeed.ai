@@ -3,14 +3,14 @@ import {
   type ISerializerConfig,
   type ISerializerRelationship,
 } from '@genfeedai/helpers';
-import type { Serializer as JsonApiSerializer } from 'ts-jsonapi';
+import type { ISerializer } from '../interfaces';
 
 type SerializerBuilderConfig = ISerializerConfig & {
   relationships?: Record<string, ISerializerRelationship>;
   [key: string]: unknown;
 };
 
-export type BuiltSerializer = JsonApiSerializer;
+export type BuiltSerializer = ISerializer;
 export type BuiltSerializerMap = Record<string, BuiltSerializer>;
 
 /**

@@ -20,6 +20,7 @@ import { useEffect, useState } from 'react';
 export default function SubscriptionGuard({
   children,
 }: SubscriptionGuardProps) {
+  const isBillingEnabled = Boolean(process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY);
   const { user, isLoaded } = useUser();
   const router = useRouter();
   const [checked, setChecked] = useState(false);
@@ -37,18 +38,23 @@ export default function SubscriptionGuard({
       return;
     }
 
+    if (!isBillingEnabled) {
+      setChecked(true);
+      return;
+    }
+
     const status = publicData.stripeSubscriptionStatus;
     const isActive =
       status === SubscriptionStatus.ACTIVE ||
       status === SubscriptionStatus.TRIALING;
 
     if (!isActive) {
-      router.replace('/onboarding/plan');
+      router.replace('/onboarding/providers');
       return;
     }
 
     setChecked(true);
-  }, [isLoaded, user, router]);
+  }, [isBillingEnabled, isLoaded, user, router]);
 
   // Show nothing while checking (prevents flash of protected content)
   if (!isLoaded || !checked) {

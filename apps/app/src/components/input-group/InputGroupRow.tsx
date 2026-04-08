@@ -2,7 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import type { ActionConfig, ActionUIPattern } from '@genfeedai/types';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { clsx } from 'clsx';
 import { Copy, GripVertical, Trash2 } from 'lucide-react';
 import { memo, type ReactNode } from 'react';

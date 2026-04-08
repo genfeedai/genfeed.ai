@@ -3,7 +3,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import type { WorkflowFile } from '@genfeedai/types';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import {
   Bot,

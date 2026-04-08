@@ -2,7 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { ProviderModel } from '@genfeedai/types';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -350,12 +350,15 @@ export default function StudioPage() {
           <div className="flex flex-wrap items-center gap-3">
             <Button
               variant={ButtonVariant.DEFAULT}
-              isDisabled={!prompt.trim() || !model || isSubmitting}
-              isLoading={isSubmitting}
+              disabled={!prompt.trim() || !model || isSubmitting}
               onClick={handleGenerate}
               className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold"
-              icon={<Sparkles className="h-4 w-4" />}
             >
+              {isSubmitting ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="h-4 w-4" />
+              )}
               Generate
             </Button>
             <Link

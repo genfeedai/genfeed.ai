@@ -2,7 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import type { AnnotationTool } from '@genfeedai/workflow-ui/stores';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { clsx } from 'clsx';
 import { Redo, Trash2, Undo } from 'lucide-react';
 import { TOOLS } from './drawing/constants';

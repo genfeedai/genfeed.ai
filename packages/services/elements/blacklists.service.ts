@@ -1,5 +1,5 @@
-import { BlacklistSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { BlacklistSerializer } from '@genfeedai/serializers';
 import { ElementBlacklist } from '@models/elements/blacklist.model';
 import { BaseService } from '@services/core/base.service';
 

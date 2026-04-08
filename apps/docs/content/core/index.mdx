@@ -30,7 +30,8 @@ git clone https://github.com/genfeedai/core.git
 cd core
 bun install
 cp .env.example .env.local
-# Add your API keys to .env.local
+bun run env:sync local
+# Add your API keys to the root .env.local
 bun dev
 ```
 

@@ -1,11 +1,11 @@
 import { Evaluation } from '@genfeedai/client/models';
-import type { EvaluationSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import { EvaluationType, IngredientCategory } from '@genfeedai/enums';
+import type { EvaluationSerializer } from '@genfeedai/serializers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock client serializers to prevent serializer build errors
-vi.mock('@genfeedai/client/serializers', () => ({
+vi.mock('@genfeedai/serializers', () => ({
   EvaluationSerializer: {},
 }));
 

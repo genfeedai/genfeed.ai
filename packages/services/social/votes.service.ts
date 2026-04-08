@@ -1,5 +1,5 @@
-import { VoteSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { VoteSerializer } from '@genfeedai/serializers';
 import { Vote } from '@models/analytics/vote.model';
 import { BaseService } from '@services/core/base.service';
 

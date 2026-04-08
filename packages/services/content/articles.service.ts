@@ -1,7 +1,7 @@
-import { ArticleSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type { ArticleCategory } from '@genfeedai/enums';
 import { PublishStatus } from '@genfeedai/enums';
+import { ArticleSerializer } from '@genfeedai/serializers';
 import { Article } from '@models/content/article.model';
 import {
   BaseService,

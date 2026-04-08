@@ -1,5 +1,5 @@
-import { ReplyBotConfigSerializer } from '@genfeedai/client/serializers';
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { ReplyBotConfigSerializer } from '@genfeedai/serializers';
 import { ReplyBotConfig } from '@models/automation/reply-bot-config.model';
 import {
   BaseService,

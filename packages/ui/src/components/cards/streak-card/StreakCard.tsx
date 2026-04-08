@@ -48,7 +48,7 @@ export default function StreakCard() {
   );
 
   return (
-    <div className="relative mx-3 mb-3 rounded-xl border border-orange-500/15 bg-orange-500/[0.06] p-3">
+    <div className="relative mx-3 mb-3 border border-orange-500/15 bg-orange-500/[0.06] p-3">
       <StreakCelebrationBurst isVisible={isCelebrating} />
       <div className="mb-2 flex items-center justify-between">
         <div>
@@ -94,7 +94,7 @@ export default function StreakCard() {
 
       <Link
         href={orgHref('/settings/personal')}
-        className="flex items-center justify-between rounded-lg border border-white/8 bg-white/[0.04] px-2.5 py-2 text-[12px] text-white/80 transition-colors duration-150 hover:bg-white/[0.06]"
+        className="flex items-center justify-between border border-white/8 bg-white/[0.04] px-2.5 py-2 text-[12px] text-white/80 transition-colors duration-150 hover:bg-white/[0.06]"
       >
         <span>
           {currentStreak > 0 ? 'Open streak view' : 'Start your streak today'}

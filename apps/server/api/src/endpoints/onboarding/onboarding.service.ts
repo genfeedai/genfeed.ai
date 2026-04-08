@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -52,6 +53,12 @@ export interface BrandSetupResponse {
 export interface InstallReadinessResponse {
   authMode: 'clerk' | 'none';
   billingMode: 'cloud_billing' | 'oss_local';
+  localTools: {
+    anyDetected: boolean;
+    claude: boolean;
+    codex: boolean;
+    detected: string[];
+  };
   providers: {
     anyConfigured: boolean;
     configured: string[];
@@ -128,6 +135,35 @@ export class OnboardingService {
       openai,
       replicate,
       textGenerationReady: openai,
+    };
+  }
+
+  private isCommandAvailable(command: string): boolean {
+    const result = spawnSync(command, ['--version'], {
+      encoding: 'utf8',
+      shell: false,
+      stdio: 'ignore',
+    });
+
+    if (result.error) {
+      return false;
+    }
+
+    return result.status === 0;
+  }
+
+  private getLocalToolReadiness() {
+    const claude = this.isCommandAvailable('claude');
+    const codex = this.isCommandAvailable('codex');
+    const detected = [claude ? 'claude' : null, codex ? 'codex' : null].filter(
+      (value): value is string => value !== null,
+    );
+
+    return {
+      anyDetected: detected.length > 0,
+      claude,
+      codex,
+      detected,
     };
   }
 
@@ -562,6 +598,7 @@ export class OnboardingService {
     return {
       authMode: user.id ? 'clerk' : 'none',
       billingMode: showBillingUi ? 'cloud_billing' : 'oss_local',
+      localTools: this.getLocalToolReadiness(),
       providers,
       ui: {
         showBilling: showBillingUi,

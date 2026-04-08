@@ -55,7 +55,7 @@ function PayloadCard({ payload }: PayloadCardProps) {
       <Button
         variant="ghost"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center gap-2 p-3 text-left hover:bg-[var(--muted)]/50 h-auto rounded-none"
+        className="w-full flex items-center gap-2 p-3 text-left hover:bg-[var(--muted)]/50 h-auto"
       >
         {isExpanded ? (
           <ChevronDown className="w-4 h-4 text-[var(--muted-foreground)] shrink-0" />
@@ -153,9 +153,9 @@ function DebugPanelComponent() {
             </p>
           </div>
         ) : (
-          debugPayloads.map((payload, index) => (
+          debugPayloads.map((payload) => (
             <PayloadCard
-              key={`${payload.nodeId}-${payload.timestamp}-${index}`}
+              key={`${payload.nodeId}-${payload.timestamp}-${payload.nodeType}`}
               payload={payload}
             />
           ))

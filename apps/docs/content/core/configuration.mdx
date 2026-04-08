@@ -2,14 +2,19 @@ import { Callout } from 'nextra/components'
 
 # Configuration
 
-Environment variables and settings for Genfeed Core. Create a `.env.local` file in your project root:
+Environment variables and settings for Genfeed Core. Create a canonical root `.env.local` file in your project root:
 
 ```bash
 cp .env.example .env.local
+bun run env:sync local
 ```
 
 <Callout type="warning">
 **Never commit secrets.** Add `.env.local` to your `.gitignore`. Never commit API keys, tokens, or credentials to version control.
+</Callout>
+
+<Callout type="info">
+The root env files are the source of truth. `bun run env:sync local|staging|production` generates the app and service `.env*` files used by local frontend and backend runtimes.
 </Callout>
 
 ---
