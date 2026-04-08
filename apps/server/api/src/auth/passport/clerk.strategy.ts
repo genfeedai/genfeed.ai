@@ -2,7 +2,7 @@ import { AuthIdentityResolverService } from '@api/auth/services/auth-identity-re
 import { ConfigService } from '@api/config/config.service';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { type User, verifyToken } from '@clerk/backend';
-import { IS_SELF_HOSTED } from '@genfeedai/config';
+import { IS_LOCAL_MODE } from '@genfeedai/config';
 import {
   buildClerkHotPathUser,
   hasClerkHotPathClaims,
@@ -48,7 +48,7 @@ export class ClerkStrategy extends PassportStrategy(Strategy, 'clerk') {
   }
 
   async validate(req: Request): Promise<User | null> {
-    if (IS_SELF_HOSTED) return null;
+    if (IS_LOCAL_MODE) return null;
 
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const token = req.headers.authorization?.split(' ').pop();

@@ -1,11 +1,13 @@
+import { REQUIRES_CLOUD_AUTH_KEY } from '@api/helpers/decorators/requires-cloud-auth.decorator';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
-import { IS_SELF_HOSTED } from '@genfeedai/config';
+import { IS_HYBRID_MODE, IS_LOCAL_MODE } from '@genfeedai/config';
 import { IS_PUBLIC_KEY } from '@libs/decorators/public.decorator';
 import {
   type CanActivate,
   type ExecutionContext,
   Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
@@ -16,9 +18,12 @@ import { Observable } from 'rxjs';
  *
  * Order of checks:
  *  1. @Public() routes → allow immediately
- *  2. Self-hosted edition → allow immediately (skip all auth)
- *  3. Bearer token starting with `gf_` → delegate to ApiKeyAuthGuard
- *  4. Everything else → delegate to ClerkGuard (Clerk JWT)
+ *  2. LOCAL mode → allow (no auth, LocalIdentityInterceptor provides req.user)
+ *  3. HYBRID mode → opportunistic auth:
+ *     - Has token? → validate (Clerk or API key)
+ *     - No token? → allow (LocalIdentityInterceptor provides req.user)
+ *     - @RequiresCloudAuth() routes → require valid token
+ *  4. CLOUD mode → require auth (Clerk or API key)
  */
 @Injectable()
 export class CombinedAuthGuard implements CanActivate {
@@ -28,9 +33,6 @@ export class CombinedAuthGuard implements CanActivate {
     private apiKeyAuthGuard: ApiKeyAuthGuard,
   ) {}
 
-  /**
-   * Check whether the current route is decorated with @Public()
-   */
   private isPublicRoute(context: ExecutionContext): boolean {
     return (
       this.reflector?.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
@@ -40,9 +42,15 @@ export class CombinedAuthGuard implements CanActivate {
     );
   }
 
-  /**
-   * Convert guard result to boolean
-   */
+  private requiresCloudAuth(context: ExecutionContext): boolean {
+    return (
+      this.reflector?.getAllAndOverride<boolean>(REQUIRES_CLOUD_AUTH_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) ?? false
+    );
+  }
+
   private async resolveGuardResult(
     result: boolean | Observable<boolean>,
   ): Promise<boolean> {
@@ -59,8 +67,13 @@ export class CombinedAuthGuard implements CanActivate {
       return true;
     }
 
-    // 2. Self-hosted edition bypasses all auth
-    if (IS_SELF_HOSTED) {
+    // 2. LOCAL mode: skip all auth (LocalIdentityInterceptor injects req.user)
+    if (IS_LOCAL_MODE) {
+      if (this.requiresCloudAuth(context)) {
+        throw new UnauthorizedException(
+          'This endpoint requires a cloud connection',
+        );
+      }
       return true;
     }
 
@@ -68,12 +81,34 @@ export class CombinedAuthGuard implements CanActivate {
     const authHeader = request.headers.authorization;
     const token = authHeader?.split(' ')[1];
 
-    // 3. API key authentication (token starts with gf_)
+    // 3. HYBRID mode: opportunistic auth
+    if (IS_HYBRID_MODE) {
+      // @RequiresCloudAuth() routes must have a valid token
+      if (this.requiresCloudAuth(context) && !token) {
+        throw new UnauthorizedException(
+          'This endpoint requires a cloud connection',
+        );
+      }
+
+      // No token? Allow through — LocalIdentityInterceptor will inject local user
+      if (!token) {
+        return true;
+      }
+
+      // Has token — validate it
+      if (token.startsWith('gf_')) {
+        return this.apiKeyAuthGuard.canActivate(context);
+      }
+
+      const result = await this.clerkGuard.canActivate(context);
+      return this.resolveGuardResult(result);
+    }
+
+    // 4. CLOUD mode: require auth
     if (token?.startsWith('gf_')) {
       return this.apiKeyAuthGuard.canActivate(context);
     }
 
-    // 4. Clerk JWT authentication (or no auth header - let Clerk handle the error)
     const result = await this.clerkGuard.canActivate(context);
     return this.resolveGuardResult(result);
   }

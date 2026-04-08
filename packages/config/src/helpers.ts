@@ -32,7 +32,14 @@ export function conditionalRequiredNumber(
 
 /**
  * Joi schema for env vars that are required only in self-hosted mode.
+ * Use in Joi validation schemas only — for boolean checks, use IS_SELF_HOSTED.
  */
-export const IS_SELF_HOSTED: Joi.StringSchema = IS_SELF_HOSTED_FLAG
+export const SELF_HOSTED_REQUIRED: Joi.StringSchema = IS_SELF_HOSTED_FLAG
   ? Joi.string().required()
   : Joi.string().optional().allow('');
+
+/**
+ * Boolean: true when running in self-hosted mode (LOCAL or HYBRID).
+ * Use this in guards, middleware, and runtime checks.
+ */
+export const IS_SELF_HOSTED: boolean = IS_SELF_HOSTED_FLAG;
