@@ -1,4 +1,4 @@
-import { IS_SELF_HOSTED } from '@genfeedai/config';
+import { IS_LOCAL_MODE } from '@genfeedai/config';
 import { IS_PUBLIC_KEY } from '@libs/decorators/public.decorator';
 import {
   type ExecutionContext,
@@ -24,9 +24,10 @@ export class ClerkGuard extends AuthGuard('clerk') {
   }
 
   canActivate(context: ExecutionContext) {
-    if (IS_SELF_HOSTED || this.isPublicRoute(context)) {
+    if (IS_LOCAL_MODE || this.isPublicRoute(context)) {
       return true;
     }
+    // HYBRID + CLOUD: validate Clerk JWT
     return super.canActivate(context);
   }
 

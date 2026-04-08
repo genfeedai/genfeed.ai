@@ -2,7 +2,7 @@ import { ConfigService } from '@api/config/config.service';
 import { ClerkWebhookService } from '@api/endpoints/webhooks/clerk/webhooks.clerk.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { WebhookEvent } from '@clerk/express/webhooks';
-import { IS_SELF_HOSTED } from '@genfeedai/config';
+import { IS_LOCAL_MODE } from '@genfeedai/config';
 import { Public } from '@libs/decorators/public.decorator';
 import { ClerkWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -36,7 +36,7 @@ export class ClerkWebhookController {
     @Req() request: Request,
     @Body() payload: ClerkWebhookPayload,
   ) {
-    if (IS_SELF_HOSTED) throw new NotFoundException();
+    if (IS_LOCAL_MODE) throw new NotFoundException();
 
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 

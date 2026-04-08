@@ -24,3 +24,19 @@ export function isSelfHosted(): boolean {
 export function isCloudConnected(): boolean {
   return !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
 }
+
+/** True when local app with optional Clerk cloud connection configured */
+export function isHybridMode(): boolean {
+  return (
+    !process.env.NEXT_PUBLIC_GENFEED_CLOUD &&
+    !!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+  );
+}
+
+/** True when fully offline — no cloud, no Clerk */
+export function isLocalOnly(): boolean {
+  return (
+    !process.env.NEXT_PUBLIC_GENFEED_CLOUD &&
+    !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+  );
+}
