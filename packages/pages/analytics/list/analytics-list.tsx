@@ -34,7 +34,7 @@ import {
   HiVideoCamera,
 } from 'react-icons/hi2';
 
-export default function AnalyticsList({}: ContentProps) {
+export default function AnalyticsList(_props: ContentProps) {
   const { isSignedIn } = useAuth();
   const { brandId, organizationId } = useBrand();
   const { openExport } = useExportModal();

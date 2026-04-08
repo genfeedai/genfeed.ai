@@ -90,7 +90,10 @@ function ExecutionItem({
 
   return (
     <div className=" border border-white/[0.08] bg-card">
-      <div
+      <Button
+        type="button"
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
         className="flex cursor-pointer items-center gap-3 p-3"
         onClick={() => setIsExpanded(!isExpanded)}
       >
@@ -133,7 +136,7 @@ function ExecutionItem({
         ) : (
           <HiOutlineChevronDown className="h-4 w-4" />
         )}
-      </div>
+      </Button>
 
       {isExpanded && (
         <div className="border-t border-white/[0.08] p-3">
@@ -239,7 +242,10 @@ export default function ExecutionHistoryPanel({
 
   return (
     <div className="border-b border-white/[0.08]">
-      <div
+      <Button
+        type="button"
+        variant={ButtonVariant.UNSTYLED}
+        withWrapper={false}
         className="flex cursor-pointer items-center justify-between px-4 py-3"
         onClick={onToggleCollapse}
       >
@@ -257,7 +263,7 @@ export default function ExecutionHistoryPanel({
             <HiOutlineChevronUp className="h-4 w-4" />
           )}
         </div>
-      </div>
+      </Button>
 
       {!isCollapsed && (
         <div className="max-h-80 overflow-y-auto p-4 pt-0 space-y-2">

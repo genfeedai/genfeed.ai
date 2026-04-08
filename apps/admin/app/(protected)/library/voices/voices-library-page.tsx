@@ -30,6 +30,15 @@ import {
   HiStar,
 } from 'react-icons/hi2';
 
+const VOICE_SKELETON_KEYS = [
+  'voice-skeleton-1',
+  'voice-skeleton-2',
+  'voice-skeleton-3',
+  'voice-skeleton-4',
+  'voice-skeleton-5',
+  'voice-skeleton-6',
+] as const;
+
 type ProviderFilter = 'all' | VoiceProvider.ELEVENLABS | VoiceProvider.HEYGEN;
 
 const PROVIDER_FILTERS: Array<{ label: string; value: ProviderFilter }> = [
@@ -243,11 +252,8 @@ export default function VoicesLibraryPage() {
       >
         <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
           {isLoading
-            ? Array.from({ length: 6 }).map((_, index) => (
-                <Card
-                  key={`voice-skeleton-${index}`}
-                  className="min-h-[260px]"
-                />
+            ? VOICE_SKELETON_KEYS.map((key) => (
+                <Card key={key} className="min-h-[260px]" />
               ))
             : voices.map((voice) => {
                 const activeKey = `${voice.id}:isActive`;
