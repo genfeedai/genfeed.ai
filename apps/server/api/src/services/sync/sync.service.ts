@@ -16,6 +16,7 @@ import { firstValueFrom } from 'rxjs';
 
 import type {
   CloudSyncMetadata,
+  PullWorkflowResponse,
   PushWorkflowResponse,
   SyncStatusResponse,
 } from './sync.interfaces';
@@ -131,16 +132,88 @@ export class SyncService {
     };
   }
 
-  // TODO: Pulling requires GET /workflows/:id/export on the cloud API
-  // which may need additional work before this can be fully implemented.
   async pullWorkflow(
-    _user: User,
-    _remoteWorkflowId: string,
-    _clerkToken: string,
-  ): Promise<{ localId: string }> {
-    throw new HttpException(
-      'Pull workflow is not yet implemented',
-      HttpStatus.NOT_IMPLEMENTED,
+    user: User,
+    remoteWorkflowId: string,
+    clerkToken: string,
+  ): Promise<PullWorkflowResponse> {
+    const { organization, user: userId } = getPublicMetadata(user);
+    const apiUrl = this.configService.get('GENFEEDAI_API_URL');
+
+    // 1. Fetch workflow from cloud API
+    let remoteWorkflow: Record<string, unknown>;
+    try {
+      const { data } = await firstValueFrom(
+        this.httpService.get<Record<string, unknown>>(
+          `${apiUrl}/v1/workflows/${remoteWorkflowId}`,
+          {
+            headers: { Authorization: `Bearer ${clerkToken}` },
+          },
+        ),
+      );
+      remoteWorkflow = data;
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error('Failed to fetch workflow from cloud', {
+        error: message,
+        remoteWorkflowId,
+      });
+      throw new HttpException(
+        `Failed to pull workflow from cloud: ${message}`,
+        HttpStatus.BAD_GATEWAY,
+      );
+    }
+
+    // 2. Convert to cloud format and create locally
+    const workflowData = remoteWorkflow as {
+      nodes?: unknown[];
+      edges?: unknown[];
+      name?: string;
+      description?: string;
+    };
+
+    const cloudFormat = this.formatConverterService.ensureCloudFormat({
+      edges: (workflowData.edges ?? []) as Record<string, unknown>[],
+      name: workflowData.name ?? 'Pulled Workflow',
+      nodes: (workflowData.nodes ?? []) as Record<string, unknown>[],
+    });
+
+    const created = await this.workflowsService.createWorkflow(
+      userId,
+      organization,
+      {
+        description: workflowData.description,
+        edges: cloudFormat.workflow.edges,
+        label: cloudFormat.workflow.name,
+        nodes: cloudFormat.workflow.nodes,
+      },
     );
+
+    // 3. Store cloudSync metadata
+    const cloudSync: CloudSyncMetadata = {
+      lastSyncedAt: new Date(),
+      remoteAccountId: user.id,
+      remoteId: remoteWorkflowId,
+      remoteOrgId: organization,
+      syncDirection: 'pull',
+    };
+
+    const localId = String(
+      created._id ?? (created as Record<string, unknown>).id,
+    );
+    await this.workflowsService.patch(localId, {
+      $set: { cloudSync },
+    });
+
+    this.logger.log('Workflow pulled from cloud successfully', {
+      localId,
+      remoteWorkflowId,
+    });
+
+    return {
+      cloudSync,
+      localId,
+      remoteId: remoteWorkflowId,
+    };
   }
 }

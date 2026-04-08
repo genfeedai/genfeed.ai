@@ -24,6 +24,14 @@ export GENFEEDAI_MICROSERVICES_WORKERS_URL=${GENFEEDAI_MICROSERVICES_WORKERS_URL
 export GENFEEDAI_APP_URL=${GENFEEDAI_APP_URL:-http://localhost:3102}
 export GENFEEDAI_PUBLIC_URL=${GENFEEDAI_PUBLIC_URL:-http://localhost:3102}
 
+# Optional: Enable HYBRID mode (local app + optional Clerk cloud connection)
+# Set these to allow users to sign in with Clerk and sync to cloud:
+#   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_live_...
+#   CLERK_SECRET_KEY=sk_live_...
+# When set, the app runs in HYBRID mode: works offline by default,
+# but users can click "Connect to Cloud" to sign in and sync workflows.
+# When unset, the app runs in LOCAL mode (fully offline, no account needed).
+
 # Start infrastructure
 mongod --dbpath /data/db --wiredTigerCacheSizeGB 0.5 --fork --logpath /data/mongod.log
 redis-server --dir /data/redis --appendonly yes --daemonize yes
