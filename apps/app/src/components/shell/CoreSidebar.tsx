@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import ModeIndicator from '@/components/mode-indicator/ModeIndicator';
 import { cn } from '@/lib/utils';
 
 export const SIDEBAR_WIDTH = 240;
@@ -203,6 +204,9 @@ export default function CoreSidebar({
 
           {/* Bottom items */}
           <div className="border-t border-white/[0.08] px-3 py-2">
+            <div className="mb-1.5">
+              <ModeIndicator collapsed={isCollapsed} />
+            </div>
             <ul className="flex flex-col gap-0.5">
               {BOTTOM_ITEMS.map((item) => (
                 <li key={item.href}>
