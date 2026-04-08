@@ -12,7 +12,7 @@ That's it. Dependencies install automatically and the app starts on `http://loca
 
 ## What it does
 
-1. Downloads the latest `genfeedai/core` template
+1. Downloads the latest `genfeedai/genfeed.ai` template
 2. Copies `.env.example` to `.env`
 3. Installs dependencies (`bun install` if available, otherwise `npm install`)
 4. Starts the dev server — opens to `/onboarding` on first run
