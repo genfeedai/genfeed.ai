@@ -81,19 +81,19 @@
   "types": "./dist/index.d.ts",
   "version": "2.0.1",
   "dependencies": {
-    "@tiptap/extension-blockquote": "^3.22.2",
-    "@tiptap/extension-bold": "^3.22.2",
-    "@tiptap/extension-code": "^3.22.2",
-    "@tiptap/extension-code-block": "^3.22.2",
-    "@tiptap/extension-heading": "^3.22.2",
-    "@tiptap/extension-image": "^3.22.2",
-    "@tiptap/extension-italic": "^3.22.2",
-    "@tiptap/extension-link": "^3.22.2",
-    "@tiptap/extension-list": "^3.22.2",
-    "@tiptap/extension-paragraph": "^3.22.2",
-    "@tiptap/extension-placeholder": "^3.22.2",
-    "@tiptap/extension-strike": "^3.22.2",
-    "@tiptap/react": "^3.22.2",
-    "@tiptap/starter-kit": "^3.22.2"
+    "@tiptap/extension-blockquote": "^3.22.3",
+    "@tiptap/extension-bold": "^3.22.3",
+    "@tiptap/extension-code": "^3.22.3",
+    "@tiptap/extension-code-block": "^3.22.3",
+    "@tiptap/extension-heading": "^3.22.3",
+    "@tiptap/extension-image": "^3.22.3",
+    "@tiptap/extension-italic": "^3.22.3",
+    "@tiptap/extension-link": "^3.22.3",
+    "@tiptap/extension-list": "^3.22.3",
+    "@tiptap/extension-paragraph": "^3.22.3",
+    "@tiptap/extension-placeholder": "^3.22.3",
+    "@tiptap/extension-strike": "^3.22.3",
+    "@tiptap/react": "^3.22.3",
+    "@tiptap/starter-kit": "^3.22.3"
   }
 }
