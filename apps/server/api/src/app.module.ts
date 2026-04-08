@@ -101,6 +101,7 @@ import { WatchlistsModule } from '@api/collections/watchlists/watchlists.module'
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
 import { WorkspaceTasksModule } from '@api/collections/workspace-tasks/workspace-tasks.module';
+import { LocalIdentityInterceptor } from '@api/common/interceptors/local-identity.interceptor';
 import { OrgPrefixMiddleware } from '@api/common/middleware/org-prefix.middleware';
 import { RequestContextMiddleware } from '@api/common/middleware/request-context.middleware';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
@@ -173,6 +174,7 @@ import { NotificationsPublisherModule } from '@api/services/notifications/publis
 import { PreflightModule } from '@api/services/preflight/preflight.module';
 import { RouterModule as ModelRouterModule } from '@api/services/router/router.module';
 import { SkillExecutorModule } from '@api/services/skill-executor/skill-executor.module';
+import { SyncModule } from '@api/services/sync/sync.module';
 import { TelegramBotModule } from '@api/services/telegram-bot/telegram-bot.module';
 import { TwitterPipelineModule } from '@api/services/twitter-pipeline/twitter-pipeline.module';
 import { VideoCompletionModule } from '@api/services/video-completion/video-completion.module';
@@ -188,7 +190,7 @@ import { HealthModule } from '@libs/health/health.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { RedisModule } from '@libs/redis/redis.module';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { MongooseModule } from '@nestjs/mongoose';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ServeStaticModule } from '@nestjs/serve-static';
@@ -550,6 +552,9 @@ import { SentryModule } from '@sentry/nestjs/setup';
     // CI Triage webhook (Opus 4.6 diagnosis from localhost)
     CiTriageWebhookModule,
 
+    // Sync (push/pull workflows between local and cloud in HYBRID mode)
+    SyncModule,
+
     // Self-hosted seed (creates default workspace on first boot)
     SelfHostedSeedModule,
 
@@ -571,6 +576,10 @@ import { SentryModule } from '@sentry/nestjs/setup';
     {
       provide: APP_GUARD,
       useClass: CombinedAuthGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LocalIdentityInterceptor,
     },
   ],
 })

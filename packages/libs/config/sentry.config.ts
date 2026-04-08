@@ -7,6 +7,10 @@ interface SentryConfigOptions {
 export function getSentryConfig(
   options: SentryConfigOptions,
 ): NodeOptions | null {
+  if (process.env.SENTRY_ENABLED === 'false') {
+    return null;
+  }
+
   const dsn =
     process.env[
       `SENTRY_DSN_${options.serviceName.toUpperCase().replace(/-/g, '_')}`

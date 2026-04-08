@@ -283,6 +283,24 @@ export class Workflow {
   @Prop({ default: false, type: Boolean })
   isTemplate!: boolean;
 
+  @Prop({
+    type: {
+      lastSyncedAt: { type: Date, required: true },
+      remoteAccountId: { type: String, required: true },
+      remoteId: { type: String, required: true },
+      remoteOrgId: { type: String, required: true },
+      syncDirection: { type: String, enum: ['push', 'pull'], required: true },
+    },
+    default: null,
+  })
+  cloudSync: {
+    lastSyncedAt: Date;
+    remoteAccountId: string;
+    remoteId: string;
+    remoteOrgId: string;
+    syncDirection: 'push' | 'pull';
+  } | null;
+
   @Prop({ default: false, type: Boolean })
   isDeleted!: boolean;
 

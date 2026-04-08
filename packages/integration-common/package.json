@@ -9,7 +9,7 @@
   "description": "Shared types and utilities for platform integrations",
   "devDependencies": {
     "@types/node": "25.5.2",
-    "typescript": "5.9.3"
+    "typescript": "6.0.2"
   },
   "exports": {
     ".": {

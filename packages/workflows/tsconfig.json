@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "declaration": true,
     "declarationMap": true,
     "esModuleInterop": true,
@@ -13,7 +14,8 @@
     "rootDir": "./src",
     "skipLibCheck": true,
     "strict": true,
-    "target": "ES2022"
+    "target": "ES2022",
+    "types": ["node"]
   },
   "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"],
   "include": ["src/**/*"]

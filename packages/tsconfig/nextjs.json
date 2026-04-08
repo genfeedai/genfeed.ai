@@ -4,7 +4,8 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "types": []
   },
   "exclude": ["**/*.stories.ts", "**/*.stories.tsx"],
   "extends": "./base.json",

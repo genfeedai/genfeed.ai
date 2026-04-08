@@ -9,8 +9,11 @@ import {
 bootstrap({ app: 'files' });
 
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { AppModule } from '@files/app.module';
 import { ConfigService } from '@files/config/config.service';
+import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -51,6 +54,27 @@ async function main() {
 
     app.use(express.urlencoded({ extended: false, limit: '100mb' }));
     app.use(express.json({ limit: '100mb' }));
+
+    // Serve local files in self-hosted mode (LOCAL + HYBRID)
+    if (IS_SELF_HOSTED) {
+      const localStorageDir =
+        process.env.GENFEED_STORAGE_PATH ??
+        path.join(os.homedir(), '.genfeed', 'data', 'files');
+
+      if (!fs.existsSync(localStorageDir)) {
+        fs.mkdirSync(localStorageDir, { recursive: true });
+      }
+
+      app.use(
+        '/local',
+        express.static(localStorageDir, {
+          immutable: true,
+          maxAge: '1d',
+        }),
+      );
+
+      logger.debug(`Serving local files from ${localStorageDir}`);
+    }
 
     await app.listen(port);
 

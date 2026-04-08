@@ -1,12 +1,12 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "declaration": true,
     "declarationMap": true,
     "esModuleInterop": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "./dist",
+    "rootDir": "..",
     "paths": {
       "@genfeedai/interfaces": ["../interfaces/src/index.ts"],
       "@genfeedai/interfaces/*": ["../interfaces/src/*"],

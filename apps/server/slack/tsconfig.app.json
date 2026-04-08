@@ -3,8 +3,6 @@
     "rootDir": "../../..",
     "declaration": false,
     "declarationMap": false,
-    "ignoreDeprecations": "6.0",
-    "baseUrl": ".",
     "outDir": "../dist/apps/slack",
     "paths": {
       "@libs/*": ["../../../packages/libs/*"],

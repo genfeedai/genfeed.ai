@@ -8,6 +8,7 @@ import { logger } from '@services/core/logger.service';
 import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
+import { Cloud, CloudUpload } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -25,6 +26,7 @@ import {
   type WorkflowSummary,
 } from '@/features/workflows/services/workflow-api';
 import { getLifecycleBadgeClass } from '@/features/workflows/utils/status-helpers';
+import { useCloudSession } from '@/hooks/useCloudSession';
 
 const SEARCH_DEBOUNCE_MS = 300;
 
@@ -231,6 +233,7 @@ function EmptyWorkflowState() {
 export default function WorkflowLibraryPage() {
   const { href } = useOrgUrl();
   const router = useRouter();
+  const { isConnected, isCapable } = useCloudSession();
   const [workflows, setWorkflows] = useState<WorkflowSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -478,6 +481,17 @@ export default function WorkflowLibraryPage() {
                 }
                 headerAction={
                   <div className="flex items-center gap-2">
+                    {isCapable && isConnected && workflow.cloudSync ? (
+                      <span className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs text-emerald-400">
+                        <Cloud className="h-3 w-3" />
+                        synced
+                      </span>
+                    ) : isCapable && isConnected && !workflow.cloudSync ? (
+                      <span className="flex items-center gap-1 rounded-full bg-white/[0.06] px-2 py-0.5 text-xs text-muted-foreground">
+                        <CloudUpload className="h-3 w-3" />
+                        local
+                      </span>
+                    ) : null}
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs ${getLifecycleBadgeClass(
                         workflow.lifecycle,

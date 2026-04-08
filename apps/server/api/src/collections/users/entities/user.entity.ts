@@ -4,7 +4,7 @@ import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { AppSource } from '@genfeedai/enums';
 
 export class UserEntity extends BaseEntity implements User {
-  declare readonly clerkId: string;
+  declare readonly clerkId?: string;
   declare readonly handle: string;
   declare readonly firstName?: string;
   declare readonly lastName?: string;

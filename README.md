@@ -5,6 +5,7 @@
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/genfeedai/genfeed.ai?style=social)](https://github.com/genfeedai/genfeed.ai)
 [![Discord](https://img.shields.io/discord/placeholder?label=Discord&logo=discord&color=5865F2)](https://discord.gg/genfeedai)
+[![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/genfeedai/genfeed.ai?utm_source=oss&utm_medium=github&utm_campaign=genfeedai%2Fgenfeed.ai&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)](https://coderabbit.ai)
 
 ---
 
