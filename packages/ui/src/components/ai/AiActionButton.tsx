@@ -9,8 +9,8 @@ import {
   ComponentSize,
 } from '@genfeedai/enums';
 import { useAiAction } from '@hooks/ai/use-ai-action';
-import Button from '@ui/buttons/base/Button';
 import Spinner from '@ui/feedback/spinner/Spinner';
+import { Button } from '@ui/primitives/button';
 import { useCallback } from 'react';
 import { HiArrowUturnLeft, HiSparkles } from 'react-icons/hi2';
 

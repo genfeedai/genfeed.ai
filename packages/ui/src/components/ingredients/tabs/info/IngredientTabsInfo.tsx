@@ -11,10 +11,10 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { BrandsService } from '@services/social/brands.service';
-import Button from '@ui/buttons/base/Button';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormTextarea from '@ui/forms/inputs/textarea/form-textarea/FormTextarea';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
+import { Textarea } from '@ui/primitives/textarea';
 import {
   isAvatarSourceImageIngredient,
   isImageIngredient,
@@ -201,7 +201,7 @@ export default function IngredientTabsInfo({
 
       <div className="space-y-4">
         <FormControl label="Label">
-          <FormInput<MetadataFieldValues>
+          <Input<MetadataFieldValues>
             name="label"
             value={labelValue}
             placeholder="Enter a label"
@@ -214,7 +214,7 @@ export default function IngredientTabsInfo({
         </FormControl>
 
         <FormControl label="Description">
-          <FormTextarea<MetadataFieldValues>
+          <Textarea<MetadataFieldValues>
             name="description"
             value={descriptionValue}
             placeholder="Enter a description"

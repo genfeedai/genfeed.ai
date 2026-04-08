@@ -6,9 +6,9 @@ import {
   ButtonVariant,
   LinkCategory,
 } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
 import Alert from '@ui/feedback/alert/Alert';
-import FormControl from '@ui/forms/base/form-control/FormControl';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import {
   Select,

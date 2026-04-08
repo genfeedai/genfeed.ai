@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { useEffect, useMemo, useState } from 'react';
 
 type SharedAudioStatus = 'idle' | 'loading' | 'paused' | 'playing';

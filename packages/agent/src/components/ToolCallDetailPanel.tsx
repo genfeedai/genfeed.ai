@@ -2,7 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Pre } from '@genfeedai/ui';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import type { StructuredProgressDebugPayload } from '@utils/progress/structured-progress-event.util';
 import type { ReactElement } from 'react';
 import { useMemo, useState } from 'react';

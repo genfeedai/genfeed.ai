@@ -4,9 +4,9 @@ import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { FoldersSidebarProps } from '@props/content/folders-sidebar.props';
-import Button from '@ui/buttons/base/Button';
 import DropZoneFolder from '@ui/drag-drop/zone-folder/DropZoneFolder';
 import Spinner from '@ui/feedback/spinner/Spinner';
+import { Button } from '@ui/primitives/button';
 import { memo } from 'react';
 import { HiPlus } from 'react-icons/hi2';
 

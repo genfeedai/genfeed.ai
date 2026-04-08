@@ -107,7 +107,7 @@ export function ContentPreview({ message }: ContentPreviewProps): ReactElement {
     <div className="space-y-2">
       <p className="text-sm leading-relaxed">{message.content}</p>
 
-      <div className="rounded-lg border border-border bg-background p-3">
+      <div className="border border-border bg-background p-3">
         <p className="whitespace-pre-wrap text-sm text-foreground">{content}</p>
 
         {charLimit && (

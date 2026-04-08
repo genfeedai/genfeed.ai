@@ -7,7 +7,7 @@ import {
   VoiceProvider,
 } from '@genfeedai/enums';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import {
   Select,
   SelectContent,
@@ -241,7 +241,7 @@ export function VoiceCloneCard({
 
   if (status === 'done') {
     return (
-      <div className="my-2 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+      <div className="my-2 border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
         <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
           <HiCheck className="h-5 w-5" />
           <span className="text-sm font-medium">
@@ -253,7 +253,7 @@ export function VoiceCloneCard({
   }
 
   return (
-    <div className="my-2 rounded-lg border border-border bg-background p-4">
+    <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
         <HiMicrophone className="h-5 w-5 text-rose-500" />
         <h3 className="text-sm font-semibold">
@@ -322,7 +322,7 @@ export function VoiceCloneCard({
                 fileInputRef.current?.click();
               }
             }}
-            className="mb-3 flex cursor-pointer flex-col items-center justify-center rounded border-2 border-dashed border-border p-6 transition-colors hover:border-primary/50 hover:bg-muted/50"
+            className="mb-3 flex cursor-pointer flex-col items-center justify-center border-2 border-dashed border-border p-6 transition-colors hover:border-primary/50 hover:bg-muted/50"
           >
             <HiCloudArrowUp className="mb-2 h-8 w-8 text-muted-foreground" />
             {file ? (

@@ -17,13 +17,13 @@ import {
 import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
 import type { ModalCrudProps } from '@props/modals/modal.props';
 import { StylesService } from '@services/elements/styles.service';
-import Button from '@ui/buttons/base/Button';
 import Alert from '@ui/feedback/alert/Alert';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormCheckbox from '@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
 import type { ChangeEvent } from 'react';
 
 export default function ModalStyle({
@@ -82,7 +82,7 @@ export default function ModalStyle({
         )}
 
         <FormControl label="Label">
-          <FormInput
+          <Input
             type="text"
             name="label"
             control={form.control}
@@ -94,7 +94,7 @@ export default function ModalStyle({
         </FormControl>
 
         <FormControl label="Key">
-          <FormInput
+          <Input
             type="text"
             name="key"
             control={form.control}
@@ -143,7 +143,7 @@ export default function ModalStyle({
           </div>
           <div className="space-y-2 p-3 bg-background max-h-48 overflow-y-auto">
             {Object.values(MODEL_KEYS).map((model: string) => (
-              <FormCheckbox
+              <Checkbox
                 key={model}
                 name={`model-${model}`}
                 label={model}
@@ -174,7 +174,7 @@ export default function ModalStyle({
         </FormControl>
 
         <FormControl label="Description">
-          <FormInput
+          <Input
             name="description"
             control={form.control}
             onChange={handleChange}

@@ -97,7 +97,7 @@ function ResizeNodeComponent(props: NodeProps) {
         </div>
 
         {/* Model Display */}
-        <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-secondary/50 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2 px-2 py-1.5 bg-secondary/50 text-xs text-muted-foreground">
           {mediaType === 'image' ? (
             <ImageIcon className="h-3.5 w-3.5" />
           ) : (
@@ -141,7 +141,7 @@ function ResizeNodeComponent(props: NodeProps) {
             value={nodeData.prompt}
             onChange={handlePromptChange}
             placeholder="Guide the AI outpainting..."
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="flex h-9 w-full border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
         </div>
 
@@ -149,6 +149,7 @@ function ResizeNodeComponent(props: NodeProps) {
         {nodeData.outputMedia && (
           <div className="relative mt-1">
             {mediaType === 'video' ? (
+              // biome-ignore lint/a11y/useMediaCaption: generated preview videos do not have caption tracks in this transient asset preview
               <video
                 src={nodeData.outputMedia}
                 className="h-32 w-full rounded-md object-cover"

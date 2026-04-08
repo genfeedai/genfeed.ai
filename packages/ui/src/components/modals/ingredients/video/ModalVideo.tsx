@@ -8,10 +8,10 @@ import {
 } from '@genfeedai/enums';
 import type { ModalVideoProps } from '@props/modals/modal.props';
 import { EnvironmentService } from '@services/core/environment.service';
-import Button from '@ui/buttons/base/Button';
 import Masonry from '@ui/display/masonry/Masonry';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Spinner from '@ui/feedback/spinner/Spinner';
+import { Button } from '@ui/primitives/button';
 import { HiVideoCamera, HiXMark } from 'react-icons/hi2';
 
 export default function ModalVideo({

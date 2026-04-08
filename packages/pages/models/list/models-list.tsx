@@ -22,9 +22,9 @@ import StatsCards from '@ui/card/stats/StatsCards';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
-import FormToggle from '@ui/forms/selectors/toggle/form-toggle/FormToggle';
 import { LazyModalModel } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Switch } from '@ui/primitives/switch';
 import { PageScope } from '@ui-constants/misc.constant';
 import { ErrorHandler } from '@utils/error/error-handler.util';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -637,7 +637,7 @@ export default function ModelsList({
               header: 'Active',
               key: 'isActive',
               render: (model: IModel) => (
-                <FormToggle
+                <Switch
                   isChecked={model.isActive}
                   isDisabled={
                     model.isActive && isOnlyDefaultInCategory(model)
@@ -652,7 +652,7 @@ export default function ModelsList({
               header: 'Default',
               key: 'isDefault',
               render: (model: IModel) => (
-                <FormToggle
+                <Switch
                   isChecked={model.isDefault}
                   isDisabled={
                     !!(
@@ -675,7 +675,7 @@ export default function ModelsList({
                 const isToggling = togglingModelId === model.id;
 
                 return (
-                  <FormToggle
+                  <Switch
                     isChecked={isEnabled}
                     onChange={() => handleToggleModel(model, !isEnabled)}
                     isDisabled={isToggling || model.isDefault}

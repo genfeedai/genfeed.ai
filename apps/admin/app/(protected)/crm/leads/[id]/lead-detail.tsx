@@ -1,6 +1,5 @@
 'use client';
 
-import Button from '@components/buttons/base/Button';
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import SocialLinks from '@components/social/SocialLinks';
 import { ButtonVariant } from '@genfeedai/enums';
@@ -19,7 +18,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
-import { Button as PrimitiveButton } from '@ui/primitives/button';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -250,11 +249,11 @@ export default function LeadDetail({ id }: { id: string }) {
       }
     >
       <div className="mb-4">
-        <PrimitiveButton asChild variant={ButtonVariant.SECONDARY}>
+        <Button asChild variant={ButtonVariant.SECONDARY}>
           <Link href="/crm/leads">
             <HiArrowLeft className="w-4 h-4" /> Back to Leads
           </Link>
-        </PrimitiveButton>
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

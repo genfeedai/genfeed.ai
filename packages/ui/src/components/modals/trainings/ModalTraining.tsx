@@ -20,13 +20,13 @@ import {
 import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
 import type { ModalTrainingProps } from '@props/modals/modal.props';
 import { TrainingsService } from '@services/ai/trainings.service';
-import Button from '@ui/buttons/base/Button';
 import Alert from '@ui/feedback/alert/Alert';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
+import { SelectField } from '@ui/primitives/select';
 import { type ChangeEvent, useEffect } from 'react';
 
 export default function ModalTraining({
@@ -110,7 +110,7 @@ export default function ModalTraining({
             error={form.formState.errors.label?.message}
             isRequired
           >
-            <FormInput
+            <Input
               type="text"
               name="label"
               control={form.control}
@@ -125,7 +125,7 @@ export default function ModalTraining({
             label="Description"
             error={form.formState.errors.description?.message}
           >
-            <FormInput
+            <Input
               type="text"
               name="description"
               control={form.control}
@@ -139,7 +139,7 @@ export default function ModalTraining({
             label="Brand"
             error={form.formState.errors.brand?.message}
           >
-            <FormSelect
+            <SelectField
               name="brand"
               control={form.control}
               onChange={handleChange}
@@ -151,7 +151,7 @@ export default function ModalTraining({
                   {brand.label}
                 </option>
               ))}
-            </FormSelect>
+            </SelectField>
           </FormControl>
 
           <div className="flex items-center gap-2 p-4 bg-background/50">

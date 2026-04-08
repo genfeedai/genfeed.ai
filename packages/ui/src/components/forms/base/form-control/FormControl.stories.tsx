@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
-import FormControl from '@ui/forms/base/form-control/FormControl';
+import FormControl from '@ui/primitives/field';
 
 const meta: Meta<typeof FormControl> = {
   argTypes: {},

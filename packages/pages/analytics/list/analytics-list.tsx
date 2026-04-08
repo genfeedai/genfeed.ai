@@ -20,11 +20,11 @@ import { VideosService } from '@services/ingredients/videos.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { BrandsService } from '@services/social/brands.service';
 import { TimeSeriesChart } from '@ui/analytics/charts/time-series/time-series-chart';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
 import { LazyMasonryVideo } from '@ui/lazy/masonry/LazyMasonry';
+import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useState } from 'react';
 import {
   HiArrowDownTray,

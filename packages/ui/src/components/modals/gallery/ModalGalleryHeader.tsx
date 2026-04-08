@@ -9,10 +9,10 @@ import {
 import { formatVideos } from '@helpers/data/data/data.helper';
 import type { ModalGalleryHeaderProps } from '@props/modals/modal-gallery.props';
 import { useUploadModal } from '@providers/global-modals/global-modals.provider';
-import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import Tabs from '@ui/navigation/tabs/Tabs';
+import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { HiArrowUpTray } from 'react-icons/hi2';
 

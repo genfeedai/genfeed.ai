@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
-import FormSearchbar from '@ui/forms/inputs/searchbar/form-searchbar/FormSearchbar';
+import FormSearchbar from '@ui/primitives/searchbar';
 
 const meta: Meta<typeof FormSearchbar> = {
   argTypes: {},

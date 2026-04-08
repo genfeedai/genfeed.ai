@@ -8,10 +8,10 @@ import type { ModalTextOverlayProps } from '@props/modals/modal.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { VideosService } from '@services/ingredients/videos.service';
-import Button from '@ui/buttons/base/Button';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
 import {
   Select,
   SelectContent,
@@ -94,7 +94,7 @@ export default function ModalTextOverlay({
     >
       <div className="space-y-2">
         <FormControl label="Text" error={errors.text} isRequired>
-          <FormInput
+          <Input
             name="text"
             type="text"
             placeholder="Enter text to overlay on video"

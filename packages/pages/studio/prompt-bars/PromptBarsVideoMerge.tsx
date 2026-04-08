@@ -14,10 +14,10 @@ import {
   ICON_BUTTON_CLASS,
 } from '@pages/studio/constants/prompt-bar.constants';
 import type { VideoMergePromptBarProps } from '@props/prompt-bars/prompt-bars-video-merge.props';
-import Button from '@ui/buttons/base/Button';
-import FormCheckbox from '@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox';
-import FormDropdown from '@ui/forms/selectors/dropdown/form-dropdown/FormDropdown';
-import FormRange from '@ui/forms/selectors/range/form-range/FormRange';
+import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
+import FormDropdown from '@ui/primitives/dropdown-field';
+import FormRange from '@ui/primitives/range-field';
 import EaseCurveSelector from '@ui/storyboard/EaseCurveSelector';
 import {
   HiArrowsRightLeft,
@@ -167,7 +167,7 @@ export default function PromptBarsVideoMerge({
               </div>
             )}
 
-            <FormCheckbox
+            <Checkbox
               name="isMuteVideoAudio"
               label="Mute"
               isChecked={storyboard.isMuteVideoAudio || false}
@@ -175,7 +175,7 @@ export default function PromptBarsVideoMerge({
               onChange={(e) => onMuteVideoAudioToggle(e.target.checked)}
             />
 
-            <FormCheckbox
+            <Checkbox
               name="isCaptionsEnabled"
               label="Captions"
               isChecked={storyboard.isCaptionsEnabled}

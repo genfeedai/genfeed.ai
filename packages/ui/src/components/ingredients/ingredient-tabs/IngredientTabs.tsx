@@ -7,7 +7,6 @@ import { IngredientsService } from '@services/content/ingredients.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import IngredientTabsInfo from '@ui/ingredients/tabs/info/IngredientTabsInfo';
 import IngredientTabsMetadata from '@ui/ingredients/tabs/metadata/IngredientTabsMetadata';
@@ -15,6 +14,7 @@ import IngredientTabsPosts from '@ui/ingredients/tabs/posts/IngredientTabsPosts'
 import IngredientTabsPrompts from '@ui/ingredients/tabs/prompts/IngredientTabsPrompts';
 import IngredientTabsSharing from '@ui/ingredients/tabs/sharing/IngredientTabsSharing';
 import Tabs from '@ui/navigation/tabs/Tabs';
+import { Button } from '@ui/primitives/button';
 import {
   isImageIngredient,
   isVideoIngredient,

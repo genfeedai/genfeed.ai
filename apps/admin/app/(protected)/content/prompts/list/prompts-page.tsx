@@ -1,6 +1,5 @@
 'use client';
 
-import DropdownBase from '@components/dropdowns/base/DropdownBase';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -10,16 +9,24 @@ import { PagesService } from '@services/content/pages.service';
 import { PromptsService } from '@services/content/prompts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import { Button } from '@ui/primitives/button';
+import { Dropdown } from '@ui/primitives/dropdown';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HiEllipsisVertical, HiSparkles, HiTrash } from 'react-icons/hi2';
+
+const PROMPT_SKELETON_KEYS = [
+  'prompt-skeleton-1',
+  'prompt-skeleton-2',
+  'prompt-skeleton-3',
+  'prompt-skeleton-4',
+] as const;
 
 export default function PromptsPage() {
   const searchParams = useSearchParams();
@@ -115,8 +122,8 @@ export default function PromptsPage() {
   if (isLoading) {
     return (
       <div className="grid gap-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <SkeletonCard key={i} showImage={false} />
+        {PROMPT_SKELETON_KEYS.map((key) => (
+          <SkeletonCard key={key} showImage={false} />
         ))}
       </div>
     );
@@ -188,7 +195,7 @@ export default function PromptsPage() {
                       </div>
                     </div>
 
-                    <DropdownBase
+                    <Dropdown
                       trigger={
                         <Button
                           variant={ButtonVariant.GHOST}
@@ -226,7 +233,7 @@ export default function PromptsPage() {
                           </Button>
                         </li>
                       </ul>
-                    </DropdownBase>
+                    </Dropdown>
                   </div>
                 </div>
               </Card>

@@ -2,8 +2,8 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import type { BrandDetailExternalLinksCardProps } from '@props/pages/brand-detail.props';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
+import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { HiLink, HiPencil, HiPlus } from 'react-icons/hi2';
 

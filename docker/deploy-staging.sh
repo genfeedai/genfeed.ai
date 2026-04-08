@@ -10,6 +10,7 @@ set -euo pipefail
 
 COMPOSE_FILE="docker/docker-compose.staging.yml"
 ENV_FILE=".env.staging"
+DEPLOY_ENV="staging"
 CHANGED_SERVICES=("$@")
 FAILED_SERVICES=()
 DEPLOYED_SERVICES=()
@@ -83,7 +84,7 @@ canonicalize_env_link() {
 service_env_override_file() {
   local service="$1"
   case "$service" in
-    api|fanvue|files|mcp|notifications|workers)
+    api|clips|discord|fanvue|files|mcp|notifications|slack|telegram|workers)
       printf 'apps/server/%s/%s\n' "$service" "$ENV_FILE"
       ;;
     *)
@@ -281,7 +282,10 @@ log "Services to deploy: ${CHANGED_SERVICES[*]}"
 log "Compose file: ${COMPOSE_FILE}"
 log "Target server image: ${DEFAULT_SERVER_IMAGE}"
 
-# 0. Validate canonical env setup
+# 0. Hydrate env files from SSM, then validate canonical env setup
+log_header "SSM Env Hydration"
+./docker/render-ssm-env.sh "${DEPLOY_ENV}"
+
 log_header "Environment Validation"
 validate_env_files || exit 1
 

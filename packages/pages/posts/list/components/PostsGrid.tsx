@@ -17,11 +17,11 @@ import {
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useEvaluation } from '@hooks/ui/evaluation/use-evaluation/use-evaluation';
-import Button from '@ui/buttons/base/Button';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import EvaluationBadge from '@ui/evaluation/badge/EvaluationBadge';
 import {
+  Button,
   buttonVariants,
   Button as PrimitiveButton,
 } from '@ui/primitives/button';

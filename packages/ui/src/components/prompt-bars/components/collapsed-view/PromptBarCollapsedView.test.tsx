@@ -13,7 +13,7 @@ vi.mock('@ui/buttons/base/Button', () => ({
   ),
 }));
 
-vi.mock('@ui/forms/inputs/input/form-input/FormInput', () => ({
+vi.mock('@ui/primitives/input', () => ({
   default: ({ placeholder }: any) => <input placeholder={placeholder} />,
 }));
 

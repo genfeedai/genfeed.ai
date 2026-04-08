@@ -9,12 +9,12 @@ import { useTrendContent } from '@hooks/data/trends/use-trend-content/use-trend-
 import { SocialsNavigation } from '@pages/trends/shared/socials-navigation';
 import TrendContentCard from '@pages/trends/shared/trend-content-card';
 import { TrendsService } from '@services/social/trends.service';
-import Button from '@ui/buttons/base/Button';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
-import FormSearchbar from '@ui/forms/inputs/searchbar/form-searchbar/FormSearchbar';
 import Container from '@ui/layout/container/Container';
+import { Button } from '@ui/primitives/button';
+import FormSearchbar from '@ui/primitives/searchbar';
 import { type ChangeEvent, useMemo, useState } from 'react';
 import { HiOutlineArrowTrendingUp, HiOutlineFilm } from 'react-icons/hi2';
 

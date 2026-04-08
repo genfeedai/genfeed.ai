@@ -16,12 +16,11 @@ import {
 import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
 import type { ModalMonitoredAccountProps } from '@props/modals/modal.props';
 import { MonitoredAccountsService } from '@services/automation/monitored-accounts.service';
-import Button from '@ui/buttons/base/Button';
 import Alert from '@ui/feedback/alert/Alert';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { type ChangeEvent, useEffect } from 'react';
 import {
@@ -165,7 +164,7 @@ export default function ModalMonitoredAccount({
           </FormControl>
 
           <FormControl label="Username">
-            <FormInput
+            <Input
               type="text"
               name="username"
               control={form.control}
@@ -177,7 +176,7 @@ export default function ModalMonitoredAccount({
           </FormControl>
 
           <FormControl label="Platform User ID">
-            <FormInput
+            <Input
               type="text"
               name="platformUserId"
               control={form.control}
@@ -189,7 +188,7 @@ export default function ModalMonitoredAccount({
           </FormControl>
 
           <FormControl label="Display Name">
-            <FormInput
+            <Input
               type="text"
               name="displayName"
               control={form.control}
@@ -200,7 +199,7 @@ export default function ModalMonitoredAccount({
           </FormControl>
 
           <FormControl label="Avatar URL">
-            <FormInput
+            <Input
               type="text"
               name="avatarUrl"
               control={form.control}
@@ -211,7 +210,7 @@ export default function ModalMonitoredAccount({
           </FormControl>
 
           <FormControl label="Bio">
-            <FormInput
+            <Input
               type="text"
               name="bio"
               control={form.control}

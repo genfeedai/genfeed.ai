@@ -29,14 +29,14 @@ vi.mock('@ui/buttons/base/Button', () => ({
   ),
 }));
 
-vi.mock('@ui/forms/selectors/select/form-select/FormSelect', () => ({
+vi.mock('@ui/primitives/select', () => ({
   __esModule: true,
   default: ({ children }: PropsWithChildren) => (
     <select data-testid="form-select">{children}</select>
   ),
 }));
 
-vi.mock('@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox', () => ({
+vi.mock('@ui/primitives/checkbox', () => ({
   __esModule: true,
   default: () => <div data-testid="form-checkbox" />,
 }));

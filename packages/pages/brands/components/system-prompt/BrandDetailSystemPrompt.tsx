@@ -2,7 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { BrandDetailSystemPromptProps } from '@props/pages/brand-detail.props';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { HiDocumentDuplicate } from 'react-icons/hi2';
 
 export default function BrandDetailSystemPrompt({

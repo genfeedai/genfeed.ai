@@ -66,19 +66,19 @@ vi.mock('@ui/buttons/base/Button', () => ({
   ),
 }));
 
-vi.mock('@ui/forms/base/form-control/FormControl', () => ({
+vi.mock('@ui/primitives/field', () => ({
   __esModule: true,
   default: ({ children }: FormControlProps) => (
     <div data-testid="form-control">{children}</div>
   ),
 }));
 
-vi.mock('@ui/forms/inputs/input/form-input/FormInput', () => ({
+vi.mock('@ui/primitives/input', () => ({
   __esModule: true,
   default: () => <input data-testid="form-input" />,
 }));
 
-vi.mock('@ui/forms/inputs/textarea/form-textarea/FormTextarea', () => ({
+vi.mock('@ui/primitives/textarea', () => ({
   __esModule: true,
   default: () => <textarea data-testid="form-textarea" />,
 }));
@@ -93,7 +93,7 @@ vi.mock(
   }),
 );
 
-vi.mock('@ui/forms/selectors/select/form-select/FormSelect', () => ({
+vi.mock('@ui/primitives/select', () => ({
   __esModule: true,
   default: ({ children }: PropsWithChildren) => (
     <select data-testid="form-select">{children}</select>

@@ -11,10 +11,9 @@ import {
   getPostsPlatformLabel,
   getPublisherPostsHref,
 } from '@helpers/content/posts.helper';
-import Button from '@ui/buttons/base/Button';
-import DropdownBase from '@ui/dropdowns/base/DropdownBase';
 import Breadcrumb from '@ui/navigation/breadcrumb/Breadcrumb';
-import { Button as PrimitiveButton } from '@ui/primitives/button';
+import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
+import { Dropdown } from '@ui/primitives/dropdown';
 import { PageScope } from '@ui-constants/misc.constant';
 import {
   buildPostAgentHref,
@@ -120,7 +119,7 @@ export default function PostDetailHeader({
 
           {/* Expand to Thread dropdown - shown for editable Twitter posts without children */}
           {canExpandToThread && (
-            <DropdownBase
+            <Dropdown
               minWidth="160px"
               trigger={
                 <Button
@@ -151,7 +150,7 @@ export default function PostDetailHeader({
                   </Button>
                 ))}
               </div>
-            </DropdownBase>
+            </Dropdown>
           )}
 
           {/* Create Remix button - shown for published posts */}

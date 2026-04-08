@@ -1,6 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { type ReactElement, useCallback, useState } from 'react';
 import { HiCheck, HiClipboardDocumentList, HiXMark } from 'react-icons/hi2';
 
@@ -57,7 +57,7 @@ export function ReviewGateCard({
 
   if (acted) {
     return (
-      <div className="rounded-lg border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-4 my-2">
+      <div className="border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-900/20 p-4 my-2">
         <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
           <HiCheck className="w-5 h-5" />
           <span className="text-sm font-medium">
@@ -70,7 +70,7 @@ export function ReviewGateCard({
   }
 
   return (
-    <div className="rounded-lg border border-border bg-background p-4 my-2">
+    <div className="border border-border bg-background p-4 my-2">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <HiClipboardDocumentList className="w-5 h-5 text-amber-500" />
@@ -98,7 +98,7 @@ export function ReviewGateCard({
         {items.map((item) => (
           <label
             key={item.id}
-            className={`flex items-center gap-3 p-2 rounded cursor-pointer transition-colors ${
+            className={`flex items-center gap-3 p-2 cursor-pointer transition-colors ${
               selected.has(item.id)
                 ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
                 : 'bg-muted border border-transparent'

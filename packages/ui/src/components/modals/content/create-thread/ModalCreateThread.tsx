@@ -25,17 +25,17 @@ import type { ModalCreateThreadProps } from '@props/modals/modal.props';
 import { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormTextarea from '@ui/forms/inputs/textarea/form-textarea/FormTextarea';
 import FormDateTimePicker from '@ui/forms/pickers/date-time-picker/form-date-time-picker/FormDateTimePicker';
-import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import Tabs from '@ui/navigation/tabs/Tabs';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
+import { SelectField } from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { PLATFORM_CHAR_LIMITS } from '@ui-constants/misc.constant';
 import { useEffect, useMemo, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
@@ -205,7 +205,7 @@ export default function ModalCreateThread({
                   label="Platform Account"
                   error={form.formState.errors.credential?.message}
                 >
-                  <FormSelect
+                  <SelectField
                     name="credential"
                     control={form.control}
                     placeholder="Select platform account"
@@ -215,12 +215,12 @@ export default function ModalCreateThread({
                         {option.label}
                       </option>
                     ))}
-                  </FormSelect>
+                  </SelectField>
                 </FormControl>
               )}
 
               <FormControl label="Thread Title (Optional)">
-                <FormInput
+                <Input
                   name="globalTitle"
                   control={form.control}
                   placeholder="Optional title for all posts in thread"
@@ -248,13 +248,13 @@ export default function ModalCreateThread({
                   label="Status"
                   error={form.formState.errors.status?.message}
                 >
-                  <FormSelect name="status" control={form.control}>
+                  <SelectField name="status" control={form.control}>
                     {getPostStatusOptions().map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
                     ))}
-                  </FormSelect>
+                  </SelectField>
                 </FormControl>
               </div>
             </div>
@@ -316,7 +316,7 @@ export default function ModalCreateThread({
                           ?.message
                       }
                     >
-                      <FormTextarea
+                      <Textarea
                         name={`posts.${index}.description`}
                         register={form.register(`posts.${index}.description`)}
                         placeholder={`Enter content for post ${index + 1}`}

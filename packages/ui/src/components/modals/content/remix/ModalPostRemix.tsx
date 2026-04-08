@@ -9,12 +9,12 @@ import {
 import { closeModal } from '@helpers/ui/modal/modal.helper';
 import { useModalAutoOpen } from '@hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import type { ModalPostRemixProps } from '@props/modals/modal-post-remix.props';
-import Button from '@ui/buttons/base/Button';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HiDocumentDuplicate } from 'react-icons/hi2';
 
@@ -92,7 +92,7 @@ export default function ModalPostRemix({
         )}
 
         <FormControl label="Label">
-          <FormInput
+          <Input
             name="remixLabel"
             value={label}
             onChange={(e) => setLabel(e.target.value)}

@@ -3,8 +3,8 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { ContentOptimizationCardProps } from '@props/analytics/insights.props';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
+import { Button } from '@ui/primitives/button';
 import { memo } from 'react';
 import {
   HiClock,

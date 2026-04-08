@@ -18,9 +18,9 @@ import RunRoutingInsights from '@pages/mission-control/components/RunRoutingInsi
 import RunStatsStrip from '@pages/mission-control/components/RunStatsStrip';
 import RunTrendsPanel from '@pages/mission-control/components/RunTrendsPanel';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import FormSearchbar from '@ui/forms/inputs/searchbar/form-searchbar/FormSearchbar';
-import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
 import Container from '@ui/layout/container/Container';
+import FormSearchbar from '@ui/primitives/searchbar';
+import { SelectField } from '@ui/primitives/select';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -175,7 +175,7 @@ export default function MissionControl() {
             inputClassName="gen-card min-h-11 bg-transparent px-3 text-sm"
             size={ComponentSize.MD}
           />
-          <FormSelect
+          <SelectField
             name="model"
             value={selectedModel}
             onChange={(event) => setSelectedModel(event.target.value)}
@@ -188,8 +188,8 @@ export default function MissionControl() {
                 {model}
               </option>
             ))}
-          </FormSelect>
-          <FormSelect
+          </SelectField>
+          <SelectField
             name="sortMode"
             value={sortMode}
             onChange={(event) => setSortMode(parseSortMode(event.target.value))}
@@ -200,8 +200,8 @@ export default function MissionControl() {
             <option value="credits">Sort: Credits</option>
             <option value="duration">Sort: Duration</option>
             <option value="model">Sort: Model</option>
-          </FormSelect>
-          <FormSelect
+          </SelectField>
+          <SelectField
             name="timeRange"
             value={timeRange}
             onChange={(event) =>
@@ -213,7 +213,7 @@ export default function MissionControl() {
             <option value="7d">Window: 7d</option>
             <option value="14d">Window: 14d</option>
             <option value="30d">Window: 30d</option>
-          </FormSelect>
+          </SelectField>
         </div>
 
         <RunHistoryList runs={runs} isLoading={isLoading} />

@@ -15,14 +15,14 @@ import type { Tag } from '@models/content/tag.model';
 import type { ModalTagProps } from '@props/modals/modal.props';
 import { TagsService } from '@services/content/tags.service';
 import type { BaseService } from '@services/core/base.service';
-import Button from '@ui/buttons/base/Button';
 import Alert from '@ui/feedback/alert/Alert';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormTextarea from '@ui/forms/inputs/textarea/form-textarea/FormTextarea';
-import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
+import { SelectField } from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { TAG_SCOPE_COLORS } from '@ui-constants/tags.constant';
 import {
   type ChangeEvent,
@@ -185,7 +185,7 @@ export default function ModalTag({
         )}
 
         <FormControl label="Label">
-          <FormInput
+          <Input
             type="text"
             name="label"
             control={form.control}
@@ -195,7 +195,7 @@ export default function ModalTag({
         </FormControl>
 
         <FormControl label="Key">
-          <FormInput
+          <Input
             type="text"
             name="key"
             control={form.control}
@@ -217,7 +217,7 @@ export default function ModalTag({
         </FormControl>
 
         <FormControl label="Tag Category">
-          <FormSelect
+          <SelectField
             name="category"
             control={form.control}
             onChange={handleCategoryChange}
@@ -228,11 +228,11 @@ export default function ModalTag({
                 {option.label}
               </option>
             ))}
-          </FormSelect>
+          </SelectField>
         </FormControl>
 
         <FormControl label="Description">
-          <FormTextarea
+          <Textarea
             name="description"
             control={form.control}
             onChange={handleChange}
@@ -243,7 +243,7 @@ export default function ModalTag({
 
         <div className="grid grid-cols-2 gap-4">
           <FormControl label="Background Color">
-            <FormInput
+            <Input
               type="color"
               name="backgroundColor"
               control={form.control}
@@ -253,7 +253,7 @@ export default function ModalTag({
           </FormControl>
 
           <FormControl label="Text Color">
-            <FormInput
+            <Input
               type="color"
               name="textColor"
               control={form.control}

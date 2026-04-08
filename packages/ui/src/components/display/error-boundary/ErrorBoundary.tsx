@@ -10,7 +10,7 @@ import { closeModal, openModal } from '@helpers/ui/modal/modal.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { setErrorDebugInfo } from '@services/core/error-debug-store';
 import { logger } from '@services/core/logger.service';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Component, type ErrorInfo } from 'react';
 
 class ErrorBoundary extends Component<

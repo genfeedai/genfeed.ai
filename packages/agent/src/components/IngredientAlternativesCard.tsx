@@ -6,7 +6,7 @@ import {
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { type ReactElement, useCallback, useRef, useState } from 'react';
 import {
   HiArrowPath,
@@ -100,7 +100,7 @@ export function IngredientAlternativesCard({
   const isImage = generationType === 'image';
 
   return (
-    <div className="mt-2 overflow-hidden rounded-lg border border-border bg-background">
+    <div className="mt-2 overflow-hidden border border-border bg-background">
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         {isImage ? (
@@ -128,14 +128,14 @@ export function IngredientAlternativesCard({
                 withWrapper={false}
                 isDisabled={status === 'generating'}
                 onClick={() => handleSelect(index)}
-                className={`relative rounded-lg border p-2.5 text-left transition-all disabled:cursor-not-allowed ${
+                className={`relative border p-2.5 text-left transition-all disabled:cursor-not-allowed ${
                   isSelected && status !== 'idle'
                     ? 'border-primary bg-primary/5'
                     : 'border-border hover:border-primary/50 hover:bg-accent'
                 } ${isDimmed ? 'opacity-40' : ''}`}
               >
                 {isGeneratingThis && (
-                  <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-background/70">
+                  <div className="absolute inset-0 flex items-center justify-center bg-background/70">
                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                   </div>
                 )}
@@ -153,7 +153,7 @@ export function IngredientAlternativesCard({
         {/* Error state */}
         {status === 'error' && (
           <div className="space-y-2">
-            <div className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+            <div className="border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
               {error}
             </div>
             <Button
@@ -170,7 +170,7 @@ export function IngredientAlternativesCard({
         {/* Result state */}
         {status === 'done' && resultUrl && (
           <div className="space-y-2">
-            <div className="overflow-hidden rounded-lg border border-border">
+            <div className="overflow-hidden border border-border">
               {isImage ? (
                 <img
                   src={resultUrl}
@@ -178,13 +178,14 @@ export function IngredientAlternativesCard({
                   className="w-full object-cover"
                 />
               ) : (
+                // biome-ignore lint/a11y/useMediaCaption: generated preview has no caption track source
                 <video src={resultUrl} controls className="w-full" />
               )}
             </div>
             <div className="flex gap-2">
               <a
                 href={`/${isImage ? 'images' : 'videos'}/${resultId}`}
-                className="flex flex-1 items-center justify-center rounded border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                className="flex flex-1 items-center justify-center border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
               >
                 Open in Library
               </a>

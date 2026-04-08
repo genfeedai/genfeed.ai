@@ -16,8 +16,8 @@ import { OrganizationsService } from '@services/organization/organizations.servi
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
-import FormToggle from '@ui/forms/selectors/toggle/form-toggle/FormToggle';
 import { LazyModalTag } from '@ui/lazy/modal/LazyModal';
+import { Switch } from '@ui/primitives/switch';
 import { PageScope } from '@ui-constants/misc.constant';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
@@ -345,7 +345,7 @@ export default function TagsList({
         header: 'Active',
         key: 'active',
         render: (tag: ITag) => (
-          <FormToggle
+          <Switch
             isChecked={tag.isActive !== false}
             onChange={() => handleToggleActive(tag)}
           />

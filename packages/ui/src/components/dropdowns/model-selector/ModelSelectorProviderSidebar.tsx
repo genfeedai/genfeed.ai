@@ -4,7 +4,7 @@ import { MODEL_BRANDS } from '@genfeedai/constants/model-brands.constant';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { ModelSelectorProviderSidebarProps } from '@props/ui/model-selector/model-selector.props';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { memo, useCallback } from 'react';
 import { HiSquares2X2, HiStar } from 'react-icons/hi2';
 

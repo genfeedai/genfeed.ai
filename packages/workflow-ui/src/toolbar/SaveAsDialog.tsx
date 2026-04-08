@@ -60,7 +60,7 @@ export function SaveAsDialog({
       />
       <div
         role="dialog"
-        className="relative z-10 w-full max-w-md rounded-lg border border-border bg-card p-6 shadow-xl"
+        className="relative z-10 w-full max-w-md border border-border bg-card p-6 shadow-xl"
         onKeyDown={handleKeyDown}
       >
         <div className="mb-4 flex items-center justify-between">

@@ -1,5 +1,7 @@
 'use client';
 
+import { Clock3, X } from 'lucide-react';
+import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { ImageHistoryItem } from '../stores/workflow/types';
@@ -49,7 +51,7 @@ function FanItem({
       variant="ghost"
       draggable
       onDragStart={(e) => onDragStart(e, item)}
-      className="absolute w-14 h-14 rounded-lg overflow-hidden border-2 border-neutral-600 hover:border-blue-500 shadow-lg cursor-grab active:cursor-grabbing transition-colors duration-150 animate-fan-enter group p-0"
+      className="absolute w-14 h-14 overflow-hidden border-2 border-neutral-600 hover:border-blue-500 shadow-lg cursor-grab active:cursor-grabbing transition-colors duration-150 animate-fan-enter group p-0"
       style={
         {
           '--fan-x': `${x}px`,
@@ -60,11 +62,13 @@ function FanItem({
       }
       title={`${formatRelativeTime(item.timestamp)}\n${item.prompt?.substring(0, 50) || ''}...`}
     >
-      <img
+      <Image
         src={item.image}
         alt={`History ${index + 1}`}
-        className="w-full h-full object-cover pointer-events-none"
-        draggable={false}
+        fill
+        unoptimized
+        sizes="56px"
+        className="object-cover pointer-events-none"
       />
     </Button>
   );
@@ -124,7 +128,7 @@ function HistorySidebar({
   return createPortal(
     <div
       ref={sidebarRef}
-      className="w-80 max-h-[420px] bg-neutral-800 border border-neutral-600 rounded-lg shadow-xl flex flex-col"
+      className="w-80 max-h-[420px] bg-neutral-800 border border-neutral-600 shadow-xl flex flex-col"
       style={sidebarStyle}
     >
       <div className="px-4 py-3 border-b border-neutral-700 flex items-center justify-between shrink-0">
@@ -148,37 +152,29 @@ function HistorySidebar({
             className="w-5 h-5 text-neutral-400 hover:bg-neutral-700 hover:text-white"
             title="Close"
           >
-            <svg
-              className="w-3 h-3"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <X className="w-3 h-3" />
           </Button>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-2 space-y-1.5">
         {history.map((item, index) => (
-          <div
+          <Button
             key={item.id}
+            type="button"
+            variant="ghost"
             draggable
             onDragStart={(e) => onDragStart(e, item)}
-            className="flex gap-3 p-2 rounded-lg hover:bg-neutral-700/50 cursor-grab active:cursor-grabbing group transition-colors"
+            className="flex h-auto w-full justify-start gap-3 p-2 hover:bg-neutral-700/50 cursor-grab active:cursor-grabbing group transition-colors"
           >
-            <div className="w-14 h-14 rounded overflow-hidden shrink-0 border border-neutral-600 group-hover:border-blue-500 transition-colors">
-              <img
+            <div className="relative w-14 h-14 rounded overflow-hidden shrink-0 border border-neutral-600 group-hover:border-blue-500 transition-colors">
+              <Image
                 src={item.image}
                 alt={`History ${index + 1}`}
-                className="w-full h-full object-cover pointer-events-none"
-                draggable={false}
+                fill
+                unoptimized
+                sizes="56px"
+                className="object-cover pointer-events-none"
               />
             </div>
             <div className="flex-1 min-w-0 flex flex-col justify-center">
@@ -190,7 +186,7 @@ function HistorySidebar({
                 {item.model ? ` · ${item.model}` : ''}
               </p>
             </div>
-          </div>
+          </Button>
         ))}
       </div>
 
@@ -300,19 +296,7 @@ export function GlobalImageHistory() {
         className="relative bg-neutral-800 hover:bg-neutral-700 border-neutral-600 text-neutral-400 hover:text-white shadow-lg"
         title={`${history.length} image${history.length > 1 ? 's' : ''} in history`}
       >
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-          />
-        </svg>
+        <Clock3 className="w-4 h-4" />
         <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-blue-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold">
           {history.length > 99 ? '99+' : history.length}
         </span>

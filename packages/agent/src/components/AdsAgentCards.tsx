@@ -24,7 +24,7 @@ function CardCtas({ action }: AgentCardProps): ReactElement | null {
           <Link
             key={`${action.id}-cta-${index}`}
             href={cta.href}
-            className="inline-flex items-center gap-1.5 rounded border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+            className="inline-flex items-center gap-1.5 border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
           >
             {cta.label}
             <HiArrowTopRightOnSquare className="h-3.5 w-3.5" />
@@ -37,7 +37,7 @@ function CardCtas({ action }: AgentCardProps): ReactElement | null {
 
 export function AdsSearchResultsCard({ action }: AgentCardProps): ReactElement {
   return (
-    <div className="my-2 rounded-lg border border-border bg-background p-4">
+    <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
         <HiMegaphone className="h-5 w-5 text-primary" />
         <h3 className="text-sm font-semibold text-foreground">
@@ -51,10 +51,7 @@ export function AdsSearchResultsCard({ action }: AgentCardProps): ReactElement {
       ) : null}
       <div className="space-y-2">
         {action.items?.map((item) => (
-          <div
-            key={item.id}
-            className="rounded border border-border bg-card/40 p-3"
-          >
+          <div key={item.id} className="border border-border bg-card/40 p-3">
             <div className="text-sm font-medium text-foreground">
               {item.title}
             </div>
@@ -73,7 +70,7 @@ export function AdDetailSummaryCard({ action }: AgentCardProps): ReactElement {
   const data = action.data ?? {};
 
   return (
-    <div className="my-2 rounded-lg border border-border bg-background p-4">
+    <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
         <HiChartBar className="h-5 w-5 text-blue-500" />
         <h3 className="text-sm font-semibold text-foreground">
@@ -85,7 +82,7 @@ export function AdDetailSummaryCard({ action }: AgentCardProps): ReactElement {
           {action.description}
         </p>
       ) : null}
-      <div className="space-y-2 rounded border border-border bg-card/40 p-3">
+      <div className="space-y-2 border border-border bg-card/40 p-3">
         <div className="text-sm text-foreground">
           {(data.headline as string | undefined) || 'Selected ad'}
         </div>
@@ -104,7 +101,7 @@ export function CampaignLaunchPrepCard({
   const data = action.data ?? {};
 
   return (
-    <div className="my-2 rounded-lg border border-amber-500/20 bg-background p-4">
+    <div className="my-2 border border-amber-500/20 bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
         <HiRocketLaunch className="h-5 w-5 text-amber-500" />
         <h3 className="text-sm font-semibold text-foreground">
@@ -116,7 +113,7 @@ export function CampaignLaunchPrepCard({
           {action.description}
         </p>
       ) : null}
-      <div className="space-y-2 rounded border border-border bg-card/40 p-3 text-xs text-muted-foreground">
+      <div className="space-y-2 border border-border bg-card/40 p-3 text-xs text-muted-foreground">
         {typeof data.platform === 'string' ? (
           <div>Platform: {data.platform}</div>
         ) : null}

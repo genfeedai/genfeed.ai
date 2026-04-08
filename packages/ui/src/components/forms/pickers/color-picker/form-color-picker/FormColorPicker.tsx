@@ -1,7 +1,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import type { FormColorPickerProps } from '@props/forms/form.props';
-import Button from '@ui/buttons/base/Button';
-import FormControl from '@ui/forms/base/form-control/FormControl';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
 import { THEME_COLORS } from '@ui-constants/misc.constant';
 import { useMemo, useState } from 'react';
 import { type ColorResult, SketchPicker } from 'react-color';

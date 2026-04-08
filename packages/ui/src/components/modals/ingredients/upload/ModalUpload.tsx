@@ -31,10 +31,10 @@ import { logger } from '@services/core/logger.service';
 import { SocketService } from '@services/core/socket.service';
 import { VoiceCloneService } from '@services/ingredients/voice-clone.service';
 import { ScopeSelector } from '@ui/assets/ScopeSelector';
-import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { IngredientEndpoints } from '@utils/media/ingredients.util';
@@ -869,7 +869,7 @@ export default function ModalUpload({
 
         {/* TO DO: Upload image via an URL */}
         {/* <FormControl label="Image URL (optional)">
-          <FormInput
+          <Input
             type="url"
             placeholder="https://example.com/image.jpg"
             value={urlValue}

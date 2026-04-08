@@ -2,9 +2,9 @@
 
 import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import type { ModalTwitterThreadProps } from '@props/modals/modal-twitter-thread.props';
-import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
 import { Modal } from '@ui/modals/compound/Modal';
+import { Button } from '@ui/primitives/button';
 import { HiXMark } from 'react-icons/hi2';
 
 export default function ModalTwitterThread({

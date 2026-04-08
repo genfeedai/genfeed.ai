@@ -6,7 +6,7 @@ import type {
   GeneratedPromptCardProps,
   PromptMetadataTagProps,
 } from '@props/studio/prompt-generator.props';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { memo, useCallback } from 'react';
 import {
   HiOutlineAdjustmentsHorizontal,

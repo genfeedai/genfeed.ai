@@ -8,13 +8,13 @@ import { getClerkPublicData } from '@helpers/auth/clerk.helper';
 import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
 import type { ModalSoundProps } from '@props/modals/modal.props';
 import { SoundsService } from '@services/elements/sounds.service';
-import Button from '@ui/buttons/base/Button';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormCheckbox from '@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox';
-import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
+import { SelectField } from '@ui/primitives/select';
 import type { ChangeEvent } from 'react';
 import { HiTrash } from 'react-icons/hi2';
 
@@ -61,7 +61,7 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
     <Modal id={ModalEnum.SOUND} title={sound ? 'Update Sound' : 'Create Sound'}>
       <form ref={formRef} onSubmit={onSubmit}>
         <FormControl label="Label">
-          <FormInput
+          <Input
             type="text"
             name="label"
             control={form.control}
@@ -73,7 +73,7 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
         </FormControl>
 
         <FormControl label="Key">
-          <FormInput
+          <Input
             type="text"
             name="key"
             control={form.control}
@@ -95,7 +95,7 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
         </FormControl>
 
         <FormControl label="Type">
-          <FormSelect
+          <SelectField
             name="type"
             control={form.control}
             onChange={handleChange}
@@ -107,14 +107,14 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
             <option value={ModelCategory.IMAGE}>Image</option>
             <option value={ModelCategory.TEXT}>Text/Voice</option>
             <option value={ModelCategory.MUSIC}>Music</option>
-          </FormSelect>
+          </SelectField>
           <p className="text-xs text-foreground/70 mt-1">
             Model type this sound applies to
           </p>
         </FormControl>
 
         <FormControl label="Description">
-          <FormInput
+          <Input
             name="description"
             control={form.control}
             onChange={handleChange}
@@ -123,7 +123,7 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
           />
         </FormControl>
 
-        <FormCheckbox
+        <Checkbox
           name="isSelected"
           control={form.control}
           label="Automatically select this sound"

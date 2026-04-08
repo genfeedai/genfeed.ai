@@ -22,10 +22,10 @@ import {
   SmartAlertsPanel,
   TrendAnalysisCard as TrendAnalysisCardView,
 } from '@ui/analytics/insights';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import Container from '@ui/layout/container/Container';
+import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { memo, useCallback, useState } from 'react';

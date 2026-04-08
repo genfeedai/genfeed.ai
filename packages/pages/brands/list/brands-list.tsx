@@ -13,10 +13,10 @@ import {
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
-import Button from '@ui/buttons/base/Button';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Button } from '@ui/primitives/button';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 import {

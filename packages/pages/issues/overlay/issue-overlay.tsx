@@ -14,8 +14,8 @@ import type {
   IssueLinkedEntityModel,
   IssueStatus,
 } from '@services/management/issues.service';
-import Button from '@ui/buttons/base/Button';
 import EntityOverlayShell from '@ui/overlays/entity/EntityOverlayShell';
+import { Button } from '@ui/primitives/button';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {

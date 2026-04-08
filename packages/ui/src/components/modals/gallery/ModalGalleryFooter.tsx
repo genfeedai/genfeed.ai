@@ -9,8 +9,8 @@ import type { IAsset } from '@genfeedai/interfaces';
 import type { ModalGalleryFooterProps } from '@props/modals/modal-gallery.props';
 import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
-import Button from '@ui/buttons/base/Button';
 import Pagination from '@ui/navigation/pagination/Pagination';
+import { Button } from '@ui/primitives/button';
 
 export default function ModalGalleryFooter({
   category,

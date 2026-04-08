@@ -7,9 +7,9 @@ import { useAgentStrategies } from '@hooks/data/agent-strategies/use-agent-strat
 import { AgentCampaignsService } from '@services/automation/agent-campaigns.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
 import Textarea from '@ui/inputs/textarea/Textarea';
 import Container from '@ui/layout/container/Container';
+import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import {

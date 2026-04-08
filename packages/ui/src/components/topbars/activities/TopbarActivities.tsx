@@ -27,9 +27,9 @@ import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-man
 import { useIngredientOverlay } from '@providers/global-modals/global-modals.provider';
 import { EnvironmentService } from '@services/core/environment.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
 import {
+  Button,
   buttonVariants,
   Button as PrimitiveButton,
 } from '@ui/primitives/button';

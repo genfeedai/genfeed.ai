@@ -41,15 +41,15 @@ vi.mock('@hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
   useModalAutoOpen: vi.fn(),
 }));
 
-vi.mock('@ui/forms/inputs/input/form-input/FormInput', () => ({
+vi.mock('@ui/primitives/input', () => ({
   default: (props: any) => <input data-testid={`input-${props.name}`} />,
 }));
 
-vi.mock('@ui/forms/inputs/textarea/form-textarea/FormTextarea', () => ({
+vi.mock('@ui/primitives/textarea', () => ({
   default: (props: any) => <textarea data-testid={`textarea-${props.name}`} />,
 }));
 
-vi.mock('@ui/forms/base/form-control/FormControl', () => ({
+vi.mock('@ui/primitives/field', () => ({
   default: ({ children }: any) => <div>{children}</div>,
 }));
 

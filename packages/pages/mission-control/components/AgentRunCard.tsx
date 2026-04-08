@@ -2,7 +2,7 @@
 
 import { AgentExecutionStatus, ButtonVariant } from '@genfeedai/enums';
 import type { IAgentRun } from '@genfeedai/interfaces';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 
 interface AgentRunCardProps {
   run: IAgentRun;

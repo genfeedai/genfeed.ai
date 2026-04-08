@@ -6,7 +6,7 @@ import {
   formatCompactNumberIntl,
 } from '@helpers/formatting/format/format.helper';
 import type { PlatformTimeSeriesChartProps } from '@props/analytics/charts.props';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { useState } from 'react';
 import {
   Area,

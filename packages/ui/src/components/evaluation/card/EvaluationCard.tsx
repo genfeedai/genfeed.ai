@@ -9,8 +9,8 @@ import {
 } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { EvaluationCardProps } from '@props/components/evaluation-card.props';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
+import { Button } from '@ui/primitives/button';
 import { useState } from 'react';
 import { HiArrowUp, HiChevronDown } from 'react-icons/hi2';
 

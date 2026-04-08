@@ -2,7 +2,7 @@ import { AgentPanel } from '@genfeedai/agent/components/AgentPanel';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { usePathname } from 'next/navigation';
 import { type ReactElement, useCallback, useState } from 'react';
 import { HiOutlineSparkles, HiOutlineXMark } from 'react-icons/hi2';

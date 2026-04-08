@@ -2,9 +2,9 @@ import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/enums';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
 import { useModalAutoOpen } from '@hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import type { ModalConfirmProps } from '@props/modals/modal.props';
-import Button from '@ui/buttons/base/Button';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HiOutlineExclamationTriangle } from 'react-icons/hi2';
 

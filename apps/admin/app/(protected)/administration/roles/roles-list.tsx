@@ -1,6 +1,5 @@
 'use client';
 
-import Button from '@components/buttons/base/Button';
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import { LazyModalRole } from '@components/lazy/LazyModal';
 import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/enums';
@@ -13,6 +12,7 @@ import { logger } from '@services/core/logger.service';
 import { RolesService } from '@services/organization/roles.service';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
+import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useState } from 'react';
 import {
   HiOutlineShieldCheck,

@@ -52,7 +52,7 @@ function NotificationItem({
 
   return (
     <div
-      className={`flex flex-col rounded-lg border shadow-xl animate-in fade-in slide-in-from-top-4 duration-300 max-w-md ${typeStyles[type]}`}
+      className={`flex flex-col border shadow-xl animate-in fade-in slide-in-from-top-4 duration-300 max-w-md ${typeStyles[type]}`}
     >
       <div className="flex items-center gap-3 px-4 py-3">
         <Icon className="w-5 h-5 shrink-0" />

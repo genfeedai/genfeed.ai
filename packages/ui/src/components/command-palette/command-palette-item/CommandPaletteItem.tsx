@@ -4,7 +4,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import type { ICommandPaletteItemProps } from '@genfeedai/interfaces/ui/command-palette.interface';
 import { Kbd } from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import type { ReactNode } from 'react';
 
 export function CommandPaletteItem({

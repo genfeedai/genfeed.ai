@@ -3,7 +3,7 @@
 import { useSidebarNavigation } from '@contexts/ui/sidebar-navigation-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 
 interface TopbarBreadcrumbsProps {
   /** Override the first segment label (e.g. "Admin" when no BrandProvider) */

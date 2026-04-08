@@ -5,10 +5,10 @@ import { useTrainingsContext } from '@contexts/models/trainings-context/training
 import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
 import type { NavigationTab } from '@genfeedai/interfaces/ui/navigation.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
-import Button from '@ui/buttons/base/Button';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import { LazyModalTrainingNew } from '@ui/lazy/modal/LazyModal';
+import { Button } from '@ui/primitives/button';
 import { usePathname } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useCallback, useMemo } from 'react';

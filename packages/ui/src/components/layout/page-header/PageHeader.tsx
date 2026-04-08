@@ -3,8 +3,8 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { PageHeaderProps } from '@props/layout/page-header.props';
-import Button from '@ui/buttons/base/Button';
 import ContainerTitle from '@ui/layout/container-title/ContainerTitle';
+import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { HiArrowLeft } from 'react-icons/hi2';

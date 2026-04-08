@@ -1,21 +1,20 @@
 'use client';
 
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
-import DropdownBase from '@components/dropdowns/base/DropdownBase';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Bot } from '@models/automation/bot.model';
 import { BotsService } from '@services/automation/bots.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
-import { Button as PrimitiveButton } from '@ui/primitives/button';
+import { Button } from '@ui/primitives/button';
+import { Dropdown } from '@ui/primitives/dropdown';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -172,7 +171,7 @@ export default function BotsPage() {
                       )}
                     </div>
 
-                    <DropdownBase
+                    <Dropdown
                       trigger={
                         <Button
                           variant={ButtonVariant.GHOST}
@@ -185,15 +184,15 @@ export default function BotsPage() {
                     >
                       <ul className="menu p-0">
                         <li>
-                          <PrimitiveButton asChild variant={ButtonVariant.SOFT}>
+                          <Button asChild variant={ButtonVariant.SOFT}>
                             <Link href={`/bots/${bot.id}/edit`}>
                               <HiPencil className="w-4 h-4" />
                               Edit
                             </Link>
-                          </PrimitiveButton>
+                          </Button>
                         </li>
                         <li>
-                          <PrimitiveButton
+                          <Button
                             asChild
                             variant={ButtonVariant.SOFT}
                             className="text-error"
@@ -202,10 +201,10 @@ export default function BotsPage() {
                               <HiTrash className="w-4 h-4" />
                               Delete
                             </Link>
-                          </PrimitiveButton>
+                          </Button>
                         </li>
                       </ul>
-                    </DropdownBase>
+                    </Dropdown>
                   </div>
                 </div>
               </Card>

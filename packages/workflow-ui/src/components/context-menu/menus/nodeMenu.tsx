@@ -114,7 +114,7 @@ export function getNodeMenuItems({
       return {
         icon: (
           <div
-            className="w-4 h-4 rounded-sm border border-border"
+            className="w-4 h-4 border border-border"
             style={{ backgroundColor: colorValue || 'transparent' }}
           />
         ),

@@ -1,6 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import {
@@ -106,7 +106,7 @@ export function PublishPostCard({
 
   if (isSubmitted) {
     return (
-      <div className="my-2 rounded-lg border border-emerald-500/20 bg-background p-4">
+      <div className="my-2 border border-emerald-500/20 bg-background p-4">
         <div className="flex items-center gap-2 text-emerald-600">
           <HiCheckCircle className="h-5 w-5" />
           <span className="text-sm font-medium">
@@ -120,7 +120,7 @@ export function PublishPostCard({
   }
 
   return (
-    <div className="my-2 rounded-lg border border-border bg-background p-4">
+    <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
         <HiPaperAirplane className="h-5 w-5 text-emerald-500" />
         <h3 className="text-sm font-semibold text-foreground">

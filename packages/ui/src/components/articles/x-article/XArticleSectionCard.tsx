@@ -3,8 +3,8 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Blockquote } from '@genfeedai/ui';
 import type { XArticleSectionCardProps } from '@props/content/x-article.props';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
+import { Button } from '@ui/primitives/button';
 import { createMarkup } from '@utils/sanitize-html';
 import { HiClipboard } from 'react-icons/hi2';
 

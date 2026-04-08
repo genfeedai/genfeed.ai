@@ -1,6 +1,5 @@
 'use client';
 
-import Button from '@components/buttons/base/Button';
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import { ButtonVariant } from '@genfeedai/enums';
 import type { ICrmCompany, ICrmLead, ICrmTask } from '@genfeedai/interfaces';
@@ -18,6 +17,7 @@ import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import { Button } from '@ui/primitives/button';
 import {
   Dialog,
   DialogContent,

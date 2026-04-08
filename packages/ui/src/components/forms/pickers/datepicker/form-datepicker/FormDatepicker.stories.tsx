@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
-import FormDatepicker from '@ui/forms/pickers/datepicker/form-datepicker/FormDatepicker';
+import FormDatepicker from '@ui/primitives/datepicker';
 import { useState } from 'react';
 
 /**

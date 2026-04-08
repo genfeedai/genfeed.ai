@@ -30,7 +30,10 @@
       "@services/*": ["../../../packages/services/*"],
       "@styles/*": ["../../../packages/styles/*"],
       "@ui-constants/*": ["../../../packages/ui/constants/*"],
-      "@ui/*": ["../../../packages/ui/*"],
+      "@ui/*": [
+        "../../../packages/ui/src/*",
+        "../../../packages/ui/src/components/*"
+      ],
       "@utils/*": ["../../../packages/utils/*"]
     },
     "resolveJsonModule": true,

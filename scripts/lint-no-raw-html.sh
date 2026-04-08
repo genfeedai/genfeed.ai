@@ -23,7 +23,7 @@ set -euo pipefail
 # ─── Raw HTML → @ui primitive mapping ──────────────────────────────────
 # Each entry: "pattern|replacement"
 RULES=(
-  '<button\b|Button from @ui/buttons/base/Button'
+  '<button\b|Button from @ui/primitives/button'
   '<textarea\b|Textarea from @ui/primitives/textarea'
   '<select\b|Select from @ui/primitives/select'
   '<dialog\b|Dialog from @ui/primitives/dialog'

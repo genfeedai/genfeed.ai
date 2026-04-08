@@ -4,7 +4,7 @@ import type {
   ClipRunStep,
 } from '@genfeedai/agent/models/clip-run-card.model';
 import { ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 import {
   HiCheckCircle,
@@ -109,7 +109,7 @@ export function ClipRunCard({
   );
 
   return (
-    <div className="mt-2 overflow-hidden rounded-lg border border-border bg-background">
+    <div className="mt-2 overflow-hidden border border-border bg-background">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
         <div className="flex items-center gap-2">
@@ -125,7 +125,7 @@ export function ClipRunCard({
 
       <div className="space-y-3 p-3">
         {/* Step progress list */}
-        <div className="rounded border border-border p-2.5">
+        <div className="border border-border p-2.5">
           <p className="mb-2 text-xs font-medium text-foreground">Steps</p>
           <div className="space-y-1.5">
             {state.steps.map((step) => (
@@ -144,7 +144,7 @@ export function ClipRunCard({
         </div>
 
         {/* Mode display */}
-        <div className="rounded border border-border p-2.5">
+        <div className="border border-border p-2.5">
           <p className="mb-2 text-xs font-medium text-foreground">Modes</p>
           <div className="grid grid-cols-2 gap-1.5 text-xs text-muted-foreground">
             {(Object.entries(MODE_LABELS) as [ClipRunToggleKey, string][]).map(
@@ -174,7 +174,7 @@ export function ClipRunCard({
 
         {/* Error state */}
         {state.status === 'failed' && failedStep && (
-          <div className="flex items-start gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+          <div className="flex items-start gap-2 border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
             <HiXCircle className="mt-0.5 h-4 w-4 shrink-0" />
             <div>
               <p className="font-medium">Failed at: {failedStep.label}</p>
@@ -190,7 +190,7 @@ export function ClipRunCard({
 
         {/* Confirmation prompt */}
         {state.confirmationPending && (
-          <div className="rounded border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-900 dark:bg-yellow-950">
+          <div className="border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-900 dark:bg-yellow-950">
             <div className="mb-2 flex items-center gap-2 text-xs font-medium text-yellow-700 dark:text-yellow-300">
               <HiExclamationTriangle className="h-4 w-4" />
               <span>
@@ -202,7 +202,7 @@ export function ClipRunCard({
                 variant={ButtonVariant.DEFAULT}
                 withWrapper={false}
                 onClick={onConfirm}
-                className="flex items-center gap-1 rounded px-3 py-1.5 text-xs font-medium"
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium"
               >
                 <HiCheckCircle className="h-3.5 w-3.5" />
                 Confirm
@@ -211,7 +211,7 @@ export function ClipRunCard({
                 variant={ButtonVariant.OUTLINE}
                 withWrapper={false}
                 onClick={onCancel}
-                className="flex items-center gap-1 rounded px-3 py-1.5 text-xs font-medium"
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium"
               >
                 Cancel
               </Button>
@@ -221,7 +221,7 @@ export function ClipRunCard({
 
         {/* Final output link */}
         {state.status === 'done' && state.finalOutputUrl && (
-          <div className="flex items-center gap-2 rounded border border-green-200 bg-green-50 px-3 py-2 dark:border-green-900 dark:bg-green-950">
+          <div className="flex items-center gap-2 border border-green-200 bg-green-50 px-3 py-2 dark:border-green-900 dark:bg-green-950">
             <HiCheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
             <a
               href={state.finalOutputUrl}

@@ -1,6 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 import { HiArrowTrendingUp, HiFire, HiPencilSquare } from 'react-icons/hi2';
 
@@ -16,7 +16,7 @@ export function TrendingTopicsCard({
   const trends = action.trends ?? [];
 
   return (
-    <div className="my-2 rounded-lg border border-border bg-background p-4">
+    <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
         <HiFire className="h-5 w-5 text-orange-500" />
         <h3 className="text-sm font-semibold">

@@ -1,5 +1,6 @@
 import { buildSerializer } from '@serializers/builders';
 import {
+  videoCaptionSerializerConfig,
   videoEditSerializerConfig,
   videoSerializerConfig,
 } from '@serializers/configs';
@@ -19,4 +20,9 @@ export const { VideoSerializer } = buildSerializer(
 export const { VideoEditSerializer } = buildSerializer(
   'server',
   videoEditSerializerConfig,
+);
+
+export const { VideoCaptionSerializer } = buildSerializer(
+  'server',
+  videoCaptionSerializerConfig,
 );

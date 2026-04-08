@@ -3,9 +3,9 @@
 import { ButtonVariant, CardVariant } from '@genfeedai/enums';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import type { TrendingHashtagsProps } from '@props/analytics/trends.props';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
+import { Button } from '@ui/primitives/button';
 import {
   PLATFORM_CONFIGS,
   PLATFORM_CONFIGS_ARRAY,

@@ -1,6 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { type ReactElement, useCallback, useState } from 'react';
 import {
@@ -43,7 +43,7 @@ export function LivestreamBotCard({
   );
 
   return (
-    <div className="my-2 overflow-hidden rounded-lg border border-sky-500/20 bg-background">
+    <div className="my-2 overflow-hidden border border-sky-500/20 bg-background">
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
         <HiChatBubbleLeftRight className="h-5 w-5 text-sky-500" />
         <div>
@@ -59,7 +59,7 @@ export function LivestreamBotCard({
       </div>
 
       <div className="space-y-3 p-4">
-        <div className="rounded border border-border bg-card/40 p-3">
+        <div className="border border-border bg-card/40 p-3">
           <div className="text-sm font-medium text-foreground">
             {action.botName || 'Livestream bot'}
           </div>
@@ -84,7 +84,7 @@ export function LivestreamBotCard({
                   <Link
                     key={`${action.id}-bot-link-${index}`}
                     href={cta.href}
-                    className="inline-flex items-center gap-1.5 rounded border border-border px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                    className="inline-flex items-center gap-1.5 border border-border px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent"
                   >
                     <span>{cta.label}</span>
                     <HiArrowTopRightOnSquare className="h-3.5 w-3.5" />
@@ -98,6 +98,7 @@ export function LivestreamBotCard({
 
               const isPending = pendingAction === cta.action;
               const isCompleted = completedAction === cta.action;
+              const actionName = cta.action;
 
               return (
                 <Button
@@ -106,9 +107,9 @@ export function LivestreamBotCard({
                   withWrapper={false}
                   isDisabled={isPending || isCompleted}
                   onClick={() => {
-                    void handleActionClick(cta.action!, cta.payload);
+                    void handleActionClick(actionName, cta.payload);
                   }}
-                  className="inline-flex items-center gap-1.5 rounded bg-sky-500 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 bg-sky-500 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <span>
                     {isPending

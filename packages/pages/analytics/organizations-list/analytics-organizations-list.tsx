@@ -11,10 +11,10 @@ import {
   type IPaginatedOrgsResponse,
 } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
-import Button from '@ui/buttons/base/Button';
 import AppTable from '@ui/display/table/Table';
-import FormDropdown from '@ui/forms/selectors/dropdown/form-dropdown/FormDropdown';
 import Loading from '@ui/loading/default/Loading';
+import { Button } from '@ui/primitives/button';
+import FormDropdown from '@ui/primitives/dropdown-field';
 import { format } from 'date-fns';
 import Image from 'next/image';
 import Link from 'next/link';

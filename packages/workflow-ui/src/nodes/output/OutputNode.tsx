@@ -140,7 +140,7 @@ function DownloadNodeComponent(props: NodeProps) {
                 )}
               </div>
             ) : (
-              <div className="flex-1 min-h-[60px] overflow-y-auto rounded-md border border-border bg-background p-2 text-sm">
+              <div className="flex-1 min-h-[60px] overflow-y-auto border border-border bg-background p-2 text-sm">
                 {String(activeMedia)}
               </div>
             )}
@@ -173,7 +173,7 @@ function DownloadNodeComponent(props: NodeProps) {
             </Button>
           </>
         ) : isConnected && isRunning ? (
-          <div className="relative flex h-20 flex-col items-center justify-center rounded-md bg-black/20">
+          <div className="relative flex h-20 flex-col items-center justify-center bg-black/20">
             <div className="flex flex-col items-center gap-2">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <span className="text-xs text-white/80">Generating...</span>

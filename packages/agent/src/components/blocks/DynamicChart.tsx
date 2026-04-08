@@ -70,7 +70,7 @@ function DynamicChart({ block }: DynamicChartProps): ReactElement {
   if (isLoading) {
     return (
       <div
-        className="overflow-hidden rounded-lg border border-border bg-card/60"
+        className="overflow-hidden border border-border bg-card/60"
         style={{ height: chartHeight }}
       >
         <div className="flex h-full items-end gap-3 px-6 py-5">

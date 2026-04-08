@@ -1,6 +1,6 @@
 import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import { cn } from '../lib/utils';
-import { Button } from '../primitives/button';
 
 export type ContentType = 'image' | 'video' | 'text';
 

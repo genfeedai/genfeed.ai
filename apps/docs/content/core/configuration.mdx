@@ -17,6 +17,10 @@ bun run env:sync local
 The root env files are the source of truth. `bun run env:sync local|staging|production` generates the app and service `.env*` files used by local frontend and backend runtimes.
 </Callout>
 
+<Callout type="info">
+For EC2 deploys, prefer AWS Systems Manager Parameter Store over a persistent `.env.production` on disk. The deploy scripts can hydrate `.env.staging` or `.env.production` from SSM at deploy time, then render the service env files automatically.
+</Callout>
+
 ---
 
 ## Database
@@ -91,6 +95,34 @@ By default, generated assets are stored locally. For production, configure S3-co
 |----------|----------|---------|-------------|
 | `NODE_ENV` | No | `development` | Environment mode (`development`, `production`, `test`) |
 | `PORT` | No | `3001` | API server port |
+
+---
+
+## EC2 With AWS SSM Parameter Store
+
+For staging and production on EC2, store secrets as individual parameters under a flat path:
+
+```text
+/genfeed/staging/OPENAI_API_KEY
+/genfeed/staging/API_SENTRY_DSN
+/genfeed/production/OPENAI_API_KEY
+/genfeed/production/API_SENTRY_DSN
+```
+
+Recommended setup:
+
+- Attach an IAM role to the EC2 instance with `ssm:GetParametersByPath`, `ssm:GetParameters`, and `kms:Decrypt` if you use a customer-managed KMS key.
+- Keep the path prefix flat so the parameter leaf name matches the canonical env key.
+- Optionally set `SSM_PARAMETER_PATH_PREFIX` in GitHub Actions repo variables if you want a prefix other than `/genfeed`.
+
+At deploy time, the EC2 host runs:
+
+```bash
+./docker/render-ssm-env.sh staging
+./docker/render-ssm-env.sh production
+```
+
+That script fetches SSM values into the root env file for the target environment and then renders service env files used by Docker Compose.
 
 ---
 

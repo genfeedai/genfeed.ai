@@ -7,9 +7,8 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
-import { Button as PrimitiveButton } from '@ui/primitives/button';
+import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useCallback, useEffect, useState } from 'react';
 import { HiTrash } from 'react-icons/hi2';

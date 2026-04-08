@@ -14,10 +14,10 @@ import type { TagsManagerComponentProps } from '@props/content/tags-manager.prop
 import { IngredientsService } from '@services/content/ingredients.service';
 import { TagsService } from '@services/content/tags.service';
 import { logger } from '@services/core/logger.service';
-import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
 import Loading from '@ui/loading/default/Loading';
+import { Button } from '@ui/primitives/button';
+import { Input } from '@ui/primitives/input';
 import { THEME_COLORS } from '@ui-constants/misc.constant';
 import { useState } from 'react';
 import { HiPlus, HiXMark } from 'react-icons/hi2';
@@ -304,7 +304,7 @@ export default function TagsManager({
                 </>
               ) : (
                 <div className="p-2">
-                  <FormInput
+                  <Input
                     name="newTag"
                     type="text"
                     value={newTagLabel}

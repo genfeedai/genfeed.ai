@@ -48,7 +48,7 @@ export function TemplateCard({
       type="button"
       variant={ButtonVariant.UNSTYLED}
       onClick={onSelect}
-      className={`flex flex-col items-start rounded-lg border p-3 text-left transition-colors hover:bg-secondary/50 ${borderColor}`}
+      className={`flex flex-col items-start border p-3 text-left transition-colors hover:bg-secondary/50 ${borderColor}`}
     >
       <span className="mb-1.5 flex h-6 w-6 items-center justify-center rounded bg-secondary text-[10px] font-bold text-muted-foreground">
         {platformLabel}

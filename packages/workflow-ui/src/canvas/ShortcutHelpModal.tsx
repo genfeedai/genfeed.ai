@@ -2,7 +2,7 @@
 
 import { Kbd } from '@genfeedai/ui';
 import { Keyboard, Search, X } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useUIStore } from '../stores/uiStore';
 import { Button } from '../ui/button';
 
@@ -91,8 +91,6 @@ const CATEGORIES = [
 export function ShortcutHelpModal() {
   const { activeModal, closeModal } = useUIStore();
   const [searchQuery, setSearchQuery] = useState('');
-  const backdropRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const isOpen = activeModal === 'shortcutHelp';
 
@@ -124,84 +122,85 @@ export function ShortcutHelpModal() {
     setSearchQuery('');
   };
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === backdropRef.current) {
-      handleClose();
-    }
-  };
-
   if (!isOpen) return null;
 
   return (
-    <div
-      ref={backdropRef}
-      onClick={handleBackdropClick}
-      className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh]"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
-    >
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        onClick={handleClose}
+        className="fixed inset-0 z-50 h-full w-full p-0 opacity-0"
+        aria-label="Close keyboard shortcuts"
+      />
       <div
-        className="bg-[var(--background)] border border-[var(--border)] rounded-lg shadow-xl w-full max-w-2xl"
-        role="dialog"
-        aria-label="Keyboard Shortcuts"
+        className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] pointer-events-none"
+        style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
-          <div className="flex items-center gap-2">
-            <Keyboard className="w-4 h-4 text-[var(--muted-foreground)]" />
-            <span className="text-sm font-medium">Keyboard Shortcuts</span>
-          </div>
-          <Button variant="ghost" size="icon-sm" onClick={handleClose}>
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
-
-        {/* Content */}
-        <div className="p-4">
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder="Search shortcuts..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm bg-[var(--secondary)] border border-[var(--border)] rounded-md outline-none focus:ring-1 focus:ring-[var(--ring)]"
-            />
+        <div
+          className="bg-[var(--background)] border border-[var(--border)] shadow-xl w-full max-w-2xl pointer-events-auto"
+          role="dialog"
+          aria-label="Keyboard Shortcuts"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border)]">
+            <div className="flex items-center gap-2">
+              <Keyboard className="w-4 h-4 text-[var(--muted-foreground)]" />
+              <span className="text-sm font-medium">Keyboard Shortcuts</span>
+            </div>
+            <Button variant="ghost" size="icon-sm" onClick={handleClose}>
+              <X className="w-4 h-4" />
+            </Button>
           </div>
 
-          <div className="max-h-[60vh] overflow-y-auto space-y-6 pr-2">
-            {Object.entries(groupedShortcuts).map(([category, shortcuts]) => (
-              <div key={category}>
-                <h3 className="text-sm font-semibold text-muted-foreground mb-2">
-                  {category}
-                </h3>
-                <div className="space-y-1">
-                  {shortcuts.map((shortcut) => (
-                    <div
-                      key={shortcut.keys}
-                      className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-secondary/50"
-                    >
-                      <span className="text-sm">{shortcut.description}</span>
-                      <Kbd
-                        variant="muted"
-                        className="px-2 py-1 border border-border"
+          {/* Content */}
+          <div className="p-4">
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search shortcuts..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-sm bg-[var(--secondary)] border border-[var(--border)] outline-none focus:ring-1 focus:ring-[var(--ring)]"
+              />
+            </div>
+
+            <div className="max-h-[60vh] overflow-y-auto space-y-6 pr-2">
+              {Object.entries(groupedShortcuts).map(([category, shortcuts]) => (
+                <div key={category}>
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-2">
+                    {category}
+                  </h3>
+                  <div className="space-y-1">
+                    {shortcuts.map((shortcut) => (
+                      <div
+                        key={shortcut.keys}
+                        className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-secondary/50"
                       >
-                        {shortcut.keys}
-                      </Kbd>
-                    </div>
-                  ))}
+                        <span className="text-sm">{shortcut.description}</span>
+                        <Kbd
+                          variant="muted"
+                          className="px-2 py-1 border border-border"
+                        >
+                          {shortcut.keys}
+                        </Kbd>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
 
-            {filteredShortcuts.length === 0 && (
-              <div className="text-center text-muted-foreground py-8">
-                No shortcuts found for &quot;{searchQuery}&quot;
-              </div>
-            )}
+              {filteredShortcuts.length === 0 && (
+                <div className="text-center text-muted-foreground py-8">
+                  No shortcuts found for &quot;{searchQuery}&quot;
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

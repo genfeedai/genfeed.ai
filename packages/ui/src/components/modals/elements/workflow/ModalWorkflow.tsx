@@ -13,14 +13,14 @@ import {
 import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
 import type { ModalCrudProps } from '@props/modals/modal.props';
 import { WorkflowsService } from '@services/automation/workflows.service';
-import Button from '@ui/buttons/base/Button';
 import Alert from '@ui/feedback/alert/Alert';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormTextarea from '@ui/forms/inputs/textarea/form-textarea/FormTextarea';
-import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
+import { SelectField } from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { type ChangeEvent, useEffect, useState } from 'react';
 
 const AVAILABLE_TASKS = [
@@ -111,7 +111,7 @@ export default function ModalWorkflow({
         )}
 
         <FormControl label="Label">
-          <FormInput
+          <Input
             type="text"
             name="label"
             control={form.control}
@@ -123,7 +123,7 @@ export default function ModalWorkflow({
         </FormControl>
 
         <FormControl label="Key">
-          <FormInput
+          <Input
             type="text"
             name="key"
             control={form.control}
@@ -135,7 +135,7 @@ export default function ModalWorkflow({
         </FormControl>
 
         <FormControl label="Description">
-          <FormTextarea
+          <Textarea
             name="description"
             control={form.control}
             onChange={handleChange}
@@ -145,7 +145,7 @@ export default function ModalWorkflow({
         </FormControl>
 
         <FormControl label="Trigger">
-          <FormSelect
+          <SelectField
             name="trigger"
             control={form.control}
             onChange={handleChange}
@@ -155,7 +155,7 @@ export default function ModalWorkflow({
             <option value="scheduled">Scheduled</option>
             <option value="on-video-complete">On Video Complete</option>
             <option value="on-image-complete">On Image Complete</option>
-          </FormSelect>
+          </SelectField>
         </FormControl>
 
         <FormControl label="Tasks">
@@ -228,7 +228,7 @@ export default function ModalWorkflow({
         </FormControl>
 
         <FormControl label="Status">
-          <FormSelect
+          <SelectField
             name="status"
             control={form.control}
             onChange={handleChange}
@@ -237,7 +237,7 @@ export default function ModalWorkflow({
             <option value="draft">Draft</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
-          </FormSelect>
+          </SelectField>
         </FormControl>
 
         <ModalActions>

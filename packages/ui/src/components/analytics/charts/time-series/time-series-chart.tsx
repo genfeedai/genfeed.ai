@@ -7,7 +7,7 @@ import {
   formatPercentageSimple,
 } from '@helpers/formatting/format/format.helper';
 import type { TimeSeriesChartProps } from '@props/analytics/analytics.props';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { useState } from 'react';
 import {
   Area,

@@ -2,7 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import type { OfflinePageProps } from '@props/pages/offline.props';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { PWA_APPS } from '@ui-constants/pwa/pwa-apps.constant';
 
 /**

@@ -11,9 +11,9 @@ import {
   getErrorDebugInfo,
   subscribe,
 } from '@services/core/error-debug-store';
-import Button from '@ui/buttons/base/Button';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { HiChevronDown, HiChevronRight } from 'react-icons/hi2';

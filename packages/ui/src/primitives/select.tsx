@@ -1,8 +1,19 @@
 'use client';
 
 import * as SelectPrimitive from '@radix-ui/react-select';
+import { cva } from 'class-variance-authority';
 import { Check, ChevronDown, ChevronUp } from 'lucide-react';
-import { type ComponentPropsWithoutRef, forwardRef } from 'react';
+import {
+  type ChangeEvent,
+  Children,
+  type ComponentPropsWithoutRef,
+  forwardRef,
+  isValidElement,
+  type ReactElement,
+  type ReactNode,
+} from 'react';
+import type { Control, FieldValues, Path } from 'react-hook-form';
+import { useController } from 'react-hook-form';
 import { cn } from '../lib/utils';
 import {
   fieldControlClassName,
@@ -15,6 +26,18 @@ const Select = SelectPrimitive.Root;
 const SelectGroup = SelectPrimitive.Group;
 
 const SelectValue = SelectPrimitive.Value;
+
+const selectFieldVariants = cva('', {
+  defaultVariants: {
+    variant: 'default',
+  },
+  variants: {
+    variant: {
+      default: '',
+      error: 'border-destructive focus-visible:ring-destructive',
+    },
+  },
+});
 
 const SelectTrigger = forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
@@ -151,9 +174,237 @@ const SelectSeparator = forwardRef<
 ));
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName;
 
+interface SelectFieldOption {
+  children: ReactNode;
+  disabled?: boolean;
+  label?: string;
+  value: string;
+}
+
+export interface SelectFieldProps<T extends FieldValues = FieldValues> {
+  children: ReactNode;
+  className?: string;
+  control?: Control<T>;
+  error?: string;
+  isDisabled?: boolean;
+  isFullWidth?: boolean;
+  isRequired?: boolean;
+  label?: string;
+  name: Path<T> | string;
+  onChange?: (event: ChangeEvent<HTMLSelectElement>) => void;
+  placeholder?: string;
+  value?: string | number;
+}
+
+function extractOptions(children: ReactNode): SelectFieldOption[] {
+  return Children.toArray(children).flatMap((child) => {
+    if (!isValidElement(child)) {
+      return [];
+    }
+
+    const element = child as ReactElement<{
+      children?: ReactNode;
+      disabled?: boolean;
+      label?: string;
+      value?: string | number;
+    }>;
+
+    if (element.type === 'option') {
+      if (element.props.value == null) {
+        return [];
+      }
+
+      return [
+        {
+          children: element.props.children,
+          disabled: element.props.disabled,
+          value: String(element.props.value),
+        },
+      ];
+    }
+
+    if (element.type === 'optgroup') {
+      return Children.toArray(element.props.children).flatMap((nestedChild) => {
+        if (!isValidElement(nestedChild)) {
+          return [];
+        }
+
+        const nestedElement = nestedChild as ReactElement<{
+          children?: ReactNode;
+          disabled?: boolean;
+          value?: string | number;
+        }>;
+
+        if (
+          nestedElement.type !== 'option' ||
+          nestedElement.props.value == null
+        ) {
+          return [];
+        }
+
+        return [
+          {
+            children: nestedElement.props.children,
+            disabled: nestedElement.props.disabled,
+            label: element.props.label,
+            value: String(nestedElement.props.value),
+          },
+        ];
+      });
+    }
+
+    return [];
+  });
+}
+
+function SelectFieldInner<T extends FieldValues = FieldValues>({
+  name,
+  value,
+  label,
+  error,
+  placeholder = 'Select an option',
+  className = '',
+  isDisabled = false,
+  isRequired = false,
+  isFullWidth = true,
+  onChange,
+  children,
+  fieldName,
+  fieldOnBlur,
+  fieldOnChange,
+  fieldRef,
+}: SelectFieldProps<T> & {
+  fieldName?: string;
+  fieldOnBlur?: () => void;
+  fieldOnChange?: (value: string) => void;
+  fieldRef?: (element: HTMLInputElement | null) => void;
+}) {
+  const options = extractOptions(children);
+
+  const selectValue = value != null ? String(value) : undefined;
+
+  const handleValueChange = (nextValue: string) => {
+    fieldOnChange?.(nextValue);
+
+    onChange?.({
+      currentTarget: { name, value: nextValue },
+      target: { name, value: nextValue },
+    } as ChangeEvent<HTMLSelectElement>);
+  };
+
+  const groupedOptions = options.reduce<Record<string, SelectFieldOption[]>>(
+    (groups, option) => {
+      const groupKey = option.label || '__ungrouped__';
+      groups[groupKey] ??= [];
+      groups[groupKey].push(option);
+      return groups;
+    },
+    {},
+  );
+
+  return (
+    <div
+      className={cn('flex flex-col gap-1.5', isFullWidth ? 'w-full' : 'w-fit')}
+    >
+      {label ? (
+        <label className="text-sm font-medium" htmlFor={name}>
+          {label}
+          {isRequired ? <span className="text-destructive ml-1">*</span> : null}
+        </label>
+      ) : null}
+
+      <Select
+        disabled={isDisabled}
+        name={fieldName || name}
+        value={selectValue}
+        onValueChange={handleValueChange}
+      >
+        <input
+          hidden={true}
+          name={fieldName || name}
+          onBlur={fieldOnBlur}
+          onChange={() => {}}
+          ref={fieldRef}
+          required={isRequired}
+          value={selectValue ?? ''}
+        />
+
+        <SelectTrigger
+          aria-invalid={error ? 'true' : undefined}
+          className={cn(
+            selectFieldVariants({ variant: error ? 'error' : 'default' }),
+            isFullWidth ? 'w-full' : '',
+            className,
+          )}
+        >
+          <SelectValue placeholder={placeholder || undefined} />
+        </SelectTrigger>
+
+        <SelectContent>
+          {Object.entries(groupedOptions).map(([groupLabel, groupOptions]) => {
+            const items = groupOptions.map((option) => (
+              <SelectItem
+                key={`${groupLabel}-${option.value}`}
+                disabled={option.disabled}
+                value={option.value}
+              >
+                {option.children}
+              </SelectItem>
+            ));
+
+            if (groupLabel === '__ungrouped__') {
+              return items;
+            }
+
+            return (
+              <SelectGroup key={groupLabel}>
+                <SelectLabel>{groupLabel}</SelectLabel>
+                {items}
+              </SelectGroup>
+            );
+          })}
+        </SelectContent>
+      </Select>
+
+      {error ? <span className="text-xs text-destructive">{error}</span> : null}
+    </div>
+  );
+}
+
+function HookedSelectField<T extends FieldValues = FieldValues>(
+  props: SelectFieldProps<T> & { control: Control<T> },
+) {
+  const { field } = useController({
+    control: props.control,
+    name: props.name as Path<T>,
+  });
+
+  return (
+    <SelectFieldInner
+      {...props}
+      fieldName={field.name}
+      fieldOnBlur={field.onBlur}
+      fieldOnChange={field.onChange}
+      fieldRef={field.ref}
+      value={field.value != null ? String(field.value) : undefined}
+    />
+  );
+}
+
+function SelectField<T extends FieldValues = FieldValues>(
+  props: SelectFieldProps<T>,
+) {
+  if (props.control) {
+    return <HookedSelectField {...props} control={props.control} />;
+  }
+
+  return <SelectFieldInner {...props} />;
+}
+
 export {
   Select,
   SelectContent,
+  SelectField,
   SelectGroup,
   SelectItem,
   SelectLabel,

@@ -5,7 +5,7 @@ import type {
   PromptSuggestion,
   PromptSuggestionsProps,
 } from '@props/studio/prompt-bar.props';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { useMemo, useState } from 'react';
 import { HiXMark } from 'react-icons/hi2';
 

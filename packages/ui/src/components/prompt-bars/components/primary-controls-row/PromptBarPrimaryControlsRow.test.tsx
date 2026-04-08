@@ -11,7 +11,7 @@ vi.mock('@ui/buttons/base/Button', () => ({
   ),
 }));
 
-vi.mock('@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox', () => ({
+vi.mock('@ui/primitives/checkbox', () => ({
   default: ({ label, name }: any) => (
     <label>
       <input type="checkbox" name={name} />
@@ -20,7 +20,7 @@ vi.mock('@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox', () => ({
   ),
 }));
 
-vi.mock('@ui/forms/selectors/dropdown/form-dropdown/FormDropdown', () => ({
+vi.mock('@ui/primitives/dropdown-field', () => ({
   default: ({ options, value, onChange }: any) => (
     <select value={value} onChange={onChange ?? (() => {})}>
       {options?.map((opt: any) => (

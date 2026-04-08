@@ -2,7 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import type { Voice } from '@models/ingredients/voice.model';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import type { ReactNode } from 'react';
 
 export interface VoiceCatalogListProps {

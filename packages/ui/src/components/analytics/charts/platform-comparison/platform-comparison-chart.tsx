@@ -7,7 +7,7 @@ import {
   formatFullNumber,
 } from '@helpers/formatting/format/format.helper';
 import type { PlatformComparisonChartProps } from '@props/analytics/analytics.props';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { useState } from 'react';
 import {
   Bar,

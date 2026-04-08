@@ -21,13 +21,11 @@ import {
 import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
 import type { ModalReplyBotProps } from '@props/modals/modal.props';
 import { ReplyBotConfigsService } from '@services/automation/reply-bot-configs.service';
-import Button from '@ui/buttons/base/Button';
 import Alert from '@ui/feedback/alert/Alert';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormTextarea from '@ui/forms/inputs/textarea/form-textarea/FormTextarea';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -36,6 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { type ChangeEvent, useEffect } from 'react';
 import {
   FaInstagram,
@@ -260,7 +259,7 @@ export default function ModalReplyBot({
 
         <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
           <FormControl label="Bot Name">
-            <FormInput
+            <Input
               type="text"
               name="name"
               control={form.control}
@@ -272,7 +271,7 @@ export default function ModalReplyBot({
           </FormControl>
 
           <FormControl label="Description">
-            <FormTextarea
+            <Textarea
               name="description"
               control={form.control}
               onChange={handleChange}
@@ -368,7 +367,7 @@ export default function ModalReplyBot({
           </div>
 
           <FormControl label="Reply Tone">
-            <FormInput
+            <Input
               type="text"
               name="replyTone"
               control={form.control}
@@ -379,7 +378,7 @@ export default function ModalReplyBot({
           </FormControl>
 
           <FormControl label="Reply Instructions">
-            <FormTextarea
+            <Textarea
               name="replyInstructions"
               control={form.control}
               onChange={handleChange}
@@ -493,7 +492,7 @@ export default function ModalReplyBot({
               </div>
 
               <FormControl label="Include Keywords (comma-separated)">
-                <FormInput
+                <Input
                   type="text"
                   name="filters.includeKeywords"
                   control={form.control}
@@ -516,7 +515,7 @@ export default function ModalReplyBot({
               </p>
 
               <FormControl label="Exclude Keywords (comma-separated)">
-                <FormInput
+                <Input
                   type="text"
                   name="filters.excludeKeywords"
                   control={form.control}
@@ -547,7 +546,7 @@ export default function ModalReplyBot({
               </div>
 
               <FormControl label="Product Context">
-                <FormTextarea
+                <Textarea
                   name="dmConfig.context"
                   control={form.control}
                   onChange={(e) => {
@@ -563,7 +562,7 @@ export default function ModalReplyBot({
               </FormControl>
 
               <FormControl label="Custom DM Instructions">
-                <FormTextarea
+                <Textarea
                   name="dmConfig.customInstructions"
                   control={form.control}
                   onChange={(e) => {
@@ -581,7 +580,7 @@ export default function ModalReplyBot({
               </FormControl>
 
               <FormControl label="CTA Link">
-                <FormInput
+                <Input
                   type="text"
                   name="dmConfig.ctaLink"
                   control={form.control}
@@ -596,7 +595,7 @@ export default function ModalReplyBot({
               </FormControl>
 
               <FormControl label="Offer">
-                <FormInput
+                <Input
                   type="text"
                   name="dmConfig.offer"
                   control={form.control}

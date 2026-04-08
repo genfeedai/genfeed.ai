@@ -13,15 +13,15 @@ import { useConfirmModal } from '@providers/global-modals/global-modals.provider
 import { ClipboardService } from '@services/core/clipboard.service';
 import XArticleAssetsBar from '@ui/articles/x-article/XArticleAssetsBar';
 import XArticleSectionCard from '@ui/articles/x-article/XArticleSectionCard';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormDropdown from '@ui/forms/selectors/dropdown/form-dropdown/FormDropdown';
 import Breadcrumb from '@ui/navigation/breadcrumb/Breadcrumb';
 import ContentPreviewSidebar from '@ui/preview/ContentPreviewSidebar';
+import { Button } from '@ui/primitives/button';
+import FormDropdown from '@ui/primitives/dropdown-field';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
 import PromptBarArticle from '@ui/prompt-bars/article/PromptBarArticle';
 import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
 import { createMarkup } from '@utils/sanitize-html';
@@ -292,7 +292,7 @@ export default function ArticleDetail({ articleId }: ArticleEditorProps) {
               {/* Title */}
               <Card className="space-y-4">
                 <FormControl label="Title">
-                  <FormInput
+                  <Input
                     name="articleTitle"
                     value={form.label}
                     onChange={(e: ChangeEvent<HTMLInputElement>) =>
@@ -303,7 +303,7 @@ export default function ArticleDetail({ articleId }: ArticleEditorProps) {
                 </FormControl>
 
                 <FormControl label="Slug">
-                  <FormInput
+                  <Input
                     name="articleSlug"
                     value={form.slug}
                     onChange={(e: ChangeEvent<HTMLInputElement>) =>
@@ -329,7 +329,7 @@ export default function ArticleDetail({ articleId }: ArticleEditorProps) {
                   </FormControl>
 
                   <FormControl label="Tags">
-                    <FormInput
+                    <Input
                       name="articleTags"
                       value={form.tags}
                       onChange={(e: ChangeEvent<HTMLInputElement>) =>
@@ -341,7 +341,7 @@ export default function ArticleDetail({ articleId }: ArticleEditorProps) {
                 </div>
 
                 <FormControl label="Summary">
-                  <FormInput
+                  <Input
                     name="articleSummary"
                     value={form.summary}
                     onChange={(e: ChangeEvent<HTMLInputElement>) =>

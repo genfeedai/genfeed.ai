@@ -9,7 +9,7 @@ import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import KeyMetric from '@ui/display/key-metric/KeyMetric';
-import FormToggle from '@ui/forms/selectors/toggle/form-toggle/FormToggle';
+import { Switch } from '@ui/primitives/switch';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import {
@@ -207,7 +207,7 @@ export default function SettingsProgressPage({
           </p>
 
           <InsetSurface className="mt-5" tone="contrast">
-            <FormToggle
+            <Switch
               label="Show Progress in sidebar"
               description="This controls the compact module that combines setup and streak into one closable block."
               isChecked={isVisible}

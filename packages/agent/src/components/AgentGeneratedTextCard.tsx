@@ -1,6 +1,6 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 import { HiOutlineArrowPath, HiOutlineClipboard } from 'react-icons/hi2';
 
@@ -28,7 +28,7 @@ export function AgentGeneratedTextCard({
   return (
     <div
       className={cn(
-        'group mt-2 overflow-hidden rounded-xl border border-white/[0.12] bg-gradient-to-b from-white/[0.04] to-white/[0.02]',
+        'group mt-2 overflow-hidden border border-white/[0.12] bg-gradient-to-b from-white/[0.04] to-white/[0.02]',
         className,
       )}
     >

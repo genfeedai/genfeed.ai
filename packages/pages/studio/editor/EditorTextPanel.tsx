@@ -2,7 +2,7 @@
 
 import { ButtonSize, ButtonVariant, EditorTrackType } from '@genfeedai/enums';
 import type { IEditorTextOverlay, IEditorTrack } from '@genfeedai/interfaces';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { ColorInput } from '@ui/primitives/color-input';
 import {
   Select,

@@ -15,9 +15,9 @@ import { SoundsService } from '@services/elements/sounds.service';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
-import FormCheckbox from '@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox';
 import { LazyModalSound } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Checkbox } from '@ui/primitives/checkbox';
 import { PageScope } from '@ui-constants/misc.constant';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -122,7 +122,7 @@ export default function SoundsList({
       header: 'Active',
       key: 'isActive',
       render: (sound: Sound) => (
-        <FormCheckbox
+        <Checkbox
           name={`isActive-${sound.id}`}
           isChecked={sound.isActive}
           isDisabled={
@@ -136,7 +136,7 @@ export default function SoundsList({
       header: 'Default',
       key: 'isDefault',
       render: (sound: Sound) => (
-        <FormCheckbox
+        <Checkbox
           name={`isDefault-${sound.id}`}
           isChecked={sound.isDefault}
           isDisabled={

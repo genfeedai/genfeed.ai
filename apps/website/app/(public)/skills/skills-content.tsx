@@ -12,8 +12,7 @@ import {
   TERMINAL_COMMANDS,
 } from '@public/skills/_data';
 import { EnvironmentService } from '@services/core/environment.service';
-import BaseButton from '@ui/buttons/base/Button';
-import { Button } from '@ui/primitives/button';
+import { Button as BaseButton, Button } from '@ui/primitives/button';
 import {
   CtaSection,
   NeuralGrid,

@@ -3,7 +3,7 @@
 import { ButtonSize, ButtonVariant, EditorTrackType } from '@genfeedai/enums';
 import type { IEditorClip, IEditorTrack } from '@genfeedai/interfaces';
 import type { EditorTimelineProps } from '@props/studio/editor-timeline.props';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { useCallback, useRef, useState } from 'react';
 
 function formatTime(frames: number, fps: number): string {

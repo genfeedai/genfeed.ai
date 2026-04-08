@@ -9,9 +9,9 @@ import {
   ICON_BUTTON_CLASS,
 } from '@pages/studio/constants/prompt-bar.constants';
 import type { ImageMergePromptBarProps } from '@props/prompt-bars/prompt-bars-image-merge.props';
-import Button from '@ui/buttons/base/Button';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormDropdown from '@ui/forms/selectors/dropdown/form-dropdown/FormDropdown';
+import { Button } from '@ui/primitives/button';
+import FormDropdown from '@ui/primitives/dropdown-field';
+import { Input } from '@ui/primitives/input';
 import type { ReactNode } from 'react';
 import { HiArrowUp, HiSquares2X2, HiXMark } from 'react-icons/hi2';
 import { MdOutlineCropSquare } from 'react-icons/md';
@@ -62,7 +62,7 @@ export default function PromptBarsImageMerge({
               }))}
             />
 
-            <FormInput
+            <Input
               name="mergePrompt"
               type="text"
               placeholder="Optional: Describe the scene..."

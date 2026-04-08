@@ -22,16 +22,16 @@ import type { ModalPostProps } from '@props/modals/modal.props';
 import { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import Alert from '@ui/feedback/alert/Alert';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
 import FormDateTimePicker from '@ui/forms/pickers/date-time-picker/form-date-time-picker/FormDateTimePicker';
 import PlatformSelector from '@ui/forms/selectors/platform-selector/PlatformSelector';
-import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
+import { SelectField } from '@ui/primitives/select';
 import {
   DEFAULT_CHAR_LIMIT,
   PLATFORM_CHAR_LIMITS,
@@ -306,7 +306,7 @@ export default function ModalPost({
                   : form.formState.errors.label?.message
               }
             >
-              <FormInput
+              <Input
                 name="label"
                 control={form.control}
                 placeholder={
@@ -369,13 +369,13 @@ export default function ModalPost({
                 label="Status"
                 error={form.formState.errors.status?.message}
               >
-                <FormSelect name="status" control={form.control}>
+                <SelectField name="status" control={form.control}>
                   {getPostStatusOptions().map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
                   ))}
-                </FormSelect>
+                </SelectField>
               </FormControl>
             </>
           )}

@@ -7,11 +7,11 @@ import type { IElementLighting } from '@genfeedai/interfaces';
 import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
 import type { ModalCrudProps } from '@props/modals/modal.props';
 import { LightingsService } from '@services/elements/lightings.service';
-import Button from '@ui/buttons/base/Button';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
 import type { ChangeEvent } from 'react';
 
 export default function ModalLighting({
@@ -60,7 +60,7 @@ export default function ModalLighting({
     >
       <form ref={formRef} onSubmit={onSubmit}>
         <FormControl label="Label">
-          <FormInput
+          <Input
             type="text"
             name="label"
             control={form.control}
@@ -72,7 +72,7 @@ export default function ModalLighting({
         </FormControl>
 
         <FormControl label="Key">
-          <FormInput
+          <Input
             type="text"
             name="key"
             control={form.control}
@@ -87,7 +87,7 @@ export default function ModalLighting({
         </FormControl>
 
         <FormControl label="Description">
-          <FormInput
+          <Input
             name="description"
             control={form.control}
             onChange={handleChange}

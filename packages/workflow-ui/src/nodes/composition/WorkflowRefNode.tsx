@@ -243,7 +243,7 @@ function WorkflowRefNodeComponent(props: NodeProps) {
   return (
     <div
       className={clsx(
-        'relative min-w-[220px] rounded-lg border shadow-lg transition-all',
+        'relative min-w-[220px] border shadow-lg transition-all',
         'border-[var(--category-composition)] bg-card',
         isSelected && 'ring-1',
         isProcessing && 'node-processing',
@@ -408,7 +408,7 @@ function WorkflowRefNodeComponent(props: NodeProps) {
 
         {/* Error message */}
         {nodeData.error && (
-          <div className="rounded-md border border-destructive/30 bg-destructive/10 p-2">
+          <div className="border border-destructive/30 bg-destructive/10 p-2">
             <p className="text-xs text-destructive">{nodeData.error}</p>
           </div>
         )}

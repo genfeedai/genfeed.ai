@@ -36,14 +36,14 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { SocketService } from '@services/core/socket.service';
 import { ImagesService } from '@services/ingredients/images.service';
-import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormDropdown from '@ui/forms/selectors/dropdown/form-dropdown/FormDropdown';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormDropdown from '@ui/primitives/dropdown-field';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
 import type { Dispatch, SetStateAction } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
@@ -524,7 +524,7 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
                 error={form.formState.errors.label?.message}
                 isRequired
               >
-                <FormInput
+                <Input
                   name="label"
                   type="text"
                   placeholder="e.g., My Character"
@@ -538,7 +538,7 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
                 label="Description (optional)"
                 error={form.formState.errors.description?.message}
               >
-                <FormInput
+                <Input
                   name="description"
                   type="text"
                   placeholder="Brief description of the training"
@@ -556,7 +556,7 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
               isRequired
             >
               <div className="flex w-full">
-                <FormInput
+                <Input
                   name="trigger"
                   type="text"
                   placeholder="e.g., XQ7Z"

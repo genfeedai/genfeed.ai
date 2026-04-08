@@ -3,8 +3,8 @@
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import { BG_BLUR, BORDER_WHITE_30, cn } from '@helpers/formatting/cn/cn.util';
 import type { QuickActionsMenuProps } from '@props/content/quick-actions.props';
-import Button from '@ui/buttons/base/Button';
 import Spinner from '@ui/feedback/spinner/Spinner';
+import { Button } from '@ui/primitives/button';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 const useIsomorphicLayoutEffect =

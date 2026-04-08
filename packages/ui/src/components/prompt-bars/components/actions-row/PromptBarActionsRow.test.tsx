@@ -23,8 +23,8 @@ vi.mock('@services/core/environment.service', () => ({
   },
 }));
 
-// Mock FormCheckbox to avoid react-hook-form control issues
-vi.mock('@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox', () => ({
+// Mock Checkbox to avoid react-hook-form control issues
+vi.mock('@ui/primitives/checkbox', () => ({
   default: ({
     label,
     name,
@@ -53,7 +53,7 @@ vi.mock('@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox', () => ({
 }));
 
 // Mock FormDropdown
-vi.mock('@ui/forms/selectors/dropdown/form-dropdown/FormDropdown', () => ({
+vi.mock('@ui/primitives/dropdown-field', () => ({
   default: ({
     label,
     options,

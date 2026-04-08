@@ -49,15 +49,15 @@ vi.mock('@ui/buttons/base/Button', () => ({
   ),
 }));
 
-vi.mock('@ui/forms/inputs/textarea/form-textarea/FormTextarea', () => ({
+vi.mock('@ui/primitives/textarea', () => ({
   default: () => <textarea aria-label="prompt textarea" />,
 }));
 
-vi.mock('@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox', () => ({
+vi.mock('@ui/primitives/checkbox', () => ({
   default: ({ label }: { label: string }) => <div>{label}</div>,
 }));
 
-vi.mock('@ui/forms/selectors/dropdown/form-dropdown/FormDropdown', () => ({
+vi.mock('@ui/primitives/dropdown-field', () => ({
   default: ({
     name,
     placeholder,

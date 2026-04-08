@@ -2,7 +2,7 @@ import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.serv
 import type { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';
 import { useAgentStrategyStore } from '@genfeedai/agent/stores/agent-strategy.store';
 import { ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { type ReactElement, useCallback, useRef, useState } from 'react';
 
 interface AgentStrategyStatusProps {
@@ -103,7 +103,7 @@ export function AgentStrategyStatus({
 
   if (!strategy) {
     return (
-      <div className="rounded-lg border border-border p-6 text-center">
+      <div className="border border-border p-6 text-center">
         <p className="text-xs text-muted-foreground">
           No strategy configured yet. Create one in the configuration above.
         </p>
@@ -129,7 +129,7 @@ export function AgentStrategyStatus({
 
   return (
     <div
-      className={`space-y-4 rounded-lg border border-border p-4 transition-opacity ${
+      className={`space-y-4 border border-border p-4 transition-opacity ${
         strategy.isEnabled ? '' : 'opacity-50'
       }`}
     >

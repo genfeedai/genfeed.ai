@@ -5,10 +5,10 @@ import type {
   TrendNotificationFrequency,
 } from '@genfeedai/interfaces';
 import type { TrendNotificationSettingsProps } from '@props/settings/notifications.props';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormRange from '@ui/forms/selectors/range/form-range/FormRange';
-import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
-import FormToggle from '@ui/forms/selectors/toggle/form-toggle/FormToggle';
+import { Input } from '@ui/primitives/input';
+import FormRange from '@ui/primitives/range-field';
+import { SelectField } from '@ui/primitives/select';
+import { Switch } from '@ui/primitives/switch';
 import { useCallback, useState } from 'react';
 import { HiBell, HiInformationCircle } from 'react-icons/hi2';
 
@@ -93,7 +93,7 @@ export default function TrendNotificationSettings({
 
         <div className="space-y-4">
           {/* In-App Notifications */}
-          <FormToggle
+          <Switch
             label="In-App Notifications"
             description="Receive trend alerts within the app"
             isChecked={settings.isTrendNotificationsInApp ?? true}
@@ -105,7 +105,7 @@ export default function TrendNotificationSettings({
 
           {/* Telegram Notifications */}
           <div className="space-y-2">
-            <FormToggle
+            <Switch
               label="Telegram Notifications"
               description="Get trend summaries via Telegram"
               isChecked={settings.isTrendNotificationsTelegram ?? false}
@@ -120,7 +120,7 @@ export default function TrendNotificationSettings({
 
             {settings.isTrendNotificationsTelegram && (
               <div className="ml-8">
-                <FormInput
+                <Input
                   name="trendNotificationsTelegramChatId"
                   placeholder="Enter your Telegram chat ID"
                   value={settings.trendNotificationsTelegramChatId ?? ''}
@@ -142,7 +142,7 @@ export default function TrendNotificationSettings({
 
           {/* Email Notifications */}
           <div className="space-y-2">
-            <FormToggle
+            <Switch
               label="Email Notifications"
               description="Receive trend digests via email"
               isChecked={settings.isTrendNotificationsEmail ?? false}
@@ -157,7 +157,7 @@ export default function TrendNotificationSettings({
 
             {settings.isTrendNotificationsEmail && (
               <div className="ml-8">
-                <FormInput
+                <Input
                   name="trendNotificationsEmailAddress"
                   placeholder="Enter email for trend notifications"
                   value={settings.trendNotificationsEmailAddress ?? ''}
@@ -181,7 +181,7 @@ export default function TrendNotificationSettings({
 
         {/* Frequency */}
         <div className="space-y-2">
-          <FormSelect
+          <SelectField
             name="trendNotificationsFrequency"
             label="Notification Frequency"
             value={settings.trendNotificationsFrequency ?? 'daily'}
@@ -198,7 +198,7 @@ export default function TrendNotificationSettings({
                 {opt.label} - {opt.description}
               </option>
             ))}
-          </FormSelect>
+          </SelectField>
         </div>
 
         {/* Minimum Viral Score */}

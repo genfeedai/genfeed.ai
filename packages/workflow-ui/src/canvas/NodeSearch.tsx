@@ -133,7 +133,7 @@ export function NodeSearch() {
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
     >
       <div
-        className="bg-[var(--background)] border border-[var(--border)] rounded-lg shadow-xl w-full max-w-lg"
+        className="bg-[var(--background)] border border-[var(--border)] shadow-xl w-full max-w-lg"
         role="dialog"
         aria-label="Find Node"
       >
@@ -158,7 +158,7 @@ export function NodeSearch() {
               placeholder="Search nodes by name, type, or comment..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm bg-[var(--secondary)] border border-[var(--border)] rounded-md outline-none focus:ring-1 focus:ring-[var(--ring)]"
+              className="w-full pl-9 pr-3 py-2 text-sm bg-[var(--secondary)] border border-[var(--border)] outline-none focus:ring-1 focus:ring-[var(--ring)]"
             />
           </div>
 

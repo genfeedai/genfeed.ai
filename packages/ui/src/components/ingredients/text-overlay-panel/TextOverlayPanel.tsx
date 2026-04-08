@@ -6,8 +6,8 @@ import type { VideoTextOverlayPanelProps } from '@props/content/ingredient.props
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { VideosService } from '@services/ingredients/videos.service';
-import Button from '@ui/buttons/base/Button';
-import FormControl from '@ui/forms/base/form-control/FormControl';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import {
   Select,

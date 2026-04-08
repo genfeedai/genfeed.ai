@@ -7,9 +7,9 @@ import {
 } from '@genfeedai/enums';
 import { getVideoResolutionsByModel } from '@helpers/media/video-resolution/video-resolution.helper';
 import type { PromptBarPrimaryControlsRowProps } from '@props/prompt-bars/prompt-bar-layout.props';
-import Button from '@ui/buttons/base/Button';
-import FormCheckbox from '@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox';
-import FormDropdown from '@ui/forms/selectors/dropdown/form-dropdown/FormDropdown';
+import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
+import FormDropdown from '@ui/primitives/dropdown-field';
 import PromptBarFormatControls from '@ui/prompt-bars/components/format-controls/PromptBarFormatControls';
 import PromptBarModelControls from '@ui/prompt-bars/components/model-controls/PromptBarModelControls';
 import PromptBarQualityControls from '@ui/prompt-bars/components/quality-controls/PromptBarQualityControls';
@@ -137,7 +137,7 @@ const PromptBarPrimaryControlsRow = memo(function PromptBarPrimaryControlsRow({
         )}
 
         {shouldShowAudioToggle && (
-          <FormCheckbox
+          <Checkbox
             key="isAudioEnabled"
             name="isAudioEnabled"
             label="Audio"

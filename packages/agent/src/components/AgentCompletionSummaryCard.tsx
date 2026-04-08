@@ -5,7 +5,7 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { type ReactElement, useMemo, useState } from 'react';
 import {
   HiCheckCircle,
@@ -36,25 +36,26 @@ function renderOutputPreview(
       <img
         src={variant.url}
         alt={variant.title ?? 'Generated output'}
-        className="aspect-square w-full rounded-xl border border-border/60 bg-muted/20 object-cover"
+        className="aspect-square w-full border border-border/60 bg-muted/20 object-cover"
       />
     );
   }
 
   if (variant.kind === 'video' && variant.url) {
     return (
+      // biome-ignore lint/a11y/useMediaCaption: preview media has no caption track source
       <video
         src={variant.url}
         controls
         aria-label={variant.title ?? 'Generated output video'}
-        className="aspect-square w-full rounded-xl border border-border/60 bg-muted/20 object-cover"
+        className="aspect-square w-full border border-border/60 bg-muted/20 object-cover"
       />
     );
   }
 
   if (variant.kind === 'text' && variant.textContent) {
     return (
-      <div className="flex aspect-square flex-col justify-between rounded-xl border border-border/60 bg-background/80 p-3">
+      <div className="flex aspect-square flex-col justify-between border border-border/60 bg-background/80 p-3">
         <div className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
           <HiOutlineSparkles className="h-3.5 w-3.5" />
           {variant.title ?? 'Text'}
@@ -86,7 +87,7 @@ function CompletionActionButton({
       <a
         href={cta.href}
         className={cn(
-          'inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+          'inline-flex items-center justify-center px-3 py-2 text-sm font-medium transition-colors',
           isPrimary
             ? 'bg-primary text-primary-foreground hover:bg-primary/90'
             : 'border border-border bg-background text-foreground hover:bg-accent',
@@ -107,7 +108,7 @@ function CompletionActionButton({
         }
         void onUiAction?.(cta.action, cta.payload);
       }}
-      className="inline-flex items-center justify-center rounded-lg px-3 py-2 text-sm font-medium"
+      className="inline-flex items-center justify-center px-3 py-2 text-sm font-medium"
     >
       {cta.label}
     </Button>
@@ -133,7 +134,7 @@ export function AgentCompletionSummaryCard({
   }, [action.outcomeBullets, action.summaryText]);
 
   return (
-    <div className="mt-3 rounded-2xl border border-border/70 bg-card/70 p-4 text-left shadow-sm backdrop-blur-sm">
+    <div className="mt-3 border border-border/70 bg-card/70 p-4 text-left shadow-sm backdrop-blur-sm">
       <div className="flex items-center gap-2 text-sm font-medium text-foreground">
         <HiCheckCircle className="h-4.5 w-4.5 text-emerald-500" />
         <span>{action.title || 'Done'}</span>
@@ -164,7 +165,7 @@ export function AgentCompletionSummaryCard({
               return (
                 <div
                   key={variant.id}
-                  className="flex aspect-square items-center justify-center rounded-xl border border-dashed border-border/60 bg-background/60 text-muted-foreground"
+                  className="flex aspect-square items-center justify-center border border-dashed border-border/60 bg-background/60 text-muted-foreground"
                 >
                   {variant.kind === 'video' ? (
                     <HiOutlineVideoCamera className="h-5 w-5" />

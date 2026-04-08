@@ -3,7 +3,7 @@ import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.serv
 import type { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';
 import { useAgentStrategyStore } from '@genfeedai/agent/stores/agent-strategy.store';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { type ReactElement, useEffect, useMemo } from 'react';
 
 interface AgentActivityFeedProps {
@@ -143,7 +143,7 @@ export function AgentActivityFeed({
           return (
             <div
               key={run.startedAt}
-              className="flex items-center justify-between rounded-lg border border-border px-4 py-3 transition-colors hover:bg-accent/30"
+              className="flex items-center justify-between border border-border px-4 py-3 transition-colors hover:bg-accent/30"
             >
               <div className="flex items-center gap-3">
                 <span
@@ -176,7 +176,7 @@ export function AgentActivityFeed({
                   <Button
                     variant={ButtonVariant.OUTLINE}
                     size={ButtonSize.XS}
-                    onClick={() => onViewThread(run.threadId!)}
+                    onClick={() => onViewThread(run.threadId)}
                   >
                     View
                   </Button>

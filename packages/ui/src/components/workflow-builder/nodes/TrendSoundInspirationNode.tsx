@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonVariant, WorkflowNodeStatus } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import type { TrendSoundInspirationNodeData } from '@ui/workflow-builder/types/workflow-saas.types';
 import { Loader2, Music, Play, TrendingUp } from 'lucide-react';

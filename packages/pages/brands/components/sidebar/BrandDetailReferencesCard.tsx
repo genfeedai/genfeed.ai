@@ -3,8 +3,8 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { BrandDetailReferencesCardProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
+import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { HiArrowUpTray, HiTrash } from 'react-icons/hi2';
 

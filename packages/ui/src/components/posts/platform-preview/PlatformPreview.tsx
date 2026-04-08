@@ -2,9 +2,9 @@
 
 import { ButtonVariant, CredentialPlatform } from '@genfeedai/enums';
 import type { IIngredient, IPost } from '@genfeedai/interfaces';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
+import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { useMemo, useState } from 'react';
 import {

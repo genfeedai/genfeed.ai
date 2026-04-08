@@ -10,10 +10,10 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { useSubscription } from '@hooks/data/subscription/use-subscription/use-subscription';
 import { CreditsService } from '@services/billing/credits.service';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { VStack } from '@ui/layout/stack';
+import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import {

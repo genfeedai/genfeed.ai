@@ -12,7 +12,6 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import useIngredientActions from '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import type { MasonryImageProps } from '@props/content/masonry.props';
 import { EnvironmentService } from '@services/core/environment.service';
-import Button from '@ui/buttons/base/Button';
 import DraggableIngredient from '@ui/drag-drop/draggable/DraggableIngredient';
 import DropZoneIngredient from '@ui/drag-drop/zone-ingredient/DropZoneIngredient';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
@@ -24,6 +23,7 @@ import {
   createDownloadHandler,
   useMasonryHover,
 } from '@ui/masonry/shared/useMasonryHover';
+import { Button } from '@ui/primitives/button';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
 import Image from 'next/image';

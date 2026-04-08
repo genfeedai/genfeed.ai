@@ -2,8 +2,8 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { XArticleAssetsBarProps } from '@props/content/x-article.props';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
+import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import {
   HiArrowDownTray,

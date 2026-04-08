@@ -80,7 +80,7 @@ function GroupBackground({ group, bounds }: GroupBackgroundProps) {
   return (
     <div
       className={clsx(
-        'absolute rounded-lg border-2 border-dashed',
+        'absolute border-2 border-dashed',
         colors.bg,
         colors.border,
         group.isLocked && 'opacity-60',
@@ -258,7 +258,7 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
     <>
       {/* Group Header - draggable */}
       <div
-        onMouseDown={handleMouseDown}
+        onPointerDown={handleMouseDown}
         className={clsx(
           'absolute flex items-center justify-between px-3 rounded-t-lg select-none pointer-events-auto',
           colors.bg,
@@ -291,13 +291,18 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
             style={{ minWidth: 0 }}
           />
         ) : (
-          <span
-            className={clsx('font-medium truncate cursor-text', colors.text)}
+          <Button
+            type="button"
+            variant="ghost"
+            className={clsx(
+              'h-auto flex-1 justify-start truncate p-0 text-left font-medium hover:bg-transparent',
+              colors.text,
+            )}
             style={{ fontSize: 14 }}
             onClick={() => setIsEditing(true)}
           >
             {group.name}
-          </span>
+          </Button>
         )}
         <div className="flex items-center gap-1">
           {/* Color Picker */}
@@ -318,7 +323,7 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
               <Palette className="w-4 h-4" />
             </Button>
             {showColorPicker && (
-              <div className="absolute top-8 right-0 z-50 bg-card border border-border rounded-lg shadow-lg p-2 flex gap-1 flex-wrap w-[120px]">
+              <div className="absolute top-8 right-0 z-50 bg-card border border-border shadow-lg p-2 flex gap-1 flex-wrap w-[120px]">
                 {DEFAULT_GROUP_COLORS.map((color) => (
                   <Button
                     key={color}
@@ -328,7 +333,7 @@ function GroupControls({ group, bounds, nodeMap, zoom }: GroupControlsProps) {
                       handleColorSelect(color);
                     }}
                     className={clsx(
-                      'w-6 h-6 rounded-md border-2 transition-transform hover:scale-110 p-0 min-w-0',
+                      'w-6 h-6 border-2 transition-transform hover:scale-110 p-0 min-w-0',
                       GROUP_COLORS[color].bg,
                       color === group.color
                         ? 'border-white'

@@ -2,7 +2,7 @@
 
 import { ButtonSize, ButtonVariant, IngredientStatus } from '@genfeedai/enums';
 import type { GenerationQueueProps } from '@props/studio/studio.props';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { useEffect, useRef, useState } from 'react';
 import { HiCheckCircle, HiClock, HiXCircle, HiXMark } from 'react-icons/hi2';
 

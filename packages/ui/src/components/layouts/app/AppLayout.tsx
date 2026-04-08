@@ -5,8 +5,8 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { AppLayoutProps } from '@props/layout/app-layout.props';
 import type { TopbarProps } from '@props/navigation/topbar.props';
-import Button from '@ui/buttons/base/Button';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
+import { Button } from '@ui/primitives/button';
 import {
   type CSSProperties,
   cloneElement,

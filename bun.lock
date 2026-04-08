@@ -214,7 +214,6 @@
         "@genfeedai/helpers": "*",
         "@genfeedai/interfaces": "*",
         "@genfeedai/next-config": "*",
-        "@genfeedai/serializers": "*",
         "@genfeedai/types": "*",
         "@genfeedai/workflow-engine": "*",
         "@genfeedai/workflow-saas": "*",

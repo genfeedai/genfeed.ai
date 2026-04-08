@@ -5,7 +5,7 @@ import { formatDuration } from '@genfeedai/helpers';
 import type { IMetadata } from '@genfeedai/interfaces';
 import type { ModalGalleryItemMusicProps } from '@props/modals/modal-gallery.props';
 import { EnvironmentService } from '@services/core/environment.service';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { HiMusicalNote, HiPause, HiPlay } from 'react-icons/hi2';
 
 export default function ModalGalleryItemMusic({

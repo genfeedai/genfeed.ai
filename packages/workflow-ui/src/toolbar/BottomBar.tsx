@@ -151,11 +151,8 @@ export function BottomBar() {
   const isActive = isRunning || isBatchRunning;
 
   return (
-    <div
-      className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2"
-      onMouseDown={(e) => e.stopPropagation()}
-    >
-      <div className="flex items-center gap-1 rounded-md border border-neutral-700/80 bg-neutral-800/95 px-2 py-1 shadow-lg backdrop-blur-sm">
+    <div className="fixed bottom-5 left-1/2 z-50 -translate-x-1/2">
+      <div className="flex items-center gap-1 border border-neutral-700/80 bg-neutral-800/95 px-2 py-1 shadow-lg backdrop-blur-sm">
         {/* Batch Counter */}
         <div className="flex items-center gap-0.5">
           <span className="mr-0.5 text-[11px] text-neutral-400">Batch</span>
@@ -254,15 +251,17 @@ export function BottomBar() {
           {dropdownOpen && (
             <>
               {/* Backdrop */}
-              <div
-                className="fixed inset-0 z-40"
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="fixed inset-0 z-40 h-full w-full p-0 opacity-0"
                 onClick={() => setDropdownOpen(false)}
+                aria-label="Close run options"
               />
               <div
                 ref={dropdownRef}
-                onClick={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
-                className="absolute bottom-full left-0 z-50 mb-1.5 min-w-[180px] rounded-md border border-neutral-700 bg-neutral-800 py-0.5 shadow-xl"
+                className="absolute bottom-full left-0 z-50 mb-1.5 min-w-[180px] border border-neutral-700 bg-neutral-800 py-0.5 shadow-xl"
               >
                 <Button
                   variant="ghost"

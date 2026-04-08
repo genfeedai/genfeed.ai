@@ -3,11 +3,10 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { OverviewContentProps } from '@props/layout/overview.props';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import CardIcon from '@ui/card/icon/CardIcon';
 import Container from '@ui/layout/container/Container';
-import { Button as PrimitiveButton } from '@ui/primitives/button';
+import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import Link from 'next/link';
 
 export default function OverviewLayout({

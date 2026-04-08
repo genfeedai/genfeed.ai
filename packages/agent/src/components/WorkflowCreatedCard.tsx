@@ -1,6 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { type ReactElement, useCallback, useState } from 'react';
 import {
@@ -45,7 +45,7 @@ export function WorkflowCreatedCard({
   );
 
   return (
-    <div className="my-2 overflow-hidden rounded-lg border border-emerald-500/20 bg-background">
+    <div className="my-2 overflow-hidden border border-emerald-500/20 bg-background">
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
         <HiCheckCircle className="h-5 w-5 text-emerald-500" />
         <div>
@@ -61,7 +61,7 @@ export function WorkflowCreatedCard({
       </div>
 
       <div className="space-y-3 p-4">
-        <div className="rounded border border-border bg-card/40 p-3">
+        <div className="border border-border bg-card/40 p-3">
           <div className="text-sm font-medium text-foreground">
             {action.workflowName || 'Recurring automation'}
           </div>
@@ -86,7 +86,7 @@ export function WorkflowCreatedCard({
                   <Link
                     key={`${action.id}-workflow-created-cta-${index}`}
                     href={cta.href}
-                    className="inline-flex items-center gap-1.5 rounded border border-border px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                    className="inline-flex items-center gap-1.5 border border-border px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-accent"
                   >
                     <span>{cta.label}</span>
                     <HiArrowTopRightOnSquare className="h-3.5 w-3.5" />
@@ -122,7 +122,7 @@ export function WorkflowCreatedCard({
                   onClick={() => {
                     void handleActionClick(actionName, cta.payload);
                   }}
-                  className="inline-flex items-center gap-1.5 rounded bg-emerald-500 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 bg-emerald-500 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-emerald-600 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <span>{buttonLabel}</span>
                 </Button>

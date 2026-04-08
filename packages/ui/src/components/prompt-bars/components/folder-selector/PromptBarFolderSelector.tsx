@@ -1,7 +1,7 @@
 'use client';
 
 import type { PromptBarFolderSelectorProps } from '@props/studio/prompt-bar.props';
-import FormDropdown from '@ui/forms/selectors/dropdown/form-dropdown/FormDropdown';
+import FormDropdown from '@ui/primitives/dropdown-field';
 import { type ChangeEvent, memo } from 'react';
 import { HiFolder } from 'react-icons/hi2';
 

@@ -18,15 +18,15 @@ import { useConfirmModal } from '@providers/global-modals/global-modals.provider
 import { FoldersService } from '@services/content/folders.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
 import AppTable from '@ui/display/table/Table';
-import FormToggle from '@ui/forms/selectors/toggle/form-toggle/FormToggle';
 import Container from '@ui/layout/container/Container';
 import { LazyModalFolder } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Button } from '@ui/primitives/button';
+import { Switch } from '@ui/primitives/switch';
 import { PageScope } from '@ui-constants/misc.constant';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
@@ -221,7 +221,7 @@ export default function FoldersList({ scope = PageScope.BRAND }: ContentProps) {
         header: 'Active',
         key: 'active',
         render: (folder: IFolder) => (
-          <FormToggle
+          <Switch
             isChecked={folder.isActive !== false}
             onChange={() => handleToggleActive(folder)}
           />

@@ -377,13 +377,13 @@ function BaseNodeComponent({
         }
         maxWidth={NODE_RESIZER_MAX_WIDTH}
         lineClassName="!border-transparent"
-        handleClassName="!w-2.5 !h-2.5 !border-0 !rounded-sm"
+        handleClassName="!w-2.5 !h-2.5 !border-0"
         handleStyle={{ backgroundColor: effectiveColor }}
       />
       <div
         ref={nodeRef}
         className={clsx(
-          'relative flex flex-col rounded-lg bg-[var(--card)] shadow-lg transition-all duration-200',
+          'relative flex flex-col bg-[var(--card)] shadow-lg transition-all duration-200',
           // Only apply min/max width if node hasn't been manually resized
           // Output nodes get larger minimums for better preview visibility
           !isResized && type === 'download' && 'min-w-[200px] min-h-[280px]',
@@ -410,9 +410,9 @@ function BaseNodeComponent({
             }),
           } as React.CSSProperties
         }
-        onClick={() => selectNode(id)}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+        onPointerDown={() => selectNode(id)}
+        onPointerEnter={handleMouseEnter}
+        onPointerLeave={handleMouseLeave}
       >
         {/* Input Handles - positioned relative to outer wrapper (not flex) */}
         {sortedInputs.map((input: HandleDefinition, index: number) => {
@@ -504,7 +504,7 @@ function BaseNodeComponent({
             <NodeErrorBoundary nodeId={id} nodeType={type as string}>
               {/* Error message - rendered BEFORE children so it appears at top */}
               {nodeData.error && (
-                <div className="mb-3 rounded-md border border-destructive/30 bg-destructive/10 p-2">
+                <div className="mb-3 border border-destructive/30 bg-destructive/10 p-2">
                   <div className="flex items-start gap-1.5">
                     <p className="flex-1 text-xs text-destructive break-all">
                       {nodeData.error}

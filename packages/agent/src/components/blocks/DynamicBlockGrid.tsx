@@ -23,7 +23,7 @@ import type {
   TextParagraphBlock,
   TopPostsBlock,
 } from '@genfeedai/interfaces';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 

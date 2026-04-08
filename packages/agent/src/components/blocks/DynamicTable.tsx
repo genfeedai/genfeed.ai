@@ -89,7 +89,7 @@ function DynamicTable({ block }: DynamicTableProps): ReactElement {
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-border">
+    <div className="overflow-x-auto border border-border">
       <Table className="w-full text-sm">
         <TableHeader>
           <TableRow className="border-b border-border bg-muted/50">

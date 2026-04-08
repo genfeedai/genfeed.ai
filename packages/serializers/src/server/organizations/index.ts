@@ -3,6 +3,7 @@ export * from '@serializers/server/organizations/brand.serializer';
 export * from '@serializers/server/organizations/credential.serializer';
 export * from '@serializers/server/organizations/darkroom-capabilities.serializer';
 export * from '@serializers/server/organizations/member.serializer';
+export * from '@serializers/server/organizations/member-invitation.serializer';
 export * from '@serializers/server/organizations/organization.serializer';
 export * from '@serializers/server/organizations/organization-settings.serializer';
 export * from '@serializers/server/organizations/profile.serializer';

@@ -3,7 +3,7 @@ import type { AgentChatMessage } from '@genfeedai/agent/models/agent-chat.model'
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 
 interface AgentSidebarProps {
@@ -53,7 +53,7 @@ export function AgentSidebar({
 
       {/* Sidebar panel */}
       {isOpen && (
-        <aside className="fixed bottom-24 right-6 z-50 flex h-[600px] w-[380px] flex-col overflow-hidden rounded-xl border border-border bg-background shadow-2xl">
+        <aside className="fixed bottom-24 right-6 z-50 flex h-[600px] w-[380px] flex-col overflow-hidden border border-border bg-background shadow-2xl">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <h2 className="text-sm font-semibold text-foreground">Chat</h2>
             <div className="flex items-center gap-3">

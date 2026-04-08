@@ -2,8 +2,8 @@
 
 import { ButtonVariant, CredentialPlatform } from '@genfeedai/enums';
 import type { ContentPreviewSidebarProps } from '@props/components/content-preview-sidebar.props';
-import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
+import { Button } from '@ui/primitives/button';
 
 /**
  * Content Preview Sidebar component

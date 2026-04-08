@@ -9,8 +9,8 @@ import {
   ComponentSize,
 } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Button from '@ui/buttons/base/Button';
 import Spinner from '@ui/feedback/spinner/Spinner';
+import { Button } from '@ui/primitives/button';
 import {
   DropdownMenu,
   DropdownMenuContent,

@@ -147,7 +147,7 @@ function VideoInputNodeComponent(props: NodeProps) {
             onChange={(e) => setUrlValue(e.target.value)}
             onKeyDown={handleUrlKeyDown}
             placeholder="https://..."
-            className="nodrag nopan flex-1 h-7 px-2 text-xs rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+            className="nodrag nopan flex-1 h-7 px-2 text-xs border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
           />
           <Button
             variant="secondary"
@@ -188,7 +188,7 @@ function VideoInputNodeComponent(props: NodeProps) {
           variant="ghost"
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
-          className="flex flex-1 min-h-16 w-full flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border/50 bg-secondary/20 hover:border-primary/50 hover:bg-secondary/40 h-auto"
+          className="flex flex-1 min-h-16 w-full flex-col items-center justify-center gap-1 border border-dashed border-border/50 bg-secondary/20 hover:border-primary/50 hover:bg-secondary/40 h-auto"
         >
           {isUploading ? (
             <>

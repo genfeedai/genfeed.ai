@@ -22,19 +22,19 @@ import { useConfirmModal } from '@providers/global-modals/global-modals.provider
 import { TrainingsService } from '@services/ai/trainings.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
-import FormToggle from '@ui/forms/selectors/toggle/form-toggle/FormToggle';
 import Container from '@ui/layout/container/Container';
 import {
   LazyModalTraining,
   LazyModalTrainingNew,
 } from '@ui/lazy/modal/LazyModal';
+import { Button } from '@ui/primitives/button';
+import { Switch } from '@ui/primitives/switch';
 import { PageScope } from '@ui-constants/misc.constant';
 import { getErrorMessage } from '@utils/error/error-handler.util';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -369,7 +369,7 @@ export default function TrainingsList({
         header: 'Active',
         key: 'isActive',
         render: (training: ITraining) => (
-          <FormToggle
+          <Switch
             isChecked={training.isActive !== false}
             onChange={() => handleToggleActive(training)}
           />

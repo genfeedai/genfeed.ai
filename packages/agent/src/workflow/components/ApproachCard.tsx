@@ -1,6 +1,6 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Check, Minus, Plus, Star } from 'lucide-react';
 import { memo } from 'react';
 import type { Approach } from '../types';

@@ -3,9 +3,9 @@ import { closeModal } from '@helpers/ui/modal/modal.helper';
 import { useModalAutoOpen } from '@hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import type { ModalPromptProps } from '@props/modals/modal.props';
 import { ClipboardService } from '@services/core/clipboard.service';
-import Button from '@ui/buttons/base/Button';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
 import { HiDocumentDuplicate, HiSparkles } from 'react-icons/hi2';
 
 export default function ModalPrompt({

@@ -6,9 +6,9 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import type { PromptBarSuggestionItem } from '@props/prompt-bars/prompt-bar-suggestion-item.props';
 import type { PromptBarEssentialsProps } from '@props/prompt-bars/prompt-bar-tiers.props';
 import { EnvironmentService } from '@services/core/environment.service';
-import Button from '@ui/buttons/base/Button';
-import FormTextarea from '@ui/forms/inputs/textarea/form-textarea/FormTextarea';
-import FormDropdown from '@ui/forms/selectors/dropdown/form-dropdown/FormDropdown';
+import { Button } from '@ui/primitives/button';
+import FormDropdown from '@ui/primitives/dropdown-field';
+import { Textarea } from '@ui/primitives/textarea';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
 import PromptBarFormatControls from '@ui/prompt-bars/components/format-controls/PromptBarFormatControls';
 import PromptBarModelControls from '@ui/prompt-bars/components/model-controls/PromptBarModelControls';
@@ -152,7 +152,7 @@ const PromptBarEssentials = memo(function PromptBarEssentials({
           />
         )}
 
-        <FormTextarea<PromptTextareaSchema>
+        <Textarea<PromptTextareaSchema>
           name="text"
           register={
             textareaRegister as unknown as UseFormRegisterReturn<'text'>

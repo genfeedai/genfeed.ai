@@ -24,8 +24,8 @@ import Placeholder from '@tiptap/extension-placeholder';
 import type {} from '@tiptap/extension-strike';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Button from '@ui/buttons/base/Button';
 import Spinner from '@ui/feedback/spinner/Spinner';
+import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useState } from 'react';
 import {
   HiBold,

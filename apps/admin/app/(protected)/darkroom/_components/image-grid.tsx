@@ -2,8 +2,8 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IDarkroomAsset } from '@genfeedai/interfaces';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
+import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { useCallback, useMemo, useState } from 'react';
 import {
@@ -39,6 +39,11 @@ export default function ImageGrid({
   const [currentPage, setCurrentPage] = useState(1);
   const [lightboxAsset, setLightboxAsset] = useState<IDarkroomAsset | null>(
     null,
+  );
+  const skeletonKeys = useMemo(
+    () =>
+      Array.from({ length: Math.min(8, pageSize) }, () => crypto.randomUUID()),
+    [pageSize],
   );
 
   const totalPages = Math.max(1, Math.ceil(images.length / pageSize));
@@ -95,9 +100,9 @@ export default function ImageGrid({
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {Array.from({ length: pageSize > 8 ? 8 : pageSize }).map((_, i) => (
+        {skeletonKeys.map((key) => (
           <div
-            key={i}
+            key={key}
             className="aspect-square rounded-lg bg-foreground/5 animate-pulse"
           />
         ))}
@@ -243,7 +248,13 @@ export default function ImageGrid({
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
           onClick={() => setLightboxAsset(null)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setLightboxAsset(null);
+            }
+          }}
           role="dialog"
+          tabIndex={-1}
         >
           <Button
             variant={ButtonVariant.UNSTYLED}
@@ -254,12 +265,18 @@ export default function ImageGrid({
             <HiXMark className="w-8 h-8" />
           </Button>
 
-          <img
-            alt={lightboxAsset.label || 'Darkroom asset'}
-            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
+          <div
             onClick={(e) => e.stopPropagation()}
-            src={lightboxAsset.url}
-          />
+            onKeyDown={(e) => e.stopPropagation()}
+            role="document"
+            tabIndex={-1}
+          >
+            <img
+              alt={lightboxAsset.label || 'Darkroom asset'}
+              className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
+              src={lightboxAsset.url}
+            />
+          </div>
         </div>
       )}
     </div>

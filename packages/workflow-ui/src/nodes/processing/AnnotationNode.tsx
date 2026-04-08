@@ -87,7 +87,7 @@ function AnnotationNodeComponent(props: NodeProps) {
             )}
           </div>
         ) : (
-          <div className="flex h-32 flex-col items-center justify-center rounded-md border-2 border-dashed border-border text-muted-foreground">
+          <div className="flex h-32 flex-col items-center justify-center border-2 border-dashed border-border text-muted-foreground">
             <Pencil className="mb-2 h-8 w-8 opacity-50" />
             <p className="text-xs">Connect an image</p>
           </div>

@@ -18,7 +18,7 @@ import {
   getStoredAgentPanelOpenState,
   isDesktopAgentViewport,
 } from '@services/core/agent-overlay-coordination.service';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import {
   Sheet,
   SheetContent,

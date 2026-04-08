@@ -7,7 +7,7 @@ import {
   EditorTrackType,
 } from '@genfeedai/enums';
 import type { IEditorEffect, IEditorTrack } from '@genfeedai/interfaces';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Slider } from '@ui/primitives/slider';
 import { useCallback, useState } from 'react';
 

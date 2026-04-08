@@ -9,7 +9,7 @@ import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
 import { logger } from '@services/core/logger.service';
 import { OnboardingFunnelService } from '@services/onboarding/onboarding-funnel.service';
 import { UsersService } from '@services/organization/users.service';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { useEffect, useState } from 'react';
 import { BsPersonBoundingBox } from 'react-icons/bs';

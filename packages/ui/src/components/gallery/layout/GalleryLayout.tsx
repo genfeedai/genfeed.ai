@@ -3,8 +3,8 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { LayoutProps } from '@props/layout/layout.props';
-import Button from '@ui/buttons/base/Button';
 import GallerySidebar from '@ui/gallery/layout/GallerySidebar';
+import { Button } from '@ui/primitives/button';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { HiBars3, HiXMark } from 'react-icons/hi2';

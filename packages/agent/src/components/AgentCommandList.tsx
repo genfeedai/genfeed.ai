@@ -1,7 +1,7 @@
 import type { AgentSlashCommand } from '@genfeedai/agent/constants/agent-slash-commands.constant';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import {
   forwardRef,
   type ReactElement,
@@ -73,14 +73,14 @@ export const AgentCommandList = forwardRef<
 
   if (items.length === 0) {
     return (
-      <div className="rounded-lg border border-white/[0.12] bg-popover px-3 py-2 text-xs text-muted-foreground shadow-lg">
+      <div className="border border-white/[0.12] bg-popover px-3 py-2 text-xs text-muted-foreground shadow-lg">
         No commands found
       </div>
     );
   }
 
   return (
-    <div className="max-h-64 overflow-y-auto rounded-lg border border-white/[0.12] bg-popover shadow-lg">
+    <div className="max-h-64 overflow-y-auto border border-white/[0.12] bg-popover shadow-lg">
       {items.map((item, index) => (
         <Button
           variant={ButtonVariant.UNSTYLED}

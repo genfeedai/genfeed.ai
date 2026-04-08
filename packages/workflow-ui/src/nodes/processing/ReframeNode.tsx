@@ -172,7 +172,7 @@ function ReframeNodeComponent(props: NodeProps) {
             value={nodeData.prompt}
             onChange={handlePromptChange}
             placeholder="Guide the AI outpainting..."
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="flex h-9 w-full border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
         </div>
 

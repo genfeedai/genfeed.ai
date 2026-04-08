@@ -1,9 +1,9 @@
 import { ButtonVariant, CardEmptySize, CardVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { CardEmptyProps } from '@props/ui/cards/card-empty.props';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import CardIcon from '@ui/card/icon/CardIcon';
+import { Button } from '@ui/primitives/button';
 
 const SIZE_CLASSES = {
   [CardEmptySize.DEFAULT]: {

@@ -56,13 +56,12 @@ function EdgeToolbarComponent() {
 
   return (
     <div
-      className="fixed z-30 flex items-center gap-1 bg-[var(--background)] border border-[var(--border)] rounded-lg shadow-lg px-1.5 py-1"
+      className="fixed z-30 flex items-center gap-1 bg-[var(--background)] border border-[var(--border)] shadow-lg px-1.5 py-1"
       style={{
         left: position.x,
         top: position.y - 40,
         transform: 'translateX(-50%)',
       }}
-      onMouseDown={(e) => e.stopPropagation()}
     >
       <Button
         variant="ghost"

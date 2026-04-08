@@ -4,8 +4,8 @@ import { useAudioPlayer } from '@hooks/media/use-audio-player/use-audio-player';
 import { Ingredient } from '@models/content/ingredient.model';
 import type { IngredientSoundProps } from '@props/content/ingredient.props';
 import { logger } from '@services/core/logger.service';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
+import { Button } from '@ui/primitives/button';
 import { HiPause, HiPlay } from 'react-icons/hi2';
 
 export default function IngredientSound({

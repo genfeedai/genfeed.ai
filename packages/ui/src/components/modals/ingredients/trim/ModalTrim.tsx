@@ -4,11 +4,11 @@ import { AlertCategory, ButtonVariant } from '@genfeedai/enums';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
 import { useVideoTrim } from '@hooks/media/use-video-trim/use-video-trim';
 import type { ModalTrimProps } from '@props/modals/modal.props';
-import Button from '@ui/buttons/base/Button';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import VideoTrimTimeline from '@ui/display/video-trim-timeline/VideoTrimTimeline';
 import Alert from '@ui/feedback/alert/Alert';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
 import { HiPlay, HiXMark } from 'react-icons/hi2';
 
 export default function ModalTrim({

@@ -9,8 +9,8 @@ import {
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { PromptBarCollapsedViewProps } from '@props/prompt-bars/prompt-bar-layout.props';
 import { EnvironmentService } from '@services/core/environment.service';
-import Button from '@ui/buttons/base/Button';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
+import { Button } from '@ui/primitives/button';
+import { Input } from '@ui/primitives/input';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
 import Image from 'next/image';
 import { type ChangeEvent, memo, useCallback, useMemo } from 'react';
@@ -151,7 +151,7 @@ const PromptBarCollapsedView = memo(function PromptBarCollapsedView({
         )}
 
         <div className="relative flex-1">
-          <FormInput
+          <Input
             name="text"
             type="text"
             inputRef={collapsedInputRef}

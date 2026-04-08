@@ -5,9 +5,9 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { AdminDarkroomService } from '@services/admin/darkroom.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useCallback, useMemo, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
@@ -29,6 +29,12 @@ interface PairedFile {
 interface DatasetUploaderProps {
   slug: string;
   onUploadComplete?: () => void;
+}
+
+function hasCaption(
+  pair: PairedFile,
+): pair is PairedFile & { caption: string } {
+  return typeof pair.caption === 'string' && pair.caption.length > 0;
 }
 
 export default function DatasetUploader({
@@ -58,8 +64,8 @@ export default function DatasetUploader({
   const captions = useMemo(
     () =>
       pairedFiles
-        .filter((p) => p.caption)
-        .map((p) => ({ caption: p.caption!, filenameStem: p.filenameStem })),
+        .filter(hasCaption)
+        .map((p) => ({ caption: p.caption, filenameStem: p.filenameStem })),
     [pairedFiles],
   );
 
@@ -237,7 +243,7 @@ export default function DatasetUploader({
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {pairedFiles.map((pair, index) => (
                 <div
-                  key={`${pair.filenameStem}-${index}`}
+                  key={`${pair.filenameStem}-${pair.image.name}-${pair.image.lastModified}`}
                   className="flex items-center gap-3 p-2 rounded bg-foreground/[0.03] group"
                 >
                   {/* Thumbnail */}
@@ -325,8 +331,11 @@ export default function DatasetUploader({
                   <HiOutlineExclamationCircle className="w-4 h-4" />
                   {uploadResult.failedCount} image(s) failed
                 </div>
-                {uploadResult.failed.map((f, i) => (
-                  <div key={i} className="text-xs text-error/70 ml-6">
+                {uploadResult.failed.map((f) => (
+                  <div
+                    key={`${f.filename}-${f.error}`}
+                    className="text-xs text-error/70 ml-6"
+                  >
                     {f.filename}: {f.error}
                   </div>
                 ))}

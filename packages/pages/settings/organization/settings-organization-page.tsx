@@ -5,7 +5,7 @@ import { useOrganization } from '@hooks/data/organization/use-organization/use-o
 import OrganizationGenerationDefaultsCard from '@pages/settings/organization/organization-generation-defaults-card';
 import OrganizationIdentityDefaultsCard from '@pages/settings/organization/organization-identity-defaults-card';
 import Card from '@ui/card/Card';
-import FormToggle from '@ui/forms/selectors/toggle/form-toggle/FormToggle';
+import { Switch } from '@ui/primitives/switch';
 import { useCallback, useState } from 'react';
 
 export default function SettingsOrganizationPage() {
@@ -59,7 +59,7 @@ export default function SettingsOrganizationPage() {
         <h2 className="text-lg font-semibold mb-4">Workspace Controls</h2>
         <div className="space-y-4">
           {selectedBrand?.isDarkroomEnabled && (
-            <FormToggle
+            <Switch
               label="Reveal Darkroom NSFW Assets"
               description="Allow NSFW darkroom assets to be revealed in brand library views. When disabled, sensitive darkroom assets remain blurred."
               isChecked={settings?.isDarkroomNsfwVisible ?? false}

@@ -11,8 +11,8 @@ import type { PostQuickActionsProps } from '@props/posts/post-quick-actions.prop
 import { AiActionsService } from '@services/ai/ai-actions.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
 import Spinner from '@ui/feedback/spinner/Spinner';
+import { Button } from '@ui/primitives/button';
 import { useCallback, useState } from 'react';
 import { HiSparkles } from 'react-icons/hi2';
 

@@ -4,11 +4,10 @@
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
-    "@genfeedai/serializers": "workspace:*",
     "ts-jsonapi": "2.1.3",
     "zod": "4.3.6"
   },
-  "description": "Genfeed.ai shared client models, schemas, and compatibility exports",
+  "description": "Genfeed.ai shared client models and schemas",
   "devDependencies": {
     "typescript": "6.0.2"
   },
@@ -32,10 +31,6 @@
     "./schemas/*": {
       "default": "./dist/schemas/*.js",
       "types": "./dist/schemas/*.d.ts"
-    },
-    "./serializers": {
-      "default": "./dist/serializers/index.js",
-      "types": "./dist/serializers/index.d.ts"
     }
   },
   "files": [
@@ -74,12 +69,6 @@
       ],
       "schemas/*": [
         "dist/schemas/*"
-      ],
-      "serializers": [
-        "dist/serializers/index.d.ts"
-      ],
-      "serializers/*": [
-        "dist/serializers/*"
       ]
     }
   },

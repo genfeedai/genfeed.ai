@@ -1,6 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { type ReactElement, useCallback, useState } from 'react';
 import { HiCheck, HiPhoto } from 'react-icons/hi2';
 
@@ -28,7 +28,7 @@ function IngredientThumbnail({
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       onClick={() => onPick(ingredient)}
-      className={`group relative aspect-square overflow-hidden rounded border transition-all duration-150 ${
+      className={`group relative aspect-square overflow-hidden border transition-all duration-150 ${
         isSelected
           ? 'border-primary ring-2 ring-primary ring-offset-1 ring-offset-background'
           : 'border-border hover:border-primary/60'
@@ -102,7 +102,7 @@ export function IngredientPickerCard({
 
   if (confirmed && selectedIngredient) {
     return (
-      <div className="mt-2 flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2.5">
+      <div className="mt-2 flex items-center justify-between border border-border bg-background px-3 py-2.5">
         <div className="flex items-center gap-2">
           <HiCheck className="h-4 w-4 text-primary" />
           <span className="text-sm text-foreground">
@@ -125,7 +125,7 @@ export function IngredientPickerCard({
   }
 
   return (
-    <div className="mt-2 rounded-lg border border-border bg-background">
+    <div className="mt-2 border border-border bg-background">
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-border px-3 py-2.5">
         <HiPhoto className="h-4 w-4 shrink-0 text-muted-foreground" />

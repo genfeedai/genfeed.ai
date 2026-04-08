@@ -3,10 +3,10 @@
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import { BG_BLUR, BORDER_WHITE_30, cn } from '@helpers/formatting/cn/cn.util';
 import type { PromptBarContentProps } from '@props/prompt-bars/prompt-bar-content.props';
-import Button from '@ui/buttons/base/Button';
 import Spinner from '@ui/feedback/spinner/Spinner';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormDropdown from '@ui/forms/selectors/dropdown/form-dropdown/FormDropdown';
+import { Button } from '@ui/primitives/button';
+import FormDropdown from '@ui/primitives/dropdown-field';
+import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
 import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react';
@@ -117,7 +117,7 @@ export default function PromptBarArticle({
         <div className="flex items-center gap-2 animate-fade-in">
           {renderPresetDropdown()}
 
-          <FormInput
+          <Input
             name="prompt"
             type="text"
             value={prompt}

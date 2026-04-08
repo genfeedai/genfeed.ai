@@ -17,14 +17,14 @@ import {
 import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
 import type { ModalWatchlistProps } from '@props/components/modal-watchlist.props';
 import { WatchlistService } from '@services/analytics/watchlist.service';
-import Button from '@ui/buttons/base/Button';
 import Alert from '@ui/feedback/alert/Alert';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormTextarea from '@ui/forms/inputs/textarea/form-textarea/FormTextarea';
-import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
+import { SelectField } from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { PageScope } from '@ui-constants/misc.constant';
 import { type ChangeEvent, useEffect } from 'react';
 
@@ -113,7 +113,7 @@ export default function ModalWatchlist({
         )}
 
         <FormControl label="Creator/Brand Name">
-          <FormInput
+          <Input
             type="text"
             name="name"
             control={form.control}
@@ -125,7 +125,7 @@ export default function ModalWatchlist({
         </FormControl>
 
         <FormControl label="Platform">
-          <FormSelect
+          <SelectField
             name="platform"
             control={form.control}
             onChange={handleChange}
@@ -136,11 +136,11 @@ export default function ModalWatchlist({
             <option value={Platform.TIKTOK}>TikTok</option>
             <option value={Platform.YOUTUBE}>YouTube</option>
             <option value={Platform.TWITTER}>X (Twitter)</option>
-          </FormSelect>
+          </SelectField>
         </FormControl>
 
         <FormControl label="Handle">
-          <FormInput
+          <Input
             type="text"
             name="handle"
             control={form.control}
@@ -155,7 +155,7 @@ export default function ModalWatchlist({
         </FormControl>
 
         <FormControl label="Category">
-          <FormInput
+          <Input
             type="text"
             name="category"
             control={form.control}
@@ -166,7 +166,7 @@ export default function ModalWatchlist({
         </FormControl>
 
         <FormControl label="Notes">
-          <FormTextarea
+          <Textarea
             name="notes"
             control={form.control}
             onChange={handleChange}
@@ -177,7 +177,7 @@ export default function ModalWatchlist({
 
         {scope === PageScope.BRAND && brands.length > 0 && (
           <FormControl label="Brand">
-            <FormSelect
+            <SelectField
               name="brand"
               control={form.control}
               onChange={handleChange}
@@ -189,7 +189,7 @@ export default function ModalWatchlist({
                   {brand.label}
                 </option>
               ))}
-            </FormSelect>
+            </SelectField>
           </FormControl>
         )}
 

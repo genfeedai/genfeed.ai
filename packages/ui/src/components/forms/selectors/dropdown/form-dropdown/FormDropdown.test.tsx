@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import FormDropdown from '@ui/forms/selectors/dropdown/form-dropdown/FormDropdown';
+import FormDropdown from '@ui/primitives/dropdown-field';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('FormDropdown', () => {

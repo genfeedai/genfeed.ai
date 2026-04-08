@@ -3,9 +3,9 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { ModelSelectorModelItemProps } from '@props/ui/model-selector/model-selector.props';
-import Button from '@ui/buttons/base/Button';
 import ModelSelectorCostBadge from '@ui/dropdowns/model-selector/ModelSelectorCostBadge';
-import FormCheckbox from '@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox';
+import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
 import { CommandItem } from '@ui/primitives/command';
 import { memo, useCallback } from 'react';
 import { HiStar } from 'react-icons/hi2';
@@ -48,7 +48,7 @@ const ModelSelectorModelItem = memo(function ModelSelectorModelItem({
       )}
     >
       <div className="pointer-events-none mt-0.5">
-        <FormCheckbox
+        <Checkbox
           name={`model-${model.key}`}
           isChecked={isSelected}
           onChange={() => {}}

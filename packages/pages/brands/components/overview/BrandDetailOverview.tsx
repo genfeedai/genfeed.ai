@@ -3,8 +3,7 @@
 import { AssetScope, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { BrandDetailOverviewProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
-import Button from '@ui/buttons/base/Button';
-import { Button as PrimitiveButton } from '@ui/primitives/button';
+import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import Image from 'next/image';
 import Link from 'next/link';
 import {

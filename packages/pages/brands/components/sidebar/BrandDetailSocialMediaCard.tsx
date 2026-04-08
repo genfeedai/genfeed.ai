@@ -11,9 +11,9 @@ import type { BrandDetailSocialMediaCardProps } from '@props/pages/brand-detail.
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ServicesService } from '@services/external/services.service';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import SocialMediaLink from '@ui/media/social-media-link/SocialMediaLink';
+import { Button } from '@ui/primitives/button';
 import {
   Dialog,
   DialogContent,

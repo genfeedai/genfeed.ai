@@ -601,7 +601,7 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
       </div>
 
       <div className="space-y-4 p-3">
-        <section className="rounded-lg border border-border bg-card p-3">
+        <section className="border border-border bg-card p-3">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Execution Context
@@ -613,17 +613,17 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
             </span>
           </div>
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="rounded border border-border bg-background px-2 py-1.5 text-muted-foreground">
+            <div className="border border-border bg-background px-2 py-1.5 text-muted-foreground">
               Platform: {currentPlatform || 'Not detected'}
             </div>
-            <div className="rounded border border-border bg-background px-2 py-1.5 text-muted-foreground">
+            <div className="border border-border bg-background px-2 py-1.5 text-muted-foreground">
               Composer: {composeBoxAvailable ? 'Ready' : 'Unavailable'}
             </div>
           </div>
         </section>
 
         {currentRun ? (
-          <section className="rounded-lg border border-border bg-card p-3">
+          <section className="border border-border bg-card p-3">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -657,7 +657,7 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
               Progress {formatPercent(currentRun.progress || 0)}
             </p>
             {currentRunEvents.length > 0 ? (
-              <div className="mt-2 max-h-28 space-y-1 overflow-y-auto rounded border border-border bg-background p-2">
+              <div className="mt-2 max-h-28 space-y-1 overflow-y-auto border border-border bg-background p-2">
                 {currentRunEvents.slice(-5).map((event) => (
                   <div key={`${event.type}-${event.createdAt}`}>
                     <p className="text-[11px] text-foreground">
@@ -674,18 +674,18 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
         ) : null}
 
         {runError ? (
-          <div className="rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+          <div className="border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
             {runError}
           </div>
         ) : null}
 
         {composerFeedback ? (
-          <div className="rounded border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary">
+          <div className="border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary">
             {composerFeedback}
           </div>
         ) : null}
 
-        <section className="rounded-lg border border-border bg-card p-3">
+        <section className="border border-border bg-card p-3">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Workflow Templates
           </p>
@@ -697,7 +697,7 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
                 variant={ButtonVariant.UNSTYLED}
                 disabled={isRunning}
                 onClick={() => handleRunTemplate(template)}
-                className="rounded border border-border bg-background px-2 py-2 text-left transition-colors hover:bg-muted disabled:opacity-60"
+                className="border border-border bg-background px-2 py-2 text-left transition-colors hover:bg-muted disabled:opacity-60"
               >
                 <p className="text-xs font-medium text-foreground">
                   {template.label}
@@ -710,7 +710,7 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
           </div>
         </section>
 
-        <section className="rounded-lg border border-border bg-card p-3">
+        <section className="border border-border bg-card p-3">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             1. Generate
           </p>
@@ -718,14 +718,14 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
             value={generatePrompt}
             onChange={(event) => setGeneratePrompt(event.target.value)}
             placeholder="Write a prompt for generated content..."
-            className="min-h-20 w-full rounded border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
+            className="min-h-20 w-full border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
           />
           <Button
             type="button"
             variant={ButtonVariant.DEFAULT}
             disabled={isRunning || !generatePrompt.trim()}
             onClick={handleGenerateRun}
-            className="mt-2 w-full rounded text-xs"
+            className="mt-2 w-full text-xs"
           >
             {isRunning && currentRun?.actionType === 'generate'
               ? 'Running Generate...'
@@ -733,7 +733,7 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
           </Button>
         </section>
 
-        <section className="rounded-lg border border-border bg-card p-3">
+        <section className="border border-border bg-card p-3">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             2. Preview
           </p>
@@ -741,7 +741,7 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
             value={previewContent}
             onChange={(event) => setPreviewContent(event.target.value)}
             placeholder="Generated preview appears here..."
-            className="min-h-24 w-full rounded border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
+            className="min-h-24 w-full border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
           />
           <div className="mt-2 grid grid-cols-2 gap-2">
             <Button
@@ -749,7 +749,7 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
               variant={ButtonVariant.OUTLINE}
               disabled={!previewContent.trim() || !composeBoxAvailable}
               onClick={() => relayComposer('INSERT_CONTENT')}
-              className="rounded px-2 py-2 text-xs font-medium"
+              className="px-2 py-2 text-xs font-medium"
             >
               Insert In Composer
             </Button>
@@ -758,14 +758,14 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
               variant={ButtonVariant.OUTLINE}
               disabled={!previewContent.trim() || !canSubmitFromComposer}
               onClick={() => relayComposer('INSERT_AND_PUBLISH_CONTENT')}
-              className="rounded px-2 py-2 text-xs font-medium"
+              className="px-2 py-2 text-xs font-medium"
             >
               Insert + Publish
             </Button>
           </div>
         </section>
 
-        <section className="rounded-lg border border-border bg-card p-3">
+        <section className="border border-border bg-card p-3">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             3. Post
           </p>
@@ -774,7 +774,7 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
             value={selectedCredentialId ?? ''}
             onValueChange={(value) => setSelectedCredentialId(value || null)}
           >
-            <SelectTrigger className="w-full rounded border border-border bg-background px-3 py-2 text-xs text-foreground">
+            <SelectTrigger className="w-full border border-border bg-background px-3 py-2 text-xs text-foreground">
               <SelectValue placeholder="Default connected account" />
             </SelectTrigger>
             <SelectContent>
@@ -803,7 +803,7 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
             variant={ButtonVariant.DEFAULT}
             disabled={isRunning || !previewContent.trim()}
             onClick={handlePostRun}
-            className="mt-2 w-full rounded text-xs"
+            className="mt-2 w-full text-xs"
           >
             {isRunning && currentRun?.actionType === 'post'
               ? 'Running Post...'
@@ -811,7 +811,7 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
           </Button>
 
           {postResults.length > 0 ? (
-            <div className="mt-2 max-h-32 space-y-1 overflow-y-auto rounded border border-border bg-background p-2">
+            <div className="mt-2 max-h-32 space-y-1 overflow-y-auto border border-border bg-background p-2">
               {postResults.slice(0, 5).map((result) => (
                 <div
                   key={
@@ -843,7 +843,7 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
           ) : null}
         </section>
 
-        <section className="rounded-lg border border-border bg-card p-3">
+        <section className="border border-border bg-card p-3">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             4. Analytics
           </p>
@@ -851,14 +851,14 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
             value={analyticsQuery}
             onChange={(event) => setAnalyticsQuery(event.target.value)}
             placeholder="Analytics query"
-            className="w-full rounded border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
+            className="w-full border border-border bg-background px-3 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
           />
           <Button
             type="button"
             variant={ButtonVariant.DEFAULT}
             disabled={isRunning || !analyticsQuery.trim()}
             onClick={handleAnalyticsRun}
-            className="mt-2 w-full rounded text-xs"
+            className="mt-2 w-full text-xs"
           >
             {isRunning && currentRun?.actionType === 'analytics'
               ? 'Running Analytics...'
@@ -866,19 +866,19 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
           </Button>
 
           <div className="mt-2 grid grid-cols-2 gap-2">
-            <div className="rounded border border-border bg-background p-2">
+            <div className="border border-border bg-background p-2">
               <p className="text-[10px] text-muted-foreground">Generated</p>
               <p className="text-sm font-semibold text-foreground">
                 {kpis.generated}
               </p>
             </div>
-            <div className="rounded border border-border bg-background p-2">
+            <div className="border border-border bg-background p-2">
               <p className="text-[10px] text-muted-foreground">Published</p>
               <p className="text-sm font-semibold text-foreground">
                 {kpis.published}
               </p>
             </div>
-            <div className="rounded border border-border bg-background p-2">
+            <div className="border border-border bg-background p-2">
               <p className="text-[10px] text-muted-foreground">
                 Publish Success
               </p>
@@ -886,7 +886,7 @@ export function CreatePanel({ onStartChat }: CreatePanelProps): ReactElement {
                 {formatPercent(kpis.publishSuccessRate)}
               </p>
             </div>
-            <div className="rounded border border-border bg-background p-2">
+            <div className="border border-border bg-background p-2">
               <p className="text-[10px] text-muted-foreground">Last Snapshot</p>
               <p className="text-[11px] font-medium text-foreground">
                 {formatSnapshotTime(kpis.lastSnapshotAt)}

@@ -21,10 +21,9 @@ import {
 import { WorkflowsService } from '@services/automation/workflows.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
-import { Button as PrimitiveButton } from '@ui/primitives/button';
+import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { useCallback, useMemo } from 'react';

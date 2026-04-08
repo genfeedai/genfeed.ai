@@ -5,7 +5,7 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import { useSubscription } from '@hooks/data/subscription/use-subscription/use-subscription';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HiExclamationTriangle, HiXMark } from 'react-icons/hi2';

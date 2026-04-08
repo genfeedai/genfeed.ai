@@ -9,7 +9,6 @@ import { useOrganization } from '@hooks/data/organization/use-organization/use-o
 import { User } from '@models/auth/user.model';
 import { logger } from '@services/core/logger.service';
 import { UsersService } from '@services/organization/users.service';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import {
   Select,
@@ -18,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives';
+import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useState } from 'react';
 
 const AUTO_MODEL_SELECT_VALUE = '__auto__';

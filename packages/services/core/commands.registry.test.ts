@@ -414,7 +414,7 @@ describe('commands.registry', () => {
     it('should have correct number of settings commands', () => {
       const settingsCommands = createSettingsCommands(TEST_ORG);
 
-      expect(settingsCommands.length).toBe(4);
+      expect(settingsCommands.length).toBe(5);
     });
 
     it('should have personal settings command', () => {
@@ -509,6 +509,26 @@ describe('commands.registry', () => {
 
       expect(window.location.href).toBe(
         `https://app.genfeed.ai/${TEST_ORG}/~/settings/organization/api-keys`,
+      );
+    });
+
+    it('should have instance admin command', () => {
+      const settingsCommands = createSettingsCommands(TEST_ORG);
+      const adminCmd = settingsCommands.find((c) => c.id === 'settings-admin');
+
+      expect(adminCmd).toBeDefined();
+      expect(adminCmd?.label).toBe('Admin Settings');
+      expect(adminCmd?.keywords).toContain('admin');
+    });
+
+    it('instance admin action should navigate to the settings admin route', () => {
+      const settingsCommands = createSettingsCommands(TEST_ORG);
+      const adminCmd = settingsCommands.find((c) => c.id === 'settings-admin');
+
+      adminCmd?.action();
+
+      expect(window.location.href).toBe(
+        `https://app.genfeed.ai/${TEST_ORG}/~/settings/admin`,
       );
     });
   });

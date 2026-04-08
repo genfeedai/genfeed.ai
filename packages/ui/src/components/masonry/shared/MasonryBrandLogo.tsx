@@ -2,7 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 

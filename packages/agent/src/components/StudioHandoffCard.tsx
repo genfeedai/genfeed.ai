@@ -14,7 +14,7 @@ export function StudioHandoffCard({
   const studioUrl = action.studioUrl ?? '#';
 
   return (
-    <div className="my-2 overflow-hidden rounded-lg border border-border bg-background">
+    <div className="my-2 overflow-hidden border border-border bg-background">
       {/* Thumbnail */}
       {thumbnailUrl && (
         <div className="bg-muted">
@@ -50,7 +50,7 @@ export function StudioHandoffCard({
         {/* Open in Studio button */}
         <a
           href={studioUrl}
-          className="flex w-full items-center justify-center gap-2 rounded bg-primary px-4 py-2 text-sm font-black text-primary-foreground transition-colors hover:bg-primary/90"
+          className="flex w-full items-center justify-center gap-2 bg-primary px-4 py-2 text-sm font-black text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <HiArrowTopRightOnSquare className="h-4 w-4" />
           Open in Studio

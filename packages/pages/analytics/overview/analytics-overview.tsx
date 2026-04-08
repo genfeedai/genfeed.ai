@@ -35,13 +35,12 @@ import type {
 } from '@services/analytics/analytics.service';
 import { UsersService } from '@services/organization/users.service';
 import TopPostsSection from '@ui/analytics/top-posts/TopPostsSection';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
 import Alert from '@ui/feedback/alert/Alert';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Loading from '@ui/loading/default/Loading';
-import { buttonVariants } from '@ui/primitives/button';
+import { Button, buttonVariants } from '@ui/primitives/button';
 import { PageScope } from '@ui-constants/misc.constant';
 import { format } from 'date-fns';
 import dynamic from 'next/dynamic';

@@ -7,7 +7,7 @@ import type {
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -201,7 +201,7 @@ export function WorkflowExecuteCard({
   }, []);
 
   return (
-    <div className="my-2 overflow-hidden rounded-lg border border-border bg-background">
+    <div className="my-2 overflow-hidden border border-border bg-background">
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <HiOutlineBolt className="h-4 w-4 text-primary" />
         <span className="text-sm font-medium text-foreground">
@@ -210,7 +210,7 @@ export function WorkflowExecuteCard({
       </div>
 
       <div className="space-y-3 p-3">
-        <div className="rounded border border-border p-2.5">
+        <div className="border border-border p-2.5">
           <span className="text-sm font-medium text-foreground">
             {workflowName}
           </span>
@@ -233,13 +233,13 @@ export function WorkflowExecuteCard({
         )}
 
         {isLoadingInterface && (
-          <div className="rounded border border-border px-3 py-2 text-xs text-muted-foreground">
+          <div className="border border-border px-3 py-2 text-xs text-muted-foreground">
             Loading workflow inputs...
           </div>
         )}
 
         {status === 'idle' && hasInputs && !isLoadingInterface && (
-          <div className="space-y-3 rounded border border-border p-3">
+          <div className="space-y-3 border border-border p-3">
             {inputEntries.map(([key, field]) => {
               const label = field.label ?? key;
               const value = formValues[key];
@@ -256,7 +256,7 @@ export function WorkflowExecuteCard({
                     </p>
                   )}
                   {field.type === 'boolean' ? (
-                    <label className="flex items-center gap-2 rounded border border-border px-2.5 py-2 text-sm text-foreground">
+                    <label className="flex items-center gap-2 border border-border px-2.5 py-2 text-sm text-foreground">
                       <input
                         type="checkbox"
                         checked={Boolean(value)}
@@ -334,7 +334,7 @@ export function WorkflowExecuteCard({
             withWrapper={false}
             onClick={handleExecute}
             isDisabled={!workflowId || isLoadingInterface}
-            className="flex w-full items-center justify-center gap-2 rounded px-4 py-2 text-sm font-black"
+            className="flex w-full items-center justify-center gap-2 px-4 py-2 text-sm font-black"
           >
             <HiOutlineBolt className="h-4 w-4" />
             Execute
@@ -342,7 +342,7 @@ export function WorkflowExecuteCard({
         )}
 
         {status === 'executing' && (
-          <div className="flex items-center justify-center gap-2 rounded border border-border px-4 py-3">
+          <div className="flex items-center justify-center gap-2 border border-border px-4 py-3">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             <span className="text-sm text-muted-foreground">
               Executing workflow...
@@ -352,7 +352,7 @@ export function WorkflowExecuteCard({
 
         {status === 'done' && (
           <div className="space-y-2">
-            <div className="flex items-center gap-2 rounded border border-green-200 bg-green-50 px-3 py-2 dark:border-green-800 dark:bg-green-950">
+            <div className="flex items-center gap-2 border border-green-200 bg-green-50 px-3 py-2 dark:border-green-800 dark:bg-green-950">
               <HiCheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
               <span className="text-sm text-green-700 dark:text-green-300">
                 Workflow executed successfully
@@ -361,7 +361,7 @@ export function WorkflowExecuteCard({
             {executionId && (
               <a
                 href={href(`/workflows/executions/${executionId}`)}
-                className="flex w-full items-center justify-center gap-1 rounded border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                className="flex w-full items-center justify-center gap-1 border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
               >
                 View Execution
               </a>
@@ -371,7 +371,7 @@ export function WorkflowExecuteCard({
 
         {status === 'error' && (
           <div className="space-y-2">
-            <div className="flex items-center gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 dark:border-red-800 dark:bg-red-950">
+            <div className="flex items-center gap-2 border border-red-200 bg-red-50 px-3 py-2 dark:border-red-800 dark:bg-red-950">
               <HiExclamationCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
               <span className="text-sm text-red-700 dark:text-red-300">
                 {error}
@@ -381,7 +381,7 @@ export function WorkflowExecuteCard({
               variant={ButtonVariant.OUTLINE}
               withWrapper={false}
               onClick={handleRetry}
-              className="flex w-full items-center justify-center rounded px-4 py-2 text-sm font-black"
+              className="flex w-full items-center justify-center px-4 py-2 text-sm font-black"
             >
               Try Again
             </Button>

@@ -16,9 +16,9 @@ import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import SelectedAvatarPreview from '@ui/display/selected-avatar-preview/SelectedAvatarPreview';
+import { Button } from '@ui/primitives/button';
 import {
   Select,
   SelectContent,

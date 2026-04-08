@@ -7,10 +7,10 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import type { Post } from '@models/content/post.model';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
 import { BrandsService } from '@services/social/brands.service';
-import Button from '@ui/buttons/base/Button';
 import Table from '@ui/display/table/Table';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
+import { Button } from '@ui/primitives/button';
 import { PageScope } from '@ui-constants/misc.constant';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';

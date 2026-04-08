@@ -3,7 +3,7 @@ import { AgentWorkEventStatus } from '@genfeedai/agent/models/agent-chat.model';
 import type { TimelineWorkGroup as TimelineWorkGroupEntry } from '@genfeedai/agent/utils/derive-timeline';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { type ReactElement, useState } from 'react';
 import { HiCheckCircle, HiChevronDown, HiClock } from 'react-icons/hi2';
 

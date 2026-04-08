@@ -18,7 +18,7 @@ import type {
 } from '@genfeedai/interfaces';
 import type { AvatarVoiceOption } from '@genfeedai/interfaces/studio/studio-generate.interface';
 import LowCreditsBanner from '@ui/banners/low-credits/LowCreditsBanner';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import PromptBar from '@ui/prompt-bars/base/PromptBar';
 import PromptBarSurfaceRenderer from '@ui/prompt-bars/surface/PromptBarSurfaceRenderer';
 import { STUDIO_PROMPT_BAR_SURFACE } from '@ui/prompt-bars/surface/prompt-bar-surface.config';

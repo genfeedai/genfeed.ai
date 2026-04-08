@@ -8,10 +8,10 @@ import {
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getVideoResolutionsByModel } from '@helpers/media/video-resolution/video-resolution.helper';
 import type { PromptBarQuickOptionsProps } from '@props/prompt-bars/prompt-bar-tiers.props';
-import Button from '@ui/buttons/base/Button';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormCheckbox from '@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox';
-import FormDropdown from '@ui/forms/selectors/dropdown/form-dropdown/FormDropdown';
+import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
+import FormDropdown from '@ui/primitives/dropdown-field';
+import { Input } from '@ui/primitives/input';
 import PromptBarFrameControls from '@ui/prompt-bars/components/frame-controls/PromptBarFrameControls';
 import { type ChangeEvent, memo, useState } from 'react';
 import {
@@ -156,7 +156,7 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
               {isAdvancedControlsEnabled &&
                 categoryType === IngredientCategory.VIDEO &&
                 hasAudioToggleValue && (
-                  <FormCheckbox
+                  <Checkbox
                     key="isAudioEnabled"
                     name="isAudioEnabled"
                     label="Audio"
@@ -175,7 +175,7 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
 
               {isAdvancedControlsEnabled &&
                 categoryType === IngredientCategory.VIDEO && (
-                  <FormCheckbox
+                  <Checkbox
                     key="isBackgroundMusicEnabled"
                     name="isBackgroundMusicEnabled"
                     label="Background Music"
@@ -243,7 +243,7 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
             </div>
 
             {currentConfig.buttons?.model && (
-              <FormCheckbox
+              <Checkbox
                 key="brandingMode"
                 name="brandingMode"
                 label="Branding"
@@ -296,7 +296,7 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
             />
 
             {form.getValues('backgroundMusicMode') === 'generate' && (
-              <FormInput
+              <Input
                 name="backgroundMusicPrompt"
                 type="text"
                 placeholder="Describe the music (e.g., upbeat electronic, calm piano)"
@@ -338,7 +338,7 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
               isDisabled={isDisabledState}
             />
 
-            <FormCheckbox
+            <Checkbox
               name="muteVideoAudio"
               label="Mute original audio"
               isChecked={form.getValues('muteVideoAudio') ?? false}

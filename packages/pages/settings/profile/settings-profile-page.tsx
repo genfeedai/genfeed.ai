@@ -8,7 +8,7 @@ import { User } from '@models/auth/user.model';
 import { logger } from '@services/core/logger.service';
 import { UsersService } from '@services/organization/users.service';
 import Card from '@ui/card/Card';
-import FormToggle from '@ui/forms/selectors/toggle/form-toggle/FormToggle';
+import { Switch } from '@ui/primitives/switch';
 import { useCallback, useState } from 'react';
 
 type ExtendedSettingPatch = Partial<ISetting> & {
@@ -90,7 +90,7 @@ export default function SettingsProfilePage() {
 
       <Card className="p-6">
         <h2 className="text-lg font-semibold mb-4">Features</h2>
-        <FormToggle
+        <Switch
           label="Advanced Mode"
           description="Show studio, workflow editor, automation tools, and individual generation pages. Recommended for power users."
           isChecked={isAdvancedMode}
@@ -103,7 +103,7 @@ export default function SettingsProfilePage() {
       <Card className="p-6">
         <h2 className="text-lg font-semibold mb-4">Email Notifications</h2>
         <div className="space-y-4">
-          <FormToggle
+          <Switch
             label="Workflow Emails"
             description="Send an email when a workflow completes or fails."
             isChecked={isWorkflowNotificationsEmail}
@@ -115,7 +115,7 @@ export default function SettingsProfilePage() {
               })
             }
           />
-          <FormToggle
+          <Switch
             label="Video Emails"
             description="Send an email when a video generation completes or fails."
             isChecked={isVideoNotificationsEmail}

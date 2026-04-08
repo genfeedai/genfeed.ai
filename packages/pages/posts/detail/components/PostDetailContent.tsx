@@ -7,9 +7,9 @@ import type { PostsService } from '@services/content/posts.service';
 import type { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
-import FormCheckbox from '@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox';
 import ThreadPreviewPanel from '@ui/posts/preview/thread-preview-panel/ThreadPreviewPanel';
 import type { PostQuickActionKey } from '@ui/posts/quick-actions/post-quick-actions/PostQuickActions';
+import { Checkbox } from '@ui/primitives/checkbox';
 import { PageScope } from '@ui-constants/misc.constant';
 
 const VIDEO_ONLY_PLATFORMS: Platform[] = [Platform.YOUTUBE, Platform.TIKTOK];
@@ -323,7 +323,7 @@ export default function PostDetailContent({
           </div>
 
           {canAddThread && (
-            <FormCheckbox
+            <Checkbox
               name="grok-feedback-request"
               label={
                 <div className="space-y-1">
@@ -343,7 +343,7 @@ export default function PostDetailContent({
 
           {canAddFirstComment && (
             <div className="space-y-2">
-              <FormCheckbox
+              <Checkbox
                 name="first-comment"
                 label={
                   <div className="space-y-1">

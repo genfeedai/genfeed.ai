@@ -1,7 +1,7 @@
 'use client';
 
 import type { PromptBarTextareaSectionProps } from '@props/prompt-bars/prompt-bar-layout.props';
-import FormTextarea from '@ui/forms/inputs/textarea/form-textarea/FormTextarea';
+import { Textarea } from '@ui/primitives/textarea';
 import { memo } from 'react';
 
 const PromptBarTextareaSection = memo(function PromptBarTextareaSection({
@@ -16,7 +16,7 @@ const PromptBarTextareaSection = memo(function PromptBarTextareaSection({
 
   return (
     <div className="flex flex-col gap-2 w-full">
-      <FormTextarea
+      <Textarea
         name="text"
         register={textareaRegister}
         textareaRef={textareaRef}

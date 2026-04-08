@@ -51,7 +51,7 @@ export function ToolbarDropdown({ label, items }: ToolbarDropdownProps) {
       </Button>
 
       {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-1 min-w-[180px] rounded-lg border border-border bg-card py-1 shadow-lg whitespace-nowrap">
+        <div className="absolute left-0 top-full z-50 mt-1 min-w-[180px] border border-border bg-card py-1 shadow-lg whitespace-nowrap">
           {items.map((item) => {
             if (item.separator) {
               return <div key={item.id} className="my-1 h-px bg-border" />;

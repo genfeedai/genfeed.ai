@@ -21,10 +21,10 @@ import {
   isIngredient,
 } from '@pages/studio/generate/utils/helpers';
 import type { TableAction } from '@props/ui/display/table.props';
-import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
+import { Button } from '@ui/primitives/button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { resolveIngredientReferenceUrl } from '@utils/media/reference.util';
 import Image from 'next/image';

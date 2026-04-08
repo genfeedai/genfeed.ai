@@ -14,11 +14,11 @@ import type { ModalHookRemixProps } from '@props/trends/hook-remix.props';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { HookRemixService } from '@services/hook-remix/hook-remix.service';
-import Button from '@ui/buttons/base/Button';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { SelectField } from '@ui/primitives/select';
 import { Slider } from '@ui/primitives/slider';
 import type { ChangeEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -176,7 +176,7 @@ export default function HookRemixModal({
         )}
 
         <FormControl label="Brand">
-          <FormSelect
+          <SelectField
             name="brandId"
             value={selectedBrandId}
             onChange={(e: ChangeEvent<HTMLSelectElement>) => {
@@ -192,11 +192,11 @@ export default function HookRemixModal({
                 {brand.label}
               </option>
             ))}
-          </FormSelect>
+          </SelectField>
         </FormControl>
 
         <FormControl label="CTA Clip">
-          <FormSelect
+          <SelectField
             name="ctaClipId"
             value={selectedClipId}
             onChange={(e: ChangeEvent<HTMLSelectElement>) =>
@@ -224,7 +224,7 @@ export default function HookRemixModal({
                 {getIngredientOptionLabel(ingredient)}
               </option>
             ))}
-          </FormSelect>
+          </SelectField>
         </FormControl>
 
         <FormControl label={`Hook Duration: ${hookDuration}s`}>

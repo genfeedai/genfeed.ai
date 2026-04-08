@@ -8,8 +8,8 @@ import { ArticlesService } from '@services/content/articles.service';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
-import DropdownBase from '@ui/dropdowns/base/DropdownBase';
+import { Button } from '@ui/primitives/button';
+import { Dropdown } from '@ui/primitives/dropdown';
 import { SCOPE_OPTIONS } from '@ui-constants/scope.constant';
 import { useMemo, useState } from 'react';
 import {
@@ -115,7 +115,7 @@ export default function DropdownScope({
   }
 
   return (
-    <DropdownBase
+    <Dropdown
       className={className}
       isOpen={isOpen}
       onOpenChange={setIsOpen}
@@ -217,6 +217,6 @@ export default function DropdownScope({
           </Button>
         );
       })}
-    </DropdownBase>
+    </Dropdown>
   );
 }

@@ -50,7 +50,7 @@ export function OverflowMenu({ items }: OverflowMenuProps) {
       </Button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded-lg border border-border bg-card py-1 shadow-lg">
+        <div className="absolute right-0 top-full z-50 mt-1 min-w-[180px] border border-border bg-card py-1 shadow-lg">
           {items.map((item) => (
             <Button
               key={item.id}

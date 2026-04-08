@@ -42,7 +42,11 @@
         "./packages/ui/constants/*",
         "../../packages/ui/src/components/constants/*"
       ],
-      "@ui/*": ["./packages/ui/*", "../../packages/ui/src/components/*"],
+      "@ui/*": [
+        "./packages/ui/*",
+        "../../packages/ui/src/*",
+        "../../packages/ui/src/components/*"
+      ],
       "@utils/*": ["../../packages/utils/*"],
       "@web-components/*": ["./packages/components/*"],
       "@website/*": ["./app/*"],

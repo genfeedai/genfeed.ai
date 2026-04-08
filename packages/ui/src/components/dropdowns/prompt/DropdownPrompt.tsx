@@ -4,7 +4,7 @@ import { ButtonVariant, DropdownDirection } from '@genfeedai/enums';
 import { BG_BLUR, BORDER_WHITE_30, cn } from '@helpers/formatting/cn/cn.util';
 import type { PromptDropdownProps } from '@props/prompts/prompt-dropdown.props';
 import { ClipboardService } from '@services/core/clipboard.service';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';

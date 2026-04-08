@@ -67,15 +67,15 @@ export function ContextMenuItem({
     <div
       ref={itemRef}
       className="relative"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onPointerEnter={handleMouseEnter}
+      onPointerLeave={handleMouseLeave}
     >
       <Button
         variant="ghost"
         onClick={hasSubmenu ? undefined : onClick}
         disabled={disabled}
         className={`
-          w-full flex items-center gap-3 px-3 py-2 text-left text-sm rounded-md h-auto justify-start
+          w-full flex items-center gap-3 px-3 py-2 text-left text-sm h-auto justify-start
           ${isSelected || showSubmenu ? 'bg-[var(--secondary)]' : ''}
           ${danger && !disabled ? 'text-red-400 hover:text-red-300' : 'text-[var(--foreground)]'}
         `}
@@ -101,9 +101,9 @@ export function ContextMenuItem({
       {/* Submenu */}
       {hasSubmenu && showSubmenu && (
         <div
-          className="absolute left-full top-0 ml-1 min-w-[200px] py-1 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg backdrop-blur-sm z-50"
-          onMouseEnter={handleMouseEnter}
-          onMouseLeave={handleMouseLeave}
+          className="absolute left-full top-0 ml-1 min-w-[200px] py-1 bg-[var(--card)] border border-[var(--border)] shadow-lg backdrop-blur-sm z-50"
+          onPointerEnter={handleMouseEnter}
+          onPointerLeave={handleMouseLeave}
         >
           {submenu.map((item) => {
             if (item.separator) {
@@ -117,7 +117,7 @@ export function ContextMenuItem({
                 onClick={() => handleSubmenuClick(item)}
                 disabled={item.disabled}
                 className={`
-                  w-full flex items-center gap-3 px-3 py-2 text-left text-sm rounded-md h-auto justify-start
+                  w-full flex items-center gap-3 px-3 py-2 text-left text-sm h-auto justify-start
                   ${item.danger && !item.disabled ? 'text-red-400 hover:text-red-300' : 'text-[var(--foreground)]'}
                 `}
               >

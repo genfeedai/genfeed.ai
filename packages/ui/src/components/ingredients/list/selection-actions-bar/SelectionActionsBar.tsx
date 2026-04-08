@@ -2,7 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import type { SelectionActionsBarProps } from '@props/content/ingredient.props';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { HiFilm, HiTrash, HiXMark } from 'react-icons/hi2';
 
 export default function SelectionActionsBar({

@@ -2,7 +2,7 @@ import { AGENT_MODELS } from '@genfeedai/agent/constants/agent-models.constant';
 import type { AgentApiConfig } from '@genfeedai/agent/services/agent-api.service';
 import { ButtonSize, ButtonVariant, CostTier } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useCallback, useEffect, useState } from 'react';
 import {
@@ -214,7 +214,7 @@ export function AgentSettings({
               withWrapper={false}
               onClick={() => setGenerationPriority(option.key)}
               className={cn(
-                'flex items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors',
+                'flex items-center gap-3 border px-4 py-3 text-left transition-colors',
                 generationPriority === option.key
                   ? 'border-primary/40 bg-primary/5'
                   : 'border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15] hover:bg-white/[0.04]',
@@ -222,7 +222,7 @@ export function AgentSettings({
             >
               <div
                 className={cn(
-                  'flex h-8 w-8 shrink-0 items-center justify-center rounded',
+                  'flex h-8 w-8 shrink-0 items-center justify-center',
                   generationPriority === option.key
                     ? 'bg-primary/10 text-primary'
                     : 'bg-white/[0.05] text-muted-foreground',
@@ -263,7 +263,7 @@ export function AgentSettings({
               withWrapper={false}
               onClick={() => setSelectedModel(model.key)}
               className={cn(
-                'flex items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors',
+                'flex items-center gap-3 border px-4 py-3 text-left transition-colors',
                 selectedModel === model.key
                   ? 'border-primary/40 bg-primary/5'
                   : 'border-white/[0.08] bg-white/[0.02] hover:border-white/[0.15] hover:bg-white/[0.04]',
@@ -314,7 +314,7 @@ export function AgentSettings({
             placeholder="Customize your agent's personality and instructions..."
             maxLength={5000}
             rows={6}
-            className="resize-y rounded-lg border-white/[0.12] bg-white/[0.03] px-4 py-3 text-sm placeholder:text-foreground/30 focus:border-primary/40"
+            className="resize-y border-white/[0.12] bg-white/[0.03] px-4 py-3 text-sm placeholder:text-foreground/30 focus:border-primary/40"
           />
           <div className="mt-1 text-right text-[10px] text-muted-foreground">
             {persona.length}/5000

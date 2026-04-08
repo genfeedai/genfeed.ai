@@ -1,5 +1,5 @@
 import type { FormDropzoneProps } from '@props/forms/form.props';
-import FormControl from '@ui/forms/base/form-control/FormControl';
+import FormControl from '@ui/primitives/field';
 import { useDropzone } from 'react-dropzone';
 
 export default function FormDropzone({

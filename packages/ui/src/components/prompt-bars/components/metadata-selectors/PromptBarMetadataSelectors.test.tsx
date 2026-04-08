@@ -7,7 +7,7 @@ import PromptBarMetadataSelectors from '@ui/prompt-bars/components/metadata-sele
 import type { UseFormReturn } from 'react-hook-form';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@ui/forms/selectors/dropdown/form-dropdown/FormDropdown', () => ({
+vi.mock('@ui/primitives/dropdown-field', () => ({
   default: ({
     label,
     options,

@@ -18,8 +18,8 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { GIFsService } from '@services/ingredients/gifs.service';
 import { ImagesService } from '@services/ingredients/images.service';
 import { VideosService } from '@services/ingredients/videos.service';
-import Button from '@ui/buttons/base/Button';
-import DropdownBase from '@ui/dropdowns/base/DropdownBase';
+import { Button } from '@ui/primitives/button';
+import { Dropdown } from '@ui/primitives/dropdown';
 import { getStatusMeta } from '@ui-constants/status.constant';
 import { useMemo, useState } from 'react';
 import { HiArchiveBox, HiCheck, HiClock, HiXMark } from 'react-icons/hi2';
@@ -280,7 +280,7 @@ export default function DropdownStatus({
   }
 
   return (
-    <DropdownBase
+    <Dropdown
       className={className}
       isOpen={isOpen}
       onOpenChange={setIsOpen}
@@ -369,6 +369,6 @@ export default function DropdownStatus({
           </Button>
         );
       })}
-    </DropdownBase>
+    </Dropdown>
   );
 }

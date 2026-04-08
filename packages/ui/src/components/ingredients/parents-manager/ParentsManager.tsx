@@ -12,9 +12,9 @@ import type { IngredientParentsManagerProps } from '@props/content/ingredient.pr
 import { IngredientsService } from '@services/content/ingredients.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
-import Button from '@ui/buttons/base/Button';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Loading from '@ui/loading/default/Loading';
+import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';
 import { HiPhoto, HiVideoCamera, HiXMark } from 'react-icons/hi2';

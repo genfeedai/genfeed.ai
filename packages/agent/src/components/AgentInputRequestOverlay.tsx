@@ -1,6 +1,6 @@
 import type { AgentInputRequest } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useMemo, useState } from 'react';
 
@@ -37,8 +37,8 @@ export function AgentInputRequestOverlay({
       <div
         className={
           variant === 'inline'
-            ? 'w-full rounded-[28px] border border-primary/30 bg-[#0d0f16] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.28)]'
-            : 'w-full max-w-4xl rounded-[28px] border border-primary/50 bg-[#0d0f16] p-6 shadow-2xl'
+            ? 'w-full border border-primary/30 bg-[#0d0f16] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.28)]'
+            : 'w-full max-w-4xl border border-primary/50 bg-[#0d0f16] p-6 shadow-2xl'
         }
       >
         <div className="mb-4">
@@ -63,9 +63,9 @@ export function AgentInputRequestOverlay({
                 onClick={() => {
                   void onSubmit(option.label);
                 }}
-                className="flex w-full items-start gap-4 rounded-2xl border border-white/[0.08] bg-white/[0.02] px-5 py-4 text-left transition-colors hover:border-primary/40 hover:bg-white/[0.04] disabled:opacity-50"
+                className="flex w-full items-start gap-4 border border-white/[0.08] bg-white/[0.02] px-5 py-4 text-left transition-colors hover:border-primary/40 hover:bg-white/[0.04] disabled:opacity-50"
               >
-                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/[0.04] text-sm text-foreground/70">
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center bg-white/[0.04] text-sm text-foreground/70">
                   {index + 1}
                 </span>
                 <span className="block">
@@ -94,7 +94,7 @@ export function AgentInputRequestOverlay({
                   ? `Type your own answer, or leave this blank to use "${recommendedLabel}"`
                   : 'Type your answer'
               }
-              className="min-h-28 rounded-2xl border-white/[0.08] bg-transparent px-4 py-3 placeholder:text-foreground/35 focus:border-primary/50"
+              className="min-h-28 border-white/[0.08] bg-transparent px-4 py-3 placeholder:text-foreground/35 focus:border-primary/50"
             />
           </div>
         ) : null}

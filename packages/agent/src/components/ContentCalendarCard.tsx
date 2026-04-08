@@ -1,6 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 import { HiCalendar, HiPlus } from 'react-icons/hi2';
 
@@ -23,7 +23,7 @@ export function ContentCalendarCard({
   const days = action.calendarDays ?? [];
 
   return (
-    <div className="my-2 rounded-lg border border-border bg-background p-4">
+    <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
         <HiCalendar className="h-5 w-5 text-teal-500" />
         <h3 className="text-sm font-semibold">
@@ -50,7 +50,7 @@ export function ContentCalendarCard({
             return (
               <div
                 key={day.date}
-                className={`flex flex-col items-center rounded p-1.5 ${
+                className={`flex flex-col items-center p-1.5 ${
                   isEmpty
                     ? 'border border-dashed border-border bg-muted/50'
                     : 'bg-muted'

@@ -9,10 +9,10 @@ import {
   OnboardingService,
   type ProactiveWorkspaceResponse,
 } from '@services/onboarding/onboarding.service';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
+import { Button } from '@ui/primitives/button';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import {

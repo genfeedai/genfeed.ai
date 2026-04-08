@@ -5,9 +5,9 @@ import type { ITrendVideo } from '@genfeedai/interfaces';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import type { ViralVideoLeaderboardProps } from '@props/analytics/trends.props';
-import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
+import { Button } from '@ui/primitives/button';
 import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
 import { HiOutlineFire, HiOutlinePlay } from 'react-icons/hi2';
 

@@ -8,8 +8,8 @@ import {
   ComponentSize,
 } from '@genfeedai/enums';
 import type { AiActionGroupProps } from '@props/ai/ai-action.props';
-import Button from '@ui/buttons/base/Button';
 import Spinner from '@ui/feedback/spinner/Spinner';
+import { Button } from '@ui/primitives/button';
 import { useCallback, useState } from 'react';
 import { HiSparkles } from 'react-icons/hi2';
 

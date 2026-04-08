@@ -1,6 +1,5 @@
 'use client';
 
-import Button from '@components/buttons/base/Button';
 import { ButtonVariant } from '@genfeedai/enums';
 import type { IAnnouncement } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -15,7 +14,7 @@ import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
-import { Button as PrimitiveButton } from '@ui/primitives/button';
+import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
@@ -343,7 +342,7 @@ export default function AnnouncementsPage({
                 {(announcement.discordMessageUrl || announcement.tweetUrl) && (
                   <div className="flex items-center gap-3 pt-1 border-t border-white/5">
                     {announcement.discordMessageUrl && (
-                      <PrimitiveButton asChild variant={ButtonVariant.GHOST}>
+                      <Button asChild variant={ButtonVariant.GHOST}>
                         <a
                           href={announcement.discordMessageUrl}
                           target="_blank"
@@ -351,10 +350,10 @@ export default function AnnouncementsPage({
                         >
                           View on Discord
                         </a>
-                      </PrimitiveButton>
+                      </Button>
                     )}
                     {announcement.tweetUrl && (
-                      <PrimitiveButton asChild variant={ButtonVariant.GHOST}>
+                      <Button asChild variant={ButtonVariant.GHOST}>
                         <a
                           href={announcement.tweetUrl}
                           target="_blank"
@@ -362,7 +361,7 @@ export default function AnnouncementsPage({
                         >
                           View Tweet
                         </a>
-                      </PrimitiveButton>
+                      </Button>
                     )}
                   </div>
                 )}

@@ -7,7 +7,7 @@ import { extractThreadOutputs } from '@genfeedai/agent/utils/extract-thread-outp
 import { ButtonVariant } from '@genfeedai/enums';
 import { Pre } from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -57,21 +57,23 @@ function renderVariantPreview(
 ): ReactElement {
   if (variant.kind === 'video' && variant.url) {
     return (
+      // biome-ignore lint/a11y/useMediaCaption: preview media has no caption track source
       <video
         src={variant.url}
         controls
-        className="aspect-[4/5] w-full rounded-2xl border border-white/[0.08] bg-black/20 object-cover"
+        className="aspect-[4/5] w-full border border-white/[0.08] bg-black/20 object-cover"
       />
     );
   }
 
   if (variant.kind === 'audio' && variant.url) {
     return (
-      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
+      <div className="border border-white/[0.08] bg-white/[0.03] p-4">
         <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
           <HiOutlineMusicalNote className="h-4 w-4 text-primary/80" />
           {variant.title ?? group.title}
         </div>
+        {/* biome-ignore lint/a11y/useMediaCaption: preview audio has no caption track source */}
         <audio src={variant.url} controls className="w-full" />
       </div>
     );
@@ -79,7 +81,7 @@ function renderVariantPreview(
 
   if (variant.kind === 'text') {
     return (
-      <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4">
+      <div className="border border-white/[0.08] bg-white/[0.03] p-4">
         <div className="mb-3 flex items-center gap-2 text-sm font-medium text-foreground">
           <HiOutlineDocumentText className="h-4 w-4 text-primary/80" />
           {variant.title ?? group.title}
@@ -100,13 +102,13 @@ function renderVariantPreview(
       <img
         src={variant.url}
         alt={variant.title ?? group.title}
-        className="aspect-[4/5] w-full rounded-2xl border border-white/[0.08] bg-black/20 object-cover"
+        className="aspect-[4/5] w-full border border-white/[0.08] bg-black/20 object-cover"
       />
     );
   }
 
   return (
-    <div className="rounded-2xl border border-dashed border-white/[0.12] bg-white/[0.03] p-8 text-center text-sm text-foreground/55">
+    <div className="border border-dashed border-white/[0.12] bg-white/[0.03] p-8 text-center text-sm text-foreground/55">
       No preview available.
     </div>
   );
@@ -182,7 +184,7 @@ export function AgentOutputsPanel({
           className,
         )}
       >
-        <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/[0.04] ring-1 ring-inset ring-white/[0.08]">
+        <div className="mb-4 flex h-12 w-12 items-center justify-center bg-white/[0.04] ring-1 ring-inset ring-white/[0.08]">
           <HiOutlinePhoto className="h-6 w-6 text-foreground/35" />
         </div>
         <h2 className="text-base font-semibold text-foreground">
@@ -223,8 +225,8 @@ export function AgentOutputsPanel({
           </span>
         </div>
 
-        {selectedVariant
-          ? renderVariantPreview(selectedGroup!, selectedVariant)
+        {selectedGroup && selectedVariant
+          ? renderVariantPreview(selectedGroup, selectedVariant)
           : null}
 
         {selectedGroup && selectedGroup.variants.length > 1 ? (
@@ -270,7 +272,7 @@ export function AgentOutputsPanel({
                 <a
                   href={selectedVariant.url}
                   download
-                  className="inline-flex h-9 items-center rounded-lg border border-white/[0.12] px-3 text-xs font-medium text-foreground/70 transition-colors hover:bg-white/[0.06] hover:text-foreground"
+                  className="inline-flex h-9 items-center border border-white/[0.12] px-3 text-xs font-medium text-foreground/70 transition-colors hover:bg-white/[0.06] hover:text-foreground"
                 >
                   <HiOutlineArrowDownTray className="mr-1.5 h-4 w-4" />
                   Download
@@ -279,7 +281,7 @@ export function AgentOutputsPanel({
                   href={selectedVariant.url}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex h-9 items-center rounded-lg border border-white/[0.12] px-3 text-xs font-medium text-foreground/70 transition-colors hover:bg-white/[0.06] hover:text-foreground"
+                  className="inline-flex h-9 items-center border border-white/[0.12] px-3 text-xs font-medium text-foreground/70 transition-colors hover:bg-white/[0.06] hover:text-foreground"
                 >
                   <HiOutlineArrowTopRightOnSquare className="mr-1.5 h-4 w-4" />
                   Open asset
@@ -296,7 +298,7 @@ export function AgentOutputsPanel({
                   href={cta.href}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex h-9 items-center rounded-lg border border-white/[0.12] px-3 text-xs font-medium text-foreground/70 transition-colors hover:bg-white/[0.06] hover:text-foreground"
+                  className="inline-flex h-9 items-center border border-white/[0.12] px-3 text-xs font-medium text-foreground/70 transition-colors hover:bg-white/[0.06] hover:text-foreground"
                 >
                   <HiOutlineArrowTopRightOnSquare className="mr-1.5 h-4 w-4" />
                   {cta.label}
@@ -320,7 +322,7 @@ export function AgentOutputsPanel({
                   setSelectedVariantId(group.variants[0]?.id ?? null);
                 }}
                 className={cn(
-                  'flex w-full items-start gap-3 rounded-2xl border px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+                  'flex w-full items-start gap-3 border px-3 py-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
                   group.id === selectedGroupId
                     ? 'border-primary/25 bg-primary/10'
                     : 'border-white/[0.08] bg-white/[0.02] hover:bg-white/[0.04]',

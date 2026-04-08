@@ -9,19 +9,19 @@ import {
 import { cn } from '@helpers/formatting/cn/cn.util';
 import * as formatHelper from '@helpers/formatting/format/format.helper';
 import type { MultiSelectDropdownProps } from '@props/ui/forms/button.props';
-import Button from '@ui/buttons/base/Button';
-import FormSearchbar from '@ui/forms/inputs/searchbar/form-searchbar/FormSearchbar';
-import FormCheckbox from '@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox';
 import {
+  Button,
   buttonVariants,
   Button as PrimitiveButton,
 } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
+import FormSearchbar from '@ui/primitives/searchbar';
 import {
   type ChangeEvent,
   type ReactNode,
@@ -258,7 +258,7 @@ export default function MultiSelectDropdown({
           <span className="flex items-center justify-start gap-2">
             {option.value && (
               <div className="pointer-events-none">
-                <FormCheckbox
+                <Checkbox
                   name={`option-${option.value}`}
                   isChecked={values.includes(option.value)}
                   onChange={() => {
@@ -385,7 +385,7 @@ export default function MultiSelectDropdown({
             >
               <span className="flex items-center justify-start gap-2">
                 <div className="pointer-events-none">
-                  <FormCheckbox
+                  <Checkbox
                     name="selectAll"
                     isChecked={isAllVisibleSelected}
                     onChange={() => {

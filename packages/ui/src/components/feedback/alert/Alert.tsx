@@ -1,7 +1,7 @@
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { AlertProps } from '@props/ui/ui.props';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { cva } from 'class-variance-authority';
 import {
   HiCheckCircle,

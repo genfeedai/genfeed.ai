@@ -9,7 +9,7 @@ import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useBrandOverlay } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
 import { UsersService } from '@services/organization/users.service';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';

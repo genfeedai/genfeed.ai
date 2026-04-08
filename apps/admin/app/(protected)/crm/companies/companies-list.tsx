@@ -1,6 +1,5 @@
 'use client';
 
-import Button from '@components/buttons/base/Button';
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import SocialLinks from '@components/social/SocialLinks';
 import { ButtonVariant } from '@genfeedai/enums';
@@ -19,6 +18,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
+import { Button } from '@ui/primitives/button';
 import {
   Dialog,
   DialogContent,

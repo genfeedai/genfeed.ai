@@ -12,10 +12,10 @@ import type { Image as ImageModel } from '@models/ingredients/image.model';
 import type { PromptBarActionsRowProps } from '@props/prompt-bars/prompt-bar-layout.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import AiActionGroup from '@ui/ai/AiActionGroup';
-import Button from '@ui/buttons/base/Button';
 import Spinner from '@ui/feedback/spinner/Spinner';
-import FormCheckbox from '@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox';
-import FormDropdown from '@ui/forms/selectors/dropdown/form-dropdown/FormDropdown';
+import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
+import FormDropdown from '@ui/primitives/dropdown-field';
 import Image from 'next/image';
 import { type ChangeEvent, memo, useCallback } from 'react';
 import {
@@ -272,7 +272,7 @@ const PromptBarActionsRow = memo(function PromptBarActionsRow({
         )}
 
         {currentConfig.buttons?.model && (
-          <FormCheckbox
+          <Checkbox
             name="brandingMode"
             control={form.control}
             label="Branding"

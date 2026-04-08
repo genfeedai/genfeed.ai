@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
-import FormDateRangePicker from '@ui/forms/pickers/date-range-picker/form-date-range-picker/FormDateRangePicker';
+import FormDateRangePicker from '@ui/primitives/date-range-picker';
 
 const meta: Meta<typeof FormDateRangePicker> = {
   argTypes: {},

@@ -15,9 +15,9 @@ import { BlacklistsService } from '@services/elements/blacklists.service';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
-import FormCheckbox from '@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox';
 import { LazyModalBlacklist } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Checkbox } from '@ui/primitives/checkbox';
 import { PageScope } from '@ui-constants/misc.constant';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -123,7 +123,7 @@ export default function BlacklistsList({
       header: 'Default',
       key: 'isDefault',
       render: (blacklist: ElementBlacklist) => (
-        <FormCheckbox
+        <Checkbox
           name={`isDefault-${blacklist.id}`}
           isChecked={blacklist.isDefault}
           isDisabled={

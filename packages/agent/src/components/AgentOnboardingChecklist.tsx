@@ -74,7 +74,7 @@ export function AgentOnboardingChecklist({
           </Link>
         </div>
 
-        <div className="mt-3 rounded-lg border border-border/60 bg-background/80 p-3">
+        <div className="mt-3 border border-border/60 bg-background/80 p-3">
           <div className="space-y-2 text-[11px] text-muted-foreground">
             <div className="flex items-center justify-between">
               <span>Signup gift</span>
@@ -110,7 +110,7 @@ export function AgentOnboardingChecklist({
             <div
               key={step.id}
               className={cn(
-                'flex items-start gap-3 rounded-lg px-3 py-3 transition-colors',
+                'flex items-start gap-3 px-3 py-3 transition-colors',
                 step.id === currentStepId && 'bg-white/[0.04]',
                 step.status === 'complete' && 'opacity-60',
               )}

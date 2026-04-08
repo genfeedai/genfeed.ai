@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonVariant, WorkflowNodeStatus } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
 import type {

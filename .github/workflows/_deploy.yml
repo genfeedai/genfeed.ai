@@ -160,10 +160,7 @@ jobs:
         with:
           image_prefix: ${{ env.IMAGE_PREFIX }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          sentry_auth_token_api: ${{ secrets.SENTRY_AUTH_TOKEN_API }}
-          sentry_auth_token_files: ${{ secrets.SENTRY_AUTH_TOKEN_FILES }}
-          sentry_auth_token_mcp: ${{ secrets.SENTRY_AUTH_TOKEN_MCP }}
-          sentry_auth_token_notifications: ${{ secrets.SENTRY_AUTH_TOKEN_NOTIFICATIONS }}
+          sentry_auth_token: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
   # --- Single consolidated deploy job ---
   # Deploys all changed services in wave order via one SSH session to EC2
@@ -350,7 +347,9 @@ jobs:
           # Copy compose file and deploy script
           scp $SSH_OPTS docker/${COMPOSE_FILE} ${EC2_USER}@${API_IP}:./cloud/docker/${COMPOSE_FILE}
           scp $SSH_OPTS docker/${DEPLOY_SCRIPT} ${EC2_USER}@${API_IP}:./cloud/docker/${DEPLOY_SCRIPT}
+          scp $SSH_OPTS docker/render-ssm-env.sh ${EC2_USER}@${API_IP}:./cloud/docker/render-ssm-env.sh
           ssh $SSH_OPTS ${EC2_USER}@${API_IP} "chmod +x ./cloud/docker/${DEPLOY_SCRIPT}"
+          ssh $SSH_OPTS ${EC2_USER}@${API_IP} "chmod +x ./cloud/docker/render-ssm-env.sh"
 
       - name: Deploy all services
         id: deploy
@@ -371,6 +370,8 @@ jobs:
             export GITHUB_SHA="${{ github.sha }}"
             export GITHUB_STEP_SUMMARY="/dev/null"
             export IMAGE_TAG="${{ github.sha }}"
+            export SSM_PARAMETER_PATH_PREFIX="${{ vars.SSM_PARAMETER_PATH_PREFIX }}"
+            export AWS_REGION="${{ vars.AWS_REGION }}"
 
             ./docker/${DEPLOY_SCRIPT} ${CHANGED}
           DEPLOY_EOF

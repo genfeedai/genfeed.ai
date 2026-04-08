@@ -5,8 +5,8 @@ import {
 import { ButtonVariant } from '@genfeedai/enums';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import type { FormInputEditableProps } from '@props/ui/forms/form-editable.props';
-import Button from '@ui/buttons/base/Button';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
+import { Button } from '@ui/primitives/button';
+import { Input } from '@ui/primitives/input';
 import type { KeyboardEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -134,7 +134,7 @@ export default function FormInputEditable({
       {isEditing ? (
         <div className="space-y-2">
           <div className="flex w-full">
-            <FormInput<EditableInputSchema>
+            <Input<EditableInputSchema>
               name="editValue"
               type={type}
               placeholder={placeholder}

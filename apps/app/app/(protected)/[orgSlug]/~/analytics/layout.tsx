@@ -8,9 +8,9 @@ import { Timeframe } from '@genfeedai/enums';
 import type { LayoutProps } from '@props/layout/layout.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import { ErrorBoundary } from '@ui/error';
-import FormDateRangePicker from '@ui/forms/pickers/date-range-picker/form-date-range-picker/FormDateRangePicker';
 import FeatureGate from '@ui/guards/feature/FeatureGate';
 import Container from '@ui/layout/container/Container';
+import FormDateRangePicker from '@ui/primitives/date-range-picker';
 import { HiOutlineChartBar } from 'react-icons/hi2';
 
 function OrgAnalyticsLayoutContent({ children }: LayoutProps) {

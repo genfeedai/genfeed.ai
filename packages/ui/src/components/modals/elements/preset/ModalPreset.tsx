@@ -20,14 +20,14 @@ import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
 import { createPromptHandler } from '@services/core/socket-manager.service';
 import { PresetsService } from '@services/elements/presets.service';
-import Button from '@ui/buttons/base/Button';
 import TextareaLabelActions from '@ui/content/textarea-label-actions/TextareaLabelActions';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormTextarea from '@ui/forms/inputs/textarea/form-textarea/FormTextarea';
-import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
+import { SelectField } from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { WebSocketPaths } from '@utils/network/websocket.util';
 import {
   type ChangeEvent,
@@ -248,7 +248,7 @@ export default function ModalPreset({
     >
       <form ref={formRef} onSubmit={onSubmit}>
         <FormControl label="Label">
-          <FormInput
+          <Input
             type="text"
             name="label"
             control={form.control}
@@ -260,7 +260,7 @@ export default function ModalPreset({
         </FormControl>
 
         <FormControl label="Key">
-          <FormInput
+          <Input
             type="text"
             name="key"
             control={form.control}
@@ -276,7 +276,7 @@ export default function ModalPreset({
         </FormControl>
 
         <FormControl label="Type">
-          <FormSelect
+          <SelectField
             name="category"
             control={form.control}
             onChange={handleChange}
@@ -292,7 +292,7 @@ export default function ModalPreset({
                 {elementType}
               </option>
             ))}
-          </FormSelect>
+          </SelectField>
         </FormControl>
 
         <FormControl
@@ -311,7 +311,7 @@ export default function ModalPreset({
             />
           }
         >
-          <FormTextarea
+          <Textarea
             name="description"
             control={form.control}
             onChange={handleChange}

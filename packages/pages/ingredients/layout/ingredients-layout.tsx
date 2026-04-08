@@ -17,11 +17,10 @@ import type {
 import type { IngredientsLayoutProps } from '@props/content/ingredients-layout.props';
 import { useUploadModal } from '@providers/global-modals/global-modals.provider';
 import { EnvironmentService } from '@services/core/environment.service';
-import Button from '@ui/buttons/base/Button';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
 import Container from '@ui/layout/container/Container';
-import { Button as PrimitiveButton } from '@ui/primitives/button';
+import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import { PageScope } from '@ui-constants/misc.constant';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';

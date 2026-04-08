@@ -50,7 +50,7 @@ function PayloadCard({ payload }: PayloadCardProps) {
   const timestamp = new Date(payload.timestamp).toLocaleTimeString();
 
   return (
-    <div className="border border-[var(--border)] rounded-lg overflow-hidden">
+    <div className="border border-[var(--border)] overflow-hidden">
       {/* Header - always visible */}
       <Button
         variant="ghost"

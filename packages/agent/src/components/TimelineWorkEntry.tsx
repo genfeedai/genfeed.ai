@@ -7,7 +7,7 @@ import {
 import type { EnrichedWorkEvent } from '@genfeedai/agent/utils/derive-timeline';
 import { formatDuration } from '@genfeedai/agent/utils/format-duration';
 import { ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { type ReactElement, useState } from 'react';
 
 interface TimelineWorkEntryProps {

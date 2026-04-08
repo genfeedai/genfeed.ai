@@ -1,8 +1,8 @@
 'use client';
 
-import Button from '@components/buttons/base/Button';
 import { ButtonVariant } from '@genfeedai/enums';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import { Button } from '@ui/primitives/button';
 import {
   Area,
   AreaChart,

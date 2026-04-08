@@ -9,7 +9,6 @@ import {
 import type { IAsset, IImage, IMusic, IVideo } from '@genfeedai/interfaces';
 import type { ModalGalleryContentProps } from '@props/modals/modal-gallery.props';
 import { useUploadModal } from '@providers/global-modals/global-modals.provider';
-import Button from '@ui/buttons/base/Button';
 import Masonry from '@ui/display/masonry/Masonry';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import Spinner from '@ui/feedback/spinner/Spinner';
@@ -17,6 +16,7 @@ import ModalGalleryItemImage from '@ui/modals/gallery/items/ModalGalleryItemImag
 import ModalGalleryItemMusic from '@ui/modals/gallery/items/ModalGalleryItemMusic';
 import ModalGalleryItemReference from '@ui/modals/gallery/items/ModalGalleryItemReference';
 import ModalGalleryItemVideo from '@ui/modals/gallery/items/ModalGalleryItemVideo';
+import { Button } from '@ui/primitives/button';
 import { createElement } from 'react';
 import {
   HiArrowUpTray,

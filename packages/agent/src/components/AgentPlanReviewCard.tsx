@@ -1,7 +1,7 @@
 import type { AgentProposedPlan } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, type ReactNode, useMemo, useState } from 'react';
 
@@ -57,7 +57,7 @@ export function AgentPlanReviewCard({
 
   return (
     <div
-      className="rounded-3xl border border-white/[0.08] bg-white/[0.03] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.22)]"
+      className="border border-white/[0.08] bg-white/[0.03] p-5 shadow-[0_18px_45px_rgba(0,0,0,0.22)]"
       data-testid="agent-plan-review-card"
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -86,7 +86,7 @@ export function AgentPlanReviewCard({
       ) : null}
 
       {plan.content ? (
-        <div className="mt-4 rounded-2xl border border-white/[0.06] bg-black/20 p-4">
+        <div className="mt-4 border border-white/[0.06] bg-black/20 p-4">
           <p className="whitespace-pre-wrap text-sm leading-6 text-foreground/85">
             {plan.content}
           </p>
@@ -109,7 +109,7 @@ export function AgentPlanReviewCard({
           onChange={(event) => setRevisionNote(event.target.value)}
           disabled={isBusy}
           placeholder="Add feedback if you want the plan revised"
-          className="min-h-24 rounded-2xl border-white/[0.08] bg-black/20 px-4 py-3 placeholder:text-foreground/35 focus:border-primary/35"
+          className="min-h-24 border-white/[0.08] bg-black/20 px-4 py-3 placeholder:text-foreground/35 focus:border-primary/35"
         />
         <div className="flex flex-wrap gap-2">
           <Button
@@ -119,7 +119,7 @@ export function AgentPlanReviewCard({
               void onApprove();
             }}
             isDisabled={!canApprove}
-            className="rounded-xl px-4 py-2 text-sm"
+            className="px-4 py-2 text-sm"
           >
             Approve
           </Button>
@@ -130,7 +130,7 @@ export function AgentPlanReviewCard({
               void onRequestChanges(revisionNote.trim());
             }}
             isDisabled={!canRequestChanges}
-            className="rounded-xl px-4 py-2 text-sm"
+            className="px-4 py-2 text-sm"
           >
             Request changes
           </Button>

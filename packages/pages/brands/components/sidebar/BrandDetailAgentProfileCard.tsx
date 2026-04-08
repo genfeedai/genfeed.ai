@@ -13,8 +13,8 @@ import type { BrandDetailAgentProfileCardProps } from '@props/pages/brand-detail
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
+import { Button } from '@ui/primitives/button';
 import {
   Dialog,
   DialogContent,

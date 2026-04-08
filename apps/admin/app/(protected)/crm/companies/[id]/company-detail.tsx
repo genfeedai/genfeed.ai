@@ -1,6 +1,5 @@
 'use client';
 
-import Button from '@components/buttons/base/Button';
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import SocialLinks from '@components/social/SocialLinks';
 import { ButtonVariant } from '@genfeedai/enums';
@@ -18,7 +17,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
-import { Button as PrimitiveButton } from '@ui/primitives/button';
+import { Button } from '@ui/primitives/button';
 import {
   Dialog,
   DialogContent,
@@ -204,11 +203,11 @@ export default function CompanyDetail({ id }: { id: string }) {
       }
     >
       <div className="mb-4">
-        <PrimitiveButton asChild variant={ButtonVariant.SECONDARY}>
+        <Button asChild variant={ButtonVariant.SECONDARY}>
           <Link href="/crm/companies">
             <HiArrowLeft className="w-4 h-4" /> Back to Companies
           </Link>
-        </PrimitiveButton>
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -320,7 +319,7 @@ export default function CompanyDetail({ id }: { id: string }) {
             ) : (
               <div className="space-y-3">
                 {leads.map((lead) => (
-                  <PrimitiveButton
+                  <Button
                     key={lead.id}
                     asChild
                     variant={ButtonVariant.UNSTYLED}
@@ -346,7 +345,7 @@ export default function CompanyDetail({ id }: { id: string }) {
                         </Badge>
                       </div>
                     </Link>
-                  </PrimitiveButton>
+                  </Button>
                 ))}
               </div>
             )}

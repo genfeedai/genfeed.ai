@@ -3,9 +3,9 @@
 import { ButtonVariant, CardVariant } from '@genfeedai/enums';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import type { TrendingSoundsProps } from '@props/analytics/trends.props';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
+import { Button } from '@ui/primitives/button';
 import { FaTiktok } from 'react-icons/fa6';
 import {
   HiArrowTrendingUp,

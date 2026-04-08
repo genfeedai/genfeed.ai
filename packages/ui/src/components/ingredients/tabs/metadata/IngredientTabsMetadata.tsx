@@ -7,9 +7,9 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
+import { Button } from '@ui/primitives/button';
 import { useState } from 'react';
 import { HiArrowPath } from 'react-icons/hi2';
 

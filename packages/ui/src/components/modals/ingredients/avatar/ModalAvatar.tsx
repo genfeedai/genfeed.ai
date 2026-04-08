@@ -18,11 +18,11 @@ import type { ModalAvatarProps } from '@props/modals/modal.props';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
-import Button from '@ui/buttons/base/Button';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormTextarea from '@ui/forms/inputs/textarea/form-textarea/FormTextarea';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Textarea } from '@ui/primitives/textarea';
 import Image from 'next/image';
 import { type ChangeEvent, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
@@ -117,7 +117,7 @@ export default function ModalAvatar({
 
           <div className="flex flex-col gap-2 w-full md:w-1/2">
             <FormControl label="Text">
-              <FormTextarea
+              <Textarea
                 name="text"
                 placeholder="Enter a text"
                 control={form.control}

@@ -12,13 +12,13 @@ import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
 import { useModalAutoOpen } from '@hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import type { ModalCredentialProps } from '@props/modals/modal.props';
 import { CredentialsService } from '@services/organization/credentials.service';
-import Button from '@ui/buttons/base/Button';
 import Alert from '@ui/feedback/alert/Alert';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormTextarea from '@ui/forms/inputs/textarea/form-textarea/FormTextarea';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
+import { Textarea } from '@ui/primitives/textarea';
 import { type ChangeEvent, useEffect } from 'react';
 import { HiTrash } from 'react-icons/hi2';
 
@@ -79,7 +79,7 @@ export default function ModalCredential({
         )}
 
         <FormControl label="Label">
-          <FormInput
+          <Input
             type="text"
             name="label"
             control={form.control}
@@ -91,7 +91,7 @@ export default function ModalCredential({
         </FormControl>
 
         <FormControl label="Description">
-          <FormTextarea
+          <Textarea
             name="description"
             control={form.control}
             onChange={handleChange}

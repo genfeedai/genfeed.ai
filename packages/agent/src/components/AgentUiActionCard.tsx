@@ -1,6 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import type { ReactElement } from 'react';
 
 interface AgentUiActionCardProps {
@@ -11,7 +11,7 @@ export function AgentUiActionCard({
   action,
 }: AgentUiActionCardProps): ReactElement {
   return (
-    <div className="my-1.5 rounded-lg border border-border bg-background p-2.5 text-xs">
+    <div className="my-1.5 border border-border bg-background p-2.5 text-xs">
       <div className="flex items-center gap-2">
         <span className="font-medium text-foreground">{action.title}</span>
         {action.riskLevel && action.riskLevel !== 'low' && (
@@ -37,7 +37,7 @@ export function AgentUiActionCard({
                 <a
                   key={`${action.id}-cta-${idx}`}
                   href={cta.href}
-                  className="inline-flex items-center rounded border border-border px-2 py-1 text-xs hover:bg-accent"
+                  className="inline-flex items-center border border-border px-2 py-1 text-xs hover:bg-accent"
                 >
                   {cta.label}
                 </a>

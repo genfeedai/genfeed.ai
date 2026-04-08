@@ -2,7 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import type { PricingToggleProps } from '@props/content/pricing.props';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 
 export default function PricingToggle({
   isYearly,

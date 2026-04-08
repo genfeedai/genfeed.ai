@@ -4,14 +4,14 @@ import { EMPTY_STATES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { TableProps } from '@props/ui/display/table.props';
-import Button from '@ui/buttons/base/Button';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
+import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
 import { useCallback, useRef } from 'react';
 
-const FormCheckbox = dynamic(
-  () => import('@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox'),
+const Checkbox = dynamic(
+  () => import('@ui/primitives/checkbox').then((mod) => mod.Checkbox),
   { ssr: false },
 );
 
@@ -126,7 +126,7 @@ export default function AppTable<T>({
             <tr className="border-b border-white/[0.08] transition-colors">
               {selectable && (
                 <th className="h-12 w-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                  <FormCheckbox
+                  <Checkbox
                     name="selectAll"
                     isChecked={
                       items.length > 0 &&
@@ -176,7 +176,7 @@ export default function AppTable<T>({
                 >
                   {selectable && (
                     <td className="p-4 w-12 align-middle">
-                      <FormCheckbox
+                      <Checkbox
                         name={`select-${getItemId ? getItemId(item) : index}`}
                         isChecked={isSelected}
                         onChange={() => handleSelectItem(item)}

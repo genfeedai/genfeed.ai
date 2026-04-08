@@ -43,11 +43,11 @@ vi.mock('@ui/modals/actions/ModalActions', () => ({
   default: ({ children }: any) => <div>{children}</div>,
 }));
 
-vi.mock('@ui/forms/inputs/input/form-input/FormInput', () => ({
+vi.mock('@ui/primitives/input', () => ({
   default: (props: any) => <input data-testid={`input-${props.name}`} />,
 }));
 
-vi.mock('@ui/forms/base/form-control/FormControl', () => ({
+vi.mock('@ui/primitives/field', () => ({
   default: ({ children }: any) => <div>{children}</div>,
 }));
 

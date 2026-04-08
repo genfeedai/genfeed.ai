@@ -7,8 +7,8 @@ import { useOrganization } from '@hooks/data/organization/use-organization/use-o
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
+import { Button } from '@ui/primitives/button';
 import {
   Select,
   SelectContent,

@@ -4,7 +4,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type { PlatformSelectorProps } from '@props/forms/platform-selector.props';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 
 /**
  * PlatformSelector - Radio group with platform icons

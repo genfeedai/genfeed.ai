@@ -45,7 +45,7 @@ const customRender = (
  * Use when testing components that call useFormContext().
  *
  * Usage:
- *   render(<FormInput name="email" />, { wrapper: createFormWrapper({ email: '' }) });
+ *   render(<Input name="email" />, { wrapper: createFormWrapper({ email: '' }) });
  */
 export function createFormWrapper(defaultValues: Record<string, unknown> = {}) {
   return function FormWrapper({ children }: { children: ReactNode }) {

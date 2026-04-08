@@ -3,7 +3,7 @@ import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.serv
 import type { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';
 import { useAgentStrategyStore } from '@genfeedai/agent/stores/agent-strategy.store';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -290,7 +290,7 @@ export function AgentStrategyConfig({
       </div>
 
       {/* Content Strategy */}
-      <section className="space-y-4 rounded-lg border border-border p-4">
+      <section className="space-y-4 border border-border p-4">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Content Strategy
         </h3>
@@ -372,7 +372,7 @@ export function AgentStrategyConfig({
                 variant={ButtonVariant.UNSTYLED}
                 withWrapper={false}
                 onClick={() => handleTogglePlatform(platform)}
-                className={`rounded border px-3 py-1 text-xs font-medium capitalize transition-colors ${
+                className={`border px-3 py-1 text-xs font-medium capitalize transition-colors ${
                   platforms.includes(platform)
                     ? 'border-primary bg-primary/10 text-primary'
                     : 'border-border text-muted-foreground hover:border-primary/30'
@@ -386,7 +386,7 @@ export function AgentStrategyConfig({
       </section>
 
       {/* Schedule */}
-      <section className="space-y-4 rounded-lg border border-border p-4">
+      <section className="space-y-4 border border-border p-4">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Schedule
         </h3>
@@ -444,7 +444,7 @@ export function AgentStrategyConfig({
       </section>
 
       {/* Budget */}
-      <section className="space-y-4 rounded-lg border border-border p-4">
+      <section className="space-y-4 border border-border p-4">
         <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           Budget
         </h3>
@@ -477,7 +477,7 @@ export function AgentStrategyConfig({
       </section>
 
       {/* Engagement (collapsible) */}
-      <section className="rounded-lg border border-border">
+      <section className="border border-border">
         <Button
           variant={ButtonVariant.UNSTYLED}
           withWrapper={false}

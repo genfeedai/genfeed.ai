@@ -7,11 +7,18 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { AdminCrmService } from '@services/admin/crm.service';
 import { logger } from '@services/core/logger.service';
-import Button from '@ui/buttons/base/Button';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import { Button } from '@ui/primitives/button';
 import { useMemo, useState } from 'react';
 import { HiOutlineChartPie } from 'react-icons/hi2';
+
+const ANALYTICS_SKELETON_KEYS = [
+  'analytics-skeleton-1',
+  'analytics-skeleton-2',
+  'analytics-skeleton-3',
+  'analytics-skeleton-4',
+] as const;
 
 const PERIOD_OPTIONS = [
   { label: '7 days', value: 7 },
@@ -194,8 +201,11 @@ export default function AnalyticsPage() {
     >
       {isLoading || !analytics ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-64 bg-white/5 rounded-lg animate-pulse" />
+          {ANALYTICS_SKELETON_KEYS.map((key) => (
+            <div
+              key={key}
+              className="h-64 bg-white/5 rounded-lg animate-pulse"
+            />
           ))}
         </div>
       ) : (

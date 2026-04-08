@@ -12,7 +12,7 @@ import { logger } from '@services/core/logger.service';
 import { OnboardingService } from '@services/onboarding/onboarding.service';
 import { OnboardingFunnelService } from '@services/onboarding/onboarding-funnel.service';
 import { UsersService } from '@services/organization/users.service';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';

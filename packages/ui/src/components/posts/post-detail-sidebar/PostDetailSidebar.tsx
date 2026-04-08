@@ -10,7 +10,6 @@ import type { IImage, IVideo } from '@genfeedai/interfaces';
 import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
 import { useEvaluation } from '@hooks/ui/evaluation/use-evaluation/use-evaluation';
 import type { PostDetailSidebarProps } from '@props/components/post-detail-sidebar.props';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import EvaluationCard from '@ui/evaluation/card/EvaluationCard';
@@ -19,6 +18,7 @@ import {
   LazyMasonryImage,
   LazyMasonryVideo,
 } from '@ui/lazy/masonry/LazyMasonry';
+import { Button } from '@ui/primitives/button';
 import {
   isImageIngredient,
   isVideoIngredient,

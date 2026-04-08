@@ -214,7 +214,7 @@ function SliderInput({
           step={step}
           value={currentValue}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="nodrag nopan w-16 h-7 rounded-md border border-input bg-background px-2 text-xs text-center shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          className="nodrag nopan w-16 h-7 border border-input bg-background px-2 text-xs text-center shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
         />
       </div>
     </div>
@@ -294,7 +294,7 @@ function NumberInput({
           const val = e.target.value;
           onChange(val === '' ? null : Number(val));
         }}
-        className="nodrag nopan w-full h-8 rounded-md border border-input bg-background px-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+        className="nodrag nopan w-full h-8 border border-input bg-background px-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       />
     </div>
   );

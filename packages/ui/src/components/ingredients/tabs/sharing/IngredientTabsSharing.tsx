@@ -6,7 +6,7 @@ import { ClipboardService } from '@services/core/clipboard.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { ScopeSelector } from '@ui/assets/ScopeSelector';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { HiDocumentDuplicate } from 'react-icons/hi2';
 
 export default function IngredientTabsSharing({

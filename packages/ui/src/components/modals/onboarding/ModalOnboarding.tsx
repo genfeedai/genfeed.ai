@@ -13,7 +13,6 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useModalAutoOpen } from '@hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import { logger } from '@services/core/logger.service';
 import { OnboardingService } from '@services/onboarding/onboarding.service';
-import Button from '@ui/buttons/base/Button';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
@@ -21,6 +20,7 @@ import OnboardingStepBrandUrl from '@ui/modals/onboarding/steps/OnboardingStepBr
 import OnboardingStepProcessing from '@ui/modals/onboarding/steps/OnboardingStepProcessing';
 import OnboardingStepReview from '@ui/modals/onboarding/steps/OnboardingStepReview';
 import OnboardingStepWelcome from '@ui/modals/onboarding/steps/OnboardingStepWelcome';
+import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface ModalOnboardingProps {

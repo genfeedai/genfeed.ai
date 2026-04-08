@@ -72,7 +72,7 @@ export function AnalyticsSnapshotCard({
         ];
 
   return (
-    <div className="rounded-lg border border-border bg-background p-4 my-2">
+    <div className="border border-border bg-background p-4 my-2">
       <div className="flex items-center gap-2 mb-3">
         <HiChartBar className="w-5 h-5 text-blue-500" />
         <h3 className="font-semibold text-sm">
@@ -86,7 +86,7 @@ export function AnalyticsSnapshotCard({
       )}
       <div className="grid grid-cols-2 gap-3">
         {metrics.map((metric) => (
-          <div key={metric.label} className="rounded bg-muted p-3">
+          <div key={metric.label} className="bg-muted p-3">
             <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
               {metric.icon}
               <span className="text-xs">{metric.label}</span>

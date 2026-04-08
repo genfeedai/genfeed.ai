@@ -1,6 +1,5 @@
 'use client';
 
-import Button from '@components/buttons/base/Button';
 import { ButtonVariant, ProactiveOnboardingStatus } from '@genfeedai/enums';
 import type {
   ICrmCompany,
@@ -13,7 +12,7 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
-import { Button as PrimitiveButton } from '@ui/primitives/button';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -347,11 +346,11 @@ export default function ProactiveOnboardingCard({
             </div>
           )}
           <div className="flex gap-2 pt-2 border-t border-white/[0.08]">
-            <PrimitiveButton asChild variant={ButtonVariant.SECONDARY}>
+            <Button asChild variant={ButtonVariant.SECONDARY}>
               <Link href={`/crm/leads/${lead.id}/review-content`}>
                 Review Content
               </Link>
-            </PrimitiveButton>
+            </Button>
             {lead.email && (
               <Button
                 label={isSubmitting ? 'Sending...' : 'Send Invitation'}
@@ -401,11 +400,11 @@ export default function ProactiveOnboardingCard({
             The lead has claimed the prepared workspace and is moving through
             payment or self-serve onboarding.
           </div>
-          <PrimitiveButton asChild variant={ButtonVariant.SECONDARY}>
+          <Button asChild variant={ButtonVariant.SECONDARY}>
             <Link href={`/crm/leads/${lead.id}/review-content`}>
               Review Prepared Content
             </Link>
-          </PrimitiveButton>
+          </Button>
         </div>
       )}
 

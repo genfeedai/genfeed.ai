@@ -219,6 +219,7 @@ services:
       - '3030:3030'
     env_file:
       - ../.env.production
+      - ../apps/server/clips/.env.production
     environment:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - GENFEEDAI_API_URL=http://api:3010
@@ -259,6 +260,7 @@ services:
       - '3020:3020'
     env_file:
       - ../.env.production
+      - ../apps/server/discord/.env.production
     environment:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - GENFEEDAI_API_URL=http://api:3010
@@ -332,6 +334,7 @@ services:
       - '3021:3021'
     env_file:
       - ../.env.production
+      - ../apps/server/slack/.env.production
     environment:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - GENFEEDAI_API_URL=http://api:3010
@@ -369,6 +372,7 @@ services:
       - '3022:3022'
     env_file:
       - ../.env.production
+      - ../apps/server/telegram/.env.production
     environment:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - GENFEEDAI_API_URL=http://api:3010

@@ -5,11 +5,11 @@ import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
-import FormToggle from '@ui/forms/selectors/toggle/form-toggle/FormToggle';
 import Loading from '@ui/loading/default/Loading';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Switch } from '@ui/primitives/switch';
 import { useCallback, useEffect, useState } from 'react';
 
 export default function BrandSettingsPublishingPage() {
@@ -121,7 +121,7 @@ export default function BrandSettingsPublishingPage() {
         </div>
 
         <div className="space-y-4">
-          <FormToggle
+          <Switch
             label="Enable Recurring Schedule"
             description="Run this brand on a recurring cadence using the cron expression below."
             isChecked={scheduleEnabled}
@@ -159,7 +159,7 @@ export default function BrandSettingsPublishingPage() {
             </div>
           </div>
 
-          <FormToggle
+          <Switch
             label="Enable Auto-Publish"
             description="Allow approved outputs for this brand to publish automatically when confidence is high enough."
             isChecked={autoPublishEnabled}

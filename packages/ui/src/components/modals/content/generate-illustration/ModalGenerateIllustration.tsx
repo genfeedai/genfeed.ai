@@ -22,12 +22,12 @@ import { ModelsService } from '@services/ai/models.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { ImagesService } from '@services/ingredients/images.service';
-import Button from '@ui/buttons/base/Button';
 import Spinner from '@ui/feedback/spinner/Spinner';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormTextarea from '@ui/forms/inputs/textarea/form-textarea/FormTextarea';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Textarea } from '@ui/primitives/textarea';
 import { resolvePendingIds } from '@utils/network/generation.util';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -376,7 +376,7 @@ export default function ModalGenerateIllustration({
           description={formatLabel}
           className="mb-0"
         >
-          <FormTextarea
+          <Textarea
             name="illustration-prompt"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}

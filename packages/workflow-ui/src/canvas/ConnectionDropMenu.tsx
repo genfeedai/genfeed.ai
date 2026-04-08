@@ -33,7 +33,6 @@ function ConnectionDropMenuComponent() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
-  const backdropRef = useRef<HTMLDivElement>(null);
 
   const isOpen = connectionDropMenu !== null;
 
@@ -177,12 +176,6 @@ function ConnectionDropMenuComponent() {
     [filteredNodes, selectedIndex, handleSelect, closeConnectionDropMenu],
   );
 
-  const handleBackdropClick = (e: React.MouseEvent) => {
-    if (e.target === backdropRef.current) {
-      closeConnectionDropMenu();
-    }
-  };
-
   if (!isOpen || !connectionDropMenu) return null;
 
   // Position the menu at the cursor location
@@ -196,16 +189,21 @@ function ConnectionDropMenuComponent() {
   let flatIndex = 0;
 
   return (
-    <div
-      ref={backdropRef}
-      className="fixed inset-0 z-40"
-      onClick={handleBackdropClick}
-    >
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="fixed inset-0 z-40 h-full w-full p-0 opacity-0"
+        onClick={closeConnectionDropMenu}
+        aria-label="Close add node menu"
+      />
       <div
         style={menuStyle}
-        className="bg-[var(--background)] border border-[var(--border)] rounded-lg shadow-xl w-64 max-h-80 flex flex-col"
+        className="bg-[var(--background)] border border-[var(--border)] shadow-xl w-64 max-h-80 flex flex-col"
         role="dialog"
         aria-label="Add Node"
+        onKeyDown={handleKeyDown}
       >
         {/* Header */}
         <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--border)]">
@@ -214,7 +212,7 @@ function ConnectionDropMenuComponent() {
         </div>
 
         {/* Search */}
-        <div className="px-3 py-2" onKeyDown={handleKeyDown}>
+        <div className="px-3 py-2">
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[var(--muted-foreground)]" />
             <input
@@ -223,17 +221,13 @@ function ConnectionDropMenuComponent() {
               placeholder="Search compatible nodes..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-7 pr-2 py-1.5 text-xs bg-[var(--secondary)] border border-[var(--border)] rounded-md outline-none focus:ring-1 focus:ring-[var(--ring)]"
+              className="w-full pl-7 pr-2 py-1.5 text-xs bg-[var(--secondary)] border border-[var(--border)] outline-none focus:ring-1 focus:ring-[var(--ring)]"
             />
           </div>
         </div>
 
         {/* Node list */}
-        <div
-          ref={listRef}
-          className="flex-1 overflow-y-auto px-1.5 pb-1.5"
-          onKeyDown={handleKeyDown}
-        >
+        <div ref={listRef} className="flex-1 overflow-y-auto px-1.5 pb-1.5">
           {filteredNodes.length === 0 ? (
             <div className="text-center text-[var(--muted-foreground)] text-xs py-4">
               No compatible nodes found
@@ -270,7 +264,7 @@ function ConnectionDropMenuComponent() {
           )}
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

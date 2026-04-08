@@ -14,15 +14,15 @@ import { useConfirmModal } from '@providers/global-modals/global-modals.provider
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { PresetsService } from '@services/elements/presets.service';
-import Button from '@ui/buttons/base/Button';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
-import FormToggle from '@ui/forms/selectors/toggle/form-toggle/FormToggle';
 import Container from '@ui/layout/container/Container';
 import { LazyModalPreset } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Button } from '@ui/primitives/button';
+import { Switch } from '@ui/primitives/switch';
 import { PageScope } from '@ui-constants/misc.constant';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -250,7 +250,7 @@ export default function PresetsList({
       header: 'Active',
       key: 'isActive',
       render: (preset: Preset) => (
-        <FormToggle
+        <Switch
           isChecked={preset.isActive}
           onChange={() => handleToggleActive(preset)}
           isDisabled={scope !== PageScope.SUPERADMIN}

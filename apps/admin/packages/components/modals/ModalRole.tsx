@@ -1,4 +1,3 @@
-import FormControl from '@components/forms/base/form-control/FormControl';
 import ModalActions from '@components/modals/actions/ModalActions';
 import Modal from '@components/modals/modal/Modal';
 import { type RoleSchema, roleSchema } from '@genfeedai/client/schemas';
@@ -13,6 +12,7 @@ import type { ModalRoleProps } from '@props/modals/modal.props';
 import { RolesService } from '@services/organization/roles.service';
 import Alert from '@ui/feedback/alert/Alert';
 import Spinner from '@ui/feedback/spinner/Spinner';
+import FormControl from '@ui/forms/base/form-control/FormControl';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { type ChangeEvent, useEffect } from 'react';
@@ -68,8 +68,8 @@ export default function ModalRole({ role, onConfirm }: ModalRoleProps) {
         {hasFormErrors(form.formState.errors) && (
           <Alert type={AlertCategory.ERROR} className="mb-4">
             <div className="space-y-1">
-              {parseFormErrors(form.formState.errors).map((error, index) => (
-                <div key={index}>{error}</div>
+              {parseFormErrors(form.formState.errors).map((error) => (
+                <div key={error}>{error}</div>
               ))}
             </div>
           </Alert>

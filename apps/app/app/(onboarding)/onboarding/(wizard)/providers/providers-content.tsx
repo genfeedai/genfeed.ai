@@ -7,7 +7,7 @@ import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import type { InstallReadinessResponse } from '@services/onboarding/onboarding.service';
 import { OnboardingService } from '@services/onboarding/onboarding.service';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import {

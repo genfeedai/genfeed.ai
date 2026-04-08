@@ -86,7 +86,7 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
             value={nodeData.outputName || 'output'}
             onChange={handleNameChange}
             placeholder="Enter output name..."
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="flex h-9 w-full border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
         </div>
 
@@ -115,7 +115,7 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
             value={nodeData.description || ''}
             onChange={handleDescriptionChange}
             placeholder="Describe this output..."
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="flex h-9 w-full border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           />
         </div>
 
@@ -147,12 +147,13 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
               />
             )}
             {outputType === 'text' && (
-              <div className="mt-1 p-2 bg-secondary/50 rounded text-xs max-h-20 overflow-auto">
+              <div className="mt-1 p-2 bg-secondary/50 text-xs max-h-20 overflow-auto">
                 {String(nodeData.inputValue).substring(0, 200)}
                 {String(nodeData.inputValue).length > 200 && '...'}
               </div>
             )}
             {outputType === 'audio' && (
+              // biome-ignore lint/a11y/useMediaCaption: connected audio is previewed as a raw generated asset without caption tracks
               <audio
                 src={nodeData.inputValue as string}
                 controls
@@ -160,7 +161,7 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
               />
             )}
             {outputType === 'number' && (
-              <div className="mt-1 p-2 bg-secondary/50 rounded text-sm font-mono">
+              <div className="mt-1 p-2 bg-secondary/50 text-sm font-mono">
                 {String(nodeData.inputValue)}
               </div>
             )}

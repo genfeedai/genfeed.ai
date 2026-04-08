@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
-import FormRange from '@ui/forms/selectors/range/form-range/FormRange';
+import FormRange from '@ui/primitives/range-field';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 

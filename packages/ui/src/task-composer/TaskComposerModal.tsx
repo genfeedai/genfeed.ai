@@ -1,8 +1,8 @@
 import { ButtonVariant } from '@genfeedai/enums';
+import { Button } from '@ui/primitives/button';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Modal } from '../modals/compound/Modal';
-import { Button } from '../primitives/button';
 import { Textarea } from '../primitives/textarea';
 import { type ContentType, ContentTypePresets } from './ContentTypePresets';
 

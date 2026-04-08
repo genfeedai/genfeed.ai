@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs';
-import FormDropdown from '@ui/forms/selectors/dropdown/form-dropdown/FormDropdown';
+import FormDropdown from '@ui/primitives/dropdown-field';
 import { useState } from 'react';
 import { FiFilter, FiSettings, FiUser } from 'react-icons/fi';
 

@@ -12,8 +12,8 @@ import type {
 import { ClipboardService } from '@services/core/clipboard.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
+import { Button } from '@ui/primitives/button';
 import {
   buildTrendSourceAgentHref,
   buildTrendSourcePrompt,

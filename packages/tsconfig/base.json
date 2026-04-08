@@ -30,7 +30,7 @@
       "@services/*": ["../services/*"],
       "@styles/*": ["../styles/*"],
       "@ui-constants/*": ["../ui/src/components/constants/*"],
-      "@ui/*": ["../ui/src/components/*"],
+      "@ui/*": ["../ui/src/*", "../ui/src/components/*"],
       "@utils/*": ["../utils/*"],
       "@workflow-engine/*": ["../workflow-engine/src/*"],
       "@workflow-saas/*": ["../workflow-saas/src/*"]

@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import FormRange from '@ui/forms/selectors/range/form-range/FormRange';
+import FormRange from '@ui/primitives/range-field';
 import { describe, expect, it } from 'vitest';
 
 describe('FormRange', () => {

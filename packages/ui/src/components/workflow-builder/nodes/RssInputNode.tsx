@@ -6,8 +6,8 @@ import type {
   RssInputNodeData,
   RssInputNodeProps,
 } from '@props/workflow/nodes.props';
-import Button from '@ui/buttons/base/Button';
 import Textarea from '@ui/inputs/textarea/Textarea';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { ChevronLeft, ChevronRight, Link, Loader2, Type } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';

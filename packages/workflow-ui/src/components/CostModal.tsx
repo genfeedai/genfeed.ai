@@ -45,7 +45,7 @@ export function CostModal() {
   if (!isOpen) return null;
 
   const hasActualCost = actualCost > 0;
-  const _variance = hasActualCost ? actualCost - breakdown.total : 0;
+  const variance = hasActualCost ? actualCost - breakdown.total : 0;
 
   return (
     <button
@@ -57,7 +57,7 @@ export function CostModal() {
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
     >
       <div
-        className="bg-[var(--background)] border border-[var(--border)] rounded-lg shadow-xl w-full max-w-lg"
+        className="bg-[var(--background)] border border-[var(--border)] shadow-xl w-full max-w-lg"
         role="dialog"
         aria-label="Cost Breakdown"
       >

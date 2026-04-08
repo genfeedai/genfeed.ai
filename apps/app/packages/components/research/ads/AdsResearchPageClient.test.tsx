@@ -215,7 +215,7 @@ vi.mock('@ui/feedback/alert/Alert', () => ({
   ),
 }));
 
-vi.mock('@ui/forms/inputs/searchbar/form-searchbar/FormSearchbar', () => ({
+vi.mock('@ui/primitives/searchbar', () => ({
   default: ({
     onChange,
     onClear,

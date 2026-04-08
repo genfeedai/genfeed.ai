@@ -14,10 +14,10 @@ import type { Music } from '@models/ingredients/music.model';
 import type { ModalMusicProps } from '@props/modals/modal.props';
 import { logger } from '@services/core/logger.service';
 import { MusicsService } from '@services/ingredients/musics.service';
-import Button from '@ui/buttons/base/Button';
 import Loading from '@ui/loading/default/Loading';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useState } from 'react';
 import { HiMusicalNote, HiPause, HiPlay, HiXMark } from 'react-icons/hi2';
 

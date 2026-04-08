@@ -6,9 +6,9 @@ import type { CaptionGeneratorButtonProps } from '@props/ai/generator-button.pro
 import { OptimizersService } from '@services/ai/optimizers.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
-import DropdownBase from '@ui/dropdowns/base/DropdownBase';
 import Spinner from '@ui/feedback/spinner/Spinner';
+import { Button } from '@ui/primitives/button';
+import { Dropdown } from '@ui/primitives/dropdown';
 import { useCallback, useState } from 'react';
 import { HiArrowPath, HiCheck, HiSparkles } from 'react-icons/hi2';
 
@@ -95,7 +95,7 @@ export default function CaptionGeneratorButton({
   }, [result, onAccept, notificationsService]);
 
   return (
-    <DropdownBase
+    <Dropdown
       isOpen={isOpen}
       onOpenChange={handleOpen}
       minWidth="320px"
@@ -191,6 +191,6 @@ export default function CaptionGeneratorButton({
           </p>
         )}
       </div>
-    </DropdownBase>
+    </Dropdown>
   );
 }

@@ -14,7 +14,6 @@ import { useConfirmModal } from '@providers/global-modals/global-modals.provider
 import { AdminDarkroomService } from '@services/admin/darkroom.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
@@ -22,8 +21,21 @@ import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HiOutlineServerStack, HiPlay, HiStop } from 'react-icons/hi2';
+
+const FLEET_SKELETON_KEYS = [
+  'fleet-skeleton-1',
+  'fleet-skeleton-2',
+  'fleet-skeleton-3',
+] as const;
+
+const EC2_SKELETON_KEYS = [
+  'ec2-skeleton-1',
+  'ec2-skeleton-2',
+  'ec2-skeleton-3',
+] as const;
 
 const STATE_BADGE_COLORS = {
   pending: 'bg-warning/10 text-warning',
@@ -344,8 +356,8 @@ export default function InfrastructurePage() {
       >
         {isLoadingFleet ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <SkeletonCard key={i} showImage={false} />
+            {FLEET_SKELETON_KEYS.map((key) => (
+              <SkeletonCard key={key} showImage={false} />
             ))}
           </div>
         ) : fleetInstances.length === 0 ? (
@@ -470,8 +482,8 @@ export default function InfrastructurePage() {
       >
         {isLoadingInstances ? (
           <div className="grid grid-cols-1 gap-4">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <SkeletonCard key={i} showImage={false} />
+            {EC2_SKELETON_KEYS.map((key) => (
+              <SkeletonCard key={key} showImage={false} />
             ))}
           </div>
         ) : !instances || instances.length === 0 ? (

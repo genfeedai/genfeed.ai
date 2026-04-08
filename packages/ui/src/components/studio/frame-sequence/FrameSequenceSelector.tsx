@@ -10,8 +10,8 @@ import type { IImage } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { FrameSequenceSelectorProps } from '@props/studio/frame-sequence.props';
 import { useGalleryModal } from '@providers/global-modals/global-modals.provider';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
+import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { HiPhoto, HiPlus, HiTrash } from 'react-icons/hi2';
 

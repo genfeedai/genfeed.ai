@@ -21,16 +21,13 @@
       "@genfeedai/helpers/*": ["../helpers/src/*"],
       "@genfeedai/interfaces": ["../interfaces/src/index.ts"],
       "@genfeedai/interfaces/*": ["../interfaces/src/*"],
-      "@genfeedai/serializers": ["../serializers/src/index.ts"],
-      "@genfeedai/serializers/*": ["../serializers/src/*"],
       "@helpers/*": ["../helpers/src/*"],
       "@models/*": ["../models/*.d.ts"],
       "@props/*": ["../props/*.d.ts"],
       "@services/*": ["../services/*.d.ts"],
       "interfaces/*": ["./src/interfaces/*"],
       "models/*": ["./src/models/*"],
-      "schemas/*": ["./src/schemas/*"],
-      "serializers/*": ["./src/serializers/*"]
+      "schemas/*": ["./src/schemas/*"]
     },
     "rootDir": "./src",
     "skipLibCheck": true,
@@ -52,9 +49,6 @@
     },
     {
       "path": "../helpers"
-    },
-    {
-      "path": "../serializers"
     }
   ]
 }

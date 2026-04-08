@@ -3,7 +3,7 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { type ReactElement, useCallback, useRef, useState } from 'react';
 import {
   HiCheckCircle,
@@ -69,7 +69,7 @@ export function WorkflowTriggerCard({
 
   if (workflows.length === 0) {
     return (
-      <div className="mt-2 overflow-hidden rounded-lg border border-border bg-background">
+      <div className="mt-2 overflow-hidden border border-border bg-background">
         <div className="flex items-center gap-2 border-b border-border px-3 py-2">
           <HiOutlineBolt className="h-4 w-4 text-primary" />
           <span className="text-sm font-medium text-foreground">
@@ -92,7 +92,7 @@ export function WorkflowTriggerCard({
   }
 
   return (
-    <div className="mt-2 overflow-hidden rounded-lg border border-border bg-background">
+    <div className="mt-2 overflow-hidden border border-border bg-background">
       {/* Header */}
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <HiOutlineBolt className="h-4 w-4 text-primary" />
@@ -111,7 +111,7 @@ export function WorkflowTriggerCard({
               withWrapper={false}
               isDisabled={status !== 'idle'}
               onClick={() => setSelectedId(wf.id)}
-              className={`w-full rounded border px-3 py-2 text-left transition-colors disabled:opacity-50 ${
+              className={`w-full border px-3 py-2 text-left transition-colors disabled:opacity-50 ${
                 selectedId === wf.id
                   ? 'border-primary bg-primary/5'
                   : 'border-border hover:border-primary/50 hover:bg-accent'
@@ -153,7 +153,7 @@ export function WorkflowTriggerCard({
 
         {/* Triggering state */}
         {status === 'triggering' && (
-          <div className="flex items-center justify-center gap-2 rounded border border-border px-4 py-3">
+          <div className="flex items-center justify-center gap-2 border border-border px-4 py-3">
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             <span className="text-sm text-muted-foreground">
               Starting workflow…
@@ -164,7 +164,7 @@ export function WorkflowTriggerCard({
         {/* Done state */}
         {status === 'done' && (
           <div className="space-y-2">
-            <div className="flex items-center gap-2 rounded border border-green-200 bg-green-50 px-3 py-2 dark:border-green-800 dark:bg-green-950">
+            <div className="flex items-center gap-2 border border-green-200 bg-green-50 px-3 py-2 dark:border-green-800 dark:bg-green-950">
               <HiCheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
               <span className="text-sm text-green-700 dark:text-green-300">
                 Workflow started successfully
@@ -173,7 +173,7 @@ export function WorkflowTriggerCard({
             {executionId && (
               <a
                 href={href(`/workflows/executions/${executionId}`)}
-                className="flex w-full items-center justify-center gap-1 rounded border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+                className="flex w-full items-center justify-center gap-1 border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
               >
                 View Execution →
               </a>
@@ -184,7 +184,7 @@ export function WorkflowTriggerCard({
         {/* Error state */}
         {status === 'error' && (
           <div className="space-y-2">
-            <div className="flex items-center gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 dark:border-red-800 dark:bg-red-950">
+            <div className="flex items-center gap-2 border border-red-200 bg-red-50 px-3 py-2 dark:border-red-800 dark:bg-red-950">
               <HiExclamationCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
               <span className="text-sm text-red-700 dark:text-red-300">
                 {error}

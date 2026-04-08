@@ -20,9 +20,9 @@ import {
   isChangesRequested,
   isReadyToReview,
 } from '@pages/review/components/review-state';
-import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { useMemo } from 'react';
 import { HiCheck, HiPhoto } from 'react-icons/hi2';

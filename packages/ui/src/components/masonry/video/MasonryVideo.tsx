@@ -9,7 +9,6 @@ import useIngredientActions from '@hooks/ui/ingredient/use-ingredient-actions/us
 import type { MasonryVideoProps } from '@props/content/masonry.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
-import Button from '@ui/buttons/base/Button';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import DraggableIngredient from '@ui/drag-drop/draggable/DraggableIngredient';
 import { writeIngredientTransferData } from '@ui/drag-drop/shared/ingredient-transfer';
@@ -19,6 +18,7 @@ import MasonryBadgeOverlay from '@ui/masonry/shared/MasonryBadgeOverlay';
 import MasonryBrandLogo from '@ui/masonry/shared/MasonryBrandLogo';
 import MasonryConfirmBridge from '@ui/masonry/shared/MasonryConfirmBridge';
 import { createDownloadHandler } from '@ui/masonry/shared/useMasonryHover';
+import { Button } from '@ui/primitives/button';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
 import { resolveIngredientReferenceUrl } from '@utils/media/reference.util';

@@ -186,13 +186,17 @@ export function NodeDetailModal() {
   return (
     <>
       {/* Backdrop */}
-      <div
-        className="fixed inset-0 z-50 bg-black/80"
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="fixed inset-0 z-50 h-full w-full bg-black/80 p-0 hover:bg-black/80"
         onClick={closeNodeDetailModal}
+        aria-label="Close node detail preview"
       />
 
       {/* Modal */}
-      <div className="fixed inset-4 z-50 flex flex-col bg-card rounded-lg border border-border shadow-xl overflow-hidden">
+      <div className="fixed inset-4 z-50 flex flex-col bg-card border border-border shadow-xl overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-border">
           <div className="flex items-center gap-3">
@@ -224,6 +228,7 @@ export function NodeDetailModal() {
         <div className="flex-1 overflow-hidden">
           <div
             className="relative w-full h-full flex items-center justify-center bg-background overflow-hidden"
+            role="application"
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
@@ -251,6 +256,7 @@ export function NodeDetailModal() {
                   />
                 )}
                 {mediaInfo.type === 'video' && (
+                  // biome-ignore lint/a11y/useMediaCaption: generated asset previews do not ship with caption tracks in this transient inspection modal
                   <video
                     src={displayUrl}
                     controls
@@ -302,7 +308,7 @@ export function NodeDetailModal() {
 
             {/* Zoom controls */}
             {displayUrl && mediaInfo.type === 'image' && (
-              <div className="absolute bottom-4 right-4 flex items-center gap-2 bg-card border border-border rounded-lg p-1">
+              <div className="absolute bottom-4 right-4 flex items-center gap-2 bg-card border border-border p-1">
                 <Button
                   variant="ghost"
                   size="icon-sm"

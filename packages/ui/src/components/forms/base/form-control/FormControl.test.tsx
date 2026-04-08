@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import FormControl from '@ui/forms/base/form-control/FormControl';
+import FormControl from '@ui/primitives/field';
 import { describe, expect, it } from 'vitest';
 
 describe('FormControl', () => {

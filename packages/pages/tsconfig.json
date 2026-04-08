@@ -14,7 +14,7 @@
       "@services/*": ["../services/*"],
       "@styles/*": ["../styles/*"],
       "@ui-constants/*": ["../ui/constants/*"],
-      "@ui/*": ["../ui/*"],
+      "@ui/*": ["../ui/src/*", "../ui/src/components/*"],
       "@utils/*": ["../utils/*"]
     }
   },

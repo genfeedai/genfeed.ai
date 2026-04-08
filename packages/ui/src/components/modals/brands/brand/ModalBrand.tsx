@@ -52,17 +52,17 @@ import { logger } from '@services/core/logger.service';
 import { createPromptHandler } from '@services/core/socket-manager.service';
 import { BrandsService } from '@services/social/brands.service';
 import { LinksService } from '@services/social/links.service';
-import Button from '@ui/buttons/base/Button';
 import TextareaLabelActions from '@ui/content/textarea-label-actions/TextareaLabelActions';
 import Alert from '@ui/feedback/alert/Alert';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormTextarea from '@ui/forms/inputs/textarea/form-textarea/FormTextarea';
 import FormColorPicker from '@ui/forms/pickers/color-picker/form-color-picker/FormColorPicker';
-import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
 import { LazyModalBrandGenerate } from '@ui/lazy/modal/LazyModal';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import EntityOverlayShell from '@ui/overlays/entity/EntityOverlayShell';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
+import { SelectField } from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { THEME_COLORS } from '@ui-constants/misc.constant';
 import { hasErrorDetail } from '@utils/error/error-handler.util';
 import { WebSocketPaths } from '@utils/network/websocket.util';
@@ -271,7 +271,7 @@ function BrandEditorForm({
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormControl label="Label">
-                <FormInput
+                <Input
                   type="text"
                   name="label"
                   control={form.control}
@@ -283,7 +283,7 @@ function BrandEditorForm({
               </FormControl>
 
               <FormControl label="Slug">
-                <FormInput
+                <Input
                   type="text"
                   name="slug"
                   control={form.control}
@@ -296,7 +296,7 @@ function BrandEditorForm({
             </div>
 
             <FormControl label="Description">
-              <FormInput
+              <Input
                 type="text"
                 name="description"
                 control={form.control}
@@ -318,7 +318,7 @@ function BrandEditorForm({
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <FormControl label="Default Video Model">
-                <FormSelect
+                <SelectField
                   name="defaultVideoModel"
                   control={form.control}
                   onChange={onChange}
@@ -335,11 +335,11 @@ function BrandEditorForm({
                       {model.label}
                     </option>
                   ))}
-                </FormSelect>
+                </SelectField>
               </FormControl>
 
               <FormControl label="Default Image Model">
-                <FormSelect
+                <SelectField
                   name="defaultImageModel"
                   control={form.control}
                   onChange={onChange}
@@ -356,11 +356,11 @@ function BrandEditorForm({
                       {model.label}
                     </option>
                   ))}
-                </FormSelect>
+                </SelectField>
               </FormControl>
 
               <FormControl label="Default Image-to-Video Model">
-                <FormSelect
+                <SelectField
                   name="defaultImageToVideoModel"
                   control={form.control}
                   onChange={onChange}
@@ -377,11 +377,11 @@ function BrandEditorForm({
                       {model.label}
                     </option>
                   ))}
-                </FormSelect>
+                </SelectField>
               </FormControl>
 
               <FormControl label="Default Music Model">
-                <FormSelect
+                <SelectField
                   name="defaultMusicModel"
                   control={form.control}
                   onChange={onChange}
@@ -398,7 +398,7 @@ function BrandEditorForm({
                       {model.label}
                     </option>
                   ))}
-                </FormSelect>
+                </SelectField>
               </FormControl>
             </div>
           </div>
@@ -408,7 +408,7 @@ function BrandEditorForm({
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
               <FormControl label="Font Family" isRequired={true}>
-                <FormSelect
+                <SelectField
                   name="fontFamily"
                   control={form.control}
                   onChange={onChange}
@@ -419,7 +419,7 @@ function BrandEditorForm({
                       {font.label}
                     </option>
                   ))}
-                </FormSelect>
+                </SelectField>
               </FormControl>
 
               <FormColorPicker
@@ -479,7 +479,7 @@ function BrandEditorForm({
                 />
               }
             >
-              <FormTextarea
+              <Textarea
                 name="text"
                 control={form.control}
                 onChange={onChange}

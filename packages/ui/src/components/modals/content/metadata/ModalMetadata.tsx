@@ -22,14 +22,14 @@ import type { ModalMetadataProps } from '@props/modals/modal.props';
 import { FoldersService } from '@services/content/folders.service';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
-import Button from '@ui/buttons/base/Button';
 import Alert from '@ui/feedback/alert/Alert';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormTextarea from '@ui/forms/inputs/textarea/form-textarea/FormTextarea';
-import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
+import { SelectField } from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { type ChangeEvent, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
@@ -179,7 +179,7 @@ export default function ModalMetadata({
         )}
 
         <FormControl label="Label">
-          <FormInput
+          <Input
             type="text"
             name="label"
             control={form.control}
@@ -189,7 +189,7 @@ export default function ModalMetadata({
         </FormControl>
 
         <FormControl label="Description">
-          <FormTextarea
+          <Textarea
             name="description"
             control={form.control}
             onChange={handleChange}
@@ -198,7 +198,7 @@ export default function ModalMetadata({
         </FormControl>
 
         <FormControl label="Tags">
-          <FormInput
+          <Input
             type="text"
             name="tags"
             control={form.control}
@@ -209,7 +209,7 @@ export default function ModalMetadata({
         </FormControl>
 
         <FormControl label="Folder">
-          <FormSelect
+          <SelectField
             name="folder"
             control={form.control}
             placeholder="Select a folder"
@@ -220,11 +220,11 @@ export default function ModalMetadata({
                 {folder.label}
               </option>
             ))}
-          </FormSelect>
+          </SelectField>
         </FormControl>
 
         <FormControl label="Visibility Scope">
-          <FormSelect
+          <SelectField
             name="scope"
             control={form.control}
             placeholder="Select scope"
@@ -236,7 +236,7 @@ export default function ModalMetadata({
               Organization (All Members)
             </option>
             <option value={AssetScope.PUBLIC}>Public (Everyone)</option>
-          </FormSelect>
+          </SelectField>
         </FormControl>
 
         <ModalActions>

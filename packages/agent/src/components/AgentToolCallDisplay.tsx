@@ -2,7 +2,7 @@ import { ToolCallDetailPanel } from '@genfeedai/agent/components/ToolCallDetailP
 import type { AgentToolCall } from '@genfeedai/agent/models/agent-chat.model';
 import { formatDuration } from '@genfeedai/agent/utils/format-duration';
 import { ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { type ReactElement, useState } from 'react';
 
 interface AgentToolCallDisplayProps {
@@ -70,7 +70,7 @@ export function AgentToolCallDisplay({
   const isFailed = toolCall.status === 'failed';
 
   return (
-    <div className="my-1.5 rounded-lg border border-border bg-muted/50 text-xs">
+    <div className="my-1.5 border border-border bg-muted/50 text-xs">
       <Button
         variant={ButtonVariant.UNSTYLED}
         withWrapper={false}

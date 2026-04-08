@@ -46,10 +46,10 @@ import type {
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import type { ChatAttachment } from '@props/ui/attachments.props';
-import Button from '@ui/buttons/base/Button';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Alert from '@ui/feedback/alert/Alert';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
+import { Button } from '@ui/primitives/button';
 import PromptBarSuggestions from '@ui/prompt-bars/components/suggestions/PromptBarSuggestions';
 import {
   type ReactElement,

@@ -25,13 +25,11 @@ import {
 import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
 import type { ModalBotProps } from '@props/modals/modal.props';
 import { BotsService } from '@services/automation/bots.service';
-import Button from '@ui/buttons/base/Button';
 import Alert from '@ui/feedback/alert/Alert';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormTextarea from '@ui/forms/inputs/textarea/form-textarea/FormTextarea';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -40,6 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { type ChangeEvent, useEffect, useMemo } from 'react';
 import { FaTwitch, FaXTwitter, FaYoutube } from 'react-icons/fa6';
 import {
@@ -393,7 +392,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
           {/* Basic Information */}
           <div className="space-y-4">
             <FormControl label="Bot Name">
-              <FormInput
+              <Input
                 type="text"
                 name="label"
                 control={form.control}
@@ -405,7 +404,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
             </FormControl>
 
             <FormControl label="Description">
-              <FormTextarea
+              <Textarea
                 name="description"
                 control={form.control}
                 onChange={handleChange}
@@ -512,7 +511,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
               </FormControl>
 
               <FormControl label="Trigger Words (comma separated)">
-                <FormTextarea
+                <Textarea
                   name="triggers"
                   value={(settings.triggers || []).join(', ')}
                   onChange={(e) =>
@@ -565,7 +564,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
               </FormControl>
 
               <FormControl label="Target Keywords (comma separated)">
-                <FormTextarea
+                <Textarea
                   name="targetKeywords"
                   value={(engagementSettings.targetKeywords || []).join(', ')}
                   onChange={(e) =>
@@ -583,7 +582,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
               </FormControl>
 
               <FormControl label="Target Hashtags (comma separated)">
-                <FormTextarea
+                <Textarea
                   name="targetHashtags"
                   value={(engagementSettings.targetHashtags || []).join(', ')}
                   onChange={(e) =>
@@ -601,7 +600,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
               </FormControl>
 
               <FormControl label="Target Accounts (comma separated)">
-                <FormTextarea
+                <Textarea
                   name="targetAccounts"
                   value={(engagementSettings.targetAccounts || []).join(', ')}
                   onChange={(e) =>
@@ -700,7 +699,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
               <h3 className="font-semibold text-lg">Monitoring Settings</h3>
 
               <FormControl label="Keywords to Monitor (comma separated)">
-                <FormTextarea
+                <Textarea
                   name="keywords"
                   value={(monitoringSettings.keywords || []).join(', ')}
                   onChange={(e) =>
@@ -718,7 +717,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
               </FormControl>
 
               <FormControl label="Hashtags to Monitor (comma separated)">
-                <FormTextarea
+                <Textarea
                   name="hashtags"
                   value={(monitoringSettings.hashtags || []).join(', ')}
                   onChange={(e) =>
@@ -736,7 +735,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
               </FormControl>
 
               <FormControl label="Exclude Keywords (comma separated)">
-                <FormTextarea
+                <Textarea
                   name="excludeKeywords"
                   value={(monitoringSettings.excludeKeywords || []).join(', ')}
                   onChange={(e) =>
@@ -787,7 +786,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
                 MonitoringAlertType.EMAIL,
               ) && (
                 <FormControl label="Alert Email">
-                  <FormInput
+                  <Input
                     type="email"
                     name="alertEmail"
                     value={monitoringSettings.alertEmail || ''}
@@ -808,7 +807,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
                 MonitoringAlertType.WEBHOOK,
               ) && (
                 <FormControl label="Webhook URL">
-                  <FormInput
+                  <Input
                     type="url"
                     name="alertWebhookUrl"
                     value={monitoringSettings.alertWebhookUrl || ''}
@@ -829,7 +828,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
                 MonitoringAlertType.SLACK,
               ) && (
                 <FormControl label="Slack Webhook URL">
-                  <FormInput
+                  <Input
                     type="url"
                     name="alertSlackWebhookUrl"
                     value={monitoringSettings.alertSlackWebhookUrl || ''}
@@ -901,7 +900,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
 
               {publishingSettings.contentSourceType === 'ai_generated' && (
                 <FormControl label="AI Prompt">
-                  <FormTextarea
+                  <Textarea
                     name="aiPrompt"
                     value={publishingSettings.aiPrompt || ''}
                     onChange={(e) =>
@@ -946,7 +945,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
 
               {publishingSettings.frequency === PublishingFrequency.CUSTOM && (
                 <FormControl label="Custom Cron Expression">
-                  <FormInput
+                  <Input
                     type="text"
                     name="customCronExpression"
                     value={publishingSettings.customCronExpression || ''}
@@ -1017,7 +1016,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
               </FormControl>
 
               <FormControl label="Auto-Add Hashtags (comma separated)">
-                <FormTextarea
+                <Textarea
                   name="autoHashtags"
                   value={(publishingSettings.autoHashtags || []).join(', ')}
                   onChange={(e) =>
@@ -1035,7 +1034,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
               </FormControl>
 
               <FormControl label="Append Signature">
-                <FormInput
+                <Input
                   type="text"
                   name="appendSignature"
                   value={publishingSettings.appendSignature || ''}

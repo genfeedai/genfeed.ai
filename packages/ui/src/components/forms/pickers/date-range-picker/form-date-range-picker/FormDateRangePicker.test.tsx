@@ -2,7 +2,7 @@ import { Timeframe } from '@genfeedai/enums';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom';
-import FormDateRangePicker from '@ui/forms/pickers/date-range-picker/form-date-range-picker/FormDateRangePicker';
+import FormDateRangePicker from '@ui/primitives/date-range-picker';
 
 describe('FormDateRangePicker', () => {
   it('should render without crashing', () => {

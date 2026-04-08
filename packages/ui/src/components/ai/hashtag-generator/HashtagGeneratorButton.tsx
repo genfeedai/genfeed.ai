@@ -7,9 +7,9 @@ import type { IHashtagOptimization } from '@services/ai/optimizers.service';
 import { OptimizersService } from '@services/ai/optimizers.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
-import DropdownBase from '@ui/dropdowns/base/DropdownBase';
 import Spinner from '@ui/feedback/spinner/Spinner';
+import { Button } from '@ui/primitives/button';
+import { Dropdown } from '@ui/primitives/dropdown';
 import { useCallback, useState } from 'react';
 import { HiHashtag } from 'react-icons/hi2';
 
@@ -82,7 +82,7 @@ export default function HashtagGeneratorButton({
     : [];
 
   return (
-    <DropdownBase
+    <Dropdown
       isOpen={isOpen}
       onOpenChange={handleOpen}
       minWidth="280px"
@@ -201,6 +201,6 @@ export default function HashtagGeneratorButton({
           </p>
         )}
       </div>
-    </DropdownBase>
+    </Dropdown>
   );
 }

@@ -16,7 +16,7 @@ function ProcessingOverlayComponent({
   onStop,
 }: ProcessingOverlayProps) {
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-md">
+    <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="flex flex-col items-center gap-2">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="text-xs text-white/80">{label}</span>

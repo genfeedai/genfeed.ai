@@ -7,8 +7,8 @@ import {
   formatPercentage,
 } from '@helpers/formatting/format/format.helper';
 import type { AnomalyDetectionCardProps } from '@props/analytics/insights.props';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
+import { Button } from '@ui/primitives/button';
 import { memo } from 'react';
 import {
   HiArrowTrendingDown,

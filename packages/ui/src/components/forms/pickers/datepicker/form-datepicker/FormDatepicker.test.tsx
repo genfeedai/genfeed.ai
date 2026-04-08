@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import FormDatepicker from '@ui/forms/pickers/datepicker/form-datepicker/FormDatepicker';
+import FormDatepicker from '@ui/primitives/datepicker';
 import { describe, expect, it } from 'vitest';
 
 describe('FormDatepicker', () => {

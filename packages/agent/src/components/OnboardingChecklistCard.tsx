@@ -23,7 +23,7 @@ export function OnboardingChecklistCard({
     signupGiftCredits + (action.totalJourneyCredits ?? 100);
 
   return (
-    <div className="my-2 rounded-lg border border-border bg-background p-4">
+    <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
         <HiRocketLaunch className="h-5 w-5 text-violet-500" />
         <h3 className="text-sm font-semibold">
@@ -37,7 +37,7 @@ export function OnboardingChecklistCard({
         </p>
       )}
 
-      <div className="mb-3 rounded border border-border bg-muted/40 p-2.5">
+      <div className="mb-3 border border-border bg-muted/40 p-2.5">
         <div className="space-y-2 text-xs text-muted-foreground">
           <div className="flex items-center justify-between">
             <span>Signup gift</span>
@@ -81,7 +81,7 @@ export function OnboardingChecklistCard({
         {items.map((item) => (
           <div
             key={item.id}
-            className={`flex items-center justify-between rounded p-2 ${
+            className={`flex items-center justify-between p-2 ${
               item.isCompleted ? 'bg-muted/50' : 'bg-muted'
             }`}
           >
@@ -120,7 +120,7 @@ export function OnboardingChecklistCard({
       </div>
 
       {completedCount === totalCount && totalCount > 0 && (
-        <div className="mt-3 rounded bg-violet-50 p-2 text-center text-xs font-medium text-violet-600 dark:bg-violet-900/20 dark:text-violet-400">
+        <div className="mt-3 bg-violet-50 p-2 text-center text-xs font-medium text-violet-600 dark:bg-violet-900/20 dark:text-violet-400">
           All done! You are ready to go.
         </div>
       )}

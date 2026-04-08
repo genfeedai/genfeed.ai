@@ -1,6 +1,5 @@
 'use client';
 
-import Button from '@components/buttons/base/Button';
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
 import SocialLinks from '@components/social/SocialLinks';
 import { ButtonVariant } from '@genfeedai/enums';
@@ -19,6 +18,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
+import { Button } from '@ui/primitives/button';
 import {
   Dialog,
   DialogContent,
@@ -26,7 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
-import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   HiOutlineFunnel,
@@ -132,10 +132,9 @@ function PipelineColumn({
   onDragEnd: () => void;
   dragOverStatus: string | null;
 }) {
-  const router = useRouter();
-
   return (
-    <div
+    <section
+      aria-label={`${status} leads`}
       className={`flex-1 min-w-skill-col bg-white/[0.02] border border-white/[0.08] rounded-lg p-3 transition-colors ${
         dragOverStatus === status ? 'border-primary/50 bg-primary/5' : ''
       }`}
@@ -153,20 +152,13 @@ function PipelineColumn({
       </div>
       <div className="flex flex-col gap-2">
         {leads.map((lead) => (
-          <div
+          <Link
             key={lead.id}
+            className="bg-white/[0.04] border border-white/[0.08] rounded p-3 cursor-grab active:cursor-grabbing hover:border-white/[0.15] transition-colors"
             draggable
+            href={`/crm/leads/${lead.id}`}
             onDragStart={() => onDragStart(lead.id, lead.status)}
             onDragEnd={onDragEnd}
-            onClick={() => router.push(`/crm/leads/${lead.id}`)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                router.push(`/crm/leads/${lead.id}`);
-              }
-            }}
-            role="button"
-            tabIndex={0}
-            className="bg-white/[0.04] border border-white/[0.08] rounded p-3 cursor-grab active:cursor-grabbing hover:border-white/[0.15] transition-colors"
           >
             <div className="font-medium text-sm truncate">{lead.name}</div>
             {lead.email && (
@@ -190,10 +182,10 @@ function PipelineColumn({
                 telegramHandle={lead.telegramHandle}
               />
             </div>
-          </div>
+          </Link>
         ))}
       </div>
-    </div>
+    </section>
   );
 }
 

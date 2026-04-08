@@ -12,7 +12,7 @@
       "@props/*": ["../props/*"],
       "@services/*": ["../services/*"],
       "@ui-constants/*": ["../ui/constants/*"],
-      "@ui/*": ["../ui/*"]
+      "@ui/*": ["../ui/src/*", "../ui/src/components/*"]
     }
   },
   "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"],

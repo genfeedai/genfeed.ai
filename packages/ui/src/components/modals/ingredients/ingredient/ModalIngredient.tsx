@@ -33,13 +33,13 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { GIFsService } from '@services/ingredients/gifs.service';
 import { ImagesService } from '@services/ingredients/images.service';
 import { VideosService } from '@services/ingredients/videos.service';
-import Button from '@ui/buttons/base/Button';
 import Alert from '@ui/feedback/alert/Alert';
 import IngredientDetailImage from '@ui/ingredients/detail-image/IngredientDetailImage';
 import IngredientDetailVideo from '@ui/ingredients/detail-video/IngredientDetailVideo';
 import TextOverlayPanel from '@ui/ingredients/text-overlay-panel/TextOverlayPanel';
 import Loading from '@ui/loading/default/Loading';
 import EntityOverlayShell from '@ui/overlays/entity/EntityOverlayShell';
+import { Button } from '@ui/primitives/button';
 import {
   isImageIngredient,
   isVideoIngredient,

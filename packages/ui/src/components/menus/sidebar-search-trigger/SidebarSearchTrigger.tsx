@@ -3,7 +3,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Kbd } from '@genfeedai/ui';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { HiMagnifyingGlass } from 'react-icons/hi2';
 
 interface SidebarSearchTriggerProps {

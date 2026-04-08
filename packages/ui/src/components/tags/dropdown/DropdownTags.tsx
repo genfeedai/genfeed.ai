@@ -13,7 +13,7 @@ import type { DropdownTagsProps } from '@props/tags/dropdown-tags.props';
 import { TagsService } from '@services/content/tags.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import TagBadge from '@ui/tags/badge/TagBadge';
 import { useEffect, useMemo, useRef, useState } from 'react';

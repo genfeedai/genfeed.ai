@@ -10,11 +10,11 @@ import { closeModal } from '@helpers/ui/modal/modal.helper';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { useModalAutoOpen } from '@hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import type { ModalExportProps } from '@props/modals/modal.props';
-import Button from '@ui/buttons/base/Button';
-import FormCheckbox from '@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox';
-import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
+import { SelectField } from '@ui/primitives/select';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
@@ -103,7 +103,7 @@ export default function ModalExport({
             Export Format
           </label>
 
-          <FormSelect
+          <SelectField
             name="format"
             control={form.control}
             onChange={(e) =>
@@ -115,7 +115,7 @@ export default function ModalExport({
           >
             <option value="csv">CSV</option>
             <option value="xlsx">Excel (XLSX)</option>
-          </FormSelect>
+          </SelectField>
         </div>
 
         <div>
@@ -150,7 +150,7 @@ export default function ModalExport({
             <div className="grid grid-cols-2 gap-2">
               {availableFields.map((field) => (
                 <div key={field.value} className="hover:bg-background p-1">
-                  <FormCheckbox
+                  <Checkbox
                     name={`field-${field.value}`}
                     label={field.label}
                     isChecked={selectedFields.includes(

@@ -7,7 +7,7 @@ import {
 } from '@genfeedai/agent/utils/generation-request';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -348,7 +348,7 @@ export function ClipWorkflowRunCard({
   }, [mergeGeneratedVideos, runOneStep, setStep]);
 
   return (
-    <div className="mt-2 overflow-hidden rounded-lg border border-border bg-background">
+    <div className="mt-2 overflow-hidden border border-border bg-background">
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <HiOutlineFilm className="h-4 w-4 text-primary" />
         <span className="text-sm font-medium text-foreground">
@@ -367,7 +367,7 @@ export function ClipWorkflowRunCard({
         </label>
 
         <div className="grid grid-cols-2 gap-2 text-xs">
-          <label className="flex items-center gap-2 rounded border border-border p-2">
+          <label className="flex items-center gap-2 border border-border p-2">
             <input
               type="checkbox"
               checked={autonomousMode}
@@ -375,7 +375,7 @@ export function ClipWorkflowRunCard({
             />
             Autonomous mode
           </label>
-          <label className="flex items-center gap-2 rounded border border-border p-2">
+          <label className="flex items-center gap-2 border border-border p-2">
             <input
               type="checkbox"
               checked={requireStepConfirmation}
@@ -383,7 +383,7 @@ export function ClipWorkflowRunCard({
             />
             Confirm each step
           </label>
-          <label className="flex items-center gap-2 rounded border border-border p-2">
+          <label className="flex items-center gap-2 border border-border p-2">
             <input
               type="checkbox"
               checked={mergeGeneratedVideos}
@@ -395,7 +395,7 @@ export function ClipWorkflowRunCard({
             />
             Merge multiple clips
           </label>
-          <label className="flex items-center gap-2 rounded border border-border p-2">
+          <label className="flex items-center gap-2 border border-border p-2">
             <span>Duration (s)</span>
             <Input
               type="number"
@@ -438,7 +438,7 @@ export function ClipWorkflowRunCard({
           </label>
         )}
 
-        <div className="rounded border border-border p-2.5">
+        <div className="border border-border p-2.5">
           <p className="mb-2 text-xs font-medium text-foreground">Run Steps</p>
           <div className="space-y-1.5">
             {STEP_ORDER.map((step) => (
@@ -454,7 +454,7 @@ export function ClipWorkflowRunCard({
         </div>
 
         {error && (
-          <div className="flex items-center gap-2 rounded border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+          <div className="flex items-center gap-2 border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
             <HiExclamationCircle className="h-4 w-4" />
             {error}
           </div>
@@ -540,7 +540,7 @@ export function ClipWorkflowRunCard({
         </div>
 
         {steps.supervised_review === 'completed' && (
-          <div className="flex items-center gap-2 rounded border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
+          <div className="flex items-center gap-2 border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-700 dark:border-green-900 dark:bg-green-950 dark:text-green-300">
             <HiCheckCircle className="h-4 w-4" />
             Handed off into the supervised publishing flow for human review.
           </div>

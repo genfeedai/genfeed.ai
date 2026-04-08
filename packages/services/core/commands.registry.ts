@@ -365,6 +365,18 @@ export function createSettingsCommands(orgSlug: string): ICommand[] {
         : 'API Keys & Providers',
       priority: 6,
     },
+    {
+      action: () => {
+        navigate(`${orgPath}/settings/admin`);
+      },
+      category: 'settings',
+      description: 'Manage customer-facing admin settings in the main app',
+      icon: HiOutlineWrenchScrewdriver,
+      id: 'settings-admin',
+      keywords: ['admin', 'settings', 'organization', 'workspace'],
+      label: 'Admin Settings',
+      priority: 6,
+    },
   ];
 }
 

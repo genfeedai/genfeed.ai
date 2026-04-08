@@ -23,15 +23,15 @@ import type { ModalArticleProps } from '@props/modals/modal.props';
 import { ArticlesService } from '@services/content/articles.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
 import Alert from '@ui/feedback/alert/Alert';
 import Spinner from '@ui/feedback/spinner/Spinner';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormTextarea from '@ui/forms/inputs/textarea/form-textarea/FormTextarea';
-import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
+import { SelectField } from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { type ChangeEvent, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { HiSparkles } from 'react-icons/hi2';
@@ -220,7 +220,7 @@ export default function ModalArticle({
           <>
             {/* AI Generation Fields */}
             <FormControl label="Article Idea">
-              <FormTextarea
+              <Textarea
                 name="prompt"
                 control={form.control}
                 onChange={handleChange}
@@ -232,7 +232,7 @@ export default function ModalArticle({
             </FormControl>
 
             <FormControl label="Number of Articles">
-              <FormSelect
+              <SelectField
                 name="count"
                 control={form.control}
                 isDisabled={isSubmitting}
@@ -242,14 +242,14 @@ export default function ModalArticle({
                 <option value="2">2 Articles</option>
                 <option value="3">3 Articles</option>
                 <option value="4">4 Articles</option>
-              </FormSelect>
+              </SelectField>
             </FormControl>
           </>
         ) : (
           <>
             {/* Manual Creation Fields */}
             <FormControl label="Title">
-              <FormInput
+              <Input
                 type="text"
                 name="label"
                 control={form.control}
@@ -261,7 +261,7 @@ export default function ModalArticle({
             </FormControl>
 
             <FormControl label="Content">
-              <FormTextarea
+              <Textarea
                 name="content"
                 control={form.control}
                 onChange={handleChange}

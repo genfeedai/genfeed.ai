@@ -2,8 +2,8 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
 import { FiHeart, FiSettings, FiStar, FiTrendingUp } from 'react-icons/fi';
 
 /**
@@ -345,14 +345,10 @@ export const Interactive: Story = {
       >
         <div className="space-y-4">
           <FormControl label="Username">
-            <FormInput
-              type="text"
-              name="username"
-              placeholder="Enter username"
-            />
+            <Input type="text" name="username" placeholder="Enter username" />
           </FormControl>
           <FormControl label="Email">
-            <FormInput type="email" name="email" placeholder="Enter email" />
+            <Input type="email" name="email" placeholder="Enter email" />
           </FormControl>
         </div>
       </Card>

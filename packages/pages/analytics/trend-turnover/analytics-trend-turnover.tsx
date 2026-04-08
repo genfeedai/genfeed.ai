@@ -8,11 +8,11 @@ import type {
   TrendTurnoverResponse,
 } from '@services/social/trends.service';
 import { TrendsService } from '@services/social/trends.service';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import Table from '@ui/display/table/Table';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import { VStack } from '@ui/layout/stack';
+import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';

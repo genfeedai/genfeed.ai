@@ -4,8 +4,8 @@ import { ButtonVariant } from '@genfeedai/enums';
 import type { CameraMovementPreset } from '@genfeedai/interfaces/studio/camera-movement.interface';
 import type { CameraMovementPromptBarProps } from '@props/studio/camera-movement-prompt-bar.props';
 import Card from '@ui/card/Card';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormDropdown from '@ui/forms/selectors/dropdown/form-dropdown/FormDropdown';
+import FormDropdown from '@ui/primitives/dropdown-field';
+import { Input } from '@ui/primitives/input';
 import { HiVideoCamera } from 'react-icons/hi2';
 
 const CAMERA_PRESETS = [
@@ -76,7 +76,7 @@ export default function CameraMovementPromptBar({
         />
 
         {preset === 'custom' && (
-          <FormInput
+          <Input
             name="custom-camera-prompt"
             value={customPrompt}
             onChange={(e) => onCustomPromptChange(e.target.value)}

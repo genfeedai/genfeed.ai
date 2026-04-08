@@ -149,7 +149,7 @@ function NodeCard({ type, label, description, icon, category }: NodeCardProps) {
       type="button"
       draggable
       onDragStart={handleDragStart}
-      className={`p-3 bg-[var(--card)] border border-[var(--border)] rounded-lg cursor-grab transition-colors group ${colors.hover}`}
+      className={`p-3 bg-[var(--card)] border border-[var(--border)] cursor-grab transition-colors group ${colors.hover}`}
     >
       <div className="flex items-start gap-3">
         <div className={`p-2 rounded ${colors.icon}`}>
@@ -306,7 +306,7 @@ export function NodePalette() {
             placeholder="Search nodes..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 text-sm bg-[var(--secondary)] border border-[var(--border)] rounded-md placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--ring)]"
+            className="w-full pl-8 pr-3 py-1.5 text-sm bg-[var(--secondary)] border border-[var(--border)] placeholder:text-[var(--muted-foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--ring)]"
           />
         </div>
       </div>

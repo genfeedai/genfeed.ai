@@ -20,14 +20,14 @@ import type { PostMetadataOverlayProps } from '@props/modals/modal.props';
 import { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
 import Alert from '@ui/feedback/alert/Alert';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormTextarea from '@ui/forms/inputs/textarea/form-textarea/FormTextarea';
 import FormDateTimePicker from '@ui/forms/pickers/date-time-picker/form-date-time-picker/FormDateTimePicker';
-import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
 import EntityOverlayShell from '@ui/overlays/entity/EntityOverlayShell';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
+import { SelectField } from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 
@@ -189,7 +189,7 @@ export default function PostMetadataOverlay({
             label="Title"
             error={form.formState.errors.label?.message}
           >
-            <FormInput
+            <Input
               name="label"
               control={form.control}
               placeholder="Enter post title"
@@ -200,7 +200,7 @@ export default function PostMetadataOverlay({
             label="Description"
             error={form.formState.errors.description?.message}
           >
-            <FormTextarea<PostMetadataFormValues>
+            <Textarea<PostMetadataFormValues>
               name="description"
               control={form.control}
               placeholder="Enter post description"
@@ -225,13 +225,13 @@ export default function PostMetadataOverlay({
               label="Status"
               error={form.formState.errors.status?.message}
             >
-              <FormSelect name="status" control={form.control}>
+              <SelectField name="status" control={form.control}>
                 {getPostStatusOptions().map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
                 ))}
-              </FormSelect>
+              </SelectField>
             </FormControl>
           )}
         </div>

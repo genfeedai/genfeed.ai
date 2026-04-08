@@ -10,7 +10,7 @@ export function CampaignCreateCard({
   action,
 }: CampaignCardProps): ReactElement {
   return (
-    <div className="rounded-lg border border-border bg-background p-4 my-2">
+    <div className="border border-border bg-background p-4 my-2">
       <div className="flex items-center gap-2 mb-3">
         <HiMegaphone className="w-5 h-5 text-orange-500" />
         <h3 className="font-semibold text-sm">
@@ -68,7 +68,7 @@ export function CampaignControlCard({
   const config = statusConfig[status] || statusConfig.active;
 
   return (
-    <div className="rounded-lg border border-border bg-background p-4 my-2">
+    <div className="border border-border bg-background p-4 my-2">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <HiMegaphone className="w-5 h-5 text-orange-500" />
@@ -98,7 +98,7 @@ export function CampaignControlCard({
               <a
                 key={cta.label}
                 href={cta.href}
-                className={`text-xs px-3 py-1.5 rounded transition-colors ${
+                className={`text-xs px-3 py-1.5 transition-colors ${
                   isDestructive
                     ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100'
                     : 'bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 hover:bg-orange-100'

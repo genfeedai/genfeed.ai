@@ -2,11 +2,11 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { XArticleGenerateFormProps } from '@props/content/x-article.props';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormDropdown from '@ui/forms/selectors/dropdown/form-dropdown/FormDropdown';
+import { Button } from '@ui/primitives/button';
+import FormDropdown from '@ui/primitives/dropdown-field';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import type { ChangeEvent } from 'react';
 import { useState } from 'react';
@@ -99,7 +99,7 @@ export default function XArticleGenerateForm({
         </div>
 
         <FormControl label="Keywords">
-          <FormInput
+          <Input
             name="xArticleKeywords"
             value={keywords}
             onChange={(e: ChangeEvent<HTMLInputElement>) =>

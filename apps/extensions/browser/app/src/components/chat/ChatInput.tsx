@@ -74,7 +74,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps): ReactElement {
         placeholder={placeholder}
         disabled={disabled}
         rows={1}
-        className="flex-1 resize-none rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-50"
+        className="flex-1 resize-none border border-border bg-input px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none disabled:opacity-50"
       />
       <Button
         type="button"
@@ -82,7 +82,7 @@ export function ChatInput({ onSend, disabled }: ChatInputProps): ReactElement {
         onClick={handleSend}
         disabled={disabled || !value.trim()}
         aria-label="Send message"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+        className="flex h-9 w-9 shrink-0 items-center justify-center"
       >
         <svg
           aria-hidden="true"

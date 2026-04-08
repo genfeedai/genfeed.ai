@@ -1,6 +1,6 @@
 import { ComponentSize } from '@genfeedai/enums';
 import { fireEvent, render, screen } from '@testing-library/react';
-import FormSearchbar from '@ui/forms/inputs/searchbar/form-searchbar/FormSearchbar';
+import FormSearchbar from '@ui/primitives/searchbar';
 import { createRef } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 

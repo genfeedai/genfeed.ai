@@ -18,14 +18,14 @@ import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
 import type { ElementBlacklist } from '@models/elements/blacklist.model';
 import type { ModalBlacklistProps } from '@props/modals/modal.props';
 import { BlacklistsService } from '@services/elements/blacklists.service';
-import Button from '@ui/buttons/base/Button';
 import Alert from '@ui/feedback/alert/Alert';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormCheckbox from '@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox';
-import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
+import { SelectField } from '@ui/primitives/select';
 import type { ChangeEvent } from 'react';
 
 export default function ModalBlacklist({
@@ -90,7 +90,7 @@ export default function ModalBlacklist({
         )}
 
         <FormControl label="Label">
-          <FormInput
+          <Input
             type="text"
             name="label"
             control={form.control}
@@ -102,7 +102,7 @@ export default function ModalBlacklist({
         </FormControl>
 
         <FormControl label="Key">
-          <FormInput
+          <Input
             type="text"
             name="key"
             control={form.control}
@@ -124,7 +124,7 @@ export default function ModalBlacklist({
         </FormControl>
 
         <FormControl label="Type">
-          <FormSelect
+          <SelectField
             name="category"
             control={form.control}
             onChange={handleChange}
@@ -136,7 +136,7 @@ export default function ModalBlacklist({
             <option value={ModelCategory.IMAGE}>Image</option>
             <option value={ModelCategory.TEXT}>Text/Voice</option>
             <option value={ModelCategory.MUSIC}>Music</option>
-          </FormSelect>
+          </SelectField>
 
           <p className="text-xs text-foreground/70 mt-1">
             Model category this blacklist applies to
@@ -144,7 +144,7 @@ export default function ModalBlacklist({
         </FormControl>
 
         <FormControl label="Description">
-          <FormInput
+          <Input
             name="description"
             control={form.control}
             onChange={handleChange}
@@ -153,7 +153,7 @@ export default function ModalBlacklist({
           />
         </FormControl>
 
-        <FormCheckbox
+        <Checkbox
           name="isDefault"
           control={form.control}
           label="Automatically select this blacklist item"

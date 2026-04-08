@@ -2,7 +2,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IMetadata } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { ListRowSoundProps } from '@props/content/list.props';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import type { MouseEvent } from 'react';
 import { HiPause, HiPlay } from 'react-icons/hi2';
 

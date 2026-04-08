@@ -11,14 +11,14 @@ import { Folder } from '@models/content/folder.model';
 import type { ModalFolderProps } from '@props/modals/modal.props';
 import { FoldersService } from '@services/content/folders.service';
 import { EnvironmentService } from '@services/core/environment.service';
-import Button from '@ui/buttons/base/Button';
 import Alert from '@ui/feedback/alert/Alert';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormTextarea from '@ui/forms/inputs/textarea/form-textarea/FormTextarea';
-import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
+import { SelectField } from '@ui/primitives/select';
+import { Textarea } from '@ui/primitives/textarea';
 import { type ChangeEvent, useEffect } from 'react';
 
 export default function ModalFolder({
@@ -104,7 +104,7 @@ export default function ModalFolder({
         )}
 
         <FormControl label="Label">
-          <FormInput
+          <Input
             type="text"
             name="label"
             control={form.control}
@@ -115,7 +115,7 @@ export default function ModalFolder({
           />
         </FormControl>
         <FormControl label="Description">
-          <FormTextarea
+          <Textarea
             name="description"
             control={form.control}
             onChange={handleChange}
@@ -127,7 +127,7 @@ export default function ModalFolder({
 
         {brands.length > 0 && !isManagerApp && (
           <FormControl label="Brand (Optional)">
-            <FormSelect
+            <SelectField
               name="brand"
               control={form.control}
               onChange={handleChange}
@@ -139,13 +139,13 @@ export default function ModalFolder({
                   {brand.label}
                 </option>
               ))}
-            </FormSelect>
+            </SelectField>
           </FormControl>
         )}
         {/* <FormControl label="Tags">
           <div className="space-y-2">
             <div className="flex gap-2">
-              <FormInput
+              <Input
                 type="text"
                 name="tags"
                 control={form.control}

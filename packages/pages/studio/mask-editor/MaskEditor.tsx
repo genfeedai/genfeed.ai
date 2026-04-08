@@ -5,9 +5,9 @@ import type {
   IMaskDrawingState,
   IMaskEditorProps,
 } from '@genfeedai/interfaces/components/mask-editor.interface';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
-import FormRange from '@ui/forms/selectors/range/form-range/FormRange';
+import { Button } from '@ui/primitives/button';
+import FormRange from '@ui/primitives/range-field';
 import type { MouseEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {

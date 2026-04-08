@@ -1,6 +1,6 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useMemo, useState } from 'react';
@@ -83,9 +83,9 @@ export function OnboardingConversationCard({
   };
 
   return (
-    <div className="mx-auto mt-8 w-full max-w-3xl rounded-[28px] border border-white/[0.08] bg-[#0d1118] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+    <div className="mx-auto mt-8 w-full max-w-3xl border border-white/[0.08] bg-[#0d1118] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
       <div className="flex items-start gap-4">
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-foreground/[0.06] ring-1 ring-inset ring-foreground/[0.1]">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center bg-foreground/[0.06] ring-1 ring-inset ring-foreground/[0.1]">
           <HiOutlineSparkles className="h-6 w-6 text-foreground/70" />
         </div>
         <div className="min-w-0">
@@ -119,7 +119,7 @@ export function OnboardingConversationCard({
                 withWrapper={false}
                 onClick={() => setAccountType(type.id)}
                 className={cn(
-                  'rounded-2xl border px-4 py-4 text-left transition-colors',
+                  'border px-4 py-4 text-left transition-colors',
                   isSelected
                     ? 'border-foreground/20 bg-foreground/[0.06]'
                     : 'border-white/[0.08] bg-white/[0.02] hover:border-white/[0.14] hover:bg-white/[0.04]',
@@ -149,11 +149,11 @@ export function OnboardingConversationCard({
             value={sourceUrl}
             onChange={(event) => setSourceUrl(event.target.value)}
             placeholder="https://your-site.com or https://x.com/yourhandle"
-            className="h-12 rounded-2xl border-white/[0.08] bg-white/[0.02] px-4 text-sm placeholder:text-foreground/35 focus:border-foreground/25"
+            className="h-12 border-white/[0.08] bg-white/[0.02] px-4 text-sm placeholder:text-foreground/35 focus:border-foreground/25"
           />
         </label>
 
-        <div className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4">
+        <div className="border border-white/[0.08] bg-white/[0.02] p-4">
           <div className="flex items-center gap-2 text-sm font-medium text-foreground">
             <HiOutlinePhoto className="h-4 w-4 text-foreground/70" />
             First reward
@@ -173,7 +173,7 @@ export function OnboardingConversationCard({
           value={context}
           onChange={(event) => setContext(event.target.value)}
           placeholder="Describe your niche, audience, style, offer, or what you want the first image to communicate."
-          className="min-h-32 rounded-2xl border-white/[0.08] bg-white/[0.02] px-4 py-3 text-sm placeholder:text-foreground/35 focus:border-foreground/25"
+          className="min-h-32 border-white/[0.08] bg-white/[0.02] px-4 py-3 text-sm placeholder:text-foreground/35 focus:border-foreground/25"
         />
       </label>
 

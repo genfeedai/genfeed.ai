@@ -146,7 +146,7 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 min-w-[200px] py-1 bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-lg backdrop-blur-sm"
+      className="fixed z-50 min-w-[200px] py-1 bg-[var(--card)] border border-[var(--border)] shadow-lg backdrop-blur-sm"
       style={{ left: position.x, top: position.y }}
     >
       {items.map((item, index) => {

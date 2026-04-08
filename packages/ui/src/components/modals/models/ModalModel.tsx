@@ -19,14 +19,14 @@ import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
 import { Model } from '@models/ai/model.model';
 import type { ModalModelProps } from '@props/modals/modal.props';
 import { ModelsService } from '@services/ai/models.service';
-import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
+import { SelectField } from '@ui/primitives/select';
 import { type ChangeEvent, useEffect, useMemo } from 'react';
 
 export default function ModalModel({
@@ -367,7 +367,7 @@ export default function ModalModel({
             </Alert>
           )}
           <FormControl label="Label">
-            <FormInput
+            <Input
               type="text"
               name="label"
               control={form.control}
@@ -378,7 +378,7 @@ export default function ModalModel({
             />
           </FormControl>
           <FormControl label="Description">
-            <FormInput
+            <Input
               type="text"
               name="description"
               control={form.control}
@@ -388,7 +388,7 @@ export default function ModalModel({
             />
           </FormControl>
           <FormControl label="Key">
-            <FormInput
+            <Input
               type="text"
               name="key"
               control={form.control}
@@ -399,7 +399,7 @@ export default function ModalModel({
             />
           </FormControl>
           <div className="grid grid-cols-2 gap-2">
-            <FormSelect
+            <SelectField
               name="provider"
               control={form.control}
               onChange={handleChange}
@@ -410,9 +410,9 @@ export default function ModalModel({
                   {provider}
                 </option>
               ))}
-            </FormSelect>
+            </SelectField>
 
-            <FormSelect
+            <SelectField
               name="category"
               control={form.control}
               onChange={handleChange}
@@ -423,10 +423,10 @@ export default function ModalModel({
                   {category}
                 </option>
               ))}
-            </FormSelect>
+            </SelectField>
           </div>
           <FormControl label="Cost" className="mt-4">
-            <FormInput
+            <Input
               type="number"
               name="cost"
               control={form.control}

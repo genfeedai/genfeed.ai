@@ -2,7 +2,7 @@
 
 import { ComponentSize } from '@genfeedai/enums';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
-import FormSearchbar from '@ui/forms/inputs/searchbar/form-searchbar/FormSearchbar';
+import FormSearchbar from '@ui/primitives/searchbar';
 import type { ChangeEvent } from 'react';
 
 export interface PostsListToolbarOption {

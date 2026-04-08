@@ -1,7 +1,6 @@
 'use client';
 
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
-import DropdownBase from '@components/dropdowns/base/DropdownBase';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { Workflow } from '@models/automation/workflow.model';
@@ -9,14 +8,14 @@ import { useConfirmDeleteModal } from '@providers/global-modals/global-modals.pr
 import { WorkflowsService } from '@services/automation/workflows.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
-import { Button as PrimitiveButton } from '@ui/primitives/button';
+import { Button } from '@ui/primitives/button';
+import { Dropdown } from '@ui/primitives/dropdown';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -189,7 +188,7 @@ export default function WorkflowsPage() {
                       </div>
                     </div>
 
-                    <DropdownBase
+                    <Dropdown
                       trigger={
                         <Button
                           variant={ButtonVariant.GHOST}
@@ -202,12 +201,12 @@ export default function WorkflowsPage() {
                     >
                       <ul className="menu p-0">
                         <li>
-                          <PrimitiveButton asChild variant={ButtonVariant.SOFT}>
+                          <Button asChild variant={ButtonVariant.SOFT}>
                             <Link href={`/workflows/${workflow.id}`}>
                               <HiPencil className="w-4 h-4" />
                               View/Edit
                             </Link>
-                          </PrimitiveButton>
+                          </Button>
                         </li>
                         <li>
                           <Button
@@ -221,7 +220,7 @@ export default function WorkflowsPage() {
                           </Button>
                         </li>
                       </ul>
-                    </DropdownBase>
+                    </Dropdown>
                   </div>
                 </div>
               </Card>

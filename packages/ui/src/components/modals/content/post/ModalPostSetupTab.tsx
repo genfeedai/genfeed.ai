@@ -14,11 +14,11 @@ import type { ModalPostSetupTabProps } from '@props/modals/modal.props';
 import { PromptsService } from '@services/content/prompts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormTextarea from '@ui/forms/inputs/textarea/form-textarea/FormTextarea';
 import FormDateTimePicker from '@ui/forms/pickers/date-time-picker/form-date-time-picker/FormDateTimePicker';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
+import { Textarea } from '@ui/primitives/textarea';
 import { useCallback, useState } from 'react';
 import { HiSparkles } from 'react-icons/hi2';
 
@@ -101,7 +101,7 @@ export default function ModalPostSetupTab({
   return (
     <>
       <FormControl label="Title">
-        <FormInput
+        <Input
           type="text"
           name="globalLabel"
           control={form.control}
@@ -137,7 +137,7 @@ export default function ModalPostSetupTab({
               isLoading={isGenerating}
             />
           )}
-          <FormTextarea
+          <Textarea
             name="globalDescription"
             control={form.control}
             placeholder="Enter a description for your post"

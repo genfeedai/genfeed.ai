@@ -6,8 +6,8 @@ import {
   formatFullNumber,
 } from '@helpers/formatting/format/format.helper';
 import type { BrandPerformanceChartProps } from '@props/analytics/charts.props';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
+import { Button } from '@ui/primitives/button';
 import { useState } from 'react';
 import {
   Bar,

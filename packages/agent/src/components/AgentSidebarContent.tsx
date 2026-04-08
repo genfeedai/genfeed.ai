@@ -10,8 +10,8 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 import { ButtonVariant } from '@genfeedai/enums';
 import { Kbd } from '@genfeedai/ui';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import Button from '@ui/buttons/base/Button';
 import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearchTrigger';
+import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import type { ReactElement } from 'react';
 import { HiArrowLeft, HiArrowPath, HiPlus } from 'react-icons/hi2';
@@ -53,7 +53,7 @@ export function AgentSidebarContent({
       <div className="px-3 pt-2 pb-1">
         <Link
           href={href('/overview')}
-          className="flex h-9 w-full items-center gap-3 rounded-lg px-3 py-2 transition-colors duration-200 group cursor-pointer text-white/80 hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+          className="flex h-9 w-full items-center gap-3 px-3 py-2 transition-colors duration-200 group cursor-pointer text-white/80 hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
           aria-label="Back to overview"
         >
           <HiArrowLeft className="h-4 w-4 text-white/60 group-hover:text-white transition-colors duration-200" />
@@ -68,7 +68,7 @@ export function AgentSidebarContent({
           <li className="list-none">
             <Link
               href={orgHref('/chat/new')}
-              className="flex h-9 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-white/80 transition-colors duration-200 group cursor-pointer hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="flex h-9 w-full items-center gap-3 px-3 py-2 text-left text-white/80 transition-colors duration-200 group cursor-pointer hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <HiPlus className="h-4 w-4 text-white/80 group-hover:text-white" />
               <span className="text-sm font-medium text-white/90">
@@ -87,7 +87,7 @@ export function AgentSidebarContent({
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
               onClick={handleRefreshThreads}
-              className="flex h-9 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-white/80 transition-colors duration-200 group cursor-pointer hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="flex h-9 w-full items-center gap-3 px-3 py-2 text-left text-white/80 transition-colors duration-200 group cursor-pointer hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <HiArrowPath className="h-4 w-4 text-white/80 group-hover:text-white" />
               <span className="text-sm font-medium text-white/90">Refresh</span>

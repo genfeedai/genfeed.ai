@@ -322,7 +322,7 @@ export function Toolbar({
 
       {/* Validation Errors Toast */}
       {uniqueErrorMessages.length > 0 && (
-        <div className="fixed right-4 top-20 z-50 max-w-sm rounded-lg border border-destructive/30 bg-destructive/10 p-4 shadow-xl">
+        <div className="fixed right-4 top-20 z-50 max-w-sm border border-destructive/30 bg-destructive/10 p-4 shadow-xl">
           <div className="flex items-start gap-3">
             <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
             <div className="min-w-0 flex-1">

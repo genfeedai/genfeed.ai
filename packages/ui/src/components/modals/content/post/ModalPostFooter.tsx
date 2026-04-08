@@ -2,8 +2,8 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import type { ModalPostFooterProps } from '@props/modals/modal.props';
-import Button from '@ui/buttons/base/Button';
 import ModalActions from '@ui/modals/actions/ModalActions';
+import { Button } from '@ui/primitives/button';
 
 export default function ModalPostFooter({
   activeTab,

@@ -1,8 +1,8 @@
 'use client';
 
 import { ButtonVariant, WorkflowNodeStatus } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
 import Textarea from '@ui/inputs/textarea/Textarea';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
   Select,

@@ -15,11 +15,11 @@ import type { ModalPostPlatformsTabProps } from '@props/modals/modal.props';
 import { PromptsService } from '@services/content/prompts.service';
 import { logger } from '@services/core/logger.service';
 import { createPromptHandler } from '@services/core/socket-manager.service';
-import Button from '@ui/buttons/base/Button';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormCheckbox from '@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox';
-import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
+import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
+import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { WebSocketPaths } from '@utils/network/websocket.util';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -246,7 +246,7 @@ export default function ModalPostPlatformsTab({
                     hasCredential ? 'cursor-pointer' : 'cursor-not-allowed'
                   }`}
                 >
-                  <FormCheckbox
+                  <Checkbox
                     name={`platform-${config.platform}`}
                     isChecked={config.enabled}
                     onChange={() =>
@@ -345,7 +345,7 @@ export default function ModalPostPlatformsTab({
 
                     {isYoutube && (
                       <FormControl label="YouTube Visibility">
-                        <FormSelect
+                        <SelectField
                           name={`youtubeStatus-${config.credentialId || config.platform}`}
                           value={config.status || 'unlisted'}
                           onChange={(event) => {
@@ -363,7 +363,7 @@ export default function ModalPostPlatformsTab({
                           <option value="private">Private</option>
                           <option value="unlisted">Unlisted</option>
                           <option value="scheduled">Scheduled</option>
-                        </FormSelect>
+                        </SelectField>
                       </FormControl>
                     )}
 
@@ -556,7 +556,7 @@ export default function ModalPostPlatformsTab({
                       )}
                     </div>
 
-                    <FormCheckbox
+                    <Checkbox
                       name={`override-${config.platform}`}
                       label="Override schedule time"
                       className="checkbox-xs"

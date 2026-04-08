@@ -18,12 +18,12 @@ import { useFormSubmitWithState } from '@hooks/utils/use-form-submit/use-form-su
 import type { ModalBrandGenerateProps } from '@props/modals/modal.props';
 import { AssetsService } from '@services/content/assets.service';
 import { logger } from '@services/core/logger.service';
-import Button from '@ui/buttons/base/Button';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormTextarea from '@ui/forms/inputs/textarea/form-textarea/FormTextarea';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
+import { Textarea } from '@ui/primitives/textarea';
 import { type ChangeEvent, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { HiArrowUp } from 'react-icons/hi2';
@@ -107,7 +107,7 @@ export default function ModalBrandGenerate({
     >
       <form ref={formRef} onSubmit={onSubmit}>
         <FormControl label="Prompt">
-          <FormInput
+          <Input
             name="prompt"
             control={form.control}
             onChange={handleChange}
@@ -117,7 +117,7 @@ export default function ModalBrandGenerate({
         </FormControl>
 
         <FormControl label="Description (optional)">
-          <FormTextarea
+          <Textarea
             name="description"
             control={form.control}
             onChange={handleChange}

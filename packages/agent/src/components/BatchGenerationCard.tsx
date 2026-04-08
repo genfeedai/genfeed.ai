@@ -1,6 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { type ReactElement, useCallback, useState } from 'react';
 import { HiCheck, HiCurrencyDollar, HiRectangleStack } from 'react-icons/hi2';
@@ -57,7 +57,7 @@ export function BatchGenerationCard({
 
   if (isGenerated) {
     return (
-      <div className="my-2 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+      <div className="my-2 border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
         <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
           <HiCheck className="h-5 w-5" />
           <span className="text-sm font-medium">
@@ -69,7 +69,7 @@ export function BatchGenerationCard({
   }
 
   return (
-    <div className="my-2 rounded-lg border border-border bg-background p-4">
+    <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
         <HiRectangleStack className="h-5 w-5 text-cyan-500" />
         <h3 className="text-sm font-semibold">
@@ -106,7 +106,7 @@ export function BatchGenerationCard({
           {AVAILABLE_PLATFORMS.map((platform) => (
             <label
               key={platform}
-              className={`flex cursor-pointer items-center gap-1.5 rounded border px-2.5 py-1 text-xs transition-colors ${
+              className={`flex cursor-pointer items-center gap-1.5 border px-2.5 py-1 text-xs transition-colors ${
                 selectedPlatforms.has(platform)
                   ? 'border-primary bg-primary/5 text-foreground'
                   : 'border-border text-muted-foreground hover:border-primary/50'

@@ -5,7 +5,6 @@ import { ButtonVariant, RouterPriority } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { ModelSelectorPopoverProps } from '@props/ui/model-selector/model-selector.props';
-import Button from '@ui/buttons/base/Button';
 import ModelSelectorFamilyItem from '@ui/dropdowns/model-selector/ModelSelectorFamilyItem';
 import ModelSelectorModelItem from '@ui/dropdowns/model-selector/ModelSelectorModelItem';
 import ModelSelectorProviderSidebar from '@ui/dropdowns/model-selector/ModelSelectorProviderSidebar';
@@ -19,6 +18,7 @@ import {
   collectBrandsFromOptions,
   transformModelsToOptions,
 } from '@ui/dropdowns/model-selector/model-selector.utils';
+import { Button } from '@ui/primitives/button';
 import {
   Command,
   CommandEmpty,

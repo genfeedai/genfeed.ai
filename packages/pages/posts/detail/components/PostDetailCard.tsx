@@ -8,9 +8,9 @@ import { useConfirmModal } from '@providers/global-modals/global-modals.provider
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
 import PostEnhancementBar from '@ui/posts/enhancement-bar/post-enhancement-bar/PostEnhancementBar';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
 import { PageScope } from '@ui-constants/misc.constant';
 import { createMarkup } from '@utils/sanitize-html';
 import { useEffect, useState } from 'react';
@@ -253,7 +253,7 @@ export default function PostDetailCard({
               {/* Title field for non-Twitter platforms (only in edit mode) */}
               {isEditable && isParent && !isTwitter && onLabelChange && (
                 <FormControl label="Title">
-                  <FormInput
+                  <Input
                     name="postTitle"
                     value={labelValue || ''}
                     onChange={(e) => {

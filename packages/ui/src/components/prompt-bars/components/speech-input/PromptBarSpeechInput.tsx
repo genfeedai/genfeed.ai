@@ -2,7 +2,7 @@
 
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { PromptBarSpeechInputProps } from '@props/prompt-bars/prompt-bar-layout.props';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
+import { Input } from '@ui/primitives/input';
 import { type ChangeEvent, memo } from 'react';
 
 const PromptBarSpeechInput = memo(function PromptBarSpeechInput({
@@ -33,7 +33,7 @@ const PromptBarSpeechInput = memo(function PromptBarSpeechInput({
 
   return (
     <div className="relative w-full">
-      <FormInput
+      <Input
         name="speech"
         type="text"
         placeholder={placeholder}

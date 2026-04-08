@@ -1,7 +1,7 @@
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import type { TextareaLabelActionsProps } from '@props/ui/forms/textarea-label-actions.props';
-import Button from '@ui/buttons/base/Button';
 import Spinner from '@ui/feedback/spinner/Spinner';
+import { Button } from '@ui/primitives/button';
 import {
   HiArrowUturnLeft,
   HiDocumentDuplicate,

@@ -171,9 +171,11 @@ function ImageGenNodeComponent(props: NodeProps) {
             </div>
             <div className="grid grid-cols-2 gap-1">
               {nodeData.outputImages.map((img, i) => (
-                <div
-                  key={i}
-                  className="relative group aspect-square rounded overflow-hidden border border-border cursor-pointer"
+                <Button
+                  key={img}
+                  type="button"
+                  variant="ghost"
+                  className="relative group aspect-square overflow-hidden border border-border cursor-pointer h-auto p-0"
                   onClick={() =>
                     setSelectedPreview(selectedPreview === i ? null : i)
                   }
@@ -203,7 +205,7 @@ function ImageGenNodeComponent(props: NodeProps) {
                   <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] text-center py-0.5">
                     {i + 1}
                   </div>
-                </div>
+                </Button>
               ))}
             </div>
             {/* Enlarged preview */}
@@ -245,7 +247,7 @@ function ImageGenNodeComponent(props: NodeProps) {
             {nodeData.status === 'processing' && <ProcessingOverlay />}
           </div>
         ) : (
-          <div className="relative flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border/50 bg-secondary/20">
+          <div className="relative flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 border border-dashed border-border/50 bg-secondary/20">
             <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
             {nodeData.status === 'processing' && <ProcessingOverlay />}
           </div>

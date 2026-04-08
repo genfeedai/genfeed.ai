@@ -1,7 +1,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import type { FormTagsEditableProps } from '@props/forms/form.props';
-import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
+import { Button } from '@ui/primitives/button';
 import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { HiCheck, HiPencil, HiPlus, HiXMark } from 'react-icons/hi2';
 

@@ -18,13 +18,13 @@ import { filterActionsByRole } from '@genfeedai/agent/utils/filter-actions-by-ro
 import type { MemberRole } from '@genfeedai/enums';
 import { AgentThreadStatus, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Button from '@ui/buttons/base/Button';
 import {
   Drawer,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
 } from '@ui/primitives';
+import { Button } from '@ui/primitives/button';
 import { type ReactElement, useEffect, useMemo, useRef, useState } from 'react';
 import {
   HiOutlineBriefcase,
@@ -467,7 +467,7 @@ export function AgentFullPage({
               variant={ButtonVariant.OUTLINE}
               withWrapper={false}
               onClick={() => setMobileThreadsOpen(true)}
-              className="inline-flex items-center gap-2 rounded-lg border-white/[0.12] bg-white/[0.03] px-3 py-2 text-sm font-medium text-foreground/75 hover:bg-white/[0.06] hover:text-foreground"
+              className="inline-flex items-center gap-2 border-white/[0.12] bg-white/[0.03] px-3 py-2 text-sm font-medium text-foreground/75 hover:bg-white/[0.06] hover:text-foreground"
             >
               <HiOutlineChatBubbleLeftRight className="h-4 w-4" />
               Threads
@@ -478,7 +478,7 @@ export function AgentFullPage({
               variant={ButtonVariant.OUTLINE}
               withWrapper={false}
               onClick={() => setMobileOutputsOpen(true)}
-              className="inline-flex items-center gap-2 rounded-lg border-white/[0.12] bg-white/[0.03] px-3 py-2 text-sm font-medium text-foreground/75 hover:bg-white/[0.06] hover:text-foreground"
+              className="inline-flex items-center gap-2 border-white/[0.12] bg-white/[0.03] px-3 py-2 text-sm font-medium text-foreground/75 hover:bg-white/[0.06] hover:text-foreground"
             >
               <HiOutlinePhoto className="h-4 w-4" />
               Outputs

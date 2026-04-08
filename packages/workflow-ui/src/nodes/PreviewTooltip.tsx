@@ -89,7 +89,7 @@ export function PreviewTooltip({
         transition: 'opacity 150ms ease-out, transform 150ms ease-out',
       }}
     >
-      <div className="w-[280px] bg-card border border-border rounded-lg shadow-xl overflow-hidden">
+      <div className="w-[280px] bg-card border border-border shadow-xl overflow-hidden">
         {/* Preview content */}
         <div className="relative aspect-video bg-background">
           {mediaInfo.type === 'image' && (

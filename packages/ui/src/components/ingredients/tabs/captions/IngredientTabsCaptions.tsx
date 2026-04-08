@@ -17,11 +17,11 @@ import { CaptionsService } from '@services/content/captions.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { VideosService } from '@services/ingredients/videos.service';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import Alert from '@ui/feedback/alert/Alert';
-import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
 import Loading from '@ui/loading/default/Loading';
+import { Button } from '@ui/primitives/button';
+import { SelectField } from '@ui/primitives/select';
 import { useRouter } from 'next/navigation';
 import { type ChangeEvent, useEffect, useMemo, useState } from 'react';
 import { HiArrowDownTray, HiPlus, HiSparkles } from 'react-icons/hi2';
@@ -170,7 +170,7 @@ export default function IngredientTabsCaptions({
         <h3 className="text-lg font-semibold mb-4">Generate Caption</h3>
 
         <div className="grid grid-cols-2 gap-4 mb-4">
-          <FormSelect
+          <SelectField
             name="language"
             label="Language"
             placeholder="Select language"
@@ -184,9 +184,9 @@ export default function IngredientTabsCaptions({
                 {option.label}
               </option>
             ))}
-          </FormSelect>
+          </SelectField>
 
-          <FormSelect
+          <SelectField
             name="format"
             label="Format"
             placeholder="Select format"
@@ -200,7 +200,7 @@ export default function IngredientTabsCaptions({
                 {option.label}
               </option>
             ))}
-          </FormSelect>
+          </SelectField>
         </div>
 
         <Button

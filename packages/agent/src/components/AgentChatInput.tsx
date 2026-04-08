@@ -28,7 +28,7 @@ import { type Editor, Extension, type JSONContent } from '@tiptap/core';
 import Placeholder from '@tiptap/extension-placeholder';
 import { EditorContent, ReactRenderer, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
 import PromptBarShell from '@ui/prompt-bars/components/shell/PromptBarShell';
 import {

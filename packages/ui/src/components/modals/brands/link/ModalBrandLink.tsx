@@ -14,13 +14,13 @@ import {
 import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
 import type { ModalBrandLinkProps } from '@props/modals/modal.props';
 import { LinksService } from '@services/social/links.service';
-import Button from '@ui/buttons/base/Button';
 import Alert from '@ui/feedback/alert/Alert';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
+import { SelectField } from '@ui/primitives/select';
 import { type ChangeEvent, useEffect, useState } from 'react';
 
 export default function ModalBrandLink({
@@ -90,7 +90,7 @@ export default function ModalBrandLink({
         )}
 
         <FormControl label="Label">
-          <FormInput
+          <Input
             type="text"
             name="label"
             control={form.control}
@@ -102,7 +102,7 @@ export default function ModalBrandLink({
         </FormControl>
 
         <div className="grid grid-cols-1 gap-4 mb-4">
-          <FormSelect
+          <SelectField
             name="category"
             control={form.control}
             onChange={handleChange}
@@ -115,11 +115,11 @@ export default function ModalBrandLink({
                 </option>
               ),
             )}
-          </FormSelect>
+          </SelectField>
         </div>
 
         <FormControl label="URL">
-          <FormInput
+          <Input
             type="url"
             name="url"
             control={form.control}

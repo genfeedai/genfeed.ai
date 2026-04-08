@@ -24,14 +24,14 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { RolesService } from '@services/organization/roles.service';
-import Button from '@ui/buttons/base/Button';
 import Alert from '@ui/feedback/alert/Alert';
-import FormControl from '@ui/forms/base/form-control/FormControl';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormCheckbox from '@ui/forms/selectors/checkbox/form-checkbox/FormCheckbox';
-import FormSelect from '@ui/forms/selectors/select/form-select/FormSelect';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
+import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
+import FormControl from '@ui/primitives/field';
+import { Input } from '@ui/primitives/input';
+import { SelectField } from '@ui/primitives/select';
 import {
   getErrorMessage,
   hasErrorDetail,
@@ -214,7 +214,7 @@ export default function ModalMember({
           )}
 
           <FormControl label="Email Address">
-            <FormInput
+            <Input
               name="email"
               type="email"
               placeholder="member@example.com"
@@ -224,7 +224,7 @@ export default function ModalMember({
 
           <div className="grid grid-cols-2 gap-4">
             <FormControl label="First Name">
-              <FormInput
+              <Input
                 name="firstName"
                 placeholder="John"
                 control={form.control}
@@ -232,16 +232,12 @@ export default function ModalMember({
             </FormControl>
 
             <FormControl label="Last Name">
-              <FormInput
-                name="lastName"
-                placeholder="Doe"
-                control={form.control}
-              />
+              <Input name="lastName" placeholder="Doe" control={form.control} />
             </FormControl>
           </div>
 
           <FormControl label="Role">
-            <FormSelect
+            <SelectField
               name="role"
               control={form.control}
               onChange={(e) => form.setValue('role', e.target.value)}
@@ -252,7 +248,7 @@ export default function ModalMember({
                   {role.label}
                 </option>
               ))}
-            </FormSelect>
+            </SelectField>
           </FormControl>
 
           <ModalActions>
@@ -310,7 +306,7 @@ export default function ModalMember({
                       key={brand.id}
                       className="p-3 hover:bg-base-200 rounded-lg"
                     >
-                      <FormCheckbox
+                      <Checkbox
                         name={`account-${brand.id}`}
                         label={
                           <span className="flex-1">

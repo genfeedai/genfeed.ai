@@ -18,7 +18,7 @@ import type { ButtonCreditsProps } from '@props/ui/forms/button-credits.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import {
   Popover,
   PopoverPanelContent,

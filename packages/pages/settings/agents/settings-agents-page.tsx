@@ -7,9 +7,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
-import FormToggle from '@ui/forms/selectors/toggle/form-toggle/FormToggle';
 import {
   Select,
   SelectContent,
@@ -17,7 +15,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import { Switch } from '@ui/primitives/switch';
 import { useCallback, useEffect, useState } from 'react';
 
 type AgentPolicyState = NonNullable<IOrganizationSetting['agentPolicy']>;
@@ -258,7 +258,7 @@ export default function SettingsAgentsPage() {
       <Card className="p-6">
         <h2 className="text-lg font-semibold mb-4">Advanced Routing</h2>
         <div className="space-y-4">
-          <FormToggle
+          <Switch
             label="Expose Raw Model Overrides"
             description="Enable explicit planner, generation, and review model routing controls for advanced operators."
             isChecked={allowAdvancedOverrides}

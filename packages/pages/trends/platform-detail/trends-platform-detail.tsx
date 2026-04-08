@@ -18,11 +18,11 @@ import {
   type TrendPlatform,
 } from '@pages/trends/shared/trends-platforms';
 import { TrendsService } from '@services/social/trends.service';
-import Button from '@ui/buttons/base/Button';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
+import { Button } from '@ui/primitives/button';
 import { useMemo } from 'react';
 import {
   HiHashtag,

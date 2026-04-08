@@ -1,6 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
 import { HiCheckCircle, HiMegaphone, HiSparkles } from 'react-icons/hi2';
 
@@ -65,7 +65,7 @@ export function BrandVoiceProfileCard({
 
   if (isSaved) {
     return (
-      <div className="my-2 rounded-lg border border-emerald-500/20 bg-background p-4">
+      <div className="my-2 border border-emerald-500/20 bg-background p-4">
         <div className="flex items-center gap-2 text-emerald-600">
           <HiCheckCircle className="h-5 w-5" />
           <span className="text-sm font-medium">
@@ -77,7 +77,7 @@ export function BrandVoiceProfileCard({
   }
 
   return (
-    <div className="my-2 rounded-lg border border-border bg-background p-4">
+    <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
         <HiMegaphone className="h-5 w-5 text-amber-500" />
         <h3 className="text-sm font-semibold text-foreground">
@@ -92,7 +92,7 @@ export function BrandVoiceProfileCard({
       ) : null}
 
       <div className="grid gap-3">
-        <div className="rounded border border-border bg-card/40 p-3">
+        <div className="border border-border bg-card/40 p-3">
           <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             Tone
           </p>
@@ -101,7 +101,7 @@ export function BrandVoiceProfileCard({
           </p>
         </div>
 
-        <div className="rounded border border-border bg-card/40 p-3">
+        <div className="border border-border bg-card/40 p-3">
           <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             Style
           </p>
@@ -110,7 +110,7 @@ export function BrandVoiceProfileCard({
           </p>
         </div>
 
-        <div className="rounded border border-border bg-card/40 p-3">
+        <div className="border border-border bg-card/40 p-3">
           <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             Audience
           </p>
@@ -119,7 +119,7 @@ export function BrandVoiceProfileCard({
           </p>
         </div>
 
-        <div className="rounded border border-border bg-card/40 p-3">
+        <div className="border border-border bg-card/40 p-3">
           <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             Messaging Pillars
           </p>
@@ -128,7 +128,7 @@ export function BrandVoiceProfileCard({
           </p>
         </div>
 
-        <div className="rounded border border-border bg-card/40 p-3">
+        <div className="border border-border bg-card/40 p-3">
           <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             Core Values
           </p>
@@ -137,7 +137,7 @@ export function BrandVoiceProfileCard({
           </p>
         </div>
 
-        <div className="rounded border border-border bg-card/40 p-3">
+        <div className="border border-border bg-card/40 p-3">
           <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             Avoid
           </p>
@@ -146,7 +146,7 @@ export function BrandVoiceProfileCard({
           </p>
         </div>
 
-        <div className="rounded border border-border bg-card/40 p-3">
+        <div className="border border-border bg-card/40 p-3">
           <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             Sample Output
           </p>

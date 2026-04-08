@@ -17,9 +17,9 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import SelectedAvatarPreview from '@ui/display/selected-avatar-preview/SelectedAvatarPreview';
+import { Button } from '@ui/primitives/button';
 import {
   Select,
   SelectContent,

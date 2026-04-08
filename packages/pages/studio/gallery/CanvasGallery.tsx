@@ -19,7 +19,7 @@ import {
   useGalleryModal,
 } from '@providers/global-modals/global-modals.provider';
 import { IngredientsService } from '@services/content/ingredients.service';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { SCROLL_FOCUS_SURFACE_CLASS } from '@ui/styles/scroll-focus';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { HiPhoto, HiXMark } from 'react-icons/hi2';

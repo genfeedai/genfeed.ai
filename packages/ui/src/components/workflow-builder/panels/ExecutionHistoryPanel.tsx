@@ -6,9 +6,9 @@ import {
   ButtonVariant,
   ComponentSize,
 } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
+import { Button } from '@ui/primitives/button';
 import { Progress } from '@ui/primitives/progress';
 import { formatDistanceToNow } from 'date-fns';
 import { useCallback, useEffect, useState } from 'react';

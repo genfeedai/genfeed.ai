@@ -20,12 +20,11 @@ import {
   type IOrgIntegration,
 } from '@services/organization/integrations.service';
 import { BrandsService } from '@services/social/brands.service';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import BadgeQuota from '@ui/display/badge-quota/BadgeQuota';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalBrandInstagram } from '@ui/lazy/modal/LazyModal';
-import { Button as PrimitiveButton } from '@ui/primitives/button';
+import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Switch } from '@ui/primitives/switch';
 import Link from 'next/link';

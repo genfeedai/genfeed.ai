@@ -22,7 +22,6 @@ import type { TabItem } from '@props/ui/navigation/tabs.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { VideosService } from '@services/ingredients/videos.service';
-import Button from '@ui/buttons/base/Button';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import EvaluationCard from '@ui/evaluation/card/EvaluationCard';
 import IngredientWorkspacePanel from '@ui/ingredients/detail/shared/IngredientWorkspacePanel';
@@ -35,6 +34,7 @@ import IngredientTabsPrompts from '@ui/ingredients/tabs/prompts/IngredientTabsPr
 import IngredientTabsSharing from '@ui/ingredients/tabs/sharing/IngredientTabsSharing';
 import IngredientTabsTags from '@ui/ingredients/tabs/tags/IngredientTabsTags';
 import LoadingOverlay from '@ui/loading/overlay/LoadingOverlay';
+import { Button } from '@ui/primitives/button';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
 import { WebSocketPaths } from '@utils/network/websocket.util';
 import Link from 'next/link';

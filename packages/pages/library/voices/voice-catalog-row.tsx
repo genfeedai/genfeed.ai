@@ -3,9 +3,9 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { Voice } from '@models/ingredients/voice.model';
 import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
-import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
 import ListRowSound from '@ui/lists/row-sound/ListRowSound';
+import { Button } from '@ui/primitives/button';
 import { HiTrash } from 'react-icons/hi2';
 
 function getProviderLabel(provider?: string): string {

@@ -591,6 +591,7 @@ export function WorkflowCanvas({
 
   return (
     <div
+      role="application"
       className="w-full h-full relative"
       onDrop={handleDrop}
       onDragOver={handleDragOver}
@@ -664,7 +665,7 @@ export function WorkflowCanvas({
             zoomable
             pannable
             maskColor="rgba(0, 0, 0, 0.8)"
-            className={`!bg-transparent !border-[var(--border)] !rounded-lg transition-opacity duration-300 ${
+            className={`!bg-transparent !border-[var(--border)] transition-opacity duration-300 ${
               isMinimapVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
             }`}
           />

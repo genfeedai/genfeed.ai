@@ -2,7 +2,7 @@
 
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { PromptBarAttachedAsset } from '@props/studio/prompt-bar.props';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { memo } from 'react';
 import {

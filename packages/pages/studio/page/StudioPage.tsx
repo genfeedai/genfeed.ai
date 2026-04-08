@@ -1,6 +1,6 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import type { StudioPageProps } from '@props/studio/studio.props';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { HiArrowUp } from 'react-icons/hi2';
 
 export default function StudioPage({

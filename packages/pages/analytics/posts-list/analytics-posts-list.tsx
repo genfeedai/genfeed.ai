@@ -5,9 +5,9 @@ import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper'
 import { useTopPosts } from '@hooks/data/analytics/use-top-posts/use-top-posts';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
 import type { TableColumn } from '@props/ui/display/table.props';
-import Button from '@ui/buttons/base/Button';
 import Table from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
   Select,

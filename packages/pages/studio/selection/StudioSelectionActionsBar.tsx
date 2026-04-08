@@ -2,7 +2,7 @@
 
 import { ButtonSize, ButtonVariant, IngredientStatus } from '@genfeedai/enums';
 import type { StudioSelectionActionsBarProps } from '@props/studio/studio.props';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import type { ReactNode } from 'react';
 import {
   HiArchiveBox,

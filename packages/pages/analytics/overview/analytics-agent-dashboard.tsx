@@ -9,7 +9,7 @@ import type {
   DashboardScopePreferences,
   IUser,
 } from '@genfeedai/interfaces';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 
 interface AnalyticsAgentDashboardProps {
   agentBlocks: AgentUIBlock[];

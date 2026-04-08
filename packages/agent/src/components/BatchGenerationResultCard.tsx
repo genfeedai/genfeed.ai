@@ -33,8 +33,8 @@ function renderCta(cta: AgentUiActionCta, index: number): ReactElement | null {
 
   const className =
     index === 0
-      ? 'inline-flex items-center justify-center rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90'
-      : 'inline-flex items-center justify-center rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent';
+      ? 'inline-flex items-center justify-center bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90'
+      : 'inline-flex items-center justify-center border border-border bg-background px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent';
 
   return (
     <a key={`${cta.label}-${index}`} href={cta.href} className={className}>
@@ -55,7 +55,7 @@ export function BatchGenerationResultCard({
   const platformLabels = (action.platforms ?? []).map(formatPlatformLabel);
 
   return (
-    <div className="mt-3 rounded-2xl border border-border/70 bg-card/70 p-4 text-left shadow-sm backdrop-blur-sm">
+    <div className="mt-3 border border-border/70 bg-card/70 p-4 text-left shadow-sm backdrop-blur-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm font-medium text-foreground">
@@ -81,7 +81,7 @@ export function BatchGenerationResultCard({
       </div>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-xl border border-border/60 bg-background/70 p-3">
+        <div className="border border-border/60 bg-background/70 p-3">
           <div className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
             Posts
           </div>
@@ -91,7 +91,7 @@ export function BatchGenerationResultCard({
         </div>
 
         {completedCount != null ? (
-          <div className="rounded-xl border border-border/60 bg-background/70 p-3">
+          <div className="border border-border/60 bg-background/70 p-3">
             <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
               <HiCheckCircle className="h-3.5 w-3.5 text-emerald-400" />
               Ready
@@ -103,7 +103,7 @@ export function BatchGenerationResultCard({
         ) : null}
 
         {failedCount != null && failedCount > 0 ? (
-          <div className="rounded-xl border border-border/60 bg-background/70 p-3">
+          <div className="border border-border/60 bg-background/70 p-3">
             <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
               <HiXCircle className="h-3.5 w-3.5 text-rose-400" />
               Failed
@@ -115,7 +115,7 @@ export function BatchGenerationResultCard({
         ) : null}
 
         {!hasCompletionMetrics ? (
-          <div className="rounded-xl border border-border/60 bg-background/70 p-3">
+          <div className="border border-border/60 bg-background/70 p-3">
             <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
               <HiCalendarDays className="h-3.5 w-3.5 text-sky-400" />
               Queue

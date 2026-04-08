@@ -12,7 +12,7 @@ import {
   isReadyToReview,
   isRejected,
 } from '@pages/review/components/review-state';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { HiCheck, HiOutlineSparkles, HiXMark } from 'react-icons/hi2';
 
 export type ReviewFilter =

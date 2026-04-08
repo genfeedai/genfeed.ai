@@ -5,7 +5,7 @@ import type { SubscriptionChangePreview } from '@genfeedai/interfaces';
 import type { SubscriptionPlanChangerProps } from '@props/content/subscription.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { useState } from 'react';
 
 export default function SubscriptionPlanChanger({

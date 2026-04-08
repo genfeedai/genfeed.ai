@@ -3,9 +3,9 @@
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import type { PricingCardProps } from '@props/content/pricing.props';
 import type { PricingPlanProps } from '@props/content/subscription.props';
-import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
+import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useState } from 'react';
 import { FaCheck } from 'react-icons/fa6';

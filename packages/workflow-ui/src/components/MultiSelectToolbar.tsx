@@ -1,6 +1,5 @@
 'use client';
 
-import type { WorkflowNode } from '@genfeedai/types';
 import { useReactFlow } from '@xyflow/react';
 import {
   AlignHorizontalSpaceAround,
@@ -17,13 +16,7 @@ const NODE_GAP = 32;
 const EST_NODE_WIDTH = 280;
 const EST_NODE_HEIGHT = 200;
 
-interface MultiSelectToolbarProps {
-  onDownloadAsZip?: (nodes: WorkflowNode[]) => void;
-}
-
-function MultiSelectToolbarComponent({
-  onDownloadAsZip,
-}: MultiSelectToolbarProps) {
+function MultiSelectToolbarComponent() {
   const {
     nodes,
     selectedNodeIds,
@@ -152,13 +145,12 @@ function MultiSelectToolbarComponent({
 
   return (
     <div
-      className="fixed z-30 flex items-center gap-1 bg-[var(--background)] border border-[var(--border)] rounded-lg shadow-lg px-1.5 py-1"
+      className="fixed z-30 flex items-center gap-1 bg-[var(--background)] border border-[var(--border)] shadow-lg px-1.5 py-1"
       style={{
         left: toolbarPosition.x,
         top: toolbarPosition.y,
         transform: 'translateX(-50%)',
       }}
-      onMouseDown={(e) => e.stopPropagation()}
     >
       {/* Selection count */}
       <span className="px-1.5 text-xs font-medium text-[var(--muted-foreground)]">

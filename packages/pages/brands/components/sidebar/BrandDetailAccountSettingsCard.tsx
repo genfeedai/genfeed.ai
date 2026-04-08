@@ -2,7 +2,7 @@
 
 import type { BrandDetailAccountSettingsCardProps } from '@props/pages/brand-detail.props';
 import Card from '@ui/card/Card';
-import FormToggle from '@ui/forms/selectors/toggle/form-toggle/FormToggle';
+import { Switch } from '@ui/primitives/switch';
 
 export default function BrandDetailAccountSettingsCard({
   isPublic,
@@ -11,7 +11,7 @@ export default function BrandDetailAccountSettingsCard({
   return (
     <Card>
       <div className="space-y-4">
-        <FormToggle
+        <Switch
           label="Public Profile"
           description="Make your profile visible to everyone"
           isChecked={isPublic}

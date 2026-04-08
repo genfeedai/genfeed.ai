@@ -5,8 +5,7 @@ import type {
   ITwitterOpportunity,
   ITwitterPublishResult,
 } from '@genfeedai/interfaces';
-import Button from '@ui/buttons/base/Button';
-import { Button as PrimitiveButton } from '@ui/primitives/button';
+import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { useCallback, useState } from 'react';
 import {

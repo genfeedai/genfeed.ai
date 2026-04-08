@@ -1,7 +1,7 @@
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { QuickActionButtonProps } from '@props/content/quick-actions.props';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import type { ReactNode } from 'react';
 
 const SIZE_MAP = {

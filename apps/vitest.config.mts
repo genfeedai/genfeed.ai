@@ -82,10 +82,7 @@ export default defineConfig({
     environment: 'jsdom',
     exclude: ['**/node_modules/**'],
     globals: true,
-    include: [
-      '**/*.test.{ts,tsx}',
-      '**/*.spec.{ts,tsx}',
-    ],
+    include: ['**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'],
     testTimeout: 15_000,
   },
 });

@@ -6,7 +6,7 @@ import {
 } from '@genfeedai/agent/constants/agent-models.constant';
 import { ButtonVariant, CostTier } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import {
   Popover,
   PopoverContent,
@@ -48,7 +48,7 @@ export function AgentModelSelector({
         <Button
           variant={ButtonVariant.GHOST}
           withWrapper={false}
-          className="flex items-center gap-1.5 rounded px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
+          className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-foreground"
         >
           {current?.isReasoning && (
             <HiSparkles className="h-3 w-3 text-purple-400" />
@@ -67,7 +67,7 @@ export function AgentModelSelector({
         align="start"
         side="top"
         sideOffset={8}
-        className="w-72 rounded-xl border border-border p-1.5"
+        className="w-72 border border-border p-1.5"
       >
         <div className="flex flex-col gap-0.5">
           {AGENT_MODELS.map((model) => {
@@ -102,7 +102,7 @@ export function AgentModelSelector({
                 onBuyCredits();
                 setOpen(false);
               }}
-              className="w-full rounded px-2 py-1.5 text-center text-xs font-black text-primary hover:bg-primary/10"
+              className="w-full px-2 py-1.5 text-center text-xs font-black text-primary hover:bg-primary/10"
             >
               Buy Credits
             </Button>
@@ -132,7 +132,7 @@ function ModelRow({
       isDisabled={isLocked}
       ariaLabel={isLocked ? `Need ${model.creditCost} credits` : model.label}
       className={cn(
-        'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-xs transition-colors',
+        'flex w-full items-center gap-2.5 px-2.5 py-2 text-left text-xs transition-colors',
         isSelected && 'bg-accent',
         isLocked ? 'cursor-not-allowed opacity-50' : 'hover:bg-accent',
       )}

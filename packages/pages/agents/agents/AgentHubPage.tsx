@@ -9,8 +9,8 @@ import {
 } from '@services/automation/agent-strategies.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
-import Button from '@ui/buttons/base/Button';
 import Container from '@ui/layout/container/Container';
+import { Button } from '@ui/primitives/button';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef } from 'react';

@@ -5,10 +5,10 @@ import { PLATFORM_LABEL_MAP } from '@helpers/content/posts.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import type { PromptBarContentProps } from '@props/prompt-bars/prompt-bar-content.props';
-import Button from '@ui/buttons/base/Button';
-import FormInput from '@ui/forms/inputs/input/form-input/FormInput';
-import FormTextarea from '@ui/forms/inputs/textarea/form-textarea/FormTextarea';
-import FormDropdown from '@ui/forms/selectors/dropdown/form-dropdown/FormDropdown';
+import { Button } from '@ui/primitives/button';
+import FormDropdown from '@ui/primitives/dropdown-field';
+import { Input } from '@ui/primitives/input';
+import { Textarea } from '@ui/primitives/textarea';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';
 import PromptBarShell from '@ui/prompt-bars/components/shell/PromptBarShell';
 import type { ChangeEvent, FormEvent, KeyboardEvent } from 'react';
@@ -217,7 +217,7 @@ function PromptBarPost({
             />
           )}
 
-          <FormInput
+          <Input
             name="prompt"
             type="text"
             value={prompt}
@@ -358,7 +358,7 @@ function PromptBarPost({
           </div>
 
           <form onSubmit={handleSubmit} className="mt-2 flex flex-col gap-2">
-            <FormTextarea
+            <Textarea
               name="prompt"
               value={prompt}
               onChange={(event) => setPrompt(event.target.value)}

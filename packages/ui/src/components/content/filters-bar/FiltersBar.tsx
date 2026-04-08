@@ -8,10 +8,10 @@ import {
 } from '@genfeedai/enums';
 import type { IFilters } from '@genfeedai/interfaces/utils/filters.interface';
 import type { FiltersBarProps } from '@props/ui/forms/filters.props';
-import Button from '@ui/buttons/base/Button';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
-import FormSearchbar from '@ui/forms/inputs/searchbar/form-searchbar/FormSearchbar';
+import { Button } from '@ui/primitives/button';
+import FormSearchbar from '@ui/primitives/searchbar';
 import type { ChangeEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HiXMark } from 'react-icons/hi2';

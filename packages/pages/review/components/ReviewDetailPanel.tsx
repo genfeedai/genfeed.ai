@@ -20,10 +20,10 @@ import {
   isChangesRequested,
   isReadyToReview,
 } from '@pages/review/components/review-state';
-import Button from '@ui/buttons/base/Button';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
+import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import Image from 'next/image';
 import Link from 'next/link';

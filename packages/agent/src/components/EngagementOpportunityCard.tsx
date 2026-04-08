@@ -1,6 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useCallback, useState } from 'react';
 import {
@@ -49,7 +49,7 @@ export function EngagementOpportunityCard({
 
   if (acted) {
     return (
-      <div className="my-2 rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+      <div className="my-2 border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
         <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
           <HiCheck className="h-5 w-5" />
           <span className="text-sm font-medium">Response handled</span>
@@ -59,7 +59,7 @@ export function EngagementOpportunityCard({
   }
 
   return (
-    <div className="my-2 rounded-lg border border-border bg-background p-4">
+    <div className="my-2 border border-border bg-background p-4">
       <div className="mb-3 flex items-center gap-2">
         <HiChatBubbleLeftRight className="h-5 w-5 text-emerald-500" />
         <h3 className="text-sm font-semibold">

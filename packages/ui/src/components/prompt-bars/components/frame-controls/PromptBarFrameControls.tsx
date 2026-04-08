@@ -5,7 +5,7 @@ import type { IAsset, IImage } from '@genfeedai/interfaces';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { PromptBarFrameControlsProps } from '@props/studio/prompt-bar.props';
 import { EnvironmentService } from '@services/core/environment.service';
-import Button from '@ui/buttons/base/Button';
+import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { type MouseEvent, memo } from 'react';
 import { HiArrowUpTray, HiPhoto, HiTv, HiXMark } from 'react-icons/hi2';

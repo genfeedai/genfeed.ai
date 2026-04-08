@@ -1,11 +1,11 @@
 'use client';
 
-import Button from '@components/buttons/base/Button';
-import FormControl from '@components/forms/base/form-control/FormControl';
 import ModalActions from '@components/modals/actions/ModalActions';
 import Modal from '@components/modals/modal/Modal';
 import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
+import FormControl from '@ui/forms/base/form-control/FormControl';
+import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Switch } from '@ui/primitives/switch';
 import { useCallback, useEffect, useState } from 'react';
