@@ -44,6 +44,11 @@ export interface WorkflowSummary {
   thumbnailNodeId?: string | null;
   updatedAt: string;
   createdAt: string;
+  cloudSync?: {
+    lastSyncedAt: string;
+    remoteId: string;
+    syncDirection: 'push' | 'pull';
+  } | null;
 }
 
 /** Payload for creating a new workflow */

@@ -1,27 +1,27 @@
 'use client';
 
+import { SignIn } from '@clerk/nextjs';
 import { ButtonVariant } from '@genfeedai/enums';
 import Button from '@ui/buttons/base/Button';
-import { Cloud, CloudOff, Monitor } from 'lucide-react';
+import { Cloud, CloudOff, Monitor, X } from 'lucide-react';
+import { useState } from 'react';
 import { useCloudSession } from '@/hooks/useCloudSession';
 import { isHybridMode, isLocalOnly } from '@/lib/config/edition';
 import { cn } from '@/lib/utils';
 
 interface ModeIndicatorProps {
   collapsed?: boolean;
-  onConnectClick?: () => void;
 }
 
 export default function ModeIndicator({
   collapsed = false,
-  onConnectClick,
 }: ModeIndicatorProps) {
   const { isConnected } = useCloudSession();
+  const [showSignIn, setShowSignIn] = useState(false);
   const hybrid = isHybridMode();
   const local = isLocalOnly();
 
   if (!hybrid && !local) {
-    // Cloud mode — no indicator needed
     return null;
   }
 
@@ -44,25 +44,54 @@ export default function ModeIndicator({
 
   if (hybrid) {
     return (
-      <Button
-        variant={ButtonVariant.UNSTYLED}
-        withWrapper={false}
-        onClick={onConnectClick}
-        className={cn(
-          'flex w-full items-center gap-2 rounded-lg px-2 py-1.5',
-          'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors cursor-pointer',
-          collapsed && 'justify-center px-0',
+      <>
+        <Button
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
+          onClick={() => setShowSignIn(true)}
+          className={cn(
+            'flex w-full items-center gap-2 rounded-lg px-2 py-1.5',
+            'bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors cursor-pointer',
+            collapsed && 'justify-center px-0',
+          )}
+        >
+          <CloudOff className="h-3.5 w-3.5 shrink-0" />
+          {!collapsed && (
+            <span className="truncate text-xs font-medium">
+              Connect to Cloud
+            </span>
+          )}
+        </Button>
+
+        {showSignIn && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+            <div className="relative">
+              <Button
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
+                onClick={() => setShowSignIn(false)}
+                className="absolute -right-2 -top-2 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-background text-muted-foreground hover:text-foreground shadow-lg cursor-pointer"
+                ariaLabel="Close sign in"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+              <SignIn
+                routing="hash"
+                fallbackRedirectUrl="/workspace/overview"
+                appearance={{
+                  elements: {
+                    card: 'shadow-2xl',
+                    rootBox: 'mx-auto',
+                  },
+                }}
+              />
+            </div>
+          </div>
         )}
-      >
-        <CloudOff className="h-3.5 w-3.5 shrink-0" />
-        {!collapsed && (
-          <span className="truncate text-xs font-medium">Connect to Cloud</span>
-        )}
-      </Button>
+      </>
     );
   }
 
-  // Local-only mode
   return (
     <div
       className={cn(

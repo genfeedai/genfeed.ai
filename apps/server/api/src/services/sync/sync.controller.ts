@@ -2,15 +2,7 @@ import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiresCloudAuth } from '@api/helpers/decorators/requires-cloud-auth.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import type { User } from '@clerk/backend';
-import {
-  Controller,
-  Get,
-  HttpException,
-  HttpStatus,
-  Param,
-  Post,
-  Req,
-} from '@nestjs/common';
+import { Controller, Get, Param, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
 
 import { SyncService } from './sync.service';
@@ -42,12 +34,11 @@ export class SyncController {
   @RequiresCloudAuth()
   @LogMethod()
   async pullWorkflow(
-    @CurrentUser() _user: User,
-    @Param('cloudId') _cloudId: string,
+    @CurrentUser() user: User,
+    @Param('cloudId') cloudId: string,
+    @Req() req: Request,
   ) {
-    throw new HttpException(
-      'Pull workflow is not yet implemented',
-      HttpStatus.NOT_IMPLEMENTED,
-    );
+    const clerkToken = req.headers.authorization?.replace('Bearer ', '') ?? '';
+    return this.syncService.pullWorkflow(user, cloudId, clerkToken);
   }
 }
