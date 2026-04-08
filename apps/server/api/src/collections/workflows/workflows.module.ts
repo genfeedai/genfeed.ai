@@ -68,6 +68,7 @@ import mongooseAggregatePaginateV2 from 'mongoose-aggregate-paginate-v2';
     WorkflowEngineAdapterService,
     WorkflowExecutorService,
     WorkflowExecutionQueueService,
+    WorkflowFormatConverterService,
     WorkflowGenerationService,
   ],
   imports: [

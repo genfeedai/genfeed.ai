@@ -174,6 +174,7 @@ import { NotificationsPublisherModule } from '@api/services/notifications/publis
 import { PreflightModule } from '@api/services/preflight/preflight.module';
 import { RouterModule as ModelRouterModule } from '@api/services/router/router.module';
 import { SkillExecutorModule } from '@api/services/skill-executor/skill-executor.module';
+import { SyncModule } from '@api/services/sync/sync.module';
 import { TelegramBotModule } from '@api/services/telegram-bot/telegram-bot.module';
 import { TwitterPipelineModule } from '@api/services/twitter-pipeline/twitter-pipeline.module';
 import { VideoCompletionModule } from '@api/services/video-completion/video-completion.module';
@@ -550,6 +551,9 @@ import { SentryModule } from '@sentry/nestjs/setup';
 
     // CI Triage webhook (Opus 4.6 diagnosis from localhost)
     CiTriageWebhookModule,
+
+    // Sync (push/pull workflows between local and cloud in HYBRID mode)
+    SyncModule,
 
     // Self-hosted seed (creates default workspace on first boot)
     SelfHostedSeedModule,
