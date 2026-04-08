@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { ConfigService } from '@api/config/config.service';
+import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { FileInputType } from '@genfeedai/enums';
 import type {
   IApiUploadSource,
@@ -472,6 +473,17 @@ export class FilesClientService {
     contentType: string = 'application/octet-stream',
     _expiresIn: number = 3600,
   ): Promise<{ uploadUrl: string; publicUrl: string; s3Key: string }> {
+    // In self-hosted mode (LOCAL + HYBRID), skip S3 presigned URL.
+    // Return direct upload URL to the Files service, which uses LocalStorageProvider.
+    if (IS_SELF_HOSTED) {
+      const localKey = `${type}/${key}`;
+      return {
+        publicUrl: `/local/${localKey}`,
+        s3Key: localKey,
+        uploadUrl: `${this.filesServiceUrl}/v1/files/upload`,
+      };
+    }
+
     try {
       const response = await firstValueFrom(
         this.httpService.post(
