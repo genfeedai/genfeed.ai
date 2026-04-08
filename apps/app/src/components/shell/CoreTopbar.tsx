@@ -7,6 +7,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { useEffect, useState } from 'react';
+import { useCloudSession } from '@/hooks/useCloudSession';
+import { isHybridMode } from '@/lib/config/edition';
 import { cn } from '@/lib/utils';
 
 interface CoreTopbarProps {
@@ -19,6 +21,7 @@ export default function CoreTopbar({
   onMenuToggle,
 }: CoreTopbarProps) {
   const { theme, setTheme } = useTheme();
+  const { isConnected } = useCloudSession();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -60,7 +63,7 @@ export default function CoreTopbar({
             />
             <div className="leading-tight">
               <span className="text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground">
-                Core OSS
+                {isHybridMode() && isConnected ? 'Cloud' : 'Core OSS'}
               </span>
             </div>
           </Link>
