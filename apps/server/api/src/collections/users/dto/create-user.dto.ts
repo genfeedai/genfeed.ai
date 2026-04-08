@@ -2,12 +2,13 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsOptional, IsString } from 'class-validator';
 
 export class CreateUserDto {
+  @IsOptional()
   @IsString()
   @ApiProperty({
     description: 'The Clerk authentication ID for the user',
     required: false,
   })
-  readonly clerkId!: string;
+  readonly clerkId?: string;
 
   @IsString()
   @ApiProperty({
