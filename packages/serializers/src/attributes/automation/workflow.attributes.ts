@@ -22,4 +22,5 @@ export const workflowAttributes = createEntityAttributes([
   'lifecycle',
   'lockedNodeIds',
   'brands',
+  'cloudSync',
 ]);

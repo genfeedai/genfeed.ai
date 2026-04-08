@@ -21,6 +21,9 @@ import type {
   SyncStatusResponse,
 } from './sync.interfaces';
 
+/** Regex matching local asset URLs: /local/... */
+const LOCAL_URL_PATTERN = /\/local\/[^\s"')]+/g;
+
 @Injectable()
 export class SyncService {
   constructor(
@@ -30,6 +33,31 @@ export class SyncService {
     private readonly logger: LoggerService,
     private readonly workflowsService: WorkflowsService,
   ) {}
+
+  /**
+   * Deep-scan an object for string values matching a pattern and replace them.
+   * Used to rewrite asset URLs when syncing between local and cloud.
+   */
+  private rewriteUrls(
+    obj: unknown,
+    pattern: RegExp,
+    replacer: (match: string) => string,
+  ): unknown {
+    if (typeof obj === 'string') {
+      return obj.replace(pattern, replacer);
+    }
+    if (Array.isArray(obj)) {
+      return obj.map((item) => this.rewriteUrls(item, pattern, replacer));
+    }
+    if (obj !== null && typeof obj === 'object') {
+      const result: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(obj)) {
+        result[key] = this.rewriteUrls(value, pattern, replacer);
+      }
+      return result;
+    }
+    return obj;
+  }
 
   async getStatus(user: User): Promise<SyncStatusResponse> {
     const { organization } = getPublicMetadata(user);
@@ -78,6 +106,16 @@ export class SyncService {
       nodes: workflow.nodes ?? [],
     });
 
+    // 2b. Rewrite local asset URLs → cloud CDN URLs
+    const cdnUrl = this.configService.get('GENFEEDAI_CDN_URL') || '';
+    const rewrittenFormat = cdnUrl
+      ? (this.rewriteUrls(
+          cloudFormat,
+          LOCAL_URL_PATTERN,
+          (localPath) => `${cdnUrl}${localPath.replace('/local/', '/')}`,
+        ) as typeof cloudFormat)
+      : cloudFormat;
+
     // 3. POST to cloud API import endpoint
     const apiUrl = this.configService.get('GENFEEDAI_API_URL');
     const importUrl = `${apiUrl}/v1/workflows/import`;
@@ -85,7 +123,7 @@ export class SyncService {
     let remoteResponse: { id: string };
     try {
       const { data } = await firstValueFrom(
-        this.httpService.post<{ id: string }>(importUrl, cloudFormat, {
+        this.httpService.post<{ id: string }>(importUrl, rewrittenFormat, {
           headers: {
             Authorization: `Bearer ${clerkToken}`,
             'Content-Type': 'application/json',
@@ -164,8 +202,18 @@ export class SyncService {
       );
     }
 
-    // 2. Convert to cloud format and create locally
-    const workflowData = remoteWorkflow as {
+    // 2. Rewrite cloud CDN URLs → local URLs
+    const cdnUrl = this.configService.get('GENFEEDAI_CDN_URL') || '';
+    const localWorkflow = cdnUrl
+      ? (this.rewriteUrls(
+          remoteWorkflow,
+          new RegExp(`${cdnUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/`, 'g'),
+          () => '/local/',
+        ) as Record<string, unknown>)
+      : remoteWorkflow;
+
+    // 3. Convert to cloud format and create locally
+    const workflowData = localWorkflow as {
       nodes?: unknown[];
       edges?: unknown[];
       name?: string;

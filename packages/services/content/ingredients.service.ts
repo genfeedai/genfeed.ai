@@ -41,7 +41,7 @@ type IngredientModelConstructorMap = {
 export class IngredientsService<
   T extends Ingredient = Ingredient,
 > extends BaseService<T> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- heterogeneous map stores different IngredientsService<T> subtypes
+  // biome-ignore lint/suspicious/noExplicitAny: heterogeneous map stores different IngredientsService<T> subtypes
   private static instances = new Map<string, IngredientsService<any>>();
 
   constructor(category: IngredientCategory | string, token: string) {
@@ -73,7 +73,7 @@ export class IngredientsService<
    * Get singleton instance for specific category and token
    * If only token is provided, defaults to 'ingredients' category
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- factory pattern: subclasses override with concrete return types
+  // biome-ignore lint/suspicious/noExplicitAny: factory pattern — subclasses override with concrete return types
   static getInstance<T extends Ingredient = Ingredient>(
     categoryOrToken: IngredientCategory | string,
     tokenOrUndefined?: string,
@@ -112,7 +112,7 @@ export class IngredientsService<
       const type = args[0];
       const body = args[1] as Partial<IIngredient>;
 
-      let data;
+      let data: unknown;
       switch (type) {
         case IngredientCategory.VIDEO:
           data = VideoSerializer.serialize(body);
@@ -219,24 +219,44 @@ export class IngredientsService<
       total: number,
     ) => void,
   ): Promise<void> {
-    // Use a separate axios instance for direct S3 uploads (not our API instance)
-    return await axios.put(uploadUrl, file, {
-      headers: {
-        'Content-Type': file.type,
-      },
-      onUploadProgress: (progressEvent) => {
-        const percentCompleted = Math.round(
-          (progressEvent.loaded * 100) / (progressEvent.total || 1),
-        );
+    const onUploadProgress = (progressEvent: {
+      loaded: number;
+      total?: number;
+    }) => {
+      const percentCompleted = Math.round(
+        (progressEvent.loaded * 100) / (progressEvent.total || 1),
+      );
 
-        if (progressCallback) {
-          progressCallback(
-            percentCompleted,
-            progressEvent.loaded,
-            progressEvent.total || 0,
-          );
-        }
-      },
+      if (progressCallback) {
+        progressCallback(
+          percentCompleted,
+          progressEvent.loaded,
+          progressEvent.total || 0,
+        );
+      }
+    };
+
+    // Local mode: Files service URL — POST multipart form data
+    const isLocalUpload =
+      uploadUrl.includes('/v1/files/upload') &&
+      !uploadUrl.includes('s3.amazonaws.com');
+
+    if (isLocalUpload) {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('contentType', file.type);
+
+      return await axios.post(uploadUrl, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress,
+        timeout: 300_000,
+      });
+    }
+
+    // Cloud mode: PUT directly to S3 presigned URL
+    return await axios.put(uploadUrl, file, {
+      headers: { 'Content-Type': file.type },
+      onUploadProgress,
       timeout: 300_000,
     });
   }
