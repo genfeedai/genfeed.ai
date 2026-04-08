@@ -4,7 +4,7 @@ import type { IBaseEntity } from '../core/base.interface';
 export type OnboardingType = 'creator' | 'organization';
 
 export interface IUser extends IBaseEntity {
-  clerkId: string;
+  clerkId?: string;
   handle: string;
   firstName: string;
   lastName: string;
