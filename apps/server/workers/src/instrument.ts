@@ -1,9 +1,13 @@
-import * as Sentry from '@sentry/nestjs';
+import { getSentryConfig } from '@libs/config/sentry.config';
+import { init } from '@sentry/nestjs';
 
-if (process.env.NODE_ENV === 'production' && process.env.SENTRY_DSN) {
-  Sentry.init({
-    dsn: process.env.SENTRY_DSN,
-    environment: process.env.SENTRY_ENVIRONMENT || 'production',
+const config = getSentryConfig({
+  serviceName: 'workers',
+});
+
+if (config) {
+  init({
+    ...config,
     tracesSampleRate: 0.1,
   });
 }
