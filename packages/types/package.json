@@ -3,7 +3,7 @@
   "devDependencies": {
     "@xyflow/react": "12.10.2",
     "tsup": "8.5.1",
-    "typescript": "5.9.3"
+    "typescript": "6.0.2"
   },
   "exports": {
     ".": {

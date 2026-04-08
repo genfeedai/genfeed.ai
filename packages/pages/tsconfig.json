@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
       "@genfeedai/agent": ["../agent/src/index.ts"],
       "@genfeedai/agent/*": ["../agent/src/*"],

@@ -312,7 +312,7 @@
     "@vscode/vsce": "3.7.1",
     "bun-types": "latest",
     "esbuild": "0.28.0",
-    "typescript": "5.9.3"
+    "typescript": "6.0.2"
   },
   "displayName": "Genfeed.ai - Content Engine IDE",
   "engines": {
@@ -335,7 +335,7 @@
   "main": "./dist/extension.js",
   "name": "extension-ide",
   "overrides": {
-    "typescript": "5.9.3"
+    "typescript": "6.0.2"
   },
   "publisher": "genfeedai",
   "repository": {

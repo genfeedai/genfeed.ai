@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "outDir": "../../dist/apps/notifications",
     "paths": {
       "@libs/*": ["../../../packages/libs/*"],

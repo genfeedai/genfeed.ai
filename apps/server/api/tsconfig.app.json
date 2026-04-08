@@ -1,9 +1,7 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "declaration": false,
     "declarationMap": false,
-    "ignoreDeprecations": "6.0",
     "outDir": "../dist/apps/api",
     "rootDir": "../../..",
     "paths": {

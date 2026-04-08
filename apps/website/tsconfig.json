@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "paths": {
       "@api-types/*": ["../../packages/api-types/src/*"],
       "@cloud-types/*": ["../../packages/types/src/*"],

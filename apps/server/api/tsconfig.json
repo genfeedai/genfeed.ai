@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "lib": ["ES2022"],
     "outDir": "../../dist/apps/api",
     "paths": {
