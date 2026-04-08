@@ -3,6 +3,7 @@
 import DatasetUploader from '@admin/(protected)/darkroom/_components/dataset-uploader';
 import ImageGrid from '@admin/(protected)/darkroom/_components/image-grid';
 import ButtonRefresh from '@components/buttons/refresh/button-refresh/ButtonRefresh';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { IDarkroomAsset, IDarkroomCharacter } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
@@ -11,8 +12,10 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
-import AppLink from '@ui/navigation/link/Link';
 import Tabs from '@ui/navigation/tabs/Tabs';
+import { Button } from '@ui/primitives/button';
+import Image from 'next/image';
+import Link from 'next/link';
 import { useCallback, useMemo, useState } from 'react';
 import { HiArrowLeft, HiOutlineUserCircle } from 'react-icons/hi2';
 
@@ -145,12 +148,11 @@ export default function CharacterDetail({ slug }: CharacterDetailProps) {
     <Container
       label={
         <div className="flex items-center gap-3">
-          <AppLink
-            url="/darkroom/characters"
-            icon={
-              <HiArrowLeft className="w-5 h-5 text-foreground/60 hover:text-foreground transition-colors" />
-            }
-          />
+          <Button asChild variant={ButtonVariant.GHOST} size={ButtonSize.SM}>
+            <Link href="/darkroom/characters" aria-label="Back to characters">
+              <HiArrowLeft className="w-5 h-5 text-foreground/60 transition-colors hover:text-foreground" />
+            </Link>
+          </Button>
 
           {character ? (
             <>
@@ -180,10 +182,12 @@ export default function CharacterDetail({ slug }: CharacterDetailProps) {
       {character && !isLoadingCharacter && (
         <div className="flex items-start gap-4 mb-6">
           {character.profileImageUrl ? (
-            <img
+            <Image
               alt={character.label}
               className="w-16 h-16 rounded-full object-cover border border-foreground/10"
               src={character.profileImageUrl}
+              width={64}
+              height={64}
             />
           ) : (
             <div className="w-16 h-16 rounded-full bg-foreground/5 flex items-center justify-center text-3xl">

@@ -13,6 +13,11 @@ export function CreditsBalanceCard({
   action,
 }: CreditsBalanceCardProps): ReactElement {
   const { orgHref } = useOrgUrl();
+  const billingHref = orgHref(
+    process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY
+      ? '/settings/organization/billing'
+      : '/settings/organization/api-keys',
+  );
   const balance = action.balance ?? 0;
   const usagePercent = action.usagePercent ?? 0;
   const usageLabel = action.usageLabel ?? `${usagePercent}% used`;
@@ -77,11 +82,13 @@ export function CreditsBalanceCard({
         </div>
       ) : (
         <a
-          href={orgHref('/settings/organization/billing')}
+          href={billingHref}
           className="flex w-full items-center justify-center gap-1.5 rounded bg-primary px-4 py-2 text-sm font-black text-primary-foreground transition-colors hover:bg-primary/90"
         >
           <HiCurrencyDollar className="h-4 w-4" />
-          Buy Credits
+          {process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY
+            ? 'Buy Credits'
+            : 'Configure Providers'}
         </a>
       )}
     </div>

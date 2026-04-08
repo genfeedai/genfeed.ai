@@ -91,7 +91,7 @@ export default function PlanContent() {
         cancelUrl: `${window.location.origin}/onboarding/plan`,
         quantity: credits,
         stripePriceId: paygPriceId,
-        successUrl: `${window.location.origin}/chat/onboarding`,
+        successUrl: `${window.location.origin}/onboarding/post-signup`,
       });
 
       if (result?.url) {

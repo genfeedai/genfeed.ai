@@ -9,7 +9,8 @@ import type { IAgentRun } from '@genfeedai/interfaces';
 import type { AgentRunStats, AgentRunTrendPoint } from '@genfeedai/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import Card from '@ui/card/Card';
-import AppLink from '@ui/navigation/link/Link';
+import { Button } from '@ui/primitives/button';
+import Link from 'next/link';
 import { useMemo } from 'react';
 import { HiOutlineArrowRight, HiOutlineCpuChip } from 'react-icons/hi2';
 import {
@@ -122,14 +123,19 @@ function AgentRunCard({ run }: { run: IAgentRun }) {
             </div>
           </div>
         </div>
-        <AppLink
-          url={`/orchestration/runs/${run.id}`}
+        <Button
+          asChild
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
-          icon={<HiOutlineArrowRight className="h-3.5 w-3.5" />}
-          label=""
-          className="opacity-0 group-hover:opacity-100 transition-opacity"
-        />
+          className="opacity-0 transition-opacity group-hover:opacity-100"
+        >
+          <Link
+            href={`/orchestration/runs/${run.id}`}
+            aria-label={`Open ${run.label}`}
+          >
+            <HiOutlineArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </Button>
       </div>
 
       <div className="min-h-[60px] rounded border border-white/[0.06] bg-black/40 px-3 py-2">
@@ -180,12 +186,13 @@ export function DashboardAgentCards({
           Agents
         </h2>
         {(activeRuns.length > 3 || runs.length > 3) && (
-          <AppLink
-            url="/orchestration/runs"
+          <Button
+            asChild
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.XS}
-            label="View All"
-          />
+          >
+            <Link href="/orchestration/runs">View All</Link>
+          </Button>
         )}
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -605,12 +612,9 @@ export function DashboardRecentActivity({ runs }: { runs: IAgentRun[] }) {
     <Card
       label="Recent Activity"
       headerAction={
-        <AppLink
-          url="/workspace/activity"
-          variant={ButtonVariant.SECONDARY}
-          size={ButtonSize.XS}
-          label="View All"
-        />
+        <Button asChild variant={ButtonVariant.SECONDARY} size={ButtonSize.XS}>
+          <Link href="/workspace/activity">View All</Link>
+        </Button>
       }
       bodyClassName="p-5 sm:p-6"
     >
@@ -655,13 +659,14 @@ function TaskRow({ run }: { run: IAgentRun }) {
           </p>
         </div>
       </div>
-      <AppLink
-        url={`/orchestration/runs/${run.id}`}
-        variant={ButtonVariant.GHOST}
-        size={ButtonSize.XS}
-        icon={<HiOutlineArrowRight className="h-3.5 w-3.5" />}
-        label=""
-      />
+      <Button asChild variant={ButtonVariant.GHOST} size={ButtonSize.XS}>
+        <Link
+          href={`/orchestration/runs/${run.id}`}
+          aria-label={`Open ${run.label}`}
+        >
+          <HiOutlineArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      </Button>
     </div>
   );
 }
@@ -683,12 +688,9 @@ export function DashboardRecentTasks({ runs }: { runs: IAgentRun[] }) {
     <Card
       label="Recent Tasks"
       headerAction={
-        <AppLink
-          url="/workspace/inbox/unread"
-          variant={ButtonVariant.SECONDARY}
-          size={ButtonSize.XS}
-          label="View All"
-        />
+        <Button asChild variant={ButtonVariant.SECONDARY} size={ButtonSize.XS}>
+          <Link href="/workspace/inbox/unread">View All</Link>
+        </Button>
       }
       bodyClassName="p-5 sm:p-6"
     >

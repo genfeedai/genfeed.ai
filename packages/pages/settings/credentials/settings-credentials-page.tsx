@@ -25,9 +25,10 @@ import Card from '@ui/card/Card';
 import BadgeQuota from '@ui/display/badge-quota/BadgeQuota';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalBrandInstagram } from '@ui/lazy/modal/LazyModal';
-import AppLink from '@ui/navigation/link/Link';
+import { Button as PrimitiveButton } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Switch } from '@ui/primitives/switch';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -94,28 +95,31 @@ export default function SettingsCredentialsPage() {
 
   const { getToken } = useAuth();
 
-  const handleConnectPlatform = async (platform: string) => {
-    if (!selectedBrand) {
-      return;
-    }
-
-    try {
-      const returnTo = searchParams.get('returnTo');
-      if (returnTo) {
-        localStorage.setItem('genfeed:oauth:returnTo', returnTo);
+  const handleConnectPlatform = useCallback(
+    async (platform: string) => {
+      if (!selectedBrand) {
+        return;
       }
-      const token = (await resolveClerkToken(getToken)) ?? '';
-      const service = new ServicesService(platform, token);
-      const credentialOAuth = await service.postConnect({
-        brand: selectedBrand.id,
-      });
 
-      window.open(credentialOAuth.url, '_self');
-    } catch (error) {
-      logger.error(`Failed to initiate ${platform} OAuth:`, error);
-      notifications.error(`Connect ${platform}`);
-    }
-  };
+      try {
+        const returnTo = searchParams.get('returnTo');
+        if (returnTo) {
+          localStorage.setItem('genfeed:oauth:returnTo', returnTo);
+        }
+        const token = (await resolveClerkToken(getToken)) ?? '';
+        const service = new ServicesService(platform, token);
+        const credentialOAuth = await service.postConnect({
+          brand: selectedBrand.id,
+        });
+
+        window.open(credentialOAuth.url, '_self');
+      } catch (error) {
+        logger.error(`Failed to initiate ${platform} OAuth:`, error);
+        notifications.error(`Connect ${platform}`);
+      }
+    },
+    [getToken, notifications, searchParams, selectedBrand],
+  );
 
   useEffect(() => {
     const connectPlatform = searchParams.get('connect');
@@ -742,11 +746,11 @@ export default function SettingsCredentialsPage() {
                   <HiPaperAirplane className="mr-2 h-4 w-4" />
                   Copy command guide
                 </Button>
-                <AppLink
-                  label="Manage API keys"
-                  url="/settings/organization/api-keys"
-                  variant={ButtonVariant.SECONDARY}
-                />
+                <PrimitiveButton asChild variant={ButtonVariant.SECONDARY}>
+                  <Link href="/settings/organization/api-keys">
+                    Manage API keys
+                  </Link>
+                </PrimitiveButton>
               </div>
             </div>
           ) : (

@@ -22,6 +22,7 @@ import { GrowthBookClient } from '@growthbook/growthbook';
 function createConfigService() {
   return {
     get: vi.fn((key: string) => {
+      if (key === 'FEATURE_FLAG_DEFAULTS') return '';
       if (key === 'GROWTHBOOK_API_HOST') return 'http://localhost:3106';
       if (key === 'GROWTHBOOK_CLIENT_KEY') return 'sdk-key';
       return '';
@@ -47,7 +48,9 @@ describe('FeatureFlagService', () => {
   it('returns false when GrowthBook is not configured', () => {
     const service = new FeatureFlagService(
       {
-        get: vi.fn().mockReturnValue(''),
+        get: vi.fn((key: string) =>
+          key === 'FEATURE_FLAG_DEFAULTS' ? '' : '',
+        ),
       } as never,
       {
         debug: vi.fn(),
@@ -56,6 +59,33 @@ describe('FeatureFlagService', () => {
     );
 
     expect(service.isEnabled('new-dashboard')).toBe(false);
+  });
+
+  it('uses explicit local defaults when GrowthBook is not configured', async () => {
+    const service = new FeatureFlagService(
+      {
+        get: vi.fn((key: string) => {
+          if (key === 'FEATURE_FLAG_DEFAULTS') {
+            return JSON.stringify({
+              enabled_feature: true,
+              theme_variant: 'control',
+            });
+          }
+          return '';
+        }),
+      } as never,
+      {
+        debug: vi.fn(),
+        warn: vi.fn(),
+      } as never,
+    );
+
+    await service.init();
+
+    expect(service.isEnabled('enabled_feature')).toBe(true);
+    expect(service.getFeatureValue('theme_variant', 'fallback')).toBe(
+      'control',
+    );
   });
 
   it('initializes the GrowthBook client with config values', async () => {

@@ -1,9 +1,10 @@
-import { ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import Card from '@ui/card/Card';
 import { HStack, VStack } from '@ui/layout/stack';
-import AppLink from '@ui/navigation/link/Link';
+import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import Link from 'next/link';
 import { HiCheck, HiCloud, HiMap, HiServerStack } from 'react-icons/hi2';
 
 const paths = [
@@ -83,7 +84,7 @@ export default function HomeGetStartedPaths() {
               return (
                 <Card
                   key={path.title}
-                  className={`relative p-8 ${path.highlight ? 'bg-primary text-primary-foreground' : ''}`}
+                  className={`relative !rounded-none p-8 ${path.highlight ? 'bg-primary text-primary-foreground' : ''}`}
                 >
                   {path.highlight && (
                     <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -120,16 +121,18 @@ export default function HomeGetStartedPaths() {
                     ))}
                   </ul>
 
-                  <AppLink
-                    url={path.ctaHref}
-                    label={path.cta}
+                  <Button
+                    asChild
                     variant={
                       path.highlight
                         ? ButtonVariant.SECONDARY
                         : ButtonVariant.DEFAULT
                     }
-                    className="w-full rounded-full"
-                  />
+                    size={ButtonSize.PUBLIC}
+                    className="w-full"
+                  >
+                    <Link href={path.ctaHref}>{path.cta}</Link>
+                  </Button>
                 </Card>
               );
             })}

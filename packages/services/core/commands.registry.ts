@@ -302,6 +302,7 @@ export function createContentCommands(
 export function createSettingsCommands(orgSlug: string): ICommand[] {
   const appBase = EnvironmentService.apps.app;
   const orgPath = `${appBase}/${orgSlug}/~`;
+  const isBillingEnabled = Boolean(process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY);
 
   return [
     {
@@ -342,14 +343,26 @@ export function createSettingsCommands(orgSlug: string): ICommand[] {
     },
     {
       action: () => {
-        navigate(`${orgPath}/settings/organization/billing`);
+        navigate(
+          `${orgPath}${
+            isBillingEnabled
+              ? '/settings/organization/billing'
+              : '/settings/organization/api-keys'
+          }`,
+        );
       },
       category: 'settings',
-      description: 'Manage billing and plan',
+      description: isBillingEnabled
+        ? 'Manage billing and plan'
+        : 'Manage API keys and provider access',
       icon: HiOutlineCreditCard,
       id: 'settings-billing',
-      keywords: ['billing', 'subscription', 'plan', 'payment'],
-      label: 'Billing & Subscription',
+      keywords: isBillingEnabled
+        ? ['billing', 'subscription', 'plan', 'payment']
+        : ['api keys', 'providers', 'credentials', 'integrations'],
+      label: isBillingEnabled
+        ? 'Billing & Subscription'
+        : 'API Keys & Providers',
       priority: 6,
     },
   ];

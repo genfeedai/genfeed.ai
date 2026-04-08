@@ -37,7 +37,6 @@ import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Modal } from '@ui/modals/compound/Modal';
-import AppLink from '@ui/navigation/link/Link';
 import { Button } from '@ui/primitives/button';
 import {
   Sheet,
@@ -958,13 +957,14 @@ function WorkspaceTaskCard({
         >
           Plan Next Steps
         </Button>
-        <AppLink
-          url={getAdvancedToolHref(task)}
+        <Button
+          asChild
           variant={ButtonVariant.SECONDARY}
           size={ButtonSize.SM}
           className="font-semibold"
-          label="Open Tool"
-        />
+        >
+          <Link href={getAdvancedToolHref(task)}>Open Tool</Link>
+        </Button>
       </div>
     </article>
   );
@@ -1086,13 +1086,14 @@ function WorkspaceTaskInspector({
                     <p className="text-sm text-foreground/70">
                       Linked ingredient outputs created for this task.
                     </p>
-                    <AppLink
-                      url="/library/ingredients"
+                    <Button
+                      asChild
                       variant={ButtonVariant.SECONDARY}
                       size={ButtonSize.SM}
                       className="font-semibold"
-                      label="Open library"
-                    />
+                    >
+                      <Link href="/library/ingredients">Open library</Link>
+                    </Button>
                   </div>
 
                   {linkedOutputSummary.isLoading ? (
@@ -1152,13 +1153,16 @@ function WorkspaceTaskInspector({
                     This task&apos;s report lives in the linked agent thread,
                     not in the workspace task record itself.
                   </p>
-                  <AppLink
-                    url={`/chat/${linkedRunSummary.reportThreadId}`}
+                  <Button
+                    asChild
                     variant={ButtonVariant.SECONDARY}
                     size={ButtonSize.SM}
                     className="font-semibold"
-                    label="Open report thread"
-                  />
+                  >
+                    <Link href={`/chat/${linkedRunSummary.reportThreadId}`}>
+                      Open report thread
+                    </Link>
+                  </Button>
                 </Card>
               ) : null}
 
@@ -1265,21 +1269,23 @@ function WorkspaceTaskInspector({
                   Plan Next Steps
                 </Button>
                 {linkedIssueSummary.href ? (
-                  <AppLink
-                    url={linkedIssueSummary.href}
+                  <Button
+                    asChild
                     variant={ButtonVariant.SECONDARY}
                     size={ButtonSize.SM}
                     className="font-semibold"
-                    label="Open Issue"
-                  />
+                  >
+                    <Link href={linkedIssueSummary.href}>Open Issue</Link>
+                  </Button>
                 ) : null}
-                <AppLink
-                  url={taskToolHref}
+                <Button
+                  asChild
                   variant={ButtonVariant.SECONDARY}
                   size={ButtonSize.SM}
                   className="font-semibold"
-                  label={taskToolLabel}
-                />
+                >
+                  <Link href={taskToolHref}>{taskToolLabel}</Link>
+                </Button>
               </div>
             </div>
           </div>
@@ -1963,13 +1969,14 @@ export default function WorkspacePageContent({
         isRefreshing={isWorkspaceRefreshing}
       />
       {isInboxSection ? (
-        <AppLink
+        <Button
+          asChild
           className="rounded-md"
-          url="/workspace/activity"
           variant={ButtonVariant.DEFAULT}
           size={ButtonSize.SM}
-          label="Open Activity"
-        />
+        >
+          <Link href="/workspace/activity">Open Activity</Link>
+        </Button>
       ) : null}
     </div>
   );
@@ -2270,12 +2277,13 @@ export default function WorkspacePageContent({
                     label="Inbox"
                     description="Queue items that still need review or just finished moving."
                     headerAction={
-                      <AppLink
-                        url="/workspace/inbox/unread"
+                      <Button
+                        asChild
                         variant={ButtonVariant.SECONDARY}
                         size={ButtonSize.SM}
-                        label="Open Inbox"
-                      />
+                      >
+                        <Link href="/workspace/inbox/unread">Open Inbox</Link>
+                      </Button>
                     }
                     bodyClassName="space-y-4 p-5 sm:p-6"
                   >
@@ -2300,12 +2308,13 @@ export default function WorkspacePageContent({
                   label="Activity"
                   description="The execution log, ordered by the latest update."
                   headerAction={
-                    <AppLink
-                      url="/workspace/inbox/unread"
+                    <Button
+                      asChild
                       variant={ButtonVariant.SECONDARY}
                       size={ButtonSize.SM}
-                      label="Open Inbox"
-                    />
+                    >
+                      <Link href="/workspace/inbox/unread">Open Inbox</Link>
+                    </Button>
                   }
                   bodyClassName="space-y-4 p-5 sm:p-6"
                 >
@@ -2417,12 +2426,13 @@ export default function WorkspacePageContent({
                   label="Recent activity"
                   description="Execution logs stay available without owning the main navigation."
                   headerAction={
-                    <AppLink
-                      url="/workspace/activity"
+                    <Button
+                      asChild
                       variant={ButtonVariant.SECONDARY}
                       size={ButtonSize.SM}
-                      label="Open Activity"
-                    />
+                    >
+                      <Link href="/workspace/activity">Open Activity</Link>
+                    </Button>
                   }
                   bodyClassName="p-5 sm:p-6"
                 >

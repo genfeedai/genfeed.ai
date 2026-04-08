@@ -56,6 +56,14 @@ export class OnboardingController {
     return this.onboardingService.getOnboardingStatus(user);
   }
 
+  @Get('install-readiness')
+  @ApiOperation({
+    summary: 'Get install readiness for OSS onboarding',
+  })
+  getInstallReadiness(@CurrentUser() user: User) {
+    return this.onboardingService.getInstallReadiness(user);
+  }
+
   /**
    * Setup brand from URL
    * Scrapes website, analyzes with AI, and populates the canonical brand guidance

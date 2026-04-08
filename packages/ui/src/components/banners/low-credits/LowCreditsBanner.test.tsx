@@ -17,9 +17,11 @@ vi.mock('next/link', () => ({
 
 describe('LowCreditsBanner', () => {
   const storage = new Map<string, string>();
+  const originalLicenseKey = process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
 
   beforeEach(() => {
     storage.clear();
+    delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
     Object.defineProperty(globalThis, 'localStorage', {
       configurable: true,
       value: {
@@ -33,6 +35,15 @@ describe('LowCreditsBanner', () => {
       },
     });
     mockUseSubscription.mockReset();
+  });
+
+  afterAll(() => {
+    if (originalLicenseKey) {
+      process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY = originalLicenseKey;
+      return;
+    }
+
+    delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
   });
 
   it('re-shows the banner when a dismissed balance later drops to zero', () => {
@@ -84,5 +95,30 @@ describe('LowCreditsBanner', () => {
     render(<LowCreditsBanner variant="inline" />);
 
     expect(screen.getByTestId('library-credit-notice')).toBeInTheDocument();
+  });
+
+  it('sends OSS installs to API keys instead of billing', () => {
+    mockUseSubscription.mockReturnValue({
+      creditsBreakdown: { total: 250 },
+    });
+
+    render(<LowCreditsBanner />);
+
+    expect(
+      screen.getByRole('link', { name: 'Configure providers' }),
+    ).toHaveAttribute('href', '/test-org/~/settings/organization/api-keys');
+  });
+
+  it('keeps the billing CTA in EE mode', () => {
+    process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY = 'test-license';
+    mockUseSubscription.mockReturnValue({
+      creditsBreakdown: { total: 250 },
+    });
+
+    render(<LowCreditsBanner />);
+
+    expect(
+      screen.getByRole('link', { name: 'Top up credits' }),
+    ).toHaveAttribute('href', '/test-org/~/settings/organization/billing');
   });
 });

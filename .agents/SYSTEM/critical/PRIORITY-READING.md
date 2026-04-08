@@ -18,7 +18,7 @@
 
 ## Task / Backlog Rule
 
-Use GitHub Issues + Projects as canonical backlog. Do not assume local `INBOX.md` is current.
+Use GitHub Issues + Projects as canonical backlog. Do not create or rely on local backlog files such as `INBOX.md`.
 
 ## Feature Work Reading Order
 

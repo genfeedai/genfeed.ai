@@ -11,9 +11,10 @@ import type { TableColumn } from '@props/ui/display/table.props';
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
 import Card from '@ui/card/Card';
 import AppTable from '@ui/display/table/Table';
-import AppLink from '@ui/navigation/link/Link';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import { Button } from '@ui/primitives/button';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useMemo } from 'react';
 import { HiOutlineArrowRight } from 'react-icons/hi2';
 
@@ -231,12 +232,12 @@ export function OverviewOperationsSection({
       className="flex h-full flex-col gap-4"
       data-testid="overview-operations-surface"
       actions={
-        <AppLink
-          url={runsHref}
-          variant={ButtonVariant.SECONDARY}
-          icon={<HiOutlineArrowRight className="h-4 w-4" />}
-          label="View All"
-        />
+        <Button asChild variant={ButtonVariant.SECONDARY}>
+          <Link href={runsHref}>
+            <HiOutlineArrowRight className="h-4 w-4" />
+            View All
+          </Link>
+        </Button>
       }
     >
       <div
@@ -283,12 +284,12 @@ export function OverviewPerformanceChartSection({
       className="flex h-full flex-col gap-4"
       data-testid="overview-performance-surface"
       actions={
-        <AppLink
-          url={analyticsHref}
-          variant={ButtonVariant.SECONDARY}
-          icon={<HiOutlineArrowRight className="h-4 w-4" />}
-          label="View All"
-        />
+        <Button asChild variant={ButtonVariant.SECONDARY}>
+          <Link href={analyticsHref}>
+            <HiOutlineArrowRight className="h-4 w-4" />
+            View All
+          </Link>
+        </Button>
       }
     >
       <div
@@ -332,12 +333,12 @@ export function OverviewPublishingInboxSection({
       className="flex h-full flex-col gap-4"
       data-testid="overview-publishing-surface"
       actions={
-        <AppLink
-          url={inboxHref}
-          variant={ButtonVariant.SECONDARY}
-          icon={<HiOutlineArrowRight className="h-4 w-4" />}
-          label="Open Queue"
-        />
+        <Button asChild variant={ButtonVariant.SECONDARY}>
+          <Link href={inboxHref}>
+            <HiOutlineArrowRight className="h-4 w-4" />
+            Open Queue
+          </Link>
+        </Button>
       }
     >
       <div className="text-sm text-foreground/55">
@@ -367,15 +368,17 @@ export function OverviewPublishingInboxSection({
                     {formatReviewItemLabel(item)}
                   </div>
                 </div>
-                <AppLink
-                  url={
-                    item.postId
-                      ? `/posts/review?batch=${item.batchId}&item=${item.id}`
-                      : inboxHref
-                  }
-                  variant={ButtonVariant.SECONDARY}
-                  label="Review"
-                />
+                <Button asChild variant={ButtonVariant.SECONDARY}>
+                  <Link
+                    href={
+                      item.postId
+                        ? `/posts/review?batch=${item.batchId}&item=${item.id}`
+                        : inboxHref
+                    }
+                  >
+                    Review
+                  </Link>
+                </Button>
               </div>
             </div>
           ))

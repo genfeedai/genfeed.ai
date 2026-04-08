@@ -14,7 +14,11 @@ import type { Request } from 'express';
 
 type FeatureFlagRequest = Request & {
   auth?: { publicMetadata?: { user?: string } };
-  context?: { organizationId?: string; userId?: string };
+  context?: {
+    organizationId?: string;
+    subscriptionTier?: string;
+    userId?: string;
+  };
   user?: { id?: string };
 };
 
@@ -53,14 +57,16 @@ export class FeatureFlagGuard implements CanActivate {
       request.user?.id ||
       request.auth?.publicMetadata?.user;
     const organizationId = request.context?.organizationId;
+    const plan = request.context?.subscriptionTier;
 
-    if (!id && !organizationId) {
+    if (!id && !organizationId && !plan) {
       return undefined;
     }
 
     return {
       ...(id ? { id } : {}),
       ...(organizationId ? { organizationId } : {}),
+      ...(plan ? { plan } : {}),
     };
   }
 }

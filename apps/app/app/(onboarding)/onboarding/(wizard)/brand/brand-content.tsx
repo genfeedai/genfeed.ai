@@ -205,7 +205,7 @@ export default function BrandContent() {
             logger.error('Background brand setup failed', error);
           });
 
-        router.push('/onboarding/plan');
+        router.push('/onboarding/providers');
       } catch (error) {
         logger.error('Failed to continue onboarding', error);
         setSubmitting(false);

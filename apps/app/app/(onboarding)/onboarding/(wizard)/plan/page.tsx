@@ -1,8 +1,5 @@
-import PlanContent from '@app/(onboarding)/onboarding/(wizard)/plan/plan-content';
-import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-
-export const generateMetadata = createPageMetadata('Choose Plan');
+import { redirect } from 'next/navigation';
 
 export default function PlanPage() {
-  return <PlanContent />;
+  redirect('/onboarding/providers');
 }

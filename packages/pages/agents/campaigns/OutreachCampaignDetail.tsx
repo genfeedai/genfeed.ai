@@ -24,7 +24,7 @@ import AppTable from '@ui/display/table/Table';
 import Textarea from '@ui/inputs/textarea/Textarea';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
-import AppLink from '@ui/navigation/link/Link';
+import { Button as PrimitiveButton } from '@ui/primitives/button';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FaInstagram, FaReddit, FaXTwitter } from 'react-icons/fa6';
@@ -75,7 +75,7 @@ export default function OutreachCampaignDetail() {
   const router = useRouter();
   const params = useParams();
   const campaignId = params.id as string;
-  const { brandId, organizationId } = useBrand();
+  const { organizationId } = useBrand();
 
   const notificationsService = NotificationsService.getInstance();
 
@@ -319,12 +319,15 @@ export default function OutreachCampaignDetail() {
         key: 'reply',
         render: (target: CampaignTarget) =>
           target.replyUrl ? (
-            <AppLink
-              url={target.replyUrl}
-              label="View Reply"
-              variant={ButtonVariant.LINK}
-              target="_blank"
-            />
+            <PrimitiveButton asChild variant={ButtonVariant.LINK}>
+              <a
+                href={target.replyUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                View Reply
+              </a>
+            </PrimitiveButton>
           ) : target.errorMessage ? (
             <span className="text-sm text-destructive">
               {target.errorMessage}

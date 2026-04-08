@@ -41,7 +41,7 @@ import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Loading from '@ui/loading/default/Loading';
-import AppLink from '@ui/navigation/link/Link';
+import { Button as PrimitiveButton } from '@ui/primitives/button';
 import {
   Select,
   SelectContent,
@@ -53,6 +53,7 @@ import PromptBar from '@ui/prompt-bars/base/PromptBar';
 import { resolveIngredientReferenceUrl } from '@utils/media/reference.util';
 import { buildStudioAgentHref } from '@utils/url/desktop-loop-url.util';
 import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   type ReactNode,
@@ -572,11 +573,9 @@ export default function StudioEditDetail({
               }}
               variant={ButtonVariant.DEFAULT}
             />
-            <AppLink
-              url={href('/studio')}
-              label="Go to Generate"
-              variant={ButtonVariant.SECONDARY}
-            />
+            <PrimitiveButton asChild variant={ButtonVariant.SECONDARY}>
+              <Link href={href('/studio')}>Go to Generate</Link>
+            </PrimitiveButton>
           </div>
         </div>
       </div>
@@ -588,28 +587,36 @@ export default function StudioEditDetail({
       <div className="border-b border-white/[0.08] bg-card">
         <div className="flex items-center justify-between px-6 py-3">
           <div className="flex items-center gap-4">
-            <AppLink
-              url={href('/studio')}
-              icon={<HiArrowLeft className="w-4 h-4" />}
-              label="Back to Generate"
+            <PrimitiveButton
+              asChild
               variant={ButtonVariant.GHOST}
               size={ButtonSize.SM}
-            />
+            >
+              <Link href={href('/studio')}>
+                <HiArrowLeft className="w-4 h-4" />
+                Back to Generate
+              </Link>
+            </PrimitiveButton>
 
             <h1 className="text-xl font-semibold">
               Edit {CATEGORY_LABELS[categoryType] ?? 'Media'}
             </h1>
           </div>
           {selectedIngredient ? (
-            <AppLink
-              url={buildStudioAgentHref(
-                selectedIngredient.metadataLabel || 'Untitled asset',
-                selectedIngredient.promptText,
-              )}
-              label="Ask Agent"
+            <PrimitiveButton
+              asChild
               variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
-            />
+            >
+              <Link
+                href={buildStudioAgentHref(
+                  selectedIngredient.metadataLabel || 'Untitled asset',
+                  selectedIngredient.promptText,
+                )}
+              >
+                Ask Agent
+              </Link>
+            </PrimitiveButton>
           ) : null}
         </div>
       </div>

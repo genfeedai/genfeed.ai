@@ -11,9 +11,14 @@ export default function ProtectedLayoutClient({
   initialBootstrap,
 }: ProtectedBootstrapProps) {
   const { userId } = useOptionalAuth();
+  const accessState = initialBootstrap?.accessState;
 
   return (
-    <GrowthBookClientProvider userId={userId ?? undefined}>
+    <GrowthBookClientProvider
+      userId={userId ?? accessState?.userId ?? undefined}
+      organizationId={accessState?.organizationId ?? undefined}
+      plan={accessState?.subscriptionTier ?? undefined}
+    >
       <AppProtectedLayout initialBootstrap={initialBootstrap}>
         <ErrorBoundary>{children}</ErrorBoundary>
       </AppProtectedLayout>

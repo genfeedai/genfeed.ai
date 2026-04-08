@@ -6,8 +6,9 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Card from '@ui/card/Card';
 import CardIcon from '@ui/card/icon/CardIcon';
-import AppLink from '@ui/navigation/link/Link';
 import OverviewLayout from '@ui/overview/OverviewLayout';
+import { Button } from '@ui/primitives/button';
+import Link from 'next/link';
 import type { ComponentType } from 'react';
 import {
   HiBolt,
@@ -211,13 +212,14 @@ function ActivitySignal({
       </div>
 
       <div className="border-t border-white/[0.06] pt-4">
-        <AppLink
-          url={href}
+        <Button
+          asChild
           variant={ButtonVariant.SECONDARY}
           size={ButtonSize.SM}
           className="text-xs tracking-[0.12em]"
-          label={cta}
-        />
+        >
+          <Link href={href}>{cta}</Link>
+        </Button>
       </div>
     </Card>
   );

@@ -17,7 +17,6 @@ import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
-import AppLink from '@ui/navigation/link/Link';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import {
   Dialog,
@@ -33,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 import {
@@ -41,6 +41,14 @@ import {
   HiOutlineTrash,
   HiPlus,
 } from 'react-icons/hi2';
+
+const CRM_TASKS_SKELETON_KEYS = [
+  'crm-task-skeleton-1',
+  'crm-task-skeleton-2',
+  'crm-task-skeleton-3',
+  'crm-task-skeleton-4',
+  'crm-task-skeleton-5',
+] as const;
 
 const PRIORITY_VARIANT = {
   high: 'warning',
@@ -344,8 +352,8 @@ export default function TasksPage() {
       >
         {isLoading ? (
           <div className="animate-pulse space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-16 bg-white/5 rounded" />
+            {CRM_TASKS_SKELETON_KEYS.map((key) => (
+              <div key={key} className="h-16 bg-white/5 rounded" />
             ))}
           </div>
         ) : filteredTasks.length === 0 ? (
@@ -408,12 +416,12 @@ export default function TasksPage() {
                       )}
                       <div className="mt-1 flex items-center gap-3">
                         {leadName && leadId ? (
-                          <AppLink
-                            url={`/crm/leads/${leadId}`}
-                            label={leadName}
-                            variant={ButtonVariant.UNSTYLED}
+                          <Link
+                            href={`/crm/leads/${leadId}`}
                             className="p-0 text-xs text-primary hover:underline"
-                          />
+                          >
+                            {leadName}
+                          </Link>
                         ) : null}
                         {companyName && (
                           <span className="text-xs text-foreground/40">

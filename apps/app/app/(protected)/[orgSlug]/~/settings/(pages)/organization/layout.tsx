@@ -2,6 +2,7 @@
 
 import type { LayoutProps } from '@props/layout/layout.props';
 import Tabs from '@ui/navigation/tabs/Tabs';
+import { isEEEnabled } from '@/lib/config/edition';
 
 const ORGANIZATION_SETTINGS_TABS = [
   {
@@ -38,13 +39,13 @@ const ORGANIZATION_SETTINGS_TABS = [
 ];
 
 export default function OrganizationSettingsLayout({ children }: LayoutProps) {
+  const tabs = isEEEnabled()
+    ? ORGANIZATION_SETTINGS_TABS
+    : ORGANIZATION_SETTINGS_TABS.filter((tab) => tab.id !== 'billing');
+
   return (
     <div className="space-y-6">
-      <Tabs
-        items={ORGANIZATION_SETTINGS_TABS}
-        variant="underline"
-        fullWidth={false}
-      />
+      <Tabs items={tabs} variant="underline" fullWidth={false} />
       {children}
     </div>
   );

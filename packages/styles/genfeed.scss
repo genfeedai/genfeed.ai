@@ -545,7 +545,7 @@
 
 /* Cards */
 .gen-card-featured {
-  border-radius: 1.75rem;
+  border-radius: 0;
   border: 1px solid color-mix(in srgb, hsl(var(--gen-accent)) 72%, white 28%);
   background:
     linear-gradient(

@@ -14,12 +14,13 @@ import {
 import Button from '@ui/buttons/base/Button';
 import DropdownBase from '@ui/dropdowns/base/DropdownBase';
 import Breadcrumb from '@ui/navigation/breadcrumb/Breadcrumb';
-import AppLink from '@ui/navigation/link/Link';
+import { Button as PrimitiveButton } from '@ui/primitives/button';
 import { PageScope } from '@ui-constants/misc.constant';
 import {
   buildPostAgentHref,
   buildPostAnalyticsHref,
 } from '@utils/url/desktop-loop-url.util';
+import Link from 'next/link';
 import {
   HiArrowTopRightOnSquare,
   HiChartBar,
@@ -105,12 +106,16 @@ export default function PostDetailHeader({
 
         <div className="flex gap-2">
           {post.platformUrl && (
-            <AppLink
-              url={post.platformUrl}
-              icon={<HiArrowTopRightOnSquare />}
-              variant={ButtonVariant.SECONDARY}
-              target="_blank"
-            />
+            <PrimitiveButton asChild variant={ButtonVariant.SECONDARY}>
+              <a
+                href={post.platformUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Open published post"
+              >
+                <HiArrowTopRightOnSquare />
+              </a>
+            </PrimitiveButton>
           )}
 
           {/* Expand to Thread dropdown - shown for editable Twitter posts without children */}
@@ -162,21 +167,21 @@ export default function PostDetailHeader({
           )}
 
           {canCreateRemix && (
-            <AppLink
-              url={buildPostAnalyticsHref(post.id)}
-              label="Performance"
-              variant={ButtonVariant.SECONDARY}
-              icon={<HiChartBar className="h-4 w-4" />}
-            />
+            <PrimitiveButton asChild variant={ButtonVariant.SECONDARY}>
+              <Link href={buildPostAnalyticsHref(post.id)}>
+                <HiChartBar className="h-4 w-4" />
+                Performance
+              </Link>
+            </PrimitiveButton>
           )}
 
           {canCreateRemix && (
-            <AppLink
-              url={buildPostAgentHref(getPostLabel(post))}
-              label="Ask Agent"
-              variant={ButtonVariant.SECONDARY}
-              icon={<HiSparkles className="h-4 w-4" />}
-            />
+            <PrimitiveButton asChild variant={ButtonVariant.SECONDARY}>
+              <Link href={buildPostAgentHref(getPostLabel(post))}>
+                <HiSparkles className="h-4 w-4" />
+                Ask Agent
+              </Link>
+            </PrimitiveButton>
           )}
 
           {isEditable && (

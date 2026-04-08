@@ -69,6 +69,12 @@ export default function LowCreditsBanner({
 }: LowCreditsBannerProps) {
   const { creditsBreakdown } = useSubscription();
   const { orgHref } = useOrgUrl();
+  const isBillingEnabled = Boolean(process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY);
+  const ctaHref = orgHref(
+    isBillingEnabled
+      ? '/settings/organization/billing'
+      : '/settings/organization/api-keys',
+  );
   const balance = creditsBreakdown?.total ?? null;
   const [isDismissed, setIsDismissed] = useState(() =>
     shouldHideBanner(getDismissState(), balance),
@@ -109,9 +115,14 @@ export default function LowCreditsBanner({
   const balanceLabel = isCritical
     ? '0 credits left'
     : `${formatNumberWithCommas(balance)} remaining`;
-  const description = isCritical
-    ? 'Top up your balance to keep generating content, running workflows, and using your organization tools without interruption.'
-    : 'Your current balance is getting tight. Top up now so active generations and automations do not get blocked later.';
+  const description = isBillingEnabled
+    ? isCritical
+      ? 'Top up your balance to keep generating content, running workflows, and using your organization tools without interruption.'
+      : 'Your current balance is getting tight. Top up now so active generations and automations do not get blocked later.'
+    : isCritical
+      ? 'Your local install is missing usable provider capacity. Add or update API keys so generations and workflows can keep running.'
+      : 'Your provider capacity is getting tight. Review API keys now so active generations and automations do not get blocked later.';
+  const ctaLabel = isBillingEnabled ? 'Top up credits' : 'Configure providers';
   const isInline = variant === 'inline';
 
   return (
@@ -180,7 +191,7 @@ export default function LowCreditsBanner({
             )}
           >
             <Link
-              href={orgHref('/settings/organization/billing')}
+              href={ctaHref}
               className={cn(
                 'inline-flex items-center justify-center text-sm font-semibold transition-colors',
                 isInline ? 'h-9 rounded-lg px-3.5' : 'h-10 rounded-xl px-4',
@@ -189,7 +200,7 @@ export default function LowCreditsBanner({
                   : 'bg-amber-500 text-black hover:bg-amber-400',
               )}
             >
-              Top up credits
+              {ctaLabel}
             </Link>
 
             <Button

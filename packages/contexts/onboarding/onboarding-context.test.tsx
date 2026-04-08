@@ -31,9 +31,9 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
 vi.mock('@genfeedai/constants', () => ({
   ONBOARDING_STEP_LABELS: {
     brand: 'Brand',
-    plan: 'Plan',
+    providers: 'Providers',
   },
-  ONBOARDING_STEPS: ['brand', 'plan'],
+  ONBOARDING_STEPS: ['brand', 'providers'],
 }));
 
 vi.mock('@services/core/logger.service', () => ({
@@ -76,7 +76,7 @@ describe('OnboardingProvider', () => {
       const { handleStepComplete } = useOnboarding();
 
       return (
-        <button onClick={() => handleStepComplete('brand')}>
+        <button type="button" onClick={() => handleStepComplete('brand')}>
           Complete step
         </button>
       );
@@ -101,7 +101,7 @@ describe('OnboardingProvider', () => {
         onboardingStepsCompleted: ['brand'],
       });
       expect(refetchUserMock).toHaveBeenCalledTimes(1);
-      expect(pushMock).toHaveBeenCalledWith('/onboarding/plan');
+      expect(pushMock).toHaveBeenCalledWith('/onboarding/providers');
       expect(replaceMock).not.toHaveBeenCalled();
     });
   });

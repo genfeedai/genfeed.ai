@@ -35,6 +35,7 @@ import { Injectable } from '@nestjs/common';
 import Joi from 'joi';
 
 interface ApiEnvConfig extends IEnvConfig {
+  FEATURE_FLAG_DEFAULTS?: string;
   GF_DEV_ENABLE_OPTIONAL_INIT?: 'true' | 'false';
   GF_DEV_ENABLE_SCHEDULERS?: 'true' | 'false';
   GF_DEV_ENABLE_TELEGRAM_POLLING?: 'true' | 'false';
@@ -48,6 +49,7 @@ interface ApiEnvConfig extends IEnvConfig {
  */
 const apiSpecificSchema = {
   API_METRICS_LOGGING: Joi.string().valid('true', 'false').optional().allow(''),
+  FEATURE_FLAG_DEFAULTS: Joi.string().optional().allow(''),
   GF_DEV_ENABLE_OPTIONAL_INIT: Joi.string()
     .valid('true', 'false')
     .optional()

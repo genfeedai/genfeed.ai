@@ -7,11 +7,11 @@ import { memo } from 'react';
 
 const VARIANT_CLASSES: Record<CardVariant, string> = {
   [CardVariant.DEFAULT]:
-    'rounded border border-white/[0.08] bg-card text-card-foreground shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)] hover:border-white/[0.14]',
+    'rounded-none border border-white/[0.08] bg-card text-card-foreground shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)] hover:border-white/[0.14]',
   [CardVariant.WHITE]:
-    'rounded border border-black/[0.08] bg-white text-black shadow-[0_24px_60px_-40px_rgba(0,0,0,0.25)] hover:border-black/[0.14]',
+    'rounded-none border border-black/[0.08] bg-white text-black shadow-[0_24px_60px_-40px_rgba(0,0,0,0.25)] hover:border-black/[0.14]',
   [CardVariant.BLACK]:
-    'rounded border border-white/[0.08] bg-black text-white shadow-[0_24px_60px_-40px_rgba(0,0,0,0.9)] hover:border-white/[0.16]',
+    'rounded-none border border-white/[0.08] bg-black text-white shadow-[0_24px_60px_-40px_rgba(0,0,0,0.9)] hover:border-white/[0.16]',
 };
 
 const Card = memo(function Card({

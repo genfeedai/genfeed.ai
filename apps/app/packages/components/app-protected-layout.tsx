@@ -77,6 +77,7 @@ import {
 } from 'react';
 import { HiPlus } from 'react-icons/hi2';
 import { useOptionalAuth } from '@/hooks/useOptionalAuth';
+import { isEEEnabled } from '@/lib/config/edition';
 
 type AgentPanelProps = {
   apiService: AgentApiService;
@@ -371,7 +372,13 @@ function AppLayoutWithDynamicMenu({
 
   const { href: buildHref, orgHref } = useOrgUrl();
   const handleNavigateToBilling = useCallback(() => {
-    router.push(orgHref('/settings/organization/billing'));
+    router.push(
+      orgHref(
+        isEEEnabled()
+          ? '/settings/organization/billing'
+          : '/settings/organization/api-keys',
+      ),
+    );
   }, [router, orgHref]);
 
   const handleNavigate = useCallback(
@@ -560,6 +567,7 @@ function AppLayoutWithDynamicMenu({
     );
   const isLowCreditsBannerEnabled = useFeatureFlag('low_credits_banner');
   const lowCreditsBanner =
+    isEEEnabled() &&
     isLowCreditsBannerEnabled &&
     !isFocusedOnboardingRoute &&
     !isPromptBarRoute &&

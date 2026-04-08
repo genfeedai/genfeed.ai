@@ -130,6 +130,9 @@ export function useAgentChatStream(
     null,
   );
   const pendingCompletionRef = useRef<PendingStreamCompletion | null>(null);
+  const resolveStreamFromMessagesRef = useRef<
+    ((pending: PendingStreamCompletion) => Promise<void>) | null
+  >(null);
   const previousConnectionStateRef = useRef(connectionState);
 
   const clearCompletionWatchdog = useCallback(() => {
@@ -177,17 +180,20 @@ export function useAgentChatStream(
     return useAgentChatStore.getState().activeThreadId === threadId;
   }, []);
 
-  function updateThreadSummary(threadId: string, patch: Partial<AgentThread>) {
-    const existingThread = useAgentChatStore
-      .getState()
-      .threads.find((thread) => thread.id === threadId);
+  const updateThreadSummary = useCallback(
+    (threadId: string, patch: Partial<AgentThread>) => {
+      const existingThread = useAgentChatStore
+        .getState()
+        .threads.find((thread) => thread.id === threadId);
 
-    if (!existingThread) {
-      return;
-    }
+      if (!existingThread) {
+        return;
+      }
 
-    updateThread(threadId, patch);
-  }
+      updateThread(threadId, patch);
+    },
+    [updateThread],
+  );
 
   const markThreadRunning = useCallback(
     (
@@ -445,6 +451,24 @@ export function useAgentChatStream(
     ],
   );
 
+  const scheduleCompletionWatchdog = useCallback(() => {
+    clearCompletionWatchdog();
+
+    if (!pendingCompletionRef.current) {
+      return;
+    }
+
+    completionTimeoutRef.current = setTimeout(() => {
+      const pending = pendingCompletionRef.current;
+
+      if (!pending) {
+        return;
+      }
+
+      void resolveStreamFromMessagesRef.current?.(pending);
+    }, STREAM_COMPLETION_POLL_INTERVAL_MS);
+  }, [clearCompletionWatchdog]);
+
   const resolveStreamFromMessages = useCallback(
     async (pending: PendingStreamCompletion) => {
       const hasExceededGracePeriod =
@@ -531,33 +555,19 @@ export function useAgentChatStream(
       clearCompletionWatchdog,
       clearPendingInputRequest,
       resetStreamState,
+      scheduleCompletionWatchdog,
       setActiveRun,
       setActiveRunStatus,
       setError,
       setMessages,
       isThreadVisible,
       updateThreadSummary,
-      scheduleCompletionWatchdog,
     ],
   );
 
-  const scheduleCompletionWatchdog = useCallback(() => {
-    clearCompletionWatchdog();
-
-    if (!pendingCompletionRef.current) {
-      return;
-    }
-
-    completionTimeoutRef.current = setTimeout(() => {
-      const pending = pendingCompletionRef.current;
-
-      if (!pending) {
-        return;
-      }
-
-      void resolveStreamFromMessages(pending);
-    }, STREAM_COMPLETION_POLL_INTERVAL_MS);
-  }, [clearCompletionWatchdog, resolveStreamFromMessages]);
+  useEffect(() => {
+    resolveStreamFromMessagesRef.current = resolveStreamFromMessages;
+  }, [resolveStreamFromMessages]);
 
   const touchCompletionWatchdog = useCallback(() => {
     if (!pendingCompletionRef.current) {

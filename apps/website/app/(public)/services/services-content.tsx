@@ -5,7 +5,6 @@ import { contentServiceOffering } from '@helpers/business/pricing/pricing.helper
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import SectionHeader from '@ui/marketing/SectionHeader';
-import AppLink from '@ui/navigation/link/Link';
 import { Button } from '@ui/primitives/button';
 import {
   CtaSection,
@@ -170,15 +169,22 @@ export default function ServicesContent() {
                     ))}
                   </ul>
 
-                  <AppLink
-                    url={service.ctaHref}
-                    label={service.cta}
+                  <Button
+                    asChild
                     variant={
                       isFeatured ? ButtonVariant.BLACK : ButtonVariant.DEFAULT
                     }
                     size={ButtonSize.PUBLIC}
-                    className="mt-12 text-center"
-                  />
+                    className="mt-12 w-full text-center"
+                  >
+                    <a
+                      href={service.ctaHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {service.cta}
+                    </a>
+                  </Button>
                 </NeuralGridItem>
               );
             })}

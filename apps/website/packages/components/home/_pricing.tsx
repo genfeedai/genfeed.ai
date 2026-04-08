@@ -1,9 +1,10 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/enums';
 import { websitePlans } from '@helpers/business/pricing/pricing.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import ButtonTracked from '@ui/buttons/tracked/ButtonTracked';
+import Card from '@ui/card/Card';
 import { HStack, VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
@@ -50,14 +51,16 @@ export default function HomePricing(): React.ReactElement {
             const isEnterprise = plan.type === 'enterprise';
 
             return (
-              <div
+              <Card
                 key={plan.label}
+                variant={featured ? CardVariant.WHITE : CardVariant.DEFAULT}
                 className={cn(
-                  'rounded-2xl p-6 border transition-all',
+                  '!rounded-none transition-all',
                   featured
                     ? 'gen-card-featured shadow-[var(--shadow-glow-md)]'
                     : 'bg-fill/[0.02] gen-border hover:border-[var(--gen-accent-hover)]',
                 )}
+                bodyClassName="gap-0 p-6"
               >
                 <VStack className="gap-5 h-full">
                   <VStack className="gap-2">
@@ -181,7 +184,7 @@ export default function HomePricing(): React.ReactElement {
                     )}
                   </ButtonTracked>
                 </VStack>
-              </div>
+              </Card>
             );
           })}
         </div>

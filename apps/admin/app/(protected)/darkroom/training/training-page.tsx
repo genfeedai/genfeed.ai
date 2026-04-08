@@ -17,7 +17,6 @@ import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
-import AppLink from '@ui/navigation/link/Link';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Input } from '@ui/primitives/input';
 import {
@@ -27,6 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { HiOutlineCpuChip } from 'react-icons/hi2';
 
@@ -441,11 +441,12 @@ export default function TrainingPage() {
 
               <div>
                 {activeTraining.status === 'completed' && (
-                  <AppLink
-                    url={`/darkroom/characters/${activeTraining.personaSlug}`}
-                    label="View character"
+                  <Link
+                    href={`/darkroom/characters/${activeTraining.personaSlug}`}
                     className="text-sm text-primary hover:underline"
-                  />
+                  >
+                    View character
+                  </Link>
                 )}
               </div>
             </div>

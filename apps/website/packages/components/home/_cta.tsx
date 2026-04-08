@@ -10,7 +10,7 @@ import { LuArrowRight } from 'react-icons/lu';
 
 export default function HomeCTA(): React.ReactElement {
   return (
-    <section className="gen-section-spacing-xl relative overflow-hidden gen-vignette gen-spotlight-left gen-grain">
+    <section className="gen-section-spacing-xl relative overflow-hidden gen-grain">
       <div className="container mx-auto px-6 relative z-10">
         <VStack className="items-center text-center gap-8 max-w-3xl mx-auto">
           <Heading
@@ -35,7 +35,6 @@ export default function HomeCTA(): React.ReactElement {
           <ButtonTracked
             asChild
             size={ButtonSize.PUBLIC}
-            className="shadow-[var(--shadow-glow-md)]"
             trackingName="cta_final_click"
             trackingData={{ action: 'signup_bottom_cta' }}
           >

@@ -33,6 +33,10 @@ vi.mock('@helpers/auth/clerk.helper', () => ({
   resolveClerkToken: vi.fn(),
 }));
 
+vi.mock('@/lib/config/edition', () => ({
+  isEEEnabled: vi.fn(() => false),
+}));
+
 vi.mock('@services/workspace/workspace-tasks.service', async () => {
   const actual = await vi.importActual<
     typeof import('@services/workspace/workspace-tasks.service')
@@ -101,7 +105,7 @@ describe('ChatWorkspacePageShell', () => {
     );
   });
 
-  it('routes billing actions through the shared router wiring', () => {
+  it('routes billing actions to api keys in OSS mode', () => {
     render(<ChatWorkspacePageShell />);
 
     const props = agentFullPageSpy.mock.calls[0]?.[0] as {
@@ -109,10 +113,10 @@ describe('ChatWorkspacePageShell', () => {
     };
     props.onNavigateToBilling();
 
-    expect(pushMock).toHaveBeenCalledWith('/settings/organization/billing');
+    expect(pushMock).toHaveBeenCalledWith('/settings/organization/api-keys');
   });
 
-  it('routes credit pack selection through the shared router wiring', () => {
+  it('routes credit pack selection to api keys in OSS mode', () => {
     render(<ChatWorkspacePageShell />);
 
     const props = agentFullPageSpy.mock.calls[0]?.[0] as {
@@ -120,9 +124,7 @@ describe('ChatWorkspacePageShell', () => {
     };
     props.onSelectCreditPack({ label: 'Pro' });
 
-    expect(pushMock).toHaveBeenCalledWith(
-      '/settings/organization/billing?pack=pro',
-    );
+    expect(pushMock).toHaveBeenCalledWith('/settings/organization/api-keys');
   });
 
   it('creates workspace follow-up tasks through the shared workspace service', async () => {

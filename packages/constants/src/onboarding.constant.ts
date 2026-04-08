@@ -1,13 +1,13 @@
 /**
  * Ordered onboarding step keys — used by the wizard, guard, and resume logic.
  */
-export const ONBOARDING_STEPS = ['brand', 'plan'] as const;
+export const ONBOARDING_STEPS = ['brand', 'providers'] as const;
 
 export type OnboardingStepKey = (typeof ONBOARDING_STEPS)[number];
 
 export const ONBOARDING_STEP_LABELS: Record<OnboardingStepKey, string> = {
   brand: 'Brand',
-  plan: 'Plan',
+  providers: 'Providers',
 };
 
 /**
@@ -27,7 +27,7 @@ export function getResumeStep(completedSteps?: string[]): OnboardingStepKey {
 
   // When all steps are completed but completion metadata is stale,
   // resume at the final step instead of restarting from brand.
-  return 'plan';
+  return 'providers';
 }
 
 /**

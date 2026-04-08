@@ -106,21 +106,19 @@ RUN sed -i 's/"deleteOutDir": true/"deleteOutDir": false/' apps/server/nest-cli.
 
 # Build all services in parallel batches
 # Batch 0: API alone (largest service, needs full resources)
-RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN_API \
-    SENTRY_AUTH_TOKEN=$(cat /run/secrets/SENTRY_AUTH_TOKEN_API 2>/dev/null || echo "") \
+RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN \
+    SENTRY_AUTH_TOKEN=$(cat /run/secrets/SENTRY_AUTH_TOKEN 2>/dev/null || echo "") \
     bun --filter @genfeedai/api build:prod
 
 # Workers alone: large dependency footprint (imports @api/shared), needs dedicated resources
 RUN bun --filter @genfeedai/workers build:prod
 
 # Batch 1: Other Sentry services (3 builds in parallel)
-RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN_FILES \
-    --mount=type=secret,id=SENTRY_AUTH_TOKEN_MCP \
-    --mount=type=secret,id=SENTRY_AUTH_TOKEN_NOTIFICATIONS \
+RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN \
     set -e && \
-    (SENTRY_AUTH_TOKEN=$(cat /run/secrets/SENTRY_AUTH_TOKEN_FILES 2>/dev/null || echo "") bun --filter @genfeedai/files build:prod) & pid1=$! && \
-    (SENTRY_AUTH_TOKEN=$(cat /run/secrets/SENTRY_AUTH_TOKEN_MCP 2>/dev/null || echo "") bun --filter @genfeedai/mcp build:prod) & pid2=$! && \
-    (SENTRY_AUTH_TOKEN=$(cat /run/secrets/SENTRY_AUTH_TOKEN_NOTIFICATIONS 2>/dev/null || echo "") bun --filter @genfeedai/notifications build:prod) & pid3=$! && \
+    (SENTRY_AUTH_TOKEN=$(cat /run/secrets/SENTRY_AUTH_TOKEN 2>/dev/null || echo "") bun --filter @genfeedai/files build:prod) & pid1=$! && \
+    (SENTRY_AUTH_TOKEN=$(cat /run/secrets/SENTRY_AUTH_TOKEN 2>/dev/null || echo "") bun --filter @genfeedai/mcp build:prod) & pid2=$! && \
+    (SENTRY_AUTH_TOKEN=$(cat /run/secrets/SENTRY_AUTH_TOKEN 2>/dev/null || echo "") bun --filter @genfeedai/notifications build:prod) & pid3=$! && \
     wait $pid1 $pid2 $pid3
 
 # Batch 2: Non-Sentry services (5 builds)

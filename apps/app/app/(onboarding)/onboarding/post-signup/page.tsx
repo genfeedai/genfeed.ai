@@ -8,8 +8,11 @@ import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { StripeService } from '@services/billing/stripe.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
+import { OrganizationsService } from '@services/organization/organizations.service';
 import Button from '@ui/buttons/base/Button';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { isEEEnabled, isSelfHosted } from '@/lib/config/edition';
+import { resolvePostSignupOnboardingHref } from './post-signup-onboarding-href.util';
 
 export default function PostSignupPage() {
   const { getToken } = useAuth();
@@ -19,6 +22,65 @@ export default function PostSignupPage() {
   const [showFallback, setShowFallback] = useState(false);
   const [statusMessage, setStatusMessage] = useState(
     'Setting up your workspace...',
+  );
+
+  const resolveOnboardingHref = useCallback(
+    async (prompt?: string): Promise<string> => {
+      if (!isEEEnabled()) {
+        return '/onboarding/brand';
+      }
+
+      if (isSelfHosted()) {
+        return (
+          resolvePostSignupOnboardingHref({
+            isSelfHosted: true,
+            prompt,
+          }) ?? '/chat/onboarding'
+        );
+      }
+
+      const token = await resolveClerkToken(getToken);
+      if (!token) {
+        return '/onboarding/brand';
+      }
+
+      const organizations = await OrganizationsService.getInstance(token)
+        .getMyOrganizations()
+        .catch((error) => {
+          logger.error(
+            'Failed to resolve organizations for post-signup routing',
+            error,
+          );
+          return [];
+        });
+
+      return (
+        resolvePostSignupOnboardingHref({
+          isSelfHosted: false,
+          organizations,
+          prompt,
+        }) ?? '/onboarding/brand'
+      );
+    },
+    [getToken],
+  );
+
+  const resolveAutoBrandHref = useCallback(
+    async (domain: string): Promise<string> => {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('gf_brand_domain', domain);
+      }
+
+      const prompt = `My website is ${domain}. Help me set up my brand and generate my first onboarding image.`;
+      const onboardingHref = await resolveOnboardingHref(prompt);
+
+      if (onboardingHref === '/onboarding/brand') {
+        return '/onboarding/brand?auto=true';
+      }
+
+      return onboardingHref;
+    },
+    [resolveOnboardingHref],
   );
 
   useEffect(() => {
@@ -45,22 +107,28 @@ export default function PostSignupPage() {
       });
 
       if (intent.kind === 'plan-checkout') {
+        if (!isEEEnabled()) {
+          window.location.href = '/onboarding/brand';
+          return;
+        }
+
         setStatusMessage('Preparing your plan checkout...');
         localStorage.removeItem('gf_selected_plan');
 
         try {
+          const onboardingHref = await resolveOnboardingHref();
           const token = await resolveClerkToken(getToken);
           if (!token) {
-            window.location.href = '/onboarding/plan';
+            window.location.href = '/onboarding/providers';
             return;
           }
 
           const service = StripeService.getInstance(token);
           const result = await service.createCheckoutSession({
-            cancelUrl: `${window.location.origin}/onboarding/plan`,
+            cancelUrl: `${window.location.origin}/onboarding/providers`,
             quantity: null,
             stripePriceId: intent.stripePriceId,
-            successUrl: `${window.location.origin}/chat/onboarding`,
+            successUrl: `${window.location.origin}${onboardingHref}`,
           });
 
           if (result?.url) {
@@ -75,33 +143,39 @@ export default function PostSignupPage() {
         }
 
         // Fallback: if checkout creation failed, go to plan page
-        window.location.href = '/onboarding/plan';
+        window.location.href = '/onboarding/providers';
         return;
       }
 
       if (intent.kind === 'credits-checkout') {
+        if (!isEEEnabled()) {
+          window.location.href = '/onboarding/brand';
+          return;
+        }
+
         setStatusMessage('Preparing your credits checkout...');
         localStorage.removeItem('gf_selected_credits');
 
         try {
+          const onboardingHref = await resolveOnboardingHref();
           const token = await resolveClerkToken(getToken);
           if (!token) {
-            window.location.href = '/onboarding/plan';
+            window.location.href = '/onboarding/providers';
             return;
           }
 
           const paygPriceId = EnvironmentService.plans.payg;
           if (!paygPriceId) {
-            window.location.href = '/onboarding/plan';
+            window.location.href = '/onboarding/providers';
             return;
           }
 
           const service = StripeService.getInstance(token);
           const result = await service.createCheckoutSession({
-            cancelUrl: `${window.location.origin}/onboarding/plan`,
+            cancelUrl: `${window.location.origin}/onboarding/providers`,
             quantity: intent.credits,
             stripePriceId: paygPriceId,
-            successUrl: `${window.location.origin}/chat/onboarding`,
+            successUrl: `${window.location.origin}${onboardingHref}`,
           });
 
           if (result?.url) {
@@ -115,23 +189,20 @@ export default function PostSignupPage() {
           );
         }
 
-        window.location.href = '/onboarding/plan';
+        window.location.href = '/onboarding/providers';
         return;
       }
 
       if (intent.kind === 'auto-brand') {
         setStatusMessage(
-          'Detected your workspace domain. Opening guided agent onboarding...',
+          'Detected your workspace domain. Continuing to brand setup...',
         );
-        const prompt = encodeURIComponent(
-          `My website is ${intent.domain}. Help me set up my brand and generate my first onboarding image.`,
-        );
-        window.location.href = `/chat/onboarding?prompt=${prompt}`;
+        window.location.href = await resolveAutoBrandHref(intent.domain);
         return;
       }
 
-      setStatusMessage('Opening guided agent onboarding...');
-      window.location.href = '/chat/onboarding';
+      setStatusMessage('Continuing to onboarding...');
+      window.location.href = await resolveOnboardingHref();
     };
 
     route().catch((error) => {
@@ -142,7 +213,14 @@ export default function PostSignupPage() {
     return () => {
       window.clearTimeout(fallbackTimeout);
     };
-  }, [isLoading, currentUser, clerkUser, getToken]);
+  }, [
+    isLoading,
+    currentUser,
+    clerkUser,
+    getToken,
+    resolveAutoBrandHref,
+    resolveOnboardingHref,
+  ]);
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center">
@@ -160,9 +238,11 @@ export default function PostSignupPage() {
               This is taking longer than expected. You can continue manually.
             </p>
             <Button
-              label="Continue to onboarding agent"
+              label="Continue to onboarding"
               onClick={() => {
-                window.location.href = '/chat/onboarding';
+                void resolveOnboardingHref().then((href) => {
+                  window.location.href = href;
+                });
               }}
               className="h-8 px-3 text-xs font-medium"
             />

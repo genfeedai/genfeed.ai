@@ -6,8 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 /**
- * Root /onboarding page — redirects to the dedicated onboarding chat route.
- * The agent-driven conversational UI replaces the old wizard flow.
+ * Root /onboarding page — redirects to the first concrete onboarding step.
  */
 export default function OnboardingRootPage() {
   const { currentUser, isLoading } = useCurrentUser();
@@ -29,7 +28,7 @@ export default function OnboardingRootPage() {
       return;
     }
 
-    router.replace('/chat/onboarding');
+    router.replace('/onboarding/brand');
   }, [isLoading, currentUser, isClerkLoaded, clerkUser, router]);
 
   return (

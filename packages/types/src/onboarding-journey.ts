@@ -36,8 +36,8 @@ export const ONBOARDING_JOURNEY_MISSION_ORDER: OnboardingJourneyMissionId[] = [
 export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] =
   [
     {
-      ctaHref: '/chat/onboarding',
-      ctaLabel: 'Continue in chat',
+      ctaHref: '/onboarding/brand',
+      ctaLabel: 'Continue onboarding',
       description:
         'Tell the agent what you create so it can build your brand profile and generate a relevant first image.',
       id: 'complete_company_info',
@@ -47,8 +47,8 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
         'Better company context gives GenFeed better prompts, voice, and visual direction.',
     },
     {
-      ctaHref: '/chat/onboarding',
-      ctaLabel: 'Generate in chat',
+      ctaHref: '/onboarding/providers',
+      ctaLabel: 'Configure providers',
       description:
         'Generate your first image right away from the context you just shared.',
       id: 'generate_first_image',
@@ -58,8 +58,8 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
         'Your first image proves the workflow works and gives the agent a concrete artifact to build on.',
     },
     {
-      ctaHref: '/chat/onboarding',
-      ctaLabel: 'Connect in chat',
+      ctaHref: '/onboarding/providers',
+      ctaLabel: 'Configure providers',
       description:
         'Connect your first social account so GenFeed can tailor content to real channels.',
       id: 'connect_social_account',
@@ -69,8 +69,8 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
         'Connected channels unlock platform-aware workflows and publishing.',
     },
     {
-      ctaHref: '/chat/onboarding',
-      ctaLabel: 'Generate in chat',
+      ctaHref: '/onboarding/providers',
+      ctaLabel: 'Configure providers',
       description:
         'Generate your first video to unlock richer content creation.',
       id: 'generate_first_video',
@@ -80,8 +80,8 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
         'Video is a higher-value content path and a stronger activation milestone.',
     },
     {
-      ctaHref: '/chat/onboarding',
-      ctaLabel: 'Publish in chat',
+      ctaHref: '/onboarding/providers',
+      ctaLabel: 'Configure providers',
       description:
         'Publish your first post to complete the journey and claim the final reward.',
       id: 'publish_first_post',

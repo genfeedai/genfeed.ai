@@ -7,9 +7,10 @@ import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import HtmlContent from '@ui/display/html-content/HtmlContent';
 import Container from '@ui/layout/container/Container';
-import AppLink from '@ui/navigation/link/Link';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   HiArrowLeft,
   HiDocumentText,
@@ -24,7 +25,6 @@ export interface IngredientPostsProps {
 }
 
 export default function IngredientPosts({
-  id,
   ingredient,
   posts,
 }: IngredientPostsProps) {
@@ -48,12 +48,12 @@ export default function IngredientPosts({
     <Container>
       {/* Back button */}
       <div className="mb-6">
-        <AppLink
-          url={getPublisherPostsHref()}
-          icon={<HiArrowLeft />}
-          label="Back to ingredients"
-          variant={ButtonVariant.GHOST}
-        />
+        <Button asChild variant={ButtonVariant.GHOST}>
+          <Link href={getPublisherPostsHref()}>
+            <HiArrowLeft />
+            Back to ingredients
+          </Link>
+        </Button>
       </div>
 
       {/* Ingredient header */}

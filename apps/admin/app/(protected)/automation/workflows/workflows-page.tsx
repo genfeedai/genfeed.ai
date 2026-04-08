@@ -15,8 +15,9 @@ import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import Container from '@ui/layout/container/Container';
-import AppLink from '@ui/navigation/link/Link';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import { Button as PrimitiveButton } from '@ui/primitives/button';
+import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import {
   HiEllipsisVertical,
@@ -24,6 +25,13 @@ import {
   HiPencil,
   HiTrash,
 } from 'react-icons/hi2';
+
+const WORKFLOW_SKELETON_KEYS = [
+  'workflow-skeleton-1',
+  'workflow-skeleton-2',
+  'workflow-skeleton-3',
+  'workflow-skeleton-4',
+] as const;
 
 function getWorkflowStatusVariant(
   status: string,
@@ -121,8 +129,8 @@ export default function WorkflowsPage() {
         icon={HiOutlineClipboardDocumentList}
       >
         <div className="grid gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <SkeletonCard key={i} showImage={false} />
+          {WORKFLOW_SKELETON_KEYS.map((key) => (
+            <SkeletonCard key={key} showImage={false} />
           ))}
         </div>
       </Container>
@@ -194,15 +202,12 @@ export default function WorkflowsPage() {
                     >
                       <ul className="menu p-0">
                         <li>
-                          <AppLink
-                            url={`/workflows/${workflow.id}`}
-                            label={
-                              <>
-                                <HiPencil className="w-4 h-4" />
-                                View/Edit
-                              </>
-                            }
-                          />
+                          <PrimitiveButton asChild variant={ButtonVariant.SOFT}>
+                            <Link href={`/workflows/${workflow.id}`}>
+                              <HiPencil className="w-4 h-4" />
+                              View/Edit
+                            </Link>
+                          </PrimitiveButton>
                         </li>
                         <li>
                           <Button

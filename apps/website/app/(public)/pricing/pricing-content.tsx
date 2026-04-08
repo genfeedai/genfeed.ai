@@ -10,7 +10,6 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
 import SectionHeader from '@ui/marketing/SectionHeader';
-import AppLink from '@ui/navigation/link/Link';
 import { Button } from '@ui/primitives/button';
 import FaqGrid from '@web-components/content/FaqGrid';
 import {
@@ -87,8 +86,12 @@ export default function PricingContent() {
                   key={plan.label}
                   padding="lg"
                   inverted={isPopular}
-                  className="relative gsap-card"
-                  style={isPopular ? undefined : { backgroundColor: '#18181b' }}
+                  className="relative gsap-card !rounded-none"
+                  style={
+                    isPopular
+                      ? { borderRadius: 0 }
+                      : { backgroundColor: '#18181b', borderRadius: 0 }
+                  }
                 >
                   {isPopular && (
                     <div className="absolute top-6 right-6">
@@ -247,18 +250,26 @@ export default function PricingContent() {
                     ))}
                   </ul>
 
-                  <AppLink
-                    url={ctaHref}
-                    label={ctaLabel}
+                  <Button
+                    asChild
                     variant={
                       isPopular ? ButtonVariant.BLACK : ButtonVariant.DEFAULT
                     }
                     size={ButtonSize.PUBLIC}
-                    className="mt-12 text-center"
-                    {...(ctaExternal
-                      ? { target: '_blank', rel: 'noopener noreferrer' }
-                      : {})}
-                  />
+                    className="mt-12 w-full text-center"
+                  >
+                    {ctaExternal ? (
+                      <a
+                        href={ctaHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {ctaLabel}
+                      </a>
+                    ) : (
+                      <Link href={ctaHref}>{ctaLabel}</Link>
+                    )}
+                  </Button>
                 </NeuralGridItem>
               );
             })}

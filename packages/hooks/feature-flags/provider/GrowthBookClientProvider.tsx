@@ -1,14 +1,37 @@
 'use client';
 
-import { GrowthBook, GrowthBookProvider } from '@growthbook/growthbook-react';
-import { type ReactNode, useEffect, useMemo } from 'react';
+import {
+  type FeatureDefinition,
+  GrowthBook,
+  GrowthBookProvider,
+} from '@growthbook/growthbook-react';
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
+
+interface GrowthBookClientStatus {
+  isConfigured: boolean;
+  isReady: boolean;
+}
+
+const GrowthBookClientStatusContext = createContext<GrowthBookClientStatus>({
+  isConfigured: false,
+  isReady: true,
+});
 
 export interface GrowthBookClientProviderProps {
   children: ReactNode;
   apiHost?: string;
   clientKey?: string;
-  userId?: string;
+  defaults?: Record<string, unknown>;
+  organizationId?: string;
   plan?: string;
+  userId?: string;
 }
 
 /**
@@ -25,36 +48,129 @@ export function GrowthBookClientProvider({
   children,
   apiHost = process.env.NEXT_PUBLIC_GROWTHBOOK_API_HOST ?? '',
   clientKey = process.env.NEXT_PUBLIC_GROWTHBOOK_CLIENT_KEY ?? '',
-  userId,
+  defaults = parseFeatureFlagDefaults(
+    process.env.NEXT_PUBLIC_FEATURE_FLAG_DEFAULTS,
+  ),
+  organizationId,
   plan,
+  userId,
 }: GrowthBookClientProviderProps) {
-  const gb = useMemo(() => {
-    if (!apiHost || !clientKey) return null;
+  const [isReady, setIsReady] = useState(false);
+  const hasDefaults = Object.keys(defaults).length > 0;
+  const hasRemoteConfig = Boolean(apiHost && clientKey);
+  const isConfigured = hasRemoteConfig || hasDefaults;
 
-    return new GrowthBook({
-      apiHost,
+  const gb = useMemo(() => {
+    if (!hasRemoteConfig && !hasDefaults) return null;
+
+    const instance = new GrowthBook({
+      ...(apiHost ? { apiHost } : {}),
       attributes: {
         ...(userId ? { id: userId } : {}),
+        ...(organizationId ? { organizationId } : {}),
         ...(plan ? { plan } : {}),
       },
-      clientKey,
+      ...(clientKey ? { clientKey } : {}),
       enableDevMode: process.env.NODE_ENV !== 'production',
     });
-  }, [apiHost, clientKey, userId, plan]);
+
+    if (hasDefaults) {
+      instance.setFeatures(toGrowthBookFeatures(defaults));
+    }
+
+    return instance;
+  }, [
+    apiHost,
+    clientKey,
+    defaults,
+    hasDefaults,
+    hasRemoteConfig,
+    userId,
+    organizationId,
+    plan,
+  ]);
 
   useEffect(() => {
-    if (!gb) return;
+    if (!gb) {
+      setIsReady(true);
+      return;
+    }
 
-    gb.init({ streaming: true });
+    if (!hasRemoteConfig) {
+      setIsReady(true);
+      return () => {
+        gb.destroy();
+      };
+    }
+
+    let isMounted = true;
+    setIsReady(false);
+
+    void gb
+      .init({ streaming: true })
+      .catch(() => undefined)
+      .finally(() => {
+        if (isMounted) {
+          setIsReady(true);
+        }
+      });
 
     return () => {
+      isMounted = false;
       gb.destroy();
     };
-  }, [gb]);
+  }, [gb, hasRemoteConfig]);
 
   if (!gb) {
-    return <>{children}</>;
+    return (
+      <GrowthBookClientStatusContext.Provider
+        value={{ isConfigured, isReady: true }}
+      >
+        {children}
+      </GrowthBookClientStatusContext.Provider>
+    );
   }
 
-  return <GrowthBookProvider growthbook={gb}>{children}</GrowthBookProvider>;
+  return (
+    <GrowthBookClientStatusContext.Provider value={{ isConfigured, isReady }}>
+      <GrowthBookProvider growthbook={gb}>{children}</GrowthBookProvider>
+    </GrowthBookClientStatusContext.Provider>
+  );
+}
+
+export function useGrowthBookClientStatus(): GrowthBookClientStatus {
+  return useContext(GrowthBookClientStatusContext);
+}
+
+function parseFeatureFlagDefaults(
+  rawDefaults: string | undefined,
+): Record<string, unknown> {
+  if (!rawDefaults) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(rawDefaults) as unknown;
+
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error(
+        'NEXT_PUBLIC_FEATURE_FLAG_DEFAULTS must be a JSON object',
+      );
+    }
+
+    return parsed as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
+function toGrowthBookFeatures(
+  defaults: Record<string, unknown>,
+): Record<string, FeatureDefinition> {
+  return Object.fromEntries(
+    Object.entries(defaults).map(([key, value]) => [
+      key,
+      { defaultValue: value },
+    ]),
+  );
 }

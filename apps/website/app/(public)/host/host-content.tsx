@@ -3,7 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import SectionHeader from '@ui/marketing/SectionHeader';
-import AppLink from '@ui/navigation/link/Link';
+import { Button } from '@ui/primitives/button';
 import FeatureList from '@web-components/content/FeatureList';
 import {
   CtaSection,
@@ -13,6 +13,7 @@ import {
 } from '@web-components/content/NeuralGrid';
 import PageLayout from '@web-components/PageLayout';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   LuArrowRight,
   LuDollarSign,
@@ -102,8 +103,8 @@ export default function HostContent() {
                 Get running in under 5 minutes
               </h2>
               <p className="text-surface/50 mb-8 max-w-xl">
-                Clone the repository and start with Docker Compose. No
-                configuration required.
+                Bootstrap a self-hosted Genfeed workspace with one command.
+                Dependencies install automatically and onboarding opens locally.
               </p>
 
               {/* Terminal */}
@@ -112,17 +113,7 @@ export default function HostContent() {
                   <div className="flex gap-3">
                     <span className="text-surface/30">$</span>
                     <span className="text-surface/80">
-                      git clone https://github.com/genfeedai/genfeed.git
-                    </span>
-                  </div>
-                  <div className="flex gap-3">
-                    <span className="text-surface/30">$</span>
-                    <span className="text-surface/80">cd genfeed</span>
-                  </div>
-                  <div className="flex gap-3">
-                    <span className="text-surface/30">$</span>
-                    <span className="text-surface/80">
-                      docker-compose up -d
+                      npx @genfeedai/create my-genfeed-app
                     </span>
                   </div>
                 </div>
@@ -140,18 +131,21 @@ export default function HostContent() {
                 <div className="absolute inset-0 bg-gradient-to-t from-background/60 to-transparent" />
               </div>
 
-              <AppLink
-                url="https://docs.genfeed.ai/core"
-                target="_blank"
-                label={
-                  <>
-                    View Full Guide
-                    <LuArrowRight className="h-4 w-4" />
-                  </>
-                }
+              <Button
+                asChild
                 size={ButtonSize.PUBLIC}
+                variant={ButtonVariant.SECONDARY}
                 className="px-8 py-4"
-              />
+              >
+                <a
+                  href="https://docs.genfeed.ai/core"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  View Full Guide
+                  <LuArrowRight className="h-4 w-4" />
+                </a>
+              </Button>
             </NeuralGridItem>
           </NeuralGrid>
         </WebSection>
@@ -239,18 +233,26 @@ export default function HostContent() {
           title="Ready to Deploy?"
           description="Follow our comprehensive self-hosting guide for step-by-step instructions, troubleshooting, and best practices."
         >
-          <AppLink
-            url="https://docs.genfeed.ai/core"
-            target="_blank"
-            label="Read Documentation"
+          <Button
+            asChild
             size={ButtonSize.PUBLIC}
-          />
-          <AppLink
-            url="/cloud"
-            label="Compare with Cloud"
             variant={ButtonVariant.SECONDARY}
+          >
+            <a
+              href="https://docs.genfeed.ai/core"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Read Documentation
+            </a>
+          </Button>
+          <Button
+            asChild
             size={ButtonSize.PUBLIC}
-          />
+            variant={ButtonVariant.SECONDARY}
+          >
+            <Link href="/cloud">Compare with Cloud</Link>
+          </Button>
         </CtaSection>
       </PageLayout>
     </div>

@@ -147,4 +147,4 @@ Early-stage open-source project. Delete dead code aggressively. No legacy suppor
 ## Tracking Policy
 
 - GitHub Issues/Projects are canonical for task and status tracking.
-- `.agents/TASKS/INBOX.md` is allowed only as immediate triage queue.
+- Do not create or maintain local task queues such as `.agents/TASKS/INBOX.md`.

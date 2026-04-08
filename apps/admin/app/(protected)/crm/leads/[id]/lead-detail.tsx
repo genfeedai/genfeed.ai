@@ -18,8 +18,8 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
-import AppLink from '@ui/navigation/link/Link';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import { Button as PrimitiveButton } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import {
@@ -249,15 +250,11 @@ export default function LeadDetail({ id }: { id: string }) {
       }
     >
       <div className="mb-4">
-        <AppLink
-          url="/crm/leads"
-          label={
-            <>
-              <HiArrowLeft className="w-4 h-4" /> Back to Leads
-            </>
-          }
-          variant={ButtonVariant.SECONDARY}
-        />
+        <PrimitiveButton asChild variant={ButtonVariant.SECONDARY}>
+          <Link href="/crm/leads">
+            <HiArrowLeft className="w-4 h-4" /> Back to Leads
+          </Link>
+        </PrimitiveButton>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

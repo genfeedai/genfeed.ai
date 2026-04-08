@@ -56,8 +56,8 @@ bun run test --filter=@genfeedai/[changed-package]
 ## Tracking Policy
 
 - Canonical tasks: GitHub issues/projects.
-- Local markdown task files are not canonical backlog.
-- Exception: `.agents/TASKS/INBOX.md` is allowed for immediate triage only.
+- Local markdown task files are not canonical backlog and should not be used for task tracking.
+- Do not create or maintain `.agents/TASKS/INBOX.md`.
 
 ## Release Branch Workflow
 

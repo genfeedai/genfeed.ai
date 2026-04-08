@@ -21,8 +21,9 @@ import Button from '@ui/buttons/base/Button';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
 import Container from '@ui/layout/container/Container';
-import AppLink from '@ui/navigation/link/Link';
+import { Button as PrimitiveButton } from '@ui/primitives/button';
 import { PageScope } from '@ui-constants/misc.constant';
+import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -592,13 +593,16 @@ export default function IngredientsLayout({
               )}
 
               {scope !== PageScope.SUPERADMIN && config.showStudioLink && (
-                <AppLink
-                  url={`${EnvironmentService.apps.app}/studio/${ingredientCategory?.replace('s', '')?.toLowerCase()}`}
-                  icon={<HiArrowTopRightOnSquare />}
-                  label="Studio"
-                  variant={ButtonVariant.DEFAULT}
-                  target="_blank"
-                />
+                <PrimitiveButton asChild variant={ButtonVariant.DEFAULT}>
+                  <Link
+                    href={`${EnvironmentService.apps.app}/studio/${ingredientCategory?.replace('s', '')?.toLowerCase()}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <HiArrowTopRightOnSquare />
+                    Studio
+                  </Link>
+                </PrimitiveButton>
               )}
             </div>
           }

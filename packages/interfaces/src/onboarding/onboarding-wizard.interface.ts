@@ -1,6 +1,6 @@
 import type { OnboardingType } from '../users/user.interface';
 
-export type OnboardingStepKey = 'brand' | 'plan';
+export type OnboardingStepKey = 'brand' | 'providers';
 
 /**
  * Payload shape for step completion (mirrors UpdateUserOnboardingPayload).

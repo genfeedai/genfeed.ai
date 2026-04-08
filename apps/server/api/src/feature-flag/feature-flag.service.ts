@@ -18,6 +18,7 @@ export class FeatureFlagService implements OnModuleDestroy, OnModuleInit {
   private static readonly DEFAULT_REFRESH_INTERVAL_MS = 60_000;
 
   private client: GrowthBookClient | null = null;
+  private localDefaults: Record<string, unknown> = {};
   private refreshIntervalId: ReturnType<typeof setInterval> | null = null;
 
   constructor(
@@ -37,6 +38,7 @@ export class FeatureFlagService implements OnModuleDestroy, OnModuleInit {
   async init(): Promise<void> {
     this.stopAutoRefresh();
     this.destroyClient();
+    this.localDefaults = this.parseLocalDefaults();
 
     const apiHost = String(this.configService.get('GROWTHBOOK_API_HOST') || '');
     const clientKey = String(
@@ -45,10 +47,11 @@ export class FeatureFlagService implements OnModuleDestroy, OnModuleInit {
 
     if (!apiHost || !clientKey) {
       this.loggerService.warn(
-        'Feature flags disabled because GrowthBook configuration is missing',
+        'GrowthBook remote flags disabled; using local feature flag defaults only',
         {
           hasApiHost: Boolean(apiHost),
           hasClientKey: Boolean(clientKey),
+          localDefaultCount: Object.keys(this.localDefaults).length,
         },
       );
       return;
@@ -71,8 +74,10 @@ export class FeatureFlagService implements OnModuleDestroy, OnModuleInit {
     const client = this.client;
 
     if (!client) {
-      this.logEvaluation(flagKey, false, 'noClient', attributes);
-      return false;
+      const fallbackValue = this.getLocalDefault(flagKey);
+      const enabled = fallbackValue === true;
+      this.logEvaluation(flagKey, enabled, 'localDefault', attributes);
+      return enabled;
     }
 
     const result = client.evalFeature(flagKey, this.toUserContext(attributes));
@@ -89,8 +94,16 @@ export class FeatureFlagService implements OnModuleDestroy, OnModuleInit {
     const client = this.client;
 
     if (!client) {
-      this.logEvaluation(flagKey, false, 'noClient', attributes);
-      return defaultValue;
+      const fallbackValue = this.getLocalDefault(flagKey);
+      const resolvedValue =
+        fallbackValue === undefined ? defaultValue : (fallbackValue as T);
+      this.logEvaluation(
+        flagKey,
+        Boolean(resolvedValue),
+        fallbackValue === undefined ? 'localDefaultMissing' : 'localDefault',
+        attributes,
+      );
+      return resolvedValue;
     }
 
     const result = client.evalFeature<T>(
@@ -148,6 +161,36 @@ export class FeatureFlagService implements OnModuleDestroy, OnModuleInit {
   private destroyClient(): void {
     this.client?.destroy({ destroyAllStreams: true });
     this.client = null;
+  }
+
+  private getLocalDefault(flagKey: string): unknown {
+    return this.localDefaults[flagKey];
+  }
+
+  private parseLocalDefaults(): Record<string, unknown> {
+    const rawDefaults = String(
+      this.configService.get('FEATURE_FLAG_DEFAULTS') || '',
+    );
+
+    if (!rawDefaults) {
+      return {};
+    }
+
+    try {
+      const parsed = JSON.parse(rawDefaults) as unknown;
+
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+        throw new Error('FEATURE_FLAG_DEFAULTS must be a JSON object');
+      }
+
+      return parsed as Record<string, unknown>;
+    } catch (error) {
+      this.loggerService.warn(
+        'Failed to parse FEATURE_FLAG_DEFAULTS; ignoring local feature flag defaults',
+        { error },
+      );
+      return {};
+    }
   }
 
   private toUserContext(attributes?: FeatureFlagAttributes): UserContext {

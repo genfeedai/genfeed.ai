@@ -44,8 +44,8 @@ export type AgentSocketConnectionState =
 
 const DEFAULT_ONBOARDING_STEPS: OnboardingChecklistStep[] = [
   {
-    ctaHref: '/chat/onboarding',
-    ctaLabel: 'Continue in chat',
+    ctaHref: '/onboarding/brand',
+    ctaLabel: 'Continue onboarding',
     description:
       'Tell the agent what you create so it can build your brand profile and generate a relevant first image.',
     id: 'complete_company_info',
@@ -56,8 +56,8 @@ const DEFAULT_ONBOARDING_STEPS: OnboardingChecklistStep[] = [
     title: 'Complete company info',
   },
   {
-    ctaHref: '/chat/onboarding',
-    ctaLabel: 'Generate in chat',
+    ctaHref: '/onboarding/providers',
+    ctaLabel: 'Configure providers',
     description:
       'Generate your first image right away from the context you just shared.',
     id: 'generate_first_image',
@@ -68,8 +68,8 @@ const DEFAULT_ONBOARDING_STEPS: OnboardingChecklistStep[] = [
     title: 'Generate your first image',
   },
   {
-    ctaHref: '/chat/onboarding',
-    ctaLabel: 'Connect in chat',
+    ctaHref: '/onboarding/providers',
+    ctaLabel: 'Configure providers',
     description:
       'Connect your first social account so GenFeed can tailor content to real channels.',
     id: 'connect_social_account',
@@ -80,8 +80,8 @@ const DEFAULT_ONBOARDING_STEPS: OnboardingChecklistStep[] = [
     title: 'Connect a social account',
   },
   {
-    ctaHref: '/chat/onboarding',
-    ctaLabel: 'Generate in chat',
+    ctaHref: '/onboarding/providers',
+    ctaLabel: 'Configure providers',
     description: 'Generate your first video to unlock richer content creation.',
     id: 'generate_first_video',
     isClaimed: false,
@@ -91,8 +91,8 @@ const DEFAULT_ONBOARDING_STEPS: OnboardingChecklistStep[] = [
     title: 'Generate your first video',
   },
   {
-    ctaHref: '/chat/onboarding',
-    ctaLabel: 'Publish in chat',
+    ctaHref: '/onboarding/providers',
+    ctaLabel: 'Configure providers',
     description:
       'Publish your first post to complete the journey and claim the final reward.',
     id: 'publish_first_post',

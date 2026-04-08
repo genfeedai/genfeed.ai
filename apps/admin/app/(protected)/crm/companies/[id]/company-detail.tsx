@@ -17,8 +17,8 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
-import AppLink from '@ui/navigation/link/Link';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
+import { Button as PrimitiveButton } from '@ui/primitives/button';
 import {
   Dialog,
   DialogContent,
@@ -26,6 +26,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import Image from 'next/image';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { HiArrowLeft, HiOutlinePencilSquare } from 'react-icons/hi2';
@@ -202,15 +204,11 @@ export default function CompanyDetail({ id }: { id: string }) {
       }
     >
       <div className="mb-4">
-        <AppLink
-          url="/crm/companies"
-          label={
-            <>
-              <HiArrowLeft className="w-4 h-4" /> Back to Companies
-            </>
-          }
-          variant={ButtonVariant.SECONDARY}
-        />
+        <PrimitiveButton asChild variant={ButtonVariant.SECONDARY}>
+          <Link href="/crm/companies">
+            <HiArrowLeft className="w-4 h-4" /> Back to Companies
+          </Link>
+        </PrimitiveButton>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -223,10 +221,12 @@ export default function CompanyDetail({ id }: { id: string }) {
           >
             <div className="flex items-start gap-4">
               {company.avatarUrl ? (
-                <img
+                <Image
                   src={company.avatarUrl}
                   alt={company.name}
                   className="w-16 h-16 rounded-full object-cover shrink-0"
+                  width={64}
+                  height={64}
                 />
               ) : (
                 <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center text-2xl font-bold text-primary shrink-0">
@@ -320,10 +320,13 @@ export default function CompanyDetail({ id }: { id: string }) {
             ) : (
               <div className="space-y-3">
                 {leads.map((lead) => (
-                  <AppLink
+                  <PrimitiveButton
                     key={lead.id}
-                    url={`/crm/leads/${lead.id}`}
-                    label={
+                    asChild
+                    variant={ButtonVariant.UNSTYLED}
+                    className="w-full text-left p-3 bg-white/[0.03] border border-white/[0.08] rounded hover:border-white/[0.15] transition-colors"
+                  >
+                    <Link href={`/crm/leads/${lead.id}`}>
                       <div>
                         <div className="font-medium text-sm">{lead.name}</div>
                         {lead.email && (
@@ -342,10 +345,8 @@ export default function CompanyDetail({ id }: { id: string }) {
                           {lead.status}
                         </Badge>
                       </div>
-                    }
-                    variant={ButtonVariant.UNSTYLED}
-                    className="w-full text-left p-3 bg-white/[0.03] border border-white/[0.08] rounded hover:border-white/[0.15] transition-colors"
-                  />
+                    </Link>
+                  </PrimitiveButton>
                 ))}
               </div>
             )}

@@ -9,7 +9,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
-import AppLink from '@ui/navigation/link/Link';
+import { Button as PrimitiveButton } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { useCallback, useEffect, useState } from 'react';
 import { HiTrash } from 'react-icons/hi2';
@@ -272,13 +272,19 @@ export default function SettingsApiKeysPage() {
                     </div>
                   )}
                   <div className="flex items-center justify-between">
-                    <AppLink
-                      url={providerStatus.docsUrl}
-                      label="Get API key"
+                    <PrimitiveButton
+                      asChild
                       variant={ButtonVariant.LINK}
                       className="text-xs"
-                      target="_blank"
-                    />
+                    >
+                      <a
+                        href={providerStatus.docsUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Get API key
+                      </a>
+                    </PrimitiveButton>
                     <Button
                       onClick={() =>
                         handleValidateAndSave(

@@ -110,6 +110,18 @@ describe('useAgentChatStream', () => {
     vi.useRealTimers();
   });
 
+  it('mounts without triggering a callback initialization error', () => {
+    const apiService = createApiService({});
+
+    expect(() =>
+      renderHook(() =>
+        useAgentChatStream({
+          apiService,
+        }),
+      ),
+    ).not.toThrow();
+  });
+
   it('buffers early socket events until the stream response provides the thread id', async () => {
     const startedAt = '2026-03-09T10:00:00.000Z';
     const apiService = createApiService({

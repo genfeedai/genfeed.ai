@@ -4,8 +4,9 @@ import { AssetScope, ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { BrandDetailOverviewProps } from '@props/pages/brand-detail.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import Button from '@ui/buttons/base/Button';
-import AppLink from '@ui/navigation/link/Link';
+import { Button as PrimitiveButton } from '@ui/primitives/button';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   HiArrowUpTray,
   HiDocumentDuplicate,
@@ -80,13 +81,16 @@ export default function BrandDetailOverview({
                   onClick={() => onCopyPublicProfile?.()}
                 />
 
-                <AppLink
-                  url={profileUrl}
-                  icon={<HiShare />}
-                  label="Profile"
-                  variant={ButtonVariant.SECONDARY}
-                  target="_blank"
-                />
+                <PrimitiveButton asChild variant={ButtonVariant.SECONDARY}>
+                  <Link
+                    href={profileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <HiShare />
+                    Profile
+                  </Link>
+                </PrimitiveButton>
               </div>
             )}
 

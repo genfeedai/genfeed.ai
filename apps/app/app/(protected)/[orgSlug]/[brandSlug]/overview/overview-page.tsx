@@ -14,9 +14,10 @@ import type {
 } from '@props/analytics/charts.props';
 import Card from '@ui/card/Card';
 import CardIcon from '@ui/card/icon/CardIcon';
-import AppLink from '@ui/navigation/link/Link';
 import OverviewLayout from '@ui/overview/OverviewLayout';
+import { Button } from '@ui/primitives/button';
 import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
+import Link from 'next/link';
 import type { ComponentType } from 'react';
 import { useMemo } from 'react';
 import {
@@ -139,13 +140,14 @@ function SectionSummaryCard({
       </div>
 
       <div className="border-t border-white/[0.06] pt-4">
-        <AppLink
-          url={href}
+        <Button
+          asChild
           variant={ButtonVariant.SECONDARY}
           size={ButtonSize.SM}
           className="text-xs tracking-[0.12em]"
-          label="View"
-        />
+        >
+          <Link href={href}>View</Link>
+        </Button>
       </div>
     </Card>
   );

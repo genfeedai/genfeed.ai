@@ -42,6 +42,7 @@ describe('FeatureFlagGuard', () => {
     const context = createContext({
       context: {
         organizationId: 'org-123',
+        subscriptionTier: 'pro',
         userId: 'user-123',
       },
     });
@@ -50,6 +51,7 @@ describe('FeatureFlagGuard', () => {
     expect(featureFlagService.isEnabled).toHaveBeenCalledWith('new-dashboard', {
       id: 'user-123',
       organizationId: 'org-123',
+      plan: 'pro',
     });
   });
 

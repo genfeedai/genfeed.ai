@@ -7,7 +7,8 @@ import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import CardIcon from '@ui/card/icon/CardIcon';
 import Container from '@ui/layout/container/Container';
-import AppLink from '@ui/navigation/link/Link';
+import { Button as PrimitiveButton } from '@ui/primitives/button';
+import Link from 'next/link';
 
 export default function OverviewLayout({
   label,
@@ -72,13 +73,14 @@ export default function OverviewLayout({
                       label={card.cta}
                     />
                   ) : (
-                    <AppLink
-                      url={card.href || '#'}
+                    <PrimitiveButton
+                      asChild
                       variant={ButtonVariant.SECONDARY}
                       size={ButtonSize.SM}
                       className="text-xs tracking-[0.12em]"
-                      label={card.cta}
-                    />
+                    >
+                      <Link href={card.href || '#'}>{card.cta}</Link>
+                    </PrimitiveButton>
                   )}
                 </div>
               </Card>

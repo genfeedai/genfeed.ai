@@ -6,6 +6,7 @@ import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { WorkspaceTasksService } from '@services/workspace/workspace-tasks.service';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
+import { isEEEnabled } from '@/lib/config/edition';
 import { useChatWorkspace } from './chat-workspace-context';
 
 interface ChatWorkspacePageShellProps {
@@ -51,14 +52,20 @@ export function ChatWorkspacePageShell({
         onCreateFollowUpTasks={handleCreateFollowUpTasks}
         showThreadSidebar={false}
         threadId={threadId}
-        onNavigateToBilling={() =>
-          router.push('/settings/organization/billing')
-        }
+        onNavigateToBilling={() => {
+          router.push(
+            isEEEnabled()
+              ? '/settings/organization/billing'
+              : '/settings/organization/api-keys',
+          );
+        }}
         onOAuthConnect={handleOAuthConnect}
         onOnboardingCompleted={completeOnboardingFlow}
         onSelectCreditPack={(pack) => {
           router.push(
-            `/settings/organization/billing?pack=${pack.label.toLowerCase()}`,
+            isEEEnabled()
+              ? `/settings/organization/billing?pack=${pack.label.toLowerCase()}`
+              : '/settings/organization/api-keys',
           );
         }}
       />

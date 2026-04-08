@@ -44,6 +44,7 @@ describe('loadProtectedBootstrap', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
+    delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
     process.env.CLERK_SECRET_KEY = 'sk_test';
     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test';
     delete process.env.PLAYWRIGHT_TEST;
@@ -93,6 +94,23 @@ describe('loadProtectedBootstrap', () => {
       settings: { organization: 'org_123' },
       streak: { currentStreak: 6 },
     });
+  });
+
+  it('still loads bootstrap in hybrid mode without an EE license key', async () => {
+    delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
+
+    const { getServerAuthToken, loadProtectedBootstrap } = await import(
+      '@app-server/protected-bootstrap.server'
+    );
+
+    await expect(getServerAuthToken()).resolves.toBe('token_123');
+    await expect(loadProtectedBootstrap()).resolves.toEqual(
+      expect.objectContaining({
+        brandId: 'brand_123',
+        organizationId: 'org_123',
+      }),
+    );
+    expect(getInstanceMock).toHaveBeenCalledWith('token_123');
   });
 
   it('skips server auth bootstrap in Playwright mode', async () => {

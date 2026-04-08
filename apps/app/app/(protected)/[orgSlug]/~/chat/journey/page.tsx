@@ -87,10 +87,10 @@ export default function ChatJourneyPage() {
             </p>
           </div>
           <Link
-            href="/chat/onboarding"
+            href="/onboarding/providers"
             className="inline-flex rounded-full border border-primary/30 px-4 py-2 text-sm font-medium text-primary hover:bg-primary/10"
           >
-            Back to onboarding chat
+            Back to onboarding
           </Link>
         </div>
 

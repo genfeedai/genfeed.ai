@@ -161,7 +161,7 @@ export default function ProactiveContent() {
               variant={ButtonVariant.DEFAULT}
               size={ButtonSize.SM}
               label="Continue self-serve"
-              onClick={() => router.push('/chat/onboarding')}
+              onClick={() => router.push('/onboarding/brand')}
             />
             <Button
               variant={ButtonVariant.GHOST}
@@ -224,8 +224,8 @@ export default function ProactiveContent() {
           <Button
             variant={ButtonVariant.DEFAULT}
             size={ButtonSize.SM}
-            label="Choose plan / pay now"
-            onClick={() => router.push('/onboarding/plan')}
+            label="Configure providers"
+            onClick={() => router.push('/onboarding/providers')}
           />
           <Button
             variant={ButtonVariant.GHOST}
@@ -239,7 +239,7 @@ export default function ProactiveContent() {
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}
             label="Continue self-serve"
-            onClick={() => router.push('/chat/onboarding')}
+            onClick={() => router.push('/onboarding/brand')}
           />
         </div>
       </Card>

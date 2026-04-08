@@ -2,9 +2,10 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
-import AppLink from '@ui/navigation/link/Link';
+import { Button } from '@ui/primitives/button';
 import PageLayout from '@web-components/PageLayout';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
   LuArrowRight,
   LuCpu,
@@ -146,13 +147,14 @@ export default function FeaturesPage(): React.ReactElement {
                   </div>
                 </div>
                 <div className="pt-8">
-                  <AppLink
-                    url="/demo"
-                    label="See How It Works"
+                  <Button
+                    asChild
                     variant={ButtonVariant.SECONDARY}
                     size={ButtonSize.PUBLIC}
                     className="tracking-[0.3em]"
-                  />
+                  >
+                    <Link href="/demo">See How It Works</Link>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -170,20 +172,22 @@ export default function FeaturesPage(): React.ReactElement {
                 Start creating in minutes. Choose the plan that fits your team.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <AppLink
-                  url="/pricing"
-                  label="View Plans"
+                <Button
+                  asChild
                   variant={ButtonVariant.SECONDARY}
                   size={ButtonSize.PUBLIC}
                   className="tracking-[0.3em]"
-                />
-                <AppLink
-                  url="/demo"
-                  label="See How It Works"
+                >
+                  <Link href="/pricing">View Plans</Link>
+                </Button>
+                <Button
+                  asChild
                   variant={ButtonVariant.GHOST}
                   size={ButtonSize.PUBLIC}
                   className="tracking-[0.3em]"
-                />
+                >
+                  <Link href="/demo">See How It Works</Link>
+                </Button>
               </div>
             </div>
           </div>

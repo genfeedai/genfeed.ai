@@ -20,8 +20,8 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
-import AppLink from '@ui/navigation/link/Link';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
+import { Button as PrimitiveButton } from '@ui/primitives/button';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
@@ -551,15 +551,21 @@ export default function ActivitiesList({ scope }: ActivitiesListProps) {
 
             if (postInfo?.url && postInfo?.platform) {
               return (
-                <AppLink
-                  url={postInfo.url}
-                  icon={getPlatformIcon(postInfo.platform, 'w-4 h-4')}
-                  label={<HiArrowTopRightOnSquare className="w-3 h-3" />}
+                <PrimitiveButton
+                  asChild
                   variant={ButtonVariant.GHOST}
                   size={ButtonSize.XS}
-                  target="_blank"
-                  onClick={(e) => e.stopPropagation()}
-                />
+                >
+                  <a
+                    href={postInfo.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {getPlatformIcon(postInfo.platform, 'w-4 h-4')}
+                    <HiArrowTopRightOnSquare className="w-3 h-3" />
+                  </a>
+                </PrimitiveButton>
               );
             }
           }

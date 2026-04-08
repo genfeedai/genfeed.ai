@@ -5,6 +5,7 @@ import { AgentApiService, AgentFullPage } from '@genfeedai/agent';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { useUserRole } from '@hooks/auth/use-user-role';
 import { useCallback, useMemo } from 'react';
+import { isEEEnabled } from '@/lib/config/edition';
 
 export interface AgentPageContentProps {
   authReady?: boolean;
@@ -32,13 +33,20 @@ export default function AgentPageContent({
     [getToken],
   );
   const handleNavigateToBilling = useCallback(() => {
-    window.open('/settings/organization/billing', '_self');
+    window.open(
+      isEEEnabled()
+        ? '/settings/organization/billing'
+        : '/settings/organization/api-keys',
+      '_self',
+    );
   }, []);
 
   const handleSelectCreditPack = useCallback(
     (pack: { label: string; price: string; credits: number }) => {
       window.open(
-        `/settings/organization/billing?pack=${pack.label.toLowerCase()}`,
+        isEEEnabled()
+          ? `/settings/organization/billing?pack=${pack.label.toLowerCase()}`
+          : '/settings/organization/api-keys',
         '_self',
       );
     },

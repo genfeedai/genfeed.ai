@@ -83,20 +83,6 @@ vi.mock('@ui/card/Card', () => ({
   }) => <div data-body-class={bodyClassName}>{children}</div>,
 }));
 
-vi.mock('@ui/navigation/link/Link', () => ({
-  default: ({
-    label,
-    url,
-  }: {
-    label: ReactNode;
-    url: string;
-    variant?: string;
-    size?: string;
-    icon?: ReactNode;
-    className?: string;
-  }) => <a href={url}>{label}</a>,
-}));
-
 vi.mock('@ui/display/badge/Badge', () => ({
   default: ({ children }: { children: ReactNode }) => <span>{children}</span>,
 }));

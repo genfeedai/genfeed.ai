@@ -85,12 +85,6 @@ vi.mock('@ui/layout/container/Container', () => ({
   ),
 }));
 
-vi.mock('@ui/navigation/link/Link', () => ({
-  default: ({ label, url }: { label?: string; url: string }) => (
-    <a href={url}>{label ?? url}</a>
-  ),
-}));
-
 vi.mock('next/navigation', () => ({
   usePathname: vi.fn(() => '/library/videos'),
   useRouter: vi.fn(() => ({

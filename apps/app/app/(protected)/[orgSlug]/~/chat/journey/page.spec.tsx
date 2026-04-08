@@ -80,8 +80,8 @@ describe('ChatJourneyPage', () => {
     expect(screen.getByText('Completed')).toBeInTheDocument();
     expect(screen.getByText('Recommended next')).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /back to onboarding chat/i }),
-    ).toHaveAttribute('href', '/chat/onboarding');
+      screen.getByRole('link', { name: /back to onboarding/i }),
+    ).toHaveAttribute('href', '/onboarding/providers');
   });
 
   it('shows a loading spinner while organization settings load', () => {

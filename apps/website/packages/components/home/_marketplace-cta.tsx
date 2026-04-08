@@ -1,11 +1,11 @@
 'use client';
 
-import { ButtonSize } from '@genfeedai/enums';
+import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { useDelayedVisibility } from '@hooks/ui/use-delayed-visibility';
 import { useIntersectionObserver } from '@hooks/ui/use-intersection-observer/use-intersection-observer';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HStack } from '@ui/layout/stack';
-import AppLink from '@ui/navigation/link/Link';
+import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import {
@@ -149,32 +149,38 @@ export default function MarketplaceCTA() {
           {/* Category pills */}
           <div className="flex flex-wrap justify-center gap-3 mb-12">
             {CATEGORY_PILLS.map((item) => (
-              <a
+              <Button
                 key={item.label}
-                href={`${EnvironmentService.apps.marketplace}/${item.path}`}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-card/50 border border-edge/[0.08] hover:border-edge/20 hover:bg-fill/5 transition-all"
+                asChild
+                size={ButtonSize.SM}
+                variant={ButtonVariant.SECONDARY}
               >
-                <item.icon className="h-4 w-4 text-surface" />
-                <Text className="text-xs font-bold uppercase tracking-wide">
-                  {item.label}
-                </Text>
-              </a>
+                <a href={`${EnvironmentService.apps.marketplace}/${item.path}`}>
+                  <item.icon className="h-4 w-4 text-surface" />
+                  <Text className="text-xs font-bold uppercase tracking-wide">
+                    {item.label}
+                  </Text>
+                </a>
+              </Button>
             ))}
           </div>
 
           <div className="flex justify-center">
-            <AppLink
-              url={EnvironmentService.apps.marketplace}
-              label={
-                <>
-                  Explore Marketplace
-                  <HiArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </>
-              }
+            <Button
+              asChild
               size={ButtonSize.PUBLIC}
-              target="_blank"
+              variant={ButtonVariant.SECONDARY}
               className="group"
-            />
+            >
+              <a
+                href={EnvironmentService.apps.marketplace}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Explore Marketplace
+                <HiArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </a>
+            </Button>
           </div>
         </div>
       </div>

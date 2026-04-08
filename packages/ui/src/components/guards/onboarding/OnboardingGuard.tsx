@@ -12,12 +12,12 @@ import { useEffect, useMemo } from 'react';
 /**
  * OnboardingGuard
  *
- * Consolidated guard that checks both onboarding completion AND subscription
- * status. Replaces the former OnboardingGuard + SubscriptionGuard chain.
+ * Consolidated guard that checks onboarding completion and, in EE mode only,
+ * keeps billing-era gating behavior.
  *
  * - If onboarding not completed → redirect to first incomplete step
- * - If onboarding completed but not subscribed (and not superAdmin)
- *   → redirect to /onboarding/plan
+ * - If onboarding completed but billing is required in EE mode and the org
+ *   still lacks subscription state → redirect to the final onboarding step
  * - Otherwise → pass through
  */
 export default function OnboardingGuard({ children }: OnboardingGuardProps) {
@@ -38,7 +38,8 @@ export default function OnboardingGuard({ children }: OnboardingGuardProps) {
   } = useAccessState();
   const router = useRouter();
   const pathname = usePathname();
-  const isAgentOnboardingRoute = pathname.startsWith('/chat/onboarding');
+  const isOnboardingRoute = pathname.startsWith('/onboarding');
+  const isBillingEnabled = Boolean(process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY);
 
   const redirectTarget = useMemo(() => {
     if (!effectiveIsAuthLoaded) {
@@ -54,12 +55,8 @@ export default function OnboardingGuard({ children }: OnboardingGuardProps) {
     }
 
     if (needsOnboarding) {
-      if (isAgentOnboardingRoute) {
+      if (isOnboardingRoute) {
         return null;
-      }
-
-      if (hasPaygCredits) {
-        return '/chat/onboarding';
       }
 
       if (isSuperAdmin || isSubscribed || isByok) {
@@ -72,15 +69,21 @@ export default function OnboardingGuard({ children }: OnboardingGuardProps) {
       );
 
       if (hasCompletedAllOnboardingSteps) {
-        return '/onboarding/plan';
+        return '/onboarding/providers';
       }
 
       const resumeStep = getResumeStep(currentUser.onboardingStepsCompleted);
       return `/onboarding/${resumeStep}`;
     }
 
-    if (!isSuperAdmin && !isSubscribed && !isByok) {
-      return '/onboarding/plan';
+    if (
+      isBillingEnabled &&
+      !isSuperAdmin &&
+      !isSubscribed &&
+      !isByok &&
+      !hasPaygCredits
+    ) {
+      return '/onboarding/providers';
     }
 
     return null;
@@ -91,8 +94,9 @@ export default function OnboardingGuard({ children }: OnboardingGuardProps) {
     effectiveIsSignedIn,
     hasPaygCredits,
     isAccessStateLoading,
-    isAgentOnboardingRoute,
+    isBillingEnabled,
     isByok,
+    isOnboardingRoute,
     isSubscribed,
     isSuperAdmin,
     isUserLoading,

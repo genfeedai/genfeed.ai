@@ -65,6 +65,32 @@ export interface ProactiveWorkspaceResponse {
   claimedAt?: string;
 }
 
+export interface InstallReadinessResponse {
+  authMode: 'clerk' | 'none';
+  billingMode: 'cloud_billing' | 'oss_local';
+  providers: {
+    anyConfigured: boolean;
+    configured: string[];
+    fal: boolean;
+    imageGenerationReady: boolean;
+    openai: boolean;
+    replicate: boolean;
+    textGenerationReady: boolean;
+  };
+  ui: {
+    showBilling: boolean;
+    showCloudUpgradeCta: boolean;
+    showCredits: boolean;
+    showPricing: boolean;
+  };
+  workspace: {
+    brandId: string | null;
+    hasBrand: boolean;
+    hasOrganization: boolean;
+    organizationId: string | null;
+  };
+}
+
 /**
  * OnboardingService
  *
@@ -88,10 +114,14 @@ export class OnboardingService extends HTTPBaseService {
    * Get singleton instance per token
    */
   public static getInstance(token: string): OnboardingService {
-    if (!OnboardingService.instanceMap.has(token)) {
-      OnboardingService.instanceMap.set(token, new OnboardingService(token));
+    const existing = OnboardingService.instanceMap.get(token);
+    if (existing) {
+      return existing;
     }
-    return OnboardingService.instanceMap.get(token)!;
+
+    const instance = new OnboardingService(token);
+    OnboardingService.instanceMap.set(token, instance);
+    return instance;
   }
 
   /**
@@ -105,6 +135,18 @@ export class OnboardingService extends HTTPBaseService {
       return response.data;
     } catch (error) {
       logger.error('GET /status failed', error);
+      throw error;
+    }
+  }
+
+  async getInstallReadiness(): Promise<InstallReadinessResponse> {
+    try {
+      const response =
+        await this.instance.get<InstallReadinessResponse>('install-readiness');
+      logger.info('GET /install-readiness success', response.data);
+      return response.data;
+    } catch (error) {
+      logger.error('GET /install-readiness failed', error);
       throw error;
     }
   }

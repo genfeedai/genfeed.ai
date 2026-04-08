@@ -24,8 +24,9 @@ import { NotificationsService } from '@services/core/notifications.service';
 import Button from '@ui/buttons/base/Button';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
-import AppLink from '@ui/navigation/link/Link';
+import { Button as PrimitiveButton } from '@ui/primitives/button';
 import { formatDistanceToNow } from 'date-fns';
+import Link from 'next/link';
 import { useCallback, useMemo } from 'react';
 import {
   HiOutlinePlayCircle,
@@ -62,13 +63,14 @@ function SummaryCard({ accent, href, label, tone, value }: SummaryCardProps) {
       </div>
       {href ? (
         <div className="pt-2">
-          <AppLink
-            className="text-xs tracking-[0.12em]"
-            label="Open"
-            size={ButtonSize.SM}
-            url={href}
+          <PrimitiveButton
+            asChild
             variant={ButtonVariant.SECONDARY}
-          />
+            size={ButtonSize.SM}
+            className="text-xs tracking-[0.12em]"
+          >
+            <Link href={href}>Open</Link>
+          </PrimitiveButton>
         </div>
       ) : null}
     </Card>
@@ -148,13 +150,14 @@ function TeamMemberCard({
           size={ButtonSize.SM}
           variant={ButtonVariant.SECONDARY}
         />
-        <AppLink
-          className="ml-auto text-xs tracking-[0.12em]"
-          label="Open Detail"
-          size={ButtonSize.SM}
-          url={`/orchestration/${strategy.id}`}
+        <PrimitiveButton
+          asChild
           variant={ButtonVariant.SECONDARY}
-        />
+          size={ButtonSize.SM}
+          className="ml-auto text-xs tracking-[0.12em]"
+        >
+          <Link href={`/orchestration/${strategy.id}`}>Open Detail</Link>
+        </PrimitiveButton>
       </div>
     </Card>
   );
@@ -249,11 +252,9 @@ export default function ContentTeamPage() {
     return strategies.reduce<Record<string, AgentStrategy[]>>(
       (groups, strategy) => {
         const key = strategy.teamGroup || 'Independent';
-        const current = groups[key] ?? [];
-        return {
-          ...groups,
-          [key]: [...current, strategy],
-        };
+        groups[key] ??= [];
+        groups[key].push(strategy);
+        return groups;
       },
       {},
     );
@@ -391,26 +392,24 @@ export default function ContentTeamPage() {
       label="Content Team"
       right={
         <div className="flex flex-wrap gap-2">
-          <AppLink
-            label={
-              <>
-                <HiPlus /> Hire Agent
-              </>
-            }
-            size={ButtonSize.SM}
-            url="/orchestration/hire"
+          <PrimitiveButton
+            asChild
             variant={ButtonVariant.SECONDARY}
-          />
-          <AppLink
-            label={
-              <>
-                <HiOutlineRectangleGroup /> Launch Orchestrator
-              </>
-            }
             size={ButtonSize.SM}
-            url="/orchestration/orchestrator"
+          >
+            <Link href="/orchestration/hire">
+              <HiPlus /> Hire Agent
+            </Link>
+          </PrimitiveButton>
+          <PrimitiveButton
+            asChild
             variant={ButtonVariant.DEFAULT}
-          />
+            size={ButtonSize.SM}
+          >
+            <Link href="/orchestration/orchestrator">
+              <HiOutlineRectangleGroup /> Launch Orchestrator
+            </Link>
+          </PrimitiveButton>
         </div>
       }
     >
@@ -441,12 +440,13 @@ export default function ContentTeamPage() {
               Hire and manage role-specific agents grouped by function.
             </p>
           </div>
-          <AppLink
-            label="Hire Agent"
-            size={ButtonSize.SM}
-            url="/orchestration/hire"
+          <PrimitiveButton
+            asChild
             variant={ButtonVariant.SECONDARY}
-          />
+            size={ButtonSize.SM}
+          >
+            <Link href="/orchestration/hire">Hire Agent</Link>
+          </PrimitiveButton>
         </div>
 
         {isStrategiesLoading ? (
@@ -466,12 +466,13 @@ export default function ContentTeamPage() {
             iconWrapperClassName="bg-cyan-500/12 text-cyan-300"
             label="No team members yet"
           >
-            <AppLink
-              label="Hire Your First Agent"
-              size={ButtonSize.SM}
-              url="/orchestration/hire"
+            <PrimitiveButton
+              asChild
               variant={ButtonVariant.DEFAULT}
-            />
+              size={ButtonSize.SM}
+            >
+              <Link href="/orchestration/hire">Hire Your First Agent</Link>
+            </PrimitiveButton>
           </Card>
         ) : (
           <div className="space-y-8">
@@ -515,12 +516,13 @@ export default function ContentTeamPage() {
               around one objective.
             </p>
           </div>
-          <AppLink
-            label="Launch Orchestrator"
-            size={ButtonSize.SM}
-            url="/orchestration/orchestrator"
+          <PrimitiveButton
+            asChild
             variant={ButtonVariant.SECONDARY}
-          />
+            size={ButtonSize.SM}
+          >
+            <Link href="/orchestration/orchestrator">Launch Orchestrator</Link>
+          </PrimitiveButton>
         </div>
 
         {isCampaignsLoading ? (
@@ -540,12 +542,15 @@ export default function ContentTeamPage() {
             iconWrapperClassName="bg-indigo-500/12 text-indigo-300"
             label="No orchestrators launched yet"
           >
-            <AppLink
-              label="Set Up Campaign Lead"
-              size={ButtonSize.SM}
-              url="/orchestration/orchestrator"
+            <PrimitiveButton
+              asChild
               variant={ButtonVariant.DEFAULT}
-            />
+              size={ButtonSize.SM}
+            >
+              <Link href="/orchestration/orchestrator">
+                Set Up Campaign Lead
+              </Link>
+            </PrimitiveButton>
           </Card>
         ) : (
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
@@ -592,18 +597,22 @@ export default function ContentTeamPage() {
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.08] pt-4">
-                  <AppLink
-                    label="Open Campaigns"
-                    size={ButtonSize.SM}
-                    url="/orchestration/campaigns"
+                  <PrimitiveButton
+                    asChild
                     variant={ButtonVariant.SECONDARY}
-                  />
-                  <AppLink
-                    label="Adjust Orchestrator"
                     size={ButtonSize.SM}
-                    url="/orchestration/orchestrator"
+                  >
+                    <Link href="/orchestration/campaigns">Open Campaigns</Link>
+                  </PrimitiveButton>
+                  <PrimitiveButton
+                    asChild
                     variant={ButtonVariant.SECONDARY}
-                  />
+                    size={ButtonSize.SM}
+                  >
+                    <Link href="/orchestration/orchestrator">
+                      Adjust Orchestrator
+                    </Link>
+                  </PrimitiveButton>
                 </div>
               </Card>
             ))}

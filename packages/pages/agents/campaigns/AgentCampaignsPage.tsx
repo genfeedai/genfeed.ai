@@ -9,8 +9,9 @@ import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
-import AppLink from '@ui/navigation/link/Link';
+import { Button } from '@ui/primitives/button';
 import { format, formatDistanceToNow } from 'date-fns';
+import Link from 'next/link';
 import { useMemo } from 'react';
 import {
   HiOutlineArrowRight,
@@ -189,14 +190,19 @@ function CampaignCard({ campaign }: { campaign: AgentCampaign }) {
             </div>
           </div>
         </div>
-        <AppLink
-          url={`/orchestration/campaigns/${campaign.id}`}
+        <Button
+          asChild
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
-          icon={<HiOutlineArrowRight className="h-3.5 w-3.5" />}
-          label=""
-          className="opacity-0 group-hover:opacity-100 transition-opacity"
-        />
+          className="opacity-0 transition-opacity group-hover:opacity-100"
+        >
+          <Link
+            href={`/orchestration/campaigns/${campaign.id}`}
+            aria-label={`Open ${campaign.label}`}
+          >
+            <HiOutlineArrowRight className="h-3.5 w-3.5" />
+          </Link>
+        </Button>
       </div>
 
       {campaign.brief && (
@@ -251,12 +257,13 @@ function ActiveCampaignCards({ campaigns }: { campaigns: AgentCampaign[] }) {
           Active Campaigns
         </h2>
         {campaigns.filter((c) => c.status === 'active').length > 3 && (
-          <AppLink
-            url="/orchestration/campaigns"
+          <Button
+            asChild
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.XS}
-            label="View All"
-          />
+          >
+            <Link href="/orchestration/campaigns">View All</Link>
+          </Button>
         )}
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -378,16 +385,11 @@ export default function AgentCampaignsPage() {
       description="Coordinated multi-agent content production."
       icon={HiOutlineRectangleGroup}
       right={
-        <AppLink
-          url="/orchestration/campaigns/new"
-          variant={ButtonVariant.DEFAULT}
-          size={ButtonSize.SM}
-          label={
-            <>
-              <HiPlus /> New Campaign
-            </>
-          }
-        />
+        <Button asChild variant={ButtonVariant.DEFAULT} size={ButtonSize.SM}>
+          <Link href="/orchestration/campaigns/new">
+            <HiPlus /> New Campaign
+          </Link>
+        </Button>
       }
     >
       {isLoading ? (
@@ -427,16 +429,11 @@ export default function AgentCampaignsPage() {
               production.
             </p>
           </div>
-          <AppLink
-            url="/orchestration/campaigns/new"
-            variant={ButtonVariant.DEFAULT}
-            size={ButtonSize.SM}
-            label={
-              <>
-                <HiPlus /> New Campaign
-              </>
-            }
-          />
+          <Button asChild variant={ButtonVariant.DEFAULT} size={ButtonSize.SM}>
+            <Link href="/orchestration/campaigns/new">
+              <HiPlus /> New Campaign
+            </Link>
+          </Button>
         </div>
       )}
     </Container>

@@ -20,6 +20,7 @@ import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
 import type { User } from '@clerk/backend';
+import { isEEEnabled } from '@genfeedai/config';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { FileInputType, type OrganizationCategory } from '@genfeedai/enums';
 import type {
@@ -46,6 +47,32 @@ export interface BrandSetupResponse {
   brandId: string;
   extractedData: IExtractedBrandData;
   message?: string;
+}
+
+export interface InstallReadinessResponse {
+  authMode: 'clerk' | 'none';
+  billingMode: 'cloud_billing' | 'oss_local';
+  providers: {
+    anyConfigured: boolean;
+    configured: string[];
+    fal: boolean;
+    imageGenerationReady: boolean;
+    openai: boolean;
+    replicate: boolean;
+    textGenerationReady: boolean;
+  };
+  ui: {
+    showBilling: boolean;
+    showCloudUpgradeCta: boolean;
+    showCredits: boolean;
+    showPricing: boolean;
+  };
+  workspace: {
+    brandId: string | null;
+    hasBrand: boolean;
+    hasOrganization: boolean;
+    organizationId: string | null;
+  };
 }
 
 /**
@@ -78,6 +105,31 @@ export class OnboardingService {
     private readonly requestContextCacheService: RequestContextCacheService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
   ) {}
+
+  private isConfigured(value: unknown): boolean {
+    return typeof value === 'string' && value.trim().length > 0;
+  }
+
+  private getProviderReadiness() {
+    const replicate = this.isConfigured(process.env.REPLICATE_KEY);
+    const fal = this.isConfigured(process.env.FAL_API_KEY);
+    const openai = this.isConfigured(process.env.OPENAI_API_KEY);
+    const configured = [
+      replicate ? 'replicate' : null,
+      fal ? 'fal' : null,
+      openai ? 'openai' : null,
+    ].filter((value): value is string => value !== null);
+
+    return {
+      anyConfigured: configured.length > 0,
+      configured,
+      fal,
+      imageGenerationReady: fal || replicate,
+      openai,
+      replicate,
+      textGenerationReady: openai,
+    };
+  }
 
   /**
    * Main onboarding flow: scrape, analyze, and setup brand
@@ -479,6 +531,53 @@ export class OnboardingService {
     };
   }
 
+  async getInstallReadiness(user: User): Promise<InstallReadinessResponse> {
+    const publicMetadata = getPublicMetadata(user);
+    const organizationId = publicMetadata.organization?.toString() ?? null;
+    const brandId = publicMetadata.brand?.toString() ?? null;
+    const providers = this.getProviderReadiness();
+    const showBillingUi = isEEEnabled();
+
+    let hasOrganization = false;
+    let hasBrand = false;
+
+    if (organizationId && Types.ObjectId.isValid(organizationId)) {
+      const organization = await this.organizationsService.findOne({
+        _id: new Types.ObjectId(organizationId),
+        isDeleted: false,
+      });
+
+      hasOrganization = !!organization;
+
+      if (organization) {
+        const brand = await this.brandsService.findOne({
+          isDeleted: false,
+          organization: organization._id,
+        });
+
+        hasBrand = !!brand;
+      }
+    }
+
+    return {
+      authMode: user.id ? 'clerk' : 'none',
+      billingMode: showBillingUi ? 'cloud_billing' : 'oss_local',
+      providers,
+      ui: {
+        showBilling: showBillingUi,
+        showCloudUpgradeCta: !showBillingUi,
+        showCredits: showBillingUi,
+        showPricing: showBillingUi,
+      },
+      workspace: {
+        brandId,
+        hasBrand,
+        hasOrganization,
+        organizationId,
+      },
+    };
+  }
+
   /**
    * Set the organization's account type and update Clerk metadata
    */
@@ -555,7 +654,7 @@ export class OnboardingService {
         await this.usersService.patch(dbUser._id, {
           isOnboardingCompleted: true,
           onboardingCompletedAt: new Date(),
-          onboardingStepsCompleted: ['brand', 'plan'],
+          onboardingStepsCompleted: ['brand', 'providers'],
         });
       }
 

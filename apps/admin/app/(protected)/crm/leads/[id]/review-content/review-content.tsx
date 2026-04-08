@@ -9,8 +9,18 @@ import { AdminCrmService } from '@services/admin/crm.service';
 import { logger } from '@services/core/logger.service';
 import Badge from '@ui/display/badge/Badge';
 import Container from '@ui/layout/container/Container';
-import AppLink from '@ui/navigation/link/Link';
+import { Button } from '@ui/primitives/button';
+import Link from 'next/link';
 import { HiArrowLeft } from 'react-icons/hi2';
+
+const REVIEW_CONTENT_SKELETON_KEYS = [
+  'review-content-skeleton-1',
+  'review-content-skeleton-2',
+  'review-content-skeleton-3',
+  'review-content-skeleton-4',
+  'review-content-skeleton-5',
+  'review-content-skeleton-6',
+] as const;
 
 const STATUS_COLORS: Record<string, string> = {
   draft: 'default',
@@ -69,11 +79,8 @@ export default function ReviewContent({ id }: { id: string }) {
         <div className="animate-pulse space-y-4">
           <div className="h-6 bg-white/5 rounded w-1/4" />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={`skeleton-${i}`}
-                className="h-48 bg-white/5 rounded-lg"
-              />
+            {REVIEW_CONTENT_SKELETON_KEYS.map((key) => (
+              <div key={key} className="h-48 bg-white/5 rounded-lg" />
             ))}
           </div>
         </div>
@@ -87,15 +94,11 @@ export default function ReviewContent({ id }: { id: string }) {
       description="Generated posts for proactive onboarding review"
     >
       <div className="mb-4">
-        <AppLink
-          url={`/crm/leads/${id}`}
-          label={
-            <>
-              <HiArrowLeft className="w-4 h-4" /> Back to Lead
-            </>
-          }
-          variant={ButtonVariant.SECONDARY}
-        />
+        <Button asChild variant={ButtonVariant.SECONDARY}>
+          <Link href={`/crm/leads/${id}`}>
+            <HiArrowLeft className="w-4 h-4" /> Back to Lead
+          </Link>
+        </Button>
       </div>
 
       {posts.length === 0 ? (

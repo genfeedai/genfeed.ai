@@ -13,8 +13,9 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
-import AppLink from '@ui/navigation/link/Link';
+import { Button as PrimitiveButton } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
+import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const POLL_INTERVAL_MS = 5000;
@@ -346,11 +347,11 @@ export default function ProactiveOnboardingCard({
             </div>
           )}
           <div className="flex gap-2 pt-2 border-t border-white/[0.08]">
-            <AppLink
-              url={`/crm/leads/${lead.id}/review-content`}
-              label="Review Content"
-              variant={ButtonVariant.SECONDARY}
-            />
+            <PrimitiveButton asChild variant={ButtonVariant.SECONDARY}>
+              <Link href={`/crm/leads/${lead.id}/review-content`}>
+                Review Content
+              </Link>
+            </PrimitiveButton>
             {lead.email && (
               <Button
                 label={isSubmitting ? 'Sending...' : 'Send Invitation'}
@@ -400,11 +401,11 @@ export default function ProactiveOnboardingCard({
             The lead has claimed the prepared workspace and is moving through
             payment or self-serve onboarding.
           </div>
-          <AppLink
-            url={`/crm/leads/${lead.id}/review-content`}
-            label="Review Prepared Content"
-            variant={ButtonVariant.SECONDARY}
-          />
+          <PrimitiveButton asChild variant={ButtonVariant.SECONDARY}>
+            <Link href={`/crm/leads/${lead.id}/review-content`}>
+              Review Prepared Content
+            </Link>
+          </PrimitiveButton>
         </div>
       )}
 

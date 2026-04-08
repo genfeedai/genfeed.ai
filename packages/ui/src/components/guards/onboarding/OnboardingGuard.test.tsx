@@ -48,7 +48,7 @@ describe('OnboardingGuard', () => {
     });
   });
 
-  it('should redirect payg users with credits to chat onboarding', async () => {
+  it('should redirect incomplete users to the first onboarding step', async () => {
     useCurrentUserMock.mockReturnValue({
       currentUser: {
         isOnboardingCompleted: false,
@@ -83,12 +83,12 @@ describe('OnboardingGuard', () => {
     );
 
     await waitFor(() => {
-      expect(replaceMock).toHaveBeenCalledWith('/chat/onboarding');
+      expect(replaceMock).toHaveBeenCalledWith('/onboarding/brand');
     });
   });
 
-  it('should allow onboarding chat route without credits', async () => {
-    pathnameMock.mockReturnValue('/chat/onboarding');
+  it('should allow onboarding routes without redirect loops', async () => {
+    pathnameMock.mockReturnValue('/onboarding/brand');
 
     useCurrentUserMock.mockReturnValue({
       currentUser: {
@@ -130,11 +130,11 @@ describe('OnboardingGuard', () => {
     expect(await screen.findByText('Child')).toBeInTheDocument();
   });
 
-  it('should redirect to onboarding plan when all onboarding steps are completed but completion flag is stale', async () => {
+  it('should redirect to onboarding providers when all onboarding steps are completed but completion flag is stale', async () => {
     useCurrentUserMock.mockReturnValue({
       currentUser: {
         isOnboardingCompleted: false,
-        onboardingStepsCompleted: ['brand', 'plan'],
+        onboardingStepsCompleted: ['brand', 'providers'],
       },
       isLoading: false,
     });
@@ -165,7 +165,7 @@ describe('OnboardingGuard', () => {
     );
 
     await waitFor(() => {
-      expect(replaceMock).toHaveBeenCalledWith('/onboarding/plan');
+      expect(replaceMock).toHaveBeenCalledWith('/onboarding/providers');
     });
   });
 
@@ -203,7 +203,7 @@ describe('OnboardingGuard', () => {
     useCurrentUserMock.mockReturnValue({
       currentUser: {
         isOnboardingCompleted: true,
-        onboardingStepsCompleted: ['brand', 'plan'],
+        onboardingStepsCompleted: ['brand', 'providers'],
       },
       isLoading: false,
     });

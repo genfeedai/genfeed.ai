@@ -9,15 +9,15 @@ import {
 
 describe('onboarding.constant', () => {
   describe('ONBOARDING_STEPS', () => {
-    it('has brand and plan in order', () => {
-      expect(ONBOARDING_STEPS).toEqual(['brand', 'plan']);
+    it('has brand and providers in order', () => {
+      expect(ONBOARDING_STEPS).toEqual(['brand', 'providers']);
     });
   });
 
   describe('ONBOARDING_STEP_LABELS', () => {
     it('maps steps to display labels', () => {
       expect(ONBOARDING_STEP_LABELS.brand).toBe('Brand');
-      expect(ONBOARDING_STEP_LABELS.plan).toBe('Plan');
+      expect(ONBOARDING_STEP_LABELS.providers).toBe('Providers');
     });
   });
 
@@ -30,12 +30,12 @@ describe('onboarding.constant', () => {
       expect(getResumeStep([])).toBe('brand');
     });
 
-    it('returns "plan" when brand is completed', () => {
-      expect(getResumeStep(['brand'])).toBe('plan');
+    it('returns "providers" when brand is completed', () => {
+      expect(getResumeStep(['brand'])).toBe('providers');
     });
 
-    it('returns "plan" when all steps completed', () => {
-      expect(getResumeStep(['brand', 'plan'])).toBe('plan');
+    it('returns "providers" when all steps completed', () => {
+      expect(getResumeStep(['brand', 'providers'])).toBe('providers');
     });
 
     it('returns first incomplete step in order', () => {

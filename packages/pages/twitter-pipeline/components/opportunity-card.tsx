@@ -6,7 +6,7 @@ import type {
   ITwitterPublishResult,
 } from '@genfeedai/interfaces';
 import Button from '@ui/buttons/base/Button';
-import AppLink from '@ui/navigation/link/Link';
+import { Button as PrimitiveButton } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import { useCallback, useState } from 'react';
 import {
@@ -85,13 +85,16 @@ export default function OpportunityCard({
           </span>
         </div>
         {publishResult.tweetUrl && (
-          <AppLink
-            url={publishResult.tweetUrl}
-            icon={<HiArrowTopRightOnSquare className="w-4 h-4" />}
-            label="View tweet"
-            variant={ButtonVariant.LINK}
-            target="_blank"
-          />
+          <PrimitiveButton asChild variant={ButtonVariant.LINK}>
+            <a
+              href={publishResult.tweetUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <HiArrowTopRightOnSquare className="w-4 h-4" />
+              View tweet
+            </a>
+          </PrimitiveButton>
         )}
       </div>
     );
