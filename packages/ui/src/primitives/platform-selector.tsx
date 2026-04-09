@@ -1,26 +1,83 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
-import type { PlatformSelectorProps } from '@props/forms/platform-selector.props';
-import { Button } from '@ui/primitives/button';
+import type { ICredential } from '@genfeedai/interfaces';
+import type { ComponentType, ReactElement } from 'react';
+import {
+  FaFacebook,
+  FaInstagram,
+  FaLinkedin,
+  FaStar,
+  FaTiktok,
+  FaXTwitter,
+  FaYoutube,
+} from 'react-icons/fa6';
+import { cn } from '../lib/utils';
+import { Button } from './button';
 
-/**
- * PlatformSelector - Radio group with platform icons
- *
- * Visual radio selector showing platform icons with handles.
- * User can select one platform account (single selection).
- *
- * @example
- * ```tsx
- * <PlatformSelector
- *   credentials={credentials}
- *   selectedCredentialId={selectedId}
- *   onSelect={(id) => setSelectedId(id)}
- * />
- * ```
- */
+type IconComponent = ComponentType<{ className?: string }>;
+
+interface PlatformIconConfig {
+  Icon: IconComponent;
+  colorClass: string;
+}
+
+const PLATFORM_ICONS: Record<string, PlatformIconConfig> = {
+  facebook: {
+    colorClass: 'text-blue-600',
+    Icon: FaFacebook,
+  },
+  fanvue: {
+    colorClass: 'text-violet-500',
+    Icon: FaStar,
+  },
+  instagram: {
+    colorClass: 'text-pink-500',
+    Icon: FaInstagram,
+  },
+  linkedin: {
+    colorClass: 'text-blue-700',
+    Icon: FaLinkedin,
+  },
+  tiktok: {
+    colorClass: 'text-foreground',
+    Icon: FaTiktok,
+  },
+  twitter: {
+    colorClass: 'text-foreground',
+    Icon: FaXTwitter,
+  },
+  x: {
+    colorClass: 'text-foreground',
+    Icon: FaXTwitter,
+  },
+  youtube: {
+    colorClass: 'text-red-500',
+    Icon: FaYoutube,
+  },
+};
+
+function getPlatformIcon(
+  platform: string,
+  className: string = 'w-4 h-4',
+): ReactElement | null {
+  const config = PLATFORM_ICONS[platform?.toLowerCase()];
+  if (!config) {
+    return null;
+  }
+
+  const { Icon, colorClass } = config;
+  return <Icon className={`${className} ${colorClass}`} />;
+}
+
+export interface PlatformSelectorProps {
+  credentials: ICredential[];
+  selectedCredentialId: string;
+  onSelect: (credentialId: string) => void;
+  isDisabled?: boolean;
+  className?: string;
+}
+
 export default function PlatformSelector({
   credentials,
   selectedCredentialId,
@@ -65,10 +122,7 @@ export default function PlatformSelector({
               !isDisabled && 'cursor-pointer',
             )}
           >
-            {/* Platform Icon */}
             <div className="flex-shrink-0">{platformIcon}</div>
-
-            {/* Handle/Label */}
             {displayLabel && (
               <div className="text-sm text-foreground/70 truncate max-w-32">
                 {displayLabel}

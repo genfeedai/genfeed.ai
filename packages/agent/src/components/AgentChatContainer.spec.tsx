@@ -195,7 +195,7 @@ vi.mock('@genfeedai/agent/components/AgentChatMessage', () => ({
             <button
               key={cta.label}
               type="button"
-              onClick={() => props.onUiAction?.(cta.action!, cta.payload)}
+              onClick={() => props.onUiAction?.(cta.action, cta.payload)}
             >
               {cta.label}
             </button>
@@ -757,9 +757,15 @@ describe('AgentChatContainer', () => {
 
     render(<AgentChatContainer apiService={apiService as never} />);
 
-    fireEvent.click(
-      screen.getAllByRole('button', { name: 'Retry message' })[0]!,
-    );
+    const retryButton = screen.getAllByRole('button', {
+      name: 'Retry message',
+    })[0];
+
+    if (!retryButton) {
+      throw new Error('Retry message button not found');
+    }
+
+    fireEvent.click(retryButton);
 
     await waitFor(() => {
       expect(sendNonStreaming).toHaveBeenCalledWith('Original prompt');

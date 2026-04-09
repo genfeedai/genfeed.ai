@@ -1,25 +1,31 @@
-import type { FormDropzoneProps } from '@props/forms/form.props';
-import FormControl from '@ui/primitives/field';
 import { useDropzone } from 'react-dropzone';
+import Field from './field';
 
-export default function FormDropzone({
+export interface DropzoneFieldProps {
+  label?: string;
+  file?: File | null;
+  onDrop: (file: File) => void;
+}
+
+export default function DropzoneField({
   label,
   file,
   onDrop,
-}: FormDropzoneProps) {
+}: DropzoneFieldProps) {
   const { getRootProps, getInputProps } = useDropzone({
     accept: { 'image/*': ['.jpg', '.jpeg', '.png'] },
     maxFiles: 1,
     multiple: false,
-    onDrop: (accepted) => {
-      if (accepted && accepted.length > 0) {
-        onDrop(accepted[0]);
+    onDrop: (acceptedFiles) => {
+      const [acceptedFile] = acceptedFiles;
+      if (acceptedFile) {
+        onDrop(acceptedFile);
       }
     },
   });
 
   return (
-    <FormControl label={label}>
+    <Field label={label}>
       <div
         {...getRootProps({
           className: `file-uploader !max-w-full bg-primary/10 border-primary/10
@@ -33,6 +39,6 @@ export default function FormDropzone({
           <p>Drop files here or click to upload</p>
         )}
       </div>
-    </FormControl>
+    </Field>
   );
 }

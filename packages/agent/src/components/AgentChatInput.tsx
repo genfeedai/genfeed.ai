@@ -199,7 +199,6 @@ function buildMentionSuggestion<T>({
             )?.onKeyDown(props) ?? false
           );
         },
-        // biome-ignore lint/suspicious/noExplicitAny: tiptap SuggestionProps type is complex
         onStart: (props: any) => {
           reactRenderer = new ReactRenderer(
             component as ComponentType<Record<string, unknown>>,
@@ -218,7 +217,6 @@ function buildMentionSuggestion<T>({
             trigger: 'manual',
           });
         },
-        // biome-ignore lint/suspicious/noExplicitAny: tiptap SuggestionProps type is complex
         onUpdate: (props: any) => {
           reactRenderer.updateProps(props);
           if (popup[0]) {

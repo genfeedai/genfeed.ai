@@ -37,6 +37,10 @@ export { Checkbox } from './checkbox';
 export { Code, type CodeProps, codeVariants } from './code';
 export { ColorInput, type ColorInputProps } from './color-input';
 export {
+  type ColorPickerProps,
+  default as ColorPicker,
+} from './color-picker';
+export {
   Command,
   CommandDialog,
   CommandEmpty,
@@ -51,6 +55,10 @@ export {
   type DateRangePickerProps,
   default as DateRangePicker,
 } from './date-range-picker';
+export {
+  type DateTimePickerProps,
+  default as DateTimePicker,
+} from './date-time-picker';
 export {
   type DatepickerProps,
   default as Datepicker,
@@ -98,6 +106,14 @@ export {
   default as DropdownField,
 } from './dropdown-field';
 export {
+  type DropzoneFieldProps,
+  default as DropzoneField,
+} from './dropzone-field';
+export {
+  default as EditableInput,
+  type EditableInputProps,
+} from './editable-input';
+export {
   default as Field,
   type FieldElementProps,
   type FieldProps,
@@ -120,6 +136,10 @@ export {
   PaginationNext,
   PaginationPrevious,
 } from './pagination';
+export {
+  default as PlatformSelector,
+  type PlatformSelectorProps,
+} from './platform-selector';
 export {
   Popover,
   PopoverContent,
@@ -170,6 +190,10 @@ export {
   TableRow,
 } from './table';
 export { Tabs, TabsContent, TabsList, TabsTrigger } from './tabs';
+export {
+  default as TagsEditable,
+  type TagsEditableProps,
+} from './tags-editable';
 export { Textarea, type TextareaProps } from './textarea';
 export { Toggle, toggleVariants } from './toggle';
 export { ToggleGroup, ToggleGroupItem } from './toggle-group';

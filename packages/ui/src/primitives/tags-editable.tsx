@@ -1,24 +1,33 @@
 import { ButtonVariant } from '@genfeedai/enums';
-import type { FormTagsEditableProps } from '@props/forms/form.props';
-import Badge from '@ui/display/badge/Badge';
-import { Button } from '@ui/primitives/button';
 import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { HiCheck, HiPencil, HiPlus, HiXMark } from 'react-icons/hi2';
+import { Badge } from './badge';
+import { Button } from './button';
 
-export default function FormTagsEditable({
+export interface TagsEditableProps {
+  label: string;
+  value?: string[];
+  placeholder?: string;
+  onSave?: (tags: string[]) => void;
+  isDisabled?: boolean;
+  maxTags?: number;
+  className?: string;
+}
+
+export default function TagsEditable({
   label,
   value = [],
   placeholder = 'Add a tag...',
   onSave,
   isDisabled = false,
   maxTags = 10,
-}: FormTagsEditableProps) {
+  className = '',
+}: TagsEditableProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [tags, setTags] = useState<string[]>(value);
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Focus input when editing starts
   useEffect(() => {
     if (isEditing) {
       const timeoutId = setTimeout(() => {
@@ -27,10 +36,6 @@ export default function FormTagsEditable({
       return () => clearTimeout(timeoutId);
     }
   }, [isEditing]);
-
-  const handleEdit = () => {
-    setIsEditing(true);
-  };
 
   const handleSave = () => {
     if (onSave && JSON.stringify(tags) !== JSON.stringify(value)) {
@@ -58,24 +63,24 @@ export default function FormTagsEditable({
     setTags(tags.filter((tag) => tag !== tagToRemove));
   };
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
       handleAddTag();
-    } else if (e.key === 'Escape') {
+    } else if (event.key === 'Escape') {
       handleCancel();
     }
   };
 
   return (
-    <div className="space-y-2">
+    <div className={`space-y-2 ${className}`}>
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">{label}</span>
         {!isEditing && !isDisabled && (
           <Button
             withWrapper={false}
             variant={ButtonVariant.UNSTYLED}
-            onClick={handleEdit}
+            onClick={() => setIsEditing(true)}
             className="h-6 px-2 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground"
             ariaLabel="Edit tags"
           >
@@ -88,7 +93,7 @@ export default function FormTagsEditable({
         <div className="space-y-2">
           <div className="flex flex-wrap gap-2">
             {tags.map((tag) => (
-              <Badge key={tag} variant="primary" className="gap-2">
+              <Badge key={tag} variant="default" className="gap-2">
                 {tag}
                 <Button
                   withWrapper={false}
@@ -109,7 +114,7 @@ export default function FormTagsEditable({
                 ref={inputRef}
                 type="text"
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                onChange={(event) => setInputValue(event.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={placeholder}
                 className="h-8 text-sm border border-input px-3 flex-1"
@@ -157,7 +162,7 @@ export default function FormTagsEditable({
         <div className="flex flex-wrap gap-2">
           {tags.length > 0 ? (
             tags.map((tag) => (
-              <Badge key={tag} variant="ghost">
+              <Badge key={tag} variant="outline">
                 {tag}
               </Badge>
             ))

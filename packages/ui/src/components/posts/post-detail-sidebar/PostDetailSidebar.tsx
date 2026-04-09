@@ -13,12 +13,12 @@ import type { PostDetailSidebarProps } from '@props/components/post-detail-sideb
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import EvaluationCard from '@ui/evaluation/card/EvaluationCard';
-import FormDateTimePicker from '@ui/forms/pickers/date-time-picker/form-date-time-picker/FormDateTimePicker';
 import {
   LazyMasonryImage,
   LazyMasonryVideo,
 } from '@ui/lazy/masonry/LazyMasonry';
 import { Button } from '@ui/primitives/button';
+import FormDateTimePicker from '@ui/primitives/date-time-picker';
 import {
   isImageIngredient,
   isVideoIngredient,
@@ -64,22 +64,21 @@ export default function PostDetailSidebar({
 }: PostDetailSidebarProps) {
   // Get browser timezone for consistent date display
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
+  const contentId = post?.id ?? '';
 
-  // Early return if post is null
-  if (!post) {
-    return null;
-  }
-
-  // Hook for AI quality evaluation (autoFetch disabled - evaluation comes with post)
   const {
     evaluation: newEvaluation,
     isEvaluating,
     evaluate,
   } = useEvaluation({
     autoFetch: false,
-    contentId: post.id,
+    contentId,
     contentType: 'post',
   });
+
+  if (!post) {
+    return null;
+  }
 
   // Use evaluation from post (fetched with post) or newly created evaluation from hook
   // Cast to client model type for compatibility with EvaluationCard
@@ -116,15 +115,21 @@ export default function PostDetailSidebar({
     <div className={`space-y-4 lg:sticky lg:top-4 lg:self-start ${className}`}>
       <Card>
         <div className="flex items-center gap-3 w-full">
-          {post.platform && platformIconMap[post.platform] ? (
-            <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-background">
-              {(() => {
-                const Icon =
-                  platformIconMap[post.platform as CredentialPlatform]!;
-                return <Icon className="h-6 w-6" />;
-              })()}
-            </span>
-          ) : null}
+          {(() => {
+            const PlatformIcon = post.platform
+              ? platformIconMap[post.platform as CredentialPlatform]
+              : undefined;
+
+            if (!PlatformIcon) {
+              return null;
+            }
+
+            return (
+              <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-background">
+                <PlatformIcon className="h-6 w-6" />
+              </span>
+            );
+          })()}
 
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold truncate">

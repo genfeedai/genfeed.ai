@@ -266,6 +266,7 @@ function ContentPreviewCard({
               key={url}
               className="overflow-hidden rounded-lg border border-border"
             >
+              {/* biome-ignore lint/a11y/useMediaCaption: generated preview media has no caption track source */}
               <video src={url} controls className="w-full" />
             </div>
           ))}
@@ -274,6 +275,7 @@ function ContentPreviewCard({
       {action.audio && action.audio.length > 0 && (
         <div className="space-y-2">
           {action.audio.map((url) => (
+            // biome-ignore lint/a11y/useMediaCaption: generated preview audio has no caption track source
             <audio key={url} src={url} controls className="w-full" />
           ))}
         </div>

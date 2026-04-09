@@ -12,12 +12,6 @@ import type {
 } from 'react';
 import type { Control, FieldValues, Path } from 'react-hook-form';
 
-export interface FormDropzoneProps {
-  label: string;
-  file: File | null;
-  onDrop: (file: File) => void;
-}
-
 export interface FormDropdownOption {
   key: string | number;
   label: string;
@@ -83,32 +77,6 @@ export interface FormElementProps {
   hasError?: boolean;
 }
 
-export interface FormDateTimePickerProps {
-  label?: string;
-  value?: string | Date;
-  onChange: (date: Date | null) => void;
-  minDate?: Date;
-  isRequired?: boolean;
-  isDisabled?: boolean;
-  className?: string;
-  helpText?: string;
-  timezone?: string;
-}
-
-export interface FormColorPickerProps {
-  label: string;
-  value: string;
-  onChange: (color: string) => void;
-  isRequired?: boolean;
-  isDisabled?: boolean;
-  className?: string;
-  helpText?: string;
-  pickerType?: 'sketch' | 'chrome' | 'compact';
-  showAlpha?: boolean;
-  presetColors?: string[];
-  position?: 'left' | 'right';
-}
-
 export interface FormRangeProps<T extends FieldValues = FieldValues> {
   name: Path<T>;
   label?: string;
@@ -125,16 +93,6 @@ export interface FormRangeProps<T extends FieldValues = FieldValues> {
   maxLabel?: string;
   onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
   control?: Control<T>;
-}
-
-export interface FormTagsEditableProps {
-  label: string;
-  value?: string[];
-  placeholder?: string;
-  onSave?: (tags: string[]) => void;
-  isDisabled?: boolean;
-  maxTags?: number;
-  className?: string;
 }
 
 export interface FormSearchbarProps {

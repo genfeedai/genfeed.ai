@@ -24,13 +24,13 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import Alert from '@ui/feedback/alert/Alert';
-import FormDateTimePicker from '@ui/forms/pickers/date-time-picker/form-date-time-picker/FormDateTimePicker';
-import PlatformSelector from '@ui/forms/selectors/platform-selector/PlatformSelector';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
+import FormDateTimePicker from '@ui/primitives/date-time-picker';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import PlatformSelector from '@ui/primitives/platform-selector';
 import { SelectField } from '@ui/primitives/select';
 import {
   DEFAULT_CHAR_LIMIT,

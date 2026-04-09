@@ -4,15 +4,30 @@ import {
 } from '@genfeedai/client/schemas';
 import { ButtonVariant } from '@genfeedai/enums';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
-import type { FormInputEditableProps } from '@props/ui/forms/form-editable.props';
-import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
 import type { KeyboardEvent } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { HiCheck, HiPencil, HiXMark } from 'react-icons/hi2';
+import { Button } from './button';
+import { Input } from './input';
 
-export default function FormInputEditable({
+export interface EditableInputProps {
+  value?: string;
+  onSave: (value: string) => Promise<void> | void;
+  label?: string;
+  className?: string;
+  isDisabled?: boolean;
+  placeholder?: string;
+  inputClassName?: string;
+  displayClassName?: string;
+  required?: boolean;
+  maxLength?: number;
+  minLength?: number;
+  type?: 'text' | 'email' | 'url';
+  validateFn?: (value: string) => string | null;
+}
+
+export default function EditableInput({
   value = '',
   placeholder = 'Enter value',
   label,
@@ -26,10 +41,9 @@ export default function FormInputEditable({
   minLength,
   type = 'text',
   validateFn,
-}: FormInputEditableProps) {
+}: EditableInputProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-
   const [error, setError] = useState<string | null>();
 
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -63,9 +77,7 @@ export default function FormInputEditable({
     }
 
     setIsEditing(true);
-
     form.setValue('editValue', value);
-
     setError(null);
 
     setTimeout(() => {
@@ -80,19 +92,20 @@ export default function FormInputEditable({
   };
 
   const handleSave = async () => {
-    // Validate using react-hook-form
-    const isValid: boolean = await form.trigger('editValue');
+    const isValid = await form.trigger('editValue');
 
     if (!isValid) {
       const errors = form.formState.errors;
-      return setError((errors.editValue?.message as string) || 'Invalid value');
+      setError((errors.editValue?.message as string) || 'Invalid value');
+      return;
     }
 
-    const currentValue: string = form.getValues('editValue') as string;
+    const currentValue = form.getValues('editValue') as string;
     const trimmedValue = currentValue.trim();
 
     if (trimmedValue === value.trim()) {
-      return handleCancel();
+      handleCancel();
+      return;
     }
 
     setIsSaving(true);
@@ -102,23 +115,22 @@ export default function FormInputEditable({
       await onSave(trimmedValue);
       setIsEditing(false);
       setIsSaving(false);
-    } catch (error) {
+    } catch (saveError) {
       setError(
-        error instanceof Error
-          ? error.message
+        saveError instanceof Error
+          ? saveError.message
           : 'An error occurred while saving',
       );
-
       setIsSaving(false);
     }
   };
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleSave();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      void handleSave();
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
       handleCancel();
     }
   };
@@ -147,7 +159,7 @@ export default function FormInputEditable({
 
             <Button
               label={<HiCheck />}
-              onClick={handleSave}
+              onClick={() => void handleSave()}
               variant={ButtonVariant.DEFAULT}
               className=" first: last: border-l-0 first:border-l bg-green-500 hover:bg-green-600 text-white"
               isLoading={isSaving}
@@ -166,9 +178,11 @@ export default function FormInputEditable({
           {error && <p className="text-xs text-error">{error}</p>}
         </div>
       ) : (
-        <div
+        <button
+          type="button"
           className={`p-3 bg-background cursor-pointer hover:bg-muted transition-colors flex justify-between items-center group ${isDisabled ? 'opacity-50 cursor-not-allowed' : ''} ${displayClassName}`}
           onClick={handleEdit}
+          disabled={isDisabled}
         >
           <span className={value ? '' : 'text-foreground/60'}>
             {displayValue}
@@ -179,7 +193,7 @@ export default function FormInputEditable({
               <HiPencil className="w-4 h-4 text-foreground/60" />
             </div>
           )}
-        </div>
+        </button>
       )}
     </div>
   );

@@ -1,6 +1,3 @@
-import { createDateFromTimezone } from '@helpers/formatting/timezone/timezone.helper';
-import type { FormDateTimePickerProps } from '@props/forms/form.props';
-import { logger } from '@services/core/logger.service';
 import type { ChangeEvent } from 'react';
 import { useEffect, useState } from 'react';
 import { HiCalendar, HiClock } from 'react-icons/hi2';
@@ -10,15 +7,38 @@ interface DateTimeResult {
   time: string;
 }
 
+export interface DateTimePickerProps {
+  label?: string;
+  value?: string | Date;
+  onChange: (date: Date | null) => void;
+  minDate?: Date;
+  isRequired?: boolean;
+  isDisabled?: boolean;
+  className?: string;
+  helpText?: string;
+  timezone?: string;
+}
+
+const DATETIME_PARTS_FORMAT: Intl.DateTimeFormatOptions = {
+  day: '2-digit',
+  hour: '2-digit',
+  hour12: false,
+  minute: '2-digit',
+  month: '2-digit',
+  second: '2-digit',
+  year: 'numeric',
+};
+
 function extractDateTimeFromISO(isoString: string): DateTimeResult | null {
   const match = isoString.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})/);
-  if (match && match.length >= 6) {
-    return {
-      date: `${match[1]}-${match[2]}-${match[3]}`,
-      time: `${match[4]}:${match[5]}`,
-    };
+  if (!match || match.length < 6) {
+    return null;
   }
-  return null;
+
+  return {
+    date: `${match[1]}-${match[2]}-${match[3]}`,
+    time: `${match[4]}:${match[5]}`,
+  };
 }
 
 function extractDateTimeFromUTCDate(utcDate: Date): DateTimeResult {
@@ -27,6 +47,7 @@ function extractDateTimeFromUTCDate(utcDate: Date): DateTimeResult {
   const day = String(utcDate.getUTCDate()).padStart(2, '0');
   const hours = String(utcDate.getUTCHours()).padStart(2, '0');
   const minutes = String(utcDate.getUTCMinutes()).padStart(2, '0');
+
   return {
     date: `${year}-${month}-${day}`,
     time: `${hours}:${minutes}`,
@@ -53,11 +74,11 @@ function extractDateTimeFromTimezone(
   const dateParts = dateFormatter.formatToParts(utcDate);
   const timeParts = timeFormatter.formatToParts(utcDate);
 
-  const year = dateParts.find((p) => p.type === 'year')?.value || '';
-  const month = dateParts.find((p) => p.type === 'month')?.value || '';
-  const day = dateParts.find((p) => p.type === 'day')?.value || '';
-  const hour = timeParts.find((p) => p.type === 'hour')?.value || '';
-  const minute = timeParts.find((p) => p.type === 'minute')?.value || '';
+  const year = dateParts.find((part) => part.type === 'year')?.value || '';
+  const month = dateParts.find((part) => part.type === 'month')?.value || '';
+  const day = dateParts.find((part) => part.type === 'day')?.value || '';
+  const hour = timeParts.find((part) => part.type === 'hour')?.value || '';
+  const minute = timeParts.find((part) => part.type === 'minute')?.value || '';
 
   return {
     date: `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`,
@@ -71,7 +92,48 @@ function formatTimeDisplay(hour: number, minute: number): string {
   return `${displayHour}:${String(minute).padStart(2, '0')} ${period}`;
 }
 
-export default function FormDateTimePicker({
+function createDateFromTimezone(
+  year: number,
+  month: number,
+  day: number,
+  hours: number,
+  minutes: number,
+  timezone: string = 'UTC',
+): Date {
+  if (timezone === 'UTC') {
+    return new Date(Date.UTC(year, month - 1, day, hours, minutes));
+  }
+
+  const baseUtcDate = new Date(Date.UTC(year, month - 1, day, hours, minutes));
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    ...DATETIME_PARTS_FORMAT,
+    timeZone: timezone,
+  });
+
+  const parts = formatter.formatToParts(baseUtcDate);
+  const getPartValue = (type: string) =>
+    parseInt(parts.find((part) => part.type === type)?.value || '0', 10);
+
+  const formattedYear = getPartValue('year');
+  const formattedMonth = getPartValue('month');
+  const formattedDay = getPartValue('day');
+  const formattedHour = getPartValue('hour');
+  const formattedMinute = getPartValue('minute');
+
+  const desiredDate = new Date(Date.UTC(year, month - 1, day));
+  const formattedDate = new Date(
+    Date.UTC(formattedYear, formattedMonth - 1, formattedDay),
+  );
+  const dayDiffMs = desiredDate.getTime() - formattedDate.getTime();
+
+  const desiredTotalMinutes = hours * 60 + minutes;
+  const formattedTotalMinutes = formattedHour * 60 + formattedMinute;
+  const timeDiffMs = (desiredTotalMinutes - formattedTotalMinutes) * 60 * 1000;
+
+  return new Date(baseUtcDate.getTime() + dayDiffMs + timeDiffMs);
+}
+
+export default function DateTimePicker({
   label = '',
   value = '',
   onChange,
@@ -81,27 +143,26 @@ export default function FormDateTimePicker({
   className = '',
   helpText,
   timezone,
-}: FormDateTimePickerProps) {
-  const [selectedDate, setSelectedDate] = useState<string>('');
-  const [selectedTime, setSelectedTime] = useState<string>('');
+}: DateTimePickerProps) {
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedTime, setSelectedTime] = useState('');
 
-  // Initialize from value prop
   useEffect(() => {
-    // Clear state if value is empty or null
     if (!value || value === '') {
       setSelectedDate('');
       setSelectedTime('');
       return;
     }
 
-    // Convert Date objects to ISO string first to avoid timezone issues
     let isoString: string;
+
     if (value instanceof Date) {
       if (Number.isNaN(value.getTime())) {
         setSelectedDate('');
         setSelectedTime('');
         return;
       }
+
       isoString = value.toISOString();
     } else if (typeof value === 'string') {
       isoString = value.trim();
@@ -128,22 +189,21 @@ export default function FormDateTimePicker({
     } else {
       try {
         result = extractDateTimeFromTimezone(utcDate, displayTimezone);
-      } catch (error: unknown) {
-        logger.error('Error converting timezone', {
-          error,
-          timezone: displayTimezone,
-        });
+      } catch {
         result =
           extractDateTimeFromISO(isoString) ||
           extractDateTimeFromUTCDate(utcDate);
       }
     }
 
-    setSelectedDate((prev) => (prev !== result.date ? result.date : prev));
-    setSelectedTime((prev) => (prev !== result.time ? result.time : prev));
+    setSelectedDate((previous) =>
+      previous !== result.date ? result.date : previous,
+    );
+    setSelectedTime((previous) =>
+      previous !== result.time ? result.time : previous,
+    );
   }, [value, timezone]);
 
-  // Get minimum date string for the date input
   const getMinDateString = () => {
     const now = minDate || new Date();
     const year = now.getFullYear();
@@ -152,7 +212,6 @@ export default function FormDateTimePicker({
     return `${year}-${month}-${day}`;
   };
 
-  // Get minimum time if selected date is today
   const getMinTime = () => {
     if (!selectedDate) {
       return '00:00';
@@ -161,36 +220,30 @@ export default function FormDateTimePicker({
     const now = minDate || new Date();
     const todayString = getMinDateString();
 
-    if (selectedDate === todayString) {
-      // Round up to next 15-minute interval from minDate
-      // If minDate is already on a 15-minute boundary, use it directly
-      const minutes = now.getMinutes();
-      const seconds = now.getSeconds();
-      const milliseconds = now.getMilliseconds();
-
-      // If already on a 15-minute boundary with no seconds/milliseconds, use it directly
-      if (minutes % 15 === 0 && seconds === 0 && milliseconds === 0) {
-        return `${String(now.getHours()).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-      }
-
-      // Otherwise, round up to next 15-minute interval
-      const roundedMinutes = Math.ceil(minutes / 15) * 15;
-
-      let hours = now.getHours();
-      let finalMinutes = roundedMinutes;
-
-      if (roundedMinutes === 60) {
-        hours = (hours + 1) % 24;
-        finalMinutes = 0;
-      }
-
-      return `${String(hours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}`;
+    if (selectedDate !== todayString) {
+      return '00:00';
     }
 
-    return '00:00';
+    const minutes = now.getMinutes();
+    const seconds = now.getSeconds();
+    const milliseconds = now.getMilliseconds();
+
+    if (minutes % 15 === 0 && seconds === 0 && milliseconds === 0) {
+      return `${String(now.getHours()).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+
+    const roundedMinutes = Math.ceil(minutes / 15) * 15;
+    let hours = now.getHours();
+    let finalMinutes = roundedMinutes;
+
+    if (roundedMinutes === 60) {
+      hours = (hours + 1) % 24;
+      finalMinutes = 0;
+    }
+
+    return `${String(hours).padStart(2, '0')}:${String(finalMinutes).padStart(2, '0')}`;
   };
 
-  // Generate time options with 15-minute intervals
   const generateTimeOptions = () => {
     const options = [];
     const minTime = getMinTime();
@@ -200,15 +253,16 @@ export default function FormDateTimePicker({
 
     let selectedTimeMinutes = -1;
     if (selectedTime) {
-      const [selHour, selMin] = selectedTime.split(':').map(Number);
-      selectedTimeMinutes = selHour * 60 + selMin;
+      const [selectedHour, selectedMinute] = selectedTime
+        .split(':')
+        .map(Number);
+      selectedTimeMinutes = selectedHour * 60 + selectedMinute;
     }
 
     for (let hour = 0; hour < 24; hour++) {
       for (let minute = 0; minute < 60; minute += 15) {
         const totalMinutes = hour * 60 + minute;
 
-        // Skip times before minimum if on same day, UNLESS it's the selected time
         if (
           isToday &&
           totalMinutes < minTotalMinutes &&
@@ -218,10 +272,9 @@ export default function FormDateTimePicker({
         }
 
         const timeString = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-        const displayTime = formatTimeDisplay(hour, minute);
         options.push(
           <option key={timeString} value={timeString}>
-            {displayTime}
+            {formatTimeDisplay(hour, minute)}
           </option>,
         );
       }
@@ -230,52 +283,14 @@ export default function FormDateTimePicker({
     return options;
   };
 
-  // Handle date change
-  const handleDateChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const newDate = e.target.value;
-    setSelectedDate(newDate);
-
-    // If time is already selected, update the combined date-time
-    // Otherwise, just update the date and wait for time selection
-    if (selectedTime) {
-      // If the new date is today and selected time is before minimum, reset time
-      if (newDate === getMinDateString()) {
-        const minTime = getMinTime();
-        if (selectedTime < minTime) {
-          setSelectedTime(minTime);
-          return updateDateTime(newDate, minTime);
-        }
-      }
-      // Both date and time are set, merge them
-      updateDateTime(newDate, selectedTime);
-    } else {
-      // Only date is set, don't merge yet - wait for time selection
-      // Clear any existing value since we don't have both date and time
+  const updateDateTime = (dateString: string, timeString: string) => {
+    if (!dateString || !timeString) {
       onChange(null);
-    }
-  };
-
-  // Handle time change
-  const handleTimeChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    const newTime = e.target.value;
-    setSelectedTime(newTime);
-    // Only merge and update if both date and time are selected
-    if (selectedDate && newTime) {
-      updateDateTime(selectedDate, newTime);
-    } else if (!newTime) {
-      // Time was cleared, clear the combined value
-      onChange(null);
-    }
-  };
-
-  // Update the parent component with the combined date-time
-  const updateDateTime = (dateStr: string, timeStr: string) => {
-    if (!dateStr || !timeStr) {
-      return onChange(null);
+      return;
     }
 
-    const [year, month, day] = dateStr.split('-').map(Number);
-    const [hours, minutes] = timeStr.split(':').map(Number);
+    const [year, month, day] = dateString.split('-').map(Number);
+    const [hours, minutes] = timeString.split(':').map(Number);
     const displayTimezone = timezone || 'UTC';
 
     const utcDate = createDateFromTimezone(
@@ -288,6 +303,41 @@ export default function FormDateTimePicker({
     );
 
     onChange(utcDate);
+  };
+
+  const handleDateChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const nextDate = event.target.value;
+    setSelectedDate(nextDate);
+
+    if (!selectedTime) {
+      onChange(null);
+      return;
+    }
+
+    if (nextDate === getMinDateString()) {
+      const minTime = getMinTime();
+      if (selectedTime < minTime) {
+        setSelectedTime(minTime);
+        updateDateTime(nextDate, minTime);
+        return;
+      }
+    }
+
+    updateDateTime(nextDate, selectedTime);
+  };
+
+  const handleTimeChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    const nextTime = event.target.value;
+    setSelectedTime(nextTime);
+
+    if (selectedDate && nextTime) {
+      updateDateTime(selectedDate, nextTime);
+      return;
+    }
+
+    if (!nextTime) {
+      onChange(null);
+    }
   };
 
   return (
@@ -303,7 +353,6 @@ export default function FormDateTimePicker({
       )}
 
       <div className="flex gap-4">
-        {/* Date Input */}
         <div className="relative flex-1">
           <input
             type="date"
@@ -314,11 +363,9 @@ export default function FormDateTimePicker({
             required={isRequired}
             className="h-10 border border-input px-3 w-full pr-10"
           />
-
           <HiCalendar className="absolute right-3 top-1/2 -translate-y-1/2 text-foreground/50 pointer-events-none" />
         </div>
 
-        {/* Time Select */}
         <div className="relative flex-1">
           <select
             value={selectedTime || ''}
@@ -330,7 +377,6 @@ export default function FormDateTimePicker({
             <option value="">Select time</option>
             {selectedDate && generateTimeOptions()}
           </select>
-
           <HiClock className="absolute right-8 top-1/2 -translate-y-1/2 text-foreground/50 pointer-events-none" />
         </div>
       </div>

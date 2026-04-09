@@ -1,10 +1,8 @@
 import { ButtonVariant } from '@genfeedai/enums';
-import type { FormColorPickerProps } from '@props/forms/form.props';
-import { Button } from '@ui/primitives/button';
-import FormControl from '@ui/primitives/field';
-import { THEME_COLORS } from '@ui-constants/misc.constant';
 import { useMemo, useState } from 'react';
 import { type ColorResult, SketchPicker } from 'react-color';
+import { Button } from './button';
+import Field from './field';
 
 const DEFAULT_PRESET_COLOR_TOKENS = [
   '--foreground',
@@ -20,6 +18,22 @@ const DEFAULT_PRESET_COLOR_TOKENS = [
   '--accent-orange',
   '--platform-instagram',
 ] as const;
+
+const DEFAULT_COLOR = '#000000';
+
+export interface ColorPickerProps {
+  label?: string;
+  value?: string;
+  onChange?: (color: string) => void;
+  isRequired?: boolean;
+  isDisabled?: boolean;
+  className?: string;
+  helpText?: string;
+  pickerType?: 'sketch' | 'chrome' | 'compact';
+  showAlpha?: boolean;
+  presetColors?: string[];
+  position?: 'left' | 'right';
+}
 
 function resolveThemeColorToken(token: string): string {
   if (typeof window === 'undefined') {
@@ -49,19 +63,21 @@ function resolveThemeColorToken(token: string): string {
   return tokenValue;
 }
 
-export default function FormColorPicker({
+export default function ColorPicker({
   label,
-  value,
-  onChange,
+  value = DEFAULT_COLOR,
+  onChange = () => {},
+  isRequired = false,
   isDisabled = false,
   className = '',
   helpText,
   showAlpha = false,
   position = 'left',
   presetColors,
-}: FormColorPickerProps) {
+}: ColorPickerProps) {
   const [displayColorPicker, setDisplayColorPicker] = useState(false);
-  const [color, setColor] = useState(value || THEME_COLORS.PRIMARY);
+  const [color, setColor] = useState(value);
+
   const resolvedPresetColors = useMemo(() => {
     if (presetColors && presetColors.length > 0) {
       return presetColors;
@@ -83,13 +99,13 @@ export default function FormColorPicker({
   };
 
   const handleChange = (colorResult: ColorResult) => {
-    const newColor = showAlpha ? colorResult.hex : colorResult.hex;
-    setColor(newColor);
-    onChange(newColor);
+    const nextColor = showAlpha ? colorResult.hex : colorResult.hex;
+    setColor(nextColor);
+    onChange(nextColor);
   };
 
   return (
-    <FormControl label={label}>
+    <Field label={label} helpText={helpText} isRequired={isRequired}>
       <div className={`color-picker-wrapper ${className}`}>
         <div className="relative">
           <Button
@@ -132,10 +148,6 @@ export default function FormColorPicker({
           )}
         </div>
       </div>
-
-      {helpText && (
-        <p className="text-xs text-foreground/70 mt-1">{helpText}</p>
-      )}
-    </FormControl>
+    </Field>
   );
 }

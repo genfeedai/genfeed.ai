@@ -54,13 +54,10 @@ vi.mock('@ui/primitives/textarea', () => ({
   default: () => <textarea data-testid="form-textarea" />,
 }));
 
-vi.mock(
-  '@ui/forms/pickers/date-time-picker/form-date-time-picker/FormDateTimePicker',
-  () => ({
-    __esModule: true,
-    default: () => <div data-testid="form-date-time-picker" />,
-  }),
-);
+vi.mock('@ui/primitives/date-time-picker', () => ({
+  __esModule: true,
+  default: () => <div data-testid="form-date-time-picker" />,
+}));
 
 vi.mock('@ui/primitives/select', () => ({
   __esModule: true,

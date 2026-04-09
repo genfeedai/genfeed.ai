@@ -1,7 +1,4 @@
-import type {
-  FormColorPickerProps,
-  FormControlProps,
-} from '@props/forms/form.props';
+import type { FormControlProps } from '@props/forms/form.props';
 import type { BrandOverlayProps } from '@props/modals/modal.props';
 import type { BaseButtonProps } from '@props/ui/forms/button.props';
 import type { TextareaLabelActionsProps } from '@props/ui/forms/textarea-label-actions.props';
@@ -9,6 +6,7 @@ import type { TabsProps } from '@props/ui/navigation/tabs.props';
 import type { AlertProps } from '@props/ui/ui.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import ModalBrand from '@ui/modals/brands/brand/ModalBrand';
+import type { ColorPickerProps } from '@ui/primitives/color-picker';
 import type { PropsWithChildren, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -83,15 +81,12 @@ vi.mock('@ui/primitives/textarea', () => ({
   default: () => <textarea data-testid="form-textarea" />,
 }));
 
-vi.mock(
-  '@ui/forms/pickers/color-picker/form-color-picker/FormColorPicker',
-  () => ({
-    __esModule: true,
-    default: ({ label }: FormColorPickerProps) => (
-      <div data-testid="form-color-picker">{label}</div>
-    ),
-  }),
-);
+vi.mock('@ui/primitives/color-picker', () => ({
+  __esModule: true,
+  default: ({ label }: ColorPickerProps) => (
+    <div data-testid="form-color-picker">{label}</div>
+  ),
+}));
 
 vi.mock('@ui/primitives/select', () => ({
   __esModule: true,
