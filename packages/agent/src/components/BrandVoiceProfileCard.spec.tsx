@@ -8,13 +8,18 @@ describe('BrandVoiceProfileCard', () => {
     const action: AgentUiAction = {
       data: {
         voiceProfile: {
+          approvedHooks: ['Say the quiet part out loud'],
           audience: ['founders', 'operators'],
+          bannedPhrases: ['game-changing AI'],
+          canonicalSource: 'founder',
           doNotSoundLike: ['corporate jargon'],
+          exemplarTexts: ['We ship systems, not vibes'],
           messagingPillars: ['clarity', 'systems'],
           sampleOutput: 'Clear systems create compounding output.',
           style: 'direct',
           tone: 'confident',
           values: ['clarity', 'proof'],
+          writingRules: ['Lead with proof'],
         },
       },
       id: 'brand-voice-1',
@@ -26,8 +31,17 @@ describe('BrandVoiceProfileCard', () => {
 
     expect(screen.getByText('confident')).toBeInTheDocument();
     expect(screen.getByText('direct')).toBeInTheDocument();
+    expect(screen.getByText('founder')).toBeInTheDocument();
     expect(screen.getByText('founders, operators')).toBeInTheDocument();
     expect(screen.getByText('clarity, systems')).toBeInTheDocument();
+    expect(
+      screen.getByText('Say the quiet part out loud'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('game-changing AI')).toBeInTheDocument();
+    expect(screen.getByText('Lead with proof')).toBeInTheDocument();
+    expect(
+      screen.getByText('We ship systems, not vibes'),
+    ).toBeInTheDocument();
     expect(
       screen.getByText('Clear systems create compounding output.'),
     ).toBeInTheDocument();

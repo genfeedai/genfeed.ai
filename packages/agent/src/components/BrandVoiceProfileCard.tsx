@@ -33,8 +33,15 @@ export function BrandVoiceProfileCard({
         ? (data.voiceProfile as Record<string, unknown>)
         : {};
     return {
+      approvedHooks: readStringList(rawProfile.approvedHooks, []),
       audience: readStringList(rawProfile.audience, []),
+      bannedPhrases: readStringList(rawProfile.bannedPhrases, []),
+      canonicalSource:
+        typeof rawProfile.canonicalSource === 'string'
+          ? rawProfile.canonicalSource
+          : '',
       doNotSoundLike: readStringList(rawProfile.doNotSoundLike, []),
+      exemplarTexts: readStringList(rawProfile.exemplarTexts, []),
       messagingPillars: readStringList(rawProfile.messagingPillars, []),
       sampleOutput:
         typeof rawProfile.sampleOutput === 'string'
@@ -43,6 +50,7 @@ export function BrandVoiceProfileCard({
       style: typeof rawProfile.style === 'string' ? rawProfile.style : '',
       tone: typeof rawProfile.tone === 'string' ? rawProfile.tone : '',
       values: readStringList(rawProfile.values, []),
+      writingRules: readStringList(rawProfile.writingRules, []),
     };
   }, [action.data]);
 
@@ -112,6 +120,15 @@ export function BrandVoiceProfileCard({
 
         <div className="border border-border bg-card/40 p-3">
           <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            Voice Source
+          </p>
+          <p className="mt-1 text-sm text-foreground">
+            {profile.canonicalSource || 'Not set'}
+          </p>
+        </div>
+
+        <div className="border border-border bg-card/40 p-3">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             Audience
           </p>
           <p className="mt-1 text-sm text-foreground">
@@ -130,6 +147,15 @@ export function BrandVoiceProfileCard({
 
         <div className="border border-border bg-card/40 p-3">
           <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            Approved Hooks
+          </p>
+          <p className="mt-1 text-sm text-foreground">
+            {profile.approvedHooks.join(', ') || 'Not set'}
+          </p>
+        </div>
+
+        <div className="border border-border bg-card/40 p-3">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             Core Values
           </p>
           <p className="mt-1 text-sm text-foreground">
@@ -139,10 +165,37 @@ export function BrandVoiceProfileCard({
 
         <div className="border border-border bg-card/40 p-3">
           <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            Banned Phrases
+          </p>
+          <p className="mt-1 text-sm text-foreground">
+            {profile.bannedPhrases.join(', ') || 'Not set'}
+          </p>
+        </div>
+
+        <div className="border border-border bg-card/40 p-3">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
             Avoid
           </p>
           <p className="mt-1 text-sm text-foreground">
             {profile.doNotSoundLike.join(', ') || 'Not set'}
+          </p>
+        </div>
+
+        <div className="border border-border bg-card/40 p-3">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            Writing Rules
+          </p>
+          <p className="mt-1 text-sm text-foreground">
+            {profile.writingRules.join(', ') || 'Not set'}
+          </p>
+        </div>
+
+        <div className="border border-border bg-card/40 p-3">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            Exemplars
+          </p>
+          <p className="mt-1 text-sm text-foreground">
+            {profile.exemplarTexts.join(', ') || 'Not set'}
           </p>
         </div>
 

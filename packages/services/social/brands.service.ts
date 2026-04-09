@@ -190,7 +190,11 @@ export class BrandsService extends BaseService<Brand> {
       defaultAvatarIngredientId?: string | null;
       persona?: string;
       voice?: {
+        approvedHooks?: string[];
+        bannedPhrases?: string[];
+        canonicalSource?: 'brand' | 'founder' | 'hybrid';
         doNotSoundLike?: string[];
+        exemplarTexts?: string[];
         messagingPillars?: string[];
         sampleOutput?: string;
         tone?: string;
@@ -199,6 +203,7 @@ export class BrandsService extends BaseService<Brand> {
         values?: string[];
         taglines?: string[];
         hashtags?: string[];
+        writingRules?: string[];
       };
       strategy?: {
         contentTypes?: string[];
@@ -221,7 +226,11 @@ export class BrandsService extends BaseService<Brand> {
           defaultModel?: string;
           persona?: string;
           voice?: {
+            approvedHooks?: string[];
+            bannedPhrases?: string[];
+            canonicalSource?: 'brand' | 'founder' | 'hybrid';
             doNotSoundLike?: string[];
+            exemplarTexts?: string[];
             messagingPillars?: string[];
             sampleOutput?: string;
             tone?: string;
@@ -230,6 +239,7 @@ export class BrandsService extends BaseService<Brand> {
             values?: string[];
             taglines?: string[];
             hashtags?: string[];
+            writingRules?: string[];
           };
           strategy?: {
             contentTypes?: string[];

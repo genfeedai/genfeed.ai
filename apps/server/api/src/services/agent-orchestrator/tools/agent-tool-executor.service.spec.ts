@@ -174,15 +174,13 @@ describe('AgentToolExecutorService', () => {
         },
       }),
     };
-    const listingsService = {
-      findOne: vi.fn(),
-      getPublicListings: vi.fn().mockResolvedValue({ docs: [] }),
-    };
-    const purchasesService = {
+    const marketplaceApiClient = {
       checkListingOwnership: vi.fn(),
       claimFreeItem: vi.fn(),
+      getListing: vi.fn(),
+      searchListings: vi.fn().mockResolvedValue({ docs: [] }),
     };
-    const installService = {
+    const marketplaceInstallService = {
       installToWorkspace: vi.fn(),
     };
     const workflowExecutorService = {
@@ -561,9 +559,8 @@ describe('AgentToolExecutorService', () => {
       workflowExecutorService as never,
       workflowsService as never,
       workflowGenerationService as never,
-      listingsService as never,
-      purchasesService as never,
-      installService as never,
+      marketplaceApiClient as never,
+      marketplaceInstallService as never,
       trendsService,
       aiActionsService as never,
       analyticsService as never,
@@ -604,15 +601,14 @@ describe('AgentToolExecutorService', () => {
       creditsUtilsService,
       imagesService,
       ingredientsService,
-      installService,
-      listingsService,
+      marketplaceApiClient,
+      marketplaceInstallService,
       livestreamBotId: livestreamBotId.toString(),
       loggerService,
       organizationSettingsService,
       organizationsService,
       postAnalyticsService,
       postsService,
-      purchasesService,
       recurringWorkflowId,
       service,
       streamPublisher,
@@ -1207,8 +1203,12 @@ describe('AgentToolExecutorService', () => {
       {
         brandId: 'brand-voice-1',
         voiceProfile: {
+          approvedHooks: ['Say the quiet part out loud'],
           audience: ['founders', 'operators'],
+          bannedPhrases: ['game-changing AI'],
+          canonicalSource: 'founder',
           doNotSoundLike: ['buzzword-heavy'],
+          exemplarTexts: ['We ship systems, not vibes'],
           hashtags: ['#genfeed'],
           messagingPillars: ['clarity', 'systems'],
           sampleOutput: 'Clear systems create compounding output.',
@@ -1216,6 +1216,7 @@ describe('AgentToolExecutorService', () => {
           taglines: ['Ship with signal'],
           tone: 'confident',
           values: ['clarity', 'proof'],
+          writingRules: ['Lead with proof'],
         },
       },
       {
@@ -1230,8 +1231,12 @@ describe('AgentToolExecutorService', () => {
       '67a123456789012345678901',
       {
         voice: {
+          approvedHooks: ['Say the quiet part out loud'],
           audience: ['founders', 'operators'],
+          bannedPhrases: ['game-changing AI'],
+          canonicalSource: 'founder',
           doNotSoundLike: ['buzzword-heavy'],
+          exemplarTexts: ['We ship systems, not vibes'],
           hashtags: ['#genfeed'],
           messagingPillars: ['clarity', 'systems'],
           sampleOutput: 'Clear systems create compounding output.',
@@ -1239,6 +1244,7 @@ describe('AgentToolExecutorService', () => {
           taglines: ['Ship with signal'],
           tone: 'confident',
           values: ['clarity', 'proof'],
+          writingRules: ['Lead with proof'],
         },
       },
     );
@@ -1459,10 +1465,11 @@ describe('AgentToolExecutorService', () => {
       expect.objectContaining({
         currentBrand: expect.objectContaining({
           description: 'Brand description',
-          handle: 'genfeed',
           id: '67a1234567890123456789aa',
           isActive: true,
           label: 'Genfeed',
+          name: 'Genfeed',
+          slug: '',
           text: 'Publish content. Now.',
         }),
       }),
@@ -2705,8 +2712,7 @@ describe('AgentToolExecutorService', () => {
       undefined as never,
       undefined as never,
       undefined as never,
-      {} as never,
-      {} as never,
+      { getTrends: vi.fn().mockResolvedValue([]) } as never,
       aiActionsService as never,
       {} as never,
       {} as never,
@@ -3002,16 +3008,16 @@ describe('AgentToolExecutorService', () => {
   });
 
   it('returns purchase CTA only for paid official marketplace workflows', async () => {
-    const { service, listingsService, purchasesService } = createService();
+    const { marketplaceApiClient, service } = createService();
 
-    listingsService.findOne.mockResolvedValue({
+    marketplaceApiClient.getListing.mockResolvedValue({
       _id: 'listing-1',
       isDeleted: false,
       price: 49,
       pricingTier: 'premium',
       slug: 'official-linkedin-workflow',
     });
-    purchasesService.checkListingOwnership.mockResolvedValue({
+    marketplaceApiClient.checkListingOwnership.mockResolvedValue({
       owned: false,
       purchase: null,
     });

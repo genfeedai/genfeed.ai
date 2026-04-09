@@ -83,6 +83,18 @@ describe('BrandDetailAgentProfileCard', () => {
     fireEvent.change(screen.getByLabelText('Messaging Pillars'), {
       target: { value: 'clarity, proof' },
     });
+    fireEvent.change(screen.getByLabelText('Approved Hooks'), {
+      target: { value: 'Say the quiet part out loud, Most teams get this wrong' },
+    });
+    fireEvent.change(screen.getByLabelText('Banned Phrases'), {
+      target: { value: 'game-changing AI, unlock your potential' },
+    });
+    fireEvent.change(screen.getByLabelText('Writing Rules'), {
+      target: { value: 'Lead with a claim, use proof, cut fluff' },
+    });
+    fireEvent.change(screen.getByLabelText('Exemplar Texts'), {
+      target: { value: 'We ship systems, not vibes' },
+    });
     fireEvent.change(screen.getByLabelText('Do Not Sound Like'), {
       target: { value: 'clickbait, jargon' },
     });
@@ -104,6 +116,12 @@ describe('BrandDetailAgentProfileCard', () => {
         target: { value: 'Fast-moving Twitter voice with crisp hooks.' },
       },
     );
+    fireEvent.change(
+      screen.getByPlaceholderText('Short example of a winning post.'),
+      {
+        target: { value: 'Open with a sharp claim, then prove it fast.' },
+      },
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Save Agent Profile' }));
 
@@ -117,16 +135,29 @@ describe('BrandDetailAgentProfileCard', () => {
                 platforms: ['twitter'],
               }),
               voice: expect.objectContaining({
+                approvedHooks: ['speed', 'practicality'],
                 doNotSoundLike: ['hype', 'fluff'],
+                exemplarTexts: ['Open with a sharp claim', 'then prove it fast.'],
                 messagingPillars: ['speed', 'practicality'],
                 sampleOutput: 'Fast-moving Twitter voice with crisp hooks.',
               }),
             }),
           },
           voice: expect.objectContaining({
+            approvedHooks: [
+              'Say the quiet part out loud',
+              'Most teams get this wrong',
+            ],
+            bannedPhrases: [
+              'game-changing AI',
+              'unlock your potential',
+            ],
+            canonicalSource: 'brand',
             doNotSoundLike: ['clickbait', 'jargon'],
+            exemplarTexts: ['We ship systems', 'not vibes'],
             messagingPillars: ['clarity', 'proof'],
             sampleOutput: 'A sharp, practical founder post.',
+            writingRules: ['Lead with a claim', 'use proof', 'cut fluff'],
           }),
         }),
       );

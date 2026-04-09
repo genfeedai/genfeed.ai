@@ -1,6 +1,7 @@
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { CreateWorkspaceTaskDto } from '@api/collections/workspace-tasks/dto/create-workspace-task.dto';
@@ -8,11 +9,16 @@ import { UpdateWorkspaceTaskDto } from '@api/collections/workspace-tasks/dto/upd
 import {
   WorkspaceTask,
   type WorkspaceTaskDocument,
+  type WorkspaceTaskEvent,
+  type WorkspaceTaskProgress,
 } from '@api/collections/workspace-tasks/schemas/workspace-task.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { AgentExecutionStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -46,6 +52,27 @@ type WorkspacePlanningThreadResult = {
   threadId: string;
 };
 
+type WorkspaceTaskEventInput = {
+  payload?: Record<string, unknown>;
+  timestamp?: Date;
+  type: string;
+};
+
+type WorkspaceTaskRealtimePayload = {
+  event: {
+    id: string;
+    payload?: Record<string, unknown>;
+    timestamp: string;
+    type: string;
+  };
+  organizationId: string;
+  progress: WorkspaceTaskProgress;
+  room: string;
+  task: Record<string, unknown>;
+  taskId: string;
+  userId: string;
+};
+
 type WorkspaceFollowUpPlanStep = {
   outputType?: WorkspaceTaskDocument['outputType'];
   request: string;
@@ -66,9 +93,11 @@ export class WorkspaceTasksService extends BaseService<
     model: AggregatePaginateModel<WorkspaceTaskDocument>,
     logger: LoggerService,
     private readonly skillsService: SkillsService,
+    private readonly ingredientsService: IngredientsService,
     private readonly agentThreadsService: AgentThreadsService,
     private readonly agentMessagesService: AgentMessagesService,
     private readonly agentRunsService: AgentRunsService,
+    private readonly notificationsPublisher: NotificationsPublisherService,
   ) {
     super(model, logger);
   }
@@ -82,10 +111,18 @@ export class WorkspaceTasksService extends BaseService<
     return super.create({
       ...createDto,
       ...routingDecision,
+      approvedOutputIds: [],
+      eventStream: [],
       linkedApprovalIds: [],
       linkedOutputIds: [],
       linkedRunIds: [],
       platforms: createDto.platforms ?? [],
+      progress: {
+        activeRunCount: 0,
+        message: 'Task queued in workspace.',
+        percent: 0,
+        stage: 'queued',
+      },
       title: normalizedTitle,
     });
   }
@@ -126,6 +163,7 @@ export class WorkspaceTasksService extends BaseService<
     id: string,
     organizationId: string,
   ): Promise<WorkspaceTaskDocument> {
+    const task = await this.requireTask(id, organizationId);
     const updated = await this.model.findOneAndUpdate(
       {
         _id: new Types.ObjectId(id),
@@ -150,6 +188,15 @@ export class WorkspaceTasksService extends BaseService<
       throw new NotFoundException('WorkspaceTask', id);
     }
 
+    await this.appendEventAndBroadcast(
+      updated,
+      organizationId,
+      String(task.user),
+      {
+        type: 'task_approved',
+      },
+    );
+
     return updated;
   }
 
@@ -158,6 +205,7 @@ export class WorkspaceTasksService extends BaseService<
     organizationId: string,
     reason: string,
   ): Promise<WorkspaceTaskDocument> {
+    const task = await this.requireTask(id, organizationId);
     const updated = await this.model.findOneAndUpdate(
       {
         _id: new Types.ObjectId(id),
@@ -178,6 +226,16 @@ export class WorkspaceTasksService extends BaseService<
       throw new NotFoundException('WorkspaceTask', id);
     }
 
+    await this.appendEventAndBroadcast(
+      updated,
+      organizationId,
+      String(task.user),
+      {
+        payload: { reason },
+        type: 'task_changes_requested',
+      },
+    );
+
     return updated;
   }
 
@@ -186,6 +244,7 @@ export class WorkspaceTasksService extends BaseService<
     organizationId: string,
     reason?: string,
   ): Promise<WorkspaceTaskDocument> {
+    const task = await this.requireTask(id, organizationId);
     const updated = await this.model.findOneAndUpdate(
       {
         _id: new Types.ObjectId(id),
@@ -207,7 +266,173 @@ export class WorkspaceTasksService extends BaseService<
       throw new NotFoundException('WorkspaceTask', id);
     }
 
+    await this.appendEventAndBroadcast(
+      updated,
+      organizationId,
+      String(task.user),
+      {
+        payload: reason ? { reason } : undefined,
+        type: 'task_dismissed',
+      },
+    );
+
     return updated;
+  }
+
+  async keepOutput(
+    id: string,
+    organizationId: string,
+    outputId: string,
+  ): Promise<WorkspaceTaskDocument> {
+    const task = await this.requireLinkedOutputTask(
+      id,
+      organizationId,
+      outputId,
+    );
+    const outputObjectId = new Types.ObjectId(outputId);
+
+    const updated = await this.model.findOneAndUpdate(
+      {
+        _id: new Types.ObjectId(id),
+        isDeleted: false,
+        organization: new Types.ObjectId(organizationId),
+      },
+      {
+        $addToSet: {
+          approvedOutputIds: outputObjectId,
+        },
+      },
+      { new: true },
+    );
+
+    if (!updated) {
+      throw new NotFoundException('WorkspaceTask', id);
+    }
+
+    await this.appendEventAndBroadcast(
+      updated,
+      organizationId,
+      String(task.user),
+      {
+        payload: { outputId },
+        type: 'output_kept',
+      },
+    );
+
+    return updated;
+  }
+
+  async unkeepOutput(
+    id: string,
+    organizationId: string,
+    outputId: string,
+  ): Promise<WorkspaceTaskDocument> {
+    const task = await this.requireLinkedOutputTask(
+      id,
+      organizationId,
+      outputId,
+    );
+
+    const updated = await this.model.findOneAndUpdate(
+      {
+        _id: new Types.ObjectId(id),
+        isDeleted: false,
+        organization: new Types.ObjectId(organizationId),
+      },
+      {
+        $pull: {
+          approvedOutputIds: new Types.ObjectId(outputId),
+        },
+      },
+      { new: true },
+    );
+
+    if (!updated) {
+      throw new NotFoundException('WorkspaceTask', id);
+    }
+
+    await this.appendEventAndBroadcast(
+      updated,
+      organizationId,
+      String(task.user),
+      {
+        payload: { outputId },
+        type: 'output_unkept',
+      },
+    );
+
+    return updated;
+  }
+
+  async trashOutput(
+    id: string,
+    organizationId: string,
+    outputId: string,
+  ): Promise<WorkspaceTaskDocument> {
+    const task = await this.requireLinkedOutputTask(
+      id,
+      organizationId,
+      outputId,
+    );
+    const ingredient = await this.ingredientsService.findOne({
+      _id: new Types.ObjectId(outputId),
+      isDeleted: false,
+      organization: new Types.ObjectId(organizationId),
+    });
+
+    if (!ingredient) {
+      throw new NotFoundException('Ingredient', outputId);
+    }
+
+    await this.ingredientsService.patch(outputId, { isDeleted: true });
+
+    const updated = await this.model.findOneAndUpdate(
+      {
+        _id: new Types.ObjectId(id),
+        isDeleted: false,
+        organization: new Types.ObjectId(organizationId),
+      },
+      {
+        $pull: {
+          approvedOutputIds: new Types.ObjectId(outputId),
+        },
+      },
+      { new: true },
+    );
+
+    if (!updated) {
+      throw new NotFoundException('WorkspaceTask', id);
+    }
+
+    await this.appendEventAndBroadcast(
+      updated,
+      organizationId,
+      String(task.user),
+      {
+        payload: { outputId },
+        type: 'output_trashed',
+      },
+    );
+
+    return updated;
+  }
+
+  async recordTaskEvent(
+    id: string,
+    organizationId: string,
+    userId: string,
+    event: WorkspaceTaskEventInput,
+    patch: Record<string, unknown> = {},
+  ): Promise<WorkspaceTaskDocument> {
+    const task = await this.requireTask(id, organizationId);
+    const updated = await this.patchTaskAndReturn(id, organizationId, patch);
+    await this.appendEventAndBroadcast(
+      updated ?? task,
+      organizationId,
+      userId,
+      event,
+    );
+    return updated ?? task;
   }
 
   async openPlanningThread(
@@ -421,11 +646,15 @@ export class WorkspaceTasksService extends BaseService<
       createDto.outputType ??
       (normalizedRequest.match(/\b(video|reel|short|clip)\b/)
         ? 'video'
-        : normalizedRequest.match(/\b(caption|copy|text|hook|thread|post)\b/)
-          ? 'caption'
-          : normalizedRequest.match(/\b(image|photo|thumbnail|visual)\b/)
-            ? 'image'
-            : 'ingredient')
+        : normalizedRequest.match(/\b(newsletter|issue|beehiiv|email)\b/)
+          ? 'newsletter'
+          : normalizedRequest.match(/\b(thread|tweet|post|reply|hook)\b/)
+            ? 'post'
+            : normalizedRequest.match(/\b(caption|copy|text)\b/)
+              ? 'caption'
+              : normalizedRequest.match(/\b(image|photo|thumbnail|visual)\b/)
+                ? 'image'
+                : 'ingredient')
     );
   }
 
@@ -444,7 +673,9 @@ export class WorkspaceTasksService extends BaseService<
         ? 'image_generation'
         : taskIntent.outputType === 'video'
           ? 'video_generation'
-          : taskIntent.outputType === 'caption'
+          : taskIntent.outputType === 'caption' ||
+              taskIntent.outputType === 'post' ||
+              taskIntent.outputType === 'newsletter'
             ? 'caption_generation'
             : 'agent_orchestrator';
 
@@ -505,16 +736,22 @@ export class WorkspaceTasksService extends BaseService<
         };
 
       case 'caption':
+      case 'newsletter':
+      case 'post':
         return {
           chosenModel: 'auto',
           chosenProvider: 'genfeed-router',
           executionPathUsed: 'caption_generation',
-          outputType: 'caption',
-          resultPreview: `Draft caption prepared for review: ${this.buildTaskTitle(createDto)}`,
+          outputType: inferredOutputType,
+          resultPreview: `Draft ${inferredOutputType} prepared for review: ${this.buildTaskTitle(createDto)}`,
           reviewState: 'pending_approval',
           reviewTriggered: true,
           routingSummary:
-            'Detected a writing request and routed it to the caption generation path for review.',
+            inferredOutputType === 'newsletter'
+              ? 'Detected a newsletter request and routed it to the writing generation path for review.'
+              : inferredOutputType === 'post'
+                ? 'Detected a social post request and routed it to the writing generation path for review.'
+                : 'Detected a writing request and routed it to the caption generation path for review.',
           skillsUsed: [],
           skillVariantIds: [],
           status: 'needs_review',
@@ -549,6 +786,26 @@ export class WorkspaceTasksService extends BaseService<
     return typeof requiresApproval === 'boolean' ? requiresApproval : false;
   }
 
+  private async patchTaskAndReturn(
+    id: string,
+    organizationId: string,
+    patch: Record<string, unknown>,
+  ): Promise<WorkspaceTaskDocument | null> {
+    if (Object.keys(patch).length === 0) {
+      return this.findOneById(id, organizationId);
+    }
+
+    return this.model.findOneAndUpdate(
+      {
+        _id: new Types.ObjectId(id),
+        isDeleted: false,
+        organization: new Types.ObjectId(organizationId),
+      },
+      { $set: patch },
+      { new: true },
+    );
+  }
+
   private async requireTask(
     id: string,
     organizationId: string,
@@ -560,6 +817,143 @@ export class WorkspaceTasksService extends BaseService<
     }
 
     return task;
+  }
+
+  private async requireLinkedOutputTask(
+    id: string,
+    organizationId: string,
+    outputId: string,
+  ): Promise<WorkspaceTaskDocument> {
+    const task = await this.requireTask(id, organizationId);
+    const isLinked = task.linkedOutputIds.some(
+      (linkedOutputId) => linkedOutputId.toString() === outputId,
+    );
+
+    if (!isLinked) {
+      throw new BadRequestException(
+        'This output is not linked to the requested workspace task.',
+      );
+    }
+
+    return task;
+  }
+
+  private createTaskEvent(input: WorkspaceTaskEventInput): WorkspaceTaskEvent {
+    return {
+      id: new Types.ObjectId().toString(),
+      payload: input.payload,
+      timestamp: input.timestamp ?? new Date(),
+      type: input.type,
+    };
+  }
+
+  private serializeTaskProgress(
+    progress: WorkspaceTaskDocument['progress'],
+  ): WorkspaceTaskProgress {
+    return {
+      activeRunCount: progress?.activeRunCount ?? 0,
+      message: progress?.message,
+      percent: progress?.percent ?? 0,
+      stage: progress?.stage,
+    };
+  }
+
+  private serializeTaskEvent(event: WorkspaceTaskEvent) {
+    return {
+      id: event.id,
+      payload: event.payload,
+      timestamp: event.timestamp.toISOString(),
+      type: event.type,
+    };
+  }
+
+  private serializeTaskRealtimeSnapshot(task: WorkspaceTaskDocument) {
+    return {
+      approvedOutputIds: task.approvedOutputIds.map((id) => id.toString()),
+      brand: task.brand?.toString(),
+      chosenModel: task.chosenModel,
+      chosenProvider: task.chosenProvider,
+      completedAt: task.completedAt?.toISOString(),
+      createdAt: task.createdAt?.toISOString(),
+      decomposition: task.decomposition,
+      dismissedAt: task.dismissedAt?.toISOString(),
+      eventStream: task.eventStream.map((event) =>
+        this.serializeTaskEvent(event),
+      ),
+      executionPathUsed: task.executionPathUsed,
+      failureReason: task.failureReason,
+      id: task._id.toString(),
+      linkedApprovalIds: task.linkedApprovalIds.map((id) => id.toString()),
+      linkedIssueId: task.linkedIssueId?.toString(),
+      linkedOutputIds: task.linkedOutputIds.map((id) => id.toString()),
+      linkedRunIds: task.linkedRunIds.map((id) => id.toString()),
+      organization: task.organization.toString(),
+      outputType: task.outputType,
+      planningThreadId: task.planningThreadId,
+      platforms: task.platforms,
+      priority: task.priority,
+      progress: this.serializeTaskProgress(task.progress),
+      qualityAssessment: task.qualityAssessment,
+      request: task.request,
+      requestedChangesReason: task.requestedChangesReason,
+      resultPreview: task.resultPreview,
+      reviewState: task.reviewState,
+      reviewTriggered: task.reviewTriggered,
+      routingSummary: task.routingSummary,
+      skillsUsed: task.skillsUsed,
+      skillVariantIds: task.skillVariantIds.map((id) => id.toString()),
+      status: task.status,
+      title: task.title,
+      updatedAt: task.updatedAt?.toISOString(),
+      user: task.user.toString(),
+    };
+  }
+
+  private async appendEventAndBroadcast(
+    task: WorkspaceTaskDocument,
+    organizationId: string,
+    userId: string,
+    eventInput: WorkspaceTaskEventInput,
+  ): Promise<void> {
+    const event = this.createTaskEvent(eventInput);
+    const updated = await this.model.findOneAndUpdate(
+      {
+        _id: task._id,
+        isDeleted: false,
+        organization: new Types.ObjectId(organizationId),
+      },
+      {
+        $push: {
+          eventStream: event,
+        },
+      },
+      { new: true },
+    );
+
+    if (!updated) {
+      return;
+    }
+
+    const payload: WorkspaceTaskRealtimePayload = {
+      event: this.serializeTaskEvent(event),
+      organizationId,
+      progress: this.serializeTaskProgress(updated.progress),
+      room: `org-${organizationId}`,
+      task: this.serializeTaskRealtimeSnapshot(updated),
+      taskId: updated._id.toString(),
+      userId,
+    };
+
+    await Promise.all([
+      this.notificationsPublisher.emit(
+        WebSocketPaths.workspaceTask(updated._id.toString()),
+        payload,
+      ),
+      this.notificationsPublisher.emit(
+        WebSocketPaths.workspaceTaskOverview(organizationId),
+        payload,
+      ),
+    ]);
   }
 
   private async resolveAccessiblePlanningThreadId(
@@ -807,7 +1201,14 @@ export class WorkspaceTasksService extends BaseService<
       return null;
     }
 
-    return ['caption', 'image', 'ingredient', 'video'].includes(value)
+    return [
+      'caption',
+      'image',
+      'ingredient',
+      'newsletter',
+      'post',
+      'video',
+    ].includes(value)
       ? (value as WorkspaceTaskDocument['outputType'])
       : null;
   }

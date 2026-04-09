@@ -286,8 +286,12 @@ interface BatchGenerationRunnerLike {
 }
 
 interface BrandVoiceProfileDraft {
+  approvedHooks: string[];
   audience: string[];
+  bannedPhrases: string[];
+  canonicalSource?: 'brand' | 'founder' | 'hybrid';
   doNotSoundLike: string[];
+  exemplarTexts: string[];
   hashtags: string[];
   messagingPillars: string[];
   sampleOutput: string;
@@ -295,6 +299,7 @@ interface BrandVoiceProfileDraft {
   taglines: string[];
   tone: string;
   values: string[];
+  writingRules: string[];
 }
 @Injectable()
 export class AgentToolExecutorService {
@@ -2165,8 +2170,17 @@ export class AgentToolExecutorService {
     }
 
     const profile: BrandVoiceProfileDraft = {
+      approvedHooks: this.normalizeStringList(rawProfile.approvedHooks),
       audience: this.normalizeStringList(rawProfile.audience),
+      bannedPhrases: this.normalizeStringList(rawProfile.bannedPhrases),
+      canonicalSource:
+        rawProfile.canonicalSource === 'brand' ||
+        rawProfile.canonicalSource === 'founder' ||
+        rawProfile.canonicalSource === 'hybrid'
+          ? rawProfile.canonicalSource
+          : undefined,
       doNotSoundLike: this.normalizeStringList(rawProfile.doNotSoundLike),
+      exemplarTexts: this.normalizeStringList(rawProfile.exemplarTexts),
       hashtags: this.normalizeStringList(rawProfile.hashtags),
       messagingPillars: this.normalizeStringList(rawProfile.messagingPillars),
       sampleOutput:
@@ -2178,6 +2192,7 @@ export class AgentToolExecutorService {
       taglines: this.normalizeStringList(rawProfile.taglines),
       tone: typeof rawProfile.tone === 'string' ? rawProfile.tone.trim() : '',
       values: this.normalizeStringList(rawProfile.values),
+      writingRules: this.normalizeStringList(rawProfile.writingRules),
     };
 
     await this.brandsService.updateAgentConfig(
@@ -2185,8 +2200,12 @@ export class AgentToolExecutorService {
       ctx.organizationId,
       {
         voice: {
+          approvedHooks: profile.approvedHooks,
           audience: profile.audience,
+          bannedPhrases: profile.bannedPhrases,
+          canonicalSource: profile.canonicalSource,
           doNotSoundLike: profile.doNotSoundLike,
+          exemplarTexts: profile.exemplarTexts,
           hashtags: profile.hashtags,
           messagingPillars: profile.messagingPillars,
           sampleOutput: profile.sampleOutput,
@@ -2194,6 +2213,7 @@ export class AgentToolExecutorService {
           taglines: profile.taglines,
           tone: profile.tone,
           values: profile.values,
+          writingRules: profile.writingRules,
         },
       },
     );

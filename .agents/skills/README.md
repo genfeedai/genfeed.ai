@@ -1,6 +1,10 @@
-# Codex Skills
+# Repo Skills
 
-This directory contains local Codex skills for the genfeed.ai workspace.
+This directory is the canonical home for repo-local skill bundles in the
+genfeed.ai workspace.
+
+`.codex/skills/` is a symlink alias to this directory so Codex-style runtimes
+can discover the same skills without duplicating files.
 
 ## Required `SKILL.md` Format
 
@@ -24,7 +28,7 @@ description: Short summary of what this skill does.
 Use this check to confirm frontmatter exists in all local skill files:
 
 ```bash
-for f in .codex/skills/*/SKILL.md; do
+for f in .agents/skills/*/SKILL.md; do
   head -n 1 "$f" | grep -q '^---$' || echo "Missing frontmatter: $f"
 done
 ```

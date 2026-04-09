@@ -17,6 +17,7 @@ Project-level `.agents/` for architecture, rules, context, and operational docs.
 
 - `context/` — project context files (product, structure, patterns, tech, vision)
 - `rules/` — coding rules (security, backend, frontend, packages)
+- `skills/` — canonical repo-local skill bundles shared across agents
 - `agents/` — specialist agent definitions (7 agents)
 - `SYSTEM/` — architecture, critical rules, ADRs, agent runtime
 - `SYSTEM/critical/` — production-breaking violation rules
@@ -44,5 +45,5 @@ GitHub Issues/Projects are the canonical task system.
 
 This directory is the canonical documentation home for all AI tools:
 - **Claude Code**: `CLAUDE.md` uses `@imports` to pull from `context/`. `.claude/rules/` symlinks to `rules/`.
-- **Codex**: `CODEX.md` and `AGENTS.md` reference docs here. `.codex/skills/` mirrors key guardrails.
+- **Codex**: `CODEX.md` and `AGENTS.md` reference docs here. `.agents/skills/` is canonical and `.codex/skills/` is a symlink alias for runtime discovery.
 - **Other tools**: Read `AGENTS.md` at repo root for the universal entry point.

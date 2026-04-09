@@ -113,4 +113,13 @@ describe('GenerationTemplates', () => {
     ).toHaveLength(3);
     expect(template.description).toContain('layout-faithful');
   });
+
+  it('registers founder GTM workflow starters for posts, threads, newsletters, and illustrations', () => {
+    expect(GENERATION_WORKFLOW_TEMPLATES['founder-x-post']).toBeDefined();
+    expect(GENERATION_WORKFLOW_TEMPLATES['founder-x-thread']).toBeDefined();
+    expect(GENERATION_WORKFLOW_TEMPLATES['founder-newsletter']).toBeDefined();
+    expect(
+      GENERATION_WORKFLOW_TEMPLATES['founder-editorial-illustration'],
+    ).toBeDefined();
+  });
 });

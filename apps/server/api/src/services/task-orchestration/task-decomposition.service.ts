@@ -166,6 +166,8 @@ export class TaskDecompositionService {
       case 'video':
         return AgentType.VIDEO_CREATOR;
       case 'caption':
+      case 'newsletter':
+      case 'post':
         return AgentType.ARTICLE_WRITER;
       default:
         return AgentType.GENERAL;

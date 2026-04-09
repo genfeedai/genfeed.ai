@@ -9,6 +9,10 @@ import type {
   TaskDecompositionResult,
 } from '@api/services/task-orchestration/interfaces/task-decomposition.interface';
 import { TaskDecompositionService } from '@api/services/task-orchestration/task-decomposition.service';
+import {
+  WorkspaceTaskQualityAssessmentResult,
+  WorkspaceTaskQualityService,
+} from '@api/services/task-orchestration/workspace-task-quality.service';
 import { AgentExecutionStatus, AgentExecutionTrigger } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
@@ -44,6 +48,7 @@ export class TaskOrchestratorService {
     @Inject(forwardRef(() => AgentRunQueueService))
     private readonly agentRunQueueService: AgentRunQueueService,
     private readonly workspaceTasksService: WorkspaceTasksService,
+    private readonly workspaceTaskQualityService: WorkspaceTaskQualityService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -86,29 +91,62 @@ export class TaskOrchestratorService {
     );
 
     // 2. Mark task as in_progress with routing summary + decomposition
-    await this.workspaceTasksService.patch(taskId, {
-      decomposition: {
-        isSingleAgent: decomposition.isSingleAgent,
-        subtasks: decomposition.subtasks.map((s) => ({
-          agentType: s.agentType,
-          brief: s.brief,
-          label: s.label,
-          order: s.order,
-        })),
-        summary: decomposition.routingSummary,
+    await this.workspaceTasksService.recordTaskEvent(
+      taskId,
+      organizationId,
+      userId,
+      {
+        payload: {
+          subtaskCount: decomposition.subtasks.length,
+          summary: decomposition.routingSummary,
+        },
+        type: 'task_started',
       },
-      executionPathUsed: 'agent_orchestrator',
-      routingSummary: decomposition.routingSummary,
-      status: 'in_progress',
-    } as Record<string, unknown>);
+      {
+        decomposition: {
+          isSingleAgent: decomposition.isSingleAgent,
+          subtasks: decomposition.subtasks.map((s) => ({
+            agentType: s.agentType,
+            brief: s.brief,
+            label: s.label,
+            order: s.order,
+          })),
+          summary: decomposition.routingSummary,
+        },
+        executionPathUsed: 'agent_orchestrator',
+        progress: {
+          activeRunCount: decomposition.subtasks.length,
+          message: 'Preparing agent runs for execution.',
+          percent: 5,
+          stage: 'orchestrating',
+        },
+        routingSummary: decomposition.routingSummary,
+        status: 'in_progress',
+      },
+    );
 
     // 3. Create agent runs and enqueue
     const runIds = await this.createAndEnqueueRuns(decomposition, params);
 
     // 4. Link runs to workspace task
-    await this.workspaceTasksService.patch(taskId, {
-      linkedRunIds: runIds.map((id) => new Types.ObjectId(id)),
-    } as Record<string, unknown>);
+    await this.workspaceTasksService.recordTaskEvent(
+      taskId,
+      organizationId,
+      userId,
+      {
+        payload: { runIds },
+        type: 'runs_linked',
+      },
+      {
+        linkedRunIds: runIds.map((id) => new Types.ObjectId(id)),
+        progress: {
+          activeRunCount: runIds.length,
+          message: `Queued ${runIds.length} run${runIds.length === 1 ? '' : 's'} for execution.`,
+          percent: 10,
+          stage: 'queued',
+        },
+      },
+    );
 
     this.logger.log(
       `${this.logContext}: Task ${taskId} orchestrated with ${runIds.length} run(s)`,
@@ -134,6 +172,31 @@ export class TaskOrchestratorService {
       return; // Run not linked to any workspace task
     }
 
+    const { progress, runStates } = await this.buildTaskProgress(
+      task.linkedRunIds.map((id) => id.toString()),
+      organizationId,
+    );
+
+    const completedRun = runStates.find((run) => run.id === runId);
+    await this.workspaceTasksService.recordTaskEvent(
+      task._id.toString(),
+      organizationId,
+      task.user.toString(),
+      {
+        payload: {
+          progress,
+          runId,
+          status: completedRun?.status,
+          summary: completedRun?.summary,
+        },
+        type:
+          completedRun?.status === AgentExecutionStatus.FAILED
+            ? 'run_failed'
+            : 'run_completed',
+      },
+      { progress },
+    );
+
     // Check all linked runs
     const allComplete = await this.areAllRunsFinished(
       task.linkedRunIds.map((id) => id.toString()),
@@ -153,19 +216,77 @@ export class TaskOrchestratorService {
     const resultPreview = summaries.filter(Boolean).join(' | ');
 
     if (hasFailures) {
-      await this.workspaceTasksService.patch(task._id.toString(), {
-        failureReason: 'One or more agent runs failed.',
-        resultPreview: resultPreview || undefined,
-        reviewState: 'none',
-        status: 'failed',
-      } as Record<string, unknown>);
+      await this.workspaceTasksService.recordTaskEvent(
+        task._id.toString(),
+        organizationId,
+        task.user.toString(),
+        {
+          payload: {
+            failureReason: 'One or more agent runs failed.',
+            resultPreview: resultPreview || undefined,
+          },
+          type: 'task_failed',
+        },
+        {
+          failureReason: 'One or more agent runs failed.',
+          progress: {
+            activeRunCount: 0,
+            message: 'One or more runs failed.',
+            percent: 100,
+            stage: 'failed',
+          },
+          resultPreview: resultPreview || undefined,
+          reviewTriggered: true,
+          reviewState: 'none',
+          status: 'failed',
+        },
+      );
     } else {
-      await this.workspaceTasksService.patch(task._id.toString(), {
-        completedAt: new Date(),
-        resultPreview: resultPreview || undefined,
-        reviewState: 'pending_approval',
-        status: 'needs_review',
-      } as Record<string, unknown>);
+      const qualityAssessment = await this.workspaceTaskQualityService.assess(
+        {
+          outputType: task.outputType,
+          platforms: task.platforms,
+          request: task.request,
+          summaries,
+        },
+        organizationId,
+      );
+
+      await this.workspaceTasksService.recordTaskEvent(
+        task._id.toString(),
+        organizationId,
+        task.user.toString(),
+        {
+          payload: {
+            gate: qualityAssessment.gate,
+            resultPreview: resultPreview || undefined,
+            score: qualityAssessment.score,
+          },
+          type: 'task_ready_for_review',
+        },
+        {
+          completedAt: new Date(),
+          progress: {
+            activeRunCount: 0,
+            message: 'Generation finished. Awaiting review.',
+            percent: 100,
+            stage: 'review',
+          },
+          qualityAssessment,
+          resultPreview: resultPreview || undefined,
+          reviewState: 'pending_approval',
+          reviewTriggered: true,
+          status: 'needs_review',
+          ...(qualityAssessment.gate === 'pass'
+            ? {
+                requestedChangesReason: null,
+              }
+            : {
+                requestedChangesReason:
+                  this.buildQualityReviewReason(qualityAssessment),
+              }),
+        },
+      );
     }
 
     this.logger.log(
@@ -228,12 +349,60 @@ export class TaskOrchestratorService {
 
     await this.agentRunQueueService.queueRun(jobData);
 
+    await this.workspaceTasksService.recordTaskEvent(
+      params.taskId,
+      params.organizationId,
+      params.userId,
+      {
+        payload: {
+          agentType: subtask.agentType,
+          label: subtask.label,
+          runId,
+        },
+        type: 'run_queued',
+      },
+    );
+
     this.logger.log(
       `${this.logContext}: Created and enqueued run ${runId} (${subtask.agentType})`,
       { agentType: subtask.agentType, label: subtask.label, runId },
     );
 
     return runId;
+  }
+
+  async handleRunStarted(runId: string, organizationId: string): Promise<void> {
+    const task = await this.workspaceTasksService.findOne({
+      isDeleted: false,
+      linkedRunIds: new Types.ObjectId(runId),
+      organization: new Types.ObjectId(organizationId),
+    });
+
+    if (!task) {
+      return;
+    }
+
+    const { progress, runStates } = await this.buildTaskProgress(
+      task.linkedRunIds.map((id) => id.toString()),
+      organizationId,
+    );
+    const startedRun = runStates.find((run) => run.id === runId);
+
+    await this.workspaceTasksService.recordTaskEvent(
+      task._id.toString(),
+      organizationId,
+      task.user.toString(),
+      {
+        payload: {
+          label: startedRun?.label,
+          progress,
+          runId,
+          status: startedRun?.status,
+        },
+        type: 'run_started',
+      },
+      { progress },
+    );
   }
 
   private async areAllRunsFinished(
@@ -277,5 +446,109 @@ export class TaskOrchestratorService {
     }
 
     return { hasFailures, summaries };
+  }
+
+  private async buildTaskProgress(
+    runIds: string[],
+    organizationId: string,
+  ): Promise<{
+    progress: {
+      activeRunCount: number;
+      message: string;
+      percent: number;
+      stage: string;
+    };
+    runStates: Array<{
+      id: string;
+      label: string;
+      progress: number;
+      status: AgentExecutionStatus;
+      summary?: string;
+    }>;
+  }> {
+    const runStates: Array<{
+      id: string;
+      label: string;
+      progress: number;
+      status: AgentExecutionStatus;
+      summary?: string;
+    }> = [];
+
+    for (const runId of runIds) {
+      const run = await this.agentRunsService.getById(runId, organizationId);
+      if (!run) {
+        continue;
+      }
+
+      runStates.push({
+        id: run._id.toString(),
+        label: run.label,
+        progress:
+          run.status === AgentExecutionStatus.COMPLETED ||
+          run.status === AgentExecutionStatus.FAILED ||
+          run.status === AgentExecutionStatus.CANCELLED
+            ? 100
+            : run.status === AgentExecutionStatus.PENDING
+              ? 5
+              : typeof run.progress === 'number'
+                ? Math.min(99, Math.max(1, run.progress))
+                : 50,
+        status: run.status,
+        summary: run.summary,
+      });
+    }
+
+    const activeRunCount = runStates.filter(
+      (run) =>
+        run.status === AgentExecutionStatus.PENDING ||
+        run.status === AgentExecutionStatus.RUNNING,
+    ).length;
+    const averageProgress =
+      runStates.length > 0
+        ? Math.round(
+            runStates.reduce((total, run) => total + run.progress, 0) /
+              runStates.length,
+          )
+        : 0;
+
+    const stage = runStates.some(
+      (run) => run.status === AgentExecutionStatus.RUNNING,
+    )
+      ? 'running'
+      : runStates.some((run) => run.status === AgentExecutionStatus.PENDING)
+        ? 'queued'
+        : runStates.some((run) => run.status === AgentExecutionStatus.FAILED)
+          ? 'failed'
+          : 'review';
+
+    const message =
+      stage === 'running'
+        ? `${activeRunCount} run${activeRunCount === 1 ? '' : 's'} active.`
+        : stage === 'queued'
+          ? `${activeRunCount} run${activeRunCount === 1 ? '' : 's'} queued.`
+          : stage === 'failed'
+            ? 'Execution finished with failures.'
+            : 'Execution finished.';
+
+    return {
+      progress: {
+        activeRunCount,
+        message,
+        percent: averageProgress,
+        stage,
+      },
+      runStates,
+    };
+  }
+
+  private buildQualityReviewReason(
+    qualityAssessment: WorkspaceTaskQualityAssessmentResult,
+  ): string {
+    const fixes = qualityAssessment.suggestedFixes.slice(0, 3).join(' ');
+    const summary =
+      qualityAssessment.summary ??
+      'The system quality gate flagged this output for revision.';
+
+    return [summary, fixes].filter(Boolean).join(' ');
   }
 }

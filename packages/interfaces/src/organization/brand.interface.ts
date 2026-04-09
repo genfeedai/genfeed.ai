@@ -76,10 +76,20 @@ export interface IBrand extends IBaseEntity {
 }
 
 export interface IBrandAgentVoice {
+  canonicalSource?: 'brand' | 'founder' | 'hybrid';
   tone?: string;
   style?: string;
   audience?: string[];
   values?: string[];
+  messagingPillars?: string[];
+  doNotSoundLike?: string[];
+  sampleOutput?: string;
+  taglines?: string[];
+  hashtags?: string[];
+  approvedHooks?: string[];
+  bannedPhrases?: string[];
+  writingRules?: string[];
+  exemplarTexts?: string[];
 }
 
 export interface IBrandAgentStrategy {

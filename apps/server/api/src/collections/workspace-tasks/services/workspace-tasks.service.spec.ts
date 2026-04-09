@@ -26,7 +26,9 @@ function buildTask(
 ): Record<string, unknown> {
   return {
     _id: TASK_ID,
+    approvedOutputIds: [],
     brand: BRAND_ID,
+    eventStream: [],
     linkedApprovalIds: [],
     linkedOutputIds: [],
     linkedRunIds: [],
@@ -35,6 +37,11 @@ function buildTask(
     planningThreadId: undefined,
     platforms: ['youtube'],
     priority: 'normal',
+    progress: {
+      activeRunCount: 0,
+      percent: 100,
+      stage: 'review',
+    },
     request: 'Draft a launch script for our YouTube reveal.',
     requestedChangesReason: null,
     resultPreview: 'Drafted a reveal outline.',
@@ -61,27 +68,38 @@ function createService() {
     findOne: vi.fn(),
     updateThreadMetadata: vi.fn(),
   };
+  const ingredientsService = {
+    findOne: vi.fn(),
+    patch: vi.fn(),
+  };
   const agentMessagesService = {
     getMessagesByRoom: vi.fn().mockResolvedValue([]),
   };
   const agentRunsService = {
     getById: vi.fn(),
   };
+  const notificationsPublisher = {
+    emit: vi.fn().mockResolvedValue(undefined),
+  };
 
   const service = new WorkspaceTasksService(
     WorkspaceTaskModelMock as never,
     logger as never,
     skillsService as never,
+    ingredientsService as never,
     agentThreadsService as never,
     agentMessagesService as never,
     agentRunsService as never,
+    notificationsPublisher as never,
   );
 
   return {
     agentMessagesService,
     agentRunsService,
     agentThreadsService,
+    ingredientsService,
     logger,
+    notificationsPublisher,
     service,
     skillsService,
   };
@@ -156,6 +174,27 @@ describe('WorkspaceTasksService', () => {
         reviewState: 'pending_approval',
         reviewTriggered: true,
         skillsUsed: [],
+        status: 'needs_review',
+      }),
+    );
+  });
+
+  it('infers newsletter output types from GTM-native requests', async () => {
+    WorkspaceTaskModelMock.savedDocs = [];
+    const { service } = createService();
+
+    const created = await service.create({
+      organization: '507f1f77bcf86cd799439022',
+      request: 'Draft the next weekly newsletter issue for Beehiiv.',
+      user: '507f1f77bcf86cd799439023',
+    } as never);
+
+    expect(created).toEqual(
+      expect.objectContaining({
+        executionPathUsed: 'caption_generation',
+        outputType: 'newsletter',
+        reviewState: 'pending_approval',
+        reviewTriggered: true,
         status: 'needs_review',
       }),
     );

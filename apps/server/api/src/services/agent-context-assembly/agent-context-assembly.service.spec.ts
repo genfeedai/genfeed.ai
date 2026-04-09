@@ -49,8 +49,12 @@ describe('AgentContextAssemblyService', () => {
         platforms: ['twitter', 'linkedin'],
       },
       voice: {
+        approvedHooks: ['Open with a sharp operator insight.'],
         audience: ['developers', 'founders'],
+        bannedPhrases: ['game-changing AI'],
+        canonicalSource: 'founder',
         doNotSoundLike: ['corporate jargon', 'broetry'],
+        exemplarTexts: ['We ship systems, not vibes.'],
         hashtags: ['#genfeed'],
         messagingPillars: ['clarity', 'systems thinking'],
         sampleOutput: 'Clear systems create compounding output.',
@@ -58,6 +62,7 @@ describe('AgentContextAssemblyService', () => {
         taglines: ['Create content that compounds'],
         tone: 'professional',
         values: ['innovation', 'simplicity'],
+        writingRules: ['Lead with a concrete claim.', 'Avoid fluffy adjectives.'],
       },
     },
     description: 'A cutting-edge AI company',
@@ -164,9 +169,17 @@ describe('AgentContextAssemblyService', () => {
       expect(result!.persona).toBe('Be concise and technical');
       expect(result!.voice?.tone).toBe('professional');
       expect(result!.voice?.style).toBe('conversational');
+      expect(result!.voice?.canonicalSource).toBe('founder');
       expect(result!.voice?.doNotSoundLike).toEqual([
         'corporate jargon',
         'broetry',
+      ]);
+      expect(result!.voice?.approvedHooks).toEqual([
+        'Open with a sharp operator insight.',
+      ]);
+      expect(result!.voice?.bannedPhrases).toEqual(['game-changing AI']);
+      expect(result!.voice?.exemplarTexts).toEqual([
+        'We ship systems, not vibes.',
       ]);
       expect(result!.voice?.hashtags).toEqual(['#genfeed']);
       expect(result!.voice?.messagingPillars).toEqual([
@@ -178,6 +191,10 @@ describe('AgentContextAssemblyService', () => {
       );
       expect(result!.voice?.taglines).toEqual([
         'Create content that compounds',
+      ]);
+      expect(result!.voice?.writingRules).toEqual([
+        'Lead with a concrete claim.',
+        'Avoid fluffy adjectives.',
       ]);
       expect(result!.layersUsed).toContain('brandGuidance');
       expect(result!.layersUsed).toContain('brandIdentity');

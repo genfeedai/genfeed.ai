@@ -70,6 +70,13 @@ bun run test --filter=@genfeedai/[changed-package]
 - `.agents/README.md` — Navigation hub for all project docs
 - `.agents/context/` — Project context (product, structure, patterns, tech)
 - `.agents/rules/` — Coding rules (security, backend, frontend, packages)
+- `.agents/skills/` — Canonical repo-local skill bundles shared across agents
 - `.agents/agents/` — Specialist agent definitions
 - `.agents/SYSTEM/` — Architecture, critical rules, ADRs
 - `.agents/features/` — Feature-specific architecture docs
+
+## Skills Layout
+
+- Canonical repo-local skills live in `.agents/skills/`.
+- `.codex/skills/` is a symlink alias to `.agents/skills/` for Codex runtime discovery.
+- Add or update reusable repo skills in `.agents/skills/`, not in `.codex/skills/`.

@@ -12,6 +12,7 @@ import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
 import type { AgentRunStats } from '@genfeedai/types';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { useWebsocketPrompt } from '@hooks/utils/use-websocket-prompt/use-websocket-prompt';
 import type { Ingredient } from '@models/content/ingredient.model';
 import { Prompt } from '@models/content/prompt.model';
@@ -22,7 +23,8 @@ import { PromptsService } from '@services/content/prompts.service';
 import { logger } from '@services/core/logger.service';
 import { IssuesService } from '@services/management/issues.service';
 import {
-  type WorkspaceTask,
+  WorkspaceTask,
+  type WorkspaceTaskEvent,
   WorkspaceTasksService,
 } from '@services/workspace/workspace-tasks.service';
 import type { Editor, JSONContent } from '@tiptap/core';
@@ -45,8 +47,9 @@ import {
   SheetTitle,
 } from '@ui/primitives/sheet';
 import { Textarea } from '@ui/primitives/textarea';
+import { WebSocketPaths } from '@utils/network/websocket.util';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   forwardRef,
   type ReactNode,
@@ -67,6 +70,10 @@ import {
   HiOutlineSquares2X2,
 } from 'react-icons/hi2';
 import tippy, { type Instance } from 'tippy.js';
+import {
+  buildWorkspaceTaskLaunchHref,
+  OPERATOR_TASK_CONTEXT_QUERY_KEYS,
+} from '@/lib/navigation/operator-shell';
 import { WorkspaceDashboard } from './workspace-dashboard';
 
 type WorkspaceSection = 'activity' | 'inbox' | 'overview';
@@ -129,6 +136,18 @@ interface WorkspaceTaskLinkedOutputSummary {
   outputs: Ingredient[];
 }
 
+interface WorkspaceTaskOutputGroup {
+  children: Ingredient[];
+  root: Ingredient;
+}
+
+interface WorkspaceTaskRealtimePayload {
+  event: WorkspaceTaskEvent;
+  organizationId: string;
+  task: WorkspaceTask;
+  taskId: string;
+}
+
 interface WorkspaceTaskLinkedIssueSummary {
   href: string | null;
   identifier: string | null;
@@ -145,6 +164,14 @@ const DEFAULT_REVIEW_INBOX: ReviewInboxSummary = {
 };
 
 const TASK_PRESETS = [
+  {
+    label: 'Post',
+    outputType: 'post' as const,
+  },
+  {
+    label: 'Newsletter',
+    outputType: 'newsletter' as const,
+  },
   {
     label: 'Image',
     outputType: 'image' as const,
@@ -436,16 +463,7 @@ function formatTaskStatus(task: WorkspaceTask): string {
 }
 
 function getAdvancedToolHref(task: WorkspaceTask): string {
-  switch (task.executionPathUsed) {
-    case 'image_generation':
-      return '/studio/image';
-    case 'video_generation':
-      return '/studio/video';
-    case 'caption_generation':
-      return '/chat';
-    default:
-      return '/orchestration/runs';
-  }
+  return buildWorkspaceTaskLaunchHref(task, 'auto');
 }
 
 function getTaskStateDotClass(task: WorkspaceTask): string {
@@ -643,6 +661,128 @@ function getWorkspaceLinkedOutputDescription(
   }
 
   return null;
+}
+
+function groupWorkspaceLinkedOutputs(
+  outputs: Ingredient[],
+): WorkspaceTaskOutputGroup[] {
+  const activeOutputs = outputs.filter((output) => output.isDeleted !== true);
+  const outputMap = new Map(activeOutputs.map((output) => [output.id, output]));
+  const groups = new Map<string, WorkspaceTaskOutputGroup>();
+
+  for (const output of activeOutputs) {
+    const parentId =
+      typeof output.parent === 'string'
+        ? output.parent
+        : (output.parent?.id ?? null);
+    const rootId = parentId && outputMap.has(parentId) ? parentId : output.id;
+    const root = outputMap.get(rootId) ?? output;
+    const existingGroup = groups.get(rootId);
+
+    if (!existingGroup) {
+      groups.set(rootId, {
+        children: root.id === output.id ? [] : [output],
+        root,
+      });
+      continue;
+    }
+
+    if (output.id !== existingGroup.root.id) {
+      existingGroup.children.push(output);
+    }
+  }
+
+  return [...groups.values()].sort((left, right) => {
+    const leftTime = new Date(left.root.updatedAt ?? left.root.createdAt ?? 0);
+    const rightTime = new Date(
+      right.root.updatedAt ?? right.root.createdAt ?? 0,
+    );
+    return rightTime.getTime() - leftTime.getTime();
+  });
+}
+
+function formatWorkspaceEventLabel(event: WorkspaceTaskEvent): string {
+  switch (event.type) {
+    case 'task_queued':
+      return 'Task queued';
+    case 'task_started':
+      return 'Task started';
+    case 'runs_linked':
+      return 'Runs linked';
+    case 'run_queued':
+      return 'Run queued';
+    case 'run_started':
+      return 'Run started';
+    case 'run_completed':
+      return 'Run completed';
+    case 'run_failed':
+      return 'Run failed';
+    case 'task_ready_for_review':
+      return 'Ready for review';
+    case 'task_failed':
+      return 'Task failed';
+    case 'task_approved':
+      return 'Task approved';
+    case 'task_changes_requested':
+      return 'Changes requested';
+    case 'task_dismissed':
+      return 'Task dismissed';
+    case 'output_kept':
+      return 'Output kept';
+    case 'output_unkept':
+      return 'Output removed from keep';
+    case 'output_trashed':
+      return 'Output trashed';
+    default:
+      return event.type.replaceAll('_', ' ');
+  }
+}
+
+function getWorkspaceEventMessage(event: WorkspaceTaskEvent): string | null {
+  const message = event.payload?.message;
+  if (typeof message === 'string' && message.trim().length > 0) {
+    return message;
+  }
+
+  const summary = event.payload?.summary;
+  if (typeof summary === 'string' && summary.trim().length > 0) {
+    return summary;
+  }
+
+  const resultPreview = event.payload?.resultPreview;
+  if (typeof resultPreview === 'string' && resultPreview.trim().length > 0) {
+    return resultPreview;
+  }
+
+  const reason = event.payload?.reason;
+  if (typeof reason === 'string' && reason.trim().length > 0) {
+    return reason;
+  }
+
+  const error = event.payload?.error;
+  if (typeof error === 'string' && error.trim().length > 0) {
+    return error;
+  }
+
+  return null;
+}
+
+function applyRealtimeTaskUpdate(
+  currentTasks: WorkspaceTask[],
+  payload: WorkspaceTaskRealtimePayload,
+): WorkspaceTask[] {
+  const nextTask = new WorkspaceTask(payload.task);
+  const existingIndex = currentTasks.findIndex(
+    (task) => task.id === payload.taskId,
+  );
+
+  if (existingIndex === -1) {
+    return [nextTask, ...currentTasks];
+  }
+
+  return currentTasks.map((task, index) =>
+    index === existingIndex ? nextTask : task,
+  );
 }
 
 function useWorkspaceTaskLinkedOutputs(
@@ -861,6 +1001,11 @@ function WorkspaceTaskRow({
 
           <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-foreground/40">
             {task.routingSummary ? <span>{task.routingSummary}</span> : null}
+            {task.progress?.stage ? (
+              <span>
+                {task.progress.stage} · {task.progress.percent ?? 0}%
+              </span>
+            ) : null}
             <span>{task.executionPathUsed.replaceAll('_', ' ')}</span>
             <span>{formatTaskTimestamp(task)}</span>
           </div>
@@ -902,6 +1047,7 @@ function WorkspaceTaskCard({
         <p className="text-sm text-foreground/55">{task.request}</p>
         <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-foreground/45">
           {task.routingSummary ? <span>{task.routingSummary}</span> : null}
+          {task.progress?.message ? <span>{task.progress.message}</span> : null}
           <span>{formatTaskTimestamp(task)}</span>
           <span className="uppercase tracking-[0.14em]">
             {task.executionPathUsed.replaceAll('_', ' ')}
@@ -973,17 +1119,23 @@ function WorkspaceTaskInspector({
   busyTaskId,
   onApprove,
   onDismiss,
+  onKeepOutput,
   onOpenChange,
   onPlanNextSteps,
   onRequestChanges,
+  onTrashOutput,
+  onUnkeepOutput,
   task,
 }: {
   busyTaskId: string | null;
   onApprove: (taskId: string) => Promise<void>;
   onDismiss: (taskId: string) => Promise<void>;
+  onKeepOutput: (taskId: string, outputId: string) => Promise<void>;
   onOpenChange: (open: boolean) => void;
   onPlanNextSteps: (task: WorkspaceTask) => Promise<void>;
   onRequestChanges: (taskId: string) => Promise<void>;
+  onTrashOutput: (taskId: string, outputId: string) => Promise<void>;
+  onUnkeepOutput: (taskId: string, outputId: string) => Promise<void>;
   task: WorkspaceTask | null;
 }) {
   const isBusy = busyTaskId === task?.id;
@@ -1000,6 +1152,10 @@ function WorkspaceTaskInspector({
   const taskToolLabel = linkedRunSummary.reportThreadId
     ? 'Open Report'
     : 'Open Tool';
+  const linkedOutputGroups = useMemo(
+    () => groupWorkspaceLinkedOutputs(linkedOutputSummary.outputs),
+    [linkedOutputSummary.outputs],
+  );
 
   return (
     <Sheet open={Boolean(task)} onOpenChange={onOpenChange}>
@@ -1048,9 +1204,18 @@ function WorkspaceTaskInspector({
                 </Card>
                 <Card bodyClassName="space-y-2 p-4">
                   <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-foreground/35">
-                    Timeline
+                    Progress
                   </p>
                   <div className="space-y-1 text-sm text-foreground/60">
+                    <p>{task.progress?.stage ?? 'queued'}</p>
+                    <p>{task.progress?.percent ?? 0}% complete</p>
+                    <p>
+                      {task.progress?.activeRunCount ?? 0} active run
+                      {task.progress?.activeRunCount === 1 ? '' : 's'}
+                    </p>
+                    {task.progress?.message ? (
+                      <p>{task.progress.message}</p>
+                    ) : null}
                     <p className="flex items-center gap-2">
                       <HiOutlineClock className="h-4 w-4" />
                       Updated {formatTaskTimestamp(task)}
@@ -1076,14 +1241,59 @@ function WorkspaceTaskInspector({
                 </Card>
               ) : null}
 
+              {task.eventStream.length > 0 ? (
+                <Card
+                  label="Task thread"
+                  bodyClassName="space-y-3 border-l border-sky-400/30 p-4 text-sm text-foreground/75"
+                >
+                  <div
+                    className="space-y-3"
+                    data-testid="workspace-task-events"
+                  >
+                    {[...task.eventStream]
+                      .slice()
+                      .sort(
+                        (left, right) =>
+                          new Date(right.timestamp).getTime() -
+                          new Date(left.timestamp).getTime(),
+                      )
+                      .map((event) => {
+                        const message = getWorkspaceEventMessage(event);
+
+                        return (
+                          <article
+                            key={event.id}
+                            className="rounded-xl border border-white/10 bg-white/[0.03] p-3"
+                          >
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <p className="font-medium text-foreground">
+                                {formatWorkspaceEventLabel(event)}
+                              </p>
+                              <span className="text-xs text-foreground/40">
+                                {new Date(event.timestamp).toLocaleString()}
+                              </span>
+                            </div>
+                            {message ? (
+                              <p className="mt-2 text-sm text-foreground/60">
+                                {message}
+                              </p>
+                            ) : null}
+                          </article>
+                        );
+                      })}
+                  </div>
+                </Card>
+              ) : null}
+
               {task.linkedOutputIds.length > 0 ? (
                 <Card
-                  label="Created outputs"
+                  label="Generated outputs"
                   bodyClassName="space-y-3 border-l border-emerald-400/25 p-4 text-sm text-foreground/75"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="text-sm text-foreground/70">
-                      Linked ingredient outputs created for this task.
+                      Review all active variants here. Kept outputs stay
+                      visible; trashed variants disappear from the thread.
                     </p>
                     <Button
                       asChild
@@ -1105,36 +1315,102 @@ function WorkspaceTaskInspector({
                     </p>
                   ) : null}
 
-                  {linkedOutputSummary.outputs.length > 0 ? (
+                  {linkedOutputGroups.length > 0 ? (
                     <div
                       className="space-y-3"
                       data-testid="workspace-task-linked-outputs"
                     >
-                      {linkedOutputSummary.outputs.map((output) => {
-                        const description =
-                          getWorkspaceLinkedOutputDescription(output);
-
+                      {linkedOutputGroups.map((group) => {
+                        const outputs = [group.root, ...group.children];
                         return (
                           <article
-                            key={output.id}
+                            key={group.root.id}
                             className="rounded-xl border border-white/10 bg-white/[0.03] p-3"
                           >
-                            <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                               <p className="font-medium text-foreground">
-                                {getWorkspaceLinkedOutputTitle(output)}
+                                {getWorkspaceLinkedOutputTitle(group.root)}
                               </p>
                               <span className="rounded-full border border-white/10 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/55">
-                                {output.category ?? task.outputType}
+                                {outputs.length} variant
+                                {outputs.length === 1 ? '' : 's'}
                               </span>
                             </div>
-                            {description ? (
-                              <p className="mt-2 line-clamp-3 text-sm text-foreground/60">
-                                {description}
-                              </p>
-                            ) : null}
-                            <p className="mt-2 text-xs text-foreground/40">
-                              ID: {output.id}
-                            </p>
+
+                            <div className="space-y-3">
+                              {outputs.map((output) => {
+                                const description =
+                                  getWorkspaceLinkedOutputDescription(output);
+                                const isKept = task.approvedOutputIds.includes(
+                                  output.id,
+                                );
+
+                                return (
+                                  <div
+                                    key={output.id}
+                                    className="rounded-lg border border-white/10 bg-black/30 p-3"
+                                  >
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                      <div className="space-y-1">
+                                        <p className="font-medium text-foreground">
+                                          {getWorkspaceLinkedOutputTitle(
+                                            output,
+                                          )}
+                                        </p>
+                                        <p className="text-xs text-foreground/40">
+                                          {output.category ?? task.outputType}
+                                          {output.id === group.root.id
+                                            ? ' · parent'
+                                            : ' · variant'}
+                                        </p>
+                                      </div>
+                                      {isKept ? (
+                                        <span className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-300">
+                                          Kept
+                                        </span>
+                                      ) : null}
+                                    </div>
+
+                                    {description ? (
+                                      <p className="mt-2 line-clamp-3 text-sm text-foreground/60">
+                                        {description}
+                                      </p>
+                                    ) : null}
+
+                                    <p className="mt-2 text-xs text-foreground/40">
+                                      ID: {output.id}
+                                    </p>
+
+                                    <div className="mt-3 flex flex-wrap gap-2">
+                                      <Button
+                                        size={ButtonSize.SM}
+                                        variant={ButtonVariant.SECONDARY}
+                                        disabled={isBusy}
+                                        onClick={() =>
+                                          void (isKept
+                                            ? onUnkeepOutput(task.id, output.id)
+                                            : onKeepOutput(task.id, output.id))
+                                        }
+                                      >
+                                        {isKept
+                                          ? 'Remove from kept'
+                                          : 'Keep output'}
+                                      </Button>
+                                      <Button
+                                        size={ButtonSize.SM}
+                                        variant={ButtonVariant.SECONDARY}
+                                        disabled={isBusy}
+                                        onClick={() =>
+                                          void onTrashOutput(task.id, output.id)
+                                        }
+                                      >
+                                        Trash
+                                      </Button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </article>
                         );
                       })}
@@ -1267,6 +1543,46 @@ function WorkspaceTaskInspector({
                 >
                   Plan Next Steps
                 </Button>
+                <Button
+                  asChild
+                  variant={ButtonVariant.SECONDARY}
+                  size={ButtonSize.SM}
+                  className="font-semibold"
+                >
+                  <Link href={buildWorkspaceTaskLaunchHref(task, 'write')}>
+                    Open in Write
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  variant={ButtonVariant.SECONDARY}
+                  size={ButtonSize.SM}
+                  className="font-semibold"
+                >
+                  <Link href={buildWorkspaceTaskLaunchHref(task, 'generate')}>
+                    Open in Generate
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  variant={ButtonVariant.SECONDARY}
+                  size={ButtonSize.SM}
+                  className="font-semibold"
+                >
+                  <Link href={buildWorkspaceTaskLaunchHref(task, 'edit')}>
+                    Open in Edit
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  variant={ButtonVariant.SECONDARY}
+                  size={ButtonSize.SM}
+                  className="font-semibold"
+                >
+                  <Link href={buildWorkspaceTaskLaunchHref(task, 'automate')}>
+                    Open in Automate
+                  </Link>
+                </Button>
                 {linkedIssueSummary.href ? (
                   <Button
                     asChild
@@ -1308,8 +1624,12 @@ export default function WorkspacePageContent({
   void initialTimeSeriesData;
 
   const { getToken } = useAuth();
+  const { subscribe } = useSocketManager();
   const { brandId, brands, organizationId, selectedBrand } = useBrand();
+  const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedTaskId = searchParams?.get('taskId');
   const [isTaskComposerOpen, setTaskComposerOpen] = useState(false);
   const [taskRequest, setTaskRequest] = useState('');
   const [taskOutputType, setTaskOutputType] =
@@ -1554,6 +1874,29 @@ export default function WorkspacePageContent({
     () => workspaceTasks.find((task) => task.id === selectedTaskId) ?? null,
     [selectedTaskId, workspaceTasks],
   );
+  const replaceTaskSearchParam = useCallback(
+    (taskId: string | null) => {
+      const nextSearchParams = new URLSearchParams(searchParams?.toString());
+
+      for (const key of OPERATOR_TASK_CONTEXT_QUERY_KEYS) {
+        if (key !== 'taskId') {
+          nextSearchParams.delete(key);
+        }
+      }
+
+      if (taskId) {
+        nextSearchParams.set('taskId', taskId);
+      } else {
+        nextSearchParams.delete('taskId');
+      }
+
+      const nextQuery = nextSearchParams.toString();
+      router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
+        scroll: false,
+      });
+    },
+    [pathname, router, searchParams],
+  );
   const visibleInboxTasks = useMemo(() => {
     switch (defaultInboxView) {
       case 'unread':
@@ -1603,6 +1946,22 @@ export default function WorkspacePageContent({
   }, [selectedTaskId, workspaceTasks]);
 
   useEffect(() => {
+    if (!requestedTaskId) {
+      return;
+    }
+
+    if (!workspaceTasks.some((task) => task.id === requestedTaskId)) {
+      return;
+    }
+
+    if (selectedTaskId === requestedTaskId) {
+      return;
+    }
+
+    setSelectedTaskId(requestedTaskId);
+  }, [requestedTaskId, selectedTaskId, workspaceTasks]);
+
+  useEffect(() => {
     const controller = new AbortController();
 
     const loadWorkspaceTasks = async () => {
@@ -1624,6 +1983,27 @@ export default function WorkspacePageContent({
       controller.abort();
     };
   }, [getToken]);
+
+  useEffect(() => {
+    if (!organizationId) {
+      return;
+    }
+
+    const unsubscribeOverview = subscribe<WorkspaceTaskRealtimePayload>(
+      WebSocketPaths.workspaceTaskOverview(organizationId),
+      (payload) => {
+        startTransition(() => {
+          setWorkspaceTasks((current) =>
+            applyRealtimeTaskUpdate(current, payload),
+          );
+        });
+      },
+    );
+
+    return () => {
+      unsubscribeOverview();
+    };
+  }, [organizationId, subscribe]);
 
   const refreshWorkspaceTasks = async () => {
     setWorkspaceRefreshing(true);
@@ -1937,7 +2317,10 @@ export default function WorkspacePageContent({
           <WorkspaceTaskRow
             key={task.id}
             task={task}
-            onOpen={(openedTask) => setSelectedTaskId(openedTask.id)}
+            onOpen={(openedTask) => {
+              setSelectedTaskId(openedTask.id);
+              replaceTaskSearchParam(openedTask.id);
+            }}
           />
         ))}
       </div>
@@ -2210,6 +2593,7 @@ export default function WorkspacePageContent({
           reviewInbox={initialReviewInbox}
           runs={initialRuns}
           stats={initialStats}
+          workspaceTasks={workspaceTasks}
         />
       ) : null}
 
@@ -2500,9 +2884,13 @@ export default function WorkspacePageContent({
       <WorkspaceTaskInspector
         task={selectedTask}
         busyTaskId={busyTaskId}
+        onKeepOutput={(taskId, outputId) =>
+          mutateTask(taskId, (service) => service.keepOutput(taskId, outputId))
+        }
         onOpenChange={(open) => {
           if (!open) {
             setSelectedTaskId(null);
+            replaceTaskSearchParam(null);
           }
         }}
         onApprove={(taskId) =>
@@ -2518,6 +2906,14 @@ export default function WorkspacePageContent({
               taskId,
               'Please revise this task from the workspace inbox.',
             ),
+          )
+        }
+        onTrashOutput={(taskId, outputId) =>
+          mutateTask(taskId, (service) => service.trashOutput(taskId, outputId))
+        }
+        onUnkeepOutput={(taskId, outputId) =>
+          mutateTask(taskId, (service) =>
+            service.unkeepOutput(taskId, outputId),
           )
         }
       />

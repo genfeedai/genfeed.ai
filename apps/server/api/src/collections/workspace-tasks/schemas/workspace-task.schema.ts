@@ -5,6 +5,8 @@ export const WORKSPACE_TASK_OUTPUT_TYPES = [
   'caption',
   'image',
   'ingredient',
+  'newsletter',
+  'post',
   'video',
 ] as const;
 
@@ -35,6 +37,79 @@ export const WORKSPACE_TASK_EXECUTION_PATHS = [
 ] as const;
 
 export type WorkspaceTaskDocument = WorkspaceTask & Document;
+
+@Schema({ _id: false })
+export class WorkspaceTaskProgress {
+  @Prop({ default: 0, max: 100, min: 0, required: true, type: Number })
+  percent!: number;
+
+  @Prop({ required: false, type: String })
+  stage?: string;
+
+  @Prop({ required: false, type: String })
+  message?: string;
+
+  @Prop({ default: 0, min: 0, required: true, type: Number })
+  activeRunCount!: number;
+}
+
+@Schema({ _id: false })
+export class WorkspaceTaskEvent {
+  @Prop({ required: true, type: String })
+  id!: string;
+
+  @Prop({ required: true, type: String })
+  type!: string;
+
+  @Prop({ required: true, type: Date })
+  timestamp!: Date;
+
+  @Prop({ required: false, type: Object })
+  payload?: Record<string, unknown>;
+}
+
+@Schema({ _id: false })
+export class WorkspaceTaskQualityDimension {
+  @Prop({ required: true, type: String })
+  label!: string;
+
+  @Prop({ max: 1, min: 0, required: true, type: Number })
+  score!: number;
+
+  @Prop({ required: false, type: String })
+  notes?: string;
+}
+
+@Schema({ _id: false })
+export class WorkspaceTaskQualityAssessment {
+  @Prop({ required: false, type: String })
+  summary?: string;
+
+  @Prop({
+    enum: ['pass', 'needs_revision', 'fail'],
+    required: true,
+    type: String,
+  })
+  gate!: 'pass' | 'needs_revision' | 'fail';
+
+  @Prop({ default: [], type: [String] })
+  suggestedFixes!: string[];
+
+  @Prop({ max: 1, min: 0, required: true, type: Number })
+  score!: number;
+
+  @Prop({ default: [], type: [WorkspaceTaskQualityDimension] })
+  dimensions!: WorkspaceTaskQualityDimension[];
+
+  @Prop({ default: false, type: Boolean })
+  repairLoopUsed!: boolean;
+
+  @Prop({ required: false, type: String })
+  winnerSummary?: string;
+
+  @Prop({ required: true, type: String })
+  rubricVersion!: string;
+}
 
 @Schema({
   collection: 'workspace-tasks',
@@ -137,6 +212,9 @@ export class WorkspaceTask {
   linkedOutputIds!: Types.ObjectId[];
 
   @Prop({ default: [], type: [Types.ObjectId] })
+  approvedOutputIds!: Types.ObjectId[];
+
+  @Prop({ default: [], type: [Types.ObjectId] })
   linkedApprovalIds!: Types.ObjectId[];
 
   @Prop({ required: false, type: String })
@@ -144,6 +222,23 @@ export class WorkspaceTask {
 
   @Prop({ required: false, type: String })
   resultPreview?: string;
+
+  @Prop({ required: false, type: WorkspaceTaskQualityAssessment })
+  qualityAssessment?: WorkspaceTaskQualityAssessment;
+
+  @Prop({
+    default: {
+      activeRunCount: 0,
+      percent: 0,
+      stage: 'queued',
+    },
+    required: true,
+    type: WorkspaceTaskProgress,
+  })
+  progress!: WorkspaceTaskProgress;
+
+  @Prop({ default: [], type: [WorkspaceTaskEvent] })
+  eventStream!: WorkspaceTaskEvent[];
 
   @Prop({ required: false, type: String })
   failureReason?: string;

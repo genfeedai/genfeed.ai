@@ -18,6 +18,8 @@ export type WorkspaceTaskOutputType =
   | 'caption'
   | 'image'
   | 'ingredient'
+  | 'newsletter'
+  | 'post'
   | 'video';
 
 export type WorkspaceTaskPriority = 'high' | 'normal' | 'low';
@@ -60,6 +62,37 @@ export interface WorkspacePlanThreadResponse {
   threadId: string;
 }
 
+export interface WorkspaceTaskQualityAssessmentDimension {
+  label: string;
+  notes?: string;
+  score: number;
+}
+
+export interface WorkspaceTaskQualityAssessment {
+  dimensions: WorkspaceTaskQualityAssessmentDimension[];
+  gate: 'fail' | 'needs_revision' | 'pass';
+  repairLoopUsed: boolean;
+  rubricVersion: string;
+  score: number;
+  suggestedFixes: string[];
+  summary?: string;
+  winnerSummary?: string;
+}
+
+export interface WorkspaceTaskProgress {
+  activeRunCount: number;
+  message?: string;
+  percent: number;
+  stage?: string;
+}
+
+export interface WorkspaceTaskEvent {
+  id: string;
+  payload?: Record<string, unknown>;
+  timestamp: string;
+  type: string;
+}
+
 export class WorkspaceTask {
   id!: string;
   organization!: string;
@@ -81,10 +114,14 @@ export class WorkspaceTask {
   reviewTriggered!: boolean;
   linkedRunIds!: string[];
   linkedOutputIds!: string[];
+  approvedOutputIds!: string[];
   linkedApprovalIds!: string[];
   linkedIssueId?: string;
   planningThreadId?: string;
   resultPreview?: string;
+  qualityAssessment?: WorkspaceTaskQualityAssessment;
+  progress!: WorkspaceTaskProgress;
+  eventStream!: WorkspaceTaskEvent[];
   failureReason?: string;
   requestedChangesReason?: string;
   completedAt?: string;
@@ -167,6 +204,33 @@ export class WorkspaceTasksService extends BaseService<
       this.instance
         .post<JsonApiResponseDocument>(`/${id}/follow-up-tasks`)
         .then((response) => this.mapMany(response.data)),
+    );
+  }
+
+  async keepOutput(id: string, outputId: string): Promise<WorkspaceTask> {
+    return this.executeWithErrorHandling(
+      `PATCH ${this.baseURL}/${id}/outputs/${outputId}/keep`,
+      this.instance
+        .patch<JsonApiResponseDocument>(`/${id}/outputs/${outputId}/keep`)
+        .then((response) => this.mapOne(response.data)),
+    );
+  }
+
+  async unkeepOutput(id: string, outputId: string): Promise<WorkspaceTask> {
+    return this.executeWithErrorHandling(
+      `PATCH ${this.baseURL}/${id}/outputs/${outputId}/unkeep`,
+      this.instance
+        .patch<JsonApiResponseDocument>(`/${id}/outputs/${outputId}/unkeep`)
+        .then((response) => this.mapOne(response.data)),
+    );
+  }
+
+  async trashOutput(id: string, outputId: string): Promise<WorkspaceTask> {
+    return this.executeWithErrorHandling(
+      `PATCH ${this.baseURL}/${id}/outputs/${outputId}/trash`,
+      this.instance
+        .patch<JsonApiResponseDocument>(`/${id}/outputs/${outputId}/trash`)
+        .then((response) => this.mapOne(response.data)),
     );
   }
 }

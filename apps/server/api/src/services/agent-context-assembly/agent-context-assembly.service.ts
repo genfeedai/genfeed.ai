@@ -153,8 +153,12 @@ export class AgentContextAssemblyService {
 
     if (layers.brandGuidance && Object.keys(resolvedVoice).length > 0) {
       context.voice = {
+        approvedHooks: resolvedVoice.approvedHooks,
         audience: resolvedVoice.audience?.join(', '),
+        bannedPhrases: resolvedVoice.bannedPhrases,
+        canonicalSource: resolvedVoice.canonicalSource,
         doNotSoundLike: resolvedVoice.doNotSoundLike,
+        exemplarTexts: resolvedVoice.exemplarTexts,
         hashtags: resolvedVoice.hashtags,
         messagingPillars: resolvedVoice.messagingPillars,
         sampleOutput: resolvedVoice.sampleOutput,
@@ -162,6 +166,7 @@ export class AgentContextAssemblyService {
         taglines: resolvedVoice.taglines,
         tone: resolvedVoice.tone,
         values: resolvedVoice.values,
+        writingRules: resolvedVoice.writingRules,
       };
     }
 
@@ -306,6 +311,9 @@ export class AgentContextAssemblyService {
 
     // Canonical brand voice from Brand.agentConfig
     const voiceParts: string[] = [];
+    if (context.voice?.canonicalSource) {
+      voiceParts.push(`- Canonical voice source: ${context.voice.canonicalSource}`);
+    }
     if (context.voice?.tone) {
       voiceParts.push(`- Tone: ${context.voice.tone}`);
     }
@@ -334,11 +342,33 @@ export class AgentContextAssemblyService {
     if (context.voice?.hashtags?.length) {
       voiceParts.push(`- Hashtags: ${context.voice.hashtags.join(' ')}`);
     }
+    if (context.voice?.approvedHooks?.length) {
+      voiceParts.push(
+        `- Approved hook patterns: ${context.voice.approvedHooks.join(' | ')}`,
+      );
+    }
+    if (context.voice?.bannedPhrases?.length) {
+      voiceParts.push(
+        `- Banned phrases: ${context.voice.bannedPhrases.join(', ')}`,
+      );
+    }
+    if (context.voice?.writingRules?.length) {
+      voiceParts.push(
+        `- Writing rules: ${context.voice.writingRules.join(' | ')}`,
+      );
+    }
     if (voiceParts.length > 0) {
       sections.push(`\n## Brand Voice\n${voiceParts.join('\n')}`);
     }
     if (context.voice?.sampleOutput) {
       sections.push(`\n## Voice Example\n${context.voice.sampleOutput}`);
+    }
+    if (context.voice?.exemplarTexts?.length) {
+      sections.push(
+        `\n## Reference Exemplars\n${context.voice.exemplarTexts
+          .map((example) => `- ${example}`)
+          .join('\n')}`,
+      );
     }
 
     // Strategy

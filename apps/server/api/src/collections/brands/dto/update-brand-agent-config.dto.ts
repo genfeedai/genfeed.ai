@@ -4,6 +4,7 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
+  IsIn,
   IsMongoId,
   IsNumber,
   IsOptional,
@@ -71,6 +72,56 @@ export class UpdateBrandAgentVoiceDto {
     required: false,
   })
   sampleOutput?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['brand', 'founder', 'hybrid'])
+  @ApiProperty({
+    description: 'Canonical source of truth for the voice profile',
+    enum: ['brand', 'founder', 'hybrid'],
+    required: false,
+  })
+  canonicalSource?: 'brand' | 'founder' | 'hybrid';
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  @ApiProperty({
+    description: 'Approved hook patterns for high-performing content',
+    required: false,
+    type: [String],
+  })
+  approvedHooks?: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  @ApiProperty({
+    description: 'Banned phrases that should never appear in output',
+    required: false,
+    type: [String],
+  })
+  bannedPhrases?: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  @ApiProperty({
+    description: 'Format-agnostic writing rules for generated content',
+    required: false,
+    type: [String],
+  })
+  writingRules?: string[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  @ApiProperty({
+    description: 'Reference exemplars that capture the desired voice',
+    required: false,
+    type: [String],
+  })
+  exemplarTexts?: string[];
 }
 
 export class UpdateBrandAgentStrategyDto {

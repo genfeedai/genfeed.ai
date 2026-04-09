@@ -23,6 +23,7 @@ export interface AssembledBrandContext {
   persona?: string;
   defaultModel?: string;
   voice?: {
+    canonicalSource?: 'brand' | 'founder' | 'hybrid';
     tone?: string;
     style?: string;
     audience?: string;
@@ -32,6 +33,10 @@ export interface AssembledBrandContext {
     values?: string[];
     taglines?: string[];
     hashtags?: string[];
+    approvedHooks?: string[];
+    bannedPhrases?: string[];
+    writingRules?: string[];
+    exemplarTexts?: string[];
   };
   strategy?: {
     contentTypes?: string[];
