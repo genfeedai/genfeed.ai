@@ -6,7 +6,6 @@ import { HStack, VStack } from '@ui/layout/stack';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import Image from 'next/image';
-import { useState } from 'react';
 import {
   HiEye,
   HiHeart,
@@ -47,7 +46,6 @@ function DemoCard({
   views,
 }: DemoCardProps) {
   const visible = useDelayedVisibility({ delay });
-  const [isHovered, setIsHovered] = useState(false);
   const {
     centerIcon: CenterIcon,
     label: typeLabel,
@@ -59,8 +57,6 @@ function DemoCard({
       className={`group relative overflow-hidden transition-all duration-700 ${
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
       }`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       {videoId && videoUsername ? (
         <blockquote
@@ -97,11 +93,7 @@ function DemoCard({
             )}
 
             {/* Animated shimmer effect */}
-            <div
-              className={`absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transition-transform duration-1000 ${
-                isHovered ? 'translate-x-full' : '-translate-x-full'
-              }`}
-            />
+            <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/10 to-transparent transition-transform duration-1000 group-hover:translate-x-full" />
 
             {/* Grid pattern overlay - only show on gradient */}
             {!thumbnailUrl && (
@@ -110,11 +102,7 @@ function DemoCard({
 
             {/* Center icon */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <div
-                className={`p-4 rounded-full bg-black/30 backdrop-blur-sm transition-all duration-300 ${
-                  isHovered ? 'scale-110' : 'scale-100'
-                }`}
-              >
+              <div className="scale-100 rounded-full bg-black/30 p-4 backdrop-blur-sm transition-all duration-300 group-hover:scale-110">
                 <CenterIcon className="h-8 w-8 text-surface" />
               </div>
             </div>
@@ -136,13 +124,9 @@ function DemoCard({
             </div>
 
             {/* Floating particles when hovered */}
-            {isHovered && (
-              <>
-                <div className="absolute bottom-1/4 left-1/4 w-2 h-2 bg-fill/30 rounded-full animate-ping" />
-                <div className="absolute top-1/3 right-1/3 w-1.5 h-1.5 bg-fill/20 rounded-full animate-ping animation-delay-200" />
-                <div className="absolute bottom-1/3 right-1/4 w-1 h-1 bg-fill/40 rounded-full animate-ping animation-delay-400" />
-              </>
-            )}
+            <div className="absolute bottom-1/4 left-1/4 h-2 w-2 rounded-full bg-fill/30 opacity-0 transition-opacity group-hover:opacity-100 animate-ping" />
+            <div className="absolute top-1/3 right-1/3 h-1.5 w-1.5 rounded-full bg-fill/20 opacity-0 transition-opacity group-hover:opacity-100 animate-ping animation-delay-200" />
+            <div className="absolute bottom-1/3 right-1/4 h-1 w-1 rounded-full bg-fill/40 opacity-0 transition-opacity group-hover:opacity-100 animate-ping animation-delay-400" />
           </div>
 
           {/* Card info */}

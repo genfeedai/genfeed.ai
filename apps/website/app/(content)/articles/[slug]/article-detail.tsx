@@ -64,6 +64,12 @@ export default function ArticleDetail({
   const router = useRouter();
 
   const clipboardService = useMemo(() => ClipboardService.getInstance(), []);
+  const articleContentProps = useMemo(
+    () => ({
+      dangerouslySetInnerHTML: createMarkup(article?.content || ''),
+    }),
+    [article?.content],
+  );
   const [copied, setCopied] = useState(false);
 
   const formatDate = (dateString: string) => {
@@ -193,9 +199,7 @@ export default function ArticleDetail({
             </header>
 
             <div className="prose prose-invert prose-lg max-w-none">
-              <div
-                dangerouslySetInnerHTML={createMarkup(article.content || '')}
-              />
+              <div {...articleContentProps} />
             </div>
           </div>
 

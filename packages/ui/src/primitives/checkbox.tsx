@@ -21,6 +21,7 @@ type CheckboxBaseProps = Omit<
 export interface CheckboxProps<T extends FieldValues = FieldValues>
   extends CheckboxBaseProps {
   control?: Control<T>;
+  disabled?: boolean;
   isChecked?: boolean;
   isDisabled?: boolean;
   isRequired?: boolean;
@@ -28,6 +29,7 @@ export interface CheckboxProps<T extends FieldValues = FieldValues>
   name?: Path<T> | string;
   onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
   onCheckedChange?: (checked: CheckboxPrimitive.CheckedState) => void;
+  required?: boolean;
 }
 
 interface CheckboxInnerProps<T extends FieldValues = FieldValues>
@@ -56,6 +58,8 @@ function CheckboxInner<T extends FieldValues = FieldValues>({
   onBlur,
   onChange,
   onCheckedChange,
+  disabled,
+  required,
   ...props
 }: CheckboxInnerProps<T>): ReactElement {
   const resolvedChecked = checked ?? isChecked;
@@ -77,7 +81,7 @@ function CheckboxInner<T extends FieldValues = FieldValues>({
         'peer h-4 w-4 shrink-0 border border-primary shadow focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground',
         className,
       )}
-      disabled={isDisabled}
+      disabled={isDisabled ?? disabled}
       name={name}
       onBlur={(event) => {
         fieldOnBlur?.();
@@ -94,7 +98,7 @@ function CheckboxInner<T extends FieldValues = FieldValues>({
           } as ChangeEvent<HTMLInputElement>);
         }
       }}
-      required={isRequired}
+      required={isRequired ?? required}
     >
       <CheckboxPrimitive.Indicator
         className={cn('flex items-center justify-center text-current')}

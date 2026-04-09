@@ -13,6 +13,26 @@ const pinoLogger: PinoLogger = pino({
   name: 'genfeed.ai',
 });
 
+const consoleMethodMap = {
+  debug: console.debug,
+  error: console.error,
+  info: console.info,
+  warn: console.warn,
+} as const;
+
+function logToConsole(
+  level: 'debug' | 'info' | 'warn' | 'error',
+  message: string,
+  obj?: unknown,
+): void {
+  const consoleMethod = consoleMethodMap[level];
+  if (obj !== undefined) {
+    consoleMethod(message, obj);
+  } else {
+    consoleMethod(message);
+  }
+}
+
 /**
  * Helper to safely capture errors in Sentry
  * Extracts the actual Error object and context from the log object
@@ -56,7 +76,11 @@ const captureSentryError = (message: string, obj?: unknown) => {
 
     Sentry.captureException(actualError, context);
   } catch (sentryError) {
-    pinoLogger.debug({ sentryError }, 'Failed to send error to Sentry');
+    if (typeof window !== 'undefined') {
+      logToConsole('debug', 'Failed to send error to Sentry', { sentryError });
+    } else {
+      pinoLogger.debug({ sentryError }, 'Failed to send error to Sentry');
+    }
   }
 };
 
@@ -83,8 +107,13 @@ const captureSentryMessage = (
       tags: logContext?.tags,
     });
   } catch (sentryError) {
-    // Fail silently if Sentry is not available or errors out
-    pinoLogger.debug({ sentryError }, 'Failed to send message to Sentry');
+    if (typeof window !== 'undefined') {
+      logToConsole('debug', 'Failed to send message to Sentry', {
+        sentryError,
+      });
+    } else {
+      pinoLogger.debug({ sentryError }, 'Failed to send message to Sentry');
+    }
   }
 };
 
@@ -93,6 +122,11 @@ function logWithContext(
   message: string,
   obj?: unknown,
 ): void {
+  if (typeof window !== 'undefined') {
+    logToConsole(level, message, obj);
+    return;
+  }
+
   if (obj !== undefined) {
     pinoLogger[level](obj, message);
   } else {

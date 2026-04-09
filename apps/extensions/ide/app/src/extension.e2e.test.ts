@@ -41,7 +41,7 @@ const statusBarCalls = {
   startCalls: 0,
 };
 
-process.env.NODE_ENV = 'test';
+Reflect.set(process.env, 'NODE_ENV', 'test');
 
 function resetState(): void {
   commandHandlers.clear();

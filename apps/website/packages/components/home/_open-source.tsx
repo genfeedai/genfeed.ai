@@ -61,10 +61,10 @@ function TerminalWindow(): React.ReactElement {
 
       {/* Terminal content */}
       <div className="p-8 font-mono text-sm leading-relaxed min-h-code-block-lg">
-        {TERMINAL_COMMANDS.slice(0, currentLine).map((line, idx) => (
+        {TERMINAL_COMMANDS.slice(0, currentLine).map((line) => (
           <Text
             as="p"
-            key={`${line.command}-${idx}`}
+            key={line.command}
             className={`mb-2 ${line.isComment ? 'text-surface/40' : 'text-surface'}`}
           >
             {!line.isComment && (

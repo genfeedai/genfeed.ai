@@ -1,11 +1,14 @@
 {
   "dependencies": {
-    "@aws-sdk/client-ec2": "3.1026.0",
+    "@aws-sdk/client-ec2": "3.1027.0",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/enums": "workspace:*"
   },
   "description": "Genfeed Workers Service (Cron Jobs)",
-  "devDependencies": {},
+  "devDependencies": {
+    "@nestjs/testing": "11.1.18",
+    "unplugin-swc": "1.5.9"
+  },
   "main": "../dist/apps/workers/main.js",
   "name": "@genfeedai/workers",
   "private": true,
@@ -15,7 +18,7 @@
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
     "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start workers --watch",
     "dev:webpack": "cd .. && NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" nest start workers --watch",
-    "lint": "biome lint --write src",
+    "lint": "biome lint --write src --no-errors-on-unmatched",
     "sentry:inject": "sentry-cli sourcemaps inject --org genfeedai --project workers-genfeed-ai ../dist",
     "sentry:sourcemaps": "bun run sentry:inject && bun run sentry:upload",
     "sentry:upload": "sentry-cli sourcemaps upload --org genfeedai --project workers-genfeed-ai ../dist",

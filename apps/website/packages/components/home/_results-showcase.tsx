@@ -261,7 +261,11 @@ export default function ResultsShowcase(): React.ReactElement {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             {isIntersecting &&
               RESULTS.map((result, index) => (
-                <ResultCard key={index} {...result} delay={index * 100} />
+                <ResultCard
+                  key={`${result.creator}-${result.title}`}
+                  {...result}
+                  delay={index * 100}
+                />
               ))}
           </div>
 

@@ -35,7 +35,7 @@ declare module 'electron' {
 
   export const app: {
     getPath(name: string): string;
-    on(event: string, callback: (...args: any[]) => void): void;
+    on(event: string, callback: (...args: unknown[]) => void): void;
     quit(): void;
     requestSingleInstanceLock(): boolean;
     setAsDefaultProtocolClient(protocol: string): void;
@@ -45,7 +45,7 @@ declare module 'electron' {
   export const ipcMain: {
     handle(
       channel: string,
-      handler: (...args: any[]) => unknown | Promise<unknown>,
+      handler: (...args: unknown[]) => unknown | Promise<unknown>,
     ): void;
   };
 
@@ -87,8 +87,8 @@ declare module 'electron' {
   };
 
   export const ipcRenderer: {
-    invoke<T = unknown>(channel: string, ...args: any[]): Promise<T>;
-    on(channel: string, listener: (...args: any[]) => void): void;
-    off(channel: string, listener: (...args: any[]) => void): void;
+    invoke<T = unknown>(channel: string, ...args: unknown[]): Promise<T>;
+    on(channel: string, listener: (...args: unknown[]) => void): void;
+    off(channel: string, listener: (...args: unknown[]) => void): void;
   };
 }

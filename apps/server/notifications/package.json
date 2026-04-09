@@ -15,7 +15,7 @@
     "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start notifications --watch",
     "dev:bun": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start notifications --watch",
     "dev:nest": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start notifications --watch",
-    "lint": "biome lint --write src",
+    "lint": "biome lint --write src --no-errors-on-unmatched",
     "sentry:inject": "sentry-cli sourcemaps inject --org genfeedai --project notifications-genfeed-ai ../dist",
     "sentry:sourcemaps": "bun run sentry:inject && bun run sentry:upload",
     "sentry:upload": "sentry-cli sourcemaps upload --org genfeedai --project notifications-genfeed-ai ../dist",

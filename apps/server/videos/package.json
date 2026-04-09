@@ -12,7 +12,7 @@
     "build:prod": "cd .. && nest build videos && cd videos && if [ -n \"$SENTRY_AUTH_TOKEN\" ]; then bun run sentry:sourcemaps || true; fi",
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
     "dev": "cd .. && NODE_OPTIONS=\"--max-old-space-size=2048 --expose-gc\" nest start videos --watch",
-    "lint": "biome lint --write src",
+    "lint": "biome lint --write src --no-errors-on-unmatched",
     "sentry:inject": "sentry-cli sourcemaps inject --org genfeedai --project videos-genfeed-ai ../dist",
     "sentry:sourcemaps": "bun run sentry:inject && bun run sentry:upload",
     "sentry:upload": "sentry-cli sourcemaps upload --org genfeedai --project videos-genfeed-ai ../dist",

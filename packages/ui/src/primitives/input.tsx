@@ -31,6 +31,7 @@ export interface InputProps<T extends FieldValues = FieldValues>
     | 'required'
   > {
   control?: Control<T>;
+  disabled?: boolean;
   hasError?: boolean;
   inputRef?: RefObject<HTMLInputElement | null>;
   isChecked?: boolean;
@@ -41,6 +42,7 @@ export interface InputProps<T extends FieldValues = FieldValues>
   name?: Path<T> | string;
   onBlur?: (event: FocusEvent<HTMLInputElement>) => void;
   onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
+  required?: boolean;
 }
 
 interface InputBaseProps<T extends FieldValues = FieldValues>
@@ -77,6 +79,8 @@ function renderInput<T extends FieldValues = FieldValues>({
   name,
   onBlur,
   onChange,
+  disabled,
+  required,
   type,
   value,
   ...props
@@ -95,7 +99,7 @@ function renderInput<T extends FieldValues = FieldValues>({
       {...props}
       checked={isCheckable ? isChecked : undefined}
       className={inputClassName}
-      disabled={isDisabled}
+      disabled={isDisabled ?? disabled}
       id={inputId}
       name={name}
       onBlur={onBlur}
@@ -105,7 +109,7 @@ function renderInput<T extends FieldValues = FieldValues>({
         assignRef(externalRef, element);
         assignRef(inputRef, element);
       }}
-      required={isRequired}
+      required={isRequired ?? required}
       type={type}
       value={isCheckable ? undefined : (value ?? '')}
     />

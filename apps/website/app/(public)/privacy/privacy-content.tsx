@@ -93,9 +93,9 @@ export default function PrivacyContent() {
 
                     {section.content ? (
                       <div className="space-y-4">
-                        {section.content.map((paragraph, index) => (
+                        {section.content.map((paragraph) => (
                           <p
-                            key={index}
+                            key={`${section.shortLabel}-${paragraph}`}
                             className="text-surface/60 text-sm leading-relaxed"
                           >
                             {paragraph}

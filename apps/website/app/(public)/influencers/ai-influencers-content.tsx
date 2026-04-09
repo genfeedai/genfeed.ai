@@ -379,13 +379,7 @@ export default function AiInfluencersContent() {
         </section>
 
         {/* JSON-LD Structured Data */}
-        <script
-          type="application/ld+json"
-          // Trusted static JSON-LD payload (no user-controlled content).
-          dangerouslySetInnerHTML={{
-            __html: INFLUENCERS_JSON_LD,
-          }}
-        />
+        <script type="application/ld+json">{INFLUENCERS_JSON_LD}</script>
       </PageLayout>
     </div>
   );

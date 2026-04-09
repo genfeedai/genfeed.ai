@@ -141,7 +141,7 @@ function LLMNodeComponent(props: NodeProps) {
             onChange={handleSystemPromptChange}
             placeholder="Define the AI's behavior..."
             className={`w-full h-16 resize-none ${!hasSystemPrompt ? 'border-[var(--destructive)]/50' : ''}`}
-            disabled={isProcessing}
+            isDisabled={isProcessing}
           />
         </div>
 

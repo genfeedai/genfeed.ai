@@ -1,6 +1,7 @@
 import type { IDesktopAgent } from '@genfeedai/desktop-contracts';
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import Image from 'next/image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 function timeAgo(dateStr: string): string {
@@ -32,10 +33,12 @@ const AgentCard = ({
         <div className="agent-card-identity">
           <span className="agent-avatar">
             {agent.avatar ? (
-              <img
+              <Image
                 alt={agent.name}
                 className="agent-avatar-img"
+                height={48}
                 src={agent.avatar}
+                width={48}
               />
             ) : (
               '🤖'

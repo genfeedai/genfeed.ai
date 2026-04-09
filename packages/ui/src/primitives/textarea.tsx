@@ -34,6 +34,7 @@ export interface TextareaProps<T extends FieldValues = FieldValues>
     | 'rows'
   > {
   control?: Control<T>;
+  disabled?: boolean;
   hasError?: boolean;
   isDisabled?: boolean;
   isReadOnly?: boolean;
@@ -44,6 +45,7 @@ export interface TextareaProps<T extends FieldValues = FieldValues>
   onChange?: (event: ChangeEvent<HTMLTextAreaElement>) => void;
   onFocus?: (event: FocusEvent<HTMLTextAreaElement>) => void;
   onKeyDown?: (event: KeyboardEvent<HTMLTextAreaElement>) => void;
+  required?: boolean;
   register?: UseFormRegisterReturn<Path<T>>;
   rows?: number;
   textareaRef?: RefObject<HTMLTextAreaElement | null>;
@@ -125,6 +127,8 @@ function PlainTextareaInner<T extends FieldValues = FieldValues>({
   onChange,
   onFocus,
   onKeyDown,
+  disabled,
+  required,
   rows = 1,
   textareaRef,
   value,
@@ -150,7 +154,7 @@ function PlainTextareaInner<T extends FieldValues = FieldValues>({
         hasError && 'border-destructive focus-visible:ring-destructive',
         className,
       )}
-      disabled={isDisabled}
+      disabled={isDisabled ?? disabled}
       name={name}
       onBlur={onBlur}
       onChange={(event) => {
@@ -164,7 +168,7 @@ function PlainTextareaInner<T extends FieldValues = FieldValues>({
         assignRef(externalRef, element);
         assignRef(stableTextareaRef, element);
       }}
-      required={isRequired}
+      required={isRequired ?? required}
       rows={rows}
       value={value ?? ''}
     />

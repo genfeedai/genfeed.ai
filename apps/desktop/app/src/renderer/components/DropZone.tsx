@@ -45,7 +45,8 @@ export const DropZone = ({
   );
 
   return (
-    <div
+    <fieldset
+      aria-label="File drop zone"
       className={`drop-zone ${isDragOver ? 'drop-zone-active' : ''} ${className ?? ''}`}
       onDragLeave={handleDragLeave}
       onDragOver={handleDragOver}
@@ -60,6 +61,6 @@ export const DropZone = ({
           </div>
         </div>
       )}
-    </div>
+    </fieldset>
   );
 };

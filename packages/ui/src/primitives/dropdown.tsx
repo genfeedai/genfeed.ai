@@ -32,6 +32,7 @@ export interface DropdownProps {
   onOpenChange?: (open: boolean) => void;
   position?: 'bottom-full' | 'top-full' | 'auto';
   trigger: ReactNode;
+  usePortal?: boolean;
 }
 
 const useIsomorphicLayoutEffect =
@@ -46,6 +47,7 @@ export function Dropdown({
   onOpenChange,
   position = 'auto',
   trigger,
+  usePortal = false,
 }: DropdownProps) {
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const triggerRef = useRef<HTMLElement>(null);
@@ -63,7 +65,8 @@ export function Dropdown({
     [onOpenChange],
   );
 
-  const useManualPortal = position === 'bottom-full' || position === 'top-full';
+  const useManualPortal =
+    usePortal || position === 'bottom-full' || position === 'top-full';
 
   const [portalPos, setPortalPos] = useState({
     left: 0,

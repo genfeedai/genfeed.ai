@@ -247,7 +247,7 @@ export default function HomeWorkflow(): React.ReactElement {
                     activeStep >= index || activeStep === index - 1;
                   elements.push(
                     <WorkflowConnector
-                      key={`connector-${index}`}
+                      key={`connector-${stepData.label}`}
                       delay={connectorDelay}
                       isActive={isConnectorActive}
                     />,

@@ -99,9 +99,9 @@ export default function TermsPage() {
 
                     {term.content ? (
                       <div className="space-y-4">
-                        {term.content.map((paragraph, index) => (
+                        {term.content.map((paragraph) => (
                           <p
-                            key={index}
+                            key={`${term.shortLabel}-${paragraph}`}
                             className="text-surface/60 text-sm leading-relaxed"
                           >
                             {paragraph}
