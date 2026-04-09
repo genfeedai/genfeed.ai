@@ -1,4 +1,4 @@
-import { FilterProvider } from '@contexts/content/filter-context/filter-context';
+import { FilterProvider } from '@genfeedai/contexts/content/filter-context/filter-context';
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 

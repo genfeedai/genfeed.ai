@@ -1,4 +1,4 @@
-import BrandContext from '@contexts/user/brand-context/brand-context';
+import BrandContext from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 
 const meta: Meta<typeof BrandContext> = {

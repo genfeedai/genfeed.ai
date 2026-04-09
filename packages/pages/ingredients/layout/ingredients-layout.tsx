@@ -7,6 +7,7 @@ import {
   ButtonVariant,
   IngredientFormat,
   IngredientStatus,
+  PageScope,
 } from '@genfeedai/enums';
 import type { IBrand, IFieldOption } from '@genfeedai/interfaces';
 import type { IIngredientsContextValue } from '@genfeedai/interfaces/providers/providers.interface';
@@ -21,7 +22,6 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
 import Container from '@ui/layout/container/Container';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
-import { PageScope } from '@ui-constants/misc.constant';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';

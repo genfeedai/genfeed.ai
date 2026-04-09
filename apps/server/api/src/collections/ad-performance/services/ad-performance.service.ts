@@ -114,6 +114,26 @@ export class AdPerformanceService {
       .exec();
   }
 
+  async findLatestSyncDateForCredential(
+    credentialId: string,
+  ): Promise<Date | null> {
+    if (!Types.ObjectId.isValid(credentialId)) {
+      return null;
+    }
+
+    const latestRecord = await this.adPerformanceModel
+      .findOne({
+        credential: new Types.ObjectId(credentialId),
+        isDeleted: false,
+      })
+      .sort({ date: -1 })
+      .select({ date: 1 })
+      .lean()
+      .exec();
+
+    return latestRecord?.date ?? null;
+  }
+
   async removeOrgFromAggregation(organizationId: string): Promise<number> {
     const result = await this.adPerformanceModel.updateMany(
       { organization: new Types.ObjectId(organizationId) },

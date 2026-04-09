@@ -1,6 +1,6 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useMemo } from 'react';

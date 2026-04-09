@@ -1,6 +1,6 @@
 'use client';
 
-import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import { CredentialPlatform, PageScope, PostStatus } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import type { PostDetailCardProps } from '@props/components/post-detail-card.props';
@@ -11,7 +11,6 @@ import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import PostEnhancementBar from '@ui/posts/enhancement-bar/post-enhancement-bar/PostEnhancementBar';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
-import { PageScope } from '@ui-constants/misc.constant';
 import { createMarkup } from '@utils/sanitize-html';
 import { useEffect, useState } from 'react';
 import { HiChatBubbleLeftRight, HiEye, HiHeart } from 'react-icons/hi2';

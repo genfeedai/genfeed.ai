@@ -62,6 +62,8 @@ import mongooseAggregatePaginateV2 from 'mongoose-aggregate-paginate-v2';
 @Module({
   controllers: [WorkflowsController, WebhooksController],
   exports: [
+    BatchWorkflowQueueService,
+    BatchWorkflowService,
     MongooseModule,
     WorkflowsService,
     WorkflowSchedulerService,

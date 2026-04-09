@@ -1,3 +1,4 @@
+import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
 import { GoogleAdsController } from '@api/services/integrations/google-ads/controllers/google-ads.controller';
 import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
@@ -7,7 +8,11 @@ import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(GoogleAdsService, {
-  additionalImports: [HttpModule, forwardRef(() => CredentialsModule)],
+  additionalImports: [
+    HttpModule,
+    forwardRef(() => BrandsModule),
+    forwardRef(() => CredentialsModule),
+  ],
   additionalProviders: [GoogleAdsOAuthService],
 });
 

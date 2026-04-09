@@ -1,7 +1,14 @@
 {
   "compilerOptions": {
     "paths": {
+      "@genfeedai/contexts/*": ["../contexts/*"],
+      "@genfeedai/models/*": ["../models/*"],
+      "@genfeedai/props/*": ["../props/*"],
+      "@genfeedai/providers/*": ["../providers/*"],
+      "@genfeedai/services/*": ["../services/*"],
+      "@genfeedai/utils/*": ["../utils/*"],
       "@hooks/*": ["./*"],
+      "@providers/*": ["../providers/*"],
       "@props/*": ["../props/*"],
       "@ui-constants/*": ["../ui/constants/*"]
     }

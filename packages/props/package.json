@@ -1,0 +1,10 @@
+{
+  "description": "Shared prop and view-model contracts for Genfeed UI surfaces",
+  "exports": {
+    "./*": "./*"
+  },
+  "name": "@genfeedai/props",
+  "private": true,
+  "sideEffects": false,
+  "version": "0.1.0"
+}

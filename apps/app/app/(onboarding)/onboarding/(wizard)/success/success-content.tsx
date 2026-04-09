@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth, useSession } from '@clerk/nextjs';
+import { useAuth, useSession, useUser } from '@clerk/nextjs';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
@@ -69,6 +69,7 @@ const TIMELINE_STEPS = [
 export default function SuccessContent() {
   const { getToken } = useAuth();
   const { session } = useSession();
+  const { user } = useUser();
   const { currentUser } = useCurrentUser();
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -111,13 +112,13 @@ export default function SuccessContent() {
 
     // Mark onboarding complete and refresh Clerk session token
     try {
-      const token = await resolveClerkToken(getToken);
+      const token = await resolveClerkToken(getToken, { forceRefresh: true });
       if (token) {
         const funnelService = OnboardingFunnelService.getInstance(token);
         await funnelService.completeFunnel();
       }
-      // Force Clerk to fetch a new JWT with updated publicMetadata
-      await session?.touch();
+      // Force Clerk to fetch fresh claims and reload the user object before leaving onboarding.
+      await Promise.allSettled([session?.touch(), user?.reload()]);
     } catch (error) {
       logger.error('Failed to complete funnel', error);
     }
@@ -127,7 +128,7 @@ export default function SuccessContent() {
     localStorage.removeItem('gf_brand_domain');
     localStorage.removeItem('gf_onboarding_content_type');
 
-    window.location.href = '/';
+    window.location.assign('/workspace/overview');
   };
 
   return (

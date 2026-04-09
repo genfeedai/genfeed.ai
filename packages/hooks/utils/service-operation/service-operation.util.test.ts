@@ -10,7 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Define mocks inline in factory to avoid hoisting issues
 // Create stable mock instances inside factory
-vi.mock('@services/core/notifications.service', () => {
+vi.mock('@genfeedai/services/core/notifications.service', () => {
   const mockInstance = {
     error: vi.fn(),
     success: vi.fn(),
@@ -22,7 +22,7 @@ vi.mock('@services/core/notifications.service', () => {
   };
 });
 
-vi.mock('@services/core/logger.service', () => {
+vi.mock('@genfeedai/services/core/logger.service', () => {
   return {
     logger: {
       debug: vi.fn(),
@@ -32,9 +32,9 @@ vi.mock('@services/core/logger.service', () => {
   };
 });
 
-import { logger as mockLogger } from '@services/core/logger.service';
+import { logger as mockLogger } from '@genfeedai/services/core/logger.service';
 // Import mocked modules to get references for assertions
-import { NotificationsService } from '@services/core/notifications.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 
 const mockNotifications = NotificationsService.getInstance();
 

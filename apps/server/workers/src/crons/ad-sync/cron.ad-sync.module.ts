@@ -1,3 +1,6 @@
+import { AdPerformanceModule } from '@api/collections/ad-performance/ad-performance.module';
+import { CredentialsModule } from '@api/collections/credentials/credentials.module';
+import { MetaAdsModule } from '@api/services/integrations/meta-ads/meta-ads.module';
 import { forwardRef, Module } from '@nestjs/common';
 import { CronAdSyncGoogleService } from '@workers/crons/ad-sync/cron.ad-sync-google.service';
 import { CronAdSyncMetaService } from '@workers/crons/ad-sync/cron.ad-sync-meta.service';
@@ -5,7 +8,12 @@ import { CronAdSyncTikTokService } from '@workers/crons/ad-sync/cron.ad-sync-tik
 import { WorkersQueuesModule } from '@workers/queues/queues.module';
 
 @Module({
-  imports: [forwardRef(() => WorkersQueuesModule)],
+  imports: [
+    forwardRef(() => AdPerformanceModule),
+    forwardRef(() => CredentialsModule),
+    forwardRef(() => MetaAdsModule),
+    forwardRef(() => WorkersQueuesModule),
+  ],
   providers: [
     CronAdSyncMetaService,
     CronAdSyncGoogleService,

@@ -2,6 +2,7 @@ import type {
   AssetScope,
   IngredientCategory,
   ModalEnum,
+  PageScope,
 } from '@genfeedai/enums';
 import type {
   IElementBlacklist,
@@ -17,7 +18,6 @@ import type {
   ITag,
 } from '@genfeedai/interfaces';
 import type { IngredientsTypeProps } from '@props/content/ingredient.props';
-import type { PageScope } from '@ui-constants/misc.constant';
 import type { Dispatch, SetStateAction } from 'react';
 
 export interface IngredientsListProps extends IngredientsTypeProps {

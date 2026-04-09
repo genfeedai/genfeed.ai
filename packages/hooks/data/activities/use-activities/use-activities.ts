@@ -1,11 +1,15 @@
 import { useAuth, useUser } from '@clerk/nextjs';
 import type { UserResource } from '@clerk/types';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import { PageScope } from '@genfeedai/enums';
 import type { IActivity } from '@genfeedai/interfaces';
 import type {
   ActivitiesOptions,
   ActivitiesReturn,
 } from '@genfeedai/interfaces/hooks/hooks.interface';
+import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
+import { ActivitiesService } from '@genfeedai/services/social/activities.service';
+import { BrandsService } from '@genfeedai/services/social/brands.service';
 import {
   getClerkPublicData,
   getPlaywrightAuthState,
@@ -14,10 +18,6 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { withSilentOperation } from '@hooks/utils/service-operation/service-operation.util';
 import { useFilteredData } from '@hooks/utils/use-filtered-data/use-filtered-data';
-import { OrganizationsService } from '@services/organization/organizations.service';
-import { ActivitiesService } from '@services/social/activities.service';
-import { BrandsService } from '@services/social/brands.service';
-import { PageScope } from '@ui-constants/misc.constant';
 import { useMemo, useState } from 'react';
 
 export function useActivities({

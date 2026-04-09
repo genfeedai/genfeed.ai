@@ -16,20 +16,20 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
   }),
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: () => mockNotifications,
   },
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
     info: vi.fn(),
   },
 }));
 
-vi.mock('@services/core/socket-manager.service', () => ({
+vi.mock('@genfeedai/services/core/socket-manager.service', () => ({
   createMediaHandler: (...args: unknown[]) => createMediaHandlerMock(...args),
 }));
 

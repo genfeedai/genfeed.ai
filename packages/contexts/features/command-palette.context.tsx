@@ -6,8 +6,8 @@ import type {
   ICommandPaletteProviderProps,
   ICommandPaletteState,
 } from '@genfeedai/interfaces/ui/command-palette.interface';
-import { CommandPaletteService } from '@services/core/command-palette.service';
-import { logger } from '@services/core/logger.service';
+import { CommandPaletteService } from '@genfeedai/services/core/command-palette.service';
+import { logger } from '@genfeedai/services/core/logger.service';
 import {
   createContext,
   type ReactElement,

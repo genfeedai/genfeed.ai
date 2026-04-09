@@ -8,7 +8,7 @@ import type { IAsset, IImage } from '@genfeedai/interfaces';
 import type {
   UsePromptBarSyncOptions,
   UsePromptBarSyncReturn,
-} from '@props/studio/prompt-bar.props';
+} from '@genfeedai/props/studio/prompt-bar.props';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { FieldPath } from 'react-hook-form';
 

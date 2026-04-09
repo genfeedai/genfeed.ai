@@ -1,14 +1,14 @@
 'use client';
 
 import type { IXArticleMetadata } from '@genfeedai/interfaces';
+import type { Article } from '@genfeedai/models/content/article.model';
+import type { GenerateArticlesRequest } from '@genfeedai/services/content/articles.service';
+import { ArticlesService } from '@genfeedai/services/content/articles.service';
+import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { downloadUrl } from '@helpers/media/download/download.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { Article } from '@models/content/article.model';
-import type { GenerateArticlesRequest } from '@services/content/articles.service';
-import { ArticlesService } from '@services/content/articles.service';
-import { ClipboardService } from '@services/core/clipboard.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
 import { useCallback, useState } from 'react';
 
 export type XArticlePhase = 'idle' | 'generating' | 'generated' | 'error';

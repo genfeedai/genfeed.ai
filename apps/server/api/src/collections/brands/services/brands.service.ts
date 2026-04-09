@@ -27,11 +27,7 @@ import type {
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  ConflictException,
-  Injectable,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { type PipelineStage, PopulateOptions, Types } from 'mongoose';
 
@@ -130,19 +126,6 @@ export class BrandsService extends BaseService<
     const enrichedDto = createBrandDto as CreateBrandDto & {
       organization?: string;
     };
-    if (enrichedDto.organization) {
-      const existingBrand = await this.model.findOne({
-        isDeleted: false,
-        label: createBrandDto.label,
-        organization: enrichedDto.organization,
-      });
-
-      if (existingBrand) {
-        throw new ConflictException(
-          `Brand with label "${createBrandDto.label}" already exists in this organization`,
-        );
-      }
-    }
 
     const brand = await super.create(
       createBrandDto,

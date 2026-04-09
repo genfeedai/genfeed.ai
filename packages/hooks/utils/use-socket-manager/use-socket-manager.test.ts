@@ -29,13 +29,13 @@ vi.mock('@helpers/auth/clerk.helper', () => ({
   resolveClerkToken: (...args: unknown[]) => resolveClerkTokenMock(...args),
 }));
 
-vi.mock('@services/core/socket-manager.service', () => ({
+vi.mock('@genfeedai/services/core/socket-manager.service', () => ({
   SocketManager: {
     getInstance: (...args: unknown[]) => socketManagerGetInstanceMock(...args),
   },
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
   },

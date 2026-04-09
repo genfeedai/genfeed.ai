@@ -37,13 +37,13 @@ vi.mock('@clerk/nextjs', () => ({
   }),
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: () => mockNotifications,
   },
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
     info: vi.fn(),

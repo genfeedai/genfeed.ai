@@ -1,5 +1,6 @@
 'use client';
 
+import type { PageScope } from '@genfeedai/enums';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -12,7 +13,6 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@ui/primitives/sheet';
-import type { PageScope } from '@ui-constants/misc.constant';
 import { useRouter } from 'next/navigation';
 import { HiArrowTopRightOnSquare } from 'react-icons/hi2';
 

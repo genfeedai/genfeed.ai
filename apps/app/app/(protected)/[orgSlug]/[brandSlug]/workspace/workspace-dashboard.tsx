@@ -8,6 +8,7 @@ import {
 import type { IAgentRun } from '@genfeedai/interfaces';
 import type { AgentRunStats, AgentRunTrendPoint } from '@genfeedai/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import type { WorkspaceTask } from '@services/workspace/workspace-tasks.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
@@ -37,6 +38,7 @@ interface DashboardProps {
   reviewInbox: ReviewInboxSummary;
   runs: IAgentRun[];
   stats: AgentRunStats | null;
+  workspaceTasks: WorkspaceTask[];
 }
 
 /* ------------------------------------------------------------------ */
@@ -53,10 +55,6 @@ function formatRelativeTime(date: string): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-function getRunTimestamp(run: IAgentRun): string {
-  return run.updatedAt ?? run.completedAt ?? run.startedAt ?? run.createdAt;
-}
-
 function formatStatusLabel(status: AgentExecutionStatus): string {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
@@ -67,19 +65,6 @@ const STATUS_DOT_CLASSES: Record<AgentExecutionStatus, string> = {
   [AgentExecutionStatus.COMPLETED]: 'bg-emerald-400',
   [AgentExecutionStatus.FAILED]: 'bg-rose-400',
   [AgentExecutionStatus.CANCELLED]: 'bg-zinc-400',
-};
-
-const STATUS_BADGE_CLASSES: Record<AgentExecutionStatus, string> = {
-  [AgentExecutionStatus.RUNNING]:
-    'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
-  [AgentExecutionStatus.PENDING]:
-    'bg-amber-500/10 text-amber-300 border-amber-500/20',
-  [AgentExecutionStatus.COMPLETED]:
-    'bg-emerald-500/10 text-emerald-300 border-emerald-500/20',
-  [AgentExecutionStatus.FAILED]:
-    'bg-rose-500/10 text-rose-300 border-rose-500/20',
-  [AgentExecutionStatus.CANCELLED]:
-    'bg-zinc-500/10 text-zinc-300 border-zinc-500/20',
 };
 
 /* ------------------------------------------------------------------ */
@@ -218,11 +203,16 @@ export function DashboardStatsStrip({
   activeRuns,
   reviewInbox,
   stats,
+  workspaceTasks,
 }: {
   activeRuns: IAgentRun[];
   reviewInbox: ReviewInboxSummary;
   stats: AgentRunStats | null;
+  workspaceTasks: WorkspaceTask[];
 }) {
+  const inProgressTaskCount = workspaceTasks.filter(
+    (task) => task.status === 'triaged' || task.status === 'in_progress',
+  ).length;
   const items: StatItem[] = useMemo(
     () => [
       {
@@ -233,11 +223,7 @@ export function DashboardStatsStrip({
       {
         accent: `${stats?.completedToday ?? 0} completed, ${stats?.failedToday ?? 0} failed`,
         label: 'Tasks In Progress',
-        value: String(
-          (stats?.totalRuns ?? 0) -
-            (stats?.completedToday ?? 0) -
-            (stats?.failedToday ?? 0),
-        ),
+        value: String(inProgressTaskCount),
       },
       {
         accent: 'current period',
@@ -250,7 +236,7 @@ export function DashboardStatsStrip({
         value: String(reviewInbox.pendingCount),
       },
     ],
-    [activeRuns, reviewInbox, stats],
+    [activeRuns, inProgressTaskCount, reviewInbox, stats],
   );
 
   return (
@@ -555,21 +541,31 @@ export function DashboardChartsGrid({
 /*  Recent Activity & Recent Tasks                                     */
 /* ------------------------------------------------------------------ */
 
-function ActivityRow({ run }: { run: IAgentRun }) {
-  const agentLabel =
-    typeof run.metadata?.agentName === 'string'
-      ? run.metadata.agentName
-      : 'Agent';
-  const actionVerb =
-    run.status === AgentExecutionStatus.COMPLETED
-      ? 'completed'
-      : run.status === AgentExecutionStatus.RUNNING
-        ? 'is running'
-        : run.status === AgentExecutionStatus.FAILED
-          ? 'failed'
-          : run.status === AgentExecutionStatus.PENDING
-            ? 'queued'
-            : 'updated';
+function getTaskStatusClass(task: WorkspaceTask): string {
+  if (task.status === 'failed') return 'bg-rose-400';
+  if (task.status === 'needs_review' || task.reviewState === 'pending_approval')
+    return 'bg-amber-400';
+  if (task.status === 'completed') return 'bg-emerald-400';
+  return 'bg-sky-400 animate-pulse';
+}
+
+function formatTaskEventLabel(task: WorkspaceTask): string {
+  const latestEvent = task.eventStream.at(-1);
+  if (!latestEvent) {
+    return task.status.replaceAll('_', ' ');
+  }
+
+  return latestEvent.type.replaceAll('_', ' ');
+}
+
+function ActivityRow({ task }: { task: WorkspaceTask }) {
+  const latestEvent = task.eventStream.at(-1);
+  const message =
+    typeof latestEvent?.payload?.summary === 'string'
+      ? latestEvent.payload.summary
+      : typeof latestEvent?.payload?.message === 'string'
+        ? latestEvent.payload.message
+        : task.progress?.message || task.request;
 
   return (
     <div className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
@@ -577,35 +573,43 @@ function ActivityRow({ run }: { run: IAgentRun }) {
         <span
           className={cn(
             'mt-1.5 inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full',
-            STATUS_DOT_CLASSES[run.status],
+            getTaskStatusClass(task),
           )}
         />
         <div className="min-w-0">
           <p className="text-sm text-foreground">
-            <span className="font-medium">{agentLabel}</span>{' '}
-            <span className="text-foreground/50">{actionVerb}</span>{' '}
-            <span className="text-foreground/70">{run.label}</span>
+            <span className="font-medium">{task.title}</span>{' '}
+            <span className="text-foreground/50">
+              {formatTaskEventLabel(task)}
+            </span>
           </p>
+          <p className="line-clamp-2 text-xs text-foreground/45">{message}</p>
         </div>
       </div>
       <span className="flex-shrink-0 text-xs text-foreground/35">
-        {formatRelativeTime(getRunTimestamp(run))}
+        {formatRelativeTime(
+          task.updatedAt ?? task.createdAt ?? new Date().toISOString(),
+        )}
       </span>
     </div>
   );
 }
 
-export function DashboardRecentActivity({ runs }: { runs: IAgentRun[] }) {
-  const sortedRuns = useMemo(
+export function DashboardRecentActivity({
+  workspaceTasks,
+}: {
+  workspaceTasks: WorkspaceTask[];
+}) {
+  const sortedTasks = useMemo(
     () =>
-      [...runs]
+      [...workspaceTasks]
         .sort(
           (a, b) =>
-            new Date(getRunTimestamp(b)).getTime() -
-            new Date(getRunTimestamp(a)).getTime(),
+            new Date(b.updatedAt ?? b.createdAt ?? 0).getTime() -
+            new Date(a.updatedAt ?? a.createdAt ?? 0).getTime(),
         )
         .slice(0, 8),
-    [runs],
+    [workspaceTasks],
   );
 
   return (
@@ -618,51 +622,55 @@ export function DashboardRecentActivity({ runs }: { runs: IAgentRun[] }) {
       }
       bodyClassName="p-5 sm:p-6"
     >
-      {sortedRuns.length > 0 ? (
+      {sortedTasks.length > 0 ? (
         <div className="divide-y divide-white/[0.06]">
-          {sortedRuns.map((run) => (
-            <ActivityRow key={run.id} run={run} />
+          {sortedTasks.map((task) => (
+            <ActivityRow key={task.id} task={task} />
           ))}
         </div>
       ) : (
         <p className="text-sm text-foreground/45">
-          Activity will appear here once agents start running.
+          Activity will appear here once workspace tasks start running.
         </p>
       )}
     </Card>
   );
 }
 
-function TaskRow({ run }: { run: IAgentRun }) {
-  const agentLabel =
-    typeof run.metadata?.agentName === 'string'
-      ? run.metadata.agentName
-      : 'Agent';
-
+function TaskRow({ task }: { task: WorkspaceTask }) {
   return (
     <div className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
       <div className="flex items-center gap-3 min-w-0">
         <span
           className={cn(
             'inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium',
-            STATUS_BADGE_CLASSES[run.status],
+            task.status === 'failed'
+              ? 'bg-rose-500/10 text-rose-300 border-rose-500/20'
+              : task.status === 'needs_review'
+                ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
+                : task.status === 'completed'
+                  ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
+                  : 'bg-sky-500/10 text-sky-300 border-sky-500/20',
           )}
         >
-          {formatStatusLabel(run.status)}
+          {task.status.replaceAll('_', ' ')}
         </span>
         <div className="min-w-0">
           <p className="line-clamp-1 text-sm font-medium text-foreground">
-            {run.label}
+            {task.title}
           </p>
           <p className="text-xs text-foreground/40">
-            {agentLabel} &middot; {formatRelativeTime(getRunTimestamp(run))}
+            {task.progress?.percent ?? 0}% &middot;{' '}
+            {formatRelativeTime(
+              task.updatedAt ?? task.createdAt ?? new Date().toISOString(),
+            )}
           </p>
         </div>
       </div>
       <Button asChild variant={ButtonVariant.GHOST} size={ButtonSize.XS}>
         <Link
-          href={`/orchestration/runs/${run.id}`}
-          aria-label={`Open ${run.label}`}
+          href={`/workspace/activity?taskId=${task.id}`}
+          aria-label={`Open ${task.title}`}
         >
           <HiOutlineArrowRight className="h-3.5 w-3.5" />
         </Link>
@@ -671,17 +679,21 @@ function TaskRow({ run }: { run: IAgentRun }) {
   );
 }
 
-export function DashboardRecentTasks({ runs }: { runs: IAgentRun[] }) {
-  const sortedRuns = useMemo(
+export function DashboardRecentTasks({
+  workspaceTasks,
+}: {
+  workspaceTasks: WorkspaceTask[];
+}) {
+  const sortedTasks = useMemo(
     () =>
-      [...runs]
+      [...workspaceTasks]
         .sort(
           (a, b) =>
-            new Date(getRunTimestamp(b)).getTime() -
-            new Date(getRunTimestamp(a)).getTime(),
+            new Date(b.updatedAt ?? b.createdAt ?? 0).getTime() -
+            new Date(a.updatedAt ?? a.createdAt ?? 0).getTime(),
         )
         .slice(0, 8),
-    [runs],
+    [workspaceTasks],
   );
 
   return (
@@ -694,10 +706,10 @@ export function DashboardRecentTasks({ runs }: { runs: IAgentRun[] }) {
       }
       bodyClassName="p-5 sm:p-6"
     >
-      {sortedRuns.length > 0 ? (
+      {sortedTasks.length > 0 ? (
         <div className="divide-y divide-white/[0.06]">
-          {sortedRuns.map((run) => (
-            <TaskRow key={run.id} run={run} />
+          {sortedTasks.map((task) => (
+            <TaskRow key={task.id} task={task} />
           ))}
         </div>
       ) : (
@@ -718,6 +730,7 @@ export function WorkspaceDashboard({
   reviewInbox,
   runs,
   stats,
+  workspaceTasks,
 }: DashboardProps) {
   return (
     <div className="space-y-8">
@@ -727,13 +740,14 @@ export function WorkspaceDashboard({
         activeRuns={activeRuns}
         reviewInbox={reviewInbox}
         stats={stats}
+        workspaceTasks={workspaceTasks}
       />
 
       <DashboardChartsGrid runs={runs} stats={stats} />
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <DashboardRecentActivity runs={runs} />
-        <DashboardRecentTasks runs={runs} />
+        <DashboardRecentActivity workspaceTasks={workspaceTasks} />
+        <DashboardRecentTasks workspaceTasks={workspaceTasks} />
       </div>
     </div>
   );

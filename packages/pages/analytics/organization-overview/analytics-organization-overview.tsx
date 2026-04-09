@@ -3,7 +3,7 @@
 import { useAuth } from '@clerk/nextjs';
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { AnalyticsMetric } from '@genfeedai/enums';
+import { AnalyticsMetric, PageScope } from '@genfeedai/enums';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAnalytics } from '@hooks/data/analytics/use-analytics/use-analytics';
@@ -15,7 +15,6 @@ import type {
 import { AnalyticsService } from '@services/analytics/analytics.service';
 import Table from '@ui/display/table/Table';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
-import { PageScope } from '@ui-constants/misc.constant';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';

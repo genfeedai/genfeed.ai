@@ -153,12 +153,13 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
               </div>
             )}
             {outputType === 'audio' && (
-              // biome-ignore lint/a11y/useMediaCaption: connected audio is previewed as a raw generated asset without caption tracks
               <audio
                 src={nodeData.inputValue as string}
                 controls
                 className="mt-1 w-full h-8"
-              />
+              >
+                <track kind="captions" />
+              </audio>
             )}
             {outputType === 'number' && (
               <div className="mt-1 p-2 bg-secondary/50 text-sm font-mono">

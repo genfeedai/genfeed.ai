@@ -197,7 +197,7 @@ function DimensionsGroupComponent({
             </SelectTrigger>
             <SelectContent>
               {UNIT_OPTIONS.map((unit) => (
-                <SelectItem key={unit} value={unit}>
+                <SelectItem key={unit} value={unit ?? 'px'}>
                   {unit}
                 </SelectItem>
               ))}

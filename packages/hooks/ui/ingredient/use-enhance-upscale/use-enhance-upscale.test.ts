@@ -46,7 +46,7 @@ vi.mock('@hooks/utils/service-operation/service-operation.util', () => ({
   }),
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(() => ({
       error: mockError,
@@ -55,7 +55,7 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
-vi.mock('@utils/media/ingredient-type.util', () => ({
+vi.mock('@genfeedai/utils/media/ingredient-type.util', () => ({
   isImageIngredient: vi.fn(
     (ing: Partial<IIngredient>) => ing.category === IngredientCategory.IMAGE,
   ),

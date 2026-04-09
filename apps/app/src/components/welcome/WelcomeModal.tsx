@@ -3,6 +3,7 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { Button } from '@ui/primitives/button';
+import { Input } from '@ui/primitives/input';
 import {
   BookOpen,
   FolderOpen,
@@ -13,7 +14,7 @@ import {
   X,
 } from 'lucide-react';
 import { memo, useCallback, useRef } from 'react';
-import { XIcon } from '@/components/toolbar/icons';
+import { FaXTwitter } from 'react-icons/fa6';
 import { logger } from '@/lib/logger';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useWorkflowStore } from '@/store/workflowStore';
@@ -192,7 +193,7 @@ function WelcomeModalComponent() {
                 href="https://discord.gg/Qy867n83Z4"
               />
               <LinkItem
-                icon={<XIcon className="h-4 w-4" />}
+                icon={<FaXTwitter className="h-4 w-4" />}
                 label="Twitter"
                 href="https://twitter.com/genfeedai"
               />
@@ -232,7 +233,7 @@ function WelcomeModalComponent() {
         </div>
 
         {/* Hidden file input */}
-        <input
+        <Input
           ref={fileInputRef}
           type="file"
           accept=".json"

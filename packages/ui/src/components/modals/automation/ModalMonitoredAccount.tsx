@@ -20,8 +20,10 @@ import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { type ChangeEvent, useEffect } from 'react';
 import {
   FaInstagram,
@@ -133,7 +135,15 @@ export default function ModalMonitoredAccount({
 
         <div className="space-y-4">
           <FormControl label="Platform">
-            <div className="flex flex-wrap gap-4">
+            <RadioGroup
+              className="flex flex-wrap gap-4"
+              value={form.watch('platform')}
+              onValueChange={(platform) =>
+                form.setValue('platform', platform as ReplyBotPlatform, {
+                  shouldValidate: true,
+                })
+              }
+            >
               {PLATFORMS.map(({ platform, icon: Icon, color, label }) => (
                 <label
                   key={platform}
@@ -143,24 +153,12 @@ export default function ModalMonitoredAccount({
                       : 'border-white/[0.08]'
                   }`}
                 >
-                  <input
-                    type="radio"
-                    name="platform"
-                    value={platform}
-                    className="h-4 w-4 accent-primary"
-                    checked={form.watch('platform') === platform}
-                    onChange={() =>
-                      form.setValue('platform', platform, {
-                        shouldValidate: true,
-                      })
-                    }
-                    disabled={isSubmitting}
-                  />
+                  <RadioGroupItem value={platform} disabled={isSubmitting} />
                   <Icon className={color} />
                   <span className="text-sm">{label}</span>
                 </label>
               ))}
-            </div>
+            </RadioGroup>
           </FormControl>
 
           <FormControl label="Username">
@@ -236,20 +234,16 @@ export default function ModalMonitoredAccount({
           </FormControl>
 
           <FormControl label="Active">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                className="h-4 w-4 border-input accent-primary"
-                checked={form.watch('isActive') ?? true}
-                onChange={(e) =>
-                  form.setValue('isActive', e.target.checked, {
-                    shouldValidate: true,
-                  })
-                }
-                disabled={isSubmitting}
-              />
-              <span className="text-sm">Monitor this account</span>
-            </label>
+            <Checkbox
+              isChecked={form.watch('isActive') ?? true}
+              onCheckedChange={(checked) =>
+                form.setValue('isActive', checked === true, {
+                  shouldValidate: true,
+                })
+              }
+              isDisabled={isSubmitting}
+              label={<span className="text-sm">Monitor this account</span>}
+            />
           </FormControl>
         </div>
 

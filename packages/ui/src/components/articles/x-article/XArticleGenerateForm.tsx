@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { XArticleGenerateFormProps } from '@props/content/x-article.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
@@ -82,14 +83,14 @@ export default function XArticleGenerateForm({
           <FormControl
             label={`Target Word Count: ${targetWordCount.toLocaleString()}`}
           >
-            <input
+            <Input
               type="range"
               min={2500}
               max={10000}
               step={500}
               value={targetWordCount}
               onChange={(e) => setTargetWordCount(Number(e.target.value))}
-              className="mt-2 w-full accent-primary"
+              className="mt-2 h-1.5 w-full cursor-pointer appearance-none rounded-full border-0 bg-transparent px-0 py-0 shadow-none accent-primary focus-visible:ring-0"
             />
             <div className="flex justify-between text-xs text-foreground/40">
               <span>2,500</span>
@@ -109,15 +110,13 @@ export default function XArticleGenerateForm({
           />
         </FormControl>
 
-        <label className="flex items-center gap-2 cursor-pointer text-sm">
-          <input
-            type="checkbox"
-            checked={isGenerateHeaderImage}
-            onChange={(e) => setIsGenerateHeaderImage(e.target.checked)}
-            className="rounded border-white/20 bg-white/5"
-          />
-          Auto-generate header image
-        </label>
+        <Checkbox
+          isChecked={isGenerateHeaderImage}
+          onCheckedChange={(checked) =>
+            setIsGenerateHeaderImage(checked === true)
+          }
+          label={<span className="text-sm">Auto-generate header image</span>}
+        />
 
         <Button
           label={isGenerating ? 'Generating...' : 'Generate X Article'}

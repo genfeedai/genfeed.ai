@@ -3,10 +3,12 @@
 import { EditorTrackType } from '@genfeedai/enums';
 import type { IEditorEffect, IEditorTrack } from '@genfeedai/interfaces';
 import type { EditorPreviewProps } from '@props/studio/editor-preview.props';
-import type { Player, PlayerRef } from '@remotion/player';
-import dynamic from 'next/dynamic';
+import { Player, type PlayerRef } from '@remotion/player';
 import {
+  type ComponentProps,
+  type ComponentType,
   forwardRef,
+  type Ref,
   useCallback,
   useEffect,
   useImperativeHandle,
@@ -55,27 +57,34 @@ function buildCssFilter(effects: IEditorEffect[]): string {
   return filters.length > 0 ? filters.join(' ') : 'none';
 }
 
-const RemotionPlayer = dynamic(
-  () => import('@remotion/player').then((mod) => mod.Player),
-  {
-    loading: () => (
-      <div className="flex items-center justify-center w-full h-full min-h-[200px] bg-black/50">
-        <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary" />
-          <span className="text-xs text-muted-foreground">Loading player…</span>
-        </div>
-      </div>
-    ),
-    ssr: false,
-  },
-) as typeof Player;
-
-interface EditorCompositionProps {
+interface EditorCompositionProps extends Record<string, unknown> {
   tracks: IEditorTrack[];
 }
 
+type EditorPreviewPlayerProps = Omit<
+  ComponentProps<typeof Player>,
+  'component' | 'inputProps'
+> & {
+  component: ComponentType<EditorCompositionProps>;
+  inputProps: EditorCompositionProps;
+  ref?: Ref<PlayerRef>;
+};
+
+const RemotionPlayer = forwardRef<PlayerRef, EditorPreviewPlayerProps>(
+  function RemotionPlayer({ component, inputProps, ...props }, ref) {
+    return (
+      <Player
+        ref={ref}
+        {...props}
+        component={component as never}
+        inputProps={inputProps as never}
+      />
+    );
+  },
+);
+
 function EditorComposition({ tracks }: EditorCompositionProps) {
-  const { fps } = useVideoConfig();
+  useVideoConfig();
 
   const videoTracks = tracks.filter(
     (track) => track.type === EditorTrackType.VIDEO && !track.isMuted,

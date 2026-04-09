@@ -25,7 +25,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => vi.fn()),
 }));
 
-vi.mock('@services/ingredients/videos.service', () => ({
+vi.mock('@genfeedai/services/ingredients/videos.service', () => ({
   VideosService: {
     getInstance: vi.fn(),
   },

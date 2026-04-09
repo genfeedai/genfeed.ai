@@ -2,11 +2,11 @@ import { useDefaultCommandsRegistration } from '@hooks/commands/use-default-comm
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@services/core/commands.registry', () => ({
+vi.mock('@genfeedai/services/core/commands.registry', () => ({
   registerDefaultCommands: vi.fn(),
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     debug: vi.fn(),
     error: vi.fn(),
@@ -24,9 +24,9 @@ vi.mock('@hooks/navigation/use-org-url/use-org-url', () => ({
   })),
 }));
 
+import { registerDefaultCommands } from '@genfeedai/services/core/commands.registry';
+import { logger } from '@genfeedai/services/core/logger.service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url/use-org-url';
-import { registerDefaultCommands } from '@services/core/commands.registry';
-import { logger } from '@services/core/logger.service';
 
 describe('useDefaultCommandsRegistration', () => {
   beforeEach(() => {

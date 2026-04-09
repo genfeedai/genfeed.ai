@@ -1,7 +1,7 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import SettingsHelpPage from '@pages/settings/help/settings-help-page';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
+import SettingsHelpPage from './content';
 
 export const generateMetadata = createPageMetadata('Help & Community');
 

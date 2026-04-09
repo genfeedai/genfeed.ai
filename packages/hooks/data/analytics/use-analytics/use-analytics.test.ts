@@ -12,15 +12,7 @@ const PageScope: Record<string, PageScopeType> = {
   SUPERADMIN: 'superadmin',
 };
 
-vi.mock('@ui-constants/misc.constant', () => ({
-  PageScope: {
-    BRAND: 'brand',
-    ORGANIZATION: 'organization',
-    SUPERADMIN: 'superadmin',
-  },
-}));
-
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
     brandId: 'brand-123',
     organizationId: 'org-123',

@@ -1,8 +1,12 @@
-import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
+import {
+  CredentialPlatform,
+  PageScope,
+  PostCategory,
+  PostStatus,
+} from '@genfeedai/enums';
 import type { ICredential, IPost } from '@genfeedai/interfaces';
 import { usePostDetail } from '@hooks/pages/use-post-detail/use-post-detail';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { PageScope } from '@ui-constants/misc.constant';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockFindOne = vi.fn();
@@ -16,7 +20,7 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
   useSocketSubscriptions: vi.fn(),
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
   useConfirmDeleteModal: vi.fn(() => ({ openConfirmDelete: vi.fn() })),
   useGalleryModal: vi.fn(() => ({ openGallery: vi.fn() })),
   useGenerateIllustrationModal: vi.fn(() => ({
@@ -24,7 +28,7 @@ vi.mock('@providers/global-modals/global-modals.provider', () => ({
   })),
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(() => ({
       error: vi.fn(),
@@ -33,20 +37,21 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
     info: vi.fn(),
   },
 }));
 
-vi.mock('@utils/carousel-validation', () => ({
+vi.mock('@genfeedai/utils/carousel-validation', () => ({
   getCarouselLimits: vi.fn(() => ({ max: 10, min: 1 })),
   validateCarouselCount: vi.fn(() => ({ errors: [], valid: true })),
 }));
 
 vi.mock('next/navigation', () => ({
   usePathname: vi.fn(() => '/publisher/posts/post-1'),
+  useParams: vi.fn(() => ({ brandSlug: 'brand-slug', orgSlug: 'acme' })),
   useRouter: vi.fn(() => ({ push: vi.fn(), replace: vi.fn() })),
 }));
 

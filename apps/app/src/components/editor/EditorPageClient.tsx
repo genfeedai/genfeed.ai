@@ -21,7 +21,13 @@ import {
   Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import {
+  type ComponentProps,
+  type ComponentType,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { EditorComposition } from '@/components/editor/EditorComposition';
 
 import {
@@ -35,6 +41,32 @@ import type { EditorComposition as EditorCompositionType } from '@/lib/editor/ty
 
 interface EditorPageClientProps {
   initialAssets: string[];
+}
+
+type EditorCompositionProps = {
+  composition?: EditorCompositionType;
+};
+
+type EditorCompositionPlayerProps = Omit<
+  ComponentProps<typeof Player>,
+  'component' | 'inputProps'
+> & {
+  component: ComponentType<EditorCompositionProps>;
+  inputProps: EditorCompositionProps;
+};
+
+function EditorCompositionPlayer({
+  component,
+  inputProps,
+  ...props
+}: EditorCompositionPlayerProps) {
+  return (
+    <Player
+      {...props}
+      component={component as never}
+      inputProps={inputProps as never}
+    />
+  );
 }
 
 export function EditorPageClient({ initialAssets }: EditorPageClientProps) {
@@ -183,7 +215,7 @@ export function EditorPageClient({ initialAssets }: EditorPageClientProps) {
         </div>
 
         <div className="mt-8 overflow-hidden rounded-[2rem] border border-[var(--border)] bg-black/50">
-          <Player
+          <EditorCompositionPlayer
             component={EditorComposition}
             compositionWidth={composition.width}
             compositionHeight={composition.height}
@@ -203,13 +235,13 @@ export function EditorPageClient({ initialAssets }: EditorPageClientProps) {
         {renderedPath ? (
           <div className="mt-5 flex flex-wrap items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--secondary)] px-4 py-3">
             <span className="text-sm text-[var(--muted-foreground)]">
-              Exported to Core gallery storage.
+              Exported to the library storage.
             </span>
             <Link
-              href="/gallery"
+              href="/library/ingredients"
               className="rounded-full bg-white px-4 py-2 text-sm font-medium text-black transition hover:bg-white/90"
             >
-              Open Gallery
+              Open Library
             </Link>
             <a
               href={`/api/gallery/${renderedPath}`}

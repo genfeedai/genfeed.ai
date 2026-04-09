@@ -69,6 +69,7 @@ export * from './content/generation-payload.interface';
 export * from './content/model.interface';
 export * from './content/persona.interface';
 export * from './content/post.interface';
+export * from './content/post-quick-action.interface';
 export * from './content/prompt.interface';
 export * from './content/prompts-content.interface';
 export * from './content/publication-card.interface';

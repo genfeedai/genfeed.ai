@@ -292,7 +292,7 @@ function ExecutionHistoryTabComponent() {
   // Reset cache when workflowId changes to prevent stale data
   useEffect(() => {
     costCacheRef.current = new Map();
-  }, [workflowId]);
+  }, []);
 
   // Load cost details for an execution - stable callback that doesn't depend on cache state
   const loadCostDetails = useCallback(

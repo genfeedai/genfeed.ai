@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
   usePostModal: vi.fn(() => ({
     close: vi.fn(),
     isOpen: false,
@@ -9,7 +9,7 @@ vi.mock('@providers/global-modals/global-modals.provider', () => ({
   })),
 }));
 
-import { usePostModal } from '@providers/global-modals/global-modals.provider';
+import { usePostModal } from '@genfeedai/providers/global-modals/global-modals.provider';
 import { renderHook } from '@testing-library/react';
 
 describe('usePostModal', () => {

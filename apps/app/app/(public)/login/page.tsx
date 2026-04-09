@@ -1,5 +1,5 @@
-import LoginPage from '@pages/auth/login/login-page';
 import type { Metadata } from 'next';
+import LoginPage from './content';
 
 export const metadata: Metadata = {
   title: 'Sign In | Genfeed',

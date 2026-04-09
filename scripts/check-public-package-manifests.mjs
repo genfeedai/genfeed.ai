@@ -4,14 +4,24 @@ import path from 'node:path';
 
 const root = process.cwd();
 const packagesRoot = path.join(root, 'packages');
-const packageDirs = fs
-  .readdirSync(packagesRoot)
-  .map((d) => path.join(packagesRoot, d))
-  .filter(
-    (d) =>
-      fs.existsSync(path.join(d, 'package.json')) &&
-      fs.statSync(d).isDirectory(),
-  );
+const requestedDirs = process.argv
+  .slice(2)
+  .map((dir) => path.resolve(root, dir));
+const packageDirs =
+  requestedDirs.length > 0
+    ? requestedDirs.filter(
+        (dir) =>
+          fs.existsSync(path.join(dir, 'package.json')) &&
+          fs.statSync(dir).isDirectory(),
+      )
+    : fs
+        .readdirSync(packagesRoot)
+        .map((d) => path.join(packagesRoot, d))
+        .filter(
+          (d) =>
+            fs.existsSync(path.join(d, 'package.json')) &&
+            fs.statSync(d).isDirectory(),
+        );
 
 const violations = [];
 

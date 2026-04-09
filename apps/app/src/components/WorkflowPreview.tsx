@@ -56,7 +56,8 @@ function WorkflowPreviewInner({ nodes, edges }: WorkflowPreviewProps) {
     const depths = new Map<string, number>();
     const getDepth = (nodeId: string, visited = new Set<string>()): number => {
       if (visited.has(nodeId)) return 0; // Cycle protection
-      if (depths.has(nodeId)) return depths.get(nodeId)!;
+      const existingDepth = depths.get(nodeId);
+      if (existingDepth !== undefined) return existingDepth;
 
       visited.add(nodeId);
       const sources = incomingEdges.get(nodeId) ?? [];

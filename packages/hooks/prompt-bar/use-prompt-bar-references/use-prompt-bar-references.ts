@@ -3,7 +3,7 @@ import type { IAsset, IImage } from '@genfeedai/interfaces';
 import type {
   UsePromptBarReferencesOptions,
   UsePromptBarReferencesReturn,
-} from '@props/studio/prompt-bar.props';
+} from '@genfeedai/props/studio/prompt-bar.props';
 import { useCallback, useRef, useState } from 'react';
 
 const FORMAT_NAME_MAP: Record<IngredientFormat, string> = {

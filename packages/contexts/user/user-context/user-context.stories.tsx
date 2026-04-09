@@ -1,4 +1,4 @@
-import UserContext from '@contexts/user/user-context/user-context';
+import UserContext from '@genfeedai/contexts/user/user-context/user-context';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 
 const meta: Meta<typeof UserContext> = {

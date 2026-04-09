@@ -1,16 +1,18 @@
 'use client';
 
-import { CredentialPlatform, Platform } from '@genfeedai/enums';
-import type { IIngredient, IPost } from '@genfeedai/interfaces';
+import { CredentialPlatform, PageScope, Platform } from '@genfeedai/enums';
+import type {
+  IIngredient,
+  IPost,
+  PostQuickActionKey,
+} from '@genfeedai/interfaces';
 import PostDetailCard from '@pages/posts/detail/components/PostDetailCard';
 import type { PostsService } from '@services/content/posts.service';
 import type { NotificationsService } from '@services/core/notifications.service';
 import Card from '@ui/card/Card';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import ThreadPreviewPanel from '@ui/posts/preview/thread-preview-panel/ThreadPreviewPanel';
-import type { PostQuickActionKey } from '@ui/posts/quick-actions/post-quick-actions/PostQuickActions';
 import { Checkbox } from '@ui/primitives/checkbox';
-import { PageScope } from '@ui-constants/misc.constant';
 
 const VIDEO_ONLY_PLATFORMS: Platform[] = [Platform.YOUTUBE, Platform.TIKTOK];
 
@@ -149,7 +151,7 @@ export default function PostDetailContent({
     return (
       <ThreadPreviewPanel
         parent={{ content: descriptionDraft, id: post.id }}
-        children={sortedChildren.map((c) => ({
+        replies={sortedChildren.map((c) => ({
           content: c.description || '',
           id: c.id,
         }))}

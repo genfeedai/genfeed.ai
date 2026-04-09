@@ -174,7 +174,7 @@ export default function IngredientTabsChildren({
           <h3 className="text-lg font-semibold">Add Child Assets</h3>
 
           <div className="flex gap-2">
-            <input
+            <Input
               type="text"
               placeholder="Search for assets to link..."
               className="flex-1 h-10 border border-white/[0.08] bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"

@@ -1,0 +1,10 @@
+{
+  "description": "Shared client-facing services and orchestration helpers for Genfeed applications",
+  "exports": {
+    "./*": "./*"
+  },
+  "name": "@genfeedai/services",
+  "private": true,
+  "sideEffects": false,
+  "version": "0.1.0"
+}

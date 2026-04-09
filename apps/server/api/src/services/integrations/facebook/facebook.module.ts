@@ -1,3 +1,4 @@
+import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
 import { FacebookController } from '@api/services/integrations/facebook/controllers/facebook.controller';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
@@ -6,7 +7,11 @@ import { HttpModule } from '@nestjs/axios';
 import { forwardRef, Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(FacebookService, {
-  additionalImports: [HttpModule, forwardRef(() => CredentialsModule)],
+  additionalImports: [
+    HttpModule,
+    forwardRef(() => BrandsModule),
+    forwardRef(() => CredentialsModule),
+  ],
 });
 
 @Module({

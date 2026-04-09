@@ -4,6 +4,7 @@ import { useAuth } from '@clerk/nextjs';
 import {
   ButtonSize,
   ButtonVariant,
+  LinkCategory,
   OrganizationCategory,
 } from '@genfeedai/enums';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
@@ -137,6 +138,14 @@ export default function BrandContent() {
           setBrandName((prev) => prev || brand.label);
         }
 
+        const websiteLink = brand?.links?.find(
+          (link) => link?.category === LinkCategory.WEBSITE && !!link.url,
+        );
+
+        if (websiteLink?.url) {
+          setWebsiteUrl((prev) => prev || websiteLink.url || '');
+        }
+
         if (org?.accountType || org?.category) {
           setAccountType(
             (prev) => prev ?? (org.accountType || org.category || null),
@@ -240,7 +249,7 @@ export default function BrandContent() {
       {/* Badge */}
       <div className="step-badge opacity-0 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/60 text-[10px] font-black uppercase tracking-[0.2em] mb-8">
         <HiSparkles className="h-3 w-3" />
-        Step 1 of 2
+        Step 1 of 3
       </div>
 
       <h1 className="step-headline opacity-0 text-4xl md:text-5xl font-serif leading-none tracking-tighter text-white mb-4">
@@ -264,7 +273,7 @@ export default function BrandContent() {
               variant={ButtonVariant.UNSTYLED}
               withWrapper={false}
               onClick={() => handleAccountTypeSelect(category)}
-              className={`group p-4 border text-center transition-all ${
+              className={`group rounded-none p-4 border text-center transition-all ${
                 accountType === category
                   ? 'border-white/30 bg-white/[0.08]'
                   : 'border-white/[0.08] bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04]'
@@ -311,7 +320,7 @@ export default function BrandContent() {
             onChange={(e) => setBrandName(e.target.value)}
             placeholder="Your name or brand"
             required
-            className="w-full px-4 py-3 bg-white/[0.04] border border-white/[0.08] text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-white/30 transition-colors"
+            className="h-12 rounded-none border-white/[0.08] bg-white/[0.04] px-4 text-sm text-white placeholder:text-white/20 focus-visible:border-white/30 focus-visible:ring-0"
           />
         </div>
 
@@ -326,17 +335,15 @@ export default function BrandContent() {
               (optional)
             </span>
           </label>
-          <div className="flex items-center">
-            <span className="px-4 py-3 bg-white/[0.02] border border-r-0 border-white/[0.08] text-white/30 text-sm">
-              <HiGlobeAlt className="h-4 w-4" />
-            </span>
+          <div className="relative">
+            <HiGlobeAlt className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/30" />
             <Input
               id="brand-website-url"
               type="url"
               value={websiteUrl}
               onChange={(e) => setWebsiteUrl(e.target.value)}
               placeholder="https://yoursite.com"
-              className="flex-1 px-4 py-3 bg-white/[0.04] border border-white/[0.08] text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-white/30 transition-colors"
+              className="h-12 rounded-none border-white/[0.08] bg-white/[0.04] px-4 pl-12 text-sm text-white placeholder:text-white/20 focus-visible:border-white/30 focus-visible:ring-0"
             />
           </div>
           <p className="text-xs text-white/20 mt-1.5">
@@ -354,6 +361,7 @@ export default function BrandContent() {
             isLoading={submitting}
             isDisabled={!brandName.trim()}
             onClick={() => handleContinue()}
+            className="rounded-none px-5"
           />
         </div>
       </div>

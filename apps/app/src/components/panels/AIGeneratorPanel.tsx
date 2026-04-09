@@ -262,7 +262,11 @@ function AIGeneratorPanelComponent() {
                   <Button
                     variant={ButtonVariant.UNSTYLED}
                     withWrapper={false}
-                    onClick={() => handleLoadWorkflow(msg.workflow!)}
+                    onClick={() => {
+                      if (msg.workflow) {
+                        handleLoadWorkflow(msg.workflow);
+                      }
+                    }}
                     className="w-full py-2 bg-[var(--primary)] text-white rounded text-xs font-medium hover:opacity-90 transition flex items-center justify-center gap-2"
                     icon={<Upload className="w-3 h-3" />}
                   >

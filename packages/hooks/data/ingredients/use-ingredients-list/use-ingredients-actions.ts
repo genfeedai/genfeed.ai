@@ -4,6 +4,7 @@ import type { AssetScope } from '@genfeedai/enums';
 import {
   IngredientCategory,
   ModalEnum,
+  PageScope,
   WebSocketEventStatus,
 } from '@genfeedai/enums';
 import type {
@@ -12,23 +13,22 @@ import type {
   IIngredient,
   IMediaEventData,
 } from '@genfeedai/interfaces';
-import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
-import { openModal } from '@helpers/ui/modal/modal.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import useIngredientActions from '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
-import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import {
   useConfirmModal,
   useIngredientOverlay,
   usePostModal,
   useUploadModal,
-} from '@providers/global-modals/global-modals.provider';
-import { IngredientsService } from '@services/content/ingredients.service';
-import { logger } from '@services/core/logger.service';
-import type { NotificationsService } from '@services/core/notifications.service';
-import { VideosService } from '@services/ingredients/videos.service';
-import { PageScope } from '@ui-constants/misc.constant';
-import { WebSocketPaths } from '@utils/network/websocket.util';
+} from '@genfeedai/providers/global-modals/global-modals.provider';
+import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { VideosService } from '@genfeedai/services/ingredients/videos.service';
+import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
+import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
+import { openModal } from '@helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import useIngredientActions from '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
+import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import type { Dispatch, RefObject, SetStateAction } from 'react';
 import { useCallback, useEffect, useState } from 'react';

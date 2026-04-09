@@ -6,7 +6,7 @@ vi.mock('next/navigation', () => ({
   useParams: () => ({ brandSlug: 'my-brand', orgSlug: 'genfeed-ai' }),
 }));
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     selectedBrand: { slug: 'fallback-brand' },
   }),

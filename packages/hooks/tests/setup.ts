@@ -33,7 +33,7 @@ vi.mock('axios', () => {
 });
 
 // Mock the base service to avoid axios initialization issues
-vi.mock('@services/core/base.service', () => ({
+vi.mock('@genfeedai/services/core/base.service', () => ({
   BaseService: class MockBaseService {
     static getInstance = vi.fn();
     instance = {
@@ -44,6 +44,15 @@ vi.mock('@services/core/base.service', () => ({
       put: vi.fn().mockResolvedValue({ data: {} }),
     };
   },
+}));
+
+vi.mock('next/navigation', () => ({
+  useParams: () => ({ brandSlug: 'brand-slug', orgSlug: 'acme' }),
+  usePathname: () => '/acme/brand-slug/publisher/posts/post-1',
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+  }),
 }));
 
 // Mock ResizeObserver as a class so UI libs can instantiate it safely.
@@ -103,6 +112,16 @@ Object.defineProperty(window, 'scrollTo', {
 
 // Mock fetch
 global.fetch = vi.fn();
+
+Object.defineProperty(window, 'localStorage', {
+  value: {
+    clear: vi.fn(),
+    getItem: vi.fn(() => null),
+    removeItem: vi.fn(),
+    setItem: vi.fn(),
+  },
+  writable: true,
+});
 
 const originalConsoleError = console.error.bind(console);
 

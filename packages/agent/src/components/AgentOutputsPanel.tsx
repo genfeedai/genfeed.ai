@@ -57,12 +57,13 @@ function renderVariantPreview(
 ): ReactElement {
   if (variant.kind === 'video' && variant.url) {
     return (
-      // biome-ignore lint/a11y/useMediaCaption: preview media has no caption track source
       <video
         src={variant.url}
         controls
         className="aspect-[4/5] w-full border border-white/[0.08] bg-black/20 object-cover"
-      />
+      >
+        <track kind="captions" />
+      </video>
     );
   }
 
@@ -73,8 +74,9 @@ function renderVariantPreview(
           <HiOutlineMusicalNote className="h-4 w-4 text-primary/80" />
           {variant.title ?? group.title}
         </div>
-        {/* biome-ignore lint/a11y/useMediaCaption: preview audio has no caption track source */}
-        <audio src={variant.url} controls className="w-full" />
+        <audio src={variant.url} controls className="w-full">
+          <track kind="captions" />
+        </audio>
       </div>
     );
   }

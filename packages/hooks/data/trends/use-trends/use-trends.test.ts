@@ -7,7 +7,7 @@ const mockGetTrendsService = vi.fn();
 const mockUseResource = vi.fn();
 const mockUseBrandId = vi.fn(() => 'brand-1');
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrandId: () => mockUseBrandId(),
 }));
 
@@ -19,7 +19,7 @@ vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
   useResource: (...args: unknown[]) => mockUseResource(...args),
 }));
 
-vi.mock('@services/social/trends.service', () => ({
+vi.mock('@genfeedai/services/social/trends.service', () => ({
   TrendsService: {
     getInstance: vi.fn(),
   },

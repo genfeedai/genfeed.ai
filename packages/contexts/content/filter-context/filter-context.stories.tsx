@@ -1,4 +1,4 @@
-import FilterContext from '@contexts/content/filter-context/filter-context';
+import FilterContext from '@genfeedai/contexts/content/filter-context/filter-context';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 
 const meta: Meta<typeof FilterContext> = {

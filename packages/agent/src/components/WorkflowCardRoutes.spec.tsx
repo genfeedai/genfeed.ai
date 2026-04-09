@@ -5,19 +5,25 @@ import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { Effect } from 'effect';
 import { describe, expect, it, vi } from 'vitest';
 
 function createApiServiceMock(): AgentApiService {
   return {
-    generateIngredient: vi.fn(),
-    getWorkflowInterface: vi.fn().mockResolvedValue({
-      inputs: {},
-      outputs: {},
-    }),
-    mergeVideos: vi.fn(),
-    reframeVideo: vi.fn(),
-    resizeVideo: vi.fn(),
-    triggerWorkflow: vi.fn().mockResolvedValue({ id: 'exec-123' }),
+    createPromptEffect: vi.fn(() => Effect.succeed({ id: 'prompt-123' })),
+    generateIngredientEffect: vi.fn(() => Effect.succeed({ id: 'video-123' })),
+    getWorkflowInterfaceEffect: vi.fn(() =>
+      Effect.succeed({
+        inputs: {},
+        outputs: {},
+      }),
+    ),
+    mergeVideosEffect: vi.fn(() => Effect.succeed({ id: 'merged-video-123' })),
+    reframeVideoEffect: vi.fn(() =>
+      Effect.succeed({ id: 'portrait-video-123' }),
+    ),
+    resizeVideoEffect: vi.fn(() => Effect.succeed({ id: 'resized-video-123' })),
+    triggerWorkflowEffect: vi.fn(() => Effect.succeed({ id: 'exec-123' })),
   } as unknown as AgentApiService;
 }
 
@@ -35,7 +41,7 @@ describe('Workflow card route handoffs', () => {
 
     expect(
       screen.getByRole('link', { name: /create a workflow/i }),
-    ).toHaveAttribute('href', '/workflows');
+    ).toHaveAttribute('href', '/test-org/test-brand/workflows');
   });
 
   it('points workflow execution links to the canonical executions route', async () => {
@@ -58,7 +64,10 @@ describe('Workflow card route handoffs', () => {
 
     expect(
       await screen.findByRole('link', { name: /view execution/i }),
-    ).toHaveAttribute('href', '/workflows/executions/exec-123');
+    ).toHaveAttribute(
+      'href',
+      '/test-org/test-brand/workflows/executions/exec-123',
+    );
 
     unmountTrigger();
 
@@ -78,7 +87,10 @@ describe('Workflow card route handoffs', () => {
 
     expect(
       await screen.findByRole('link', { name: /view execution/i }),
-    ).toHaveAttribute('href', '/workflows/executions/exec-123');
+    ).toHaveAttribute(
+      'href',
+      '/test-org/test-brand/workflows/executions/exec-123',
+    );
 
     unmountExecute();
 
@@ -99,6 +111,9 @@ describe('Workflow card route handoffs', () => {
 
     expect(
       await screen.findByRole('link', { name: /view workflow execution/i }),
-    ).toHaveAttribute('href', '/workflows/executions/exec-123');
+    ).toHaveAttribute(
+      'href',
+      '/test-org/test-brand/workflows/executions/exec-123',
+    );
   });
 });

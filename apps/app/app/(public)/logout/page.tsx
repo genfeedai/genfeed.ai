@@ -1,5 +1,5 @@
-import LogoutPage from '@pages/auth/logout/logout-page';
 import type { Metadata } from 'next';
+import LogoutPage from './content';
 
 export const metadata: Metadata = {
   title: 'Sign Out | Genfeed',

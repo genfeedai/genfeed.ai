@@ -1,7 +1,7 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import MembersList from '@pages/members/list/members-list';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
+import MembersList from './members-list';
 
 export const generateMetadata = createPageMetadata('Team Members');
 

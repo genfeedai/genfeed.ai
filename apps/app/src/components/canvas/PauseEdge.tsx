@@ -6,7 +6,6 @@ import { Pause } from 'lucide-react';
 import { memo } from 'react';
 
 function PauseEdgeComponent({
-  id,
   sourceX,
   sourceY,
   targetX,

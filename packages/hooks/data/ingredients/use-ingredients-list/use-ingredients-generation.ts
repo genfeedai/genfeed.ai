@@ -11,13 +11,13 @@ import type {
   ImageToVideoGenerationPayload,
   ITag,
 } from '@genfeedai/interfaces';
+import { logger } from '@genfeedai/services/core/logger.service';
+import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { VideosService } from '@genfeedai/services/ingredients/videos.service';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import { isIngredientFormat } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-filters';
-import { logger } from '@services/core/logger.service';
-import type { NotificationsService } from '@services/core/notifications.service';
-import { VideosService } from '@services/ingredients/videos.service';
 import { useCallback, useState } from 'react';
 
 interface UseIngredientsGenerationProps {

@@ -3,9 +3,9 @@
  * Dynamically registers brand switching commands in the command palette
  */
 
+import type { Brand } from '@genfeedai/models/organization/brand.model';
+import { BrandCommandsService } from '@genfeedai/services/core/brand-commands.service';
 import { useCommandPalette } from '@hooks/ui/use-command-palette/use-command-palette';
-import type { Brand } from '@models/organization/brand.model';
-import { BrandCommandsService } from '@services/core/brand-commands.service';
 import { useEffect } from 'react';
 
 export interface UseBrandCommandsOptions {

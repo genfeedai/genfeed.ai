@@ -7,6 +7,7 @@ import {
   AlertCategory,
   ButtonVariant,
   ModalEnum,
+  PageScope,
   Platform,
 } from '@genfeedai/enums';
 import type { IBrand, IWatchlist } from '@genfeedai/interfaces';
@@ -25,7 +26,6 @@ import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { PageScope } from '@ui-constants/misc.constant';
 import { type ChangeEvent, useEffect } from 'react';
 
 export default function ModalWatchlist({

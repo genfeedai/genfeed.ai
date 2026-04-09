@@ -1,5 +1,5 @@
+import type { PageScope } from '@genfeedai/enums';
 import type { LayoutProps } from '@props/layout/layout.props';
-import type { PageScope } from '@ui-constants/misc.constant';
 
 export interface IngredientsLayoutProps extends LayoutProps {
   scope?: PageScope.SUPERADMIN | PageScope.ORGANIZATION | PageScope.BRAND;

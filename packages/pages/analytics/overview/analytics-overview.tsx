@@ -9,6 +9,7 @@ import {
   ButtonSize,
   ButtonVariant,
   CardVariant,
+  PageScope,
 } from '@genfeedai/enums';
 import type {
   DashboardScopePreferences,
@@ -41,7 +42,6 @@ import Alert from '@ui/feedback/alert/Alert';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Loading from '@ui/loading/default/Loading';
 import { Button, buttonVariants } from '@ui/primitives/button';
-import { PageScope } from '@ui-constants/misc.constant';
 import { format } from 'date-fns';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';

@@ -15,14 +15,13 @@ export function useTeamMentions(
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!apiService) {
+    if (!apiService || typeof apiService.getTeamMentionsEffect !== 'function') {
       setIsLoading(false);
       return;
     }
 
     const controller = new AbortController();
 
-    // TODO: Create API endpoint GET /v1/team/mentions and add getTeamMentionsEffect to AgentApiService
     runAgentApiEffect(apiService.getTeamMentionsEffect(controller.signal))
       .then((data) => {
         if (!controller.signal.aborted) {

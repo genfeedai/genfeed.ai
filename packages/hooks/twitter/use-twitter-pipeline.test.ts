@@ -6,7 +6,7 @@ const mockSearch = vi.fn();
 const mockDraft = vi.fn();
 const mockPublish = vi.fn();
 
-vi.mock('@services/twitter/twitter-pipeline.service', () => ({
+vi.mock('@genfeedai/services/twitter/twitter-pipeline.service', () => ({
   TwitterPipelineService: {
     getInstance: vi.fn(() => ({
       draft: mockDraft,
@@ -16,7 +16,7 @@ vi.mock('@services/twitter/twitter-pipeline.service', () => ({
   },
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(() => ({
       error: vi.fn(),

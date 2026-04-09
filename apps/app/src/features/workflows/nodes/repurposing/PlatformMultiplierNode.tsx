@@ -26,7 +26,7 @@ import {
   CopyIcon,
   DownloadIcon,
   SparklesIcon,
-} from '@/features/workflows/components/ui/icons/node-icons';
+} from '@/features/workflows/components/ui/icons';
 import { NodeSelect } from '@/features/workflows/components/ui/inputs';
 import {
   getStatusColor,
@@ -113,7 +113,7 @@ function PlatformMultiplierNodeComponent(props: NodeProps): React.JSX.Element {
   return (
     <NodeCard minWidth="320px">
       <NodeHeader
-        icon={<CopyIcon />}
+        icon={<CopyIcon className="h-4 w-4" />}
         title="Platform Multiplier"
         badge={
           <NodeBadge variant="purple">
@@ -209,7 +209,7 @@ function PlatformMultiplierNodeComponent(props: NodeProps): React.JSX.Element {
                         }
                         className="flex-1"
                       >
-                        <DownloadIcon />
+                        <DownloadIcon className="h-4 w-4" />
                         Download
                       </Button>
                       {output.caption && (
@@ -240,7 +240,7 @@ function PlatformMultiplierNodeComponent(props: NodeProps): React.JSX.Element {
           fullWidth
           onClick={handleGenerate}
           disabled={!canGenerate}
-          icon={<SparklesIcon />}
+          icon={<SparklesIcon className="h-4 w-4" />}
         >
           Generate for {data.targetPlatforms.length} Platform
           {data.targetPlatforms.length !== 1 ? 's' : ''}

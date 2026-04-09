@@ -2,11 +2,11 @@
 
 import type { IngredientCategory } from '@genfeedai/enums';
 import type { SocketResult } from '@genfeedai/interfaces/content/generation-payload.interface';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { createMediaHandler } from '@genfeedai/services/core/socket-manager.service';
+import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
-import { createMediaHandler } from '@services/core/socket-manager.service';
-import { WebSocketPaths } from '@utils/network/websocket.util';
 import { useCallback, useEffect, useRef } from 'react';
 
 export interface UseGenerationListenerOptions {

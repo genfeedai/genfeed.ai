@@ -2,9 +2,9 @@
 
 import { Kbd } from '@genfeedai/ui';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
+import { Input } from '@ui/primitives/input';
 import { Keyboard, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Input } from '@/components/ui/input';
 import { Modal } from '@/components/ui/modal';
 
 interface ShortcutItem {

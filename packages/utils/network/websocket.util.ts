@@ -12,4 +12,7 @@ export const WebSocketPaths = {
   script: (scriptId: string) => `/scripts/${scriptId}`,
   user: (userId: string) => `/users/${userId}`,
   video: (videoId: string) => `/videos/${videoId}`,
+  workspaceTask: (taskId: string) => `/workspace/tasks/${taskId}`,
+  workspaceTaskOverview: (organizationId: string) =>
+    `/workspace/overview/${organizationId}/tasks`,
 };

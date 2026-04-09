@@ -1,16 +1,16 @@
 'use client';
 
+import type { PageScope } from '@genfeedai/enums';
 import type { DateRange, ITimeSeriesApiDataPoint } from '@genfeedai/interfaces';
+import type { PlatformTimeSeriesDataPoint } from '@genfeedai/props/analytics/charts.props';
+import { AnalyticsService } from '@genfeedai/services/analytics/analytics.service';
+import { logger } from '@genfeedai/services/core/logger.service';
 import {
   createCacheKey,
   createLocalStorageCache,
 } from '@helpers/data/cache/cache.helper';
 import { getDateRangeWithDefaults } from '@helpers/utils/date-range.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
-import { AnalyticsService } from '@services/analytics/analytics.service';
-import { logger } from '@services/core/logger.service';
-import type { PageScope } from '@ui-constants/misc.constant';
 import { format } from 'date-fns';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 

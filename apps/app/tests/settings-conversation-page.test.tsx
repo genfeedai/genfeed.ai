@@ -1,6 +1,6 @@
-import SettingsConversationPage from '@pages/settings/conversation/settings-conversation-page';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import SettingsConversationPage from '@/app/(protected)/[orgSlug]/~/settings/(pages)/personal/settings-conversation-page';
 import '@testing-library/jest-dom';
 
 vi.mock('@clerk/nextjs', () => ({

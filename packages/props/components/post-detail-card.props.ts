@@ -1,9 +1,11 @@
-import type { CredentialPlatform } from '@genfeedai/enums';
-import type { IIngredient, IPost } from '@genfeedai/interfaces';
+import type { CredentialPlatform, PageScope } from '@genfeedai/enums';
+import type {
+  IIngredient,
+  IPost,
+  PostQuickActionKey,
+} from '@genfeedai/interfaces';
 import type { PostsService } from '@services/content/posts.service';
 import type { NotificationsService } from '@services/core/notifications.service';
-import type { PostQuickActionKey } from '@ui/posts/quick-actions/post-quick-actions/PostQuickActions';
-import type { PageScope } from '@ui-constants/misc.constant';
 import type { MutableRefObject } from 'react';
 
 export interface PostDetailCardProps {

@@ -1,6 +1,7 @@
 import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
+import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
@@ -36,6 +37,7 @@ export class CronCredentialsService {
     private readonly logger: LoggerService,
     private readonly credentialsService: CredentialsService,
     private readonly facebookService: FacebookService,
+    private readonly googleAdsService: GoogleAdsService,
     private readonly instagramService: InstagramService,
     private readonly linkedInService: LinkedInService,
     private readonly pinterestService: PinterestService,
@@ -46,6 +48,7 @@ export class CronCredentialsService {
   ) {
     this.platformRefreshers = new Map<CredentialPlatform, TokenRefreshService>([
       [CredentialPlatform.FACEBOOK, this.facebookService],
+      [CredentialPlatform.GOOGLE_ADS, this.googleAdsService],
       [CredentialPlatform.INSTAGRAM, this.instagramService],
       [CredentialPlatform.LINKEDIN, this.linkedInService],
       [CredentialPlatform.PINTEREST, this.pinterestService],

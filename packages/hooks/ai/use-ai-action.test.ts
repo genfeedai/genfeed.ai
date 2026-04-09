@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockExecute = vi.fn();
 
-vi.mock('@services/ai/ai-actions.service', () => ({
+vi.mock('@genfeedai/services/ai/ai-actions.service', () => ({
   AiActionsService: {
     getInstance: vi.fn(() => ({
       execute: mockExecute,
@@ -12,7 +12,7 @@ vi.mock('@services/ai/ai-actions.service', () => ({
   },
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(() => ({
       error: vi.fn(),

@@ -5,7 +5,9 @@ import type { EdgeStyle } from '@genfeedai/types';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
+import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { ArrowLeft, ArrowRight, ExternalLink, Search } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
@@ -354,24 +356,23 @@ function TemplatesModalComponent() {
               <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Category
               </h3>
-              <div className="space-y-1">
+              <RadioGroup
+                className="space-y-1"
+                value={categoryFilter}
+                onValueChange={(value) =>
+                  setCategoryFilter(value as CategoryFilter)
+                }
+              >
                 {CATEGORY_OPTIONS.map((option) => (
                   <label
                     key={option.value}
                     className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm transition hover:bg-secondary"
                   >
-                    <input
-                      type="radio"
-                      name="category"
-                      value={option.value}
-                      checked={categoryFilter === option.value}
-                      onChange={() => setCategoryFilter(option.value)}
-                      className="h-4 w-4 border-border text-primary focus:ring-primary"
-                    />
+                    <RadioGroupItem value={option.value} />
                     {option.label}
                   </label>
                 ))}
-              </div>
+              </RadioGroup>
             </div>
 
             {/* Provider Filters */}
@@ -386,11 +387,9 @@ function TemplatesModalComponent() {
                       key={provider}
                       className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm transition hover:bg-secondary"
                     >
-                      <input
-                        type="checkbox"
-                        checked={selectedProviders.has(provider)}
-                        onChange={() => toggleProvider(provider)}
-                        className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
+                      <Checkbox
+                        isChecked={selectedProviders.has(provider)}
+                        onCheckedChange={() => toggleProvider(provider)}
                       />
                       {provider}
                     </label>

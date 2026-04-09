@@ -1,10 +1,10 @@
 import type { IEvaluation } from '@genfeedai/client/models';
 import { IngredientCategory, Status } from '@genfeedai/enums';
+import { EvaluationsService } from '@genfeedai/services/ai/evaluations.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSocketSubscription } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import { EvaluationsService } from '@services/ai/evaluations.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export interface UseEvaluationOptions {

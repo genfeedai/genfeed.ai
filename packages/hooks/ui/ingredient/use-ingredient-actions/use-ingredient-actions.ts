@@ -1,4 +1,4 @@
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AssetCategory,
   IngredientCategory,
@@ -8,6 +8,16 @@ import {
 } from '@genfeedai/enums';
 import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
 import type { MasonryActionStates } from '@genfeedai/interfaces/hooks/hooks.interface';
+import { AssetsService } from '@genfeedai/services/content/assets.service';
+import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import type { VideosService } from '@genfeedai/services/ingredients/videos.service';
+import {
+  isImageIngredient,
+  isVideoIngredient,
+} from '@genfeedai/utils/media/ingredient-type.util';
 import { downloadIngredient } from '@helpers/media/download/download.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -19,16 +29,6 @@ import {
   withServiceOperation,
 } from '@hooks/utils/service-operation/service-operation.util';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import { AssetsService } from '@services/content/assets.service';
-import { ClipboardService } from '@services/core/clipboard.service';
-import { EnvironmentService } from '@services/core/environment.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
-import type { VideosService } from '@services/ingredients/videos.service';
-import {
-  isImageIngredient,
-  isVideoIngredient,
-} from '@utils/media/ingredient-type.util';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 /**

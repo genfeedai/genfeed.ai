@@ -5,8 +5,8 @@ import type {
   AgentDashboardOperation,
   AgentUIBlock,
 } from '@genfeedai/interfaces';
-import type { ChatAttachment } from '@props/ui/attachments.props';
-import type { StructuredProgressDebugPayload } from '@utils/progress/structured-progress-event.util';
+import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
+import type { StructuredProgressDebugPayload } from '@genfeedai/utils/progress/structured-progress-event.util';
 
 export interface AgentChatMessageMetadata {
   generatedContent?: string;

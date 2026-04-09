@@ -1,34 +1,8 @@
-export interface GoogleAdsCustomer {
-  id: string;
-  descriptiveName: string;
-  currencyCode: string;
-  timeZone: string;
-  isManager: boolean;
-}
-
-export interface GoogleAdsCampaign {
-  id: string;
-  name: string;
-  status: string;
-  advertisingChannelType: string;
-  budgetAmountMicros?: string;
-  startDate?: string;
-  endDate?: string;
-}
-
-export interface GoogleAdsCampaignMetrics {
-  campaignId: string;
-  campaignName: string;
-  impressions: number;
-  clicks: number;
-  costMicros: number;
-  conversions: number;
-  conversionsValue: number;
-  ctr: number;
-  averageCpc: number;
-  averageCpm: number;
-  date?: string;
-}
+export type {
+  GoogleAdsCampaignInput as GoogleAdsCampaign,
+  GoogleAdsCampaignMetricsInput as GoogleAdsCampaignMetrics,
+  GoogleAdsCustomerInput as GoogleAdsCustomer,
+} from '@genfeedai/integrations/ads';
 
 export interface GoogleAdsAdGroupInsights {
   adGroupId: string;

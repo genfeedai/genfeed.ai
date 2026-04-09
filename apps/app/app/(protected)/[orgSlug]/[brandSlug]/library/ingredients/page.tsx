@@ -1,5 +1,5 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import LibraryLandingPage from '@pages/library/landing/library-landing-page';
+import LibraryLandingPage from './library-landing-page';
 
 export const generateMetadata = createPageMetadata('Library');
 

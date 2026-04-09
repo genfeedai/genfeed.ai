@@ -2,7 +2,7 @@ import { usePostDetailMedia } from '@hooks/pages/use-post-detail/use-post-detail
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
   useGalleryModal: vi.fn(() => ({
     openGallery: vi.fn(),
   })),
@@ -11,13 +11,13 @@ vi.mock('@providers/global-modals/global-modals.provider', () => ({
   })),
 }));
 
-vi.mock('@services/content/posts.service', () => ({
+vi.mock('@genfeedai/services/content/posts.service', () => ({
   PostsService: {
     getInstance: vi.fn(),
   },
 }));
 
-vi.mock('@utils/carousel-validation', () => ({
+vi.mock('@genfeedai/utils/carousel-validation', () => ({
   getCarouselLimits: vi.fn(() => ({ max: 10, min: 1 })),
 }));
 

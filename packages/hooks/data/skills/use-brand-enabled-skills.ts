@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -19,22 +19,28 @@ export function useBrandEnabledSkills(): UseBrandEnabledSkillsReturn {
   const [enabledSlugs, setEnabledSlugs] = useState<string[]>([]);
   const [isLoading, _setIsLoading] = useState(false);
 
+  const selectedBrandRecord = selectedBrand as unknown as
+    | {
+        _id?: string;
+        agentConfig?: {
+          enabledSkills?: string[];
+        };
+        id?: string;
+      }
+    | undefined;
+
   useEffect(() => {
     if (!isReady || !selectedBrand) return;
 
-    const config = (selectedBrand as Record<string, unknown>).agentConfig as
-      | { enabledSkills?: string[] }
-      | undefined;
+    const config = selectedBrandRecord?.agentConfig;
     setEnabledSlugs(config?.enabledSkills ?? []);
-  }, [isReady, selectedBrand]);
+  }, [isReady, selectedBrand, selectedBrandRecord]);
 
   const toggleSkill = useCallback(
     async (slug: string) => {
       if (!selectedBrand) return;
 
-      const brandId =
-        ((selectedBrand as Record<string, unknown>).id as string) ??
-        ((selectedBrand as Record<string, unknown>)._id as string);
+      const brandId = selectedBrandRecord?.id ?? selectedBrandRecord?._id;
       if (!brandId) return;
 
       // Capture pre-toggle state for rollback, then optimistically update.
@@ -70,7 +76,7 @@ export function useBrandEnabledSkills(): UseBrandEnabledSkillsReturn {
         setEnabledSlugs(previousSlugs);
       }
     },
-    [enabledSlugs, getToken, selectedBrand],
+    [enabledSlugs, getToken, selectedBrand, selectedBrandRecord],
   );
 
   return { enabledSlugs, isLoading, toggleSkill };

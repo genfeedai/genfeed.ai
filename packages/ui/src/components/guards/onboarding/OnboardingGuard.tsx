@@ -69,7 +69,7 @@ export default function OnboardingGuard({ children }: OnboardingGuardProps) {
       );
 
       if (hasCompletedAllOnboardingSteps) {
-        return '/onboarding/providers';
+        return '/onboarding/summary';
       }
 
       const resumeStep = getResumeStep(currentUser.onboardingStepsCompleted);
@@ -83,7 +83,7 @@ export default function OnboardingGuard({ children }: OnboardingGuardProps) {
       !isByok &&
       !hasPaygCredits
     ) {
-      return '/onboarding/providers';
+      return '/onboarding/summary';
     }
 
     return null;

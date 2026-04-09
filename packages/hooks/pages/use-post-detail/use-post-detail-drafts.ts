@@ -1,9 +1,9 @@
 'use client';
 
+import { PageScope } from '@genfeedai/enums';
 import type { IIngredient, IPost } from '@genfeedai/interfaces';
-import type { PostsService } from '@services/content/posts.service';
-import { logger } from '@services/core/logger.service';
-import { PageScope } from '@ui-constants/misc.constant';
+import type { PostsService } from '@genfeedai/services/content/posts.service';
+import { logger } from '@genfeedai/services/core/logger.service';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface UsePostDetailDraftsOptions {

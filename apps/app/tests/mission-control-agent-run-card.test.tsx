@@ -12,7 +12,11 @@ vi.mock('@ui/buttons/base/Button', () => ({
   }: {
     children: ReactNode;
     onClick?: () => void;
-  }) => <button onClick={onClick}>{children}</button>,
+  }) => (
+    <button type="button" onClick={onClick}>
+      {children}
+    </button>
+  ),
 }));
 
 const RUN: IAgentRun = {

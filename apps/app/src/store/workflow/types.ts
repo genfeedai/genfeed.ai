@@ -13,6 +13,7 @@ import type {
   NodeChange,
   XYPosition,
 } from '@xyflow/react';
+import type { WorkflowListItem } from '@/features/workflows/types/workflow-list-item';
 import type { WorkflowData } from '@/lib/api';
 import type { GroupColor, NodeGroup } from '@/types/groups';
 import type { ChatSlice } from './slices/chatSlice';
@@ -111,7 +112,7 @@ export interface LocalWorkflowActions {
 export interface ApiActions {
   saveWorkflow: (signal?: AbortSignal) => Promise<WorkflowData>;
   loadWorkflowById: (id: string, signal?: AbortSignal) => Promise<void>;
-  listWorkflows: (signal?: AbortSignal) => Promise<WorkflowData[]>;
+  listWorkflows: (signal?: AbortSignal) => Promise<WorkflowListItem[]>;
   deleteWorkflow: (id: string, signal?: AbortSignal) => Promise<void>;
   duplicateWorkflowApi: (
     id: string,

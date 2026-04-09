@@ -102,6 +102,10 @@ global.fetch = vi.fn();
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
+  useParams: () => ({
+    brandSlug: 'test-brand',
+    orgSlug: 'test-org',
+  }),
   usePathname: () => '/',
   useRouter: () => ({
     back: vi.fn(),

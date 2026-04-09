@@ -64,14 +64,7 @@ export default defineConfig({
         find: '@genfeedai/integrations',
         replacement: path.resolve(
           __dirname,
-          '../../../packages/integration-common/src',
-        ),
-      },
-      {
-        find: /^@genfeedai\/integration-common\/(.*)$/,
-        replacement: path.resolve(
-          __dirname,
-          '../../../packages/integration-common/src/$1',
+          '../../../packages/integrations/src',
         ),
       },
       {
@@ -141,7 +134,7 @@ export default defineConfig({
         find: /^@integrations\/(.*)$/,
         replacement: path.resolve(
           __dirname,
-          '../../../packages/integration-common/src/$1',
+          '../../../packages/integrations/src/$1',
         ),
       },
       {

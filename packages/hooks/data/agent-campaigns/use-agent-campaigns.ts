@@ -1,13 +1,13 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { useBrandId } from '@contexts/user/brand-context/brand-context';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
+import { useBrandId } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   type AgentCampaign,
   AgentCampaignsService,
-} from '@services/automation/agent-campaigns.service';
+} from '@genfeedai/services/automation/agent-campaigns.service';
+import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { useCallback } from 'react';
 
 export interface UseAgentCampaignsOptions {

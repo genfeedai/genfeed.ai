@@ -1,9 +1,9 @@
 'use client';
 
 import type { AiActionType } from '@genfeedai/enums';
-import { AiActionsService } from '@services/ai/ai-actions.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
+import { AiActionsService } from '@genfeedai/services/ai/ai-actions.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface UseAiActionOptions {

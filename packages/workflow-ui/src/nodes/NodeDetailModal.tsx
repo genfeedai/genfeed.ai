@@ -92,9 +92,11 @@ export function NodeDetailModal() {
     setPanOffset({ x: 0, y: 0 });
   }, [imageUrls.length]);
 
-  // Reset zoom, pan, and image index when node changes
-  // biome-ignore lint/correctness/useExhaustiveDependencies: nodeDetailNodeId is an intentional trigger to reset state when a different node opens
   useEffect(() => {
+    if (!nodeDetailNodeId) {
+      return;
+    }
+
     setZoomLevel(1);
     setPanOffset({ x: 0, y: 0 });
     setCurrentIndex(nodeDetailStartIndex);
@@ -256,14 +258,15 @@ export function NodeDetailModal() {
                   />
                 )}
                 {mediaInfo.type === 'video' && (
-                  // biome-ignore lint/a11y/useMediaCaption: generated asset previews do not ship with caption tracks in this transient inspection modal
                   <video
                     src={displayUrl}
                     controls
                     autoPlay
                     loop
                     className="max-h-[calc(100vh-200px)] max-w-[calc(100vw-100px)] rounded-lg"
-                  />
+                  >
+                    <track kind="captions" />
+                  </video>
                 )}
               </div>
             ) : (

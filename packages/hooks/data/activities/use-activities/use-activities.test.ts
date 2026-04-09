@@ -18,7 +18,7 @@ vi.mock('@clerk/nextjs', () => ({
   useUser: vi.fn(() => ({ user: null })),
 }));
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
     brandId: 'brand-1',
     organizationId: 'org-1',
@@ -46,7 +46,7 @@ vi.mock('@hooks/utils/service-operation/service-operation.util', () => ({
   withSilentOperation: (...args: unknown[]) => mockWithSilentOperation(...args),
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(),
   },

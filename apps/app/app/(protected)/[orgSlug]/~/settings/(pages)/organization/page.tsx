@@ -1,7 +1,7 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import SettingsOrganizationPage from '@pages/settings/organization/settings-organization-page';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
+import SettingsOrganizationPage from './content';
 
 export const generateMetadata = createPageMetadata('Organization Settings');
 

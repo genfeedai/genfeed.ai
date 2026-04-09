@@ -76,7 +76,7 @@ export abstract class BaseConfigService<
     // runtime overrides injected by Docker Compose or the shell.
     let config: Record<string, unknown> = {};
 
-    const env = process.env.NODE_ENV;
+    const env = (process.env.NODE_ENV as string | undefined) ?? '';
     const isProduction = env === 'production';
     const isStaging = env === 'staging';
     const isTest = env === 'test';

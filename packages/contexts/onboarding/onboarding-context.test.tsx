@@ -17,7 +17,7 @@ vi.mock('@clerk/nextjs', () => ({
   }),
 }));
 
-vi.mock('@contexts/user/user-context/user-context', () => ({
+vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   useCurrentUser: () => ({
     currentUser: {
       id: 'mongo_user_123',
@@ -32,17 +32,18 @@ vi.mock('@genfeedai/constants', () => ({
   ONBOARDING_STEP_LABELS: {
     brand: 'Brand',
     providers: 'Providers',
+    summary: 'Summary',
   },
-  ONBOARDING_STEPS: ['brand', 'providers'],
+  ONBOARDING_STEPS: ['brand', 'providers', 'summary'],
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
   },
 }));
 
-vi.mock('@services/onboarding/user-onboarding.service', () => ({
+vi.mock('@genfeedai/services/onboarding/user-onboarding.service', () => ({
   UserOnboardingService: {
     getInstance: (...args: unknown[]) => getInstanceMock(...args),
   },
@@ -58,7 +59,7 @@ vi.mock('next/navigation', () => ({
 
 import OnboardingProvider, {
   useOnboarding,
-} from '@contexts/onboarding/onboarding-context';
+} from '@genfeedai/contexts/onboarding/onboarding-context';
 
 describe('OnboardingProvider', () => {
   beforeEach(() => {
@@ -95,7 +96,7 @@ describe('OnboardingProvider', () => {
     fireEvent.click(button);
 
     await waitFor(() => {
-      expect(getTokenMock).toHaveBeenCalledWith();
+      expect(getTokenMock).toHaveBeenCalledWith(undefined);
       expect(getInstanceMock).toHaveBeenCalledWith('session-token');
       expect(updateOnboardingMock).toHaveBeenCalledWith('mongo_user_123', {
         onboardingStepsCompleted: ['brand'],

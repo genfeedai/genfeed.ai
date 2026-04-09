@@ -2,7 +2,7 @@ import { runPageModuleTests } from '@shared/pages/pageTestUtils';
 import { render, screen } from '@testing-library/react';
 import LibraryVoicesRoute, * as PageModule from './page';
 
-vi.mock('@pages/library/voices/library-voices-page', () => ({
+vi.mock('./library-voices-page', () => ({
   default: () => <div data-testid="library-voices-page" />,
 }));
 

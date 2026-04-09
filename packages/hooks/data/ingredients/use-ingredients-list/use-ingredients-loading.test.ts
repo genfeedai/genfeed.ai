@@ -1,6 +1,6 @@
+import { PageScope } from '@genfeedai/enums';
 import { useIngredientsLoading } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-loading';
 import { renderHook, waitFor } from '@testing-library/react';
-import { PageScope } from '@ui-constants/misc.constant';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockGetIngredientsService = vi.fn();
@@ -25,7 +25,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   }),
 }));
 
-vi.mock('@services/content/folders.service', () => ({
+vi.mock('@genfeedai/services/content/folders.service', () => ({
   FoldersService: {
     getInstance: vi.fn(() => ({
       findAll: vi.fn().mockResolvedValue([]),
@@ -33,7 +33,7 @@ vi.mock('@services/content/folders.service', () => ({
   },
 }));
 
-vi.mock('@services/content/ingredients.service', () => ({
+vi.mock('@genfeedai/services/content/ingredients.service', () => ({
   IngredientsService: {
     getInstance: vi.fn(() => ({
       findAll: vi.fn().mockResolvedValue([]),
@@ -41,7 +41,7 @@ vi.mock('@services/content/ingredients.service', () => ({
   },
 }));
 
-vi.mock('@services/organization/organizations.service', () => ({
+vi.mock('@genfeedai/services/organization/organizations.service', () => ({
   OrganizationsService: {
     getInstance: vi.fn(() => ({
       findAll: vi.fn().mockResolvedValue([]),
@@ -49,7 +49,7 @@ vi.mock('@services/organization/organizations.service', () => ({
   },
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(() => ({
       error: vi.fn(),

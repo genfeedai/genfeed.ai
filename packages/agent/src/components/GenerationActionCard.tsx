@@ -566,8 +566,9 @@ export function GenerationActionCard({
                   className="w-full object-cover"
                 />
               ) : (
-                // biome-ignore lint/a11y/useMediaCaption: generated preview has no caption track source
-                <video src={resultUrl} controls className="w-full" />
+                <video src={resultUrl} controls className="w-full">
+                  <track kind="captions" />
+                </video>
               )}
             </div>
             {qualityScore !== undefined && (

@@ -1,9 +1,9 @@
 'use client';
 
+import { Input } from '@ui/primitives/input';
 import { X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 
 interface SaveAsDialogProps {
   isOpen: boolean;

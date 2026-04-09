@@ -114,7 +114,6 @@ bun run test --filter=@genfeedai/[name]  # Run specific package tests
 | App | Purpose |
 |-----|---------|
 | `apps/app/` | Main studio app |
-| `apps/admin/` | Admin panel |
 | `apps/website/` | Marketing site |
 | `apps/desktop/` | Electron desktop app |
 | `apps/mobile/` | React Native / Expo |

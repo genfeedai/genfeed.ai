@@ -30,7 +30,7 @@ import {
   EyeOffIcon,
   RefreshIcon,
   WebhookIcon,
-} from '@/features/workflows/components/ui/icons/node-icons';
+} from '@/features/workflows/components/ui/icons';
 import { NodeSelect } from '@/features/workflows/components/ui/inputs';
 import { useNodeExecution } from '@/features/workflows/hooks/useNodeExecution';
 import { coerceNodeData } from '@/features/workflows/nodes/node-data';
@@ -119,7 +119,7 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
   return (
     <NodeCard minWidth="300px">
       <NodeHeader
-        icon={<WebhookIcon />}
+        icon={<WebhookIcon className="h-4 w-4" />}
         title="Webhook Trigger"
         badge={<NodeBadge variant="blue">Trigger</NodeBadge>}
       />
@@ -133,7 +133,7 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
         <NodeButton
           fullWidth
           onClick={handleGenerateWebhook}
-          icon={<WebhookIcon />}
+          icon={<WebhookIcon className="h-4 w-4" />}
         >
           Generate Webhook URL
         </NodeButton>
@@ -150,7 +150,11 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
                 onClick={() => copyToClipboard(data.webhookUrl!, 'url')}
                 title="Copy URL"
               >
-                {copied === 'url' ? <CheckIcon /> : <CopyIcon />}
+                {copied === 'url' ? (
+                  <CheckIcon className="h-4 w-4" />
+                ) : (
+                  <CopyIcon className="h-4 w-4" />
+                )}
               </NodeIconButton>
             </div>
           </div>
@@ -181,19 +185,27 @@ function WebhookTriggerNodeComponent(props: NodeProps): React.JSX.Element {
                   onClick={() => setShowSecret(!showSecret)}
                   title={showSecret ? 'Hide secret' : 'Show secret'}
                 >
-                  {showSecret ? <EyeOffIcon /> : <EyeIcon />}
+                  {showSecret ? (
+                    <EyeOffIcon className="h-4 w-4" />
+                  ) : (
+                    <EyeIcon className="h-4 w-4" />
+                  )}
                 </NodeIconButton>
                 <NodeIconButton
                   onClick={() => copyToClipboard(data.webhookSecret!, 'secret')}
                   title="Copy secret"
                 >
-                  {copied === 'secret' ? <CheckIcon /> : <CopyIcon />}
+                  {copied === 'secret' ? (
+                    <CheckIcon className="h-4 w-4" />
+                  ) : (
+                    <CopyIcon className="h-4 w-4" />
+                  )}
                 </NodeIconButton>
                 <NodeIconButton
                   onClick={handleRegenerateSecret}
                   title="Regenerate secret"
                 >
-                  <RefreshIcon />
+                  <RefreshIcon className="h-4 w-4" />
                 </NodeIconButton>
               </div>
               <p className="text-xs text-muted-foreground mt-1">

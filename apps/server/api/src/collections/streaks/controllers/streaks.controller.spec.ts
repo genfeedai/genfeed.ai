@@ -13,6 +13,13 @@ const ORG_ID = 'org-abc-123';
 const USER_ID = 'user-xyz-456';
 
 const mockUser = {} as User;
+const mockRequest = {} as const;
+const mockRequestWithContext = {
+  context: {
+    organizationId: ORG_ID,
+    userId: USER_ID,
+  },
+} as const;
 
 describe('StreaksController', () => {
   let controller: StreaksController;
@@ -57,8 +64,25 @@ describe('StreaksController', () => {
         user: USER_ID,
       } as ReturnType<typeof getPublicMetadata>);
 
-      await expect(controller.getMyStreak(ORG_ID, mockUser)).rejects.toThrow(
-        BadRequestException,
+      await expect(
+        controller.getMyStreak(ORG_ID, mockUser, mockRequest),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('allows self-hosted request context to override mismatched Clerk org metadata', async () => {
+      streaksService.getStreakSummary.mockResolvedValue({} as never);
+      vi.mocked(getPublicMetadata).mockReturnValue({
+        organization: 'different-org',
+        user: 'different-user',
+      } as ReturnType<typeof getPublicMetadata>);
+
+      await expect(
+        controller.getMyStreak(ORG_ID, mockUser, mockRequestWithContext),
+      ).resolves.toEqual({});
+
+      expect(streaksService.getStreakSummary).toHaveBeenCalledWith(
+        USER_ID,
+        ORG_ID,
       );
     });
   });
@@ -70,7 +94,11 @@ describe('StreaksController', () => {
       const mockSummary = { currentStreak: 5, longestStreak: 10 };
       streaksService.getStreakSummary.mockResolvedValue(mockSummary as never);
 
-      const result = await controller.getMyStreak(ORG_ID, mockUser);
+      const result = await controller.getMyStreak(
+        ORG_ID,
+        mockUser,
+        mockRequest,
+      );
 
       expect(streaksService.getStreakSummary).toHaveBeenCalledWith(
         USER_ID,
@@ -81,9 +109,9 @@ describe('StreaksController', () => {
 
     it('propagates errors from streaksService', async () => {
       streaksService.getStreakSummary.mockRejectedValue(new Error('DB error'));
-      await expect(controller.getMyStreak(ORG_ID, mockUser)).rejects.toThrow(
-        'DB error',
-      );
+      await expect(
+        controller.getMyStreak(ORG_ID, mockUser, mockRequest),
+      ).rejects.toThrow('DB error');
     });
   });
 
@@ -94,7 +122,12 @@ describe('StreaksController', () => {
       const mockCalendar = [{ active: true, date: '2026-03-01' }];
       streaksService.getCalendar.mockResolvedValue(mockCalendar as never);
 
-      const result = await controller.getMyCalendar(ORG_ID, mockUser, {});
+      const result = await controller.getMyCalendar(
+        ORG_ID,
+        mockUser,
+        mockRequest,
+        {},
+      );
 
       expect(streaksService.getCalendar).toHaveBeenCalledWith(
         USER_ID,
@@ -108,7 +141,7 @@ describe('StreaksController', () => {
     it('passes from/to as Date objects when provided', async () => {
       streaksService.getCalendar.mockResolvedValue([] as never);
 
-      await controller.getMyCalendar(ORG_ID, mockUser, {
+      await controller.getMyCalendar(ORG_ID, mockUser, mockRequest, {
         from: '2026-01-01',
         to: '2026-03-01',
       });
@@ -127,7 +160,7 @@ describe('StreaksController', () => {
         streakFreezes: 2,
       } as never);
 
-      const result = await controller.useFreeze(ORG_ID, mockUser);
+      const result = await controller.useFreeze(ORG_ID, mockUser, mockRequest);
 
       expect(streaksService.useFreeze).toHaveBeenCalledWith(USER_ID, ORG_ID);
       expect(result).toEqual({
@@ -142,17 +175,17 @@ describe('StreaksController', () => {
         user: USER_ID,
       } as ReturnType<typeof getPublicMetadata>);
 
-      await expect(controller.useFreeze(ORG_ID, mockUser)).rejects.toThrow(
-        BadRequestException,
-      );
+      await expect(
+        controller.useFreeze(ORG_ID, mockUser, mockRequest),
+      ).rejects.toThrow(BadRequestException);
       expect(streaksService.useFreeze).not.toHaveBeenCalled();
     });
 
     it('propagates service errors', async () => {
       streaksService.useFreeze.mockRejectedValue(new Error('No freezes left'));
-      await expect(controller.useFreeze(ORG_ID, mockUser)).rejects.toThrow(
-        'No freezes left',
-      );
+      await expect(
+        controller.useFreeze(ORG_ID, mockUser, mockRequest),
+      ).rejects.toThrow('No freezes left');
     });
   });
 });

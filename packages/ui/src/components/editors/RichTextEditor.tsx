@@ -26,6 +26,13 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import { useCallback, useEffect, useState } from 'react';
 import {
   HiBold,
@@ -179,6 +186,11 @@ export default function RichTextEditor({
     return null;
   }
 
+  const activeHeadingLevel = [1, 2, 3, 4, 5, 6].find((level) =>
+    editor.isActive('heading', { level }),
+  );
+  const headingValue = activeHeadingLevel ? String(activeHeadingLevel) : '0';
+
   return (
     <div className={`rich-text-editor border border-white/[0.08] ${className}`}>
       {/* Toolbar */}
@@ -190,10 +202,10 @@ export default function RichTextEditor({
         >
           {/* Headings */}
           {shouldShowHeadings && (
-            <select
-              className="h-8 text-sm border border-input px-2 bg-background max-w-20"
-              onChange={(e) => {
-                const level = parseInt(e.target.value, 10);
+            <Select
+              value={headingValue}
+              onValueChange={(nextValue) => {
+                const level = parseInt(nextValue, 10);
                 if (level === 0) {
                   editor.chain().focus().setParagraph().run();
                 } else {
@@ -205,14 +217,19 @@ export default function RichTextEditor({
                 }
               }}
             >
-              <option value="0">¶</option>
-              <option value="1">H1</option>
-              <option value="2">H2</option>
-              <option value="3">H3</option>
-              <option value="4">H4</option>
-              <option value="5">H5</option>
-              <option value="6">H6</option>
-            </select>
+              <SelectTrigger className="h-8 max-w-20 px-2 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">¶</SelectItem>
+                <SelectItem value="1">H1</SelectItem>
+                <SelectItem value="2">H2</SelectItem>
+                <SelectItem value="3">H3</SelectItem>
+                <SelectItem value="4">H4</SelectItem>
+                <SelectItem value="5">H5</SelectItem>
+                <SelectItem value="6">H6</SelectItem>
+              </SelectContent>
+            </Select>
           )}
 
           {shouldShowHeadings && <div className="w-px h-6 bg-border mx-1" />}

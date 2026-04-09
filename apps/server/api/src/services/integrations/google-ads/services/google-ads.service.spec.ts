@@ -1,3 +1,4 @@
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ConfigService } from '@api/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
@@ -31,6 +32,13 @@ describe('GoogleAdsService', () => {
           provide: ConfigService,
           useValue: {
             get: vi.fn().mockReturnValue('dev-token-xyz'),
+          },
+        },
+        {
+          provide: CredentialsService,
+          useValue: {
+            findOne: vi.fn(),
+            patch: vi.fn(),
           },
         },
         {

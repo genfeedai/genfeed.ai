@@ -5,7 +5,7 @@ import {
   AlertCircleIcon,
   CheckIcon,
   LoaderIcon,
-} from '@/features/workflows/components/ui/icons/node-icons';
+} from '@/features/workflows/components/ui/icons';
 
 interface ProcessingMessageProps {
   message: string;
@@ -49,11 +49,11 @@ export function StatusIcon({
 }: StatusIconProps): React.JSX.Element | null {
   switch (status) {
     case 'complete':
-      return <CheckIcon />;
+      return <CheckIcon className="h-4 w-4" />;
     case 'error':
-      return <AlertCircleIcon />;
+      return <AlertCircleIcon className="h-4 w-4" />;
     case 'processing':
-      return <LoaderIcon />;
+      return <LoaderIcon className="h-4 w-4 animate-spin" />;
     default:
       return null;
   }

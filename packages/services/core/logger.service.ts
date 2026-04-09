@@ -13,23 +13,15 @@ const pinoLogger: PinoLogger = pino({
   name: 'genfeed.ai',
 });
 
-const consoleMethodMap = {
-  debug: console.debug,
-  error: console.error,
-  info: console.info,
-  warn: console.warn,
-} as const;
-
 function logToConsole(
   level: 'debug' | 'info' | 'warn' | 'error',
   message: string,
   obj?: unknown,
 ): void {
-  const consoleMethod = consoleMethodMap[level];
   if (obj !== undefined) {
-    consoleMethod(message, obj);
+    console[level](message, obj);
   } else {
-    consoleMethod(message);
+    console[level](message);
   }
 }
 

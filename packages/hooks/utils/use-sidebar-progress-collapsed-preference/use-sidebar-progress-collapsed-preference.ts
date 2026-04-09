@@ -1,11 +1,11 @@
 'use client';
 
-import { useCurrentUser } from '@contexts/user/user-context/user-context';
+import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
 import type { ISetting } from '@genfeedai/interfaces';
+import { User } from '@genfeedai/models/auth/user.model';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { UsersService } from '@genfeedai/services/organization/users.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { User } from '@models/auth/user.model';
-import { logger } from '@services/core/logger.service';
-import { UsersService } from '@services/organization/users.service';
 import { useCallback, useMemo, useState } from 'react';
 
 export interface UseSidebarProgressCollapsedPreferenceReturn {

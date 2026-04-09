@@ -19,6 +19,7 @@ import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { WebSocketPaths } from '@utils/network/websocket.util';
@@ -373,79 +374,53 @@ export default function ModalPostPlatformsTab({
                           Instagram Post Type
                         </label>
 
-                        <div className="space-y-2">
+                        <RadioGroup
+                          className="space-y-2"
+                          disabled={!isEnabled || isLoading}
+                          value={
+                            config.category === PostCategory.IMAGE
+                              ? 'image'
+                              : config.isShareToFeedSelected
+                                ? 'video-feed'
+                                : 'video-only'
+                          }
+                          onValueChange={(value) => {
+                            if (!isEnabled) {
+                              return;
+                            }
+
+                            if (value === 'image') {
+                              updatePlatformConfig(config.credentialId, {
+                                category: PostCategory.IMAGE,
+                                isShareToFeedSelected: false,
+                              });
+                              return;
+                            }
+
+                            updatePlatformConfig(config.credentialId, {
+                              category: PostCategory.VIDEO,
+                              isShareToFeedSelected: value === 'video-feed',
+                            });
+                          }}
+                        >
                           {/* Image Post */}
                           <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="radio"
-                              name={`instagramType-${config.credentialId || config.platform}`}
-                              className="h-4 w-4 accent-primary"
-                              checked={config.category === 'image'}
-                              onChange={() => {
-                                if (!isEnabled) {
-                                  return;
-                                }
-
-                                updatePlatformConfig(config.credentialId, {
-                                  category: PostCategory.IMAGE,
-                                  isShareToFeedSelected: false,
-                                });
-                              }}
-                              disabled={!isEnabled || isLoading}
-                            />
+                            <RadioGroupItem value="image" />
                             <span className="text-sm">Image Post</span>
                           </label>
 
                           {/* Reel Only */}
                           <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="radio"
-                              name={`instagramType-${config.credentialId || config.platform}`}
-                              className="h-4 w-4 accent-primary"
-                              checked={
-                                config.category === PostCategory.VIDEO &&
-                                !config.isShareToFeedSelected
-                              }
-                              onChange={() => {
-                                if (!isEnabled) {
-                                  return;
-                                }
-
-                                updatePlatformConfig(config.credentialId, {
-                                  category: PostCategory.VIDEO,
-                                  isShareToFeedSelected: false,
-                                });
-                              }}
-                              disabled={!isEnabled || isLoading}
-                            />
+                            <RadioGroupItem value="video-only" />
                             <span className="text-sm">Reel only</span>
                           </label>
 
                           {/* Reel + Feed */}
                           <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="radio"
-                              name={`instagramType-${config.credentialId || config.platform}`}
-                              className="h-4 w-4 accent-primary"
-                              checked={
-                                config.category === PostCategory.VIDEO &&
-                                config.isShareToFeedSelected === true
-                              }
-                              onChange={() => {
-                                if (!isEnabled) {
-                                  return;
-                                }
-
-                                updatePlatformConfig(config.credentialId, {
-                                  category: PostCategory.VIDEO,
-                                  isShareToFeedSelected: true,
-                                });
-                              }}
-                              disabled={!isEnabled || isLoading}
-                            />
+                            <RadioGroupItem value="video-feed" />
                             <span className="text-sm">Reel + Feed</span>
                           </label>
-                        </div>
+                        </RadioGroup>
                       </div>
                     )}
 

@@ -43,9 +43,9 @@ import type {
   AgentDashboardOperation,
   AgentUIBlock,
 } from '@genfeedai/interfaces';
+import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
-import type { ChatAttachment } from '@props/ui/attachments.props';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import Alert from '@ui/feedback/alert/Alert';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';

@@ -1,13 +1,13 @@
 'use client';
 
 import { VideoEaseCurve } from '@genfeedai/enums';
-import type { FormDropdownOption } from '@props/forms/form.props';
 import type { EaseCurveSelectorProps } from '@props/studio/storyboard.props';
+import type { DropdownFieldOption } from '@ui/primitives/dropdown-field';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import type { ChangeEvent } from 'react';
 import { HiChartBar } from 'react-icons/hi2';
 
-const EASE_CURVE_OPTIONS: FormDropdownOption[] = [
+const EASE_CURVE_OPTIONS: DropdownFieldOption[] = [
   {
     description: 'Smooth start and end (exponential)',
     key: VideoEaseCurve.EASE_IN_OUT_EXPO,

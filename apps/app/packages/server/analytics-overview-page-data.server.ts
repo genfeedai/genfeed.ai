@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { getServerAuthToken } from '@app-server/protected-bootstrap.server';
-import { AnalyticsMetric } from '@genfeedai/enums';
+import { AnalyticsMetric, PageScope } from '@genfeedai/enums';
 import type {
   IAnalytics,
   ITimeSeriesApiDataPoint,
@@ -15,7 +15,6 @@ import {
   type IOrgLeaderboardItem,
 } from '@services/analytics/analytics.service';
 import { logger } from '@services/core/logger.service';
-import { PageScope } from '@ui-constants/misc.constant';
 import { cache } from 'react';
 
 export interface AnalyticsOverviewPageData {

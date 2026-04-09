@@ -1,5 +1,4 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import TrendsPlatformDetail from '@pages/trends/platform-detail/trends-platform-detail';
 import {
   getTrendPlatformLabel,
   isTrendPlatform,
@@ -8,6 +7,7 @@ import {
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
+import TrendsPlatformDetail from './trends-platform-detail';
 
 export async function generateMetadata({
   params,

@@ -27,6 +27,7 @@ import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
+import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import {
   Select,
   SelectContent,
@@ -305,7 +306,15 @@ export default function ModalReplyBot({
           </FormControl>
 
           <FormControl label="Platform">
-            <div className="flex flex-wrap gap-4">
+            <RadioGroup
+              className="flex flex-wrap gap-4"
+              value={form.watch('platform')}
+              onValueChange={(platform) =>
+                form.setValue('platform', platform as ReplyBotPlatform, {
+                  shouldValidate: true,
+                })
+              }
+            >
               {PLATFORMS.map(({ platform, icon: Icon, color, label }) => (
                 <label
                   key={platform}
@@ -315,24 +324,12 @@ export default function ModalReplyBot({
                       : 'border-white/[0.08]'
                   }`}
                 >
-                  <input
-                    type="radio"
-                    name="platform"
-                    value={platform}
-                    className="h-4 w-4 accent-primary"
-                    checked={form.watch('platform') === platform}
-                    onChange={() =>
-                      form.setValue('platform', platform, {
-                        shouldValidate: true,
-                      })
-                    }
-                    disabled={isSubmitting}
-                  />
+                  <RadioGroupItem value={platform} disabled={isSubmitting} />
                   <Icon className={color} />
                   <span className="text-sm">{label}</span>
                 </label>
               ))}
-            </div>
+            </RadioGroup>
           </FormControl>
 
           <FormControl label="Action Type">

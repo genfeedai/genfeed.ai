@@ -1,8 +1,7 @@
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory, PageScope } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import { useIngredientsList } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-list';
 import { act, renderHook } from '@testing-library/react';
-import { PageScope } from '@ui-constants/misc.constant';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockSetQuery = vi.fn();
@@ -28,17 +27,20 @@ const _mockHandlers = {
   handleUpdateParent: vi.fn(),
 };
 
-vi.mock('@contexts/content/ingredients-context/ingredients-context', () => ({
-  useIngredientsContext: vi.fn(() => ({
-    filters: { format: 'all' },
-    onRefresh: mockOnRefresh,
-    query: {},
-    setIsRefreshing: mockSetIsRefreshing,
-    setQuery: mockSetQuery,
-  })),
-}));
+vi.mock(
+  '@genfeedai/contexts/content/ingredients-context/ingredients-context',
+  () => ({
+    useIngredientsContext: vi.fn(() => ({
+      filters: { format: 'all' },
+      onRefresh: mockOnRefresh,
+      query: {},
+      setIsRefreshing: mockSetIsRefreshing,
+      setQuery: mockSetQuery,
+    })),
+  }),
+);
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
     brandId: 'brand-1',
     organizationId: 'org-1',
@@ -98,14 +100,14 @@ vi.mock(
   },
 );
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
   useConfirmModal: vi.fn(() => ({ openConfirm: vi.fn() })),
   useIngredientOverlay: vi.fn(() => ({ openIngredientOverlay: vi.fn() })),
   usePostModal: vi.fn(() => ({ openPostBatchModal: vi.fn() })),
   useUploadModal: vi.fn(() => ({ openUpload: vi.fn() })),
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(() => ({
       error: vi.fn(),
@@ -114,7 +116,7 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
     info: vi.fn(),

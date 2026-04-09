@@ -1,5 +1,5 @@
+import { SocketManager } from '@genfeedai/services/core/socket-manager.service';
 import { useMergeProgress } from '@hooks/storyboard/use-merge-progress/use-merge-progress';
-import { SocketManager } from '@services/core/socket-manager.service';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -15,13 +15,13 @@ const subscribeMock = vi.fn(
   },
 );
 
-vi.mock('@services/core/socket-manager.service', () => ({
+vi.mock('@genfeedai/services/core/socket-manager.service', () => ({
   SocketManager: {
     getInstance: vi.fn(),
   },
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
     info: vi.fn(),

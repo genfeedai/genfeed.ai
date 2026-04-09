@@ -28,7 +28,7 @@ module.exports = function createWebpackConfig({
     '@genfeedai/config': path.resolve(cloudPackagesRoot, 'config/src'),
     '@genfeedai/integrations': path.resolve(
       cloudPackagesRoot,
-      'integration-common/src',
+      'integrations/src',
     ),
     '@genfeedai/interfaces': path.resolve(cloudPackagesRoot, 'interfaces/src'),
     '@genfeedai/serializers': path.resolve(
@@ -45,7 +45,7 @@ module.exports = function createWebpackConfig({
     ),
     '@genfeedai/tools': path.resolve(cloudPackagesRoot, 'tools/src'),
     '@helpers': path.resolve(cloudPackagesRoot, 'helpers/src'),
-    '@integrations': path.resolve(cloudPackagesRoot, 'integration-common/src'),
+    '@integrations': path.resolve(cloudPackagesRoot, 'integrations/src'),
     '@serializers': path.resolve(cloudPackagesRoot, 'serializers/src'),
     '@workflow-engine': path.resolve(cloudPackagesRoot, 'workflow-engine/src'),
     '@workflow-saas': path.resolve(cloudPackagesRoot, 'workflow-saas/src'),

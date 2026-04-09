@@ -3,20 +3,20 @@
 import {
   CredentialPlatform,
   IngredientFormat,
+  PageScope,
   Platform,
   PostCategory,
   PostStatus,
 } from '@genfeedai/enums';
 import type { ICredential, IPost } from '@genfeedai/interfaces';
 import type { AnalyticsStat } from '@genfeedai/interfaces/analytics/analytics-ui.interface';
+import { PostsService } from '@genfeedai/services/content/posts.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { validateCarouselCount } from '@genfeedai/utils/carousel-validation';
 import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { PostsService } from '@services/content/posts.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
-import { PageScope } from '@ui-constants/misc.constant';
-import { validateCarouselCount } from '@utils/carousel-validation';
 import { usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -407,7 +407,9 @@ export function usePostDetailState({
         const service = await getPostsService();
         const updatedPost = await service.patch(
           post.id,
-          updates as Partial<import('@models/content/post.model').Post>,
+          updates as Partial<
+            import('@genfeedai/models/content/post.model').Post
+          >,
         );
 
         logger.info(`${url} success`, updatedPost);

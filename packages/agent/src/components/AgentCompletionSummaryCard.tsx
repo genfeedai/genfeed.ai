@@ -43,13 +43,14 @@ function renderOutputPreview(
 
   if (variant.kind === 'video' && variant.url) {
     return (
-      // biome-ignore lint/a11y/useMediaCaption: preview media has no caption track source
       <video
         src={variant.url}
         controls
         aria-label={variant.title ?? 'Generated output video'}
         className="aspect-square w-full border border-border/60 bg-muted/20 object-cover"
-      />
+      >
+        <track kind="captions" />
+      </video>
     );
   }
 

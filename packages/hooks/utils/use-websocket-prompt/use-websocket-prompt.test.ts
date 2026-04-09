@@ -8,13 +8,13 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
   })),
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
   },
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(() => ({
       error: vi.fn(),
@@ -22,7 +22,7 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
-vi.mock('@services/core/socket-manager.service', () => ({
+vi.mock('@genfeedai/services/core/socket-manager.service', () => ({
   createPromptHandler: vi.fn(
     (
       _onSuccess: (result: unknown) => void,
@@ -31,7 +31,7 @@ vi.mock('@services/core/socket-manager.service', () => ({
   ),
 }));
 
-vi.mock('@utils/network/websocket.util', () => ({
+vi.mock('@genfeedai/utils/network/websocket.util', () => ({
   WebSocketPaths: {
     prompt: vi.fn((id: string) => `prompt:${id}`),
   },

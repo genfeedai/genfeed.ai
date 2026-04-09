@@ -1,0 +1,10 @@
+{
+  "description": "Shared stylesheet assets for Genfeed applications",
+  "exports": {
+    "./*": "./*"
+  },
+  "name": "@genfeedai/styles",
+  "private": true,
+  "sideEffects": true,
+  "version": "0.1.0"
+}

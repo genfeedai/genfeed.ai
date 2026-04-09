@@ -1,14 +1,14 @@
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
-import type { ModelsService } from '@api/collections/models/services/models.service';
+import { ModelsService } from '@api/collections/models/services/models.service';
 import { ModelCategory } from '@genfeedai/enums';
-import type { LoggerService } from '@libs/logger/logger.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import type { ConfigService } from '@workers/config/config.service';
+import { ConfigService } from '@workers/config/config.service';
 import type {
   IModelDiscoveryInput,
   IReplicateVersionDetail,
 } from '@workers/interfaces/model-discovery.interface';
-import type { ModelPricingService } from '@workers/services/model-pricing.service';
+import { ModelPricingService } from '@workers/services/model-pricing.service';
 
 /**
  * Schema property shape from Replicate OpenAPI schema inspection.

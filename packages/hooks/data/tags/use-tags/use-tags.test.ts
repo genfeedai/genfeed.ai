@@ -1,8 +1,8 @@
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { TagCategory } from '@genfeedai/enums';
+import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useTags } from '@hooks/data/tags/use-tags/use-tags';
-import { logger } from '@services/core/logger.service';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -10,7 +10,7 @@ vi.mock('@clerk/nextjs', () => ({
   useAuth: vi.fn(() => ({ isSignedIn: true })),
 }));
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(),
 }));
 
@@ -19,14 +19,14 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(),
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
     info: vi.fn(),
   },
 }));
 
-vi.mock('@services/content/tags.service', () => ({
+vi.mock('@genfeedai/services/content/tags.service', () => ({
   TagsService: {
     getInstance: vi.fn(),
   },
@@ -136,8 +136,11 @@ describe('useTags', () => {
     expect(result.current.error).toBe(error);
     expect(result.current.tags).toEqual([]);
     expect(logger.error).toHaveBeenCalledWith(
-      'useResource: fetch failed',
-      error,
+      'useResource: fetch failed - Failed to load tags',
+      {
+        error,
+        reportToSentry: false,
+      },
     );
   });
 

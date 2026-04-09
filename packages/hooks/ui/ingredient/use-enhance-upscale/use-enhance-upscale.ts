@@ -2,19 +2,19 @@ import { MODEL_KEYS } from '@genfeedai/constants';
 import { IngredientCategory } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import type { MasonryActionStates } from '@genfeedai/interfaces/hooks/hooks.interface';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import type { ImagesService } from '@genfeedai/services/ingredients/images.service';
+import type { VideosService } from '@genfeedai/services/ingredients/videos.service';
+import {
+  isImageIngredient,
+  isVideoIngredient,
+} from '@genfeedai/utils/media/ingredient-type.util';
 import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
 import { useElements } from '@hooks/data/elements/use-elements/use-elements';
 import {
   executeSilentWithActionState,
   executeWithActionState,
 } from '@hooks/utils/service-operation/service-operation.util';
-import { NotificationsService } from '@services/core/notifications.service';
-import type { ImagesService } from '@services/ingredients/images.service';
-import type { VideosService } from '@services/ingredients/videos.service';
-import {
-  isImageIngredient,
-  isVideoIngredient,
-} from '@utils/media/ingredient-type.util';
 import type { Dispatch, SetStateAction } from 'react';
 import { useCallback, useMemo, useState } from 'react';
 

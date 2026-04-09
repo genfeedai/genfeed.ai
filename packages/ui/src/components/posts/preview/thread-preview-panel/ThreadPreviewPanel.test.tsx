@@ -8,7 +8,7 @@ describe('ThreadPreviewPanel', () => {
     const { container } = render(
       <ThreadPreviewPanel
         parent={{ content: 'Parent content', id: 'parent' }}
-        children={[
+        replies={[
           { content: 'Child content 1', id: 'child-1' },
           { content: 'Child content 2', id: 'child-2' },
         ]}

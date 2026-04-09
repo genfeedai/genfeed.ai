@@ -18,6 +18,7 @@ import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
+import { Input } from '@ui/primitives/input';
 import {
   Select,
   SelectContent,
@@ -351,9 +352,15 @@ export default function BatchWorkflowPage() {
     void loadBatchJob(requestedJobId);
   }, [activeBatchStatus?._id, loadBatchJob, requestedJobId]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally using specific sub-properties to control polling lifecycle
+  const activeBatchId = activeBatchStatus?._id;
+  const activeBatchLifecycleStatus = activeBatchStatus?.status;
+
   useEffect(() => {
-    if (!activeBatchStatus || isTerminalBatchStatus(activeBatchStatus.status)) {
+    if (!activeBatchId || !activeBatchLifecycleStatus) {
+      return;
+    }
+
+    if (isTerminalBatchStatus(activeBatchLifecycleStatus)) {
       return;
     }
 
@@ -361,9 +368,7 @@ export default function BatchWorkflowPage() {
     const intervalId = window.setInterval(async () => {
       try {
         const service = await getService();
-        const nextBatchStatus = await service.getBatchStatus(
-          activeBatchStatus._id,
-        );
+        const nextBatchStatus = await service.getBatchStatus(activeBatchId);
 
         if (cancelled) {
           return;
@@ -376,7 +381,7 @@ export default function BatchWorkflowPage() {
       } catch (pollError) {
         if (!cancelled) {
           logger.error('Failed to poll batch status', {
-            batchJobId: activeBatchStatus._id,
+            batchJobId: activeBatchId,
             error: pollError,
           });
         }
@@ -387,7 +392,7 @@ export default function BatchWorkflowPage() {
       cancelled = true;
       window.clearInterval(intervalId);
     };
-  }, [activeBatchStatus?._id, activeBatchStatus?.status, getService]);
+  }, [activeBatchId, activeBatchLifecycleStatus, getService]);
 
   useEffect(() => {
     const selectableIds = new Set(availableOutputs.map(({ item }) => item._id));
@@ -692,7 +697,7 @@ export default function BatchWorkflowPage() {
                   : 'border-white/15 bg-background/40 hover:border-white/25'
               }`}
             >
-              <input type="file" {...getInputProps()} />
+              <Input type="file" {...getInputProps()} />
               <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-white/5">
                 <svg
                   aria-hidden="true"

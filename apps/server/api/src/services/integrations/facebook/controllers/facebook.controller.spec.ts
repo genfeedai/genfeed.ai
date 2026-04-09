@@ -1,10 +1,15 @@
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ConfigService } from '@api/config/config.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { FacebookController } from '@api/services/integrations/facebook/controllers/facebook.controller';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import type { User } from '@clerk/backend';
+import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+import { Types } from 'mongoose';
 
 describe('FacebookController', () => {
   let controller: FacebookController;
@@ -30,6 +35,24 @@ describe('FacebookController', () => {
     uploadVideoByUrl: vi.fn(),
   };
 
+  const mockCredentialsService = {
+    findOne: vi.fn().mockResolvedValue({
+      _id: new Types.ObjectId(),
+      externalId: undefined,
+      platform: CredentialPlatform.FACEBOOK,
+    }),
+    patch: vi.fn().mockResolvedValue({ id: 'cred-1' }),
+    saveCredentials: vi.fn(),
+  };
+
+  const mockBrandsService = {
+    findOne: vi.fn().mockResolvedValue({
+      _id: new Types.ObjectId(),
+      organization: new Types.ObjectId(),
+      user: new Types.ObjectId(),
+    }),
+  };
+
   const mockConfigService = {
     get: vi.fn((key: string) => {
       if (key === 'GENFEEDAI_APP_URL') {
@@ -50,6 +73,14 @@ describe('FacebookController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [FacebookController],
       providers: [
+        {
+          provide: BrandsService,
+          useValue: mockBrandsService,
+        },
+        {
+          provide: CredentialsService,
+          useValue: mockCredentialsService,
+        },
         {
           provide: ConfigService,
           useValue: mockConfigService,
@@ -93,21 +124,41 @@ describe('FacebookController', () => {
     });
   });
 
-  describe('handleCallback', () => {
-    it('should redirect to dashboard on success', () => {
-      const result = controller.handleCallback();
+  describe('verify', () => {
+    it('persists a verified facebook credential', async () => {
+      mockFacebookService.exchangeAuthCodeForAccessToken.mockResolvedValue({
+        accessToken: 'facebook-token',
+        expiresIn: 3600,
+      });
+      mockFacebookService.getUserProfile.mockResolvedValue({
+        email: 'person@example.com',
+        id: 'fb-user-1',
+        name: 'Person',
+      });
 
-      expect(result.url).toContain('facebook=connected');
+      const result = await controller.verify({} as never, {
+        code: 'auth-code',
+        state: Buffer.from(
+          JSON.stringify({
+            brandId: new Types.ObjectId().toString(),
+            organizationId: new Types.ObjectId().toString(),
+          }),
+        ).toString('base64'),
+      });
+
+      expect(mockCredentialsService.patch).toHaveBeenCalled();
+      expect(result).toBeDefined();
     });
 
-    it('should always redirect to success URL (error path is unreachable — callback logic is commented out)', () => {
-      // The handleCallback() try block has all actual processing commented out.
-      // The error catch path is unreachable until the callback is implemented.
-      // Both calls return the success URL regardless of service mock state.
-      mockFacebookService.exchangeAuthCodeForAccessToken = vi
-        .fn()
-        .mockRejectedValue(new Error('Auth failed'));
+    it('throws when code or state is missing', async () => {
+      await expect(
+        controller.verify({} as never, { code: 'auth-code' }),
+      ).rejects.toBeInstanceOf(HttpException);
+    });
+  });
 
+  describe('handleCallback', () => {
+    it('should redirect to dashboard on success', () => {
       const result = controller.handleCallback();
 
       expect(result.url).toContain('facebook=connected');

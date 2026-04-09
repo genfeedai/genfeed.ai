@@ -29,6 +29,7 @@ import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import {
@@ -456,12 +457,10 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
                     key={platform}
                     className="flex items-center gap-2 cursor-pointer"
                   >
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 border-input accent-primary"
-                      checked={platforms.includes(platform)}
-                      onChange={() => handlePlatformToggle(platform)}
-                      disabled={isSubmitting}
+                    <Checkbox
+                      isChecked={platforms.includes(platform)}
+                      onCheckedChange={() => handlePlatformToggle(platform)}
+                      isDisabled={isSubmitting}
                     />
                     <Icon className={color} />
                     <span className="text-sm">{label}</span>
@@ -541,13 +540,11 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
                       key={value}
                       className="flex items-center gap-2 cursor-pointer"
                     >
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 border-input accent-primary"
-                        checked={
+                      <Checkbox
+                        isChecked={
                           engagementSettings.actions?.includes(value) ?? false
                         }
-                        onChange={() =>
+                        onCheckedChange={() =>
                           handleArrayToggle(
                             'engagementSettings',
                             'actions',
@@ -555,7 +552,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
                             { actions: [EngagementAction.LIKE] },
                           )
                         }
-                        disabled={isSubmitting}
+                        isDisabled={isSubmitting}
                       />
                       <span className="text-sm">{label}</span>
                     </label>
@@ -671,24 +668,22 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
               </FormControl>
 
               <FormControl label="Only Verified Accounts">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 border-input accent-primary"
-                    checked={engagementSettings.onlyVerified ?? false}
-                    onChange={(e) =>
-                      handleCategorySettingChange(
-                        'engagementSettings',
-                        'onlyVerified',
-                        e.target.checked,
-                      )
-                    }
-                    disabled={isSubmitting}
-                  />
-                  <span className="text-sm">
-                    Only engage with verified accounts
-                  </span>
-                </label>
+                <Checkbox
+                  isChecked={engagementSettings.onlyVerified ?? false}
+                  onCheckedChange={(checked) =>
+                    handleCategorySettingChange(
+                      'engagementSettings',
+                      'onlyVerified',
+                      checked === true,
+                    )
+                  }
+                  isDisabled={isSubmitting}
+                  label={
+                    <span className="text-sm">
+                      Only engage with verified accounts
+                    </span>
+                  }
+                />
               </FormControl>
             </div>
           )}
@@ -759,14 +754,12 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
                       key={value}
                       className="flex items-center gap-2 cursor-pointer"
                     >
-                      <input
-                        type="checkbox"
-                        className="h-4 w-4 border-input accent-primary"
-                        checked={
+                      <Checkbox
+                        isChecked={
                           monitoringSettings.alertTypes?.includes(value) ??
                           false
                         }
-                        onChange={() =>
+                        onCheckedChange={() =>
                           handleArrayToggle(
                             'monitoringSettings',
                             'alertTypes',
@@ -774,7 +767,7 @@ export default function ModalBot({ bot, onConfirm }: ModalBotProps) {
                             { alertTypes: [MonitoringAlertType.IN_APP] },
                           )
                         }
-                        disabled={isSubmitting}
+                        isDisabled={isSubmitting}
                       />
                       <span className="text-sm">{label}</span>
                     </label>

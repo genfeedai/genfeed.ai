@@ -6,7 +6,6 @@ import { globSync } from 'glob';
 const logger = new Logger('CheckRawUiControls');
 
 const INCLUDE_GLOBS = [
-  'apps/admin/**/*.{tsx,jsx}',
   'apps/app/**/*.{tsx,jsx}',
   'packages/pages/**/*.{tsx,jsx}',
   'packages/ui/workflow-builder/**/*.{tsx,jsx}',

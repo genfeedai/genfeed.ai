@@ -35,7 +35,7 @@ import { SelectField } from '@ui/primitives/select';
 import {
   DEFAULT_CHAR_LIMIT,
   PLATFORM_CHAR_LIMITS,
-} from '@ui-constants/misc.constant';
+} from '@ui-constants/platform-char-limit.constant';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 
 export default function ModalPost({

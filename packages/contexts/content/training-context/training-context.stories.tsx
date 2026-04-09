@@ -1,4 +1,4 @@
-import TrainingContext from '@contexts/content/training-context/training-context';
+import TrainingContext from '@genfeedai/contexts/content/training-context/training-context';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 
 const meta: Meta<typeof TrainingContext> = {

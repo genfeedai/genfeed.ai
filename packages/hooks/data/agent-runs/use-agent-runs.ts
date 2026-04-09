@@ -2,6 +2,7 @@
 
 import { useAuth } from '@clerk/nextjs';
 import type { IAgentRun } from '@genfeedai/interfaces';
+import { AgentRunsService } from '@genfeedai/services/ai/agent-runs.service';
 import type {
   AgentRunListQueryParams,
   AgentRunStats,
@@ -9,7 +10,6 @@ import type {
 } from '@genfeedai/types';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
-import { AgentRunsService } from '@services/ai/agent-runs.service';
 import { useCallback, useState } from 'react';
 
 export interface UseAgentRunsOptions extends AgentRunListQueryParams {

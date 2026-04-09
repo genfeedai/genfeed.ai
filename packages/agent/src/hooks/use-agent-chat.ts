@@ -10,7 +10,7 @@ import type {
   AgentDashboardOperation,
   AgentUIBlock,
 } from '@genfeedai/interfaces';
-import type { ChatAttachment } from '@props/ui/attachments.props';
+import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
 import { useCallback, useRef } from 'react';
 
 interface UseAgentChatOptions {

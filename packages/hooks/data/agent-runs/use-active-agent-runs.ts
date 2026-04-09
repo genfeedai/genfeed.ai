@@ -2,9 +2,9 @@
 
 import { useAuth } from '@clerk/nextjs';
 import type { IAgentRun } from '@genfeedai/interfaces';
+import { AgentRunsService } from '@genfeedai/services/ai/agent-runs.service';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
-import { AgentRunsService } from '@services/ai/agent-runs.service';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface UseActiveAgentRunsReturn {

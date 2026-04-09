@@ -1,22 +1,8 @@
-export interface MetaAdAccount {
-  id: string;
-  name: string;
-  accountId: string;
-  currency: string;
-  timezone: string;
-  status: number;
-}
-
-export interface MetaCampaign {
-  id: string;
-  name: string;
-  objective: string;
-  status: string;
-  dailyBudget?: number;
-  lifetimeBudget?: number;
-  startTime?: string;
-  stopTime?: string;
-}
+export type {
+  MetaAdAccountInput as MetaAdAccount,
+  MetaCampaignInput as MetaCampaign,
+  MetaCampaignInsightInput as MetaInsightsData,
+} from '@genfeedai/integrations/ads';
 
 export interface MetaInsightsParams {
   datePreset?:
@@ -29,23 +15,6 @@ export interface MetaInsightsParams {
   timeRange?: { since: string; until: string };
   level?: 'campaign' | 'adset' | 'ad';
   fields?: string[];
-}
-
-export interface MetaInsightsData {
-  spend: number;
-  impressions: number;
-  clicks: number;
-  ctr: number;
-  cpc: number;
-  cpm: number;
-  reach?: number;
-  frequency?: number;
-  conversions?: number;
-  costPerResult?: number;
-  actions?: Array<{ actionType: string; value: string }>;
-  actionValues?: Array<{ actionType: string; value: string }>;
-  dateStart: string;
-  dateStop: string;
 }
 
 export interface MetaAdCreative {

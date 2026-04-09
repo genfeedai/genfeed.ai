@@ -1,12 +1,12 @@
 import {
   BackgroundTaskProvider,
   useBackgroundTaskContext,
-} from '@contexts/ui/background-task-context';
+} from '@genfeedai/contexts/ui/background-task-context';
 import { act, renderHook } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@contexts/user/user-context/user-context', () => ({
+vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   useCurrentUser: () => ({
     currentUser: { id: 'test-user-123' },
   }),

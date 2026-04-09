@@ -43,6 +43,16 @@ export const facebookSchema = {
 };
 
 /**
+ * Google Ads OAuth (required in cloud, optional in self-hosted)
+ */
+export const googleAdsSchema = {
+  GOOGLE_ADS_CLIENT_ID: conditionalRequired(),
+  GOOGLE_ADS_CLIENT_SECRET: conditionalRequired(),
+  GOOGLE_ADS_REDIRECT_URI: conditionalRequired(Joi.string().uri()),
+  GOOGLE_ADS_DEVELOPER_TOKEN: conditionalRequired(),
+};
+
+/**
  * Twitter/X API (required in cloud, optional in self-hosted)
  */
 export const twitterSchema = {
@@ -175,6 +185,7 @@ export const allSocialSchema = {
   ...tiktokSchema,
   ...instagramSchema,
   ...facebookSchema,
+  ...googleAdsSchema,
   ...twitterSchema,
   ...pinterestSchema,
   ...redditSchema,

@@ -1,13 +1,12 @@
 'use client';
 
 import { PostStatus } from '@genfeedai/enums';
-import type { IPost } from '@genfeedai/interfaces';
+import type { IPost, PostQuickActionKey } from '@genfeedai/interfaces';
+import { useConfirmDeleteModal } from '@genfeedai/providers/global-modals/global-modals.provider';
+import type { PostsService } from '@genfeedai/services/content/posts.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useConfirmDeleteModal } from '@providers/global-modals/global-modals.provider';
-import type { PostsService } from '@services/content/posts.service';
-import { logger } from '@services/core/logger.service';
-import type { NotificationsService } from '@services/core/notifications.service';
-import type { PostQuickActionKey } from '@ui/posts/quick-actions/post-quick-actions/PostQuickActions';
 import type { AppRouterInstance } from 'next/dist/shared/lib/app-router-context.shared-runtime';
 import { useCallback } from 'react';
 

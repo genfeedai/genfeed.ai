@@ -2,7 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { PLATFORM_COLORS } from '@genfeedai/constants';
-import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
+import { CredentialPlatform, PageScope, PostStatus } from '@genfeedai/enums';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCalendarWeekRange } from '@hooks/utils/use-calendar-week-range/use-calendar-week-range';
@@ -16,7 +16,6 @@ import { PostsService } from '@services/content/posts.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
-import { PageScope } from '@ui-constants/misc.constant';
 import Link from 'next/link';
 import type React from 'react';
 import { useEffect, useMemo, useState } from 'react';

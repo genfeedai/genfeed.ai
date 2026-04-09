@@ -2,7 +2,12 @@
 
 import { useAuth } from '@clerk/nextjs';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { ButtonVariant, ModalEnum, TrainingStatus } from '@genfeedai/enums';
+import {
+  ButtonVariant,
+  ModalEnum,
+  PageScope,
+  TrainingStatus,
+} from '@genfeedai/enums';
 import type {
   IBrand,
   IOrganization,
@@ -35,7 +40,6 @@ import {
 } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
-import { PageScope } from '@ui-constants/misc.constant';
 import { getErrorMessage } from '@utils/error/error-handler.util';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';

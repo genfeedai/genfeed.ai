@@ -1,4 +1,3 @@
-export { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 export type {
   AttachmentItem,
   ChatAttachment,
@@ -6,4 +5,5 @@ export type {
   DragState,
   UseAttachmentsOptions,
   UseAttachmentsReturn,
-} from '@props/ui/attachments.props';
+} from '@genfeedai/props/ui/attachments.props';
+export { useAttachments } from '@hooks/ui/use-attachments/use-attachments';

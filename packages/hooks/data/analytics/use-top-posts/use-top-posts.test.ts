@@ -6,7 +6,7 @@ const mockUseResource = vi.fn();
 const mockGetTopContent = vi.fn();
 const mockGetAnalyticsService = vi.fn();
 
-vi.mock('@contexts/analytics/analytics-context', () => ({
+vi.mock('@genfeedai/contexts/analytics/analytics-context', () => ({
   useAnalyticsContext: vi.fn(),
 }));
 
@@ -18,7 +18,7 @@ vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
   useResource: (...args: unknown[]) => mockUseResource(...args),
 }));
 
-import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
+import { useAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 
 describe('useTopPosts', () => {

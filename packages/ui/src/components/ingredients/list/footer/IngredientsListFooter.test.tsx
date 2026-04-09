@@ -1,7 +1,7 @@
+import { PageScope } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import { render } from '@testing-library/react';
 import IngredientsListFooter from '@ui/ingredients/list/footer/IngredientsListFooter';
-import { PageScope } from '@ui-constants/misc.constant';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@ui/layouts/lightbox/MediaLightbox', () => ({

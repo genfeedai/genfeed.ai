@@ -2,7 +2,7 @@ import { useGalleryList } from '@hooks/data/gallery/use-gallery-list/use-gallery
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@services/external/public.service', () => ({
+vi.mock('@genfeedai/services/external/public.service', () => ({
   PublicService: {
     getInstance: vi.fn(() => ({
       findPublicArticles: vi.fn().mockResolvedValue([]),

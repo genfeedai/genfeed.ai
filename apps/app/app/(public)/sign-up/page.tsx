@@ -1,5 +1,5 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import SignUpForm from '@pages/sign-up/sign-up-form';
+import SignUpForm from './sign-up-form';
 
 export const generateMetadata = createPageMetadata('Sign Up');
 

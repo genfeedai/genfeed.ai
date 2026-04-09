@@ -1,13 +1,13 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { ArticleCategory, ArticleStatus } from '@genfeedai/enums';
+import type { Article } from '@genfeedai/models/content/article.model';
+import type { ArticleFormState } from '@genfeedai/props/content/article-editor.props';
+import { ArticlesService } from '@genfeedai/services/content/articles.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { Article } from '@models/content/article.model';
-import type { ArticleFormState } from '@props/content/article-editor.props';
-import { ArticlesService } from '@services/content/articles.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
 import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';

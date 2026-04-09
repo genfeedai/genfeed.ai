@@ -1,5 +1,6 @@
 'use client';
 
+import { POST_QUICK_ACTIONS } from '@genfeedai/constants';
 import {
   AI_ACTION_LABELS,
   AiActionType,
@@ -15,33 +16,6 @@ import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import { useCallback, useState } from 'react';
 import { HiSparkles } from 'react-icons/hi2';
-
-/**
- * Preset quick actions for post enhancement.
- * Each action has a predefined prompt that gets sent to the enhance API.
- * Cost: 1 credit per action.
- */
-export const POST_QUICK_ACTIONS = [
-  {
-    key: 'shorten',
-    label: 'Shorten',
-    prompt:
-      'Make this content shorter and more concise while keeping the key message',
-  },
-  {
-    key: 'simplify',
-    label: 'Simplify',
-    prompt: 'Simplify the language to make it easier to understand',
-  },
-  {
-    key: 'boost',
-    label: 'Boost',
-    prompt:
-      'Make this post more engaging and optimized for social media. Add compelling hooks, clear value proposition, and strong call-to-action. Keep it concise and shareable.',
-  },
-] as const;
-
-export type PostQuickActionKey = (typeof POST_QUICK_ACTIONS)[number]['key'];
 
 const AI_QUICK_ACTIONS: Array<{ key: string; action: AiActionType }> = [
   { action: AiActionType.ADD_HASHTAGS, key: 'add-hashtags' },

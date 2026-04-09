@@ -1,7 +1,7 @@
+import { PageScope } from '@genfeedai/enums';
 import type { IngredientsListSidebarProps } from '@props/pages/ingredients-list.props';
 import { render } from '@testing-library/react';
 import IngredientsListSidebar from '@ui/ingredients/list/sidebar/IngredientsListSidebar';
-import { PageScope } from '@ui-constants/misc.constant';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock(

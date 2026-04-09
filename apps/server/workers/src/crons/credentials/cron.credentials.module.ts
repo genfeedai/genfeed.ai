@@ -1,5 +1,6 @@
 import { CredentialsModule } from '@api/collections/credentials/credentials.module';
 import { FacebookModule } from '@api/services/integrations/facebook/facebook.module';
+import { GoogleAdsModule } from '@api/services/integrations/google-ads/google-ads.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { LinkedInModule } from '@api/services/integrations/linkedin/linkedin.module';
 import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.module';
@@ -14,6 +15,7 @@ import { CronCredentialsService } from '@workers/crons/credentials/cron.credenti
   imports: [
     forwardRef(() => CredentialsModule),
     forwardRef(() => FacebookModule),
+    forwardRef(() => GoogleAdsModule),
     forwardRef(() => InstagramModule),
     forwardRef(() => LinkedInModule),
     forwardRef(() => PinterestModule),

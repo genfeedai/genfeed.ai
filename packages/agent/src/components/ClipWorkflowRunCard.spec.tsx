@@ -1,6 +1,7 @@
 import { ClipWorkflowRunCard } from '@genfeedai/agent/components/ClipWorkflowRunCard';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { Effect } from 'effect';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('ClipWorkflowRunCard', () => {
@@ -33,15 +34,26 @@ describe('ClipWorkflowRunCard', () => {
     };
 
     const apiService = {
-      createManualReviewBatch: vi.fn().mockResolvedValue({
-        id: 'batch-123',
-        items: [{ id: 'item-456', postId: 'post-789' }],
-      }),
-      generateIngredient: vi.fn().mockResolvedValue({ id: 'video-123' }),
-      mergeVideos: vi.fn(),
-      reframeVideo: vi.fn().mockResolvedValue({ id: 'video-portrait-123' }),
-      resizeVideo: vi.fn(),
-      triggerWorkflow: vi.fn(),
+      createManualReviewBatchEffect: vi.fn(() =>
+        Effect.succeed({
+          id: 'batch-123',
+          items: [{ id: 'item-456', postId: 'post-789' }],
+        }),
+      ),
+      createPromptEffect: vi.fn(() => Effect.succeed({ id: 'prompt-123' })),
+      generateIngredientEffect: vi.fn(() =>
+        Effect.succeed({ id: 'video-123' }),
+      ),
+      mergeVideosEffect: vi.fn(() =>
+        Effect.succeed({ id: 'merged-video-123' }),
+      ),
+      reframeVideoEffect: vi.fn(() =>
+        Effect.succeed({ id: 'video-portrait-123' }),
+      ),
+      resizeVideoEffect: vi.fn(() =>
+        Effect.succeed({ id: 'resized-video-123' }),
+      ),
+      triggerWorkflowEffect: vi.fn(() => Effect.succeed({ id: 'exec-123' })),
     };
 
     render(
@@ -68,7 +80,7 @@ describe('ClipWorkflowRunCard', () => {
     );
     expect(
       screen.getByRole('link', { name: 'Open human review queue →' }),
-    ).toHaveAttribute('href', '/posts/review');
+    ).toHaveAttribute('href', '/test-org/test-brand/posts/review');
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Open Supervised Review' }),

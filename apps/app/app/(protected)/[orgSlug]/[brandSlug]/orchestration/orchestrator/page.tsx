@@ -1,7 +1,7 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import ContentTeamOrchestratorPage from '@pages/agents/content-team/ContentTeamOrchestratorPage';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
+import ContentTeamOrchestratorPage from './ContentTeamOrchestratorPage';
 
 export const generateMetadata = createPageMetadata('Launch Orchestrator');
 

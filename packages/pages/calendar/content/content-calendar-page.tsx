@@ -5,6 +5,7 @@ import { PLATFORM_COLORS } from '@genfeedai/constants';
 import {
   ArticleStatus,
   CredentialPlatform,
+  PageScope,
   PostStatus,
 } from '@genfeedai/enums';
 import type { IArticle } from '@genfeedai/interfaces';
@@ -20,7 +21,6 @@ import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import ContentCalendar from '@ui/calendar/content-calendar/ContentCalendar';
 import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
-import { PageScope } from '@ui-constants/misc.constant';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';

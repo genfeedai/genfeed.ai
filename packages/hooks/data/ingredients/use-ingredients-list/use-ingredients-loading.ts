@@ -2,25 +2,24 @@
 
 import type { IngredientCategorySchema } from '@genfeedai/client/schemas';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientCategory, PageScope } from '@genfeedai/enums';
 import type {
   IFilters,
   IFolder,
   IIngredient,
   IQueryParams,
 } from '@genfeedai/interfaces';
+import type { Ingredient } from '@genfeedai/models/content/ingredient.model';
+import { FoldersService } from '@genfeedai/services/content/folders.service';
+import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import {
   createCacheKey,
   createLocalStorageCache,
 } from '@helpers/data/cache/cache.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { Ingredient } from '@models/content/ingredient.model';
-import { FoldersService } from '@services/content/folders.service';
-import { IngredientsService } from '@services/content/ingredients.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
-import { OrganizationsService } from '@services/organization/organizations.service';
-import { PageScope } from '@ui-constants/misc.constant';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 

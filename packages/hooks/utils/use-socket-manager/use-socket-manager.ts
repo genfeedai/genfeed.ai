@@ -6,12 +6,12 @@ import type {
   ISocketManagerConfig,
 } from '@genfeedai/interfaces';
 import type { UseSocketManagerOptions } from '@genfeedai/interfaces/hooks/hooks.interface';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { SocketManager } from '@genfeedai/services/core/socket-manager.service';
 import {
   getPlaywrightAuthState,
   resolveClerkToken,
 } from '@helpers/auth/clerk.helper';
-import { logger } from '@services/core/logger.service';
-import { SocketManager } from '@services/core/socket-manager.service';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export interface SocketSubscription<T = unknown> {
@@ -226,7 +226,7 @@ export const useSocketSubscriptions = <T = unknown>(
     const disposers = subscribeMultiple<T>(subscriptions);
 
     return () => {
-      disposers.forEach((dispose) => {
+      disposers.forEach((dispose: () => void) => {
         dispose();
       });
     };

@@ -1,23 +1,60 @@
+import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
 import {
   AdSyncMetaProcessor,
   type MetaAdSyncJobData,
 } from '@api/queues/ad-sync-meta/ad-sync-meta.processor';
+import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Job } from 'bullmq';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AdSyncMetaProcessor', () => {
+  let adPerformanceService: {
+    upsertBatch: ReturnType<typeof vi.fn>;
+  };
   let processor: AdSyncMetaProcessor;
   let logger: LoggerService;
+  let metaAdsService: {
+    getCampaignInsights: ReturnType<typeof vi.fn>;
+    listCampaigns: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
+    adPerformanceService = {
+      upsertBatch: vi.fn().mockResolvedValue(1),
+    };
     logger = {
       error: vi.fn(),
       log: vi.fn(),
       warn: vi.fn(),
-    } as any;
+    } as LoggerService;
+    metaAdsService = {
+      getCampaignInsights: vi.fn().mockResolvedValue([
+        {
+          clicks: 12,
+          cpc: 2,
+          cpm: 20,
+          ctr: 1.2,
+          dateStart: '2024-01-01',
+          impressions: 1000,
+          spend: 24,
+        },
+      ]),
+      listCampaigns: vi.fn().mockResolvedValue([
+        {
+          id: 'cmp_123',
+          name: 'Campaign One',
+          objective: 'OUTCOME_SALES',
+          status: 'ACTIVE',
+        },
+      ]),
+    };
 
-    processor = new AdSyncMetaProcessor(logger);
+    processor = new AdSyncMetaProcessor(
+      adPerformanceService as unknown as AdPerformanceService,
+      logger,
+      metaAdsService as unknown as MetaAdsService,
+    );
     vi.spyOn(
       processor as unknown as { delay: () => Promise<void> },
       'delay',
@@ -35,10 +72,10 @@ describe('AdSyncMetaProcessor', () => {
       const jobData: MetaAdSyncJobData = {
         accessToken: 'token-abc',
         adAccountIds: ['act_111', 'act_222'],
-        brandId: 'brand-789',
-        credentialId: 'cred-123',
+        brandId: '507f1f77bcf86cd799439012',
+        credentialId: '507f1f77bcf86cd799439013',
         lastSyncDate: '2024-01-01T00:00:00Z',
-        organizationId: 'org-456',
+        organizationId: '507f1f77bcf86cd799439011',
       };
 
       const job = {
@@ -52,6 +89,7 @@ describe('AdSyncMetaProcessor', () => {
       expect(logger.log).toHaveBeenCalledWith(
         expect.stringContaining('Processing Meta ad sync'),
       );
+      expect(adPerformanceService.upsertBatch).toHaveBeenCalled();
       expect(job.updateProgress).toHaveBeenCalledWith(100);
     });
 
@@ -59,9 +97,9 @@ describe('AdSyncMetaProcessor', () => {
       const jobData: MetaAdSyncJobData = {
         accessToken: 'token-abc',
         adAccountIds: ['act_111'],
-        brandId: 'brand-789',
-        credentialId: 'cred-123',
-        organizationId: 'org-456',
+        brandId: '507f1f77bcf86cd799439012',
+        credentialId: '507f1f77bcf86cd799439013',
+        organizationId: '507f1f77bcf86cd799439011',
       };
 
       const job = {
@@ -81,9 +119,9 @@ describe('AdSyncMetaProcessor', () => {
       const jobData: MetaAdSyncJobData = {
         accessToken: 'token-abc',
         adAccountIds: ['act_111', 'act_222', 'act_333'],
-        brandId: 'brand-789',
-        credentialId: 'cred-123',
-        organizationId: 'org-456',
+        brandId: '507f1f77bcf86cd799439012',
+        credentialId: '507f1f77bcf86cd799439013',
+        organizationId: '507f1f77bcf86cd799439011',
       };
 
       const job = {
@@ -103,9 +141,9 @@ describe('AdSyncMetaProcessor', () => {
       const jobData: MetaAdSyncJobData = {
         accessToken: 'token-abc',
         adAccountIds: [],
-        brandId: 'brand-789',
-        credentialId: 'cred-123',
-        organizationId: 'org-456',
+        brandId: '507f1f77bcf86cd799439012',
+        credentialId: '507f1f77bcf86cd799439013',
+        organizationId: '507f1f77bcf86cd799439011',
       };
 
       const job = {
@@ -123,9 +161,9 @@ describe('AdSyncMetaProcessor', () => {
       const jobData: MetaAdSyncJobData = {
         accessToken: 'invalid-token',
         adAccountIds: ['act_bad'],
-        brandId: 'brand-789',
-        credentialId: 'cred-123',
-        organizationId: 'org-456',
+        brandId: '507f1f77bcf86cd799439012',
+        credentialId: '507f1f77bcf86cd799439013',
+        organizationId: '507f1f77bcf86cd799439011',
       };
 
       const job = {

@@ -1,12 +1,12 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import {
   AgentStrategiesService,
   type AgentStrategy,
-} from '@services/automation/agent-strategies.service';
+} from '@genfeedai/services/automation/agent-strategies.service';
+import { resolveClerkToken } from '@helpers/auth/clerk.helper';
+import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { useCallback } from 'react';
 
 export interface UseAgentStrategiesOptions {

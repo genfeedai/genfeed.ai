@@ -124,6 +124,17 @@ export class AgentRunProcessor extends WorkerHost {
         userId: data.userId,
       });
 
+      if (this.taskOrchestratorService && run.metadata?.workspaceTaskId) {
+        this.taskOrchestratorService
+          .handleRunStarted(data.runId, data.organizationId)
+          .catch((rollupError: unknown) => {
+            this.logger.error(
+              `${url} workspace task run-start update failed`,
+              rollupError,
+            );
+          });
+      }
+
       // 3. Execute via deterministic autopilot path for strategies.
       const result = data.strategyId
         ? await this.agentStrategyAutopilotService.executeQueuedRun({

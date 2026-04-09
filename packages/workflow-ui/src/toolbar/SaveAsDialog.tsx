@@ -52,11 +52,12 @@ export function SaveAsDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: modal backdrop overlay */}
-      <div
+      <Button
+        variant="ghost"
+        size="icon-sm"
         className="absolute inset-0 bg-black/60"
         onClick={onClose}
-        onKeyDown={(e) => e.key === 'Escape' && onClose()}
+        aria-label="Close save as dialog"
       />
       <div
         role="dialog"

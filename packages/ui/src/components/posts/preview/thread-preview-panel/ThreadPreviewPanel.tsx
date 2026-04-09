@@ -77,10 +77,10 @@ function PostPreviewItem({ content, index, isLast }: PostPreviewItemProps) {
  */
 export default function ThreadPreviewPanel({
   parent,
-  children,
+  replies,
   className = '',
 }: ThreadPreviewPanelProps) {
-  const allPosts = [parent, ...children];
+  const allPosts = [parent, ...replies];
   const postCount = allPosts.length;
   const readyCount = allPosts.filter((t) => t.content.trim().length > 0).length;
 

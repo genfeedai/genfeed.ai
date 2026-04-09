@@ -1,6 +1,6 @@
 'use client';
 
-import { AnalyticsMetric, ButtonVariant } from '@genfeedai/enums';
+import { AnalyticsMetric, ButtonVariant, PageScope } from '@genfeedai/enums';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useTopPosts } from '@hooks/data/analytics/use-top-posts/use-top-posts';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
@@ -16,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { PageScope } from '@ui-constants/misc.constant';
 import { buildAgentPromptHref } from '@utils/url/desktop-loop-url.util';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { type ReactNode, useEffect, useMemo, useState } from 'react';

@@ -17,7 +17,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
       '@genfeedai/integrations': path.resolve(
         __dirname,
-        '../../../packages/integration-common/src/index.ts',
+        '../../../packages/integrations/src/index.ts',
       ),
       '@config': path.resolve(__dirname, './src/config'),
       '@controllers': path.resolve(__dirname, './src/controllers'),

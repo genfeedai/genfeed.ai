@@ -2,15 +2,15 @@
 
 import { useAuth } from '@clerk/nextjs';
 import type { IAgentRun, IAnalytics } from '@genfeedai/interfaces';
+import type { PlatformTimeSeriesDataPoint } from '@genfeedai/props/analytics/charts.props';
+import {
+  AuthService,
+  type OverviewBootstrapPayload,
+} from '@genfeedai/services/auth/auth.service';
 import type { AgentRunStats as CloudAgentRunStats } from '@genfeedai/types';
 import { getPlaywrightAuthState } from '@helpers/auth/clerk.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
-import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
-import {
-  AuthService,
-  type OverviewBootstrapPayload,
-} from '@services/auth/auth.service';
 import { useMemo } from 'react';
 
 export interface UseOverviewBootstrapOptions {

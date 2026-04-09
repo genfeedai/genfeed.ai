@@ -3,21 +3,21 @@ import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock external dependencies
-vi.mock('@genfeedai/constants', () => ({
-  MODEL_OUTPUT_CAPABILITIES: {
-    'google/musicfx': { category: 'music' },
-    'google/veo-3.1': { category: 'video' },
-    'openai/dall-e-3': { category: 'image' },
-    'stability/sd-xl': { category: 'image' },
-  },
-  ModelCapabilityCategory: {
-    image: 'image',
-    music: 'music',
-    video: 'video',
-  },
-}));
+vi.mock('@genfeedai/constants', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/constants')>();
 
-vi.mock('@services/core/logger.service', () => ({
+  return {
+    ...actual,
+    MODEL_OUTPUT_CAPABILITIES: {
+      'google/musicfx': { category: 'music' },
+      'google/veo-3.1': { category: 'video' },
+      'openai/dall-e-3': { category: 'image' },
+      'stability/sd-xl': { category: 'image' },
+    },
+  };
+});
+
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
     info: vi.fn(),
@@ -25,14 +25,14 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
-vi.mock('@services/core/socket-manager.service', () => ({
+vi.mock('@genfeedai/services/core/socket-manager.service', () => ({
   createPromptHandler: vi.fn((onSuccess, onError) => ({
     onError,
     onSuccess,
   })),
 }));
 
-vi.mock('@utils/network/websocket.util', () => ({
+vi.mock('@genfeedai/utils/network/websocket.util', () => ({
   WebSocketPaths: {
     prompt: (id: string) => `prompt:${id}`,
   },

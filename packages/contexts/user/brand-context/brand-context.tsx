@@ -5,31 +5,33 @@ import type {
   IDarkroomCapabilities,
   IOrganizationSetting,
 } from '@genfeedai/interfaces';
+import { Brand } from '@genfeedai/models/organization/brand.model';
+import { OrganizationSetting } from '@genfeedai/models/organization/organization-setting.model';
+import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
+import type { ProtectedBootstrapData } from '@genfeedai/props/layout/protected-bootstrap.props';
+import { clearAllServiceInstances } from '@genfeedai/services/core/interceptor.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
+import { UsersService } from '@genfeedai/services/organization/users.service';
 import {
   getClerkPublicData,
   getPlaywrightAuthState,
 } from '@helpers/auth/clerk.helper';
 import {
-  clearTokenCache,
-  useAuthedService,
-} from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
-import { Brand } from '@models/organization/brand.model';
-import { OrganizationSetting } from '@models/organization/organization-setting.model';
-import type { LayoutProps } from '@props/layout/layout.props';
-import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
-import { clearAllServiceInstances } from '@services/core/interceptor.service';
-import { logger } from '@services/core/logger.service';
-import { OrganizationsService } from '@services/organization/organizations.service';
-import { UsersService } from '@services/organization/users.service';
-import {
   createContext,
+  type PropsWithChildren,
   startTransition,
   useContext,
   useEffect,
   useMemo,
   useState,
 } from 'react';
+
+import {
+  clearContextTokenCache,
+  useContextAuthedService,
+} from '../internal/context-authed-service';
+import { useContextResource } from '../internal/context-resource';
 
 export interface BrandContextType {
   brands: Brand[];
@@ -55,7 +57,7 @@ export interface BrandContextType {
 
 const BrandContext = createContext<BrandContextType | undefined>(undefined);
 
-interface BrandProviderProps extends LayoutProps {
+interface BrandProviderProps extends PropsWithChildren<LayoutProps> {
   initialBootstrap?: ProtectedBootstrapData | null;
 }
 
@@ -72,11 +74,11 @@ export function BrandProvider({
   const effectiveUserId = userId ?? playwrightAuth?.userId ?? null;
   const effectiveOrgId = orgId ?? playwrightAuth?.orgId ?? null;
 
-  const getUsersService = useAuthedService((token: string) =>
+  const getUsersService = useContextAuthedService((token: string) =>
     UsersService.getInstance(token),
   );
 
-  const getOrganizationsService = useAuthedService((token: string) =>
+  const getOrganizationsService = useContextAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
   );
 
@@ -149,7 +151,7 @@ export function BrandProvider({
     effectiveOrgId,
   ]);
 
-  const { data: brandsData, refresh: refreshBrands } = useResource(
+  const { data: brandsData, refresh: refreshBrands } = useContextResource(
     async () => {
       if (!shouldFetchBrands) {
         return [];
@@ -175,7 +177,7 @@ export function BrandProvider({
     data: settings,
     isLoading: settingsLoading,
     refresh: refreshSettings,
-  } = useResource(
+  } = useContextResource(
     async () => {
       if (!shouldFetchSettings) {
         return null;
@@ -198,7 +200,7 @@ export function BrandProvider({
   );
 
   const { data: darkroomCapabilities, isLoading: darkroomCapabilitiesLoading } =
-    useResource(
+    useContextResource(
       async () => {
         if (!shouldFetchDarkroom) {
           return null;
@@ -224,7 +226,7 @@ export function BrandProvider({
 
   useEffect(() => {
     if (effectiveIsAuthLoaded && !effectiveIsSignedIn) {
-      clearTokenCache();
+      clearContextTokenCache();
       clearAllServiceInstances();
       startTransition(() => {
         setBrandId('');
@@ -243,7 +245,7 @@ export function BrandProvider({
   }, [brandsData, brandId, brands.length, brands[0]]);
 
   const selectedBrand = useMemo(
-    () => brands.find((b) => b.id === brandId),
+    () => brands.find((brand: Brand) => brand.id === brandId),
     [brands, brandId],
   );
 

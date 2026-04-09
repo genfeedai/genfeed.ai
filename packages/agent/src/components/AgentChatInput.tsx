@@ -16,14 +16,14 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { PromptBarAttachedAsset } from '@props/studio/prompt-bar.props';
+import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import type {
   AttachmentItem,
   ChatAttachment,
   DragHandlers,
   DragState,
-} from '@props/ui/attachments.props';
+} from '@genfeedai/props/ui/attachments.props';
+import { cn } from '@helpers/formatting/cn/cn.util';
 import { type Editor, Extension, type JSONContent } from '@tiptap/core';
 import Placeholder from '@tiptap/extension-placeholder';
 import { EditorContent, ReactRenderer, useEditor } from '@tiptap/react';

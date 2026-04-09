@@ -48,7 +48,7 @@ describe('MetaAdsBulkController', () => {
     };
 
     credentialsService = {
-      findOne: vi.fn().mockResolvedValue({ oauthToken: 'enc_tok' }),
+      findOne: vi.fn().mockResolvedValue({ accessToken: 'enc_tok' }),
     };
 
     const module: TestingModule = await Test.createTestingModule({

@@ -1,5 +1,6 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
+import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
@@ -34,6 +35,12 @@ describe('CronCredentialsService', () => {
         },
         {
           provide: FacebookService,
+          useValue: {
+            refreshToken: vi.fn(),
+          },
+        },
+        {
+          provide: GoogleAdsService,
           useValue: {
             refreshToken: vi.fn(),
           },

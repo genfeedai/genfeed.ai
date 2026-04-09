@@ -237,14 +237,6 @@ vi.mock('@ui/primitives/button', () => ({
   buttonVariants: () => '',
 }));
 
-vi.mock('@ui-constants/misc.constant', () => ({
-  PageScope: {
-    ANALYTICS: 'analytics',
-    ORGANIZATION: 'organization',
-    SUPERADMIN: 'superadmin',
-  },
-}));
-
 describe('AnalyticsOverview', () => {
   function renderOverview() {
     return renderToStaticMarkup(<AnalyticsOverview />);

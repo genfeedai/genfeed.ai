@@ -2,14 +2,15 @@
 
 import { useAuth, useUser } from '@clerk/nextjs';
 import type { IUser } from '@genfeedai/interfaces';
+import { User } from '@genfeedai/models/auth/user.model';
+import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { UsersService } from '@genfeedai/services/organization/users.service';
 import { getPlaywrightAuthState } from '@helpers/auth/clerk.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
-import { User } from '@models/auth/user.model';
-import type { LayoutProps } from '@props/layout/layout.props';
-import { logger } from '@services/core/logger.service';
-import { UsersService } from '@services/organization/users.service';
 import { createContext, useCallback, useContext } from 'react';
+
+import { useContextAuthedService } from '../internal/context-authed-service';
+import { useContextResource } from '../internal/context-resource';
 
 export interface UserContextValue {
   currentUser: IUser | null;
@@ -39,7 +40,7 @@ export function UserProvider({
   const clerkUserId = user?.id ?? playwrightAuth?.userId ?? null;
   const clerkUserUpdatedAt = user?.updatedAt?.getTime() ?? null;
 
-  const getUsersService = useAuthedService((token: string) =>
+  const getUsersService = useContextAuthedService((token: string) =>
     UsersService.getInstance(token),
   );
 
@@ -51,7 +52,7 @@ export function UserProvider({
     isLoading,
     refresh,
     mutate,
-  } = useResource(
+  } = useContextResource(
     async () => {
       if (!effectiveIsSignedIn || !clerkUserId) {
         return null;

@@ -1,7 +1,7 @@
+import { PageScope } from '@genfeedai/enums';
 import { render } from '@testing-library/react';
 import type { FoldersSidebarPanelProps } from '@ui/ingredients/list/folders-sidebar-panel/FoldersSidebarPanel';
 import FoldersSidebarPanel from '@ui/ingredients/list/folders-sidebar-panel/FoldersSidebarPanel';
-import { PageScope } from '@ui-constants/misc.constant';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@ui/folders/sidebar/FoldersSidebar', () => ({

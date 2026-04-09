@@ -25,7 +25,11 @@ vi.mock('@ui/buttons/base/Button', () => ({
   }: {
     children: ReactNode;
     onClick?: () => void;
-  }) => <button onClick={onClick}>{children}</button>,
+  }) => (
+    <button type="button" onClick={onClick}>
+      {children}
+    </button>
+  ),
 }));
 
 vi.mock('@ui/display/table/Table', () => ({

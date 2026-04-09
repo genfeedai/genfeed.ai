@@ -1,6 +1,6 @@
-import type { MergeProgressStep } from '@props/studio/merge.props';
-import { logger } from '@services/core/logger.service';
-import { SocketManager } from '@services/core/socket-manager.service';
+import type { MergeProgressStep } from '@genfeedai/props/studio/merge.props';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { SocketManager } from '@genfeedai/services/core/socket-manager.service';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface JobProgress {

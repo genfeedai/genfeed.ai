@@ -1,4 +1,4 @@
-import { ModelsProvider } from '@contexts/models/models-context/models-context';
+import { ModelsProvider } from '@genfeedai/contexts/models/models-context/models-context';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { describe, expect, it } from 'vitest';

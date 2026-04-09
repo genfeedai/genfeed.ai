@@ -203,7 +203,7 @@ export function mapSnapshotWorkEvents(snapshot: AgentThreadSnapshot) {
       return {
         createdAt: entry.createdAt,
         debug: entry.payload?.debug as
-          | import('@utils/progress/structured-progress-event.util').StructuredProgressDebugPayload
+          | import('@genfeedai/utils/progress/structured-progress-event.util').StructuredProgressDebugPayload
           | undefined,
         detail: entry.detail,
         estimatedDurationMs:

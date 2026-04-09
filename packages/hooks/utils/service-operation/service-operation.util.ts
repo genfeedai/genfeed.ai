@@ -1,5 +1,5 @@
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import type React from 'react';
 
 export interface ServiceOperationOptions<T> {

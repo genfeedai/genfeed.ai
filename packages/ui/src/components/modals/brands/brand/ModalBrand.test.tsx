@@ -1,4 +1,3 @@
-import type { FormControlProps } from '@props/forms/form.props';
 import type { BrandOverlayProps } from '@props/modals/modal.props';
 import type { BaseButtonProps } from '@props/ui/forms/button.props';
 import type { TextareaLabelActionsProps } from '@props/ui/forms/textarea-label-actions.props';
@@ -7,6 +6,7 @@ import type { AlertProps } from '@props/ui/ui.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import ModalBrand from '@ui/modals/brands/brand/ModalBrand';
 import type { ColorPickerProps } from '@ui/primitives/color-picker';
+import type { FieldProps } from '@ui/primitives/field';
 import type { PropsWithChildren, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -66,7 +66,7 @@ vi.mock('@ui/buttons/base/Button', () => ({
 
 vi.mock('@ui/primitives/field', () => ({
   __esModule: true,
-  default: ({ children }: FormControlProps) => (
+  default: ({ children }: FieldProps) => (
     <div data-testid="form-control">{children}</div>
   ),
 }));

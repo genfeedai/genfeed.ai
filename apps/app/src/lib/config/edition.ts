@@ -15,9 +15,9 @@ export function isCoreMode(): boolean {
   return !isEEEnabled();
 }
 
-/** True when running self-hosted (no Clerk auth configured) */
+/** True when running the local app shell, with or without optional Clerk */
 export function isSelfHosted(): boolean {
-  return !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+  return !process.env.NEXT_PUBLIC_GENFEED_CLOUD;
 }
 
 /** True when the local app has connected to Genfeed Cloud via Clerk */

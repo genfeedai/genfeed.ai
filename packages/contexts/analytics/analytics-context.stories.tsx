@@ -1,4 +1,4 @@
-import AnalyticsContext from '@contexts/analytics/analytics-context';
+import AnalyticsContext from '@genfeedai/contexts/analytics/analytics-context';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 
 const meta: Meta<typeof AnalyticsContext> = {

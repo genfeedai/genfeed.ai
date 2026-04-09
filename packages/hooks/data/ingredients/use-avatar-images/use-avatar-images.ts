@@ -2,10 +2,10 @@
 
 import { IngredientCategory } from '@genfeedai/enums';
 import type { IAvatar } from '@genfeedai/interfaces';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
+import { isAvatarSourceImageIngredient } from '@genfeedai/utils/media/ingredient-type.util';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { logger } from '@services/core/logger.service';
-import { OrganizationsService } from '@services/organization/organizations.service';
-import { isAvatarSourceImageIngredient } from '@utils/media/ingredient-type.util';
 import { useCallback, useEffect, useState } from 'react';
 
 interface UseAvatarImagesResult {

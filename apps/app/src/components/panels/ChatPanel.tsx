@@ -22,7 +22,7 @@ import {
   Wrench,
   X,
 } from 'lucide-react';
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import type { LLMProviderType } from '@/lib/ai/llm-providers';
 import { LLM_PROVIDERS } from '@/lib/ai/llm-providers';
 import { buildWorkflowContext } from '@/lib/chat/contextBuilder';

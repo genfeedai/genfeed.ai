@@ -1,4 +1,4 @@
-import { CommandPaletteProvider } from '@contexts/features/command-palette';
+import { CommandPaletteProvider } from '@genfeedai/contexts/features/command-palette';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 
 const meta: Meta<typeof CommandPaletteProvider> = {

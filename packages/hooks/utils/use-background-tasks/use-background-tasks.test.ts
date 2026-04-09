@@ -8,7 +8,7 @@ const upsertTaskFromEventMock = vi.fn();
 const infoMock = vi.fn();
 const pushMock = vi.fn();
 
-vi.mock('@contexts/ui/background-task-context', () => ({
+vi.mock('@genfeedai/contexts/ui/background-task-context', () => ({
   useBackgroundTaskContext: () => ({
     upsertTaskFromEvent: upsertTaskFromEventMock,
   }),
@@ -21,7 +21,7 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
   }),
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: () => ({
       info: infoMock,
@@ -30,6 +30,7 @@ vi.mock('@services/core/notifications.service', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  useParams: () => ({ brandSlug: 'brand-slug', orgSlug: 'acme' }),
   useRouter: () => ({
     push: pushMock,
   }),
@@ -127,7 +128,9 @@ describe('useBackgroundTasks', () => {
     const options = infoMock.mock.calls[0][1] as { onAction: () => void };
     options.onAction();
 
-    expect(pushMock).toHaveBeenCalledWith('/workflows/executions/exec-42');
+    expect(pushMock).toHaveBeenCalledWith(
+      '/acme/brand-slug/workflows/executions/exec-42',
+    );
   });
 
   it('cleans up subscription on unmount', () => {

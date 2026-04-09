@@ -20,6 +20,10 @@ const CLIENT_MODELS_MOCK = path.resolve(
   __dirname,
   './tests/__mocks__/client-models.mock.ts',
 );
+const XYFLOW_REACT_MOCK = path.resolve(
+  __dirname,
+  './tests/__mocks__/xyflow-react.ts',
+);
 
 export default defineConfig({
   customLogger,
@@ -37,10 +41,65 @@ export default defineConfig({
         find: /^@serializers\/(.*)$/,
         replacement: path.join(SERIALIZERS_SRC, '$1'),
       },
-      { find: '@components', replacement: path.resolve(__dirname, '../ui') },
+      {
+        find: '@xyflow/react',
+        replacement: XYFLOW_REACT_MOCK,
+      },
+      {
+        find: '@components',
+        replacement: path.resolve(__dirname, '../ui/src/components'),
+      },
+      {
+        find: '@genfeedai/contexts',
+        replacement: path.resolve(__dirname, '../contexts'),
+      },
+      {
+        find: /^@genfeedai\/contexts\/(.*)$/,
+        replacement: path.resolve(__dirname, '../contexts/$1'),
+      },
+      {
+        find: '@genfeedai/models',
+        replacement: path.resolve(__dirname, '../models'),
+      },
+      {
+        find: /^@genfeedai\/models\/(.*)$/,
+        replacement: path.resolve(__dirname, '../models/$1'),
+      },
+      {
+        find: '@genfeedai/props',
+        replacement: path.resolve(__dirname, '../props'),
+      },
+      {
+        find: /^@genfeedai\/props\/(.*)$/,
+        replacement: path.resolve(__dirname, '../props/$1'),
+      },
+      {
+        find: '@genfeedai/providers',
+        replacement: path.resolve(__dirname, '../providers'),
+      },
+      {
+        find: /^@genfeedai\/providers\/(.*)$/,
+        replacement: path.resolve(__dirname, '../providers/$1'),
+      },
+      {
+        find: '@genfeedai/services',
+        replacement: path.resolve(__dirname, '../services'),
+      },
+      {
+        find: /^@genfeedai\/services\/(.*)$/,
+        replacement: path.resolve(__dirname, '../services/$1'),
+      },
+      {
+        find: '@genfeedai/utils',
+        replacement: path.resolve(__dirname, '../utils'),
+      },
+      {
+        find: /^@genfeedai\/utils\/(.*)$/,
+        replacement: path.resolve(__dirname, '../utils/$1'),
+      },
       {
         find: '@ui-constants',
-        replacement: path.resolve(__dirname, '../ui/constants'),
+        replacement: path.resolve(__dirname, '../ui/src/components/constants'),
       },
       {
         find: '@contexts',
@@ -66,7 +125,18 @@ export default defineConfig({
         find: '@services',
         replacement: path.resolve(__dirname, '../services'),
       },
-      { find: '@ui', replacement: path.resolve(__dirname, '../ui') },
+      {
+        find: '@ui/primitives',
+        replacement: path.resolve(__dirname, '../ui/src/primitives'),
+      },
+      {
+        find: '@ui/styles',
+        replacement: path.resolve(__dirname, '../ui/src/components/styles'),
+      },
+      {
+        find: '@ui',
+        replacement: path.resolve(__dirname, '../ui/src/components'),
+      },
       { find: '@utils', replacement: path.resolve(__dirname, '../utils') },
     ],
   },

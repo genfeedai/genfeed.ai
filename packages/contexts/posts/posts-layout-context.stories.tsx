@@ -1,4 +1,4 @@
-import PostsLayoutContext from '@contexts/posts/posts-layout-context';
+import PostsLayoutContext from '@genfeedai/contexts/posts/posts-layout-context';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 
 const meta: Meta<typeof PostsLayoutContext> = {

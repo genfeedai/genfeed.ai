@@ -1,12 +1,12 @@
-import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
+import { useAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
 import { AnalyticsMetric } from '@genfeedai/enums';
+import { AnalyticsService } from '@genfeedai/services/analytics/analytics.service';
 import {
   createCacheKey,
   createLocalStorageCache,
 } from '@helpers/data/cache/cache.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
-import { AnalyticsService } from '@services/analytics/analytics.service';
 import { format } from 'date-fns';
 import { useEffect, useMemo, useRef, useState } from 'react';
 

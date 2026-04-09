@@ -1,9 +1,9 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import SettingsConversationPage from '@pages/settings/conversation/settings-conversation-page';
-import SettingsProfilePage from '@pages/settings/profile/settings-profile-page';
-import SettingsProgressPage from '@pages/settings/progress/settings-progress-page';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
+import SettingsConversationPage from './settings-conversation-page';
+import SettingsProfilePage from './settings-profile-page';
+import SettingsProgressPage from './settings-progress-page';
 
 export const generateMetadata = createPageMetadata('Personal Settings');
 

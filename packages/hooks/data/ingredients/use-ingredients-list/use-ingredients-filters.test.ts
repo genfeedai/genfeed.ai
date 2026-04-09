@@ -1,23 +1,25 @@
-import { IngredientFormat } from '@genfeedai/enums';
+import { IngredientFormat, PageScope } from '@genfeedai/enums';
 import {
   isIngredientFormat,
   useIngredientsFilters,
 } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-filters';
 import { renderHook } from '@testing-library/react';
-import { PageScope } from '@ui-constants/misc.constant';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@contexts/content/ingredients-context/ingredients-context', () => ({
-  useIngredientsContext: vi.fn(() => ({
-    filters: { format: 'all' },
-    onRefresh: vi.fn(),
-    query: {},
-    setIsRefreshing: vi.fn(),
-    setQuery: vi.fn(),
-  })),
-}));
+vi.mock(
+  '@genfeedai/contexts/content/ingredients-context/ingredients-context',
+  () => ({
+    useIngredientsContext: vi.fn(() => ({
+      filters: { format: 'all' },
+      onRefresh: vi.fn(),
+      query: {},
+      setIsRefreshing: vi.fn(),
+      setQuery: vi.fn(),
+    })),
+  }),
+);
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
     brandId: 'brand-1',
     organizationId: 'org-1',

@@ -36,6 +36,14 @@ function createPastePayload(
     idMap.set(node.id, nanoid(8));
   }
 
+  const getMappedId = (originalId: string): string => {
+    const mappedId = idMap.get(originalId);
+    if (!mappedId) {
+      throw new Error(`Missing remapped node id for ${originalId}`);
+    }
+    return mappedId;
+  };
+
   // Calculate the top-left corner of the copied nodes for offset calculation
   const minX = Math.min(...clipboardNodes.map((n) => n.position.x));
   const minY = Math.min(...clipboardNodes.map((n) => n.position.y));
@@ -49,7 +57,7 @@ function createPastePayload(
       jobId: null,
       status: 'idle',
     } as WorkflowNodeData,
-    id: idMap.get(node.id)!,
+    id: getMappedId(node.id),
     position: {
       x: node.position.x - minX + offsetX,
       y: node.position.y - minY + offsetY,
@@ -61,8 +69,8 @@ function createPastePayload(
   const newEdges: WorkflowEdge[] = clipboardEdges.map((edge) => ({
     ...edge,
     id: nanoid(8),
-    source: idMap.get(edge.source)!,
-    target: idMap.get(edge.target)!,
+    source: getMappedId(edge.source),
+    target: getMappedId(edge.target),
   }));
 
   return { edges: newEdges, nodes: newNodes };

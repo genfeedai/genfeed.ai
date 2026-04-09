@@ -15,7 +15,7 @@ const articlesServiceMock = {
 };
 const getArticlesServiceMock = vi.fn(async () => articlesServiceMock);
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
     brandId: 'brand-1',
     organizationId: 'org-1',
@@ -26,13 +26,13 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => getArticlesServiceMock),
 }));
 
-vi.mock('@services/content/articles.service', () => ({
+vi.mock('@genfeedai/services/content/articles.service', () => ({
   ArticlesService: {
     getInstance: vi.fn(() => articlesServiceMock),
   },
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(() => notificationsServiceMock),
   },

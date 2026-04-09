@@ -18,7 +18,7 @@ import Badge from '@ui/display/badge/Badge';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
-import { THEME_COLORS } from '@ui-constants/misc.constant';
+import { THEME_COLORS } from '@ui-constants/theme.constant';
 import { useState } from 'react';
 import { HiPlus, HiXMark } from 'react-icons/hi2';
 

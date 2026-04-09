@@ -657,9 +657,9 @@ export default function SettingsCredentialsPage() {
         }
         return (
           <div className="flex flex-wrap gap-2">
-            {c.tags.map((tag, index) => (
+            {c.tags.map((tag) => (
               <span
-                key={index}
+                key={typeof tag === 'string' ? tag : tag.label}
                 className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground"
               >
                 {typeof tag === 'string' ? tag : tag.label}

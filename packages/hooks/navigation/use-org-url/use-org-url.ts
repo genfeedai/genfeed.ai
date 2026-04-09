@@ -1,6 +1,6 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { useParams } from 'next/navigation';
 
 export interface OrgUrlContext {

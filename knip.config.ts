@@ -113,10 +113,6 @@ const config: KnipConfig = {
       entry: ['app/**/*.{ts,tsx}', 'packages/**/*.{ts,tsx}'],
       ignore: ['dist/**', '.next/**', 'node_modules/**'],
     },
-    'apps/admin': {
-      entry: ['app/**/*.{ts,tsx}', 'packages/**/*.{ts,tsx}'],
-      ignore: ['dist/**', '.next/**', 'node_modules/**'],
-    },
     'apps/website': {
       entry: ['app/**/*.{ts,tsx}', 'packages/**/*.{ts,tsx}'],
       ignore: ['dist/**', '.next/**', 'node_modules/**'],

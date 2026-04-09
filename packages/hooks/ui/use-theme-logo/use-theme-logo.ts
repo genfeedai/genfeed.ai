@@ -1,7 +1,7 @@
 'use client';
 
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { useMounted } from '@hooks/utils/use-mounted/use-mounted';
-import { EnvironmentService } from '@services/core/environment.service';
 
 /**
  * Custom hook to get the logo URL

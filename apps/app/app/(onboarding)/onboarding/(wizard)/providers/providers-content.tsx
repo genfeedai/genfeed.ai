@@ -4,19 +4,12 @@ import { useAuth } from '@clerk/nextjs';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
-import { EnvironmentService } from '@services/core/environment.service';
 import type { InstallReadinessResponse } from '@services/onboarding/onboarding.service';
 import { OnboardingService } from '@services/onboarding/onboarding.service';
 import { Button } from '@ui/primitives/button';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  HiArrowLeft,
-  HiCheckCircle,
-  HiCloudArrowUp,
-  HiKey,
-  HiSparkles,
-} from 'react-icons/hi2';
+import { HiArrowLeft, HiCheckCircle, HiKey, HiSparkles } from 'react-icons/hi2';
 
 const TIMELINE_STEPS = [
   {
@@ -154,7 +147,7 @@ export default function ProvidersContent() {
   );
 
   const handleContinue = () => {
-    router.push('/onboarding/success');
+    router.push('/onboarding/summary');
   };
 
   return (
@@ -171,178 +164,121 @@ export default function ProvidersContent() {
 
       <div className="step-badge opacity-0 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-white/60 mb-8">
         <HiSparkles className="h-3 w-3" />
-        Step 2 of 2
+        Step 2 of 3
       </div>
 
       <h1 className="step-headline opacity-0 mb-4 text-4xl font-serif leading-none tracking-tighter text-white md:text-5xl">
         Configure your <span className="font-light italic">providers.</span>
       </h1>
 
-      <p className="step-description opacity-0 mb-12 max-w-2xl text-lg text-white/40">
+      <p className="step-description opacity-0 mb-10 max-w-2xl text-lg text-white/40">
         Check the local tools and hosted providers available on this install.
         Claude and Codex help with local agent workflows, while Replicate,
         fal.ai, and OpenAI power hosted models when you want them.
       </p>
 
-      <div className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr]">
-        <div className="space-y-6">
-          <div className="space-y-4">
-            <div className="provider-card opacity-0 border border-white/[0.08] bg-white/[0.02] p-6">
-              <h2 className="text-lg font-semibold text-white">
-                Local agent tools
-              </h2>
-              <p className="mt-2 text-sm text-white/45">
-                Optional, but recommended for localhost installs that want to
-                use the agent with local CLI tools.
-              </p>
-            </div>
+      <div className="space-y-5">
+        <div className="provider-card opacity-0 border border-white/[0.08] bg-white/[0.02] p-5 md:p-6">
+          <div className="mb-5">
+            <h2 className="text-lg font-semibold text-white">
+              Local agent tools
+            </h2>
+            <p className="mt-2 text-sm text-white/45">
+              Optional, but recommended for localhost installs that want to use
+              the agent with local CLI tools.
+            </p>
+          </div>
 
+          <div className="space-y-3">
             {localToolRows.map((tool) => (
               <div
                 key={tool.key}
-                className="provider-card opacity-0 border border-white/[0.08] bg-white/[0.02] p-6"
+                className="flex flex-col gap-3 border-t border-white/[0.06] pt-3 first:border-t-0 first:pt-0 md:flex-row md:items-start md:justify-between"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-lg font-semibold text-white">
-                      {tool.key}
-                    </h2>
-                    <p className="mt-2 text-sm text-white/45">
-                      {tool.description}
-                    </p>
-                  </div>
-                  <div
-                    className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs ${
-                      tool.enabled
-                        ? 'bg-emerald-500/10 text-emerald-300'
-                        : 'bg-white/[0.06] text-white/45'
-                    }`}
-                  >
-                    {tool.enabled ? (
-                      <HiCheckCircle className="h-4 w-4" />
-                    ) : (
-                      <HiKey className="h-4 w-4" />
-                    )}
-                    {tool.enabled ? 'Detected' : 'Not detected'}
-                  </div>
+                <div className="min-w-0">
+                  <h3 className="text-base font-semibold text-white">
+                    {tool.key}
+                  </h3>
+                  <p className="mt-1 text-sm text-white/45">
+                    {tool.description}
+                  </p>
                 </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="space-y-4">
-            <div className="provider-card opacity-0 border border-white/[0.08] bg-white/[0.02] p-6">
-              <h2 className="text-lg font-semibold text-white">
-                Hosted providers
-              </h2>
-              <p className="mt-2 text-sm text-white/45">
-                Connect hosted model providers if you want remote generation and
-                cloud-backed workflows.
-              </p>
-            </div>
-
-            {providerRows.map((provider) => (
-              <div
-                key={provider.key}
-                className="provider-card opacity-0 border border-white/[0.08] bg-white/[0.02] p-6"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <h2 className="text-lg font-semibold text-white">
-                      {provider.key}
-                    </h2>
-                    <p className="mt-2 text-sm text-white/45">
-                      {provider.description}
-                    </p>
-                  </div>
-                  <div
-                    className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs ${
-                      provider.enabled
-                        ? 'bg-emerald-500/10 text-emerald-300'
-                        : 'bg-white/[0.06] text-white/45'
-                    }`}
-                  >
-                    {provider.enabled ? (
-                      <HiCheckCircle className="h-4 w-4" />
-                    ) : (
-                      <HiKey className="h-4 w-4" />
-                    )}
-                    {provider.enabled ? 'Configured' : 'Missing env key'}
-                  </div>
+                <div
+                  className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs ${
+                    tool.enabled
+                      ? 'bg-emerald-500/10 text-emerald-300'
+                      : 'bg-white/[0.06] text-white/45'
+                  }`}
+                >
+                  {tool.enabled ? (
+                    <HiCheckCircle className="h-4 w-4" />
+                  ) : (
+                    <HiKey className="h-4 w-4" />
+                  )}
+                  {tool.enabled ? 'Detected' : 'Not detected'}
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="provider-card opacity-0 space-y-4 border border-white/[0.08] bg-white/[0.02] p-6">
-          <h2 className="text-lg font-semibold text-white">Install status</h2>
-          <div className="space-y-3 text-sm text-white/55">
-            <p>
-              Auth: <span className="text-white">{readiness.authMode}</span>
-            </p>
-            <p>
-              Workspace:{' '}
-              <span className="text-white">
-                {readiness.workspace.hasOrganization &&
-                readiness.workspace.hasBrand
-                  ? 'ready'
-                  : 'still bootstrapping'}
-              </span>
-            </p>
-            <p>
-              Local tools:{' '}
-              <span className="text-white">
-                {loading
-                  ? 'checking...'
-                  : readiness.localTools.anyDetected
-                    ? readiness.localTools.detected.join(', ')
-                    : 'none detected'}
-              </span>
-            </p>
-            <p>
-              Providers:{' '}
-              <span className="text-white">
-                {loading
-                  ? 'checking...'
-                  : readiness.providers.anyConfigured
-                    ? readiness.providers.configured.join(', ')
-                    : 'none detected'}
-              </span>
+        <div className="provider-card opacity-0 border border-white/[0.08] bg-white/[0.02] p-5 md:p-6">
+          <div className="mb-5">
+            <h2 className="text-lg font-semibold text-white">
+              Hosted providers
+            </h2>
+            <p className="mt-2 text-sm text-white/45">
+              Connect hosted model providers if you want remote generation and
+              cloud-backed workflows.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/45">
-            Add missing tools or keys later in{' '}
-            <span className="text-white">
-              Settings → Organization → API Keys
-            </span>{' '}
-            or by installing Claude/Codex locally. You can still continue now.
+          <div className="space-y-3">
+            {providerRows.map((provider) => (
+              <div
+                key={provider.key}
+                className="flex flex-col gap-3 border-t border-white/[0.06] pt-3 first:border-t-0 first:pt-0 md:flex-row md:items-start md:justify-between"
+              >
+                <div className="min-w-0">
+                  <h3 className="text-base font-semibold text-white">
+                    {provider.key}
+                  </h3>
+                  <p className="mt-1 text-sm text-white/45">
+                    {provider.description}
+                  </p>
+                </div>
+                <div
+                  className={`inline-flex w-fit items-center gap-2 rounded-full px-3 py-1 text-xs ${
+                    provider.enabled
+                      ? 'bg-emerald-500/10 text-emerald-300'
+                      : 'bg-white/[0.06] text-white/45'
+                  }`}
+                >
+                  {provider.enabled ? (
+                    <HiCheckCircle className="h-4 w-4" />
+                  ) : (
+                    <HiKey className="h-4 w-4" />
+                  )}
+                  {provider.enabled ? 'Configured' : 'Missing env key'}
+                </div>
+              </div>
+            ))}
           </div>
+        </div>
 
-          {readiness.ui.showCloudUpgradeCta ? (
-            <Button
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.SM}
-              onClick={() => {
-                window.location.href = EnvironmentService.apps.website;
-              }}
-              icon={<HiCloudArrowUp className="h-4 w-4" />}
-              label="Explore Genfeed Cloud"
-              className="w-full"
-            />
-          ) : null}
+        <div className="provider-card opacity-0 flex flex-col gap-4 border border-white/[0.08] bg-white/[0.02] p-5 md:flex-row md:items-center md:justify-between md:p-6">
+          <div className="text-sm text-white/45">
+            Review your install summary on the next step. You can keep going
+            even if some tools or provider keys are still missing.
+          </div>
 
           <Button
             variant={ButtonVariant.WHITE}
             size={ButtonSize.SM}
             onClick={handleContinue}
-            label={
-              readiness.providers.anyConfigured
-                ? 'Continue'
-                : 'Continue and configure later'
-            }
-            className="w-full"
+            label={loading ? 'Loading summary...' : 'Review summary'}
+            disabled={loading}
+            className="w-full md:w-auto"
           />
         </div>
       </div>

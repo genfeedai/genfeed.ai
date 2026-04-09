@@ -30,6 +30,18 @@ describe('app next.config redirects', () => {
     });
   });
 
+  it('rewrites clean local workspace routes into the default local shell scope', async () => {
+    const rewrites = await config.rewrites?.();
+    expect(rewrites).toContainEqual({
+      destination: '/default/default/workspace/:path*',
+      source: '/workspace/:path*',
+    });
+    expect(rewrites).toContainEqual({
+      destination: '/default/~/settings/:path*',
+      source: '/settings/:path*',
+    });
+  });
+
   it('redirects org-scoped /research to /research/discovery', async () => {
     const redirects = await config.redirects?.();
     const researchRedirect = redirects?.find(
@@ -73,8 +85,8 @@ describe('app next.config redirects', () => {
 
   it('aliases published serializers to the local workspace source', () => {
     expect(config.turbopack?.resolveAlias).toMatchObject({
-      '@genfeedai/serializers': '../../../packages/serializers/src/index.ts',
-      '@serializers': '../../../packages/serializers/src',
+      '@genfeedai/serializers': '../../packages/serializers/src/index.ts',
+      '@serializers': '../../packages/serializers/src',
     });
   });
 

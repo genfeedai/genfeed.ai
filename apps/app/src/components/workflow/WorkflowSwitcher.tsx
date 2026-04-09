@@ -1,6 +1,6 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -8,7 +8,7 @@ import { ChevronDown, Loader2, Plus, Workflow } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { WorkflowData } from '@/lib/api';
+import type { WorkflowListItem } from '@/features/workflows/types/workflow-list-item';
 import { logger } from '@/lib/logger';
 import { useWorkflowStore } from '@/store/workflowStore';
 
@@ -32,7 +32,7 @@ function WorkflowSwitcherComponent({ className }: WorkflowSwitcherProps) {
   // Dropdown state
   const [isOpen, setIsOpen] = useState(false);
   const [dropdownPosition, setDropdownPosition] = useState({ left: 0, top: 0 });
-  const [workflows, setWorkflows] = useState<WorkflowData[]>([]);
+  const [workflows, setWorkflows] = useState<WorkflowListItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSwitching, setIsSwitching] = useState(false);
 
@@ -127,7 +127,7 @@ function WorkflowSwitcherComponent({ className }: WorkflowSwitcherProps) {
   );
 
   const handleWorkflowSelect = useCallback(
-    async (selectedWorkflow: WorkflowData) => {
+    async (selectedWorkflow: WorkflowListItem) => {
       if (selectedWorkflow._id === workflowId) {
         setIsOpen(false);
         return;

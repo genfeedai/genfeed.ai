@@ -242,7 +242,8 @@ export function computeDownstreamUpdates(
 
   // --- BFS traversal ---
   while (queue.length > 0) {
-    const current = queue.shift()!;
+    const current = queue.shift();
+    if (!current) continue;
 
     // --- Cycle prevention ---
     if (visited.has(current.nodeId)) continue;

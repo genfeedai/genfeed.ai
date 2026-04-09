@@ -9,44 +9,44 @@
   },
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.js"
     },
     "./execution": {
+      "types": "./dist/execution/index.d.ts",
       "import": "./dist/execution/index.js",
-      "require": "./dist/execution/index.js",
-      "types": "./dist/execution/index.d.ts"
+      "require": "./dist/execution/index.js"
     },
     "./executors": {
+      "types": "./dist/executors/index.d.ts",
       "import": "./dist/executors/index.js",
-      "require": "./dist/executors/index.js",
-      "types": "./dist/executors/index.d.ts"
+      "require": "./dist/executors/index.js"
     },
     "./presets": {
+      "types": "./dist/presets/index.d.ts",
       "import": "./dist/presets/index.js",
-      "require": "./dist/presets/index.js",
-      "types": "./dist/presets/index.d.ts"
+      "require": "./dist/presets/index.js"
     },
     "./services": {
+      "types": "./dist/services/index.d.ts",
       "import": "./dist/services/index.js",
-      "require": "./dist/services/index.js",
-      "types": "./dist/services/index.d.ts"
+      "require": "./dist/services/index.js"
     },
     "./templates": {
+      "types": "./dist/templates/index.d.ts",
       "import": "./dist/templates/index.js",
-      "require": "./dist/templates/index.js",
-      "types": "./dist/templates/index.d.ts"
+      "require": "./dist/templates/index.js"
     },
     "./utils": {
+      "types": "./dist/utils/index.d.ts",
       "import": "./dist/utils/index.js",
-      "require": "./dist/utils/index.js",
-      "types": "./dist/utils/index.d.ts"
+      "require": "./dist/utils/index.js"
     },
     "./validation": {
+      "types": "./dist/validation/index.d.ts",
       "import": "./dist/validation/index.js",
-      "require": "./dist/validation/index.js",
-      "types": "./dist/validation/index.d.ts"
+      "require": "./dist/validation/index.js"
     }
   },
   "files": [

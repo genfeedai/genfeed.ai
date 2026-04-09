@@ -1,10 +1,10 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import TwitchChatBot from '@pages/agents/library/TwitchChatBot';
-import YoutubeChatBot from '@pages/agents/library/YoutubeChatBot';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import TwitterReplyBot from '@/features/workflows/components/bots/TwitterReplyBot';
+import TwitchChatBot from './TwitchChatBot';
+import YoutubeChatBot from './YoutubeChatBot';
 
 export const generateMetadata = createPageMetadata('Agent Library');
 

@@ -2,7 +2,7 @@ import { useXArticleCompose } from '@hooks/pages/use-x-article-compose/use-x-art
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
     brandId: 'brand-1',
     organizationId: 'org-1',
@@ -17,7 +17,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => vi.fn()),
 }));
 
-vi.mock('@services/content/articles.service', () => ({
+vi.mock('@genfeedai/services/content/articles.service', () => ({
   ArticlesService: {
     getInstance: vi.fn(() => ({
       generateArticles: vi.fn().mockResolvedValue({
@@ -28,7 +28,7 @@ vi.mock('@services/content/articles.service', () => ({
   },
 }));
 
-vi.mock('@services/core/clipboard.service', () => ({
+vi.mock('@genfeedai/services/core/clipboard.service', () => ({
   ClipboardService: {
     getInstance: vi.fn(() => ({
       copy: vi.fn(),
@@ -36,7 +36,7 @@ vi.mock('@services/core/clipboard.service', () => ({
   },
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(() => ({
       error: vi.fn(),

@@ -1,17 +1,17 @@
 'use client';
 
-import { useCurrentUser } from '@contexts/user/user-context/user-context';
+import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
 import type {
   IBackgroundTask,
   IBackgroundTaskContextType,
   IBackgroundTaskUpdateEvent,
 } from '@genfeedai/interfaces';
+import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import {
   buildGenerationEtaSnapshot,
   type GenerationEtaSnapshot,
   shouldDisplayEta,
 } from '@helpers/generation-eta.helper';
-import type { LayoutProps } from '@props/layout/layout.props';
 import {
   createContext,
   useCallback,

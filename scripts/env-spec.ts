@@ -98,34 +98,6 @@ export const ENV_TARGETS: EnvTarget[] = [
     },
   },
   {
-    id: 'admin',
-    path: 'apps/admin',
-    generatedFileByMode: {
-      local: 'apps/admin/.env.local',
-      staging: 'apps/admin/.env.staging',
-      production: 'apps/admin/.env.production',
-    },
-    localLegacyFile: 'apps/admin/.env',
-    sharedKeys: [...frontendSharedKeys],
-    directKeys: [],
-    mappedKeys: {
-      ADMIN_CLERK_SIGN_UP_FORCE_REDIRECT_URL:
-        'CLERK_SIGN_UP_FORCE_REDIRECT_URL',
-      ADMIN_NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL:
-        'NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL',
-      ADMIN_NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL:
-        'NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL',
-      ADMIN_NEXT_PUBLIC_CLERK_SIGN_IN_URL: 'NEXT_PUBLIC_CLERK_SIGN_IN_URL',
-      ADMIN_NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL:
-        'NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL',
-      ADMIN_NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL:
-        'NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL',
-      ADMIN_NEXT_PUBLIC_SENTRY_DSN: 'NEXT_PUBLIC_SENTRY_DSN',
-      ADMIN_PORT: 'PORT',
-      ADMIN_SENTRY_PROJECT: 'SENTRY_PROJECT',
-    },
-  },
-  {
     id: 'website',
     path: 'apps/website',
     generatedFileByMode: {

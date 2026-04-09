@@ -1,5 +1,6 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { Input } from '@ui/primitives/input';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Modal } from '../modals/compound/Modal';
@@ -74,8 +75,8 @@ export function TaskComposerModal({
         <Modal.Body>
           <div className="space-y-4">
             {/* Title */}
-            <input
-              className="w-full bg-transparent text-base font-medium outline-none placeholder:text-muted-foreground"
+            <Input
+              className="h-auto rounded-none border-0 bg-transparent px-0 py-0 text-base font-medium shadow-none focus-visible:ring-0"
               onChange={(e) => setTitle(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Task title..."

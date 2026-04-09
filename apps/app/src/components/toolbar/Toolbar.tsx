@@ -522,8 +522,8 @@ export function Toolbar() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant="ghost"
-              size="icon-sm"
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
               className="text-muted-foreground"
               onClick={toggleChat}
             >
@@ -539,8 +539,8 @@ export function Toolbar() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant="ghost"
-              size="icon-sm"
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
               className="text-muted-foreground"
               onClick={handleScreenshot}
             >
@@ -556,8 +556,8 @@ export function Toolbar() {
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
-              variant="ghost"
-              size="icon-sm"
+              variant={ButtonVariant.GHOST}
+              size={ButtonSize.ICON}
               className="text-muted-foreground"
               onClick={() => openModal('settings')}
             >

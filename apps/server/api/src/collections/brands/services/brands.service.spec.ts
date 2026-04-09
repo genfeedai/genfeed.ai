@@ -10,7 +10,6 @@ import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.s
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { ConflictException } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
@@ -240,9 +239,6 @@ describe('BrandsService', () => {
         slug: 'new-brand',
       };
 
-      // No existing brand
-      (mockModel.findOne as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-
       const savedBrand = {
         _id: new Types.ObjectId(),
         ...createDto,
@@ -260,22 +256,27 @@ describe('BrandsService', () => {
       expect(result).toBe(savedBrand);
     });
 
-    it('should throw ConflictException for duplicate brand label in org', async () => {
+    it('should allow duplicate labels inside the same organization', async () => {
       const createDto = {
         label: 'Duplicate Brand',
         organization: '507f1f77bcf86cd799439011',
         slug: 'dup-brand',
       };
-
-      // Existing brand found
-      (mockModel.findOne as ReturnType<typeof vi.fn>).mockResolvedValue({
+      const savedBrand = {
         _id: new Types.ObjectId(),
-        label: 'Duplicate Brand',
-      });
+        ...createDto,
+      } as unknown as BrandDocument;
 
-      await expect(
-        service.create(createDto as Parameters<typeof service.create>[0]),
-      ).rejects.toThrow(ConflictException);
+      vi.spyOn(
+        Object.getPrototypeOf(Object.getPrototypeOf(service)),
+        'create',
+      ).mockResolvedValue(savedBrand);
+
+      const result = await service.create(
+        createDto as Parameters<typeof service.create>[0],
+      );
+
+      expect(result).toBe(savedBrand);
     });
 
     it('should allow same label in different organizations', async () => {
@@ -284,8 +285,6 @@ describe('BrandsService', () => {
         organization: '507f1f77bcf86cd799439012',
         slug: 'brand-2',
       };
-
-      (mockModel.findOne as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
       const savedBrand = {
         _id: new Types.ObjectId(),

@@ -9,6 +9,7 @@ import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
 import type { LayoutProps } from '@props/layout/layout.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import Image from 'next/image';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 function OnboardingLayoutInner({ children }: LayoutProps) {
@@ -45,11 +46,23 @@ function OnboardingLayoutInner({ children }: LayoutProps) {
         {/* Progress — only on counted steps (brand, plan) */}
         <div className="max-w-4xl mx-auto">
           {isCountedStep && (
-            <OnboardingProgress
-              currentStep={currentStepIndex}
-              totalSteps={stepLabels.length}
-              stepLabels={stepLabels}
-            />
+            <>
+              <OnboardingProgress
+                currentStep={currentStepIndex}
+                totalSteps={stepLabels.length}
+                stepLabels={stepLabels}
+              />
+
+              <p className="mt-4 text-sm text-white/30">
+                Don&apos;t know what you&apos;re looking for?{' '}
+                <Link
+                  href={EnvironmentService.apps.website}
+                  className="text-white/65 underline decoration-white/20 underline-offset-4 transition hover:text-white"
+                >
+                  Use our cloud solution instead.
+                </Link>
+              </p>
+            </>
           )}
 
           {/* Step content */}

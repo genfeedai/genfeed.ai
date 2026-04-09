@@ -16,6 +16,7 @@ import { ConfigModule } from '@api/config/config.module';
 import { ConfigService } from '@api/config/config.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { FacebookModule } from '@api/services/integrations/facebook/facebook.module';
+import { GoogleAdsModule } from '@api/services/integrations/google-ads/google-ads.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { LinkedInModule } from '@api/services/integrations/linkedin/linkedin.module';
 import { PinterestModule } from '@api/services/integrations/pinterest/pinterest.module';
@@ -37,6 +38,7 @@ import mongooseAggregatePaginateV2 from 'mongoose-aggregate-paginate-v2';
 
     forwardRef(() => BrandsModule),
     forwardRef(() => FacebookModule),
+    forwardRef(() => GoogleAdsModule),
     forwardRef(() => InstagramModule),
     forwardRef(() => LinkedInModule),
     forwardRef(() => OrganizationsModule),

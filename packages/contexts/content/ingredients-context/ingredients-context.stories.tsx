@@ -1,4 +1,4 @@
-import IngredientsContext from '@contexts/content/ingredients-context/ingredients-context';
+import IngredientsContext from '@genfeedai/contexts/content/ingredients-context/ingredients-context';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 
 const meta: Meta<typeof IngredientsContext> = {

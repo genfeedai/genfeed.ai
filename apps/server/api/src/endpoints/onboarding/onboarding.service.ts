@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { LinksService } from '@api/collections/links/services/links.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -23,7 +24,11 @@ import { MasterPromptGeneratorService } from '@api/services/knowledge-base/maste
 import type { User } from '@clerk/backend';
 import { isEEEnabled } from '@genfeedai/config';
 import { MODEL_KEYS } from '@genfeedai/constants';
-import { FileInputType, type OrganizationCategory } from '@genfeedai/enums';
+import {
+  FileInputType,
+  LinkCategory,
+  type OrganizationCategory,
+} from '@genfeedai/enums';
 import type {
   IExtractedBrandData,
   IScrapedBrandData,
@@ -104,6 +109,7 @@ export class OnboardingService {
     private readonly comfyUIService: ComfyUIService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly filesClientService: FilesClientService,
+    private readonly linksService: LinksService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly organizationsService: OrganizationsService,
     private readonly clerkService: ClerkService,
@@ -167,6 +173,115 @@ export class OnboardingService {
     };
   }
 
+  private buildFallbackScrapedData(
+    dto: BrandSetupDto,
+    existingBrand: { label?: string | null },
+  ): IScrapedBrandData {
+    const fallbackLabel =
+      dto.brandName?.trim() || existingBrand.label?.trim() || 'Brand';
+
+    return {
+      aboutText: undefined,
+      companyName: fallbackLabel,
+      description: undefined,
+      fontFamily: undefined,
+      heroText: undefined,
+      logoUrl: undefined,
+      metaDescription: undefined,
+      ogImage: undefined,
+      primaryColor: undefined,
+      scrapedAt: new Date(),
+      secondaryColor: undefined,
+      socialLinks: {},
+      sourceUrl: dto.brandUrl,
+      tagline: undefined,
+      valuePropositions: [],
+    };
+  }
+
+  private async resolveOnboardingBrand(
+    organizationId: Types.ObjectId,
+    userId: Types.ObjectId,
+    brandId?: string | null,
+  ) {
+    if (brandId && Types.ObjectId.isValid(brandId)) {
+      const metadataBrand = await this.brandsService.findOne(
+        {
+          _id: new Types.ObjectId(brandId),
+          isDeleted: false,
+          organization: organizationId,
+          user: userId,
+        },
+        'none',
+      );
+
+      if (metadataBrand) {
+        return metadataBrand;
+      }
+    }
+
+    const selectedBrand = await this.brandsService.findOne(
+      {
+        isDeleted: false,
+        isSelected: true,
+        organization: organizationId,
+        user: userId,
+      },
+      'none',
+    );
+
+    if (selectedBrand) {
+      return selectedBrand;
+    }
+
+    return this.brandsService.findOne(
+      {
+        isDeleted: false,
+        organization: organizationId,
+        user: userId,
+      },
+      'none',
+    );
+  }
+
+  private async resolveWritableOnboardingBrand(
+    brand: { _id: Types.ObjectId; label?: string | null },
+    organizationId: Types.ObjectId,
+    userId: Types.ObjectId,
+    clerkUserId: string,
+    label?: string,
+  ) {
+    const normalizedLabel = label?.trim();
+
+    if (!normalizedLabel) {
+      return brand;
+    }
+
+    const matchingBrand = await this.brandsService.findOne(
+      {
+        isDeleted: false,
+        label: normalizedLabel,
+        organization: organizationId,
+      },
+      'none',
+    );
+
+    if (!matchingBrand || String(matchingBrand._id) === String(brand._id)) {
+      return brand;
+    }
+
+    await this.brandsService.selectBrandForUser(
+      String(matchingBrand._id),
+      String(userId),
+      String(organizationId),
+    );
+    await this.clerkService.updateUserPublicMetadata(clerkUserId, {
+      brand: String(matchingBrand._id),
+    });
+
+    return matchingBrand;
+  }
+
   /**
    * Main onboarding flow: scrape, analyze, and setup brand
    */
@@ -180,6 +295,7 @@ export class OnboardingService {
     const publicMetadata = getPublicMetadata(user);
     const organizationId = new Types.ObjectId(publicMetadata.organization);
     const userId = new Types.ObjectId(publicMetadata.user);
+    const metadataBrandId = publicMetadata.brand?.toString() ?? null;
 
     try {
       // 1. Validate URL
@@ -192,13 +308,10 @@ export class OnboardingService {
       }
 
       // 2. Find existing brand for user (created during signup)
-      const existingBrand = await this.brandsService.findOne(
-        {
-          isDeleted: false,
-          organization: organizationId,
-          user: userId,
-        },
-        'none',
+      const existingBrand = await this.resolveOnboardingBrand(
+        organizationId,
+        userId,
+        metadataBrandId,
       );
 
       if (!existingBrand) {
@@ -238,80 +351,104 @@ export class OnboardingService {
       });
 
       let scrapedData: IScrapedBrandData;
-      if (hasMultipleSources) {
-        const merged = await this.brandScraperService.scrapeAllSources(sources);
-        scrapedData = {
-          aboutText: merged.aboutText,
-          companyName: merged.companyName,
-          description: merged.description,
-          fontFamily: merged.fontFamily,
-          heroText: merged.heroText,
-          logoUrl: merged.logoUrl,
-          metaDescription: merged.description,
-          ogImage: undefined,
-          primaryColor: merged.primaryColor,
-          scrapedAt: merged.scrapedAt,
-          secondaryColor: merged.secondaryColor,
-          socialLinks: merged.socialLinks,
-          sourceUrl: dto.brandUrl,
-          tagline: merged.tagline,
-          valuePropositions: merged.valuePropositions,
-        };
-      } else if (sources.linkedinUrl) {
-        const linkedinData = await this.brandScraperService.scrapeLinkedIn(
-          sources.linkedinUrl,
+      try {
+        if (hasMultipleSources) {
+          const merged =
+            await this.brandScraperService.scrapeAllSources(sources);
+          scrapedData = {
+            aboutText: merged.aboutText,
+            companyName: merged.companyName,
+            description: merged.description,
+            fontFamily: merged.fontFamily,
+            heroText: merged.heroText,
+            logoUrl: merged.logoUrl,
+            metaDescription: merged.description,
+            ogImage: undefined,
+            primaryColor: merged.primaryColor,
+            scrapedAt: merged.scrapedAt,
+            secondaryColor: merged.secondaryColor,
+            socialLinks: merged.socialLinks,
+            sourceUrl: dto.brandUrl,
+            tagline: merged.tagline,
+            valuePropositions: merged.valuePropositions,
+          };
+        } else if (sources.linkedinUrl) {
+          const linkedinData = await this.brandScraperService.scrapeLinkedIn(
+            sources.linkedinUrl,
+          );
+          scrapedData = {
+            aboutText: undefined,
+            companyName: linkedinData.companyName,
+            description: linkedinData.description,
+            fontFamily: undefined,
+            heroText: undefined,
+            logoUrl: linkedinData.logoUrl,
+            metaDescription: linkedinData.description,
+            ogImage: linkedinData.coverImageUrl,
+            primaryColor: undefined,
+            scrapedAt: linkedinData.scrapedAt,
+            secondaryColor: undefined,
+            socialLinks: {},
+            sourceUrl: dto.brandUrl,
+            tagline: undefined,
+            valuePropositions: [],
+          };
+        } else if (sources.xProfileUrl) {
+          const xData = await this.brandScraperService.scrapeXProfile(
+            sources.xProfileUrl,
+          );
+          scrapedData = {
+            aboutText: undefined,
+            companyName: xData.displayName,
+            description: xData.bio,
+            fontFamily: undefined,
+            heroText: undefined,
+            logoUrl: xData.profileImageUrl,
+            metaDescription: xData.bio,
+            ogImage: xData.profileImageUrl,
+            primaryColor: undefined,
+            scrapedAt: xData.scrapedAt,
+            secondaryColor: undefined,
+            socialLinks: {},
+            sourceUrl: dto.brandUrl,
+            tagline: undefined,
+            valuePropositions: [],
+          };
+        } else {
+          scrapedData = await this.brandScraperService.scrapeWebsite(
+            dto.brandUrl,
+          );
+        }
+      } catch (scrapeError: unknown) {
+        this.loggerService.warn(
+          `${caller} scrape failed, continuing with minimal brand setup`,
+          {
+            error:
+              scrapeError instanceof Error
+                ? scrapeError.message
+                : String(scrapeError),
+            url: dto.brandUrl,
+          },
         );
-        scrapedData = {
-          aboutText: undefined,
-          companyName: linkedinData.companyName,
-          description: linkedinData.description,
-          fontFamily: undefined,
-          heroText: undefined,
-          logoUrl: linkedinData.logoUrl,
-          metaDescription: linkedinData.description,
-          ogImage: linkedinData.coverImageUrl,
-          primaryColor: undefined,
-          scrapedAt: linkedinData.scrapedAt,
-          secondaryColor: undefined,
-          socialLinks: {},
-          sourceUrl: dto.brandUrl,
-          tagline: undefined,
-          valuePropositions: [],
-        };
-      } else if (sources.xProfileUrl) {
-        const xData = await this.brandScraperService.scrapeXProfile(
-          sources.xProfileUrl,
-        );
-        scrapedData = {
-          aboutText: undefined,
-          companyName: xData.displayName,
-          description: xData.bio,
-          fontFamily: undefined,
-          heroText: undefined,
-          logoUrl: xData.profileImageUrl,
-          metaDescription: xData.bio,
-          ogImage: xData.profileImageUrl,
-          primaryColor: undefined,
-          scrapedAt: xData.scrapedAt,
-          secondaryColor: undefined,
-          socialLinks: {},
-          sourceUrl: dto.brandUrl,
-          tagline: undefined,
-          valuePropositions: [],
-        };
-      } else {
-        scrapedData = await this.brandScraperService.scrapeWebsite(
-          dto.brandUrl,
-        );
+        scrapedData = this.buildFallbackScrapedData(dto, existingBrand);
       }
 
       // 4. Analyze brand voice with AI
       this.loggerService.log(`${caller} analyzing brand voice`);
       const brandVoice =
-        await this.masterPromptGeneratorService.analyzeBrandVoice(scrapedData, {
-          organizationId: organizationId.toString(),
-          userId: userId.toString(),
-        });
+        scrapedData.description ||
+        scrapedData.aboutText ||
+        scrapedData.heroText ||
+        scrapedData.tagline ||
+        scrapedData.valuePropositions.length > 0
+          ? await this.masterPromptGeneratorService.analyzeBrandVoice(
+              scrapedData,
+              {
+                organizationId: organizationId.toString(),
+                userId: userId.toString(),
+              },
+            )
+          : undefined;
 
       // 5. Build complete extracted data
       const extractedData: IExtractedBrandData = {
@@ -321,16 +458,25 @@ export class OnboardingService {
 
       // 6. Update brand with extracted data
       const labelOverride = dto.brandName?.trim() || undefined;
+      const resolvedLabel = labelOverride || scrapedData.companyName;
+      const targetBrand = await this.resolveWritableOnboardingBrand(
+        existingBrand,
+        organizationId,
+        userId,
+        user.id,
+        resolvedLabel,
+      );
+
       await this.updateBrandWithScrapedData(
-        existingBrand._id,
+        targetBrand._id,
         scrapedData,
         dto,
         labelOverride,
       );
-      await this.updateBrandGuidance(existingBrand._id, extractedData);
+      await this.upsertBrandWebsiteLink(targetBrand._id, dto.brandUrl);
+      await this.updateBrandGuidance(targetBrand._id, extractedData);
 
       // 6b. Sync organization label and slug
-      const resolvedLabel = labelOverride || scrapedData.companyName;
       if (resolvedLabel) {
         const slug =
           await this.organizationsService.generateUniqueSlug(resolvedLabel);
@@ -346,11 +492,11 @@ export class OnboardingService {
       await this.completeOnboarding(organizationId);
 
       this.loggerService.log(`${caller} completed`, {
-        brandId: existingBrand._id.toString(),
+        brandId: targetBrand._id.toString(),
       });
 
       return {
-        brandId: existingBrand._id.toString(),
+        brandId: targetBrand._id.toString(),
         extractedData,
         message: 'Brand setup completed successfully',
         success: true,
@@ -1107,6 +1253,38 @@ export class OnboardingService {
       // @ts-expect-error TS2345
       await this.brandsService.patch(brandId, updateData);
     }
+  }
+
+  private async upsertBrandWebsiteLink(
+    brandId: Types.ObjectId,
+    websiteUrl: string,
+  ): Promise<void> {
+    const normalizedUrl = websiteUrl.trim();
+
+    if (!normalizedUrl) {
+      return;
+    }
+
+    const existingWebsiteLink = await this.linksService.findOne({
+      brand: brandId,
+      category: LinkCategory.WEBSITE,
+      isDeleted: false,
+    });
+
+    if (existingWebsiteLink) {
+      await this.linksService.patch(String(existingWebsiteLink._id), {
+        label: 'Website',
+        url: normalizedUrl,
+      });
+      return;
+    }
+
+    await this.linksService.create({
+      brand: brandId,
+      category: LinkCategory.WEBSITE,
+      label: 'Website',
+      url: normalizedUrl,
+    });
   }
 
   private async updateBrandGuidance(

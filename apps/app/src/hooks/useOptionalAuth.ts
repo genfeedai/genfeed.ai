@@ -8,6 +8,7 @@ import { useAuth } from '@clerk/nextjs';
  */
 export function useOptionalAuth() {
   try {
+    // biome-ignore lint/correctness/useHookAtTopLevel: this wrapper intentionally catches missing Clerk provider usage on public pages
     return useAuth();
   } catch {
     return {

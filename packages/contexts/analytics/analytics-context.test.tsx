@@ -1,4 +1,4 @@
-import { AnalyticsProvider } from '@contexts/analytics/analytics-context';
+import { AnalyticsProvider } from '@genfeedai/contexts/analytics/analytics-context';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { describe, expect, it } from 'vitest';

@@ -1,5 +1,6 @@
 import { StreakCalendarQueryDto } from '@api/collections/streaks/dto/streak-calendar-query.dto';
 import { StreaksService } from '@api/collections/streaks/services/streaks.service';
+import { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -12,6 +13,7 @@ import {
   Param,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
 
 @AutoSwagger()
@@ -24,11 +26,11 @@ export class StreaksController {
   async getMyStreak(
     @Param('organizationId') organizationId: string,
     @CurrentUser() user: User,
+    @Req() request: RequestWithContext,
   ) {
-    this.assertUserOrgAccess(organizationId, user);
-    const publicMetadata = getPublicMetadata(user);
+    this.assertUserOrgAccess(organizationId, user, request);
     return this.streaksService.getStreakSummary(
-      String(publicMetadata.user),
+      this.resolveUserId(user, request),
       organizationId,
     );
   }
@@ -38,13 +40,13 @@ export class StreaksController {
   async getMyCalendar(
     @Param('organizationId') organizationId: string,
     @CurrentUser() user: User,
+    @Req() request: RequestWithContext,
     @Query() query: StreakCalendarQueryDto,
   ) {
-    this.assertUserOrgAccess(organizationId, user);
-    const publicMetadata = getPublicMetadata(user);
+    this.assertUserOrgAccess(organizationId, user, request);
 
     return this.streaksService.getCalendar(
-      String(publicMetadata.user),
+      this.resolveUserId(user, request),
       organizationId,
       query.from ? new Date(query.from) : undefined,
       query.to ? new Date(query.to) : undefined,
@@ -56,11 +58,11 @@ export class StreaksController {
   async useFreeze(
     @Param('organizationId') organizationId: string,
     @CurrentUser() user: User,
+    @Req() request: RequestWithContext,
   ) {
-    this.assertUserOrgAccess(organizationId, user);
-    const publicMetadata = getPublicMetadata(user);
+    this.assertUserOrgAccess(organizationId, user, request);
     const streak = await this.streaksService.useFreeze(
-      String(publicMetadata.user),
+      this.resolveUserId(user, request),
       organizationId,
     );
 
@@ -70,10 +72,29 @@ export class StreaksController {
     };
   }
 
-  private assertUserOrgAccess(organizationId: string, user: User): void {
+  private resolveOrganizationId(
+    user: User,
+    request: RequestWithContext,
+  ): string {
     const publicMetadata = getPublicMetadata(user);
 
-    if (String(publicMetadata.organization) !== organizationId) {
+    return String(
+      request.context?.organizationId ?? publicMetadata.organization ?? '',
+    );
+  }
+
+  private resolveUserId(user: User, request: RequestWithContext): string {
+    const publicMetadata = getPublicMetadata(user);
+
+    return String(request.context?.userId ?? publicMetadata.user ?? '');
+  }
+
+  private assertUserOrgAccess(
+    organizationId: string,
+    user: User,
+    request: RequestWithContext,
+  ): void {
+    if (this.resolveOrganizationId(user, request) !== organizationId) {
       throw new BadRequestException('Organization mismatch');
     }
   }

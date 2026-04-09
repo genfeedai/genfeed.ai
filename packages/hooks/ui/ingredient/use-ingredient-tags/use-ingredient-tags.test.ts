@@ -17,7 +17,7 @@ vi.mock('@hooks/utils/service-operation/service-operation.util', () => ({
   }),
 }));
 
-vi.mock('@services/content/ingredients.service', () => ({
+vi.mock('@genfeedai/services/content/ingredients.service', () => ({
   IngredientsService: {
     getInstance: vi.fn(() => ({
       patchTags: mockPatchTags,

@@ -149,4 +149,4 @@ export type {
   ChatAttachment,
   UseAttachmentsOptions,
   UseAttachmentsReturn,
-} from '@props/ui/attachments.props';
+} from '@genfeedai/props/ui/attachments.props';

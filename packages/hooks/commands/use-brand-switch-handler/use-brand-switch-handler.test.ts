@@ -9,7 +9,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(),
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
     info: vi.fn(),
@@ -17,16 +17,16 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
-vi.mock('@services/organization/users.service', () => ({
+vi.mock('@genfeedai/services/organization/users.service', () => ({
   UsersService: {
     getInstance: vi.fn(),
   },
 }));
 
 import { useUser } from '@clerk/nextjs';
+import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useBrandSwitchHandler } from '@hooks/commands/use-brand-switch-handler/use-brand-switch-handler';
-import { logger } from '@services/core/logger.service';
 
 describe('useBrandSwitchHandler', () => {
   const mockPatchMeBrand = vi.fn();

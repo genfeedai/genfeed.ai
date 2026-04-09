@@ -9,6 +9,7 @@ import {
   ButtonVariant,
   IngredientCategory,
   ModalEnum,
+  PageScope,
 } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import { useIngredientsList } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-list';
@@ -21,7 +22,6 @@ import IngredientsListHeader from '@ui/ingredients/list/header/IngredientsListHe
 import IngredientsListSidebar from '@ui/ingredients/list/sidebar/IngredientsListSidebar';
 import { LazyModalImageToVideo } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
-import { PageScope } from '@ui-constants/misc.constant';
 import { format } from 'date-fns';
 import { useEffect, useMemo } from 'react';
 

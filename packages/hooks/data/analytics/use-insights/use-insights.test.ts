@@ -8,7 +8,7 @@ const mockDateRange = {
   startDate: new Date('2024-01-01'),
 };
 
-vi.mock('@contexts/analytics/analytics-context', () => ({
+vi.mock('@genfeedai/contexts/analytics/analytics-context', () => ({
   useAnalyticsContext: vi.fn(() => ({
     dateRange: mockDateRange,
     refreshTrigger: 0,
@@ -21,7 +21,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   ),
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     debug: vi.fn(),
     error: vi.fn(),
@@ -46,7 +46,7 @@ const mockPredictiveService = {
   }),
 };
 
-vi.mock('@services/analytics/insights.service', () => ({
+vi.mock('@genfeedai/services/analytics/insights.service', () => ({
   InsightsService: {
     getInstance: vi.fn(() => mockInsightsService),
   },

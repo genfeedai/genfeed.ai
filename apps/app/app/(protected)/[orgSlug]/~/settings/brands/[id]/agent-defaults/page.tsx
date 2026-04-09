@@ -1,7 +1,7 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import BrandSettingsAgentDefaultsPage from '@pages/settings/brands/brand-settings-agent-defaults-page';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
+import BrandSettingsAgentDefaultsPage from './content';
 
 export const generateMetadata = createPageMetadata('Brand Agent Defaults');
 

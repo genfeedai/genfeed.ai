@@ -111,9 +111,9 @@ export default function PatternCard({ pattern }: PatternCardProps) {
             Examples
           </span>
           <ul className="space-y-1">
-            {previewExamples.map((example, index) => (
+            {previewExamples.map((example) => (
               <li
-                key={`${example.platform}-${index}`}
+                key={`${example.platform}-${example.text}`}
                 className="text-xs text-foreground/60 truncate"
                 title={example.text}
               >

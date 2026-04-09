@@ -149,12 +149,13 @@ function ResizeNodeComponent(props: NodeProps) {
         {nodeData.outputMedia && (
           <div className="relative mt-1">
             {mediaType === 'video' ? (
-              // biome-ignore lint/a11y/useMediaCaption: generated preview videos do not have caption tracks in this transient asset preview
               <video
                 src={nodeData.outputMedia}
                 className="h-32 w-full rounded-md object-cover"
                 controls
-              />
+              >
+                <track kind="captions" />
+              </video>
             ) : (
               <Image
                 src={nodeData.outputMedia}

@@ -1,7 +1,7 @@
 import type { IIngredient, ITag } from '@genfeedai/interfaces';
+import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { withSilentOperation } from '@hooks/utils/service-operation/service-operation.util';
-import { IngredientsService } from '@services/content/ingredients.service';
 import { useCallback, useState } from 'react';
 
 export interface UseIngredientTagsParams {

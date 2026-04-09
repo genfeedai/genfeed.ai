@@ -1,4 +1,4 @@
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AssetCategory,
   IngredientCategory,
@@ -6,10 +6,10 @@ import {
   IngredientStatus,
 } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useIngredientServices } from '@hooks/data/ingredients/use-ingredient-services/use-ingredient-services';
 import { useIngredientActions } from '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
-import { NotificationsService } from '@services/core/notifications.service';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,7 +17,7 @@ const { mockDownloadIngredient } = vi.hoisted(() => ({
   mockDownloadIngredient: vi.fn(),
 }));
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(),
 }));
 
@@ -38,7 +38,7 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
   })),
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     debug: vi.fn(),
     error: vi.fn(),
@@ -46,13 +46,13 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(),
   },
 }));
 
-vi.mock('@utils/media/ingredient-type.util', () => ({
+vi.mock('@genfeedai/utils/media/ingredient-type.util', () => ({
   getIngredientExtension: vi.fn((ingredient) => {
     if (ingredient.category === IngredientCategory.VIDEO) {
       return 'mp4';

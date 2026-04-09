@@ -8,7 +8,6 @@ import { Button } from '@ui/primitives/button';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import Link from 'next/link';
-import { useState } from 'react';
 import {
   HiArrowRight,
   HiCheckCircle,
@@ -35,14 +34,9 @@ function HighlightCard({
   delay,
 }: HighlightCardProps) {
   const visible = useDelayedVisibility({ delay });
-  const [isHovered, setIsHovered] = useState(false);
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: visual-only hover effect for card animation
-    <div
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
+    <div className="group">
       <Card
         variant={CardVariant.DEFAULT}
         className={`relative flex flex-col items-center gap-4 px-6 py-8 transition-all duration-700 hover:-translate-y-1 hover:border-primary/30 ${
@@ -53,14 +47,10 @@ function HighlightCard({
         {/* Icon with animation */}
         <div className="relative">
           <div
-            className={`absolute inset-0 bg-gradient-to-br ${color} opacity-30 blur-lg transition-all duration-300 ${
-              isHovered ? 'scale-150' : 'scale-100'
-            }`}
+            className={`absolute inset-0 bg-gradient-to-br ${color} opacity-30 blur-lg transition-all duration-300 group-hover:scale-150`}
           />
           <div
-            className={`relative p-4 bg-gradient-to-br ${color} transition-transform duration-300 ${
-              isHovered ? 'scale-110 rotate-3' : ''
-            }`}
+            className={`relative p-4 bg-gradient-to-br ${color} transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3`}
           >
             <Icon className="h-8 w-8 text-surface" />
           </div>

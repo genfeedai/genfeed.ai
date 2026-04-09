@@ -8,11 +8,11 @@ vi.mock('@clerk/nextjs', () => ({
   }),
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 }));
 
-vi.mock('@services/ai/speech.service', () => ({
+vi.mock('@genfeedai/services/ai/speech.service', () => ({
   SpeechService: {
     getInstance: vi.fn().mockReturnValue({
       transcribeAudio: vi.fn().mockResolvedValue({ text: 'test transcript' }),

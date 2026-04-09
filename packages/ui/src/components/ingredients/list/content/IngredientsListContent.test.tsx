@@ -1,8 +1,7 @@
-import { IngredientCategory, ModalEnum } from '@genfeedai/enums';
+import { IngredientCategory, ModalEnum, PageScope } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import IngredientsListContent from '@ui/ingredients/list/content/IngredientsListContent';
-import { PageScope } from '@ui-constants/misc.constant';
 import type { ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 

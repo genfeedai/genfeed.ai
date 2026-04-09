@@ -155,7 +155,6 @@ export default function ModalBlacklist({
 
         <Checkbox
           name="isDefault"
-          control={form.control}
           label="Automatically select this blacklist item"
           isChecked={form.watch('isDefault')}
           onChange={(e) => {

@@ -17,6 +17,7 @@ import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
@@ -170,12 +171,10 @@ export default function ModalWorkflow({
                     key={task.value}
                     className="flex items-center space-x-3 cursor-pointer hover:bg-background p-2"
                   >
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 border-white/[0.08] text-primary focus:ring-primary"
-                      checked={selectedTasks.includes(task.value)}
-                      onChange={() => handleTaskToggle(task.value)}
-                      disabled={isSubmitting}
+                    <Checkbox
+                      isChecked={selectedTasks.includes(task.value)}
+                      onCheckedChange={() => handleTaskToggle(task.value)}
+                      isDisabled={isSubmitting}
                     />
                     <span className="flex-1">{task.label}</span>
                     <span className="text-xs text-foreground/60 font-mono">

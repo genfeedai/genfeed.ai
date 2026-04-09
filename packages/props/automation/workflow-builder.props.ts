@@ -4,16 +4,24 @@ import type {
   WorkflowEdge,
   WorkflowInputVariable,
   WorkflowNodeData,
+  WorkflowNodePosition,
   WorkflowVisualNode,
 } from '@genfeedai/interfaces/automation/workflow-builder.interface';
-import type {
-  Edge,
-  Node,
-  OnConnect,
-  OnEdgesChange,
-  OnNodesChange,
-} from '@xyflow/react';
 import type { DragEvent } from 'react';
+
+export interface WorkflowCanvasNode {
+  id: string;
+  position: WorkflowNodePosition;
+  data: WorkflowNodeData;
+  type?: string;
+}
+
+export interface WorkflowCanvasConnection {
+  source?: string | null;
+  sourceHandle?: string | null;
+  target?: string | null;
+  targetHandle?: string | null;
+}
 
 export interface WorkflowBuilderProps {
   workflowId: string;
@@ -29,11 +37,11 @@ export interface WorkflowBuilderProps {
 }
 
 export interface WorkflowCanvasProps {
-  nodes: Node<WorkflowNodeData>[];
-  edges: Edge[];
-  onNodesChange: OnNodesChange<Node<WorkflowNodeData>>;
-  onEdgesChange: OnEdgesChange;
-  onConnect: OnConnect;
+  nodes: WorkflowCanvasNode[];
+  edges: WorkflowEdge[];
+  onNodesChange: (changes: unknown[]) => void;
+  onEdgesChange: (changes: unknown[]) => void;
+  onConnect: (connection: WorkflowCanvasConnection) => void;
   onNodeSelect: (nodeId: string | null) => void;
   onDrop: (event: DragEvent, position: { x: number; y: number }) => void;
   isReadOnly?: boolean;
@@ -61,7 +69,7 @@ export interface NodePaletteItemProps {
 }
 
 export interface NodeConfigPanelProps {
-  selectedNode: Node<WorkflowNodeData> | null;
+  selectedNode: WorkflowCanvasNode | null;
   onUpdateConfig: (nodeId: string, config: Record<string, unknown>) => void;
   inputVariables: WorkflowInputVariable[];
   onClose: () => void;

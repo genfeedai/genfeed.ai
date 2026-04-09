@@ -10,6 +10,7 @@ import {
   CredentialPlatform,
   IngredientCategory,
   ModelCategory,
+  PageScope,
   Platform,
   PostCategory,
   PostStatus,
@@ -76,7 +77,6 @@ import { Button } from '@ui/primitives/button';
 import PromptBarPost from '@ui/prompt-bars/post/PromptBarPost';
 import PromptBarSurfaceRenderer from '@ui/prompt-bars/surface/PromptBarSurfaceRenderer';
 import { POSTS_PROMPT_BAR_SURFACE } from '@ui/prompt-bars/surface/prompt-bar-surface.config';
-import { PageScope } from '@ui-constants/misc.constant';
 import { WebSocketPaths } from '@utils/network/websocket.util';
 import Image from 'next/image';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';

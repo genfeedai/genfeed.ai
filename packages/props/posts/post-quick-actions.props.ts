@@ -1,4 +1,4 @@
-import type { PostQuickActionKey } from '@ui/posts/quick-actions/post-quick-actions/PostQuickActions';
+import type { PostQuickActionKey } from '@genfeedai/interfaces';
 
 export interface PostQuickActionsProps {
   postId: string;

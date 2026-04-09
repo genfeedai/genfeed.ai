@@ -130,11 +130,11 @@ describe('OnboardingGuard', () => {
     expect(await screen.findByText('Child')).toBeInTheDocument();
   });
 
-  it('should redirect to onboarding providers when all onboarding steps are completed but completion flag is stale', async () => {
+  it('should redirect to onboarding summary when all onboarding steps are completed but completion flag is stale', async () => {
     useCurrentUserMock.mockReturnValue({
       currentUser: {
         isOnboardingCompleted: false,
-        onboardingStepsCompleted: ['brand', 'providers'],
+        onboardingStepsCompleted: ['brand', 'providers', 'summary'],
       },
       isLoading: false,
     });
@@ -165,7 +165,7 @@ describe('OnboardingGuard', () => {
     );
 
     await waitFor(() => {
-      expect(replaceMock).toHaveBeenCalledWith('/onboarding/providers');
+      expect(replaceMock).toHaveBeenCalledWith('/onboarding/summary');
     });
   });
 
@@ -203,7 +203,7 @@ describe('OnboardingGuard', () => {
     useCurrentUserMock.mockReturnValue({
       currentUser: {
         isOnboardingCompleted: true,
-        onboardingStepsCompleted: ['brand', 'providers'],
+        onboardingStepsCompleted: ['brand', 'providers', 'summary'],
       },
       isLoading: false,
     });

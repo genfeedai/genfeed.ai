@@ -22,13 +22,13 @@ vi.mock('@hooks/utils/service-operation/service-operation.util', () => ({
   withSilentOperation: (...args: unknown[]) => mockWithSilentOperation(...args),
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
   },
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(() => mockNotifications),
   },

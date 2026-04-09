@@ -5,6 +5,7 @@ import type {
   ScopeIconProps,
   ScopeSelectorProps,
 } from '@props/components/scope-selector.props';
+import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { SCOPE_OPTIONS } from '@ui-constants/scope.constant';
 
 /**
@@ -36,9 +37,11 @@ export function ScopeSelector({
         </legend>
       )}
 
-      <div
-        role="radiogroup"
+      <RadioGroup
         aria-label="Access Control"
+        disabled={isDisabled}
+        value={value}
+        onValueChange={(nextValue) => onChange(nextValue as AssetScope)}
         className={cn(
           'overflow-hidden rounded-2xl border',
           variant === 'panel'
@@ -61,18 +64,10 @@ export function ScopeSelector({
                   : 'bg-transparent text-foreground hover:bg-muted/60',
             )}
           >
-            <input
-              type="radio"
-              name="scope"
+            <RadioGroupItem
               aria-label={option.label}
               value={option.value}
-              checked={value === option.value}
-              onChange={(e) => onChange(e.target.value as AssetScope)}
-              disabled={isDisabled}
-              className={cn(
-                'mt-1 radio radio-sm',
-                variant === 'panel' ? 'radio-info' : 'radio-primary',
-              )}
+              className="mt-1"
             />
 
             <div className="flex-1 space-y-1">
@@ -106,7 +101,7 @@ export function ScopeSelector({
             </div>
           </label>
         ))}
-      </div>
+      </RadioGroup>
     </fieldset>
   );
 }

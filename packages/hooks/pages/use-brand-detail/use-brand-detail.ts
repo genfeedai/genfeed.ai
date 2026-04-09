@@ -17,21 +17,21 @@ import type {
   ILink,
   IVideo,
 } from '@genfeedai/interfaces';
-import { openModal } from '@helpers/ui/modal/modal.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import type { UseBrandDetailReturn } from '@props/pages/brand-detail.props';
+import type { UseBrandDetailReturn } from '@genfeedai/props/pages/brand-detail.props';
 import {
   useConfirmModal,
   useUploadModal,
-} from '@providers/global-modals/global-modals.provider';
-import { AssetsService } from '@services/content/assets.service';
-import { ClipboardService } from '@services/core/clipboard.service';
-import { EnvironmentService } from '@services/core/environment.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
-import { PublicService } from '@services/external/public.service';
-import { BrandsService } from '@services/social/brands.service';
+} from '@genfeedai/providers/global-modals/global-modals.provider';
+import { AssetsService } from '@genfeedai/services/content/assets.service';
+import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { PublicService } from '@genfeedai/services/external/public.service';
+import { BrandsService } from '@genfeedai/services/social/brands.service';
+import { openModal } from '@helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useReducer, useState } from 'react';
 

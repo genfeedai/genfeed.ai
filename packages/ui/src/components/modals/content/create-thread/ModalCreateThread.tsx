@@ -36,7 +36,7 @@ import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { PLATFORM_CHAR_LIMITS } from '@ui-constants/misc.constant';
+import { PLATFORM_CHAR_LIMITS } from '@ui-constants/platform-char-limit.constant';
 import { useEffect, useMemo, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { HiPlus, HiTrash } from 'react-icons/hi2';

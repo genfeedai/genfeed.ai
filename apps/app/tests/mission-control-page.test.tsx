@@ -1,9 +1,9 @@
 import { AgentExecutionStatus, AgentExecutionTrigger } from '@genfeedai/enums';
 import type { IAgentRun } from '@genfeedai/interfaces';
-import MissionControl from '@pages/mission-control/mission-control';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import MissionControl from '../app/(protected)/[orgSlug]/[brandSlug]/orchestration/runs/mission-control';
 
 const replaceMock = vi.fn();
 let currentSearchParams = new URLSearchParams();
@@ -136,7 +136,9 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
   default: ({ onClick }: { onClick: () => void }) => (
-    <button onClick={onClick}>Refresh</button>
+    <button type="button" onClick={onClick}>
+      Refresh
+    </button>
   ),
 }));
 

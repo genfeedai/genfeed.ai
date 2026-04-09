@@ -4,7 +4,7 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
 import { Button } from '@ui/primitives/button';
 import { BookOpen, HelpCircle, MessageCircle, Store } from 'lucide-react';
-import { XIcon } from '@/components/toolbar/icons';
+import { FaXTwitter } from 'react-icons/fa6';
 import { InfoBox, LinkCard } from '@/components/ui/settings-section';
 
 export function HelpTab() {
@@ -58,7 +58,7 @@ export function HelpTab() {
           />
           <LinkCard
             href="https://twitter.com/genfeedai"
-            icon={XIcon}
+            icon={FaXTwitter}
             title="Twitter / X"
             description="Follow for updates"
           />

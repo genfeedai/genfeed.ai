@@ -176,7 +176,7 @@ export function AgentActivityFeed({
                   <Button
                     variant={ButtonVariant.OUTLINE}
                     size={ButtonSize.XS}
-                    onClick={() => onViewThread(run.threadId)}
+                    onClick={() => onViewThread(run.threadId as string)}
                   >
                     View
                   </Button>

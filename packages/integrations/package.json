@@ -1,0 +1,36 @@
+{
+  "dependencies": {
+    "@genfeedai/enums": "workspace:*"
+  },
+  "description": "Shared types and utilities for platform integrations",
+  "devDependencies": {
+    "@types/node": "25.5.2",
+    "typescript": "6.0.2"
+  },
+  "exports": {
+    "./ads": {
+      "types": "./dist/ads/index.d.ts",
+      "import": "./dist/ads/index.js",
+      "require": "./dist/ads/index.js"
+    },
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    }
+  },
+  "main": "dist/index.js",
+  "name": "@genfeedai/integrations",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "lint": "biome lint --write src",
+    "test": "vitest run --config vitest.config.ts",
+    "test:cov": "vitest run --coverage --config vitest.config.ts",
+    "test:watch": "vitest watch --config vitest.config.ts"
+  },
+  "sideEffects": false,
+  "types": "dist/index.d.ts",
+  "version": "1.0.0"
+}

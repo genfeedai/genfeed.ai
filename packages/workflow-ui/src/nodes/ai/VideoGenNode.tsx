@@ -134,12 +134,13 @@ function VideoGenNodeComponent(props: NodeProps) {
         {/* Output Preview */}
         {nodeData.outputVideo ? (
           <div className="relative aspect-video w-full rounded-md overflow-hidden bg-black/20">
-            {/* biome-ignore lint/a11y/useMediaCaption: generated preview videos do not have caption tracks in this transient asset preview */}
             <video
               src={nodeData.outputVideo}
               className="absolute inset-0 w-full h-full object-contain cursor-pointer"
               controls
-            />
+            >
+              <track kind="captions" />
+            </video>
             {/* Processing overlay spinner */}
             {nodeData.status === 'processing' && (
               <ProcessingOverlay onStop={handleStop} />

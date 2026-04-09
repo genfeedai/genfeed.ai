@@ -1,5 +1,11 @@
+import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
+import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import type { MetaAdSyncJobData } from '@api/queues/ad-sync-meta/ad-sync-meta.processor';
 import { QueueService } from '@api/queues/core/queue.service';
+import { MetaAdsService } from '@api/services/integrations/meta-ads/services/meta-ads.service';
+import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
+import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
@@ -12,7 +18,10 @@ export class CronAdSyncMetaService {
   private readonly CHUNK_SIZE = 10;
 
   constructor(
+    private readonly adPerformanceService: AdPerformanceService,
+    private readonly credentialsService: CredentialsService,
     private readonly logger: LoggerService,
+    private readonly metaAdsService: MetaAdsService,
     private readonly queueService: QueueService,
   ) {}
 
@@ -22,12 +31,76 @@ export class CronAdSyncMetaService {
     this.logger.log(`${url} started`);
 
     try {
-      // In production, this would query credentials collection for all
-      // Facebook credentials with ads_management scope
-      // For now, the queue processor handles the actual API calls
+      const credentialsResult = await this.credentialsService.findAll(
+        [
+          {
+            $match: {
+              accessToken: { $exists: true, $ne: null },
+              brand: { $exists: true, $ne: null },
+              isConnected: true,
+              isDeleted: false,
+              organization: { $exists: true, $ne: null },
+              platform: CredentialPlatform.FACEBOOK,
+            },
+          },
+        ],
+        { limit: 100, pagination: false },
+      );
+
+      const credentials = credentialsResult.docs as CredentialDocument[];
+
+      if (credentials.length === 0) {
+        this.logger.log(`${url} no connected Meta credentials found`);
+        return;
+      }
+
+      for (const credential of credentials) {
+        await this.enqueueCredentialAdSync(url, credential);
+      }
+
       this.logger.log(`${url} completed scheduling`);
     } catch (error: unknown) {
       this.logger.error(`${url} failed`, error);
+    }
+  }
+
+  private async enqueueCredentialAdSync(
+    url: string,
+    credential: CredentialDocument,
+  ): Promise<void> {
+    try {
+      if (!credential.accessToken) {
+        this.logger.warn(`${url} skipping credential without access token`, {
+          credentialId: credential._id,
+        });
+        return;
+      }
+
+      const accessToken = EncryptionUtil.decrypt(credential.accessToken);
+      const adAccounts = await this.metaAdsService.getAdAccounts(accessToken);
+
+      if (adAccounts.length === 0) {
+        this.logger.log(`${url} no ad accounts found for credential`, {
+          credentialId: credential._id,
+        });
+        return;
+      }
+
+      const lastSyncDate =
+        await this.adPerformanceService.findLatestSyncDateForCredential(
+          String(credential._id),
+        );
+
+      await this.enqueueAdSyncJob({
+        accessToken,
+        adAccountIds: adAccounts.map((account) => account.id),
+        brandId: credential.brand.toString(),
+        credentialId: String(credential._id),
+        lastSyncDate: lastSyncDate?.toISOString(),
+        organizationId: credential.organization.toString(),
+      });
+    } catch (error: unknown) {
+      this.logger.error(`${url} failed to enqueue credential sync`, error);
     }
   }
 

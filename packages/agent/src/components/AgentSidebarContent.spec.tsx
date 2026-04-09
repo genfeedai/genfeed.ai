@@ -45,10 +45,10 @@ describe('AgentSidebarContent', () => {
 
     expect(
       screen.getByRole('link', { name: 'Back to overview' }),
-    ).toHaveAttribute('href', '/overview');
+    ).toHaveAttribute('href', '/test-org/test-brand/overview');
     expect(screen.getByRole('link', { name: /New Chat/ })).toHaveAttribute(
       'href',
-      '/chat/new',
+      '/test-org/~/chat/new',
     );
   });
 

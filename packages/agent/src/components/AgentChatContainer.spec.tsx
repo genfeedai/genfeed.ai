@@ -13,7 +13,7 @@ const sendStreaming = vi.fn();
 let isStreamingHookActive = false;
 const scrollIntoViewMock = vi.fn();
 
-vi.mock('@contexts/user/user-context/user-context', () => ({
+vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   useOptionalUser: () => null,
 }));
 
@@ -42,11 +42,11 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
   }),
 }));
 
-vi.mock('@models/auth/user.model', () => ({
+vi.mock('@genfeedai/models/auth/user.model', () => ({
   User: class User {},
 }));
 
-vi.mock('@services/organization/users.service', () => ({
+vi.mock('@genfeedai/services/organization/users.service', () => ({
   UsersService: {
     getInstance: vi.fn(),
   },

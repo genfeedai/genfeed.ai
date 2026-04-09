@@ -9,6 +9,7 @@ import {
 } from '@genfeedai/workflow-ui/stores';
 import { SaveIndicator, Toolbar } from '@genfeedai/workflow-ui/toolbar';
 import { Button } from '@ui/primitives/button';
+import { Input } from '@ui/primitives/input';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -102,14 +103,14 @@ export function CloudWorkflowToolbar({
             ) : null}
             <div className="min-w-0 flex-1">
               {isEditing ? (
-                <input
+                <Input
                   ref={inputRef}
                   type="text"
                   value={editedName}
                   onBlur={() => void commitRename()}
                   onChange={(event) => setEditedName(event.target.value)}
                   onKeyDown={(event) => void handleNameKeyDown(event)}
-                  className="cloud-workflow-title-input h-7 w-full rounded border border-border bg-secondary/70 px-2.5 text-sm font-medium text-foreground outline-none transition focus:border-primary/60 focus:bg-card focus:ring-1 focus:ring-primary/40"
+                  className="cloud-workflow-title-input h-7 w-full rounded border-border bg-secondary/70 px-2.5 text-sm font-medium text-foreground transition focus-visible:border-primary/60 focus-visible:bg-card focus-visible:ring-1 focus-visible:ring-primary/40"
                 />
               ) : (
                 <Button

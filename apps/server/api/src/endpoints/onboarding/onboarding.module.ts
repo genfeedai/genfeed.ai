@@ -1,5 +1,6 @@
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
+import { LinksModule } from '@api/collections/links/links.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
@@ -28,6 +29,7 @@ import { Module } from '@nestjs/common';
     CrmModule,
     CreditsModule,
     FilesClientModule,
+    LinksModule,
     ModelsModule,
     OrganizationSettingsModule,
     OrganizationsModule,

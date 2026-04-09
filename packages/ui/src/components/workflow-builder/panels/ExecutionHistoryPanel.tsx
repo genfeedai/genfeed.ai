@@ -90,50 +90,49 @@ function ExecutionItem({
 
   return (
     <div className=" border border-white/[0.08] bg-card">
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: toggle panel */}
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: toggle panel */}
-      <div
-        className="flex cursor-pointer items-center gap-3 p-3"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        {STATUS_ICONS[execution.status]}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <Badge
-              variant={STATUS_VARIANTS[execution.status] || 'ghost'}
-              size={ComponentSize.SM}
-            >
-              {execution.status}
-            </Badge>
-            <span className="text-xs opacity-60">
-              {formatDistanceToNow(new Date(execution.createdAt), {
-                addSuffix: true,
-              })}
-            </span>
+      <div className="flex items-center gap-3 p-3">
+        <Button
+          type="button"
+          variant={ButtonVariant.UNSTYLED}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
+          {STATUS_ICONS[execution.status]}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <Badge
+                variant={STATUS_VARIANTS[execution.status] || 'ghost'}
+                size={ComponentSize.SM}
+              >
+                {execution.status}
+              </Badge>
+              <span className="text-xs opacity-60">
+                {formatDistanceToNow(new Date(execution.createdAt), {
+                  addSuffix: true,
+                })}
+              </span>
+            </div>
+            {execution.durationMs && (
+              <span className="text-xs opacity-60">
+                Duration: {formatDuration(execution.durationMs)}
+              </span>
+            )}
           </div>
-          {execution.durationMs && (
-            <span className="text-xs opacity-60">
-              Duration: {formatDuration(execution.durationMs)}
-            </span>
+          {isExpanded ? (
+            <HiOutlineChevronUp className="h-4 w-4" />
+          ) : (
+            <HiOutlineChevronDown className="h-4 w-4" />
           )}
-        </div>
+        </Button>
         {execution.status === 'running' && (
           <Button
             type="button"
             variant={ButtonVariant.GHOST}
             size={ButtonSize.XS}
             className="text-error"
-            onClick={(e) => {
-              e.stopPropagation();
-              onCancel(execution.id);
-            }}
+            onClick={() => onCancel(execution.id)}
             label="Cancel"
           />
-        )}
-        {isExpanded ? (
-          <HiOutlineChevronUp className="h-4 w-4" />
-        ) : (
-          <HiOutlineChevronDown className="h-4 w-4" />
         )}
       </div>
 
@@ -241,10 +240,10 @@ export default function ExecutionHistoryPanel({
 
   return (
     <div className="border-b border-white/[0.08]">
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: toggle panel */}
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: toggle panel */}
-      <div
-        className="flex cursor-pointer items-center justify-between px-4 py-3"
+      <Button
+        type="button"
+        variant={ButtonVariant.UNSTYLED}
+        className="flex w-full items-center justify-between px-4 py-3 text-left"
         onClick={onToggleCollapse}
       >
         <div className="flex items-center gap-2">
@@ -261,7 +260,7 @@ export default function ExecutionHistoryPanel({
             <HiOutlineChevronUp className="h-4 w-4" />
           )}
         </div>
-      </div>
+      </Button>
 
       {!isCollapsed && (
         <div className="max-h-80 overflow-y-auto p-4 pt-0 space-y-2">

@@ -17,7 +17,7 @@ export function useCredentialMentions(
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!apiService) {
+    if (!apiService || typeof apiService.getMentionsEffect !== 'function') {
       setIsLoading(false);
       return;
     }

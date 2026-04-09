@@ -1,7 +1,7 @@
 # Genfeed.ai — Multi-stage Dockerfile
 # Usage: docker build --target <service> -t genfeedai/<service> .
 #
-# Targets: api, web, admin, website, workers, files, notifications,
+# Targets: api, web, website, workers, files, notifications,
 #          clips, mcp, discord, slack, telegram, images, videos, voices
 
 # ─── Base ───────────────────────────────────────────────────────────
@@ -40,19 +40,6 @@ COPY --from=web-pruned /app/out/full/ .
 RUN bun run build --filter=@genfeedai/web
 EXPOSE 3000
 CMD ["bun", "run", "start", "--filter=@genfeedai/web"]
-
-# ─── Admin ──────────────────────────────────────────────────────────
-FROM pruner AS admin-pruned
-RUN turbo prune @genfeedai/admin --docker
-
-FROM base AS admin
-WORKDIR /app
-COPY --from=admin-pruned /app/out/json/ .
-RUN bun install --frozen-lockfile
-COPY --from=admin-pruned /app/out/full/ .
-RUN bun run build --filter=@genfeedai/admin
-EXPOSE 3001
-CMD ["bun", "run", "start", "--filter=@genfeedai/admin"]
 
 # ─── Website ────────────────────────────────────────────────────────
 FROM pruner AS website-pruned

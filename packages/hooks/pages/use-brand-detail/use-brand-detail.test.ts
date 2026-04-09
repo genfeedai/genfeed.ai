@@ -30,7 +30,7 @@ vi.mock('@hooks/data/elements/use-elements/use-elements', () => ({
   })),
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
   useConfirmModal: vi.fn(() => ({ openConfirm: vi.fn() })),
   useUploadModal: vi.fn(() => ({ openUpload: mockOpenUpload })),
 }));
@@ -39,7 +39,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(),
 }));
 
-vi.mock('@services/external/public.service', () => ({
+vi.mock('@genfeedai/services/external/public.service', () => ({
   PublicService: {
     getInstance: vi.fn(() => ({
       findPublicArticles: mockFindPublicArticles,
@@ -49,7 +49,7 @@ vi.mock('@services/external/public.service', () => ({
   },
 }));
 
-vi.mock('@services/core/clipboard.service', () => ({
+vi.mock('@genfeedai/services/core/clipboard.service', () => ({
   ClipboardService: {
     getInstance: vi.fn(() => ({
       copyToClipboard: mockCopyToClipboard,
@@ -57,7 +57,7 @@ vi.mock('@services/core/clipboard.service', () => ({
   },
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(() => ({
       error: vi.fn(),
@@ -66,7 +66,7 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
     info: vi.fn(),

@@ -2,7 +2,7 @@ import { IngredientStatus } from '@genfeedai/enums';
 import type { IFormat, IIngredient } from '@genfeedai/interfaces';
 import type { IAssetSelectionContextType } from '@genfeedai/interfaces/components/asset-selection.interface';
 import type { IGenerationItem } from '@genfeedai/interfaces/components/generation.interface';
-import type { LayoutProps } from '@props/layout/layout.props';
+import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import { createContext, useCallback, useContext, useState } from 'react';
 
 export const AssetSelectionContext = createContext<IAssetSelectionContextType>({

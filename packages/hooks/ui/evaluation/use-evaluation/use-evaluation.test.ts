@@ -12,7 +12,7 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
   useSocketSubscription: vi.fn(),
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     debug: vi.fn(),
     error: vi.fn(),
@@ -20,15 +20,15 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(),
   },
 }));
 
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 // Import after mocking
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { NotificationsService } from '@services/core/notifications.service';
 
 // Mock references
 const mockGetImageEvaluations = vi.fn();

@@ -1,19 +1,22 @@
 'use client';
 
-import { useIngredientsContext } from '@contexts/content/ingredients-context/ingredients-context';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   type IngredientCategorySchema,
   ingredientCategorySchema,
 } from '@genfeedai/client/schemas';
-import { IngredientCategory, IngredientFormat } from '@genfeedai/enums';
+import { useIngredientsContext } from '@genfeedai/contexts/content/ingredients-context/ingredients-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import {
+  IngredientCategory,
+  IngredientFormat,
+  PageScope,
+} from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
-import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
-import { PageScope } from '@ui-constants/misc.constant';
 import {
   isAvatarSourceImageIngredient,
   isAvatarVideoIngredient,
-} from '@utils/media/ingredient-type.util';
+} from '@genfeedai/utils/media/ingredient-type.util';
+import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo } from 'react';
 import { useForm } from 'react-hook-form';

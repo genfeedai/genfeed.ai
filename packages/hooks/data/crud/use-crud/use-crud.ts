@@ -1,3 +1,6 @@
+import type { BaseService } from '@genfeedai/services/core/base.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import {
   type UseResourceOptions,
   type UseResourceReturn,
@@ -5,9 +8,6 @@ import {
   useResource,
 } from '@hooks/data/resource/use-resource/use-resource';
 import { withSilentOperation } from '@hooks/utils/service-operation/service-operation.util';
-import type { BaseService } from '@services/core/base.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 /**
@@ -139,7 +139,7 @@ export function useFindAll<T>(
       defaultValue: options?.defaultValue ?? ([] as T[]),
       dependencies: [...(options?.dependencies ?? []), queryDependency],
     },
-  );
+  ) as UseResourceReturn<T[]>;
 }
 
 /**

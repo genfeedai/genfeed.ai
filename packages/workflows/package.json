@@ -9,19 +9,19 @@
   },
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.js"
     },
     "./comfyui": {
+      "types": "./dist/comfyui/index.d.ts",
       "import": "./dist/comfyui/index.mjs",
-      "require": "./dist/comfyui/index.js",
-      "types": "./dist/comfyui/index.d.ts"
+      "require": "./dist/comfyui/index.js"
     },
     "./contracts": {
+      "types": "./dist/contracts/index.d.ts",
       "import": "./dist/contracts/index.mjs",
-      "require": "./dist/contracts/index.js",
-      "types": "./dist/contracts/index.d.ts"
+      "require": "./dist/contracts/index.js"
     },
     "./workflows/*": "./workflows/*"
   },

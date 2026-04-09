@@ -32,6 +32,7 @@ const CATEGORY_OPTIONS = [
   IngredientCategory.IMAGE,
   IngredientCategory.VIDEO,
 ] as const;
+const DEFAULT_CATEGORY_CONFIG = CATEGORY_CONFIG[IngredientCategory.IMAGE];
 
 export default function StudioEditTopbar({
   categoryType,
@@ -41,8 +42,12 @@ export default function StudioEditTopbar({
   selectedIngredient,
   onAssetDeselect,
 }: StudioEditTopbarProps): ReactNode {
+  if (!DEFAULT_CATEGORY_CONFIG) {
+    throw new Error('Missing default category config for image assets');
+  }
+
   const currentCategory =
-    CATEGORY_CONFIG[categoryType] ?? CATEGORY_CONFIG[IngredientCategory.IMAGE]!;
+    CATEGORY_CONFIG[categoryType] ?? DEFAULT_CATEGORY_CONFIG;
   const CurrentIcon = currentCategory.icon;
 
   return (
@@ -63,7 +68,10 @@ export default function StudioEditTopbar({
             </Button>
             <ul className="absolute left-0 top-full mt-2 hidden group-hover:block p-2 shadow-lg bg-background border border-white/[0.08] w-32 z-10">
               {CATEGORY_OPTIONS.map((category) => {
-                const config = CATEGORY_CONFIG[category]!;
+                const config = CATEGORY_CONFIG[category];
+                if (!config) {
+                  return null;
+                }
                 const Icon = config.icon;
                 const isActive = categoryType === category;
 

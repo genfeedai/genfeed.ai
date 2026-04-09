@@ -4,6 +4,7 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
+import { GoogleAdsService } from '@api/services/integrations/google-ads/services/google-ads.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
@@ -67,6 +68,7 @@ describe('CredentialsController', () => {
       brandsService as unknown as BrandsService,
       credentialsService as unknown as CredentialsService,
       createMockPlatformService() as unknown as FacebookService,
+      createMockPlatformService() as unknown as GoogleAdsService,
       instagramService as unknown as InstagramService,
       createMockPlatformService() as unknown as LinkedInService,
       organizationsService as unknown as OrganizationsService,
@@ -210,6 +212,7 @@ describe('CredentialsController', () => {
         brandsService as unknown as BrandsService,
         credentialsService as unknown as CredentialsService,
         createMockPlatformService() as unknown as FacebookService,
+        createMockPlatformService() as unknown as GoogleAdsService,
         instagramService as unknown as InstagramService,
         createMockPlatformService() as unknown as LinkedInService,
         organizationsService as unknown as OrganizationsService,

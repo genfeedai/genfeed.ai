@@ -6,14 +6,14 @@ import type {
   ICreditsBreakdown,
 } from '@genfeedai/interfaces';
 import type { UseSubscriptionReturn } from '@genfeedai/interfaces/hooks/hooks.interface';
+import { StripeService } from '@genfeedai/services/billing/stripe.service';
+import { SubscriptionsService } from '@genfeedai/services/billing/subscriptions.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { getClerkPublicData } from '@helpers/auth/clerk.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
-import { StripeService } from '@services/billing/stripe.service';
-import { SubscriptionsService } from '@services/billing/subscriptions.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
-import { OrganizationsService } from '@services/organization/organizations.service';
 import { useMemo } from 'react';
 
 export function useSubscription(): UseSubscriptionReturn {

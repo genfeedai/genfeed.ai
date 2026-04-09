@@ -7,10 +7,10 @@ import type {
   WorkflowNodeData,
   WorkflowVisualNode,
 } from '@genfeedai/interfaces/automation/workflow-builder.interface';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
-import { EnvironmentService } from '@services/core/environment.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
 import type {
   Connection,
   Edge,

@@ -369,13 +369,13 @@ export class MetaAdsController {
       user: new Types.ObjectId(userId),
     });
 
-    if (!credential?.oauthToken) {
+    if (!credential?.accessToken) {
       throw new NotFoundException(
         'Facebook credential not found. Please connect your Facebook account first.',
       );
     }
 
     // Decrypt the stored token
-    return EncryptionUtil.decrypt(credential.oauthToken);
+    return EncryptionUtil.decrypt(credential.accessToken);
   }
 }

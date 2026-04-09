@@ -10,7 +10,7 @@ import { forwardRef, Module } from '@nestjs/common';
 
 @Module({
   controllers: [BatchContentController],
-  exports: [BatchContentService],
+  exports: [BatchContentQueueService, BatchContentService],
   imports: [
     forwardRef(() => BrandsModule),
     LoggerModule,

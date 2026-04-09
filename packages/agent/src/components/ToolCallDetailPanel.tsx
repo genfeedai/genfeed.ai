@@ -2,8 +2,8 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { Pre } from '@genfeedai/ui';
+import type { StructuredProgressDebugPayload } from '@genfeedai/utils/progress/structured-progress-event.util';
 import { Button } from '@ui/primitives/button';
-import type { StructuredProgressDebugPayload } from '@utils/progress/structured-progress-event.util';
 import type { ReactElement } from 'react';
 import { useMemo, useState } from 'react';
 import { HiOutlineCheck, HiOutlineClipboardDocument } from 'react-icons/hi2';

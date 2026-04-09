@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as PageModule from './page';
 
-vi.mock('@pages/library/landing/library-landing-page', () => ({
+vi.mock('./library-landing-page', () => ({
   default: () => <div data-testid="library-landing-page" />,
 }));
 

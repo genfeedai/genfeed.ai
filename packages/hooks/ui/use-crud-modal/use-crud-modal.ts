@@ -1,12 +1,12 @@
 import type { ModalEnum } from '@genfeedai/enums';
+import type { BaseService } from '@genfeedai/services/core/base.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { closeModal as closeModalHelper } from '@helpers/ui/modal/modal.helper';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useFocusFirstInput } from '@hooks/ui/use-focus-first-input/use-focus-first-input';
 import { useFormSubmitWithState } from '@hooks/utils/use-form-submit/use-form-submit';
-import type { BaseService } from '@services/core/base.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
 import type { StandardSchemaV1 } from '@standard-schema/spec';
 import type { FormEvent, RefObject } from 'react';
 import { useCallback, useEffect, useMemo, useRef } from 'react';

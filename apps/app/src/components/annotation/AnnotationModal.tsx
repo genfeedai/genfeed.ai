@@ -2,6 +2,7 @@
 
 import type { AnnotationShape } from '@genfeedai/workflow-ui/stores';
 import { useAnnotationStore } from '@genfeedai/workflow-ui/stores';
+import { Input } from '@ui/primitives/input';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useWorkflowStore } from '@/store/workflowStore';
@@ -368,7 +369,7 @@ function AnnotationModalComponent() {
                 top: textPosition.y * canvasState.scale + canvasState.offsetY,
               }}
             >
-              <input
+              <Input
                 type="text"
                 value={textInput}
                 onChange={(e) => setTextInput(e.target.value)}
@@ -379,7 +380,7 @@ function AnnotationModalComponent() {
                     setTextInput('');
                   }
                 }}
-                className="rounded border border-primary bg-black/50 px-2 py-1 text-white outline-none"
+                className="h-auto rounded border-primary bg-black/50 px-2 py-1 text-white shadow-none focus-visible:ring-0"
                 style={{
                   color: toolOptions.strokeColor,
                   fontSize: toolOptions.fontSize,

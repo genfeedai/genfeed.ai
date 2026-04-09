@@ -1,3 +1,4 @@
+import type { ComponentType } from 'react';
 import { Composition, registerRoot } from 'remotion';
 import { EditorComposition } from '@/components/editor/EditorComposition';
 import {
@@ -25,7 +26,7 @@ export function RemotionRoot() {
   return (
     <Composition
       id={REMOTION_COMPOSITION_ID}
-      component={EditorComposition}
+      component={EditorComposition as ComponentType<unknown>}
       fps={EDITOR_FPS}
       width={fallbackComposition.width}
       height={fallbackComposition.height}

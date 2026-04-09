@@ -1,8 +1,8 @@
 'use client';
 
 import type { ICreativePattern } from '@genfeedai/interfaces';
-import type { PatternLabFilters } from '@props/analytics/performance-lab.props';
-import { logger } from '@services/core/logger.service';
+import type { PatternLabFilters } from '@genfeedai/props/analytics/performance-lab.props';
+import { logger } from '@genfeedai/services/core/logger.service';
 import { useEffect, useState } from 'react';
 
 export interface UsePatternContextReturn {

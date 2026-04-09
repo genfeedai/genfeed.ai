@@ -139,18 +139,22 @@ export function LightboxModal({
             />
           )}
           {item.type === 'video' && (
-            <video
-              src={mediaUrl}
-              controls
-              autoPlay
-              className="max-h-[calc(100vh-4rem)] max-w-[calc(100vw-8rem)] rounded-lg"
-            />
+            <>
+              {/* biome-ignore lint/a11y/useMediaCaption: generated media previews do not ship caption tracks */}
+              <video
+                src={mediaUrl}
+                controls
+                autoPlay
+                className="max-h-[calc(100vh-4rem)] max-w-[calc(100vw-8rem)] rounded-lg"
+              />
+            </>
           )}
           {item.type === 'audio' && (
             <div className="bg-[var(--card)] border border-[var(--border)] rounded-lg p-8 flex flex-col items-center gap-4">
               <div className="w-24 h-24 rounded-full bg-[var(--secondary)] flex items-center justify-center">
                 <Music className="w-12 h-12 text-[var(--primary)]" />
               </div>
+              {/* biome-ignore lint/a11y/useMediaCaption: generated media previews do not ship caption tracks */}
               <audio src={mediaUrl} controls autoPlay className="w-80" />
             </div>
           )}

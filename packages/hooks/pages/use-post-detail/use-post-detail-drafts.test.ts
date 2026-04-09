@@ -1,9 +1,9 @@
+import { PageScope } from '@genfeedai/enums';
 import { usePostDetailDrafts } from '@hooks/pages/use-post-detail/use-post-detail-drafts';
 import { act, renderHook } from '@testing-library/react';
-import { PageScope } from '@ui-constants/misc.constant';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@services/content/posts.service', () => ({
+vi.mock('@genfeedai/services/content/posts.service', () => ({
   PostsService: {
     getInstance: vi.fn(),
   },

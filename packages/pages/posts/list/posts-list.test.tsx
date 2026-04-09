@@ -1,9 +1,8 @@
 import '@testing-library/jest-dom/vitest';
-import { Platform, PostStatus } from '@genfeedai/enums';
+import { PageScope, Platform, PostStatus } from '@genfeedai/enums';
 import type { IPost } from '@genfeedai/interfaces';
 import PostsList from '@pages/posts/list/posts-list';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { PageScope } from '@ui-constants/misc.constant';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const replaceMock = vi.fn();

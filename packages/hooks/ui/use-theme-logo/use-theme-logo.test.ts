@@ -9,7 +9,7 @@ vi.mock('@hooks/utils/use-mounted/use-mounted', () => ({
   useMounted: vi.fn(() => mockIsMounted),
 }));
 
-vi.mock('@services/core/environment.service', () => ({
+vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     logoURL: 'https://example.com/logo.svg',
   },

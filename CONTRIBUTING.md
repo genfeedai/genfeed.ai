@@ -57,7 +57,7 @@ Core contributions (outside `ee/`) do not require a CLA — your contribution is
 
 ## Adding Integrations
 
-See `packages/integrations/README.md` for how to add new platform integrations.
+See `packages/integrations/README.md` for how to add shared platform integration utilities.
 
 ## Adding AI Models
 

@@ -9,11 +9,14 @@
 import { CLIP_ANALYZE_QUEUE } from '@api/queues/clip-analyze/clip-analyze.constants';
 import { CLIP_FACTORY_QUEUE } from '@api/queues/clip-factory/clip-factory.constants';
 import { QueueService } from '@api/queues/core/queue.service';
+import { WorkflowQueueService } from '@api/queues/workflow/workflow-queue.service';
 import {
   CAMPAIGN_MEMORY_EXTRACTION_QUEUE,
   ORCHESTRATOR_RUN_QUEUE,
   TRIGGER_EVALUATION_QUEUE,
 } from '@api/services/agent-campaign/orchestrator.constants';
+import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
+import { LoggerModule } from '@libs/logger/logger.module';
 import {
   buildBullMQConnection,
   parseRedisConnection,
@@ -24,8 +27,9 @@ import { ConfigModule } from '@workers/config/config.module';
 import { ConfigService } from '@workers/config/config.service';
 
 @Module({
-  exports: [QueueService],
+  exports: [QueueService, WorkflowQueueService, WorkspaceTaskQueueService],
   imports: [
+    LoggerModule,
     BullModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -330,6 +334,6 @@ import { ConfigService } from '@workers/config/config.service';
       },
     ),
   ],
-  providers: [QueueService],
+  providers: [QueueService, WorkflowQueueService, WorkspaceTaskQueueService],
 })
 export class WorkersQueuesModule {}

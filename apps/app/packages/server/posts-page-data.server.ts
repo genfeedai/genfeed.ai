@@ -5,13 +5,12 @@ import {
   loadProtectedBootstrap,
 } from '@app-server/protected-bootstrap.server';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { ModelCategory, PostStatus } from '@genfeedai/enums';
+import { ModelCategory, PageScope, PostStatus } from '@genfeedai/enums';
 import type { IPost, IPreset, IQueryParams } from '@genfeedai/interfaces';
 import { logger } from '@services/core/logger.service';
 import { PresetsService } from '@services/elements/presets.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
 import { BrandsService } from '@services/social/brands.service';
-import { PageScope } from '@ui-constants/misc.constant';
 import { cache } from 'react';
 
 export interface PostsPageData {

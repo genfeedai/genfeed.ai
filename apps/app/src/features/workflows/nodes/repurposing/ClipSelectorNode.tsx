@@ -18,7 +18,7 @@ import {
   ClockIcon,
   ScissorsIcon,
   SparklesIcon,
-} from '@/features/workflows/components/ui/icons/node-icons';
+} from '@/features/workflows/components/ui/icons';
 import {
   NodeInput,
   NodeSelect,
@@ -113,7 +113,7 @@ function ClipSelectorNodeComponent(props: NodeProps): React.JSX.Element {
   return (
     <NodeCard minWidth="300px">
       <NodeHeader
-        icon={<ScissorsIcon />}
+        icon={<ScissorsIcon className="h-4 w-4" />}
         title="AI Clip Selector"
         badge={<NodeBadge variant="orange">Repurposing</NodeBadge>}
       />
@@ -208,7 +208,7 @@ function ClipSelectorNodeComponent(props: NodeProps): React.JSX.Element {
                 <div className="flex items-center justify-between">
                   <span className="font-medium">Clip {index + 1}</span>
                   <span className="text-muted-foreground flex items-center gap-1">
-                    <ClockIcon />
+                    <ClockIcon className="h-4 w-4" />
                     {formatTime(clip.startTime)} - {formatTime(clip.endTime)}
                   </span>
                 </div>
@@ -243,7 +243,7 @@ function ClipSelectorNodeComponent(props: NodeProps): React.JSX.Element {
           fullWidth
           onClick={handleAnalyze}
           disabled={!canAnalyze}
-          icon={<SparklesIcon />}
+          icon={<SparklesIcon className="h-4 w-4" />}
         >
           Analyze & Select Clips
         </NodeButton>

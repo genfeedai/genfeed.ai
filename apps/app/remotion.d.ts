@@ -1,7 +1,7 @@
 /**
  * Remotion module declarations.
  * These are fallbacks for when TypeScript can't resolve remotion types
- * from transitive imports in packages/pages.
+ * from transitive imports in shared page modules.
  * The actual types from node_modules/@remotion/player take precedence.
  */
 declare module '@remotion/player' {
@@ -20,7 +20,7 @@ declare module '@remotion/player' {
 
   export const Player: React.ForwardRefExoticComponent<
     {
-      component: ComponentType<any>;
+      component: ComponentType<unknown>;
       durationInFrames: number;
       compositionWidth: number;
       compositionHeight: number;
@@ -51,6 +51,22 @@ declare module 'remotion' {
     name?: string;
   }>;
 
+  export const Composition: ComponentType<{
+    id: string;
+    component: ComponentType<unknown>;
+    fps: number;
+    width: number;
+    height: number;
+    durationInFrames: number;
+    defaultProps?: Record<string, unknown>;
+    calculateMetadata?: (args: { props: Record<string, unknown> }) => {
+      durationInFrames: number;
+      fps: number;
+      height: number;
+      width: number;
+    };
+  }>;
+
   export const Audio: ComponentType<{
     src: string;
     volume?: number;
@@ -65,6 +81,13 @@ declare module 'remotion' {
     startFrom?: number;
     endAt?: number;
   }>;
+
+  export const Img: ComponentType<{
+    src: string;
+    style?: React.CSSProperties;
+  }>;
+
+  export function registerRoot(comp: React.FC): void;
 
   export function useVideoConfig(): {
     width: number;

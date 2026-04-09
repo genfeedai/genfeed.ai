@@ -1,8 +1,8 @@
 import type { IIngredient } from '@genfeedai/interfaces';
+import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { executeWithLoading } from '@hooks/utils/service-operation/service-operation.util';
-import { IngredientsService } from '@services/content/ingredients.service';
-import { NotificationsService } from '@services/core/notifications.service';
 import { useCallback, useState } from 'react';
 
 /**

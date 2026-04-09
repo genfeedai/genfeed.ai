@@ -1,5 +1,5 @@
+import { logger } from '@genfeedai/services/core/logger.service';
 import { AuthenticationTokenUnavailableError } from '@hooks/auth/use-authed-service/use-authed-service';
-import { logger } from '@services/core/logger.service';
 import type { DependencyList } from 'react';
 import {
   startTransition,
@@ -49,6 +49,36 @@ interface ResourceCacheEntry<T> {
 }
 
 const resourceCache = new Map<string, ResourceCacheEntry<unknown>>();
+
+function normalizeResourceError(error: unknown): {
+  context?: { error: unknown; reportToSentry: false };
+  message: string;
+} {
+  if (error instanceof Error) {
+    const trimmedMessage = error.message.trim();
+    return {
+      context: { error, reportToSentry: false },
+      message: trimmedMessage
+        ? `useResource: fetch failed - ${trimmedMessage}`
+        : 'useResource: fetch failed',
+    };
+  }
+
+  if (typeof error === 'string') {
+    const trimmedMessage = error.trim();
+    return {
+      context: { error, reportToSentry: false },
+      message: trimmedMessage
+        ? `useResource: fetch failed - ${trimmedMessage}`
+        : 'useResource: fetch failed',
+    };
+  }
+
+  return {
+    context: { error, reportToSentry: false },
+    message: 'useResource: fetch failed',
+  };
+}
 
 /**
  * Unified data fetching hook
@@ -256,10 +286,8 @@ export function useResource<T>(
         if (isMountedRef.current && !controller.signal.aborted) {
           setError(error);
 
-          // Log concise error — full details already logged by service layer
-          logger.error(`useResource: fetch failed — ${error.message}`, {
-            reportToSentry: false,
-          });
+          const normalizedError = normalizeResourceError(err);
+          logger.error(normalizedError.message, normalizedError.context);
 
           onErrorRef.current?.(error);
         }
@@ -329,6 +357,7 @@ export function useResource<T>(
   const prevDepsRef = useRef<DependencyList>(dependencies);
   const [_depsTrigger, setDepsTrigger] = useState(0);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: this hook accepts a caller-provided dependency list and compares its values manually.
   useEffect(() => {
     if (!shallowEqual(prevDepsRef.current, dependencies)) {
       prevDepsRef.current = dependencies;
@@ -338,6 +367,8 @@ export function useResource<T>(
 
   // Initial fetch - triggers when dependency values change, not array reference
   useEffect(() => {
+    void _depsTrigger;
+
     // Reset mounted ref when effect runs
     isMountedRef.current = true;
 
@@ -362,7 +393,13 @@ export function useResource<T>(
         abortControllerRef.current.abort();
       }
     };
-  }, [fetchData, enabled, revalidateOnMount, resolvedInitialData]);
+  }, [
+    fetchData,
+    enabled,
+    revalidateOnMount,
+    resolvedInitialData,
+    _depsTrigger,
+  ]);
 
   return {
     data,

@@ -77,6 +77,17 @@ describe('LocalhostOnlyGuard', () => {
     ).toBe(true);
   });
 
+  it('allows local subdomain origins and hosts', () => {
+    expect(
+      guard.canActivate(
+        makeContext({
+          host: 'local.genfeed.ai:3010',
+          origin: 'http://local.genfeed.ai:3000',
+        }),
+      ),
+    ).toBe(true);
+  });
+
   it('allows forwarded localhost ip addresses', () => {
     expect(
       guard.canActivate(

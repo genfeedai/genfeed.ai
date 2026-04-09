@@ -16,7 +16,7 @@ type Story = StoryObj<typeof ThreadPreviewPanel>;
 
 export const Default: Story = {
   args: {
-    children: [
+    replies: [
       { content: '<p>First reply content</p>', id: 'child-1' },
       { content: '<p>Second reply content</p>', id: 'child-2' },
     ],
@@ -26,7 +26,7 @@ export const Default: Story = {
 
 export const Interactive: Story = {
   args: {
-    children: [
+    replies: [
       { content: '<p>Reply A</p>', id: 'child-1' },
       { content: '<p>Reply B</p>', id: 'child-2' },
       { content: '<p>Reply C</p>', id: 'child-3' },

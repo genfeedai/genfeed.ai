@@ -1,13 +1,13 @@
 'use client';
 
 import { ModalEnum } from '@genfeedai/enums';
-import { openModal } from '@helpers/ui/modal/modal.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { logger } from '@services/core/logger.service';
+import { logger } from '@genfeedai/services/core/logger.service';
 import {
   OnboardingService,
   type OnboardingStatusResponse,
-} from '@services/onboarding/onboarding.service';
+} from '@genfeedai/services/onboarding/onboarding.service';
+import { openModal } from '@helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useCallback, useEffect, useState } from 'react';
 
 export interface UseOnboardingReturn {

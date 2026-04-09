@@ -1,8 +1,8 @@
 'use client';
 
+import { registerDefaultCommands } from '@genfeedai/services/core/commands.registry';
+import { logger } from '@genfeedai/services/core/logger.service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url/use-org-url';
-import { registerDefaultCommands } from '@services/core/commands.registry';
-import { logger } from '@services/core/logger.service';
 import { useEffect } from 'react';
 
 export function useDefaultCommandsRegistration(): void {

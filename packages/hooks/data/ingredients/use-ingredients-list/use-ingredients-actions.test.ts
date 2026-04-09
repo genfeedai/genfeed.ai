@@ -1,6 +1,6 @@
+import { PageScope } from '@genfeedai/enums';
 import { useIngredientsActions } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-actions';
 import { renderHook } from '@testing-library/react';
-import { PageScope } from '@ui-constants/misc.constant';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock(
@@ -43,20 +43,20 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => vi.fn()),
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
   useConfirmModal: vi.fn(() => ({ openConfirm: vi.fn() })),
   useIngredientOverlay: vi.fn(() => ({ openIngredientOverlay: vi.fn() })),
   usePostModal: vi.fn(() => ({ openPostBatchModal: vi.fn() })),
   useUploadModal: vi.fn(() => ({ openUpload: vi.fn() })),
 }));
 
-vi.mock('@services/content/ingredients.service', () => ({
+vi.mock('@genfeedai/services/content/ingredients.service', () => ({
   IngredientsService: {
     getInstance: vi.fn(),
   },
 }));
 
-vi.mock('@services/ingredients/videos.service', () => ({
+vi.mock('@genfeedai/services/ingredients/videos.service', () => ({
   VideosService: {
     getInstance: vi.fn(),
   },
@@ -70,7 +70,7 @@ vi.mock('@helpers/ui/modal/modal.helper', () => ({
   openModal: vi.fn(),
 }));
 
-vi.mock('@utils/network/websocket.util', () => ({
+vi.mock('@genfeedai/utils/network/websocket.util', () => ({
   WebSocketPaths: { INGREDIENTS: '/ws/ingredients' },
 }));
 

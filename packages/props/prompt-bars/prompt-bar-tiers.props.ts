@@ -7,6 +7,7 @@ import type {
   SubscriptionTier,
 } from '@genfeedai/enums';
 import type {
+  FormDropdownOption as DropdownFieldOption,
   IAsset,
   IElementBlacklist,
   IElementCamera,
@@ -25,7 +26,6 @@ import type {
   ITraining,
 } from '@genfeedai/interfaces';
 import type { IGenerationItem } from '@genfeedai/interfaces/components/generation.interface';
-import type { FormDropdownOption } from '@props/forms/form.props';
 import type { PromptBarSuggestionItem } from '@props/prompt-bars/prompt-bar-suggestion-item.props';
 import type {
   GalleryModalOptions,
@@ -133,8 +133,8 @@ export interface PromptBarEssentialsProps {
   activeGenerations: IGenerationItem[];
   generateLabel: string;
 
-  avatars?: FormDropdownOption[];
-  voices?: FormDropdownOption[];
+  avatars?: DropdownFieldOption[];
+  voices?: DropdownFieldOption[];
 }
 
 /**

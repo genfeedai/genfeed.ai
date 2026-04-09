@@ -59,7 +59,7 @@ describe('MetaAdsController', () => {
 
   const mockCredential = {
     _id: new Types.ObjectId(),
-    oauthToken: 'encrypted_fb_token',
+    accessToken: 'encrypted_fb_token',
     platform: CredentialPlatform.FACEBOOK,
   };
 
@@ -131,10 +131,10 @@ describe('MetaAdsController', () => {
       );
     });
 
-    it('throws NotFoundException when oauthToken is missing', async () => {
+    it('throws NotFoundException when accessToken is missing', async () => {
       credentialsService.findOne.mockResolvedValue({
         ...mockCredential,
-        oauthToken: null,
+        accessToken: null,
       });
 
       await expect(controller.getAdAccounts(mockUser)).rejects.toThrow(

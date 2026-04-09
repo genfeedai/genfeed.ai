@@ -1,10 +1,10 @@
+import { logger } from '@genfeedai/services/core/logger.service';
 import { AuthenticationTokenUnavailableError } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
-import { logger } from '@services/core/logger.service';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
     info: vi.fn(),
@@ -211,6 +211,14 @@ describe('useResource', () => {
       await waitFor(() => {
         expect(onError).toHaveBeenCalledWith(error);
       });
+
+      expect(vi.mocked(logger.error)).toHaveBeenCalledWith(
+        'useResource: fetch failed - Fetch failed',
+        {
+          error,
+          reportToSentry: false,
+        },
+      );
     });
 
     it('silently defers when auth token is not yet available', async () => {
@@ -228,6 +236,22 @@ describe('useResource', () => {
       expect(result.current.error).toBeNull();
       expect(onError).not.toHaveBeenCalled();
       expect(vi.mocked(logger.error)).not.toHaveBeenCalled();
+    });
+
+    it('logs a generic message for non-Error rejections', async () => {
+      const fetcher = vi.fn().mockRejectedValue({ status: 403 });
+
+      renderHook(() => useResource(fetcher));
+
+      await waitFor(() => {
+        expect(vi.mocked(logger.error)).toHaveBeenCalledWith(
+          'useResource: fetch failed',
+          {
+            error: { status: 403 },
+            reportToSentry: false,
+          },
+        );
+      });
     });
 
     it('clears error on successful refresh', async () => {

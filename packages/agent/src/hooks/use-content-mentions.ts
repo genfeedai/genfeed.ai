@@ -15,14 +15,16 @@ export function useContentMentions(
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (!apiService) {
+    if (
+      !apiService ||
+      typeof apiService.getContentMentionsEffect !== 'function'
+    ) {
       setIsLoading(false);
       return;
     }
 
     const controller = new AbortController();
 
-    // TODO: Create API endpoint GET /v1/content/mentions and add getContentMentionsEffect to AgentApiService
     runAgentApiEffect(apiService.getContentMentionsEffect(controller.signal))
       .then((data) => {
         if (!controller.signal.aborted) {

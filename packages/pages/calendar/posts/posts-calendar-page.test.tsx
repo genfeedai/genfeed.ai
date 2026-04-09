@@ -1,6 +1,6 @@
+import { PageScope } from '@genfeedai/enums';
 import PostsCalendarPage from '@pages/calendar/posts/posts-calendar-page';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { PageScope } from '@ui-constants/misc.constant';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom';

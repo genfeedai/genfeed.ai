@@ -128,15 +128,6 @@ vi.mock('@ui/shell/menus/AppSidebar', () => ({
   },
 }));
 
-vi.mock('@pages/issues/create-dialog/create-issue-dialog', () => ({
-  default: ({
-    open,
-  }: {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-  }) => (open ? <div data-testid="create-issue-dialog" /> : null),
-}));
-
 vi.mock('@app-components/streaks/StreakNotificationsBridge', () => ({
   default: () => <div data-testid="streak-notifications-bridge" />,
 }));
@@ -336,6 +327,7 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: vi.fn(),
   }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock('@services/core/agent-overlay-coordination.service', async () => {

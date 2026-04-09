@@ -13,7 +13,7 @@ vi.mock('next/navigation', () => ({
   redirect: redirectMock,
 }));
 
-vi.mock('@pages/studio/page/StudioPageContent', () => ({
+vi.mock('./StudioPageContent', () => ({
   default: () => <div data-testid="studio-page-content" />,
 }));
 

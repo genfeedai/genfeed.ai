@@ -1,11 +1,11 @@
 'use client';
 
-import { useBackgroundTaskContext } from '@contexts/ui/background-task-context';
+import { useBackgroundTaskContext } from '@genfeedai/contexts/ui/background-task-context';
 import type { IBackgroundTaskUpdateEvent } from '@genfeedai/interfaces';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import { NotificationsService } from '@services/core/notifications.service';
 import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';

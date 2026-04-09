@@ -30,7 +30,7 @@ import {
   SlackIcon,
   WebhookIcon,
   XIcon,
-} from '@/features/workflows/components/ui/icons/node-icons';
+} from '@/features/workflows/components/ui/icons';
 import { NodeInput } from '@/features/workflows/components/ui/inputs';
 import { MediaPreview } from '@/features/workflows/components/ui/media';
 import { HelpText } from '@/features/workflows/components/ui/status';
@@ -51,22 +51,22 @@ function getStatusBadge(
     }
   > = {
     [ReviewGateStatus.APPROVED]: {
-      icon: <CheckIcon />,
+      icon: <CheckIcon className="h-4 w-4" />,
       label: 'Approved',
       variant: 'green' as const,
     },
     [ReviewGateStatus.PENDING]: {
-      icon: <ClockIcon />,
+      icon: <ClockIcon className="h-4 w-4" />,
       label: 'Pending',
       variant: 'orange' as const,
     },
     [ReviewGateStatus.REJECTED]: {
-      icon: <XIcon />,
+      icon: <XIcon className="h-4 w-4" />,
       label: 'Rejected',
       variant: 'red' as const,
     },
     [ReviewGateStatus.TIMEOUT]: {
-      icon: <ClockIcon />,
+      icon: <ClockIcon className="h-4 w-4" />,
       label: 'Timeout',
       variant: 'yellow' as const,
     },
@@ -84,9 +84,18 @@ const CHANNEL_CONFIG: Record<
   NotificationChannel,
   { icon: React.JSX.Element; label: string }
 > = {
-  [NotificationChannel.EMAIL]: { icon: <MailIcon />, label: 'Email' },
-  [NotificationChannel.SLACK]: { icon: <SlackIcon />, label: 'Slack' },
-  [NotificationChannel.WEBHOOK]: { icon: <WebhookIcon />, label: 'Webhook' },
+  [NotificationChannel.EMAIL]: {
+    icon: <MailIcon className="h-4 w-4" />,
+    label: 'Email',
+  },
+  [NotificationChannel.SLACK]: {
+    icon: <SlackIcon className="h-4 w-4" />,
+    label: 'Slack',
+  },
+  [NotificationChannel.WEBHOOK]: {
+    icon: <WebhookIcon className="h-4 w-4" />,
+    label: 'Webhook',
+  },
 };
 
 function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
@@ -221,7 +230,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
   return (
     <NodeCard minWidth="300px">
       <NodeHeader
-        icon={<ShieldCheckIcon />}
+        icon={<ShieldCheckIcon className="h-4 w-4" />}
         title="Review Gate"
         badge={getStatusBadge(data.approvalStatus)}
       />
@@ -303,13 +312,13 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <label className="text-sm">Timeout (hours)</label>
-            <input
+            <NodeInput
               type="number"
               value={data.timeoutHours}
               onChange={handleTimeoutChange}
               min={1}
               max={168}
-              className="w-20 px-2 py-1 text-sm bg-background border border-white/[0.08] focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-20 px-2 py-1 text-sm"
             />
           </div>
           <div className="flex items-center justify-between">
@@ -329,7 +338,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
             variant="success"
             fullWidth
             onClick={handleApprove}
-            icon={<CheckIcon />}
+            icon={<CheckIcon className="h-4 w-4" />}
           >
             Approve
           </NodeButton>
@@ -337,7 +346,7 @@ function ReviewGateNodeComponent(props: NodeProps): React.JSX.Element {
             variant="danger"
             fullWidth
             onClick={handleReject}
-            icon={<XIcon />}
+            icon={<XIcon className="h-4 w-4" />}
           >
             Reject
           </NodeButton>

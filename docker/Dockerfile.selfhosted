@@ -69,7 +69,7 @@ RUN set -e && \
     bun --filter @genfeedai/workflow-engine build & pid3=$! && \
     wait $pid1 $pid2 $pid3 && \
     bun --filter @genfeedai/helpers build && \
-    bun --filter @genfeedai/integration-common build && \
+    bun --filter @genfeedai/integrations build && \
     bun --filter @genfeedai/cloud-serializers build && \
     bun --filter @genfeedai/workflow-saas build
 

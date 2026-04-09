@@ -14,7 +14,7 @@ import { useUIStore } from '@genfeedai/workflow-ui/stores';
 
 const mockedUIStore = vi.mocked(useUIStore);
 
-vi.mock('@/components/ui/select', () => ({
+vi.mock('@ui/primitives/select', () => ({
   Select: ({ children }: { children: React.ReactNode }) => (
     <div data-testid="select">{children}</div>
   ),

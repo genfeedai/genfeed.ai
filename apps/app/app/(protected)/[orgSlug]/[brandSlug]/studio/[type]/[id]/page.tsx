@@ -1,7 +1,7 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import StudioEditDetail from '@pages/studio/edit-detail/StudioEditDetail';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
+import StudioEditDetail from './StudioEditDetail';
 
 interface StudioDetailPageProps {
   params: Promise<{ id: string; type: string }>;

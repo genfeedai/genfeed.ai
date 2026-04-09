@@ -1,15 +1,15 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import type { OnboardingStepKey } from '@genfeedai/constants';
 import { ONBOARDING_STEP_LABELS, ONBOARDING_STEPS } from '@genfeedai/constants';
+import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
 import type { IOnboardingContextValue } from '@genfeedai/interfaces';
+import type { OnboardingProviderProps } from '@genfeedai/props/onboarding/onboarding-provider.props';
+import { logger } from '@genfeedai/services/core/logger.service';
+import type { UpdateUserOnboardingPayload } from '@genfeedai/services/onboarding/user-onboarding.service';
+import { UserOnboardingService } from '@genfeedai/services/onboarding/user-onboarding.service';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
-import type { OnboardingProviderProps } from '@props/onboarding/onboarding-provider.props';
-import { logger } from '@services/core/logger.service';
-import type { UpdateUserOnboardingPayload } from '@services/onboarding/user-onboarding.service';
-import { UserOnboardingService } from '@services/onboarding/user-onboarding.service';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   createContext,

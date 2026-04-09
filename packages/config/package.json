@@ -9,24 +9,24 @@
   },
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.js"
     },
     "./*": {
+      "types": "./dist/*.d.ts",
       "import": "./dist/*.js",
-      "require": "./dist/*.js",
-      "types": "./dist/*.d.ts"
+      "require": "./dist/*.js"
     },
     "./interfaces": {
+      "types": "./dist/interfaces/index.d.ts",
       "import": "./dist/interfaces/index.js",
-      "require": "./dist/interfaces/index.js",
-      "types": "./dist/interfaces/index.d.ts"
+      "require": "./dist/interfaces/index.js"
     },
     "./schemas": {
+      "types": "./dist/schemas/index.d.ts",
       "import": "./dist/schemas/index.js",
-      "require": "./dist/schemas/index.js",
-      "types": "./dist/schemas/index.d.ts"
+      "require": "./dist/schemas/index.js"
     }
   },
   "files": [

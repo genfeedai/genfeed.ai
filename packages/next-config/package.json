@@ -8,14 +8,14 @@
   },
   "exports": {
     ".": {
+      "types": "./dist/next.config.base.d.ts",
       "import": "./dist/next.config.base.js",
-      "require": "./dist/next.config.base.js",
-      "types": "./dist/next.config.base.d.ts"
+      "require": "./dist/next.config.base.js"
     },
     "./tailwind": {
+      "types": "./dist/tailwind.config.base.d.ts",
       "import": "./dist/tailwind.config.base.js",
-      "require": "./dist/tailwind.config.base.js",
-      "types": "./dist/tailwind.config.base.d.ts"
+      "require": "./dist/tailwind.config.base.js"
     }
   },
   "files": [

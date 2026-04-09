@@ -207,9 +207,9 @@ export default function PatternLabPage({ className }: PatternLabPageProps) {
       {/* Pattern grid */}
       {!isLoading && !error && patterns.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {patterns.map((pattern, index) => (
+          {patterns.map((pattern) => (
             <PatternCard
-              key={`${pattern.patternType}-${pattern.label}-${index}`}
+              key={`${pattern.patternType}-${pattern.label}`}
               pattern={pattern}
             />
           ))}

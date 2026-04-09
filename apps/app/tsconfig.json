@@ -5,18 +5,77 @@
       "@app-components/*": ["./packages/components/*"],
       "@app-config/*": ["./packages/config/*"],
       "@app-server/*": ["./packages/server/*"],
+      "@components/buttons/refresh/button-refresh/ButtonRefresh": [
+        "../../packages/ui/src/components/buttons/refresh/button-refresh/ButtonRefresh.tsx"
+      ],
+      "@components/cards/KpiCard": [
+        "./packages/components/admin/cards/KpiCard.tsx"
+      ],
+      "@components/lazy/LazyModal": [
+        "./packages/components/admin/lazy/LazyModal.tsx"
+      ],
+      "@components/lazy/modal/LazyModal": [
+        "../../packages/ui/src/components/lazy/modal/LazyModal.tsx"
+      ],
+      "@components/loading/fallback/LazyLoadingFallback": [
+        "../../packages/ui/src/components/loading/fallback/LazyLoadingFallback.tsx"
+      ],
+      "@components/loading/skeleton/SkeletonFallbacks": [
+        "../../packages/ui/src/components/loading/skeleton/SkeletonFallbacks.tsx"
+      ],
+      "@components/modals/actions/ModalActions": [
+        "../../packages/ui/src/components/modals/actions/ModalActions.tsx"
+      ],
+      "@components/modals/modal/Modal": [
+        "../../packages/ui/src/components/modals/modal/Modal.tsx"
+      ],
+      "@components/modals/ModalRole": [
+        "./packages/components/admin/modals/ModalRole.tsx"
+      ],
+      "@components/modals/ModalSubscription": [
+        "./packages/components/admin/modals/ModalSubscription.tsx"
+      ],
+      "@components/social/SocialLinks": [
+        "./packages/components/admin/social/SocialLinks.tsx"
+      ],
       "@/*": ["./src/*"],
       "@app/*": ["./app/*"],
       "@cloud-types/*": ["../../packages/types/src/*"],
       "@genfeedai/agent": ["../../packages/agent/src/index.ts"],
       "@genfeedai/agent/*": ["../../packages/agent/src/*"],
+      "@genfeedai/contexts": ["../../packages/contexts/index.ts"],
+      "@genfeedai/contexts/*": ["../../packages/contexts/*"],
+      "@genfeedai/config": ["../../packages/config/src/index.ts"],
+      "@genfeedai/config/*": ["../../packages/config/src/*"],
       "@genfeedai/interfaces": ["../../packages/interfaces/src/index.ts"],
       "@genfeedai/interfaces/*": ["../../packages/interfaces/src/*"],
+      "@genfeedai/models": ["../../packages/models/index.ts"],
+      "@genfeedai/models/*": ["../../packages/models/*"],
+      "@genfeedai/pages": ["../../packages/pages/index.ts"],
+      "@genfeedai/pages/*": ["../../packages/pages/*"],
+      "@genfeedai/props": ["../../packages/props/index.ts"],
+      "@genfeedai/props/*": ["../../packages/props/*"],
+      "@genfeedai/providers": ["../../packages/providers"],
+      "@genfeedai/providers/*": ["../../packages/providers/*"],
+      "@genfeedai/services": ["../../packages/services/index.ts"],
+      "@genfeedai/services/*": ["../../packages/services/*"],
       "@genfeedai/serializers": ["../../packages/serializers/src/index.ts"],
       "@genfeedai/serializers/*": ["../../packages/serializers/src/*"],
       "@genfeedai/types": ["../../packages/types/src/index.ts"],
       "@genfeedai/types/*": ["../../packages/types/src/*"],
+      "@genfeedai/utils": ["../../packages/utils/index.ts"],
+      "@genfeedai/utils/*": ["../../packages/utils/*"],
       "@genfeedai/workflow-saas": ["../../packages/workflow-saas/src/index.ts"],
+      "@fullcalendar/core": ["./node_modules/@fullcalendar/core/index.d.ts"],
+      "@fullcalendar/interaction": [
+        "./node_modules/@fullcalendar/interaction/index.d.ts"
+      ],
+      "@fullcalendar/react": ["./node_modules/@fullcalendar/react/index.d.ts"],
+      "@fullcalendar/timegrid": [
+        "./node_modules/@fullcalendar/timegrid/index.d.ts"
+      ],
+      "@ui/primitives/card": ["./src/components/ui/card.tsx"],
+      "@config/*": ["../../packages/config/src/*"],
       "@configs/*": ["../../packages/next-config/*"],
       "@contexts/*": ["../../packages/contexts/*"],
       "@genfeedai/client": ["../../packages/client/dist/index"],
@@ -35,6 +94,7 @@
       "@models/*": ["../../packages/models/*"],
       "@pages/*": ["../../packages/pages/*"],
       "@props/*": ["../../packages/props/*"],
+      "@protected/*": ["./app/(protected)/admin/*"],
       "@providers/*": ["../../packages/providers/*"],
       "@schemas/*": ["../../packages/schemas/*"],
       "@serializers/*": ["../../packages/serializers/src/*"],
@@ -46,12 +106,22 @@
         "../../packages/ui/src/*",
         "../../packages/ui/src/components/*"
       ],
+      "@ui/forms/base/form-control/FormControl": [
+        "../../packages/ui/src/primitives/field.tsx"
+      ],
       "@utils/*": ["../../packages/utils/*"],
       "@workflow-engine/*": ["../../packages/workflow-engine/src/*"],
       "@workflow-saas/*": ["../../packages/workflow-saas/src/*"]
     }
   },
-  "exclude": ["**/*.spec.ts", "**/*.spec.tsx", "**/*.test.ts", "**/*.test.tsx"],
+  "exclude": [
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "**/*.stories.ts",
+    "**/*.stories.tsx",
+    "**/*.test.ts",
+    "**/*.test.tsx"
+  ],
   "extends": "../../packages/tsconfig/nextjs.json",
   "include": [
     "next-env.d.ts",

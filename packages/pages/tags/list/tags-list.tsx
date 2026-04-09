@@ -2,7 +2,12 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { EMPTY_STATES } from '@genfeedai/constants';
-import { ComponentSize, ModalEnum, TagCategory } from '@genfeedai/enums';
+import {
+  ComponentSize,
+  ModalEnum,
+  PageScope,
+  TagCategory,
+} from '@genfeedai/enums';
 import type { IQueryParams, ITag } from '@genfeedai/interfaces';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -18,7 +23,6 @@ import Badge from '@ui/display/badge/Badge';
 import AppTable from '@ui/display/table/Table';
 import { LazyModalTag } from '@ui/lazy/modal/LazyModal';
 import { Switch } from '@ui/primitives/switch';
-import { PageScope } from '@ui-constants/misc.constant';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 import { HiPencil, HiTrash } from 'react-icons/hi2';

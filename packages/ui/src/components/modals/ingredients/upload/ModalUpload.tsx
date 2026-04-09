@@ -799,7 +799,7 @@ export default function ModalUpload({
               'file-uploader !max-w-full bg-primary/10 border-primary/10 border-1 border-dashed p-4 text-center cursor-pointer',
           })}
         >
-          <input {...getInputProps({ name: 'file' })} />
+          <Input type="file" {...getInputProps({ name: 'file' })} />
           {selectedFileList.length > 0 ? (
             <div className="text-left space-y-1">
               <div className="text-xs opacity-70">

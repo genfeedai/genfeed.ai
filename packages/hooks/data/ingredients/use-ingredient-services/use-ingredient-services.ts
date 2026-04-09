@@ -1,10 +1,10 @@
 import { IngredientCategory } from '@genfeedai/enums';
+import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
+import { GIFsService } from '@genfeedai/services/ingredients/gifs.service';
+import { ImagesService } from '@genfeedai/services/ingredients/images.service';
+import { MusicsService } from '@genfeedai/services/ingredients/musics.service';
+import { VideosService } from '@genfeedai/services/ingredients/videos.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { IngredientsService } from '@services/content/ingredients.service';
-import { GIFsService } from '@services/ingredients/gifs.service';
-import { ImagesService } from '@services/ingredients/images.service';
-import { MusicsService } from '@services/ingredients/musics.service';
-import { VideosService } from '@services/ingredients/videos.service';
 
 export function useIngredientServices() {
   const getIngredientsService = useAuthedService((token: string) =>

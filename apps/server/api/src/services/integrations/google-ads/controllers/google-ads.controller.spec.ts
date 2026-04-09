@@ -1,7 +1,9 @@
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
+import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
 import { GoogleAdsService } from '../services/google-ads.service';
@@ -31,15 +33,18 @@ const mockUser = {
 
 const ACCESS_TOKEN = 'decrypted:encrypted-token';
 const MOCK_CREDENTIAL = {
+  accessToken: 'encrypted-token',
   isConnected: true,
   isDeleted: false,
-  oauthToken: 'encrypted-token',
   platform: CredentialPlatform.GOOGLE_ADS,
 };
 
 describe('GoogleAdsController', () => {
   let controller: GoogleAdsController;
-  let credentialsService: vi.Mocked<Pick<CredentialsService, 'findOne'>>;
+  let brandsService: vi.Mocked<Pick<BrandsService, 'findOne'>>;
+  let credentialsService: vi.Mocked<
+    Pick<CredentialsService, 'findOne' | 'patch' | 'saveCredentials'>
+  >;
   let googleAdsService: vi.Mocked<
     Pick<
       GoogleAdsService,
@@ -60,8 +65,17 @@ describe('GoogleAdsController', () => {
   let loggerService: vi.Mocked<Pick<LoggerService, 'log' | 'error' | 'warn'>>;
 
   beforeEach(async () => {
+    brandsService = {
+      findOne: vi.fn().mockResolvedValue({
+        _id: new Types.ObjectId(),
+        organization: new Types.ObjectId(),
+        user: new Types.ObjectId(),
+      }),
+    };
     credentialsService = {
       findOne: vi.fn().mockResolvedValue(MOCK_CREDENTIAL),
+      patch: vi.fn().mockResolvedValue({ id: 'cred-1' }),
+      saveCredentials: vi.fn(),
     };
     googleAdsService = {
       getAdGroupInsights: vi.fn().mockResolvedValue({ clicks: 50 }),
@@ -76,9 +90,12 @@ describe('GoogleAdsController', () => {
       listCampaigns: vi.fn().mockResolvedValue([{ id: 'camp-1' }]),
     };
     googleAdsOAuthService = {
-      exchangeAuthCodeForAccessToken: vi
-        .fn()
-        .mockResolvedValue({ access_token: 'tok', refresh_token: 'ref' }),
+      exchangeAuthCodeForAccessToken: vi.fn().mockResolvedValue({
+        accessToken: 'tok',
+        expiresIn: 3600,
+        refreshToken: 'ref',
+        tokenType: 'Bearer',
+      }),
       generateAuthUrl: vi
         .fn()
         .mockReturnValue('https://accounts.google.com/oauth'),
@@ -88,6 +105,7 @@ describe('GoogleAdsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [GoogleAdsController],
       providers: [
+        { provide: BrandsService, useValue: brandsService },
         { provide: CredentialsService, useValue: credentialsService },
         { provide: GoogleAdsService, useValue: googleAdsService },
         { provide: GoogleAdsOAuthService, useValue: googleAdsOAuthService },
@@ -121,7 +139,46 @@ describe('GoogleAdsController', () => {
       expect(
         googleAdsOAuthService.exchangeAuthCodeForAccessToken,
       ).toHaveBeenCalledWith('auth-code');
-      expect(result).toEqual({ access_token: 'tok', refresh_token: 'ref' });
+      expect(result).toEqual({
+        accessToken: 'tok',
+        expiresIn: 3600,
+        refreshToken: 'ref',
+        tokenType: 'Bearer',
+      });
+    });
+  });
+
+  describe('verify', () => {
+    it('persists verified credential using access token', async () => {
+      googleAdsService.listAccessibleCustomers.mockResolvedValue([
+        {
+          currencyCode: 'USD',
+          descriptiveName: 'Primary Account',
+          id: '123',
+          isManager: false,
+          timeZone: 'UTC',
+        },
+      ] as never);
+
+      const result = await controller.verify({} as never, {
+        code: 'auth-code',
+        state: JSON.stringify({
+          brandId: new Types.ObjectId().toString(),
+          organizationId: new Types.ObjectId().toString(),
+        }),
+      });
+
+      expect(
+        googleAdsOAuthService.exchangeAuthCodeForAccessToken,
+      ).toHaveBeenCalledWith('auth-code');
+      expect(credentialsService.patch).toHaveBeenCalled();
+      expect(result).toBeDefined();
+    });
+
+    it('throws when code or state is missing', async () => {
+      await expect(
+        controller.verify({} as never, { code: 'auth-code' }),
+      ).rejects.toBeInstanceOf(HttpException);
     });
   });
 

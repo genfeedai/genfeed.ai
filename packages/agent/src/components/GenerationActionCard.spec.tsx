@@ -1,6 +1,7 @@
 import { ModelCategory, ModelProvider, RouterPriority } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { Effect } from 'effect';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -137,6 +138,33 @@ function createModel(
   } as IModel;
 }
 
+function createApiServiceMock(options?: {
+  createPrompt?: ReturnType<typeof vi.fn>;
+  generateIngredient?: ReturnType<typeof vi.fn>;
+  models?: IModel[];
+}) {
+  const createPrompt =
+    options?.createPrompt ?? vi.fn().mockResolvedValue({ id: 'prompt-1' });
+  const generateIngredient =
+    options?.generateIngredient ??
+    vi.fn().mockResolvedValue({
+      id: 'image-1',
+      url: 'https://cdn.test/image.png',
+    });
+  const models = options?.models ?? [];
+
+  return {
+    baseUrl: 'http://local.genfeed.ai:3010',
+    createPromptEffect: vi.fn((...args: unknown[]) =>
+      Effect.promise(() => createPrompt(...args)),
+    ),
+    generateIngredientEffect: vi.fn((...args: unknown[]) =>
+      Effect.promise(() => generateIngredient(...args)),
+    ),
+    getModelsEffect: vi.fn(() => Effect.succeed(models)),
+  };
+}
+
 describe('GenerationActionCard', () => {
   beforeEach(() => {
     storeState.activeThreadId = 'thread-1';
@@ -162,12 +190,7 @@ describe('GenerationActionCard', () => {
           title: 'Generate Image',
           type: 'generation_action_card',
         }}
-        apiService={{
-          baseUrl: 'http://local.genfeed.ai:3010',
-          createPrompt: vi.fn(),
-          generateIngredient: vi.fn(),
-          getModels: vi.fn().mockResolvedValue([]),
-        }}
+        apiService={createApiServiceMock()}
       />,
     );
 
@@ -198,12 +221,7 @@ describe('GenerationActionCard', () => {
           title: 'Generate Image',
           type: 'generation_action_card',
         }}
-        apiService={{
-          baseUrl: 'http://local.genfeed.ai:3010',
-          createPrompt: vi.fn(),
-          generateIngredient: vi.fn(),
-          getModels: vi.fn().mockResolvedValue([]),
-        }}
+        apiService={createApiServiceMock()}
       />,
     );
 
@@ -236,12 +254,9 @@ describe('GenerationActionCard', () => {
           title: 'Generate Image',
           type: 'generation_action_card',
         }}
-        apiService={{
-          baseUrl: 'http://local.genfeed.ai:3010',
-          createPrompt: vi.fn(),
-          generateIngredient: vi.fn(),
-          getModels: vi.fn().mockResolvedValue([imageModel, videoModel]),
-        }}
+        apiService={createApiServiceMock({
+          models: [imageModel, videoModel],
+        })}
       />,
     );
 
@@ -272,12 +287,7 @@ describe('GenerationActionCard', () => {
           title: 'Generate Image',
           type: 'generation_action_card',
         }}
-        apiService={{
-          baseUrl: 'http://local.genfeed.ai:3010',
-          createPrompt: vi.fn(),
-          generateIngredient: vi.fn(),
-          getModels: vi.fn().mockResolvedValue([]),
-        }}
+        apiService={createApiServiceMock()}
       />,
     );
 
@@ -310,12 +320,7 @@ describe('GenerationActionCard', () => {
           title: 'Generate Image',
           type: 'generation_action_card',
         }}
-        apiService={{
-          baseUrl: 'http://local.genfeed.ai:3010',
-          createPrompt: vi.fn(),
-          generateIngredient: vi.fn(),
-          getModels: vi.fn().mockResolvedValue([]),
-        }}
+        apiService={createApiServiceMock()}
       />,
     );
 
@@ -358,17 +363,16 @@ describe('GenerationActionCard', () => {
           title: 'Generate Image',
           type: 'generation_action_card',
         }}
-        apiService={{
-          baseUrl: 'http://local.genfeed.ai:3010',
+        apiService={createApiServiceMock({
           createPrompt,
           generateIngredient,
-          getModels: vi.fn().mockResolvedValue([
+          models: [
             createModel({
               key: MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
               label: 'Z-Image Turbo',
             }),
-          ]),
-        }}
+          ],
+        })}
       />,
     );
 

@@ -14,17 +14,17 @@ vi.mock('@clerk/nextjs', () => ({
   useUser: () => useUserMock(),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => useAuthedServiceMock,
 }));
 
-vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
+vi.mock('@genfeedai/hooks/data/resource/use-resource/use-resource', () => ({
   useResource: (...args: unknown[]) => useResourceMock(...args),
 }));
 
 describe('UserProvider', () => {
-  let UserProvider: typeof import('@contexts/user/user-context/user-context').UserProvider;
-  let useCurrentUser: typeof import('@contexts/user/user-context/user-context').useCurrentUser;
+  let UserProvider: typeof import('@genfeedai/contexts/user/user-context/user-context').UserProvider;
+  let useCurrentUser: typeof import('@genfeedai/contexts/user/user-context/user-context').useCurrentUser;
 
   const initialUser = {
     id: 'user_123',
@@ -54,7 +54,9 @@ describe('UserProvider', () => {
       }),
     );
 
-    const module = await import('@contexts/user/user-context/user-context');
+    const module = await import(
+      '@genfeedai/contexts/user/user-context/user-context'
+    );
     UserProvider = module.UserProvider;
     useCurrentUser = module.useCurrentUser;
   });

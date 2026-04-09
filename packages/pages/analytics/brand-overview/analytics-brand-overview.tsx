@@ -2,7 +2,7 @@
 
 import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { PostStatus } from '@genfeedai/enums';
+import { PageScope, PostStatus } from '@genfeedai/enums';
 import type { IAnalytics } from '@genfeedai/interfaces';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
@@ -18,7 +18,6 @@ import HtmlContent from '@ui/display/html-content/HtmlContent';
 import Table from '@ui/display/table/Table';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import Container from '@ui/layout/container/Container';
-import { PageScope } from '@ui-constants/misc.constant';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import Link from 'next/link';

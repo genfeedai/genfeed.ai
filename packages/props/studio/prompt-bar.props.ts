@@ -7,6 +7,7 @@ import type {
   SubscriptionTier,
 } from '@genfeedai/enums';
 import type {
+  FormDropdownOption as DropdownFieldOption,
   IAsset,
   IEditFormData,
   IElementBlacklist,
@@ -28,7 +29,6 @@ import type {
   ITraining,
 } from '@genfeedai/interfaces';
 import type { IGenerationItem } from '@genfeedai/interfaces/components/generation.interface';
-import type { FormDropdownOption } from '@props/forms/form.props';
 import type { PromptBarSuggestionItem } from '@props/prompt-bars/prompt-bar-suggestion-item.props';
 import type { PromptsService } from '@services/content/prompts.service';
 import type {
@@ -62,8 +62,8 @@ export interface PromptBarProps {
   lightings?: IElementLighting[];
   lenses?: IElementLens[];
   cameraMovements?: IElementCameraMovement[];
-  avatars?: FormDropdownOption[];
-  voices?: FormDropdownOption[];
+  avatars?: DropdownFieldOption[];
+  voices?: DropdownFieldOption[];
   avatarPreviewUrl?: string;
 
   categoryType?: IngredientCategory;
@@ -668,8 +668,8 @@ export interface PromptBarExpandedViewProps {
   generateLabel: string;
 
   /** For AVATAR category */
-  avatars?: FormDropdownOption[];
-  voices?: FormDropdownOption[];
+  avatars?: DropdownFieldOption[];
+  voices?: DropdownFieldOption[];
 }
 
 export type PromptBarUnifiedViewProps = Omit<

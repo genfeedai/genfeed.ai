@@ -7,6 +7,7 @@ export * from './generation-payload.interface';
 export * from './model.interface';
 export * from './persona.interface';
 export * from './post.interface';
+export * from './post-quick-action.interface';
 export * from './prompt.interface';
 export * from './prompts-content.interface';
 export * from './publication-card.interface';

@@ -13,7 +13,7 @@ import {
   CheckCircleIcon,
   DownloadIcon,
   PlatformIcon,
-} from '@/features/workflows/components/ui/icons/node-icons';
+} from '@/features/workflows/components/ui/icons';
 import {
   NodeInput,
   NodeSelect,
@@ -181,10 +181,14 @@ function PlatformExportNodeComponent(props: NodeProps): React.JSX.Element {
       {data.outputMedia ? (
         <>
           <div className="flex items-center gap-2 text-green-500">
-            <CheckCircleIcon />
+            <CheckCircleIcon className="h-4 w-4" />
             <span className="text-sm">Export Ready</span>
           </div>
-          <NodeButton fullWidth onClick={handleExport} icon={<DownloadIcon />}>
+          <NodeButton
+            fullWidth
+            onClick={handleExport}
+            icon={<DownloadIcon className="h-4 w-4" />}
+          >
             Download for {getPlatformLabel(data.platform)}
           </NodeButton>
         </>

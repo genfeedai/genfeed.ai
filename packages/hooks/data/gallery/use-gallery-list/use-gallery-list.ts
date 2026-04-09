@@ -4,9 +4,9 @@ import {
   GALLERY_DEFAULT_STATUSES,
 } from '@genfeedai/constants/gallery.constant';
 import type { IQueryParams } from '@genfeedai/interfaces';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { PublicService } from '@genfeedai/services/external/public.service';
 import { useAbortEffect } from '@hooks/utils/use-abort-effect/use-abort-effect';
-import { logger } from '@services/core/logger.service';
-import { PublicService } from '@services/external/public.service';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useMemo, useState } from 'react';
 

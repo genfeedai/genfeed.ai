@@ -81,7 +81,10 @@ export class LocalhostOnlyGuard implements CanActivate {
       return false;
     }
 
-    return LOCAL_HOSTS.has(this.normalizeIpOrHost(value));
+    const normalizedValue = this.normalizeIpOrHost(value);
+    return (
+      LOCAL_HOSTS.has(normalizedValue) || normalizedValue.startsWith('local.')
+    );
   }
 
   private isLocalIp(value: string | undefined): boolean {

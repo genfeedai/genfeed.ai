@@ -1,4 +1,4 @@
-import { PostsLayoutContext } from '@contexts/posts/posts-layout-context';
+import { PostsLayoutContext } from '@genfeedai/contexts/posts/posts-layout-context';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { describe, expect, it, vi } from 'vitest';

@@ -10,6 +10,15 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Slider } from '@ui/primitives/slider';
+import {
+  ArrowLeft,
+  Pause,
+  Play,
+  SkipBack,
+  SkipForward,
+  StepBack,
+  StepForward,
+} from 'lucide-react';
 import { HiOutlineFilm, HiOutlineMusicalNote } from 'react-icons/hi2';
 
 export interface EditorToolbarProps {
@@ -92,21 +101,7 @@ export function EditorToolbar({
           variant={ButtonVariant.GHOST}
           size={ButtonSize.SM}
           onClick={onBack}
-          icon={
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-          }
+          icon={<ArrowLeft className="w-4 h-4" />}
         >
           Back
         </Button>
@@ -128,11 +123,7 @@ export function EditorToolbar({
           size={ButtonSize.ICON}
           onClick={onSeekStart}
           tooltip="Go to start"
-          icon={
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M6 6h2v12H6V6zm3.5 6l8.5 6V6l-8.5 6z" />
-            </svg>
-          }
+          icon={<SkipBack className="w-4 h-4" />}
         />
 
         {/* Step back */}
@@ -142,11 +133,7 @@ export function EditorToolbar({
           size={ButtonSize.ICON}
           onClick={onStepBack}
           tooltip="Previous frame"
-          icon={
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M6 6h2v12H6V6zm3.5 6l8.5 6V6l-8.5 6z" />
-            </svg>
-          }
+          icon={<StepBack className="w-4 h-4" />}
         />
 
         {/* Play/Pause */}
@@ -159,14 +146,9 @@ export function EditorToolbar({
           className="h-10 w-10 rounded-full"
           icon={
             isPlaying ? (
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <rect x="6" y="4" width="4" height="16" />
-                <rect x="14" y="4" width="4" height="16" />
-              </svg>
+              <Pause className="w-5 h-5" />
             ) : (
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <polygon points="5,3 19,12 5,21" />
-              </svg>
+              <Play className="w-5 h-5" />
             )
           }
         />
@@ -178,11 +160,7 @@ export function EditorToolbar({
           size={ButtonSize.ICON}
           onClick={onStepForward}
           tooltip="Next frame"
-          icon={
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M18 6h-2v12h2V6zm-3.5 6L6 6v12l8.5-6z" />
-            </svg>
-          }
+          icon={<StepForward className="w-4 h-4" />}
         />
 
         {/* Go to end */}
@@ -192,11 +170,7 @@ export function EditorToolbar({
           size={ButtonSize.ICON}
           onClick={onSeekEnd}
           tooltip="Go to end"
-          icon={
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M18 6h-2v12h2V6zm-3.5 6L6 6v12l8.5-6z" />
-            </svg>
-          }
+          icon={<SkipForward className="w-4 h-4" />}
         />
 
         {/* Time display */}

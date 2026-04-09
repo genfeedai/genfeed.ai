@@ -1,4 +1,4 @@
-import type { PageScope } from '@ui-constants/misc.constant';
+import type { PageScope } from '@genfeedai/enums';
 
 export interface ActivitiesListProps {
   scope: PageScope.SUPERADMIN | PageScope.ORGANIZATION | PageScope.BRAND;

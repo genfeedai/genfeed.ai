@@ -7,9 +7,9 @@ import type {
   ITwitterSearchResult,
   ITwitterVoiceConfig,
 } from '@genfeedai/interfaces';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
-import { TwitterPipelineService } from '@services/twitter/twitter-pipeline.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { TwitterPipelineService } from '@genfeedai/services/twitter/twitter-pipeline.service';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type PipelineStatus =

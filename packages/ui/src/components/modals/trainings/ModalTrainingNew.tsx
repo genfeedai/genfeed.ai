@@ -648,7 +648,7 @@ export default function ModalTrainingNew({ onSuccess }: ModalTrainingNewProps) {
                   }`,
                 })}
               >
-                <input {...getInputProps({ name: 'file' })} />
+                <Input type="file" {...getInputProps({ name: 'file' })} />
                 <div className="flex flex-col items-center gap-2">
                   <HiPhoto className="text-4xl opacity-50" />
                   {isDragActive ? (

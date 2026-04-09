@@ -1,17 +1,20 @@
 'use client';
 
-import type { Platform } from '@genfeedai/enums';
-import type { ICredential, IIngredient, IPost } from '@genfeedai/interfaces';
+import type { PageScope, Platform } from '@genfeedai/enums';
+import type {
+  ICredential,
+  IIngredient,
+  IPost,
+  PostQuickActionKey,
+} from '@genfeedai/interfaces';
 import type { AnalyticsStat } from '@genfeedai/interfaces/analytics/analytics-ui.interface';
+import type { PostsService } from '@genfeedai/services/content/posts.service';
+import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { usePostDetailActions } from '@hooks/pages/use-post-detail/use-post-detail-actions';
 import { usePostDetailDrafts } from '@hooks/pages/use-post-detail/use-post-detail-drafts';
 import { usePostDetailMedia } from '@hooks/pages/use-post-detail/use-post-detail-media';
 import { usePostDetailState } from '@hooks/pages/use-post-detail/use-post-detail-state';
 import { usePostDetailThread } from '@hooks/pages/use-post-detail/use-post-detail-thread';
-import type { PostsService } from '@services/content/posts.service';
-import type { NotificationsService } from '@services/core/notifications.service';
-import type { PostQuickActionKey } from '@ui/posts/quick-actions/post-quick-actions/PostQuickActions';
-import type { PageScope } from '@ui-constants/misc.constant';
 
 export interface UsePostDetailOptions {
   postId: string;

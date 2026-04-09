@@ -248,6 +248,9 @@ function ClipBlock({
   return (
     <div
       ref={clipRef}
+      role="button"
+      tabIndex={-1}
+      aria-label="Timeline clip"
       className={`absolute top-1 bottom-1 ${bgColor} ${
         isSelected ? 'ring-2 ring-primary ring-offset-1' : ''
       } ${isDragging || isResizing ? 'opacity-80' : ''} ${
@@ -264,10 +267,16 @@ function ClipBlock({
       {!isLocked && (
         <>
           <div
+            role="button"
+            tabIndex={-1}
+            aria-label="Resize clip start"
             className="absolute left-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/20"
             onMouseDown={(e) => handleMouseDown(e, 'resize-start')}
           />
           <div
+            role="button"
+            tabIndex={-1}
+            aria-label="Resize clip end"
             className="absolute right-0 top-0 bottom-0 w-2 cursor-ew-resize hover:bg-white/20"
             onMouseDown={(e) => handleMouseDown(e, 'resize-end')}
           />
@@ -299,7 +308,7 @@ export function EditorTimeline({
   fps,
   zoom,
   onSeek,
-  onTrackUpdate,
+  onTrackUpdate: _onTrackUpdate,
   onClipMove,
   onClipResize,
   onClipSelect,
@@ -389,6 +398,9 @@ export function EditorTimeline({
 
         {/* Playhead */}
         <div
+          role="button"
+          tabIndex={-1}
+          aria-label="Timeline playhead"
           className="absolute top-0 bottom-0 w-0.5 bg-red-500 z-10 cursor-ew-resize"
           style={{ left: `${192 + currentFrame * zoom}px` }}
           onMouseDown={handlePlayheadDrag}

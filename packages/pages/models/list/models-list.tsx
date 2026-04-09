@@ -2,7 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
-import { ModalEnum, ModelCategory } from '@genfeedai/enums';
+import { ModalEnum, ModelCategory, PageScope } from '@genfeedai/enums';
 import type { IModel, IOrganizationSetting } from '@genfeedai/interfaces';
 import type {
   IFilters,
@@ -25,7 +25,6 @@ import AppTable from '@ui/display/table/Table';
 import { LazyModalModel } from '@ui/lazy/modal/LazyModal';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { Switch } from '@ui/primitives/switch';
-import { PageScope } from '@ui-constants/misc.constant';
 import { ErrorHandler } from '@utils/error/error-handler.util';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';

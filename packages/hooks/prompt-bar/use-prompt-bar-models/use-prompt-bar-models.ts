@@ -15,7 +15,7 @@ import type { IModel } from '@genfeedai/interfaces';
 import type {
   UsePromptBarModelsOptions,
   UsePromptBarModelsReturn,
-} from '@props/studio/prompt-bar.props';
+} from '@genfeedai/props/studio/prompt-bar.props';
 import { useCallback, useMemo } from 'react';
 
 export function usePromptBarModels(

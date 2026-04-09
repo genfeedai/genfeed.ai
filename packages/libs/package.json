@@ -1,0 +1,10 @@
+{
+  "description": "Shared backend library modules and infrastructure helpers for Genfeed server applications",
+  "exports": {
+    "./*": "./*"
+  },
+  "name": "@genfeedai/libs",
+  "private": true,
+  "sideEffects": false,
+  "version": "0.1.0"
+}

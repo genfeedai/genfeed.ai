@@ -1,4 +1,4 @@
-import AssetSelectionContext from '@contexts/ui/asset-selection-context';
+import AssetSelectionContext from '@genfeedai/contexts/ui/asset-selection-context';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 
 const meta: Meta<typeof AssetSelectionContext> = {

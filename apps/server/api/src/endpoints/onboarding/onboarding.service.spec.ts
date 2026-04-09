@@ -34,6 +34,7 @@ const makeMocks = () => ({
     findOne: vi.fn(),
     patch: vi.fn(),
     patchAll: vi.fn(),
+    selectBrandForUser: vi.fn(),
   },
   clerkService: { updateUserPublicMetadata: vi.fn() },
   comfyUIService: { generateImage: vi.fn() },
@@ -46,7 +47,12 @@ const makeMocks = () => ({
     getPresignedUploadUrl: vi.fn(),
     uploadToS3: vi.fn(),
   },
-  loggerService: { error: vi.fn(), log: vi.fn() },
+  linksService: {
+    create: vi.fn(),
+    findOne: vi.fn(),
+    patch: vi.fn(),
+  },
+  loggerService: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
   masterPromptGeneratorService: {
     analyzeBrandVoice: vi.fn(),
     generateMasterPrompts: vi.fn(),
@@ -110,6 +116,7 @@ describe('OnboardingService', () => {
       mocks.comfyUIService as any,
       mocks.creditsUtilsService as any,
       mocks.filesClientService as any,
+      mocks.linksService as any,
       mocks.organizationSettingsService as any,
       mocks.organizationsService as any,
       mocks.clerkService as any,
@@ -661,6 +668,75 @@ describe('OnboardingService', () => {
       expect(mocks.brandsService.patch).toHaveBeenCalled();
     });
 
+    it('prefers the current brand from Clerk metadata before fallback lookup', async () => {
+      setupHappyPath();
+      const metadataBrandId = makeObjectId();
+      const metadataUser = {
+        ...user,
+        publicMetadata: {
+          ...user.publicMetadata,
+          brand: metadataBrandId.toString(),
+        },
+      };
+      const metadataBrand = { _id: metadataBrandId };
+
+      mocks.brandsService.findOne.mockReset();
+      mocks.brandsService.findOne.mockResolvedValue(metadataBrand);
+
+      const result = await service.setupBrand(
+        { brandUrl: 'https://acme.com' } as any,
+        metadataUser,
+      );
+
+      expect(result.brandId).toBe(metadataBrandId.toString());
+      expect(mocks.brandsService.findOne).toHaveBeenCalledWith(
+        {
+          _id: metadataBrandId,
+          isDeleted: false,
+          organization: expect.any(Types.ObjectId),
+          user: expect.any(Types.ObjectId),
+        },
+        'none',
+      );
+    });
+
+    it('reuses an existing same-label brand in the organization instead of colliding on unique label index', async () => {
+      setupHappyPath();
+      const duplicateBrandId = makeObjectId();
+      const duplicateBrand = {
+        _id: duplicateBrandId,
+        isSelected: false,
+        label: 'Genfeed',
+      };
+
+      mocks.brandsService.findOne.mockReset();
+      mocks.brandsService.findOne
+        .mockResolvedValueOnce(existingBrand)
+        .mockResolvedValueOnce(duplicateBrand);
+      mocks.brandsService.selectBrandForUser.mockResolvedValue(duplicateBrand);
+      mocks.clerkService.updateUserPublicMetadata.mockResolvedValue(undefined);
+
+      const result = await service.setupBrand(
+        { brandUrl: 'https://acme.com' } as any,
+        user,
+      );
+
+      expect(result.brandId).toBe(duplicateBrandId.toString());
+      expect(mocks.brandsService.selectBrandForUser).toHaveBeenCalledWith(
+        duplicateBrandId.toString(),
+        userId,
+        orgId,
+      );
+      expect(mocks.clerkService.updateUserPublicMetadata).toHaveBeenCalledWith(
+        'clerk_user_123',
+        { brand: duplicateBrandId.toString() },
+      );
+      expect(mocks.brandsService.patch).toHaveBeenCalledWith(
+        duplicateBrandId,
+        expect.any(Object),
+      );
+    });
+
     it('throws 400 on invalid URL', async () => {
       mocks.brandScraperService.validateUrl.mockReturnValue({
         error: 'bad url',
@@ -707,7 +783,7 @@ describe('OnboardingService', () => {
       );
     });
 
-    it('wraps unexpected errors in 500 HttpException', async () => {
+    it('falls back to minimal brand setup when scraping fails', async () => {
       mocks.brandScraperService.validateUrl.mockReturnValue({ isValid: true });
       mocks.brandsService.findOne.mockResolvedValue(existingBrand);
       mocks.brandScraperService.detectUrlType.mockReturnValue({
@@ -716,12 +792,23 @@ describe('OnboardingService', () => {
       mocks.brandScraperService.scrapeWebsite.mockRejectedValue(
         new Error('network down'),
       );
-
-      await expect(
-        service.setupBrand({ brandUrl: 'https://acme.com' } as any, user),
-      ).rejects.toMatchObject({
-        status: HttpStatus.INTERNAL_SERVER_ERROR,
+      mocks.brandsService.patch.mockResolvedValue(undefined);
+      mocks.organizationsService.generateUniqueSlug.mockResolvedValue('brand');
+      mocks.organizationsService.patch.mockResolvedValue(undefined);
+      mocks.organizationSettingsService.findOne.mockResolvedValue({
+        _id: makeObjectId(),
+        isFirstLogin: true,
       });
+      mocks.organizationSettingsService.patch.mockResolvedValue(undefined);
+
+      const result = await service.setupBrand(
+        { brandUrl: 'https://acme.com' } as any,
+        user,
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.extractedData.companyName).toBe('Brand');
+      expect(mocks.loggerService.warn).toHaveBeenCalled();
     });
   });
 

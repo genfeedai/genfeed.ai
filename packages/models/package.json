@@ -1,0 +1,10 @@
+{
+  "description": "Shared product domain models for Genfeed applications",
+  "exports": {
+    "./*": "./*"
+  },
+  "name": "@genfeedai/models",
+  "private": true,
+  "sideEffects": false,
+  "version": "0.1.0"
+}

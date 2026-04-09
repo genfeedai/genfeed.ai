@@ -420,8 +420,8 @@ export function EditorTextPanel({
                   onValueChange={([x]) =>
                     handleUpdateTextOverlay({
                       position: {
-                        ...selectedTextClip.textOverlay?.position,
                         x,
+                        y: selectedTextClip.textOverlay?.position?.y ?? 50,
                       },
                     })
                   }
@@ -441,7 +441,7 @@ export function EditorTextPanel({
                   onValueChange={([y]) =>
                     handleUpdateTextOverlay({
                       position: {
-                        ...selectedTextClip.textOverlay?.position,
+                        x: selectedTextClip.textOverlay?.position?.x ?? 50,
                         y,
                       },
                     })

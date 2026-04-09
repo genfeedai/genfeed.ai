@@ -1,10 +1,10 @@
 'use client';
 
-import { cn } from '@helpers/formatting/cn/cn.util';
 import type {
   AgentOnboardingChecklistProps,
   OnboardingChecklistStatus,
-} from '@props/ui/agent/agent-onboarding.props';
+} from '@genfeedai/props/ui/agent/agent-onboarding.props';
+import { cn } from '@helpers/formatting/cn/cn.util';
 import Link from 'next/link';
 import { HiCheck } from 'react-icons/hi2';
 

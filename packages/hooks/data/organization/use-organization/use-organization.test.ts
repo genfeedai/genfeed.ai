@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mockRefreshSettings = vi.fn();
 const mockPatchSettings = vi.fn();
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
     organizationId: 'org-123',
     refreshSettings: mockRefreshSettings,
@@ -27,7 +27,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   }),
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
     info: vi.fn(),
@@ -159,7 +159,7 @@ describe('useOrganization', () => {
   describe('Loading State', () => {
     it('reflects loading state from brand context', async () => {
       const { useBrand } = await import(
-        '@contexts/user/brand-context/brand-context'
+        '@genfeedai/contexts/user/brand-context/brand-context'
       );
       vi.mocked(useBrand).mockReturnValue({
         organizationId: 'org-123',
@@ -177,7 +177,7 @@ describe('useOrganization', () => {
   describe('Missing Organization', () => {
     it('throws error when organizationId is missing', async () => {
       const { useBrand } = await import(
-        '@contexts/user/brand-context/brand-context'
+        '@genfeedai/contexts/user/brand-context/brand-context'
       );
       vi.mocked(useBrand).mockReturnValue({
         organizationId: null,

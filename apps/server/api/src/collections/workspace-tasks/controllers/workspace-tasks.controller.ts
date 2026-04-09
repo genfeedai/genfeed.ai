@@ -86,6 +86,26 @@ export class WorkspaceTasksController extends BaseCRUDController<
       const taskId = (response.data as { id?: string })?.id;
 
       if (taskId && publicMetadata.organization) {
+        this.workspaceTasksService
+          .recordTaskEvent(
+            taskId,
+            publicMetadata.organization,
+            publicMetadata.user,
+            {
+              payload: {
+                executionPathUsed: createDto.outputType ?? 'ingredient',
+                request: createDto.request,
+              },
+              type: 'task_queued',
+            },
+          )
+          .catch((error: unknown) => {
+            this.loggerService.error(
+              'WorkspaceTasksController: Failed to publish queued task event',
+              error,
+            );
+          });
+
         this.workspaceTaskQueueService
           .enqueue({
             brandId: createDto.brand,
@@ -217,6 +237,54 @@ export class WorkspaceTasksController extends BaseCRUDController<
       id,
       organization,
       body.reason,
+    );
+    return serializeSingle(request, WorkspaceTaskSerializer, doc);
+  }
+
+  @Patch(':id/outputs/:outputId/keep')
+  async keepOutput(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Param('outputId') outputId: string,
+  ) {
+    const { organization } = getPublicMetadata(user);
+    const doc = await this.workspaceTasksService.keepOutput(
+      id,
+      organization,
+      outputId,
+    );
+    return serializeSingle(request, WorkspaceTaskSerializer, doc);
+  }
+
+  @Patch(':id/outputs/:outputId/unkeep')
+  async unkeepOutput(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Param('outputId') outputId: string,
+  ) {
+    const { organization } = getPublicMetadata(user);
+    const doc = await this.workspaceTasksService.unkeepOutput(
+      id,
+      organization,
+      outputId,
+    );
+    return serializeSingle(request, WorkspaceTaskSerializer, doc);
+  }
+
+  @Patch(':id/outputs/:outputId/trash')
+  async trashOutput(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Param('outputId') outputId: string,
+  ) {
+    const { organization } = getPublicMetadata(user);
+    const doc = await this.workspaceTasksService.trashOutput(
+      id,
+      organization,
+      outputId,
     );
     return serializeSingle(request, WorkspaceTaskSerializer, doc);
   }

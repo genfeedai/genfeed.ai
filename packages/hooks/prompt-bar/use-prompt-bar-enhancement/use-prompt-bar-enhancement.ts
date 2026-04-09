@@ -3,14 +3,14 @@ import {
   type ModelCapabilityCategory,
 } from '@genfeedai/constants';
 import { PromptCategory } from '@genfeedai/enums';
-import { Prompt } from '@models/content/prompt.model';
+import { Prompt } from '@genfeedai/models/content/prompt.model';
 import type {
   UsePromptBarEnhancementOptions,
   UsePromptBarEnhancementReturn,
-} from '@props/studio/prompt-bar.props';
-import { logger } from '@services/core/logger.service';
-import { createPromptHandler } from '@services/core/socket-manager.service';
-import { WebSocketPaths } from '@utils/network/websocket.util';
+} from '@genfeedai/props/studio/prompt-bar.props';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { createPromptHandler } from '@genfeedai/services/core/socket-manager.service';
+import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const ENHANCEMENT_TIMEOUT_MS = 30000;

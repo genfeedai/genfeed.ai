@@ -42,11 +42,11 @@ vi.mock('@hooks/utils/use-form-submit/use-form-submit', () => ({
   })),
 }));
 
-vi.mock('@services/core/base.service', () => ({
+vi.mock('@genfeedai/services/core/base.service', () => ({
   BaseService: class {},
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
     info: vi.fn(),
@@ -54,7 +54,7 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(() => ({
       error: mockNotificationError,

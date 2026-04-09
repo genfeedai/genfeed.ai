@@ -1,8 +1,8 @@
 'use client';
 
+import { PageScope } from '@genfeedai/enums';
 import type { ContentProps } from '@props/layout/content.props';
 import Container from '@ui/layout/container/Container';
-import { PageScope } from '@ui-constants/misc.constant';
 import type { ReactNode } from 'react';
 import { HiOutlineTag } from 'react-icons/hi2';
 

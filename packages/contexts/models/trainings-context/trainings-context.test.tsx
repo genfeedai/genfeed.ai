@@ -1,4 +1,4 @@
-import { TrainingsProvider } from '@contexts/models/trainings-context/trainings-context';
+import { TrainingsProvider } from '@genfeedai/contexts/models/trainings-context/trainings-context';
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { describe, expect, it } from 'vitest';

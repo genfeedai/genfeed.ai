@@ -1,4 +1,4 @@
-import type { PageScope } from '@ui-constants/misc.constant';
+import type { PageScope } from '@genfeedai/enums';
 
 export interface ContentProps {
   scope:

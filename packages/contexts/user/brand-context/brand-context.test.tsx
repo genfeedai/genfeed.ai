@@ -15,33 +15,33 @@ vi.mock('@clerk/nextjs', () => ({
   useUser: () => useUserMock(),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => useAuthedServiceMock,
 }));
 
-vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
+vi.mock('@genfeedai/hooks/data/resource/use-resource/use-resource', () => ({
   useResource: (...args: unknown[]) => useResourceMock(...args),
 }));
 
-vi.mock('@services/organization/organizations.service', () => ({
+vi.mock('@genfeedai/services/organization/organizations.service', () => ({
   OrganizationsService: {
     getInstance: vi.fn(),
   },
 }));
 
-vi.mock('@services/organization/users.service', () => ({
+vi.mock('@genfeedai/services/organization/users.service', () => ({
   UsersService: {
     getInstance: vi.fn(),
   },
 }));
 
-vi.mock('@services/core/interceptor.service', () => ({
+vi.mock('@genfeedai/services/core/interceptor.service', () => ({
   clearAllServiceInstances: vi.fn(),
 }));
 
 describe('BrandProvider', () => {
-  let BrandProvider: typeof import('@contexts/user/brand-context/brand-context').BrandProvider;
-  let useBrand: typeof import('@contexts/user/brand-context/brand-context').useBrand;
+  let BrandProvider: typeof import('@genfeedai/contexts/user/brand-context/brand-context').BrandProvider;
+  let useBrand: typeof import('@genfeedai/contexts/user/brand-context/brand-context').useBrand;
 
   const initialBootstrap = {
     accessState: null,
@@ -105,7 +105,9 @@ describe('BrandProvider', () => {
       }),
     );
 
-    const module = await import('@contexts/user/brand-context/brand-context');
+    const module = await import(
+      '@genfeedai/contexts/user/brand-context/brand-context'
+    );
     BrandProvider = module.BrandProvider;
     useBrand = module.useBrand;
   });

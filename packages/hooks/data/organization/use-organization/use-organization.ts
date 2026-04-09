@@ -1,9 +1,9 @@
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { IOrganizationSetting } from '@genfeedai/interfaces';
 import type { UseOrganizationReturn } from '@genfeedai/interfaces/hooks/hooks.interface';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { logger } from '@services/core/logger.service';
-import { OrganizationsService } from '@services/organization/organizations.service';
 import { useCallback } from 'react';
 
 /**

@@ -1,0 +1,10 @@
+{
+  "description": "Shared framework-agnostic utility functions for Genfeed applications",
+  "exports": {
+    "./*": "./*"
+  },
+  "name": "@genfeedai/utils",
+  "private": true,
+  "sideEffects": false,
+  "version": "0.1.0"
+}

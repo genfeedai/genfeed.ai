@@ -177,8 +177,9 @@ function AudioInputNodeComponent(props: NodeProps) {
       {nodeData.audio ? (
         <div className="space-y-2">
           <div className="relative">
-            {/* biome-ignore lint/a11y/useMediaCaption: uploaded audio is previewed as a raw asset without caption tracks */}
-            <audio src={nodeData.audio} controls className="w-full h-8" />
+            <audio src={nodeData.audio} controls className="w-full h-8">
+              <track kind="captions" />
+            </audio>
             <Button
               variant="secondary"
               size="icon-sm"

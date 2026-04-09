@@ -52,6 +52,7 @@ import {
   TableHeader,
   TableRow,
 } from '@ui/primitives/table';
+import Image from 'next/image';
 import Link from 'next/link';
 import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
@@ -307,12 +308,13 @@ function AdGridCard({
       </p>
 
       {previewUrl && (
-        <div className="mt-3 overflow-hidden rounded-lg border border-white/[0.06] bg-black/20">
-          {/* biome-ignore lint/performance/noImgElement: dynamic external ad preview URLs */}
-          <img
+        <div className="relative mt-3 h-36 overflow-hidden rounded-lg border border-white/[0.06] bg-black/20">
+          <Image
             src={previewUrl}
             alt={item.title}
-            className="h-36 w-full object-cover"
+            fill
+            unoptimized
+            className="object-cover"
           />
         </div>
       )}
@@ -842,8 +844,12 @@ export default function AdsResearchPageClient({
     }
   }, [channel, showChannelFilter]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: reset ad account when credential changes
   useEffect(() => {
+    if (!credentialId) {
+      setAdAccountId('');
+      return;
+    }
+
     setAdAccountId('');
   }, [credentialId]);
 

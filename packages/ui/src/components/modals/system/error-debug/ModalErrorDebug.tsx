@@ -1,9 +1,13 @@
 'use client';
 
-import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import {
+  ButtonSize,
+  ButtonVariant,
+  CardVariant,
+  ModalEnum,
+} from '@genfeedai/enums';
 import type { IErrorDebugInfo } from '@genfeedai/interfaces/modals/error-debug.interface';
 import { Pre } from '@genfeedai/ui';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import { closeModal } from '@helpers/ui/modal/modal.helper';
 import { ClipboardService } from '@services/core/clipboard.service';
 import {
@@ -11,17 +15,58 @@ import {
   getErrorDebugInfo,
   subscribe,
 } from '@services/core/error-debug-store';
+import Card from '@ui/card/Card';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useState } from 'react';
 import { HiChevronDown, HiChevronRight } from 'react-icons/hi2';
+
+interface ErrorSectionProps {
+  children?: ReactNode;
+  title: string;
+  isExpanded?: boolean;
+  onToggle?: () => void;
+}
+
+function ErrorSection({
+  children,
+  title,
+  isExpanded,
+  onToggle,
+}: ErrorSectionProps) {
+  return (
+    <Card
+      variant={CardVariant.DEFAULT}
+      className="rounded-lg border-destructive/30 bg-destructive/10 text-red-50 hover:border-destructive/30"
+      bodyClassName="gap-0 p-4"
+    >
+      {onToggle ? (
+        <Button
+          withWrapper={false}
+          variant={ButtonVariant.UNSTYLED}
+          onClick={onToggle}
+          className="flex w-full items-center gap-2 text-left text-red-50"
+        >
+          {isExpanded ? (
+            <HiChevronDown className="h-4 w-4 shrink-0" />
+          ) : (
+            <HiChevronRight className="h-4 w-4 shrink-0" />
+          )}
+          <h3 className="font-semibold">{title}</h3>
+        </Button>
+      ) : (
+        <h3 className="mb-2 font-semibold">{title}</h3>
+      )}
+
+      {children}
+    </Card>
+  );
+}
 
 export default function ModalErrorDebug() {
   const clipboardService = ClipboardService.getInstance();
-  const sectionClassName =
-    'rounded-lg border border-destructive/30 bg-destructive/10 p-4';
   const preClassName =
     'mt-2 max-h-48 overflow-y-auto border-destructive/20 bg-black/30 text-red-50';
 
@@ -68,9 +113,7 @@ export default function ModalErrorDebug() {
       {errorInfo && (
         <>
           <div className="space-y-4 text-red-50">
-            <div className={cn(sectionClassName, 'space-y-2')}>
-              <h3 className="font-semibold mb-2">Request Details</h3>
-
+            <ErrorSection title="Request Details">
               <div className="grid grid-cols-2 gap-2 text-sm">
                 {errorInfo.url && (
                   <>
@@ -109,78 +152,48 @@ export default function ModalErrorDebug() {
                 <span className="text-red-200/70">Timestamp</span>
                 <span className="font-mono">{errorInfo.timestamp}</span>
               </div>
-            </div>
+            </ErrorSection>
 
             {errorInfo.response?.data !== undefined ? (
-              <div className={sectionClassName}>
-                <Button
-                  withWrapper={false}
-                  variant={ButtonVariant.UNSTYLED}
-                  onClick={() => setIsResponseExpanded(!isResponseExpanded)}
-                  className="flex w-full items-center gap-2 text-left text-red-50"
-                >
-                  {isResponseExpanded ? (
-                    <HiChevronDown className="h-4 w-4 shrink-0" />
-                  ) : (
-                    <HiChevronRight className="h-4 w-4 shrink-0" />
-                  )}
-                  <h3 className="font-semibold">Response Data</h3>
-                </Button>
-
+              <ErrorSection
+                title="Response Data"
+                isExpanded={isResponseExpanded}
+                onToggle={() => setIsResponseExpanded(!isResponseExpanded)}
+              >
                 {isResponseExpanded && (
                   <Pre variant="debug" size="xs" className={preClassName}>
                     {JSON.stringify(errorInfo.response.data, null, 2)}
                   </Pre>
                 )}
-              </div>
+              </ErrorSection>
             ) : null}
 
             {errorInfo.stack && (
-              <div className={sectionClassName}>
-                <Button
-                  withWrapper={false}
-                  variant={ButtonVariant.UNSTYLED}
-                  onClick={() => setIsStackExpanded(!isStackExpanded)}
-                  className="flex w-full items-center gap-2 text-left text-red-50"
-                >
-                  {isStackExpanded ? (
-                    <HiChevronDown className="h-4 w-4 shrink-0" />
-                  ) : (
-                    <HiChevronRight className="h-4 w-4 shrink-0" />
-                  )}
-                  <h3 className="font-semibold">Stack Trace</h3>
-                </Button>
-
+              <ErrorSection
+                title="Stack Trace"
+                isExpanded={isStackExpanded}
+                onToggle={() => setIsStackExpanded(!isStackExpanded)}
+              >
                 {isStackExpanded && (
                   <Pre variant="debug" size="xs" className={preClassName}>
                     {errorInfo.stack}
                   </Pre>
                 )}
-              </div>
+              </ErrorSection>
             )}
 
             {errorInfo.context && Object.keys(errorInfo.context).length > 0 && (
-              <div className={sectionClassName}>
-                <Button
-                  withWrapper={false}
-                  variant={ButtonVariant.UNSTYLED}
-                  onClick={() => setIsContextExpanded(!isContextExpanded)}
-                  className="flex w-full items-center gap-2 text-left text-red-50"
-                >
-                  {isContextExpanded ? (
-                    <HiChevronDown className="h-4 w-4 shrink-0" />
-                  ) : (
-                    <HiChevronRight className="h-4 w-4 shrink-0" />
-                  )}
-                  <h3 className="font-semibold">Additional Context</h3>
-                </Button>
-
+              <ErrorSection
+                title="Additional Context"
+                isExpanded={isContextExpanded}
+                onToggle={() => setIsContextExpanded(!isContextExpanded)}
+              >
                 {isContextExpanded && (
                   <Pre variant="debug" size="xs" className={preClassName}>
                     {JSON.stringify(errorInfo.context, null, 2)}
                   </Pre>
                 )}
-              </div>
+              </ErrorSection>
             )}
           </div>
 

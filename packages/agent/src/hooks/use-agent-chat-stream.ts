@@ -32,8 +32,8 @@ import {
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
 import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
 import { AgentThreadStatus } from '@genfeedai/enums';
+import type { ChatAttachment } from '@genfeedai/props/ui/attachments.props';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import type { ChatAttachment } from '@props/ui/attachments.props';
 import { useCallback, useEffect, useRef } from 'react';
 
 interface UseAgentChatStreamOptions {

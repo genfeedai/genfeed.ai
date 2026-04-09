@@ -2,6 +2,10 @@
 
 import StreakNotificationsBridge from '@app-components/streaks/StreakNotificationsBridge';
 import {
+  ADMIN_LOGO_HREF,
+  ADMIN_MENU_ITEMS,
+} from '@app-config/admin-menu-items.config';
+import {
   COMPOSE_LOGO_HREF,
   COMPOSE_MENU_ITEMS,
 } from '@app-config/compose-menu-items.config';
@@ -31,6 +35,7 @@ import {
   useAgentChatStore,
   useAgentPageContext,
 } from '@genfeedai/agent';
+import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import { Kbd } from '@genfeedai/ui';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { useUserRole } from '@hooks/auth/use-user-role';
@@ -61,12 +66,13 @@ import OnboardingGuard from '@ui/guards/onboarding/OnboardingGuard';
 import AppLayout from '@ui/layouts/app/AppLayout';
 import SidebarBackRow from '@ui/menus/sidebar-back-row/SidebarBackRow';
 import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearchTrigger';
+import AdminSidebar from '@ui/shell/menus/AdminSidebar';
 import AppSidebar from '@ui/shell/menus/AppSidebar';
-import TopbarShared from '@ui/topbars/shared/TopbarShared';
+import AdminTopbar from '@ui/shell/topbars/AdminTopbar';
 import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   type ReactNode,
   useCallback,
@@ -76,8 +82,14 @@ import {
   useState,
 } from 'react';
 import { HiPlus } from 'react-icons/hi2';
+import AppProtectedTopbar from '@/components/shell/AppProtectedTopbar';
 import { useOptionalAuth } from '@/hooks/useOptionalAuth';
 import { isEEEnabled } from '@/lib/config/edition';
+import {
+  normalizeProtectedPathname,
+  pickOperatorTaskContextSearchParams,
+  withTaskContextHref,
+} from '@/lib/navigation/operator-shell';
 
 type AgentPanelProps = {
   apiService: AgentApiService;
@@ -187,41 +199,15 @@ function AppLayoutWithDynamicMenu({
 }: AppLayoutWithDynamicMenuProps) {
   const shellChromeVariant = 'transparent' as const;
   const rawPathname = usePathname();
+  const searchParams = useSearchParams();
   // Strip org/brand prefix from pathname for route detection.
   // Pathname may be /orgSlug/brandSlug/studio or /orgSlug/~/settings.
-  const pathname = useMemo(() => {
-    const parts = rawPathname.split('/').filter(Boolean);
-    if (parts.length >= 3) {
-      const knownPrefixes = [
-        'workspace',
-        'studio',
-        'settings',
-        'agents',
-        'posts',
-        'analytics',
-        'workflows',
-        'library',
-        'chat',
-        'compose',
-        'editor',
-        'research',
-        'issues',
-        'overview',
-        'ingredients',
-        'videos',
-        'edit',
-        'orchestration',
-        'elements',
-        'bots',
-      ];
-      if (parts[1] === '~' || knownPrefixes.includes(parts[2])) {
-        const rest = parts[1] === '~' ? parts.slice(2) : parts.slice(2);
-        return `/${rest.join('/')}`;
-      }
-    }
-    return rawPathname;
-  }, [rawPathname]);
+  const pathname = useMemo(
+    () => normalizeProtectedPathname(rawPathname),
+    [rawPathname],
+  );
   const isChatRoute = /^\/chat(?:\/|$)/.test(pathname);
+  const isAdminRoute = pathname === '/admin' || pathname.startsWith('/admin/');
   const isFocusedOnboardingRoute = pathname.startsWith('/chat/onboarding');
   const isComposeRoute = pathname.startsWith(COMPOSE_ROUTES.ROOT);
   const isLibraryLandingRoute = pathname === '/library/ingredients';
@@ -243,7 +229,7 @@ function AppLayoutWithDynamicMenu({
     );
   })();
   const isSettingsRoute = pathname.startsWith('/settings');
-  const hasSecondaryTopbar = pathname.startsWith('/studio');
+  const hasSecondaryTopbar = !isAdminRoute && pathname.startsWith('/studio');
   const isEditorCanvasRoute =
     pathname === '/editor/new' ||
     /^\/editor\/[^/]+$/.test(pathname) ||
@@ -254,6 +240,13 @@ function AppLayoutWithDynamicMenu({
 
   const router = useRouter();
   const { getToken } = useOptionalAuth();
+  const taskContextSearchParams = useMemo(
+    () =>
+      pickOperatorTaskContextSearchParams(
+        new URLSearchParams(searchParams?.toString()),
+      ),
+    [searchParams],
+  );
   const getTokenRef = useRef(getToken);
   useEffect(() => {
     getTokenRef.current = getToken;
@@ -273,10 +266,25 @@ function AppLayoutWithDynamicMenu({
       getToken: async () => resolveClerkToken(getTokenRef.current),
     });
   }, [shouldInitAgentApiService]);
-  const menuItems = dynamicMenuItems;
+  const menuItems = useMemo(
+    () =>
+      dynamicMenuItems.map(
+        (item): MenuItemConfig => ({
+          ...item,
+          href: withTaskContextHref(item.href, taskContextSearchParams),
+        }),
+      ),
+    [dynamicMenuItems, taskContextSearchParams],
+  );
   const secondaryMenuItems = useMemo(
-    () => getAppSecondaryMenuItems(brandId),
-    [brandId],
+    () =>
+      getAppSecondaryMenuItems(brandId).map(
+        (item): MenuItemConfig => ({
+          ...item,
+          href: withTaskContextHref(item.href, taskContextSearchParams),
+        }),
+      ),
+    [brandId, taskContextSearchParams],
   );
 
   const [conversationActions, setConversationActions] =
@@ -420,8 +428,56 @@ function AppLayoutWithDynamicMenu({
         enabledCategories.includes(studioCategory.category) &&
         (!isEnabledCategoriesLoading || studioCategory.settingKey === null)
       );
-    });
-  }, [enabledCategories, isEnabledCategoriesLoading]);
+    }).map(
+      (item): MenuItemConfig => ({
+        ...item,
+        href: withTaskContextHref(item.href, taskContextSearchParams),
+      }),
+    );
+  }, [enabledCategories, isEnabledCategoriesLoading, taskContextSearchParams]);
+
+  const composeMenuItems = useMemo(
+    () =>
+      COMPOSE_MENU_ITEMS.map(
+        (item): MenuItemConfig => ({
+          ...item,
+          href: withTaskContextHref(item.href, taskContextSearchParams),
+        }),
+      ),
+    [taskContextSearchParams],
+  );
+
+  const orgMenuItems = useMemo(
+    () =>
+      ORG_MENU_ITEMS.map(
+        (item): MenuItemConfig => ({
+          ...item,
+          href: withTaskContextHref(item.href, taskContextSearchParams),
+        }),
+      ),
+    [taskContextSearchParams],
+  );
+
+  const settingsMenuItems = useMemo(
+    () =>
+      SETTINGS_MENU_ITEMS.map(
+        (item): MenuItemConfig => ({
+          ...item,
+          href: withTaskContextHref(item.href, taskContextSearchParams),
+        }),
+      ),
+    [taskContextSearchParams],
+  );
+  const adminMenuItems = useMemo(
+    () =>
+      ADMIN_MENU_ITEMS.map(
+        (item): MenuItemConfig => ({
+          ...item,
+          href: withTaskContextHref(item.href, taskContextSearchParams),
+        }),
+      ),
+    [taskContextSearchParams],
+  );
 
   const renderConversations = useCallback(
     () =>
@@ -448,8 +504,14 @@ function AppLayoutWithDynamicMenu({
       return (
         <AppSidebar
           items={studioMenuItems}
-          logoHref={buildHref(STUDIO_LOGO_HREF)}
-          backHref="/library/ingredients"
+          logoHref={withTaskContextHref(
+            buildHref(STUDIO_LOGO_HREF),
+            taskContextSearchParams,
+          )}
+          backHref={withTaskContextHref(
+            buildHref('/library/ingredients'),
+            taskContextSearchParams,
+          )}
           backLabel="Library"
           sectionLabel="Studio"
           shellChromeVariant={shellChromeVariant}
@@ -457,12 +519,30 @@ function AppLayoutWithDynamicMenu({
       );
     }
 
+    if (isAdminRoute) {
+      return (
+        <AdminSidebar
+          items={adminMenuItems}
+          logoHref={withTaskContextHref(
+            ADMIN_LOGO_HREF,
+            taskContextSearchParams,
+          )}
+        />
+      );
+    }
+
     if (isComposeRoute) {
       return (
         <AppSidebar
-          items={COMPOSE_MENU_ITEMS}
-          logoHref={buildHref(COMPOSE_LOGO_HREF)}
-          backHref="/posts"
+          items={composeMenuItems}
+          logoHref={withTaskContextHref(
+            buildHref(COMPOSE_LOGO_HREF),
+            taskContextSearchParams,
+          )}
+          backHref={withTaskContextHref(
+            buildHref('/posts'),
+            taskContextSearchParams,
+          )}
           backLabel="Posts"
           sectionLabel="Compose"
           shellChromeVariant={shellChromeVariant}
@@ -473,9 +553,15 @@ function AppLayoutWithDynamicMenu({
     if (isOrgRoute) {
       return (
         <AppSidebar
-          items={ORG_MENU_ITEMS}
-          logoHref={orgHref(ORG_LOGO_HREF)}
-          backHref={buildHref('/workspace/overview')}
+          items={orgMenuItems}
+          logoHref={withTaskContextHref(
+            orgHref(ORG_LOGO_HREF),
+            taskContextSearchParams,
+          )}
+          backHref={withTaskContextHref(
+            buildHref('/workspace/overview'),
+            taskContextSearchParams,
+          )}
           backLabel="Workspace"
           sectionLabel="Organization"
           shellChromeVariant={shellChromeVariant}
@@ -486,9 +572,15 @@ function AppLayoutWithDynamicMenu({
     if (isSettingsRoute) {
       return (
         <AppSidebar
-          items={SETTINGS_MENU_ITEMS}
-          logoHref={buildHref(SETTINGS_LOGO_HREF)}
-          backHref="/workspace/overview"
+          items={settingsMenuItems}
+          logoHref={withTaskContextHref(
+            buildHref(SETTINGS_LOGO_HREF),
+            taskContextSearchParams,
+          )}
+          backHref={withTaskContextHref(
+            buildHref('/workspace/overview'),
+            taskContextSearchParams,
+          )}
           backLabel="Workspace"
           sectionLabel="Settings"
           shellChromeVariant={shellChromeVariant}
@@ -499,7 +591,10 @@ function AppLayoutWithDynamicMenu({
     return (
       <AppSidebar
         items={isChatRoute ? [] : menuItems}
-        logoHref={buildHref(APP_LOGO_HREF)}
+        logoHref={withTaskContextHref(
+          buildHref(APP_LOGO_HREF),
+          taskContextSearchParams,
+        )}
         sectionLabel={isChatRoute ? undefined : 'Workspace'}
         collapsedSidebarWidth={isChatRoute ? undefined : 64}
         mobileSidebarWidth={isChatRoute ? undefined : 304}
@@ -538,8 +633,11 @@ function AppLayoutWithDynamicMenu({
   }, [
     buildHref,
     orgHref,
+    composeMenuItems,
     conversationActions,
+    adminMenuItems,
     menuItems,
+    isAdminRoute,
     isComposeRoute,
     isEditorCanvasRoute,
     isOrgRoute,
@@ -549,13 +647,20 @@ function AppLayoutWithDynamicMenu({
     handleOpenSidebarSearch,
     isFocusedOnboardingRoute,
     isChatRoute,
+    orgMenuItems,
     shellChromeVariant,
     secondaryMenuItems,
+    settingsMenuItems,
     studioMenuItems,
+    taskContextSearchParams,
   ]);
 
   const topbarComponent =
-    isEditorCanvasRoute || isFocusedOnboardingRoute ? undefined : TopbarShared;
+    isEditorCanvasRoute || isFocusedOnboardingRoute
+      ? undefined
+      : isAdminRoute
+        ? AdminTopbar
+        : AppProtectedTopbar;
   const topbarChromeVariant = 'default';
   const agentPanel =
     !shouldMountAgentPanel || !agentApiService ? undefined : (
@@ -615,7 +720,7 @@ function AppLayoutWithDynamicMenu({
           shellChromeVariant={shellChromeVariant}
           topbarChromeVariant={topbarChromeVariant}
           hasSecondaryTopbar={hasSecondaryTopbar}
-          menuItems={menuItems}
+          menuItems={isAdminRoute ? adminMenuItems : menuItems}
           agentPanel={agentPanel}
           isAgentCollapsed={!isAgentOpen}
           onAgentToggle={toggleAgent}
@@ -662,8 +767,12 @@ export default function AppProtectedLayout({
         'orchestration',
         'elements',
         'bots',
+        'admin',
       ];
-      if (parts[1] === '~' || knownPrefixes.includes(parts[2])) {
+      if (
+        parts[1] === '~' ||
+        knownPrefixes.some((prefix) => prefix === parts[2])
+      ) {
         const rest = parts[1] === '~' ? parts.slice(2) : parts.slice(2);
         return `/${rest.join('/')}`;
       }

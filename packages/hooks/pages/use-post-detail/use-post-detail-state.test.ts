@@ -12,7 +12,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => vi.fn()),
 }));
 
-vi.mock('@services/content/posts.service', () => ({
+vi.mock('@genfeedai/services/content/posts.service', () => ({
   PostsService: {
     getInstance: vi.fn(() => ({
       findAll: vi.fn().mockResolvedValue([]),
@@ -21,7 +21,7 @@ vi.mock('@services/content/posts.service', () => ({
   },
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(() => ({
       error: vi.fn(),
@@ -30,7 +30,7 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
-vi.mock('@utils/carousel-validation', () => ({
+vi.mock('@genfeedai/utils/carousel-validation', () => ({
   validateCarouselCount: vi.fn(() => true),
 }));
 

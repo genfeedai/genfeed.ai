@@ -1,0 +1,10 @@
+{
+  "description": "Shared page-level compositions for Genfeed applications",
+  "exports": {
+    "./*": "./*"
+  },
+  "name": "@genfeedai/pages",
+  "private": true,
+  "sideEffects": false,
+  "version": "0.1.0"
+}

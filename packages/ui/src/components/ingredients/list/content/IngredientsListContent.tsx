@@ -6,6 +6,7 @@ import {
   IngredientCategory,
   type IngredientFormat,
   ModalEnum,
+  PageScope,
 } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
 import type { IngredientsListContentProps } from '@props/pages/ingredients-list.props';
@@ -17,7 +18,6 @@ import AppTable from '@ui/display/table/Table';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientSound from '@ui/ingredients/sound/IngredientSound';
-import { PageScope } from '@ui-constants/misc.constant';
 import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import Image from 'next/image';
 import { useCallback, useMemo } from 'react';

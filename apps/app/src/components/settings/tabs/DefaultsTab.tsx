@@ -6,7 +6,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from '@ui/primitives/select';
 import { SettingsField } from '@/components/ui/settings-section';
 import { type ProviderType, useSettingsStore } from '@/store/settingsStore';
 

@@ -1,37 +1,170 @@
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import {
+  CreateCredentialDto,
+  CreateCredentialVerifyDto,
+} from '@api/collections/credentials/dto/create-credential.dto';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ConfigService } from '@api/config/config.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
+import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
 import type { User } from '@clerk/backend';
+import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  CredentialOAuthSerializer,
+  CredentialSerializer,
+} from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   Body,
   Controller,
   Get,
+  HttpException,
+  HttpStatus,
   Param,
   Post,
   Query,
-  Redirect,
+  Req,
 } from '@nestjs/common';
+import type { Request } from 'express';
+import { Types } from 'mongoose';
 
 @AutoSwagger()
-@Controller('facebook')
+@Controller('services/facebook')
 export class FacebookController {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
+    private readonly brandsService: BrandsService,
     private readonly configService: ConfigService,
+    private readonly credentialsService: CredentialsService,
     private readonly facebookService: FacebookService,
     private readonly loggerService: LoggerService,
   ) {}
 
-  @Get('auth')
-  initializeAuth(@CurrentUser() user: User) {
+  @Post('connect')
+  async connect(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Body() createCredentialDto: Partial<CreateCredentialDto>,
+  ) {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
 
+    const publicMetadata = getPublicMetadata(user);
+    const brand = await this.brandsService.findOne({
+      _id: new Types.ObjectId(createCredentialDto.brand),
+      isDeleted: false,
+      organization: new Types.ObjectId(publicMetadata.organization),
+    });
+
+    if (!brand) {
+      throw new HttpException(
+        {
+          detail: 'You do not have access to this brand',
+          title: 'Invalid payload',
+        },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    const state = Buffer.from(
+      JSON.stringify({
+        brandId: brand._id,
+        organizationId: brand.organization,
+        userId: publicMetadata.user,
+      }),
+    ).toString('base64');
+
+    await this.credentialsService.saveCredentials(
+      brand,
+      CredentialPlatform.FACEBOOK,
+      {
+        isConnected: false,
+      },
+    );
+
+    const authUrl = this.facebookService.generateAuthUrl(state);
+
+    return serializeSingle(request, CredentialOAuthSerializer, {
+      url: authUrl,
+    });
+  }
+
+  @Post('verify')
+  async verify(
+    @Req() request: Request,
+    @Body() body: Partial<CreateCredentialVerifyDto>,
+  ) {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    this.loggerService.log(`${url} started`);
+
+    try {
+      if (!body.code || !body.state) {
+        throw new HttpException(
+          {
+            detail: 'Missing required OAuth parameters',
+            title: 'Invalid payload',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const stateData = JSON.parse(
+        Buffer.from(body.state, 'base64').toString('utf-8'),
+      ) as {
+        brandId: string;
+        organizationId: string;
+      };
+
+      const credential = await this.credentialsService.findOne({
+        brand: new Types.ObjectId(stateData.brandId),
+        isDeleted: false,
+        organization: new Types.ObjectId(stateData.organizationId),
+        platform: CredentialPlatform.FACEBOOK,
+      });
+
+      if (!credential) {
+        throw new HttpException(
+          {
+            detail: 'Facebook credential not found',
+            title: 'OAuth Error',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const { accessToken, expiresIn } =
+        await this.facebookService.exchangeAuthCodeForAccessToken(body.code);
+      const profile = await this.facebookService.getUserProfile(accessToken);
+
+      const updatedCredential = await this.credentialsService.patch(
+        credential._id,
+        {
+          accessToken,
+          accessTokenExpiry: expiresIn
+            ? new Date(Date.now() + expiresIn * 1000)
+            : undefined,
+          externalHandle: profile.email || profile.name,
+          externalId: credential.externalId || profile.id,
+          externalName: profile.name,
+          isConnected: true,
+          isDeleted: false,
+        },
+      );
+
+      return serializeSingle(request, CredentialSerializer, updatedCredential);
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
+  @Get('auth')
+  initializeAuth(@CurrentUser() user: User) {
     const publicMetadata = getPublicMetadata(user);
     const state = Buffer.from(
       JSON.stringify({
@@ -40,39 +173,14 @@ export class FacebookController {
       }),
     ).toString('base64');
 
-    const authUrl = this.facebookService.generateAuthUrl(state);
-
-    return { authUrl };
+    return { authUrl: this.facebookService.generateAuthUrl(state) };
   }
 
   @Get('callback')
-  @Redirect()
   handleCallback() {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    this.loggerService.log(`${url} started`);
-
-    try {
-      // const _stateData = JSON.parse(
-      //   Buffer.from(state, 'base64').toString('utf-8'),
-      // );
-
-      // const { accessToken } =
-      //   await this.facebookService.exchangeAuthCodeForAccessToken(code);
-
-      // const profile = await this.facebookService.getUserProfile(accessToken);
-
-      // Save credentials
-      // This would be handled by your credential service
-
-      return {
-        url: `${this.configService.get('GENFEEDAI_APP_URL')}/accounts?facebook=connected`,
-      };
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      return {
-        url: `${this.configService.get('GENFEEDAI_APP_URL')}/accounts?error=facebook_connection_failed`,
-      };
-    }
+    return {
+      url: `${this.configService.get('GENFEEDAI_APP_URL')}/accounts?facebook=connected`,
+    };
   }
 
   @Get('pages')
@@ -176,7 +284,7 @@ export class FacebookController {
     return { postId };
   }
 
-  @Get(':facebookId/analyticss')
+  @Get(':facebookId/analytics')
   async getPostAnalytics(
     @CurrentUser() _user: User,
     @Param('facebookId') facebookId: string,

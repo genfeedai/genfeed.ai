@@ -7,6 +7,10 @@ const mockPush = vi.fn();
 const mockToggleOpen = vi.fn();
 
 vi.mock('next/navigation', () => ({
+  useParams: () => ({
+    brandSlug: 'test-brand',
+    orgSlug: 'test-org',
+  }),
   useRouter: () => ({
     push: mockPush,
   }),
@@ -100,7 +104,9 @@ describe('AgentPanel', () => {
       'surface-fixed',
     );
     expect(screen.getByText('Agent Rail')).toBeInTheDocument();
-    expect(screen.getByLabelText('Open full thread')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Open full chat workspace'),
+    ).toBeInTheDocument();
   });
 
   it('renders outputs as a second rail tab', () => {
@@ -132,8 +138,10 @@ describe('AgentPanel', () => {
   it('opens the active thread in the full workspace', () => {
     render(<AgentPanel apiService={createCreditsInfoApiService() as never} />);
 
-    screen.getByLabelText('Open full thread').click();
+    screen.getByLabelText('Open full chat workspace').click();
 
-    expect(mockPush).toHaveBeenCalledWith('/chat/thread-123');
+    expect(mockPush).toHaveBeenCalledWith(
+      '/test-org/test-brand/chat/thread-123',
+    );
   });
 });

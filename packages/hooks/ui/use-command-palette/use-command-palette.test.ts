@@ -25,7 +25,7 @@ const mockContext = {
 
 let mockContextValue: typeof mockContext | null = mockContext;
 
-vi.mock('@contexts/features/command-palette.context', () => ({
+vi.mock('@genfeedai/contexts/features/command-palette.context', () => ({
   CommandPaletteContext: {
     Consumer: ({ children }: any) => children(mockContextValue),
     Provider: ({ children, value }: any) => children,

@@ -34,6 +34,11 @@ export const WebSocketPaths = {
   // Video events
   video: (videoId: string) => `/videos/${videoId}`,
 
+  // Workspace task events
+  workspaceTask: (taskId: string) => `/workspace/tasks/${taskId}`,
+  workspaceTaskOverview: (organizationId: string) =>
+    `/workspace/overview/${organizationId}/tasks`,
+
   // Voice events
   voice: (voiceId: string) => `/voices/${voiceId}`,
 };

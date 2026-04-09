@@ -55,7 +55,11 @@ describe('groupCommandsByCategory', () => {
   it('includes recent commands when provided', () => {
     const groups = groupCommandsByCategory(testCommands, ['run-workflow']);
     expect(groups.has('recent')).toBe(true);
-    const recent = groups.get('recent')!;
+    const recent = groups.get('recent');
+    expect(recent).toBeDefined();
+    if (!recent) {
+      throw new Error('Expected recent command group to exist');
+    }
     expect(recent[0].id).toBe('run-workflow');
   });
 

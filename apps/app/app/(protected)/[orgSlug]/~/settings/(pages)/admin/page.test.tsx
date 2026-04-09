@@ -13,5 +13,9 @@ describe('apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/admin/page.tsx',
     );
     expect(source).toContain('export ');
     expect(source).toContain('Admin Settings');
+    expect(source).toContain('top-level');
+    expect(source).toContain('/admin');
+    expect(source).not.toContain('admin-surface-ownership');
+    expect(source).not.toContain('Legacy Routes');
   });
 });

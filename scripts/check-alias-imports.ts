@@ -19,7 +19,6 @@ const IGNORE_GLOBS = [
 ];
 
 const ALLOWED_RELATIVE_IMPORT_FILES = new Set([
-  'apps/admin/instrumentation.ts',
   'apps/app/instrumentation.ts',
   'apps/website/instrumentation.ts',
 ]);

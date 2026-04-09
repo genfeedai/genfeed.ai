@@ -10,6 +10,7 @@ import type {
 } from '@genfeedai/types';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
 import type { StateCreator } from 'zustand';
+import type { WorkflowListItem } from '@/features/workflows/types/workflow-list-item';
 import { type WorkflowData, workflowsApi } from '@/lib/api';
 import { calculateWorkflowCost } from '@/lib/replicate/client';
 import { hydrateWorkflowNodes } from '@/lib/utils/nodeHydration';
@@ -34,7 +35,7 @@ export interface PersistenceSlice {
   exportWorkflow: () => WorkflowFile;
   saveWorkflow: (signal?: AbortSignal) => Promise<WorkflowData>;
   loadWorkflowById: (id: string, signal?: AbortSignal) => Promise<void>;
-  listWorkflows: (signal?: AbortSignal) => Promise<WorkflowData[]>;
+  listWorkflows: (signal?: AbortSignal) => Promise<WorkflowListItem[]>;
   deleteWorkflow: (id: string, signal?: AbortSignal) => Promise<void>;
   duplicateWorkflowApi: (
     id: string,
@@ -195,7 +196,8 @@ export const createPersistenceSlice: StateCreator<
     // This way selecting a node shows its dependencies, not what depends on it
     const queue = [...nodeIds];
     while (queue.length > 0) {
-      const currentId = queue.shift()!;
+      const currentId = queue.shift();
+      if (!currentId) continue;
       if (visited.has(currentId)) continue;
       visited.add(currentId);
 

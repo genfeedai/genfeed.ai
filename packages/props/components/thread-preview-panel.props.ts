@@ -16,7 +16,7 @@ export interface ThreadPreviewPanelProps {
   /**
    * Child posts (in order)
    */
-  children: Array<{
+  replies: Array<{
     id: string;
     content: string;
   }>;

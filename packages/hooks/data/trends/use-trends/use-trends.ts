@@ -1,14 +1,14 @@
 'use client';
 
-import { useBrandId } from '@contexts/user/brand-context/brand-context';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
+import { useBrandId } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type {
   TrendItem,
   TrendsResponse,
   TrendsSummary,
-} from '@props/trends/trends-page.props';
-import { TrendsService } from '@services/social/trends.service';
+} from '@genfeedai/props/trends/trends-page.props';
+import { TrendsService } from '@genfeedai/services/social/trends.service';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const EMPTY_SUMMARY: TrendsSummary = {

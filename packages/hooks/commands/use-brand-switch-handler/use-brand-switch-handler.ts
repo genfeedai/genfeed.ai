@@ -1,9 +1,9 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { UsersService } from '@genfeedai/services/organization/users.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { logger } from '@services/core/logger.service';
-import { UsersService } from '@services/organization/users.service';
 import { useCallback } from 'react';
 
 export function useBrandSwitchHandler(

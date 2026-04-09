@@ -1,3 +1,4 @@
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ConfigService } from '@api/config/config.service';
 import type {
   GoogleAdsAd,
@@ -13,10 +14,13 @@ import type {
   GoogleAdsSearchTerm,
   GoogleAdsUpdateCampaignInput,
 } from '@api/services/integrations/google-ads/interfaces/google-ads.interface';
+import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
+import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
+import { Types } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable()
@@ -28,6 +32,7 @@ export class GoogleAdsService {
 
   constructor(
     private readonly configService: ConfigService,
+    private readonly credentialsService: CredentialsService,
     private readonly httpService: HttpService,
     private readonly loggerService: LoggerService,
   ) {}
@@ -190,6 +195,54 @@ export class GoogleAdsService {
       return customers;
     } catch (error: unknown) {
       this.loggerService.error(`${caller} failed`, error);
+      throw error;
+    }
+  }
+
+  async refreshToken(
+    organizationId: string,
+    brandId: string,
+  ): Promise<Record<string, unknown>> {
+    const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    const credential = await this.credentialsService.findOne({
+      brand: new Types.ObjectId(brandId),
+      isDeleted: false,
+      organization: new Types.ObjectId(organizationId),
+      platform: CredentialPlatform.GOOGLE_ADS,
+    });
+
+    if (!credential?.refreshToken) {
+      throw new Error('Google Ads credential not found');
+    }
+
+    try {
+      const refreshToken = EncryptionUtil.decrypt(credential.refreshToken);
+      const refreshed = await firstValueFrom(
+        this.httpService.post<{
+          access_token: string;
+          expires_in: number;
+        }>('https://oauth2.googleapis.com/token', {
+          client_id: this.configService.get('GOOGLE_ADS_CLIENT_ID'),
+          client_secret: this.configService.get('GOOGLE_ADS_CLIENT_SECRET'),
+          grant_type: 'refresh_token',
+          refresh_token: refreshToken,
+        }),
+      );
+
+      return await this.credentialsService.patch(credential._id, {
+        accessToken: refreshed.data.access_token,
+        accessTokenExpiry: refreshed.data.expires_in
+          ? new Date(Date.now() + refreshed.data.expires_in * 1000)
+          : undefined,
+        isConnected: true,
+        isDeleted: false,
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(`${caller} failed`, error);
+      await this.credentialsService.patch(credential._id, {
+        isConnected: false,
+      });
       throw error;
     }
   }

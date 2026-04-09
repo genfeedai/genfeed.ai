@@ -55,12 +55,26 @@ export class WorkspaceTaskProcessor extends WorkerHost {
         error,
       );
 
-      // Mark the workspace task as failed
       await this.workspaceTasksService
-        .patch(data.taskId, {
-          failureReason: errorMessage,
-          status: 'failed',
-        } as Record<string, unknown>)
+        .recordTaskEvent(
+          data.taskId,
+          data.organizationId,
+          data.userId,
+          {
+            payload: { error: errorMessage },
+            type: 'task_failed',
+          },
+          {
+            failureReason: errorMessage,
+            progress: {
+              activeRunCount: 0,
+              message: 'Task orchestration failed before execution.',
+              percent: 100,
+              stage: 'failed',
+            },
+            status: 'failed',
+          },
+        )
         .catch((patchError: unknown) => {
           this.logger.error(
             `${this.logContext}: Failed to update task status`,

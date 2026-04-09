@@ -1,4 +1,4 @@
-import { logger } from '@services/core/logger.service';
+import { logger } from '@genfeedai/services/core/logger.service';
 import { useEffect, useRef, useState } from 'react';
 
 export type VoiceCommand = {

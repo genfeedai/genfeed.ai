@@ -1,14 +1,14 @@
 'use client';
 
+import { PageScope } from '@genfeedai/enums';
+import type {
+  IngredientsListProps,
+  UseIngredientsListReturn,
+} from '@genfeedai/props/pages/ingredients-list.props';
 import { useIngredientsActions } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-actions';
 import { useIngredientsFilters } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-filters';
 import { useIngredientsGeneration } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-generation';
 import { useIngredientsLoading } from '@hooks/data/ingredients/use-ingredients-list/use-ingredients-loading';
-import type {
-  IngredientsListProps,
-  UseIngredientsListReturn,
-} from '@props/pages/ingredients-list.props';
-import { PageScope } from '@ui-constants/misc.constant';
 import { useCallback, useMemo } from 'react';
 
 export type { ImageToVideoGenerationPayload } from '@genfeedai/interfaces';

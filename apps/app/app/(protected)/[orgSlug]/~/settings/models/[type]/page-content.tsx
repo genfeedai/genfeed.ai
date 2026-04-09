@@ -2,9 +2,9 @@
 
 import { useModelsContext } from '@contexts/models/models-context/models-context';
 import { useTrainingsContext } from '@contexts/models/trainings-context/trainings-context';
+import { PageScope } from '@genfeedai/enums';
 import ModelsList from '@pages/models/list/models-list';
 import TrainingsList from '@pages/trainings/list/trainings-list';
-import { PageScope } from '@ui-constants/misc.constant';
 
 export default function ModelsTypePageClientContent({
   type,

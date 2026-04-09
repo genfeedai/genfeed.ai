@@ -13,7 +13,7 @@ vi.mock('@clerk/nextjs', () => ({
   }),
 }));
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrandId: () => mockUseBrandId(),
 }));
 
@@ -21,7 +21,7 @@ vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
   useResource: (...args: unknown[]) => mockUseResource(...args),
 }));
 
-vi.mock('@services/automation/agent-campaigns.service', () => ({
+vi.mock('@genfeedai/services/automation/agent-campaigns.service', () => ({
   AgentCampaignsService: {
     getInstance: vi.fn(),
   },

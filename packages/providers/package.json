@@ -1,0 +1,10 @@
+{
+  "description": "Shared React providers for Genfeed applications",
+  "exports": {
+    "./*": "./*"
+  },
+  "name": "@genfeedai/providers",
+  "private": true,
+  "sideEffects": false,
+  "version": "0.1.0"
+}

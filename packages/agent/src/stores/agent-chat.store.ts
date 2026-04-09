@@ -17,8 +17,8 @@ const ONBOARDING_TOTAL_VISIBLE_CREDITS = 600;
 import type {
   OnboardingChecklistStatus,
   OnboardingChecklistStep,
-} from '@props/ui/agent/agent-onboarding.props';
-import { AGENT_PANEL_OPEN_KEY } from '@services/core/agent-overlay-coordination.service';
+} from '@genfeedai/props/ui/agent/agent-onboarding.props';
+import { AGENT_PANEL_OPEN_KEY } from '@genfeedai/services/core/agent-overlay-coordination.service';
 import { create } from 'zustand';
 
 export { AGENT_PANEL_OPEN_KEY };

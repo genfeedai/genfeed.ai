@@ -1,8 +1,8 @@
 'use client';
 
 import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
-import { EnvironmentService } from '@services/core/environment.service';
-import { logger } from '@services/core/logger.service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { logger } from '@genfeedai/services/core/logger.service';
 import { useEffect } from 'react';
 import { HiOutlineCog6Tooth } from 'react-icons/hi2';
 

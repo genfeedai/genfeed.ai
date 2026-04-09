@@ -13,7 +13,7 @@
       "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
       "@genfeedai/config": ["../../../packages/config/src/index.ts"],
       "@genfeedai/integrations": [
-        "../../../packages/integration-common/src/index.ts"
+        "../../../packages/integrations/src/index.ts"
       ],
       "@genfeedai/interfaces": [
         "../../../packages/interfaces/src/index.ts.d.ts"

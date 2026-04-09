@@ -21,15 +21,9 @@ const isCI = !!process.env.CI;
 const shouldSkipWebServer = process.env.PLAYWRIGHT_SKIP_WEBSERVER === '1';
 const appBaseURL =
   process.env.APP_BASE_URL || process.env.BASE_URL || 'http://127.0.0.1:3000';
-const adminBaseURL = process.env.ADMIN_BASE_URL || 'http://127.0.0.1:3001';
 const appWebServerUrl =
   process.env.PLAYWRIGHT_WEB_SERVER_URL || `${appBaseURL}/playwright-ready`;
-const adminWebServerUrl =
-  process.env.PLAYWRIGHT_ADMIN_WEB_SERVER_URL ||
-  `${adminBaseURL}/playwright-ready`;
 const appWebAppPath = process.env.PLAYWRIGHT_WEB_APP_PATH || 'apps/app';
-const adminWebAppPath =
-  process.env.PLAYWRIGHT_ADMIN_WEB_APP_PATH || 'apps/admin';
 const testApiEndpoint =
   process.env.NEXT_PUBLIC_API_ENDPOINT || 'http://local.genfeed.ai:3010/v1';
 const appPlaywrightWebServerEnv = {
@@ -43,47 +37,15 @@ const appPlaywrightWebServerEnv = {
     process.env.NEXT_PUBLIC_WS_ENDPOINT || 'http://local.genfeed.ai:3013',
   PLAYWRIGHT_TEST: 'true',
 };
-const adminPlaywrightWebServerEnv = {
-  ...process.env,
-  NEXT_PUBLIC_API_ENDPOINT:
-    process.env.NEXT_PUBLIC_API_ENDPOINT || 'http://local.genfeed.ai:3010/v1',
-  NEXT_PUBLIC_PLAYWRIGHT_TEST:
-    process.env.NEXT_PUBLIC_PLAYWRIGHT_TEST || 'true',
-  NEXT_PUBLIC_WS_ENDPOINT:
-    process.env.NEXT_PUBLIC_WS_ENDPOINT || 'http://local.genfeed.ai:3013',
-  PLAYWRIGHT_TEST: 'true',
-};
 const appCiWebServerCommand =
   process.env.PLAYWRIGHT_APP_COMMAND_CI ||
   process.env.PLAYWRIGHT_WEB_SERVER_COMMAND_CI ||
   `bun run --cwd ${appWebAppPath} start -- --hostname 127.0.0.1`;
-const adminCiWebServerCommand =
-  process.env.PLAYWRIGHT_ADMIN_COMMAND_CI ||
-  process.env.PLAYWRIGHT_ADMIN_WEB_SERVER_COMMAND_CI ||
-  `bun run --cwd ${adminWebAppPath} start -- --hostname 127.0.0.1`;
 const appDevWebServerCommand =
   process.env.PLAYWRIGHT_APP_COMMAND ||
   process.env.PLAYWRIGHT_WEB_SERVER_COMMAND ||
   `bun run --cwd ${appWebAppPath} dev -- --hostname 127.0.0.1`;
-const adminDevWebServerCommand =
-  process.env.PLAYWRIGHT_ADMIN_COMMAND ||
-  process.env.PLAYWRIGHT_ADMIN_WEB_SERVER_COMMAND ||
-  `bun run --cwd ${adminWebAppPath} dev -- --hostname 127.0.0.1`;
 const cliArgs = process.argv.slice(2);
-const includesExplicitTestPaths = cliArgs.some((arg) =>
-  arg.startsWith('e2e/tests/'),
-);
-const includesAdminTarget = cliArgs.some(
-  (arg, index) =>
-    arg.includes('/admin/') ||
-    arg === 'admin-core' ||
-    arg === '--project=admin-core' ||
-    (arg === '--project' && cliArgs[index + 1] === 'admin-core'),
-);
-const shouldIncludeAdminWebServer =
-  process.env.PLAYWRIGHT_INCLUDE_ADMIN_SERVER === 'true' ||
-  includesAdminTarget ||
-  !includesExplicitTestPaths;
 
 export default defineConfig({
   expect: {
@@ -108,27 +70,12 @@ export default defineConfig({
   projects: [
     {
       name: 'app-core',
-      testIgnore: [
-        /admin\/.+\.spec\.ts/,
-        /marketplace\/.+\.spec\.ts/,
-        /website\/.+\.spec\.ts/,
-      ],
+      testIgnore: [/marketplace\/.+\.spec\.ts/, /website\/.+\.spec\.ts/],
       use: {
         ...devices['Desktop Chrome'],
         baseURL: appBaseURL,
         launchOptions: {
           args: ['--disable-web-security'], // For API mocking
-        },
-      },
-    },
-    {
-      name: 'admin-core',
-      testMatch: /admin\/.+\.spec\.ts/,
-      use: {
-        ...devices['Desktop Chrome'],
-        baseURL: adminBaseURL,
-        launchOptions: {
-          args: ['--disable-web-security'],
         },
       },
     },
@@ -198,17 +145,6 @@ export default defineConfig({
             timeout: 300_000,
             url: appWebServerUrl,
           },
-          ...(shouldIncludeAdminWebServer
-            ? [
-                {
-                  command: adminCiWebServerCommand,
-                  env: adminPlaywrightWebServerEnv,
-                  reuseExistingServer: true,
-                  timeout: 300_000,
-                  url: adminWebServerUrl,
-                },
-              ]
-            : []),
         ]
       : [
           {
@@ -220,19 +156,6 @@ export default defineConfig({
             timeout: 300_000,
             url: appWebServerUrl,
           },
-          ...(shouldIncludeAdminWebServer
-            ? [
-                {
-                  command: adminDevWebServerCommand,
-                  env: adminPlaywrightWebServerEnv,
-                  reuseExistingServer: true,
-                  stderr: 'pipe',
-                  stdout: 'pipe',
-                  timeout: 300_000,
-                  url: adminWebServerUrl,
-                },
-              ]
-            : []),
         ],
   workers: 1,
 });

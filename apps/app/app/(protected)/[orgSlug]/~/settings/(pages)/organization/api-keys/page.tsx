@@ -1,7 +1,7 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import SettingsApiKeysPage from '@pages/settings/api-keys/settings-api-keys-page';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
+import SettingsApiKeysPage from './content';
 
 export const generateMetadata = createPageMetadata('API Keys');
 

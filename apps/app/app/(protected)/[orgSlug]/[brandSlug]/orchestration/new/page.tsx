@@ -1,7 +1,7 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import AgentWizardPage from '@pages/agents/agents/new/AgentWizardPage';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
+import AgentWizardPage from './AgentWizardPage';
 
 export const generateMetadata = createPageMetadata('New Agent');
 

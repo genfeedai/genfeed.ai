@@ -14,5 +14,8 @@ describe('apps/app/app/(onboarding)/onboarding/(wizard)/success/success-content.
     expect(source).toContain('export ');
     expect(source).toContain('Starter Credits Ready');
     expect(source).toContain('ONBOARDING_SIGNUP_GIFT_CREDITS');
+    expect(source).toContain('forceRefresh: true');
+    expect(source).toContain('user?.reload()');
+    expect(source).toContain("window.location.assign('/workspace/overview')");
   });
 });

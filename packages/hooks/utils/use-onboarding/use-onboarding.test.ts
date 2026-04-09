@@ -24,7 +24,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => mockGetOnboardingService),
 }));
 
-vi.mock('@services/onboarding/onboarding.service', () => ({
+vi.mock('@genfeedai/services/onboarding/onboarding.service', () => ({
   OnboardingService: {
     getInstance: vi.fn(),
   },

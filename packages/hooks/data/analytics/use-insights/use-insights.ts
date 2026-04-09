@@ -1,6 +1,6 @@
 'use client';
 
-import { useAnalyticsContext } from '@contexts/analytics/analytics-context';
+import { useAnalyticsContext } from '@genfeedai/contexts/analytics/analytics-context';
 import {
   AnomalySeverity,
   ContentSuggestionType,
@@ -8,8 +8,6 @@ import {
   SmartAlertType,
   TrendDirection,
 } from '@genfeedai/enums';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import type {
   AnomalyData,
   AudienceSegment,
@@ -17,12 +15,14 @@ import type {
   Insight,
   SmartAlert,
   TrendData,
-} from '@props/analytics/insights.props';
+} from '@genfeedai/props/analytics/insights.props';
 import {
   InsightsService,
   PredictiveAnalyticsService,
-} from '@services/analytics/insights.service';
-import { logger } from '@services/core/logger.service';
+} from '@genfeedai/services/analytics/insights.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { useCallback, useMemo, useState } from 'react';
 
 interface UseInsightsOptions {

@@ -1,7 +1,6 @@
-import { IngredientStatus } from '@genfeedai/enums';
+import { IngredientStatus, PageScope } from '@genfeedai/enums';
 import IngredientsLayout from '@pages/ingredients/layout/ingredients-layout';
 import { render, waitFor } from '@testing-library/react';
-import { PageScope } from '@ui-constants/misc.constant';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

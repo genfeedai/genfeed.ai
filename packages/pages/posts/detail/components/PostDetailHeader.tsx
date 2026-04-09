@@ -4,6 +4,7 @@ import {
   ButtonSize,
   ButtonVariant,
   CredentialPlatform,
+  PageScope,
   PostStatus,
 } from '@genfeedai/enums';
 import type { IPost } from '@genfeedai/interfaces';
@@ -14,7 +15,6 @@ import {
 import Breadcrumb from '@ui/navigation/breadcrumb/Breadcrumb';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
-import { PageScope } from '@ui-constants/misc.constant';
 import {
   buildPostAgentHref,
   buildPostAnalyticsHref,

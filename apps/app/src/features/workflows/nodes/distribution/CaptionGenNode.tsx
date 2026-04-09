@@ -18,7 +18,7 @@ import {
   HashIcon,
   RefreshIcon,
   SparklesIcon,
-} from '@/features/workflows/components/ui/icons/node-icons';
+} from '@/features/workflows/components/ui/icons';
 import {
   NodeInput,
   NodeSelect,
@@ -125,7 +125,7 @@ function CaptionGenNodeComponent(props: NodeProps): React.JSX.Element {
   return (
     <NodeCard>
       <NodeHeader
-        icon={<SparklesIcon />}
+        icon={<SparklesIcon className="h-4 w-4" />}
         title="Caption Generator"
         badge={<NodeBadge variant="purple">AI</NodeBadge>}
       />
@@ -160,7 +160,7 @@ function CaptionGenNodeComponent(props: NodeProps): React.JSX.Element {
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <label className="text-sm flex items-center gap-2">
-            <HashIcon />
+            <HashIcon className="h-4 w-4" />
             Include Hashtags
           </label>
           <Toggle
@@ -250,14 +250,14 @@ function CaptionGenNodeComponent(props: NodeProps): React.JSX.Element {
             </span>
             <div className="flex gap-1">
               <NodeIconButton onClick={handleCopy} title="Copy to clipboard">
-                <CopyIcon />
+                <CopyIcon className="h-4 w-4" />
               </NodeIconButton>
               <NodeIconButton
                 onClick={handleGenerate}
                 disabled={data.status === WorkflowNodeStatus.PROCESSING}
                 title="Regenerate"
               >
-                <RefreshIcon />
+                <RefreshIcon className="h-4 w-4" />
               </NodeIconButton>
             </div>
           </div>
@@ -269,7 +269,7 @@ function CaptionGenNodeComponent(props: NodeProps): React.JSX.Element {
           fullWidth
           onClick={handleGenerate}
           disabled={!canGenerate}
-          icon={<SparklesIcon />}
+          icon={<SparklesIcon className="h-4 w-4" />}
         >
           Generate Caption
         </NodeButton>

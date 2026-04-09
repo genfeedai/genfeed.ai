@@ -52,11 +52,11 @@ const workflowUiAliases = {
   '@genfeedai/workflow-ui/ui': path.join(workflowUiRoot, 'src/ui/index.ts'),
 };
 
-const IS_SELF_HOSTED = !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+const IS_LOCAL_APP_SHELL = !process.env.NEXT_PUBLIC_GENFEED_CLOUD;
 const DEFAULT_ORG = 'default';
 const DEFAULT_BRAND = 'default';
 
-const selfHostedRewrites = IS_SELF_HOSTED
+const selfHostedRewrites = IS_LOCAL_APP_SHELL
   ? [
       'workspace',
       'studio',
@@ -74,7 +74,7 @@ const selfHostedRewrites = IS_SELF_HOSTED
     }))
   : [];
 
-const selfHostedOrgRewrites = IS_SELF_HOSTED
+const selfHostedOrgRewrites = IS_LOCAL_APP_SHELL
   ? ['chat', 'settings'].map((segment) => ({
       destination: `/${DEFAULT_ORG}/~/${segment}/:path*`,
       source: `/${segment}/:path*`,
@@ -172,9 +172,34 @@ config.turbopack = {
   ...(config.turbopack ?? {}),
   resolveAlias: {
     ...(config.turbopack?.resolveAlias ?? {}),
+    '@components/buttons/refresh/button-refresh/ButtonRefresh':
+      '../../packages/ui/src/components/buttons/refresh/button-refresh/ButtonRefresh.tsx',
+    '@components/cards/KpiCard':
+      './packages/components/admin/cards/KpiCard.tsx',
+    '@components/lazy/LazyModal':
+      './packages/components/admin/lazy/LazyModal.tsx',
+    '@components/lazy/modal/LazyModal':
+      '../../packages/ui/src/components/lazy/modal/LazyModal.tsx',
+    '@components/loading/fallback/LazyLoadingFallback':
+      '../../packages/ui/src/components/loading/fallback/LazyLoadingFallback.tsx',
+    '@components/loading/skeleton/SkeletonFallbacks':
+      '../../packages/ui/src/components/loading/skeleton/SkeletonFallbacks.tsx',
+    '@components/modals/actions/ModalActions':
+      '../../packages/ui/src/components/modals/actions/ModalActions.tsx',
+    '@components/modals/modal/Modal':
+      '../../packages/ui/src/components/modals/modal/Modal.tsx',
+    '@components/modals/ModalRole':
+      './packages/components/admin/modals/ModalRole.tsx',
+    '@components/modals/ModalSubscription':
+      './packages/components/admin/modals/ModalSubscription.tsx',
+    '@components/social/SocialLinks':
+      './packages/components/admin/social/SocialLinks.tsx',
     '@genfeedai/serializers': '../../packages/serializers/src/index.ts',
     '@genfeedai/helpers': '../../packages/helpers/src/index.ts',
+    '@protected': './app/(protected)/admin',
     '@serializers': '../../packages/serializers/src',
+    '@ui/forms/base/form-control/FormControl':
+      '../../packages/ui/src/primitives/field.tsx',
   },
   root: path.resolve(__dirname, '../..'),
 };
@@ -221,12 +246,57 @@ config.webpack = ((webpackConfig, options) => {
     '@ui': path.join(packagesRoot, 'ui'),
     '@ui-constants': path.join(packagesRoot, 'ui/constants'),
     '@components': path.join(packagesRoot, 'ui'),
+    '@components/buttons/refresh/button-refresh/ButtonRefresh': path.join(
+      packagesRoot,
+      'ui/src/components/buttons/refresh/button-refresh/ButtonRefresh.tsx',
+    ),
+    '@components/cards/KpiCard': path.join(
+      __dirname,
+      'packages/components/admin/cards/KpiCard.tsx',
+    ),
+    '@components/lazy/LazyModal': path.join(
+      __dirname,
+      'packages/components/admin/lazy/LazyModal.tsx',
+    ),
+    '@components/lazy/modal/LazyModal': path.join(
+      packagesRoot,
+      'ui/src/components/lazy/modal/LazyModal.tsx',
+    ),
+    '@components/loading/fallback/LazyLoadingFallback': path.join(
+      packagesRoot,
+      'ui/src/components/loading/fallback/LazyLoadingFallback.tsx',
+    ),
+    '@components/loading/skeleton/SkeletonFallbacks': path.join(
+      packagesRoot,
+      'ui/src/components/loading/skeleton/SkeletonFallbacks.tsx',
+    ),
+    '@components/modals/actions/ModalActions': path.join(
+      packagesRoot,
+      'ui/src/components/modals/actions/ModalActions.tsx',
+    ),
+    '@components/modals/modal/Modal': path.join(
+      packagesRoot,
+      'ui/src/components/modals/modal/Modal.tsx',
+    ),
+    '@components/modals/ModalRole': path.join(
+      __dirname,
+      'packages/components/admin/modals/ModalRole.tsx',
+    ),
+    '@components/modals/ModalSubscription': path.join(
+      __dirname,
+      'packages/components/admin/modals/ModalSubscription.tsx',
+    ),
+    '@components/social/SocialLinks': path.join(
+      __dirname,
+      'packages/components/admin/social/SocialLinks.tsx',
+    ),
     '@contexts': path.join(packagesRoot, 'contexts'),
     '@helpers': path.join(packagesRoot, 'helpers/src'),
     '@hooks': path.join(packagesRoot, 'hooks'),
     '@models': path.join(packagesRoot, 'models'),
     '@pages': path.join(packagesRoot, 'pages'),
     '@props': path.join(packagesRoot, 'props'),
+    '@protected': path.join(__dirname, 'app/(protected)/admin'),
     '@providers': path.join(packagesRoot, 'providers'),
     '@schemas': path.join(packagesRoot, 'schemas'),
     '@serializers': path.join(serializersRoot, 'src'),
@@ -235,6 +305,10 @@ config.webpack = ((webpackConfig, options) => {
     '@utils': path.join(packagesRoot, 'utils'),
     '@libs': path.join(packagesRoot, 'libs'),
     '@cloud-types': path.join(packagesRoot, 'types/src'),
+    '@ui/forms/base/form-control/FormControl': path.join(
+      packagesRoot,
+      'ui/src/primitives/field.tsx',
+    ),
   };
   nextConfig.resolve.extensions = [
     ...(nextConfig.resolve.extensions ?? []),

@@ -1,5 +1,5 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import LibraryVoicesPage from '@pages/library/voices/library-voices-page';
+import LibraryVoicesPage from './library-voices-page';
 
 export const generateMetadata = createPageMetadata('Voices');
 

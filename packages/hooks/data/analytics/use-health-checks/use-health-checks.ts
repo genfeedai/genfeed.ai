@@ -1,7 +1,7 @@
 'use client';
 
 import { ServiceHealthStatus } from '@genfeedai/enums';
-import { EnvironmentService } from '@services/core/environment.service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const HEALTH_TIMEOUT_MS = 4000;

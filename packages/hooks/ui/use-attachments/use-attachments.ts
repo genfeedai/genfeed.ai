@@ -5,7 +5,7 @@ import type {
   DragState,
   UseAttachmentsOptions,
   UseAttachmentsReturn,
-} from '@props/ui/attachments.props';
+} from '@genfeedai/props/ui/attachments.props';
 import type { DragEvent } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 

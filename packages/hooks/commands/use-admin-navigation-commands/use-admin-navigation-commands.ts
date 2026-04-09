@@ -1,7 +1,7 @@
 'use client';
 
-import { registerAdminNavigationCommands } from '@services/core/admin-commands.registry';
-import { logger } from '@services/core/logger.service';
+import { registerAdminNavigationCommands } from '@genfeedai/services/core/admin-commands.registry';
+import { logger } from '@genfeedai/services/core/logger.service';
 import { useEffect } from 'react';
 
 export function useAdminNavigationCommands(): void {

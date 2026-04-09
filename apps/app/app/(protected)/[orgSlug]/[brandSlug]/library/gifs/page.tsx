@@ -1,8 +1,8 @@
+import { PageScope } from '@genfeedai/enums';
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import IngredientsLayout from '@pages/ingredients/layout/ingredients-layout';
 import IngredientsList from '@pages/ingredients/list/ingredients-list';
 import { SkeletonLoadingFallback } from '@ui/loading/skeleton/SkeletonFallbacks';
-import { PageScope } from '@ui-constants/misc.constant';
 import { Suspense } from 'react';
 
 export const generateMetadata = createPageMetadata('GIFs');

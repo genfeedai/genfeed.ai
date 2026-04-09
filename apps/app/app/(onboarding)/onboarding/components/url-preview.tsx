@@ -54,12 +54,15 @@ export default function UrlPreview({ url }: UrlPreviewProps) {
       aria-label={`Preview for ${domain}`}
     >
       {!faviconError ? (
-        <img
-          src={faviconUrl}
-          alt=""
-          className="w-4 h-4 rounded-sm"
-          onError={() => setFaviconError(true)}
-        />
+        <>
+          {/* biome-ignore lint/performance/noImgElement: favicon preview is a tiny remote asset and does not benefit from next/image */}
+          <img
+            src={faviconUrl}
+            alt=""
+            className="w-4 h-4 rounded-sm"
+            onError={() => setFaviconError(true)}
+          />
+        </>
       ) : (
         <HiGlobeAlt className="w-4 h-4 text-white/40" />
       )}

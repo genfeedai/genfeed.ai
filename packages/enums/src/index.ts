@@ -66,6 +66,7 @@ export * from './model.enum';
 export * from './oauth.enum';
 export * from './onboarding.enum';
 export * from './organization.enum';
+export * from './page-scope.enum';
 export * from './parse-mode.enum';
 export * from './persona.enum';
 export * from './platform.enum';

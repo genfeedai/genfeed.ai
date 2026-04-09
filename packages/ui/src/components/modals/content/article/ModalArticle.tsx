@@ -31,6 +31,7 @@ import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
+import { Switch } from '@ui/primitives/switch';
 import { Textarea } from '@ui/primitives/textarea';
 import { type ChangeEvent, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -274,20 +275,14 @@ export default function ModalArticle({
           </>
         )}
 
-        <label className="flex items-center cursor-pointer justify-start gap-3">
-          <input
-            type="checkbox"
-            className="relative w-10 h-5 rounded-full bg-input appearance-none cursor-pointer transition-colors checked:bg-primary peer"
+        <div className="flex items-center justify-start gap-3">
+          <Switch
             checked={useAI}
-            onChange={(e) => handleToggleAI(e.target.checked)}
-            disabled={isSubmitting}
+            onCheckedChange={handleToggleAI}
+            isDisabled={isSubmitting}
           />
-          <span
-            className="absolute w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5 translate-x-0.5 pointer-events-none"
-            aria-hidden="true"
-          />
-          <span className="text-sm flex items-center gap-2">Enhance</span>
-        </label>
+          <span className="flex items-center gap-2 text-sm">Enhance</span>
+        </div>
 
         <ModalActions>
           <Button

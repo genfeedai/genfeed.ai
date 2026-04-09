@@ -69,25 +69,25 @@ vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
 }));
 
 // Mock services
-vi.mock('@services/billing/stripe.service', () => ({
+vi.mock('@genfeedai/services/billing/stripe.service', () => ({
   StripeService: {
     getInstance: vi.fn(() => mockStripeService),
   },
 }));
 
-vi.mock('@services/billing/subscriptions.service', () => ({
+vi.mock('@genfeedai/services/billing/subscriptions.service', () => ({
   SubscriptionsService: {
     getInstance: vi.fn(() => mockSubscriptionsService),
   },
 }));
 
-vi.mock('@services/organization/organizations.service', () => ({
+vi.mock('@genfeedai/services/organization/organizations.service', () => ({
   OrganizationsService: {
     getInstance: vi.fn(() => mockOrganizationsService),
   },
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
     info: vi.fn(),
@@ -101,7 +101,7 @@ const mockNotificationsService = {
   success: vi.fn(),
 };
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(() => mockNotificationsService),
   },

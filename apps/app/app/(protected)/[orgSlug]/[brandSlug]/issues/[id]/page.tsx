@@ -1,7 +1,7 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
-import IssueDetail from '@pages/issues/detail/issue-detail';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import { Suspense } from 'react';
+import IssueDetail from './issue-detail';
 
 export const generateMetadata = createPageMetadata('Issue');
 

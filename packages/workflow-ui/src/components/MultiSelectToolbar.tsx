@@ -1,9 +1,11 @@
 'use client';
 
+import type { WorkflowNode } from '@genfeedai/types';
 import { useReactFlow } from '@xyflow/react';
 import {
   AlignHorizontalSpaceAround,
   AlignVerticalSpaceAround,
+  Download,
   Grid3X3,
   Group,
   Ungroup,
@@ -16,7 +18,13 @@ const NODE_GAP = 32;
 const EST_NODE_WIDTH = 280;
 const EST_NODE_HEIGHT = 200;
 
-function MultiSelectToolbarComponent() {
+interface MultiSelectToolbarProps {
+  onDownloadAsZip?: (nodes: WorkflowNode[]) => void;
+}
+
+function MultiSelectToolbarComponent({
+  onDownloadAsZip,
+}: MultiSelectToolbarProps) {
   const {
     nodes,
     selectedNodeIds,
@@ -141,6 +149,11 @@ function MultiSelectToolbarComponent() {
     deleteGroup(selectedGroup.id);
   }, [selectedGroup, deleteGroup]);
 
+  const handleDownloadAsZip = useCallback(() => {
+    if (!onDownloadAsZip || selectedNodes.length === 0) return;
+    onDownloadAsZip(selectedNodes);
+  }, [onDownloadAsZip, selectedNodes]);
+
   if (selectedNodes.length < 2 || !toolbarPosition) return null;
 
   return (
@@ -188,6 +201,20 @@ function MultiSelectToolbarComponent() {
       >
         <Grid3X3 className="h-3.5 w-3.5" />
       </Button>
+
+      {onDownloadAsZip && (
+        <>
+          <div className="h-4 w-px bg-[var(--border)]" />
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={handleDownloadAsZip}
+            title="Download selected nodes as ZIP"
+          >
+            <Download className="h-3.5 w-3.5" />
+          </Button>
+        </>
+      )}
 
       <div className="h-4 w-px bg-[var(--border)]" />
 

@@ -1,5 +1,5 @@
+import type { Brand } from '@genfeedai/models/organization/brand.model';
 import { useBrandCommands } from '@hooks/commands/use-brand-commands/use-brand-commands';
-import type { Brand } from '@models/organization/brand.model';
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -13,7 +13,7 @@ vi.mock('@hooks/ui/use-command-palette/use-command-palette', () => ({
   })),
 }));
 
-vi.mock('@services/core/brand-commands.service', () => ({
+vi.mock('@genfeedai/services/core/brand-commands.service', () => ({
   BrandCommandsService: {
     generateBrandCommands: vi.fn(() => [
       { id: 'switch-brand-1', name: 'Switch to Brand 1' },

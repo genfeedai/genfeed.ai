@@ -1,5 +1,6 @@
 'use client';
 
+import type { PageScope } from '@genfeedai/enums';
 import { AlertCategory, PostStatus } from '@genfeedai/enums';
 import { getPublisherPostsHref } from '@helpers/content/posts.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
@@ -14,7 +15,6 @@ import Alert from '@ui/feedback/alert/Alert';
 import Breadcrumb from '@ui/navigation/breadcrumb/Breadcrumb';
 import EngagementPreview from '@ui/posts/engagement-preview/EngagementPreview';
 import PostDetailSidebar from '@ui/posts/post-detail-sidebar/PostDetailSidebar';
-import type { PageScope } from '@ui-constants/misc.constant';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 

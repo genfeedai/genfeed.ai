@@ -5,6 +5,30 @@ import {
   NextResponse,
 } from 'next/server';
 
+type ClerkSessionState = {
+  getToken?: () => Promise<string | null>;
+  sessionId?: string | null;
+  userId?: string | null;
+};
+
+type BootstrapBrandSummary = {
+  _id?: string;
+  id?: string;
+  slug?: string;
+};
+
+type BootstrapResponse = {
+  access?: {
+    brandId?: string;
+  };
+  brands?: BootstrapBrandSummary[];
+};
+
+type OrganizationMineResponseItem = {
+  isActive: boolean;
+  slug?: string;
+};
+
 const hasClerkKeys =
   Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) &&
   Boolean(process.env.CLERK_SECRET_KEY);
@@ -15,8 +39,142 @@ const hasClerkKeys =
  */
 const isCloudConnected = hasClerkKeys;
 
+const BRAND_SCOPED_PREFIXES = [
+  'analytics',
+  'compose',
+  'editor',
+  'issues',
+  'library',
+  'orchestration',
+  'overview',
+  'posts',
+  'research',
+  'studio',
+  'workflows',
+  'workspace',
+] as const;
+
+const ORG_SCOPED_PREFIXES = ['chat', 'settings'] as const;
+
+const FLAT_PATH_REDIRECTS = new Map<string, string>([
+  ['/analytics', '/analytics/overview'],
+  ['/chat', '/chat/new'],
+  ['/compose', '/compose/article'],
+  ['/library', '/library/ingredients'],
+  ['/research', '/research/discovery'],
+  ['/settings', '/settings/personal'],
+  ['/studio', '/studio/image'],
+  ['/workspace', '/workspace/overview'],
+  ['/workspace/inbox', '/workspace/inbox/unread'],
+]);
+
+function getApiBaseUrl(): string {
+  return (
+    process.env.API_URL ||
+    process.env.NEXT_PUBLIC_API_ENDPOINT ||
+    'http://localhost:3010/v1'
+  ).replace(/\/$/, '');
+}
+
+function canonicalizeFlatProtectedPath(pathname: string): string {
+  return FLAT_PATH_REDIRECTS.get(pathname) ?? pathname;
+}
+
+function getTopLevelSegment(pathname: string): string | null {
+  const [segment] = pathname.split('/').filter(Boolean);
+  return segment ?? null;
+}
+
+function isBareProtectedPath(pathname: string): boolean {
+  const topLevelSegment = getTopLevelSegment(pathname);
+
+  if (!topLevelSegment) {
+    return false;
+  }
+
+  return (
+    BRAND_SCOPED_PREFIXES.includes(
+      topLevelSegment as (typeof BRAND_SCOPED_PREFIXES)[number],
+    ) ||
+    ORG_SCOPED_PREFIXES.includes(
+      topLevelSegment as (typeof ORG_SCOPED_PREFIXES)[number],
+    )
+  );
+}
+
+async function resolveActiveWorkspaceSlugs(
+  token: string,
+): Promise<{ brandSlug: string; orgSlug: string } | null> {
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    Accept: 'application/json',
+  };
+
+  const [bootstrapResponse, organizationsResponse] = await Promise.all([
+    fetch(`${getApiBaseUrl()}/auth/bootstrap`, {
+      cache: 'no-store',
+      headers,
+    }),
+    fetch(`${getApiBaseUrl()}/organizations/mine`, {
+      cache: 'no-store',
+      headers,
+    }),
+  ]);
+
+  if (!bootstrapResponse.ok || !organizationsResponse.ok) {
+    return null;
+  }
+
+  const bootstrap =
+    (await bootstrapResponse.json()) as BootstrapResponse | null;
+  const organizations = (await organizationsResponse.json()) as
+    | OrganizationMineResponseItem[]
+    | null;
+
+  const orgSlug =
+    organizations?.find((organization) => organization.isActive)?.slug ??
+    organizations?.[0]?.slug;
+
+  const activeBrandId = bootstrap?.access?.brandId ?? '';
+  const brandSlug = bootstrap?.brands?.find((brand) => {
+    return String(brand.id ?? brand._id ?? '') === activeBrandId;
+  })?.slug;
+
+  if (!orgSlug || !brandSlug) {
+    return null;
+  }
+
+  return { brandSlug, orgSlug };
+}
+
+async function resolveCanonicalProtectedPath(
+  pathname: string,
+  token: string,
+): Promise<string | null> {
+  const canonicalPath = canonicalizeFlatProtectedPath(pathname);
+  const slugs = await resolveActiveWorkspaceSlugs(token);
+
+  if (!slugs) {
+    return null;
+  }
+
+  const topLevelSegment = getTopLevelSegment(canonicalPath);
+
+  if (
+    topLevelSegment &&
+    ORG_SCOPED_PREFIXES.includes(
+      topLevelSegment as (typeof ORG_SCOPED_PREFIXES)[number],
+    )
+  ) {
+    return `/${slugs.orgSlug}/~${canonicalPath}`;
+  }
+
+  return `/${slugs.orgSlug}/${slugs.brandSlug}${canonicalPath}`;
+}
+
 const isPublicRoute = isCloudConnected
   ? createRouteMatcher([
+      '/',
       '/playwright-ready',
       '/login(.*)',
       '/sign-in(.*)',
@@ -32,25 +190,47 @@ const isPublicRoute = isCloudConnected
 const clerkProxy = isCloudConnected
   ? clerkMiddleware(
       async (auth, req) => {
-        const session = await auth();
+        const session = (await auth()) as ClerkSessionState;
         const { userId, sessionId } = session || {};
 
         // Public routes: redirect authenticated users to the workspace home
         // (except routes that must remain accessible while signed in)
+        const pathname = req.nextUrl.pathname;
+        if (pathname === '/') {
+          return NextResponse.next();
+        }
+
         const skipRedirectPrefixes = ['/oauth/', '/onboarding', '/logout'];
         if (isPublicRoute?.(req)) {
-          const pathname = req.nextUrl.pathname;
           const shouldSkipRedirect = skipRedirectPrefixes.some((p) =>
             pathname.startsWith(p),
           );
           if (userId && sessionId && !shouldSkipRedirect) {
-            return NextResponse.redirect(new URL('/', req.url));
+            const token = await session.getToken?.();
+            const resolvedPath = token
+              ? await resolveCanonicalProtectedPath(
+                  '/workspace/overview',
+                  token,
+                )
+              : null;
+
+            return NextResponse.redirect(new URL(resolvedPath ?? '/', req.url));
           }
           return NextResponse.next();
         }
 
-        // Protected routes: let Clerk handle unauthenticated users (handshake, redirect)
-        await auth.protect();
+        if (!userId || !sessionId) {
+          return NextResponse.redirect(new URL('/login', req.url));
+        }
+
+        if (isBareProtectedPath(pathname)) {
+          const token = await session.getToken?.();
+          const resolvedPath = token
+            ? await resolveCanonicalProtectedPath(pathname, token)
+            : null;
+
+          return NextResponse.redirect(new URL(resolvedPath ?? '/', req.url));
+        }
 
         return NextResponse.next();
       },

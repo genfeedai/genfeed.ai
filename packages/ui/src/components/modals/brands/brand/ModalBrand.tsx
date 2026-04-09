@@ -63,7 +63,7 @@ import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { THEME_COLORS } from '@ui-constants/misc.constant';
+import { THEME_COLORS } from '@ui-constants/theme.constant';
 import { hasErrorDetail } from '@utils/error/error-handler.util';
 import { WebSocketPaths } from '@utils/network/websocket.util';
 import { useRouter } from 'next/navigation';

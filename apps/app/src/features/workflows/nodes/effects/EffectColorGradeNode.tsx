@@ -5,10 +5,11 @@ import {
   selectUpdateNodeData,
   useWorkflowStore,
 } from '@genfeedai/workflow-ui/stores';
+import { Input } from '@ui/primitives/input';
 import type { NodeProps } from '@xyflow/react';
 import { memo, useCallback } from 'react';
 import { NodeCard, NodeHeader } from '@/features/workflows/components/ui/card';
-import { CheckCircleIcon } from '@/features/workflows/components/ui/icons/node-icons';
+import { CheckCircleIcon } from '@/features/workflows/components/ui/icons';
 import {
   NodeInput,
   NodeSelect,
@@ -56,13 +57,13 @@ function SliderField({
         <span className="text-muted-foreground">{label}</span>
         <span className="text-foreground font-mono">{value}</span>
       </div>
-      <input
+      <Input
         type="range"
         min={0}
         max={100}
         value={value}
         onChange={(e) => onChange(parseInt(e.target.value, 10))}
-        className="w-full h-1.5 bg-muted rounded-full appearance-none cursor-pointer accent-primary"
+        className="h-1.5 w-full cursor-pointer appearance-none rounded-full border-0 bg-muted px-0 py-0 shadow-none accent-primary focus-visible:ring-0"
       />
     </div>
   );
@@ -207,7 +208,7 @@ function EffectColorGradeNodeComponent(props: NodeProps): React.JSX.Element {
       {data.outputImage ? (
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-green-500">
-            <CheckCircleIcon />
+            <CheckCircleIcon className="h-4 w-4" />
             <span className="text-sm">Color grading applied</span>
           </div>
           <MediaPreview src={data.outputImage} type="image" />

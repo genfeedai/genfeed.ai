@@ -2,7 +2,7 @@ import type { IModel } from '@genfeedai/interfaces';
 import type {
   UsePromptBarPricingOptions,
   UsePromptBarPricingReturn,
-} from '@props/studio/prompt-bar.props';
+} from '@genfeedai/props/studio/prompt-bar.props';
 import { useCallback, useMemo } from 'react';
 
 const DEFAULT_WIDTH = 1080;

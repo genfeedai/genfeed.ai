@@ -2,7 +2,7 @@ import { IngredientCategory, ModelCategory } from '@genfeedai/enums';
 import type {
   UsePromptBarFiltersOptions,
   UsePromptBarFiltersReturn,
-} from '@props/studio/prompt-bar.props';
+} from '@genfeedai/props/studio/prompt-bar.props';
 import { useMemo } from 'react';
 
 export function usePromptBarFilters(

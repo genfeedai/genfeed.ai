@@ -1,4 +1,5 @@
 import { loadPostsPageData } from '@app-server/posts-page-data.server';
+import { PageScope } from '@genfeedai/enums';
 import {
   normalizePostsPlatform,
   normalizePublisherPostsStatus,
@@ -6,7 +7,6 @@ import {
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import PostsList from '@pages/posts/list/posts-list';
 import type { PostsListPageProps } from '@props/pages/page.props';
-import { PageScope } from '@ui-constants/misc.constant';
 
 export const generateMetadata = createPageMetadata('Posts');
 

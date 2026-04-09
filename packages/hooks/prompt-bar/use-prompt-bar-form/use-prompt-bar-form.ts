@@ -3,11 +3,11 @@ import {
   promptTextareaSchema,
 } from '@genfeedai/client/schemas';
 import { IngredientCategory, IngredientFormat } from '@genfeedai/enums';
-import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import type {
   UsePromptBarFormOptions,
   UsePromptBarFormReturn,
-} from '@props/studio/prompt-bar.props';
+} from '@genfeedai/props/studio/prompt-bar.props';
+import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
 import { useForm, useWatch } from 'react-hook-form';
 
 export function usePromptBarForm(
