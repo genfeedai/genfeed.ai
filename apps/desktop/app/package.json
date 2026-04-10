@@ -40,6 +40,7 @@
     "@genfeedai/desktop-contracts": "workspace:*",
     "@genfeedai/desktop-core": "workspace:*",
     "@genfeedai/desktop-shell": "workspace:*",
+    "@genfeedai/enums": "workspace:*",
     "@sentry/browser": "10.47.0",
     "better-sqlite3": "12.8.0",
     "next": "16.2.3",
