@@ -80,7 +80,7 @@ export class WorkspaceTaskQualityService {
       'You evaluate founder-led GTM content quality for Genfeed.',
       'Return strict JSON with keys: score, gate, summary, winnerSummary, suggestedFixes, dimensions.',
       'Score must be 0..1.',
-      "gate must be one of: pass, needs_revision, fail.",
+      'gate must be one of: pass, needs_revision, fail.',
       'dimensions must be an array of objects with keys: label, score, notes.',
       'Judge for founder-led technical GTM quality: sharpness, clarity, specificity, novelty, usefulness, voice fit, and platform fit.',
       'Prefer practical, opinionated, concrete writing. Penalize fluff, vague AI hype, and generic marketing language.',
@@ -117,9 +117,7 @@ export class WorkspaceTaskQualityService {
       const dimensions = Array.isArray(parsed.dimensions)
         ? parsed.dimensions
             .filter(
-              (
-                dimension,
-              ): dimension is Record<string, unknown> =>
+              (dimension): dimension is Record<string, unknown> =>
                 typeof dimension === 'object' &&
                 dimension !== null &&
                 !Array.isArray(dimension),
@@ -171,14 +169,17 @@ export class WorkspaceTaskQualityService {
     input: WorkspaceTaskQualityAssessmentInput,
   ): WorkspaceTaskQualityAssessmentResult {
     const text = input.summaries.join(' ').trim();
-    const scoreBase = text.length >= 180 ? 0.76 : text.length >= 80 ? 0.62 : 0.42;
+    const scoreBase =
+      text.length >= 180 ? 0.76 : text.length >= 80 ? 0.62 : 0.42;
     const outputType = input.outputType ?? 'content';
     const hookScore =
       outputType === 'post' || outputType === 'newsletter' ? 0.7 : 0.6;
     const platformFit =
-      input.platforms?.some((platform) =>
-        ['x', 'twitter', 'linkedin', 'beehiiv'].includes(platform.toLowerCase()),
-      ) ?? false
+      (input.platforms?.some((platform) =>
+        ['x', 'twitter', 'linkedin', 'beehiiv'].includes(
+          platform.toLowerCase(),
+        ),
+      ) ?? false)
         ? 0.78
         : 0.64;
     const score = Math.min(

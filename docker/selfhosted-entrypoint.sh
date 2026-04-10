@@ -15,14 +15,14 @@ if [ -z "$TOKEN_ENCRYPTION_KEY" ]; then
   fi
 fi
 export TOKEN_ENCRYPTION_KEY
-export GENFEEDAI_MICROSERVICES_FILES_URL=${GENFEEDAI_MICROSERVICES_FILES_URL:-http://localhost:3005}
-export GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL=${GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL:-http://localhost:3007}
-export GENFEEDAI_CDN_URL=${GENFEEDAI_CDN_URL:-http://localhost:3005}
-export GENFEEDAI_WEBHOOKS_URL=${GENFEEDAI_WEBHOOKS_URL:-http://localhost:4001}
-export GENFEEDAI_API_URL=${GENFEEDAI_API_URL:-http://localhost:4001}
-export GENFEEDAI_MICROSERVICES_WORKERS_URL=${GENFEEDAI_MICROSERVICES_WORKERS_URL:-http://localhost:4002}
-export GENFEEDAI_APP_URL=${GENFEEDAI_APP_URL:-http://localhost:3102}
-export GENFEEDAI_PUBLIC_URL=${GENFEEDAI_PUBLIC_URL:-http://localhost:3102}
+export GENFEEDAI_MICROSERVICES_FILES_URL=${GENFEEDAI_MICROSERVICES_FILES_URL:-http://localhost:3012}
+export GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL=${GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL:-http://localhost:3011}
+export GENFEEDAI_CDN_URL=${GENFEEDAI_CDN_URL:-http://localhost:3012}
+export GENFEEDAI_WEBHOOKS_URL=${GENFEEDAI_WEBHOOKS_URL:-http://localhost:3010}
+export GENFEEDAI_API_URL=${GENFEEDAI_API_URL:-http://localhost:3010}
+export GENFEEDAI_MICROSERVICES_WORKERS_URL=${GENFEEDAI_MICROSERVICES_WORKERS_URL:-http://localhost:3013}
+export GENFEEDAI_APP_URL=${GENFEEDAI_APP_URL:-http://localhost:3000}
+export GENFEEDAI_PUBLIC_URL=${GENFEEDAI_PUBLIC_URL:-http://localhost:3000}
 
 # Optional: Enable HYBRID mode (local app + optional Clerk cloud connection)
 # Set these to allow users to sign in with Clerk and sync to cloud:
@@ -51,4 +51,4 @@ PORT=${NOTIFICATIONS_PORT} node apps/server/dist/apps/notifications/main.js &
 # Start Next.js web app (foreground — keeps container alive)
 # Derive port from GENFEEDAI_APP_URL so it stays in sync with env config
 APP_PORT=$(echo "$GENFEEDAI_APP_URL" | sed 's|.*:||')
-cd apps/app && PORT=${APP_PORT:-3102} bun run start
+cd apps/app && PORT=${APP_PORT:-3000} bun run start

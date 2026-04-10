@@ -1,24 +1,30 @@
 import { MODEL_KEYS } from '@genfeedai/constants';
 import { DurationUtil, formatDuration } from '@helpers/video-duration.helper';
 
-vi.mock('@genfeedai/constants', () => ({
-  getModelDefaultDuration: vi.fn((model: string) => {
-    const defaults: Record<string, number> = {
-      [MODEL_KEYS.REPLICATE_OPENAI_SORA_2]: 4,
-      [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3]: 8,
-      [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1]: 5,
-    };
-    return defaults[model] || 8;
-  }),
-  getModelDurations: vi.fn((model: string) => {
-    const durations: Record<string, number[]> = {
-      [MODEL_KEYS.REPLICATE_OPENAI_SORA_2]: [4, 8, 12],
-      [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3]: [5, 8],
-      [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1]: [5, 10],
-    };
-    return durations[model] || [];
-  }),
-}));
+vi.mock('@genfeedai/constants', async () => {
+  const actual = await vi.importActual<typeof import('@genfeedai/constants')>(
+    '@genfeedai/constants',
+  );
+  return {
+    ...actual,
+    getModelDefaultDuration: vi.fn((model: string) => {
+      const defaults: Record<string, number> = {
+        [actual.MODEL_KEYS.REPLICATE_OPENAI_SORA_2]: 4,
+        [actual.MODEL_KEYS.REPLICATE_GOOGLE_VEO_3]: 8,
+        [actual.MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1]: 5,
+      };
+      return defaults[model] || 8;
+    }),
+    getModelDurations: vi.fn((model: string) => {
+      const durations: Record<string, number[]> = {
+        [actual.MODEL_KEYS.REPLICATE_OPENAI_SORA_2]: [4, 8, 12],
+        [actual.MODEL_KEYS.REPLICATE_GOOGLE_VEO_3]: [5, 8],
+        [actual.MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1]: [5, 10],
+      };
+      return durations[model] || [];
+    }),
+  };
+});
 
 describe('video-duration.helper', () => {
   describe('formatDuration', () => {

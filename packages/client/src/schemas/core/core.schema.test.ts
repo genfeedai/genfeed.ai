@@ -21,18 +21,18 @@ describe('core schemas', () => {
   describe('brandSchema', () => {
     it('accepts valid brand', () => {
       expect(
-        brandSchema.safeParse({ handle: 'test', label: 'Test' }).success,
+        brandSchema.safeParse({ label: 'Test', slug: 'test' }).success,
       ).toBe(true);
     });
 
-    it('rejects empty handle', () => {
-      expect(brandSchema.safeParse({ handle: '', label: 'Test' }).success).toBe(
+    it('rejects empty slug', () => {
+      expect(brandSchema.safeParse({ label: 'Test', slug: '' }).success).toBe(
         false,
       );
     });
 
     it('rejects empty label', () => {
-      expect(brandSchema.safeParse({ handle: 'test', label: '' }).success).toBe(
+      expect(brandSchema.safeParse({ label: '', slug: 'test' }).success).toBe(
         false,
       );
     });
@@ -43,9 +43,9 @@ describe('core schemas', () => {
           backgroundColor: '#fff',
           defaultImageModel: null,
           description: 'desc',
-          handle: 'h',
           isActive: true,
           label: 'L',
+          slug: 'h',
         }).success,
       ).toBe(true);
     });

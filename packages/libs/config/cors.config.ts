@@ -50,7 +50,7 @@ export function getGenfeedCorsOrigins(
 
   if (isDevelopment) {
     return [
-      // Local development domains (ports 3000-3999: web apps 3000-3002, server 3010-3032)
+      // Local development domains (ports 3000-3999: web apps and local services)
       /^http:\/\/(localhost|local\.genfeed\.ai):(3\d{3})$/,
 
       // Allow Chrome extensions in development

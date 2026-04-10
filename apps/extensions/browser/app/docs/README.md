@@ -64,7 +64,7 @@ The extension uses a modular platform configuration system (`src/platforms/`):
 - Shared services (`src/services`) mirror frontend service clients; keep contracts in sync
 - Authentication uses JWT tokens synced across platforms
 - Platform-specific post IDs and URLs handled automatically
-- Events sent to Notifications service for live updates (port 3007)
+- Events sent to Notifications service for live updates (port 3011)
 - Consistent design tokens across all platforms
 
 ### Adding New Platforms

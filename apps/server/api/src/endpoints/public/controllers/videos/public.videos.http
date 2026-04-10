@@ -2,7 +2,7 @@
 ### These endpoints are PUBLIC (no authentication required)
 
 # Environment variables
-@baseUrl = http://localhost:3001
+@baseUrl = http://localhost:3010
 
 ########################################
 # Public Videos

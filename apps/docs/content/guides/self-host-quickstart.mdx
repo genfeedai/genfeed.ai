@@ -60,7 +60,7 @@ REPLICATE_API_TOKEN=your_token_here
 FAL_KEY=your_key_here
 
 # Optional
-PORT=3001
+PORT=3010
 NODE_ENV=development
 ```
 
@@ -82,7 +82,7 @@ npm run dev
 ### Generate your first image
 
 ```bash
-curl -X POST http://localhost:3001/api/generate/image \
+curl -X POST http://localhost:3010/api/generate/image \
   -H "Content-Type: application/json" \
   -d '{
     "prompt": "A modern tech startup office, minimalist design",
@@ -106,7 +106,7 @@ services:
   genfeed:
     build: .
     ports:
-      - "3001:3001"
+      - "3010:3010"
     environment:
       - MONGODB_URI=mongodb://mongo:27017/genfeed
       - REDIS_URL=redis://redis:6379

@@ -198,44 +198,33 @@ export function EditorTextPanel({
             <div className="divide-y divide-white/[0.08]">
               {textTracks.map((track) =>
                 track.clips.map((clip) => (
-                  // biome-ignore lint/a11y/useSemanticElements: contains nested Button, cannot be a real button
-                  <div
-                    key={clip.id}
-                    role="button"
-                    tabIndex={0}
-                    className={`w-full text-left px-3 py-2 text-sm hover:bg-muted/50 transition-colors ${
-                      selectedClipId === clip.id
-                        ? 'bg-primary/10 border-l-2 border-primary'
-                        : ''
-                    }`}
-                    onClick={() => onClipSelect(track.id, clip.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        onClipSelect(track.id, clip.id);
-                      }
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
+                  <div key={clip.id} className="group relative">
+                    <Button
+                      withWrapper={false}
+                      variant={ButtonVariant.UNSTYLED}
+                      onClick={() => onClipSelect(track.id, clip.id)}
+                      className={`flex w-full flex-col items-start gap-1 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/50 ${
+                        selectedClipId === clip.id
+                          ? 'bg-primary/10 border-l-2 border-primary'
+                          : ''
+                      }`}
+                    >
                       <span className="truncate font-medium">
                         {clip.textOverlay?.text || 'Empty Text'}
                       </span>
-                      <Button
-                        withWrapper={false}
-                        variant={ButtonVariant.GHOST}
-                        size={ButtonSize.XS}
-                        onClick={(e: React.MouseEvent) => {
-                          e.stopPropagation();
-                          handleDeleteTextTrack(track.id);
-                        }}
-                        className="opacity-0 group-hover:opacity-100 text-destructive"
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {track.name} · {Math.round(clip.durationFrames / fps)}s
-                    </span>
+                      <span className="text-xs text-muted-foreground">
+                        {track.name} · {Math.round(clip.durationFrames / fps)}s
+                      </span>
+                    </Button>
+                    <Button
+                      withWrapper={false}
+                      variant={ButtonVariant.GHOST}
+                      size={ButtonSize.XS}
+                      onClick={() => handleDeleteTextTrack(track.id)}
+                      className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 text-destructive"
+                    >
+                      Delete
+                    </Button>
                   </div>
                 )),
               )}

@@ -24,7 +24,7 @@ interface InstallCommand {
 
 const TEMPLATE_REPOSITORY = 'github:genfeedai/genfeed.ai#develop';
 const MANAGED_MONGO_URI = 'mongodb://127.0.0.1:27017/genfeed';
-const ONBOARDING_URL = 'http://localhost:3102/onboarding';
+const ONBOARDING_URL = 'http://localhost:3000/onboarding';
 const GENFEED_DATA_DIR = join(homedir(), '.genfeed', 'data');
 
 export function commandExists(command: string): boolean {
@@ -57,23 +57,23 @@ function generateEncryptionKey(): string {
 const DEFAULT_ENV = `# ─── Required ───────────────────────────────────────────────────────
 MONGODB_URI=mongodb://127.0.0.1:27017/genfeed
 REDIS_URL=redis://localhost:6379
-PORT=4001
+PORT=3010
 TOKEN_ENCRYPTION_KEY=${generateEncryptionKey()}
 
 # ─── Internal Services ──────────────────────────────────────────────
-GENFEEDAI_API_URL=http://localhost:4001
-GENFEEDAI_APP_URL=http://localhost:3102
-GENFEEDAI_CDN_URL=http://localhost:3005
-GENFEEDAI_PUBLIC_URL=http://localhost:3102
-GENFEEDAI_WEBHOOKS_URL=http://localhost:4001
-GENFEEDAI_MICROSERVICES_FILES_URL=http://localhost:3005
-GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL=http://localhost:3007
+GENFEEDAI_API_URL=http://localhost:3010
+GENFEEDAI_APP_URL=http://localhost:3000
+GENFEEDAI_CDN_URL=http://localhost:3012
+GENFEEDAI_PUBLIC_URL=http://localhost:3000
+GENFEEDAI_WEBHOOKS_URL=http://localhost:3010
+GENFEEDAI_MICROSERVICES_FILES_URL=http://localhost:3012
+GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL=http://localhost:3011
 
 # ─── Frontend ──────────────────────────────────────────────────────
 NEXT_PUBLIC_API_URL=/v1
-NEXT_PUBLIC_API_ENDPOINT=http://localhost:4001/v1
-NEXT_PUBLIC_WS_ENDPOINT=http://localhost:3007
-NEXT_PUBLIC_CDN_URL=http://localhost:3005
+NEXT_PUBLIC_API_ENDPOINT=http://localhost:3010/v1
+NEXT_PUBLIC_WS_ENDPOINT=http://localhost:3011
+NEXT_PUBLIC_CDN_URL=http://localhost:3012
 
 # ─── AI Providers (add your keys during onboarding) ────────────────
 # REPLICATE_API_TOKEN=
@@ -329,8 +329,8 @@ async function scaffoldProject(projectName: string): Promise<void> {
   consola.start('Waiting for services to start…');
 
   const [apiReady, webReady] = await Promise.all([
-    waitForServer('http://localhost:4001/v1/health'),
-    waitForServer('http://localhost:3102'),
+    waitForServer('http://localhost:3010/v1/health'),
+    waitForServer('http://localhost:3000'),
   ]);
 
   if (apiReady && webReady) {
@@ -338,8 +338,8 @@ async function scaffoldProject(projectName: string): Promise<void> {
       [
         'Genfeed.ai is running!',
         '',
-        `App:  http://localhost:3102`,
-        `API:  http://localhost:4001`,
+        `App:  http://localhost:3000`,
+        `API:  http://localhost:3010`,
         '',
         `Opening ${ONBOARDING_URL}`,
       ].join('\n'),

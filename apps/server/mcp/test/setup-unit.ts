@@ -8,7 +8,7 @@ import { vi } from 'vitest';
 
 // Set test environment
 process.env.NODE_ENV = 'test';
-process.env.PORT = '3010';
+process.env.PORT = '3014';
 
 // Mock Redis URL (tests should mock Redis operations)
 process.env.REDIS_URL = 'redis://localhost:6379';

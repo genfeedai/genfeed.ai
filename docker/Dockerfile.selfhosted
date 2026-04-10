@@ -87,9 +87,9 @@ RUN set -e && \
 # Copy and build Next.js web app
 COPY apps/app/ apps/app/
 ENV NEXT_PUBLIC_API_URL=/v1
-ENV NEXT_PUBLIC_API_ENDPOINT=http://localhost:4001/v1
-ENV NEXT_PUBLIC_WS_ENDPOINT=http://localhost:3007
-ENV NEXT_PUBLIC_CDN_URL=http://localhost:3005
+ENV NEXT_PUBLIC_API_ENDPOINT=http://localhost:3010/v1
+ENV NEXT_PUBLIC_WS_ENDPOINT=http://localhost:3011
+ENV NEXT_PUBLIC_CDN_URL=http://localhost:3012
 RUN bun --filter @genfeedai/app build
 
 # ==================================================
@@ -120,7 +120,7 @@ COPY --chown=appuser docker/selfhosted-entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 VOLUME /data
-EXPOSE 3102 4001
+EXPOSE 3000 3010
 USER appuser
 
 ENTRYPOINT ["tini", "--", "/entrypoint.sh"]

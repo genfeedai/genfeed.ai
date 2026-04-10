@@ -100,9 +100,6 @@ import {
 } from '@serializers/configs/integrations/stripe.config';
 import { folderSerializerConfig } from '@serializers/configs/management/folder.config';
 import { tagSerializerConfig } from '@serializers/configs/management/tag.config';
-import { listingSerializerConfig } from '@serializers/configs/marketplace/listing.config';
-import { purchaseSerializerConfig } from '@serializers/configs/marketplace/purchase.config';
-import { sellerSerializerConfig } from '@serializers/configs/marketplace/seller.config';
 import { brandSerializerConfig } from '@serializers/configs/organizations/brand.config';
 import { knowledgeBaseSerializerConfig } from '@serializers/configs/organizations/knowledge-base.config';
 import { organizationSerializerConfig } from '@serializers/configs/organizations/organization.config';
@@ -1378,72 +1375,6 @@ describe('Serializer Configs', () => {
 
     it('relationships should have correct structure', () => {
       for (const [key, val] of Object.entries(avatarSerializerConfig)) {
-        if (key === 'type' || key === 'attributes') continue;
-        const rel = val as any;
-        if (rel && typeof rel === 'object' && 'type' in rel) {
-          expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
-          if ('attributes' in rel)
-            expect(Array.isArray(rel.attributes)).toBe(true);
-        }
-      }
-    });
-  });
-
-  describe('purchaseSerializerConfig', () => {
-    it('should have type and attributes', () => {
-      expect(typeof purchaseSerializerConfig.type).toBe('string');
-      expect(purchaseSerializerConfig.type.length).toBeGreaterThan(0);
-      expect(Array.isArray(purchaseSerializerConfig.attributes)).toBe(true);
-      expect(purchaseSerializerConfig.attributes.length).toBeGreaterThan(0);
-    });
-
-    it('relationships should have correct structure', () => {
-      for (const [key, val] of Object.entries(purchaseSerializerConfig)) {
-        if (key === 'type' || key === 'attributes') continue;
-        const rel = val as any;
-        if (rel && typeof rel === 'object' && 'type' in rel) {
-          expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
-          if ('attributes' in rel)
-            expect(Array.isArray(rel.attributes)).toBe(true);
-        }
-      }
-    });
-  });
-
-  describe('listingSerializerConfig', () => {
-    it('should have type and attributes', () => {
-      expect(typeof listingSerializerConfig.type).toBe('string');
-      expect(listingSerializerConfig.type.length).toBeGreaterThan(0);
-      expect(Array.isArray(listingSerializerConfig.attributes)).toBe(true);
-      expect(listingSerializerConfig.attributes.length).toBeGreaterThan(0);
-    });
-
-    it('relationships should have correct structure', () => {
-      for (const [key, val] of Object.entries(listingSerializerConfig)) {
-        if (key === 'type' || key === 'attributes') continue;
-        const rel = val as any;
-        if (rel && typeof rel === 'object' && 'type' in rel) {
-          expect(typeof rel.type).toBe('string');
-          if ('ref' in rel) expect(rel.ref).toBe('_id');
-          if ('attributes' in rel)
-            expect(Array.isArray(rel.attributes)).toBe(true);
-        }
-      }
-    });
-  });
-
-  describe('sellerSerializerConfig', () => {
-    it('should have type and attributes', () => {
-      expect(typeof sellerSerializerConfig.type).toBe('string');
-      expect(sellerSerializerConfig.type.length).toBeGreaterThan(0);
-      expect(Array.isArray(sellerSerializerConfig.attributes)).toBe(true);
-      expect(sellerSerializerConfig.attributes.length).toBeGreaterThan(0);
-    });
-
-    it('relationships should have correct structure', () => {
-      for (const [key, val] of Object.entries(sellerSerializerConfig)) {
         if (key === 'type' || key === 'attributes') continue;
         const rel = val as any;
         if (rel && typeof rel === 'object' && 'type' in rel) {

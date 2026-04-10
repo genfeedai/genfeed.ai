@@ -18,14 +18,14 @@ Nextra-powered documentation site built on Next.js.
 
 ```bash
 bun install
-bun run dev    # http://localhost:3007
+bun run dev    # http://localhost:3001
 ```
 
 ## Build
 
 ```bash
 bun run build
-bun run start  # :3007
+bun run start  # :3001
 ```
 
 ## Content Policy

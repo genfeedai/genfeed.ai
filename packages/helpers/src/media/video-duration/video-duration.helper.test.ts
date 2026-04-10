@@ -6,10 +6,16 @@ import { describe, expect, it, vi } from 'vitest';
  * packages/helpers/__tests__/video-duration.helper.test.ts
  */
 
-vi.mock('@genfeedai/constants', () => ({
-  getModelDefaultDuration: vi.fn(() => 8),
-  getModelDurations: vi.fn(() => [5, 8, 10]),
-}));
+vi.mock('@genfeedai/constants', async () => {
+  const actual = await vi.importActual<typeof import('@genfeedai/constants')>(
+    '@genfeedai/constants',
+  );
+  return {
+    ...actual,
+    getModelDefaultDuration: vi.fn(() => 8),
+    getModelDurations: vi.fn(() => [5, 8, 10]),
+  };
+});
 
 import { DurationUtil, formatDuration } from '@genfeedai/helpers';
 

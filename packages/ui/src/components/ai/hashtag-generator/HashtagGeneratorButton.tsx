@@ -18,7 +18,6 @@ export default function HashtagGeneratorButton({
   platform,
   onInsert,
   count = 10,
-  _niche,
   isDisabled = false,
   className = '',
 }: HashtagGeneratorButtonProps) {

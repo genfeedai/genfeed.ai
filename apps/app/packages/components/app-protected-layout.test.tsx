@@ -410,8 +410,8 @@ describe('AppProtectedLayout', () => {
         collapsedSidebarWidth: 64,
         mobileSidebarWidth: 304,
         primaryAction: expect.objectContaining({
-          href: '/workspace/overview#new-task',
           label: 'New Task',
+          onClick: expect.any(Function),
         }),
         secondaryItems: [
           { href: '/workspace/activity', label: 'Activity' },

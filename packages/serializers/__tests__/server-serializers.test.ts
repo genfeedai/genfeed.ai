@@ -96,9 +96,6 @@ import {
 import { FolderSerializer } from '@serializers/server/management/folder.serializer';
 import { PromptSerializer } from '@serializers/server/management/prompt.serializer';
 import { TagSerializer } from '@serializers/server/management/tag.serializer';
-import { ListingSerializer } from '@serializers/server/marketplace/listing.serializer';
-import { PurchaseSerializer } from '@serializers/server/marketplace/purchase.serializer';
-import { SellerSerializer } from '@serializers/server/marketplace/seller.serializer';
 import { BrandSerializer } from '@serializers/server/organizations/brand.serializer';
 import {
   CredentialFullSerializer,
@@ -722,36 +719,6 @@ describe('Server Serializers', () => {
 
     it('should have a serialize method', () => {
       expect(typeof AvatarSerializer.serialize).toBe('function');
-    });
-  });
-
-  describe('SellerSerializer', () => {
-    it('should be a function (serializer)', () => {
-      expect(typeof SellerSerializer).toBe('object');
-    });
-
-    it('should have a serialize method', () => {
-      expect(typeof SellerSerializer.serialize).toBe('function');
-    });
-  });
-
-  describe('ListingSerializer', () => {
-    it('should be a function (serializer)', () => {
-      expect(typeof ListingSerializer).toBe('object');
-    });
-
-    it('should have a serialize method', () => {
-      expect(typeof ListingSerializer.serialize).toBe('function');
-    });
-  });
-
-  describe('PurchaseSerializer', () => {
-    it('should be a function (serializer)', () => {
-      expect(typeof PurchaseSerializer).toBe('object');
-    });
-
-    it('should have a serialize method', () => {
-      expect(typeof PurchaseSerializer.serialize).toBe('function');
     });
   });
 

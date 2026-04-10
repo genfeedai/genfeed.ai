@@ -12,6 +12,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@hooks': path.resolve(__dirname, './src/hooks'),
+      '@ui': path.resolve(__dirname, '../../../../packages/ui/src'),
       '~': path.resolve(__dirname, './src'),
       '~components': path.resolve(__dirname, './src/components'),
       '~hooks': path.resolve(__dirname, './src/hooks'),

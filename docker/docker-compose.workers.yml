@@ -5,13 +5,13 @@ services:
     container_name: genfeed-ai-workers
     restart: unless-stopped
     ports:
-      - '3011:3011'
+      - '${WORKERS_PORT:-3013}:${WORKERS_PORT:-3013}'
     env_file:
       - ../.env.production
     environment:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - NODE_ENV=production
-      - PORT=3011
+      - PORT=${WORKERS_PORT:-3013}
       - SERVICE_NAME=workers
       - VERSION=1.0.0
     networks:
@@ -20,7 +20,7 @@ services:
       - workers-logs:/app/logs
       - workers-data:/app/data
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3011/v1/health']
+      test: ['CMD', 'curl', '-f', 'http://localhost:${WORKERS_PORT:-3013}/v1/health']
       interval: 30s
       timeout: 10s
       retries: 5

@@ -1,0 +1,35 @@
+---
+description: Genfeed.ai cross-agent project rules and memory
+alwaysApply: true
+---
+
+# Project Rules
+
+Cross-agent project memory lives in `.agents/memory/`. Always read it at session start — it holds the most recent user corrections and project state, and wins over anything in `AGENTS.md` or `CLAUDE.md` on conflict.
+
+@.agents/memory/MEMORY.md
+
+## Stable Baseline Rules
+
+For the stable ruleset (git workflow, type safety, serializers, multi-tenancy, etc.):
+
+@AGENTS.md
+@CLAUDE.md
+
+## Writing New Rules
+
+When you learn a durable project rule (a correction from the user, a validated non-obvious choice, a project fact with a deadline or stakeholder), write a new file in `.agents/memory/` with YAML frontmatter:
+
+```markdown
+---
+name: {short name}
+description: {one-line description}
+type: feedback | project | reference
+---
+
+{body with **Why:** and **How to apply:** lines for feedback/project}
+```
+
+Then add a one-line entry to `.agents/memory/MEMORY.md` pointing at the new file. See `.agents/memory/README.md` for the full format.
+
+Do not write rules to `CLAUDE.md` or `AGENTS.md` directly — those are stable baselines. Evolving learnings go in `.agents/memory/` so they're visible to Claude Code, Codex CLI, and Cursor at the same time.

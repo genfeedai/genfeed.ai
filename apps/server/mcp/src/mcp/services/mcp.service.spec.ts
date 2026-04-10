@@ -48,7 +48,7 @@ describe('MCPService', () => {
       const env = config.mcpServers['genfeed-ai'].env;
 
       expect(env?.NODE_ENV).toBe('production');
-      expect(env?.MCP_PORT).toBe('3003');
+      expect(env?.MCP_PORT).toBe('3014');
       expect(env?.GENFEEDAI_API_URL).toBe('https://api.genfeed.ai');
       expect(env?.GENFEED_API_KEY).toBeDefined();
     });

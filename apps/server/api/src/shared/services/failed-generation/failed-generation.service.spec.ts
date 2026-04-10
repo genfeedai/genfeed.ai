@@ -20,7 +20,7 @@ describe('FailedGenerationService', () => {
   const mockIngredientId = '507f1f77bcf86cd799439011';
   const mockUserId = '507f1f77bcf86cd799439012';
   const mockOrganizationId = '507f1f77bcf86cd799439013';
-  const mockWebsocketUrl = 'ws://localhost:3003';
+  const mockWebsocketUrl = 'ws://localhost:3011';
 
   const mockService = {
     patch: vi.fn(),

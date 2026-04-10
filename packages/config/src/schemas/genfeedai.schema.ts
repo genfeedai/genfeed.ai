@@ -23,7 +23,7 @@ export const microservicesSchema = {
     ? Joi.string().default('http://localhost:3014')
     : Joi.string().uri().optional(),
   GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL: IS_SELF_HOSTED
-    ? Joi.string().default('http://localhost:3013')
+    ? Joi.string().default('http://localhost:3011')
     : Joi.string().uri().optional(),
 };
 

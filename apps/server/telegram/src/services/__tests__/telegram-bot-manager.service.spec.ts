@@ -59,7 +59,7 @@ describe('TelegramBotManager', () => {
   beforeEach(async () => {
     const mockConfigService = {
       API_KEY: 'test-key',
-      API_URL: 'http://localhost:3000',
+      API_URL: 'http://localhost:3010',
       get: vi.fn(),
     };
 
@@ -136,7 +136,7 @@ describe('TelegramBotManager', () => {
         expect.any(Function),
       );
       expect(httpService.get).toHaveBeenCalledWith(
-        'http://localhost:3000/v1/internal/integrations/telegram',
+        'http://localhost:3010/v1/internal/integrations/telegram',
         expect.objectContaining({
           headers: { Authorization: 'Bearer test-key' },
         }),
@@ -453,7 +453,7 @@ describe('TelegramBotManager', () => {
       const result = await service.fetchActiveIntegrations();
 
       expect(httpService.get).toHaveBeenCalledWith(
-        'http://localhost:3000/v1/internal/integrations/telegram',
+        'http://localhost:3010/v1/internal/integrations/telegram',
         expect.objectContaining({
           headers: { Authorization: 'Bearer test-key' },
         }),
@@ -495,7 +495,7 @@ describe('TelegramBotManager', () => {
       const result = await service.fetchOrgWorkflows('org-123');
 
       expect(httpService.get).toHaveBeenCalledWith(
-        'http://localhost:3000/v1/orgs/org-123/workflows',
+        'http://localhost:3010/v1/orgs/org-123/workflows',
       );
       expect(result).toEqual(mockWorkflows);
     });
@@ -783,7 +783,7 @@ describe('TelegramBotManager', () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
 
       expect(httpService.post).toHaveBeenCalledWith(
-        'http://localhost:3000/v1/internal/orgs/org-123/workflow-executions',
+        'http://localhost:3010/v1/internal/orgs/org-123/workflow-executions',
         {
           inputValues: {
             promptNode: 'cinematic city skyline at dusk',

@@ -12,8 +12,6 @@
     "moduleResolution": "bundler",
     "outDir": "./dist",
     "paths": {
-      "@genfeedai/client": ["../client/src/index.ts"],
-      "@genfeedai/client/*": ["../client/src/*"],
       "@genfeedai/contexts": ["../contexts/index.ts"],
       "@genfeedai/contexts/*": ["../contexts/*"],
       "@genfeedai/helpers": ["../helpers/src/index.ts"],
@@ -37,7 +35,7 @@
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
-    "target": "ES2022"
+    "target": "es2022"
   },
   "exclude": [
     "node_modules",

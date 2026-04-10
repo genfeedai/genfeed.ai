@@ -9,6 +9,7 @@ import {
 } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import type { IArticle, IIngredient, IPost } from '@genfeedai/interfaces';
 import type { StatusDropdownProps } from '@genfeedai/props/social/status-dropdown.props';
 import { ArticlesService } from '@genfeedai/services/content/articles.service';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
@@ -179,7 +180,7 @@ export default function DropdownStatus({
     newStatus: IngredientStatus | ArticleStatus | PostStatus,
   ) => {
     try {
-      let updatedItem: unknown;
+      let updatedItem: IIngredient | IArticle | IPost | undefined;
 
       if (isArticle) {
         // Use articles service for both PATCH and GET
@@ -189,7 +190,9 @@ export default function DropdownStatus({
         });
 
         // Fetch complete article with all metadata
-        updatedItem = await service.findOne(entity.id);
+        updatedItem = (await service.findOne(entity.id)) as
+          | IArticle
+          | undefined;
       } else if (isPost) {
         // Use posts service for both PATCH and GET
         const service = await getPostsService();
@@ -198,7 +201,7 @@ export default function DropdownStatus({
         });
 
         // Fetch complete post with all metadata
-        updatedItem = await service.findOne(entity.id);
+        updatedItem = (await service.findOne(entity.id)) as IPost | undefined;
       } else {
         // For ingredients: PATCH uses IngredientsService, GET uses specific service
         const ingredientsService = await getIngredientsService();
@@ -209,13 +212,19 @@ export default function DropdownStatus({
         // Fetch complete ingredient with all metadata using specific service
         if (isVideo) {
           const videosService = await getVideosService();
-          updatedItem = await videosService.findOne(entity.id);
+          updatedItem = (await videosService.findOne(entity.id)) as
+            | IIngredient
+            | undefined;
         } else if (isImage) {
           const imagesService = await getImagesService();
-          updatedItem = await imagesService.findOne(entity.id);
+          updatedItem = (await imagesService.findOne(entity.id)) as
+            | IIngredient
+            | undefined;
         } else if (isGif) {
           const gifsService = await getGifsService();
-          updatedItem = await gifsService.findOne(entity.id);
+          updatedItem = (await gifsService.findOne(entity.id)) as
+            | IIngredient
+            | undefined;
         } else {
           // Fallback: use IngredientsService if category is unknown
           logger.error(
@@ -225,7 +234,9 @@ export default function DropdownStatus({
               entityId: entity.id,
             },
           );
-          updatedItem = await ingredientsService.findOne(entity.id);
+          updatedItem = (await ingredientsService.findOne(entity.id)) as
+            | IIngredient
+            | undefined;
         }
       }
 

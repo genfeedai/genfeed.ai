@@ -5,6 +5,31 @@
 - **Date:** 2026-04-07
 - **Sources:** local monorepo structure + GitHub issues
 
+## Project Memory — READ AT SESSION START
+
+Cross-agent project memory lives in `.agents/memory/`. At the start of every session, read:
+
+- `.agents/memory/MEMORY.md` (index)
+- Every file linked from the index that seems relevant to the task
+
+These files are the current source of truth for project-level rules, including corrections from user feedback (`feedback_*.md`) and current project state (`project_*.md`). They evolve; the rules in this `AGENTS.md` file are stable baselines but `.agents/memory/` is where newer learnings land first.
+
+**If a rule in `.agents/memory/` conflicts with a rule in this `AGENTS.md`, the `.agents/memory/` version wins** (it's newer).
+
+Any agent that learns a durable project rule should write a new file in `.agents/memory/` with YAML frontmatter:
+
+```markdown
+---
+name: {short name}
+description: {one-line description}
+type: feedback | project | reference
+---
+
+{body with **Why:** and **How to apply:** lines for feedback/project}
+```
+
+Then add a line to `.agents/memory/MEMORY.md` pointing at it. See `.agents/memory/README.md` for the full format and wiring details.
+
 ## Project Overview
 
 Open-source AI OS for content creation. Self-hosted single-tenant by default, with enterprise multi-tenancy available via `ee/`.

@@ -8,7 +8,7 @@ describe('ConfigModule', () => {
       ...originalEnv,
       GENFEEDAI_API_URL: 'http://localhost:3010',
       NODE_ENV: 'test',
-      PORT: '3010',
+      PORT: '3014',
     };
   });
 

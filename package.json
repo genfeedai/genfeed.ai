@@ -98,8 +98,11 @@
     ]
   },
   "devDependencies": {
+    "@biomejs/biome": "2.4.10",
     "@clerk/types": "^4.101.20",
     "@nestjs/cli": "11.0.19",
+    "@nestjs/testing": "11.1.18",
+    "@vitejs/plugin-react": "5.1.1",
     "@next/bundle-analyzer": "16.2.3",
     "@secretlint/secretlint-rule-no-homedir": "11.6.0",
     "@secretlint/secretlint-rule-preset-recommend": "11.6.0",
@@ -116,6 +119,7 @@
     "ts-loader": "9.5.7",
     "tsconfig-paths-webpack-plugin": "4.2.0",
     "turbo": "2.9.5",
+    "unplugin-swc": "1.5.9",
     "vitest": "4.1.4",
     "webpack": "5.106.0",
     "webpack-node-externals": "3.0.0"

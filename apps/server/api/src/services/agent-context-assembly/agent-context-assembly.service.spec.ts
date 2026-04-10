@@ -62,7 +62,10 @@ describe('AgentContextAssemblyService', () => {
         taglines: ['Create content that compounds'],
         tone: 'professional',
         values: ['innovation', 'simplicity'],
-        writingRules: ['Lead with a concrete claim.', 'Avoid fluffy adjectives.'],
+        writingRules: [
+          'Lead with a concrete claim.',
+          'Avoid fluffy adjectives.',
+        ],
       },
     },
     description: 'A cutting-edge AI company',

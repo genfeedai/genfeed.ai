@@ -312,7 +312,9 @@ export class AgentContextAssemblyService {
     // Canonical brand voice from Brand.agentConfig
     const voiceParts: string[] = [];
     if (context.voice?.canonicalSource) {
-      voiceParts.push(`- Canonical voice source: ${context.voice.canonicalSource}`);
+      voiceParts.push(
+        `- Canonical voice source: ${context.voice.canonicalSource}`,
+      );
     }
     if (context.voice?.tone) {
       voiceParts.push(`- Tone: ${context.voice.tone}`);

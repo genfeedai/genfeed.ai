@@ -100,12 +100,12 @@ describe('EnvironmentService', () => {
   });
 
   describe('currentApp', () => {
-    it('detects marketplace on local port 3104', () => {
+    it('detects marketplace on local port 3003', () => {
       Object.defineProperty(window, 'location', {
         configurable: true,
         value: {
           hostname: 'local.genfeed.ai',
-          port: '3104',
+          port: '3003',
         },
       });
 

@@ -63,6 +63,7 @@ reviews:
     auto_incremental_review: true
     drafts: false
     base_branches:
+      - develop
       - staging
   pre_merge_checks:
     title:

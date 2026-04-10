@@ -92,7 +92,7 @@ describe('Discord Bot Manager Integration Flow', () => {
     vi.clearAllMocks();
 
     const mockConfigService = {
-      API_URL: 'http://localhost:3000',
+      API_URL: 'http://localhost:3010',
       get: vi.fn().mockReturnValue('test-api-key'),
     };
 

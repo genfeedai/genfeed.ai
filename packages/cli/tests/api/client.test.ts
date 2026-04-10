@@ -1,17 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { get, post, requireAuth } from '../../src/api/client.js';
 import { AuthError } from '../../src/utils/errors.js';
 
-// Mock config store
-const mockApiKey = vi.fn<[], string | undefined>();
-const mockApiUrl = vi.fn<[], string>();
+// Mock config store — use vi.hoisted so the mocks exist before vi.mock factories run
+const { mockApiKey, mockApiUrl, mockFetch } = vi.hoisted(() => ({
+  mockApiKey: vi.fn<[], string | undefined>(),
+  mockApiUrl: vi.fn<[], string>(),
+  mockFetch: vi.fn(),
+}));
 
-vi.mock('@/config/store.js', () => ({
+vi.mock('../../src/config/store.js', () => ({
   getApiKey: () => mockApiKey(),
   getApiUrl: () => mockApiUrl(),
 }));
-
-// Mock ofetch
-const mockFetch = vi.fn();
 
 vi.mock('ofetch', () => ({
   ofetch: {
@@ -20,29 +21,21 @@ vi.mock('ofetch', () => ({
 }));
 
 describe('api/client', () => {
-  let get: typeof import('../../src/api/client.js').get;
-  let post: typeof import('../../src/api/client.js').post;
-  let requireAuth: typeof import('../../src/api/client.js').requireAuth;
-
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
     mockApiUrl.mockReturnValue('https://api.genfeed.ai/v1');
     mockApiKey.mockReturnValue(undefined);
-    const client = await import(`../../src/api/client.ts?test-client=${Date.now()}`);
-    get = client.get;
-    post = client.post;
-    requireAuth = client.requireAuth;
   });
 
   describe('requireAuth', () => {
     it('returns API key when set', async () => {
-      mockApiKey.mockReturnValue('valid-api-key');
+      mockApiKey.mockImplementation(() => 'valid-api-key');
       const key = await requireAuth();
       expect(key).toBe('valid-api-key');
     });
 
     it('throws AuthError when no API key', async () => {
-      mockApiKey.mockReturnValue(undefined);
+      mockApiKey.mockImplementation(() => undefined);
       await expect(requireAuth()).rejects.toThrow(AuthError);
     });
   });
