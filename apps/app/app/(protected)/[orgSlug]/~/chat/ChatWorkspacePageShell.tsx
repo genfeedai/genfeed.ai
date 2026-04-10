@@ -3,7 +3,7 @@
 import { useAuth } from '@clerk/nextjs';
 import { AgentFullPage } from '@genfeedai/agent';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
-import { WorkspaceTasksService } from '@services/workspace/workspace-tasks.service';
+import { TasksService } from '@services/management/tasks.service';
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
 import { isEEEnabled } from '@/lib/config/edition';
@@ -33,8 +33,8 @@ export function ChatWorkspacePageShell({
         throw new Error('Authentication token unavailable.');
       }
 
-      const service = WorkspaceTasksService.getInstance(token);
-      const createdTasks = await service.createFollowUpTasks(taskId);
+      const service = TasksService.getInstance(token);
+      const createdTasks = await service.createChildTasks(taskId);
 
       return {
         createdCount: createdTasks.length,

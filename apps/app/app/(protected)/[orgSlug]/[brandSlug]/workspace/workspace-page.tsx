@@ -21,12 +21,11 @@ import { AgentRunsService } from '@services/ai/agent-runs.service';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { PromptsService } from '@services/content/prompts.service';
 import { logger } from '@services/core/logger.service';
-import { TasksService } from '@services/management/tasks.service';
 import {
-  WorkspaceTask,
-  type WorkspaceTaskEvent,
-  WorkspaceTasksService,
-} from '@services/workspace/workspace-tasks.service';
+  Task,
+  type TaskEvent,
+  TasksService,
+} from '@services/management/tasks.service';
 import type { Editor, JSONContent } from '@tiptap/core';
 import Mention, { type MentionNodeAttrs } from '@tiptap/extension-mention';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -72,7 +71,7 @@ import {
 } from 'react-icons/hi2';
 import tippy, { type Instance } from 'tippy.js';
 import {
-  buildWorkspaceTaskLaunchHref,
+  buildTaskLaunchHref,
   OPERATOR_TASK_CONTEXT_QUERY_KEYS,
 } from '@/lib/navigation/operator-shell';
 import { OPEN_TASK_COMPOSER_EVENT } from '@/lib/workspace/task-composer-events';
@@ -144,9 +143,9 @@ interface WorkspaceTaskOutputGroup {
 }
 
 interface WorkspaceTaskRealtimePayload {
-  event: WorkspaceTaskEvent;
+  event: TaskEvent;
   organizationId: string;
-  task: WorkspaceTask;
+  task: Task;
   taskId: string;
 }
 
@@ -403,22 +402,22 @@ const WorkspaceBrandMentionList = forwardRef<
   );
 });
 
-function isTaskInInboxQueue(task: WorkspaceTask): boolean {
-  return task.status !== 'dismissed' && task.reviewState !== 'dismissed';
+function isTaskInInboxQueue(task: Task): boolean {
+  return task.dismissedAt == null && task.reviewState !== 'dismissed';
 }
 
-function isUnreadInboxTask(task: WorkspaceTask): boolean {
+function isUnreadInboxTask(task: Task): boolean {
   return (
     task.reviewState === 'pending_approval' ||
     task.reviewState === 'changes_requested' ||
-    task.status === 'triaged' ||
+    task.status === 'backlog' ||
     task.status === 'in_progress' ||
-    task.status === 'needs_review' ||
+    task.status === 'in_review' ||
     task.status === 'failed'
   );
 }
 
-function formatTaskTimestamp(task: WorkspaceTask): string {
+function formatTaskTimestamp(task: Task): string {
   const source = task.updatedAt ?? task.createdAt;
   if (!source) {
     return 'just now';
@@ -443,32 +442,34 @@ function formatTaskTimestamp(task: WorkspaceTask): string {
   return `${Math.floor(hours / 24)}d ago`;
 }
 
-function formatTaskStatus(task: WorkspaceTask): string {
+function formatTaskStatus(task: Task): string {
+  if (task.dismissedAt != null) {
+    return 'Dismissed';
+  }
+
   switch (task.status) {
-    case 'completed':
+    case 'done':
       return 'Completed';
     case 'failed':
       return 'Failed';
-    case 'dismissed':
-      return 'Dismissed';
-    case 'needs_review':
+    case 'in_review':
       return task.reviewState === 'changes_requested'
         ? 'Changes Requested'
         : 'Needs Review';
     case 'in_progress':
       return 'In Progress';
-    case 'triaged':
+    case 'backlog':
       return 'Triaged';
     default:
       return task.status;
   }
 }
 
-function getAdvancedToolHref(task: WorkspaceTask): string {
-  return buildWorkspaceTaskLaunchHref(task, 'auto');
+function getAdvancedToolHref(task: Task): string {
+  return buildTaskLaunchHref(task, 'auto');
 }
 
-function getTaskStateDotClass(task: WorkspaceTask): string {
+function getTaskStateDotClass(task: Task): string {
   if (task.status === 'failed') {
     return 'bg-rose-400';
   }
@@ -476,12 +477,12 @@ function getTaskStateDotClass(task: WorkspaceTask): string {
   if (
     task.reviewState === 'pending_approval' ||
     task.reviewState === 'changes_requested' ||
-    task.status === 'needs_review'
+    task.status === 'in_review'
   ) {
     return 'bg-amber-300';
   }
 
-  if (task.status === 'completed') {
+  if (task.status === 'done') {
     return 'bg-emerald-300';
   }
 
@@ -517,7 +518,7 @@ function isNonEmptyString(value: string | null | undefined): value is string {
 }
 
 function useWorkspaceTaskLinkedRunSummary(
-  task: WorkspaceTask | null,
+  task: Task | null,
 ): WorkspaceTaskLinkedRunSummary & { isLoading: boolean } {
   const { getToken } = useAuth();
   const [summary, setSummary] = useState<WorkspaceTaskLinkedRunSummary>(
@@ -525,19 +526,19 @@ function useWorkspaceTaskLinkedRunSummary(
   );
   const [isLoading, setIsLoading] = useState(false);
   const _linkedRunIdsKey = useMemo(
-    () => task?.linkedRunIds.join('|') ?? '',
+    () => task?.linkedRunIds?.join('|') ?? '',
     [task?.linkedRunIds],
   );
 
   useEffect(() => {
-    if (!task || task.linkedRunIds.length === 0) {
+    if (!task || (task.linkedRunIds?.length ?? 0) === 0) {
       setSummary(getEmptyLinkedRunSummary());
       setIsLoading(false);
       return;
     }
 
     const capturedTask = task;
-    const linkedRunIds = capturedTask.linkedRunIds;
+    const linkedRunIds = capturedTask.linkedRunIds ?? [];
 
     let isCancelled = false;
     const controller = new AbortController();
@@ -703,7 +704,7 @@ function groupWorkspaceLinkedOutputs(
   });
 }
 
-function formatWorkspaceEventLabel(event: WorkspaceTaskEvent): string {
+function formatWorkspaceEventLabel(event: TaskEvent): string {
   switch (event.type) {
     case 'task_queued':
       return 'Task queued';
@@ -740,7 +741,7 @@ function formatWorkspaceEventLabel(event: WorkspaceTaskEvent): string {
   }
 }
 
-function getWorkspaceEventMessage(event: WorkspaceTaskEvent): string | null {
+function getWorkspaceEventMessage(event: TaskEvent): string | null {
   const message = event.payload?.message;
   if (typeof message === 'string' && message.trim().length > 0) {
     return message;
@@ -770,10 +771,10 @@ function getWorkspaceEventMessage(event: WorkspaceTaskEvent): string | null {
 }
 
 function applyRealtimeTaskUpdate(
-  currentTasks: WorkspaceTask[],
+  currentTasks: Task[],
   payload: WorkspaceTaskRealtimePayload,
-): WorkspaceTask[] {
-  const nextTask = new WorkspaceTask(payload.task);
+): Task[] {
+  const nextTask = new Task(payload.task);
   const existingIndex = currentTasks.findIndex(
     (task) => task.id === payload.taskId,
   );
@@ -788,19 +789,19 @@ function applyRealtimeTaskUpdate(
 }
 
 function useWorkspaceTaskLinkedOutputs(
-  task: WorkspaceTask | null,
+  task: Task | null,
 ): WorkspaceTaskLinkedOutputSummary {
   const { getToken } = useAuth();
   const [summary, setSummary] = useState<WorkspaceTaskLinkedOutputSummary>(
     getEmptyLinkedOutputSummary(),
   );
   const _linkedOutputIdsKey = useMemo(
-    () => task?.linkedOutputIds.join('|') ?? '',
+    () => task?.linkedOutputIds?.join('|') ?? '',
     [task?.linkedOutputIds],
   );
 
   useEffect(() => {
-    if (!task || task.linkedOutputIds.length === 0) {
+    if (!task || (task.linkedOutputIds?.length ?? 0) === 0) {
       setSummary(getEmptyLinkedOutputSummary());
       return;
     }
@@ -828,7 +829,7 @@ function useWorkspaceTaskLinkedOutputs(
 
         const service = IngredientsService.getInstance(token);
         const linkedOutputIds = Array.from(
-          new Set(capturedTask.linkedOutputIds),
+          new Set(capturedTask.linkedOutputIds ?? []),
         );
         const results = await Promise.allSettled(
           linkedOutputIds.map(
@@ -884,7 +885,7 @@ function useWorkspaceTaskLinkedOutputs(
 }
 
 function useWorkspaceTaskLinkedIssue(
-  task: WorkspaceTask | null,
+  task: Task | null,
 ): WorkspaceTaskLinkedIssueSummary {
   const { getToken } = useAuth();
   const [summary, setSummary] = useState<WorkspaceTaskLinkedIssueSummary>(
@@ -959,8 +960,8 @@ function WorkspaceTaskRow({
   onOpen,
   task,
 }: {
-  onOpen: (task: WorkspaceTask) => void;
-  task: WorkspaceTask;
+  onOpen: (task: Task) => void;
+  task: Task;
 }) {
   const needsAttention = isUnreadInboxTask(task);
 
@@ -1008,7 +1009,9 @@ function WorkspaceTaskRow({
                 {task.progress.stage} · {task.progress.percent ?? 0}%
               </span>
             ) : null}
-            <span>{task.executionPathUsed.replaceAll('_', ' ')}</span>
+            {task.executionPathUsed ? (
+              <span>{task.executionPathUsed.replaceAll('_', ' ')}</span>
+            ) : null}
             <span>{formatTaskTimestamp(task)}</span>
           </div>
         </div>
@@ -1030,9 +1033,9 @@ function WorkspaceTaskCard({
   busyTaskId: string | null;
   onApprove: (taskId: string) => Promise<void>;
   onDismiss: (taskId: string) => Promise<void>;
-  onPlanNextSteps: (task: WorkspaceTask) => Promise<void>;
+  onPlanNextSteps: (task: Task) => Promise<void>;
   onRequestChanges: (taskId: string) => Promise<void>;
-  task: WorkspaceTask;
+  task: Task;
 }) {
   const isBusy = busyTaskId === task.id;
   const showReviewActions = task.reviewState === 'pending_approval';
@@ -1051,9 +1054,11 @@ function WorkspaceTaskCard({
           {task.routingSummary ? <span>{task.routingSummary}</span> : null}
           {task.progress?.message ? <span>{task.progress.message}</span> : null}
           <span>{formatTaskTimestamp(task)}</span>
-          <span className="uppercase tracking-[0.14em]">
-            {task.executionPathUsed.replaceAll('_', ' ')}
-          </span>
+          {task.executionPathUsed ? (
+            <span className="uppercase tracking-[0.14em]">
+              {task.executionPathUsed.replaceAll('_', ' ')}
+            </span>
+          ) : null}
         </div>
         {task.resultPreview ? (
           <div className="border-l border-white/15 pl-3 text-sm text-foreground/70">
@@ -1134,11 +1139,11 @@ function WorkspaceTaskInspector({
   onDismiss: (taskId: string) => Promise<void>;
   onKeepOutput: (taskId: string, outputId: string) => Promise<void>;
   onOpenChange: (open: boolean) => void;
-  onPlanNextSteps: (task: WorkspaceTask) => Promise<void>;
+  onPlanNextSteps: (task: Task) => Promise<void>;
   onRequestChanges: (taskId: string) => Promise<void>;
   onTrashOutput: (taskId: string, outputId: string) => Promise<void>;
   onUnkeepOutput: (taskId: string, outputId: string) => Promise<void>;
-  task: WorkspaceTask | null;
+  task: Task | null;
 }) {
   const isBusy = busyTaskId === task?.id;
   const showReviewActions = task?.reviewState === 'pending_approval';
@@ -1179,9 +1184,11 @@ function WorkspaceTaskInspector({
                   <span className="rounded-full border border-white/10 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/55">
                     {task.outputType}
                   </span>
-                  <span className="rounded-full border border-white/10 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/55">
-                    {task.executionPathUsed.replaceAll('_', ' ')}
-                  </span>
+                  {task.executionPathUsed ? (
+                    <span className="rounded-full border border-white/10 px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-foreground/55">
+                      {task.executionPathUsed.replaceAll('_', ' ')}
+                    </span>
+                  ) : null}
                 </div>
 
                 <SheetTitle className="text-2xl tracking-[-0.03em]">
@@ -1243,7 +1250,7 @@ function WorkspaceTaskInspector({
                 </Card>
               ) : null}
 
-              {task.eventStream?.length > 0 ? (
+              {(task.eventStream?.length ?? 0) > 0 ? (
                 <Card
                   label="Task thread"
                   bodyClassName="space-y-3 border-l border-sky-400/30 p-4 text-sm text-foreground/75"
@@ -1287,7 +1294,7 @@ function WorkspaceTaskInspector({
                 </Card>
               ) : null}
 
-              {task.linkedOutputIds.length > 0 ? (
+              {(task.linkedOutputIds?.length ?? 0) > 0 ? (
                 <Card
                   label="Generated outputs"
                   bodyClassName="space-y-3 border-l border-emerald-400/25 p-4 text-sm text-foreground/75"
@@ -1343,9 +1350,9 @@ function WorkspaceTaskInspector({
                               {outputs.map((output) => {
                                 const description =
                                   getWorkspaceLinkedOutputDescription(output);
-                                const isKept = task.approvedOutputIds.includes(
-                                  output.id,
-                                );
+                                const isKept = (
+                                  task.approvedOutputIds ?? []
+                                ).includes(output.id);
 
                                 return (
                                   <div
@@ -1467,7 +1474,10 @@ function WorkspaceTaskInspector({
                   bodyClassName="space-y-2 p-4 text-sm text-foreground/65"
                 >
                   <p>Priority: {task.priority}</p>
-                  <p>Review state: {task.reviewState.replaceAll('_', ' ')}</p>
+                  <p>
+                    Review state:{' '}
+                    {task.reviewState?.replaceAll('_', ' ') ?? 'none'}
+                  </p>
                   <p>Organization: {task.organization}</p>
                   {task.brand ? <p>Brand: {task.brand}</p> : null}
                 </Card>
@@ -1476,7 +1486,7 @@ function WorkspaceTaskInspector({
                   label="Linked records"
                   bodyClassName="space-y-2 p-4 text-sm text-foreground/65"
                 >
-                  <p>Runs: {task.linkedRunIds.length}</p>
+                  <p>Runs: {task.linkedRunIds?.length ?? 0}</p>
                   {task.linkedIssueId ? (
                     <p>
                       Issue:{' '}
@@ -1485,7 +1495,7 @@ function WorkspaceTaskInspector({
                         : (linkedIssueSummary.identifier ?? 'Unavailable')}
                     </p>
                   ) : null}
-                  <p>Outputs: {task.linkedOutputIds.length}</p>
+                  <p>Outputs: {task.linkedOutputIds?.length ?? 0}</p>
                   <p>
                     Report threads:{' '}
                     {linkedRunSummary.isLoading
@@ -1498,7 +1508,7 @@ function WorkspaceTaskInspector({
                       ? 'Loading…'
                       : linkedRunSummary.generatedContentCount}
                   </p>
-                  <p>Approvals: {task.linkedApprovalIds.length}</p>
+                  <p>Approvals: {task.linkedApprovalIds?.length ?? 0}</p>
                   {task.planningThreadId ? (
                     <p className="truncate">Thread: {task.planningThreadId}</p>
                   ) : null}
@@ -1551,7 +1561,7 @@ function WorkspaceTaskInspector({
                   size={ButtonSize.SM}
                   className="font-semibold"
                 >
-                  <Link href={buildWorkspaceTaskLaunchHref(task, 'write')}>
+                  <Link href={buildTaskLaunchHref(task, 'write')}>
                     Open in Write
                   </Link>
                 </Button>
@@ -1561,7 +1571,7 @@ function WorkspaceTaskInspector({
                   size={ButtonSize.SM}
                   className="font-semibold"
                 >
-                  <Link href={buildWorkspaceTaskLaunchHref(task, 'generate')}>
+                  <Link href={buildTaskLaunchHref(task, 'generate')}>
                     Open in Generate
                   </Link>
                 </Button>
@@ -1571,7 +1581,7 @@ function WorkspaceTaskInspector({
                   size={ButtonSize.SM}
                   className="font-semibold"
                 >
-                  <Link href={buildWorkspaceTaskLaunchHref(task, 'edit')}>
+                  <Link href={buildTaskLaunchHref(task, 'edit')}>
                     Open in Edit
                   </Link>
                 </Button>
@@ -1581,7 +1591,7 @@ function WorkspaceTaskInspector({
                   size={ButtonSize.SM}
                   className="font-semibold"
                 >
-                  <Link href={buildWorkspaceTaskLaunchHref(task, 'automate')}>
+                  <Link href={buildTaskLaunchHref(task, 'automate')}>
                     Open in Automate
                   </Link>
                 </Button>
@@ -1656,7 +1666,7 @@ export default function WorkspacePageContent({
   const [taskBusy, setTaskBusy] = useState(false);
   const [busyTaskId, setBusyTaskId] = useState<string | null>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [workspaceTasks, setWorkspaceTasks] = useState<WorkspaceTask[]>([]);
+  const [workspaceTasks, setWorkspaceTasks] = useState<Task[]>([]);
   const availableBrandMentions = useMemo<WorkspaceBrandMentionItem[]>(
     () =>
       brands.map((brand) => ({
@@ -1804,7 +1814,7 @@ export default function WorkspacePageContent({
         (task) =>
           task.reviewState === 'pending_approval' ||
           task.reviewState === 'changes_requested' ||
-          task.status === 'completed' ||
+          task.status === 'done' ||
           task.status === 'failed',
       ),
     [workspaceTasks],
@@ -1837,7 +1847,7 @@ export default function WorkspacePageContent({
   const inProgressTasks = useMemo(
     () =>
       workspaceTasks.filter(
-        (task) => task.status === 'triaged' || task.status === 'in_progress',
+        (task) => task.status === 'backlog' || task.status === 'in_progress',
       ),
     [workspaceTasks],
   );
@@ -1959,8 +1969,8 @@ export default function WorkspacePageContent({
         return;
       }
 
-      const service = WorkspaceTasksService.getInstance(token);
-      const tasks = await service.list({ limit: 24 });
+      const service = TasksService.getInstance(token);
+      const tasks = await service.list({});
       if (!controller.signal.aborted) {
         setWorkspaceTasks(tasks);
       }
@@ -2003,8 +2013,8 @@ export default function WorkspacePageContent({
         return;
       }
 
-      const service = WorkspaceTasksService.getInstance(token);
-      const tasks = await service.list({ limit: 24 });
+      const service = TasksService.getInstance(token);
+      const tasks = await service.list({});
       startTransition(() => {
         setWorkspaceTasks(tasks);
       });
@@ -2104,6 +2114,7 @@ export default function WorkspacePageContent({
       brand: effectiveTaskBrandId,
       outputType: taskOutputType,
       request: normalizedRequest,
+      title: normalizedRequest.slice(0, 80),
     };
   }, [
     effectiveTaskBrandId,
@@ -2130,7 +2141,7 @@ export default function WorkspacePageContent({
         return;
       }
 
-      const service = WorkspaceTasksService.getInstance(token);
+      const service = TasksService.getInstance(token);
       const createdTask = await service.createTask(buildTaskSubmission());
 
       startTransition(() => {
@@ -2157,7 +2168,7 @@ export default function WorkspacePageContent({
 
   const mutateTask = async (
     taskId: string,
-    operation: (service: WorkspaceTasksService) => Promise<WorkspaceTask>,
+    operation: (service: TasksService) => Promise<Task>,
   ) => {
     setBusyTaskId(taskId);
     setWorkspaceActionError(null);
@@ -2168,7 +2179,7 @@ export default function WorkspacePageContent({
         return;
       }
 
-      const service = WorkspaceTasksService.getInstance(token);
+      const service = TasksService.getInstance(token);
       const updatedTask = await operation(service);
       startTransition(() => {
         setWorkspaceTasks((current) =>
@@ -2188,7 +2199,7 @@ export default function WorkspacePageContent({
     }
   };
 
-  const openPlanningConversation = async (task: WorkspaceTask) => {
+  const openPlanningConversation = async (task: Task) => {
     setBusyTaskId(task.id);
     setWorkspaceActionError(null);
 
@@ -2199,17 +2210,17 @@ export default function WorkspacePageContent({
         return;
       }
 
-      const service = WorkspaceTasksService.getInstance(token);
+      const service = TasksService.getInstance(token);
       const planningThread = await service.ensurePlanningThread(task.id);
 
       startTransition(() => {
         setWorkspaceTasks((current) =>
           current.map((item) =>
             item.id === task.id
-              ? {
+              ? new Task({
                   ...item,
                   planningThreadId: planningThread.threadId,
-                }
+                })
               : item,
           ),
         );
@@ -2254,10 +2265,7 @@ export default function WorkspacePageContent({
     };
   }, []);
 
-  const renderTaskStream = (
-    tasks: WorkspaceTask[],
-    emptyMessage: string,
-  ): ReactNode =>
+  const renderTaskStream = (tasks: Task[], emptyMessage: string): ReactNode =>
     tasks.length > 0 ? (
       <div className="divide-y divide-white/[0.06]">
         {tasks.map((task) => (
@@ -2287,10 +2295,7 @@ export default function WorkspacePageContent({
       <p className="text-sm text-foreground/45">{emptyMessage}</p>
     );
 
-  const renderTaskRows = (
-    tasks: WorkspaceTask[],
-    emptyMessage: string,
-  ): ReactNode =>
+  const renderTaskRows = (tasks: Task[], emptyMessage: string): ReactNode =>
     tasks.length > 0 ? (
       <div className="divide-y divide-white/[0.06]">
         {tasks.map((task) => (
@@ -2305,11 +2310,7 @@ export default function WorkspacePageContent({
         ))}
       </div>
     ) : (
-      <AppTable<WorkspaceTask>
-        items={[]}
-        columns={[]}
-        emptyLabel={emptyMessage}
-      />
+      <AppTable<Task> items={[]} columns={[]} emptyLabel={emptyMessage} />
     );
 
   const workspaceHeaderActions = (

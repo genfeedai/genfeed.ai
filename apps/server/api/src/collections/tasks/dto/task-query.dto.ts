@@ -69,4 +69,34 @@ export class TaskQueryDto extends BaseQueryDto {
     type: String,
   })
   goalId?: string;
+
+  @IsOptional()
+  @IsEnum([
+    'none',
+    'pending_approval',
+    'approved',
+    'changes_requested',
+    'dismissed',
+  ])
+  @ApiProperty({
+    description: 'Filter by review state',
+    enum: [
+      'none',
+      'pending_approval',
+      'approved',
+      'changes_requested',
+      'dismissed',
+    ],
+    required: false,
+  })
+  reviewState?: string;
+
+  @IsOptional()
+  @IsEnum(['all', 'inbox', 'in_progress'])
+  @ApiProperty({
+    description: 'Preset view filter',
+    enum: ['all', 'inbox', 'in_progress'],
+    required: false,
+  })
+  view?: 'all' | 'inbox' | 'in_progress';
 }

@@ -34,4 +34,3 @@ export * from '@serializers/server/content/schedule.serializer';
 export * from '@serializers/server/content/speech-transcription.serializer';
 export * from '@serializers/server/content/template.serializer';
 export * from '@serializers/server/content/transcript.serializer';
-export * from '@serializers/server/content/workspace-task.serializer';

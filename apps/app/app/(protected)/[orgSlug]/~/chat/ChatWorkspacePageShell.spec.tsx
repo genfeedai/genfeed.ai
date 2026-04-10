@@ -1,5 +1,5 @@
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
-import { WorkspaceTasksService } from '@services/workspace/workspace-tasks.service';
+import { TasksService } from '@services/management/tasks.service';
 import { render } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChatWorkspacePageShell } from './ChatWorkspacePageShell';
@@ -37,14 +37,14 @@ vi.mock('@/lib/config/edition', () => ({
   isEEEnabled: vi.fn(() => false),
 }));
 
-vi.mock('@services/workspace/workspace-tasks.service', async () => {
+vi.mock('@services/management/tasks.service', async () => {
   const actual = await vi.importActual<
-    typeof import('@services/workspace/workspace-tasks.service')
-  >('@services/workspace/workspace-tasks.service');
+    typeof import('@services/management/tasks.service')
+  >('@services/management/tasks.service');
 
   return {
     ...actual,
-    WorkspaceTasksService: {
+    TasksService: {
       getInstance: vi.fn(),
     },
   };
@@ -73,9 +73,9 @@ describe('ChatWorkspacePageShell', () => {
       { id: 'task-1' },
       { id: 'task-2' },
     ]);
-    vi.mocked(WorkspaceTasksService.getInstance).mockReturnValue({
-      createFollowUpTasks: createFollowUpTasksMock,
-    } as unknown as WorkspaceTasksService);
+    vi.mocked(TasksService.getInstance).mockReturnValue({
+      createChildTasks: createFollowUpTasksMock,
+    } as unknown as ReturnType<typeof TasksService.getInstance>);
   });
 
   it('renders the shared shell container', () => {

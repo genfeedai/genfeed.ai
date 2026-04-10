@@ -16,6 +16,8 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
+import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
+import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import type { User } from '@clerk/backend';
 import type {
@@ -33,10 +35,13 @@ import {
   HttpCode,
   HttpStatus,
   NotFoundException,
+  Optional,
   Param,
   Patch,
   Post,
+  Query,
   Req,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
@@ -56,6 +61,9 @@ export class TasksController extends BaseCRUDController<
     private readonly tasksService: TasksService,
     private readonly taskCountersService: TaskCountersService,
     private readonly organizationsService: OrganizationsService,
+    private readonly agentOrchestratorService: AgentOrchestratorService,
+    @Optional()
+    private readonly workspaceTaskQueueService?: WorkspaceTaskQueueService,
   ) {
     super(loggerService, tasksService, TaskSerializer, Task.name);
   }
@@ -83,6 +91,11 @@ export class TasksController extends BaseCRUDController<
     const taskNumber =
       await this.taskCountersService.getNextNumber(organizationId);
     const identifier = `${org.prefix}-${taskNumber}`;
+    const extended = createDto as CreateTaskDto & {
+      outputType?: string;
+      platforms?: string[];
+      request?: string;
+    };
 
     const doc = await this.tasksService.create({
       ...createDto,
@@ -91,11 +104,54 @@ export class TasksController extends BaseCRUDController<
       taskNumber,
     } as CreateTaskDto & {
       identifier: string;
-      taskNumber: number;
       organization: Types.ObjectId;
+      taskNumber: number;
     });
 
-    return serializeSingle(request, TaskSerializer, doc);
+    const response = serializeSingle(request, TaskSerializer, doc);
+
+    // Fire-and-forget: enqueue AI tasks for orchestration
+    if (this.workspaceTaskQueueService && extended.request) {
+      const taskId = (response.data as { id?: string })?.id;
+
+      if (taskId) {
+        this.tasksService
+          .recordTaskEvent(taskId, organizationId, publicMetadata.user, {
+            payload: {
+              executionPathUsed: extended.outputType ?? 'ingredient',
+              request: extended.request,
+            },
+            type: 'task_queued',
+          })
+          .catch((error: unknown) => {
+            this.loggerService.error(
+              'TasksController: Failed to publish queued task event',
+              error,
+            );
+          });
+
+        this.workspaceTaskQueueService
+          .enqueue({
+            brandId: (
+              createDto.brand as Types.ObjectId | undefined
+            )?.toString(),
+            organizationId,
+            outputType: extended.outputType,
+            platforms: extended.platforms,
+            request: extended.request,
+            taskId,
+            userId: publicMetadata.user,
+          })
+          .catch((error: unknown) => {
+            this.loggerService.error(
+              'TasksController: Failed to enqueue task for orchestration',
+              error,
+            );
+          });
+      }
+    }
+
+    return response;
   }
 
   public override buildFindAllPipeline(
@@ -136,7 +192,25 @@ export class TasksController extends BaseCRUDController<
       match.goalId = query.goalId;
     }
 
-    const sort = handleQuerySort(query.sort);
+    if (query.reviewState) {
+      match.reviewState = query.reviewState;
+    }
+
+    if (query.view === 'in_progress') {
+      match.status = { $in: ['backlog', 'in_progress'] };
+    }
+
+    if (query.view === 'inbox') {
+      match.$or = [
+        { reviewState: { $in: ['pending_approval', 'changes_requested'] } },
+        { status: { $in: ['done', 'failed'] } },
+      ];
+    }
+
+    const sort =
+      query.view === 'inbox' || query.view === 'in_progress'
+        ? { updatedAt: -1 as const }
+        : handleQuerySort(query.sort);
 
     return [{ $match: match }, { $sort: sort }];
   }
@@ -152,6 +226,20 @@ export class TasksController extends BaseCRUDController<
       )?._id?.toString() || entity.organization?.toString();
 
     return entityOrganizationId === publicMetadata.organization;
+  }
+
+  @Get('inbox')
+  async inbox(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Query('limit') limit?: string,
+  ) {
+    const { organization } = getPublicMetadata(user);
+    const docs = await this.tasksService.listInbox(
+      organization,
+      limit ? Number(limit) : undefined,
+    );
+    return serializeCollection(request, TaskSerializer, { docs });
   }
 
   @Get('by-identifier/:identifier')
@@ -218,6 +306,91 @@ export class TasksController extends BaseCRUDController<
     return result;
   }
 
+  @Patch(':id/approve')
+  async approve(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ) {
+    const { organization } = getPublicMetadata(user);
+    const doc = await this.tasksService.approve(id, organization);
+    return serializeSingle(request, TaskSerializer, doc);
+  }
+
+  @Patch(':id/request-changes')
+  async requestChanges(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() body: { reason: string },
+  ) {
+    const { organization, user: userId } = getPublicMetadata(user);
+    const doc = await this.tasksService.requestChanges(
+      id,
+      organization,
+      userId,
+      body.reason,
+    );
+    return serializeSingle(request, TaskSerializer, doc);
+  }
+
+  @Patch(':id/dismiss')
+  async dismiss(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Body() body: { reason?: string },
+  ) {
+    const { organization, user: userId } = getPublicMetadata(user);
+    const doc = await this.tasksService.dismiss(
+      id,
+      organization,
+      userId,
+      body.reason,
+    );
+    return serializeSingle(request, TaskSerializer, doc);
+  }
+
+  @Patch(':id/outputs/:outputId/keep')
+  async keepOutput(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Param('outputId') outputId: string,
+  ) {
+    const { organization } = getPublicMetadata(user);
+    const doc = await this.tasksService.keepOutput(id, outputId, organization);
+    return serializeSingle(request, TaskSerializer, doc);
+  }
+
+  @Patch(':id/outputs/:outputId/unkeep')
+  async unkeepOutput(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Param('outputId') outputId: string,
+  ) {
+    const { organization } = getPublicMetadata(user);
+    const doc = await this.tasksService.unkeepOutput(
+      id,
+      outputId,
+      organization,
+    );
+    return serializeSingle(request, TaskSerializer, doc);
+  }
+
+  @Patch(':id/outputs/:outputId/trash')
+  async trashOutput(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Param('outputId') outputId: string,
+  ) {
+    const { organization } = getPublicMetadata(user);
+    const doc = await this.tasksService.trashOutput(id, outputId, organization);
+    return serializeSingle(request, TaskSerializer, doc);
+  }
+
   @Post(':id/checkout')
   @HttpCode(HttpStatus.OK)
   async checkout(
@@ -253,5 +426,91 @@ export class TasksController extends BaseCRUDController<
 
     const doc = await this.tasksService.release(id, body.agentId);
     return serializeSingle(request, TaskSerializer, doc);
+  }
+
+  @Post(':id/plan-thread')
+  async openPlanThread(@CurrentUser() user: User, @Param('id') id: string) {
+    const { organization, user: metadataUserId } = getPublicMetadata(user);
+
+    if (!metadataUserId || !Types.ObjectId.isValid(metadataUserId)) {
+      throw new UnauthorizedException(
+        'Missing workspace user context. Please sign in again.',
+      );
+    }
+
+    const planThread = await this.tasksService.openPlanningThread(
+      id,
+      organization,
+      metadataUserId,
+    );
+
+    if (planThread.seeded) {
+      const prompt = await this.tasksService.getPlanningPrompt(
+        id,
+        organization,
+      );
+
+      await this.agentOrchestratorService.chat(
+        {
+          content: prompt,
+          planModeEnabled: true,
+          source: 'agent',
+          threadId: planThread.threadId,
+        },
+        {
+          organizationId: organization,
+          userId: metadataUserId,
+        },
+      );
+    }
+
+    return planThread;
+  }
+
+  @Post(':id/children')
+  async createChildren(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+  ) {
+    const { organization, user: metadataUserId } = getPublicMetadata(user);
+
+    if (!metadataUserId || !Types.ObjectId.isValid(metadataUserId)) {
+      throw new UnauthorizedException(
+        'Missing workspace user context. Please sign in again.',
+      );
+    }
+
+    const tasks = await this.tasksService.createFollowUpTasks(
+      id,
+      organization,
+      metadataUserId,
+    );
+
+    if (this.workspaceTaskQueueService) {
+      await Promise.all(
+        tasks.map((task) => {
+          const taskExt = task as TaskDocument & {
+            outputType?: string;
+            platforms?: string[];
+            request?: string;
+          };
+          return this.workspaceTaskQueueService!.enqueue({
+            brandId: (task.brand as Types.ObjectId | undefined)?.toString(),
+            organizationId: organization,
+            outputType: taskExt.outputType,
+            platforms: taskExt.platforms,
+            request: taskExt.request,
+            taskId: task._id.toString(),
+            userId: metadataUserId,
+          });
+        }),
+      );
+    }
+
+    return serializeCollection(request, TaskSerializer, {
+      docs: tasks,
+      totalDocs: tasks.length,
+    });
   }
 }

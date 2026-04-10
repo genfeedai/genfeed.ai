@@ -1,5 +1,5 @@
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
-import { WorkspaceTasksService } from '@api/collections/workspace-tasks/services/workspace-tasks.service';
+import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import {
   AgentRunJobData,
   AgentRunQueueService,
@@ -47,7 +47,7 @@ export class TaskOrchestratorService {
     @Optional()
     @Inject(forwardRef(() => AgentRunQueueService))
     private readonly agentRunQueueService: AgentRunQueueService,
-    private readonly workspaceTasksService: WorkspaceTasksService,
+    private readonly tasksService: TasksService,
     private readonly workspaceTaskQualityService: WorkspaceTaskQualityService,
     private readonly logger: LoggerService,
   ) {}
@@ -91,7 +91,7 @@ export class TaskOrchestratorService {
     );
 
     // 2. Mark task as in_progress with routing summary + decomposition
-    await this.workspaceTasksService.recordTaskEvent(
+    await this.tasksService.recordTaskEvent(
       taskId,
       organizationId,
       userId,
@@ -129,7 +129,7 @@ export class TaskOrchestratorService {
     const runIds = await this.createAndEnqueueRuns(decomposition, params);
 
     // 4. Link runs to workspace task
-    await this.workspaceTasksService.recordTaskEvent(
+    await this.tasksService.recordTaskEvent(
       taskId,
       organizationId,
       userId,
@@ -162,7 +162,7 @@ export class TaskOrchestratorService {
     organizationId: string,
   ): Promise<void> {
     // Find the workspace task that links to this run
-    const task = await this.workspaceTasksService.findOne({
+    const task = await this.tasksService.findOne({
       isDeleted: false,
       linkedRunIds: new Types.ObjectId(runId),
       organization: new Types.ObjectId(organizationId),
@@ -178,10 +178,10 @@ export class TaskOrchestratorService {
     );
 
     const completedRun = runStates.find((run) => run.id === runId);
-    await this.workspaceTasksService.recordTaskEvent(
+    await this.tasksService.recordTaskEvent(
       task._id.toString(),
       organizationId,
-      task.user.toString(),
+      task.assigneeUserId ?? '',
       {
         payload: {
           progress,
@@ -216,10 +216,10 @@ export class TaskOrchestratorService {
     const resultPreview = summaries.filter(Boolean).join(' | ');
 
     if (hasFailures) {
-      await this.workspaceTasksService.recordTaskEvent(
+      await this.tasksService.recordTaskEvent(
         task._id.toString(),
         organizationId,
-        task.user.toString(),
+        task.assigneeUserId ?? '',
         {
           payload: {
             failureReason: 'One or more agent runs failed.',
@@ -252,10 +252,10 @@ export class TaskOrchestratorService {
         organizationId,
       );
 
-      await this.workspaceTasksService.recordTaskEvent(
+      await this.tasksService.recordTaskEvent(
         task._id.toString(),
         organizationId,
-        task.user.toString(),
+        task.assigneeUserId ?? '',
         {
           payload: {
             gate: qualityAssessment.gate,
@@ -276,7 +276,7 @@ export class TaskOrchestratorService {
           resultPreview: resultPreview || undefined,
           reviewState: 'pending_approval',
           reviewTriggered: true,
-          status: 'needs_review',
+          status: 'in_review',
           ...(qualityAssessment.gate === 'pass'
             ? {
                 requestedChangesReason: null,
@@ -290,7 +290,7 @@ export class TaskOrchestratorService {
     }
 
     this.logger.log(
-      `${this.logContext}: Task ${task._id} rollup complete — ${hasFailures ? 'failed' : 'needs_review'}`,
+      `${this.logContext}: Task ${task._id} rollup complete — ${hasFailures ? 'failed' : 'in_review'}`,
     );
   }
 
@@ -349,7 +349,7 @@ export class TaskOrchestratorService {
 
     await this.agentRunQueueService.queueRun(jobData);
 
-    await this.workspaceTasksService.recordTaskEvent(
+    await this.tasksService.recordTaskEvent(
       params.taskId,
       params.organizationId,
       params.userId,
@@ -372,7 +372,7 @@ export class TaskOrchestratorService {
   }
 
   async handleRunStarted(runId: string, organizationId: string): Promise<void> {
-    const task = await this.workspaceTasksService.findOne({
+    const task = await this.tasksService.findOne({
       isDeleted: false,
       linkedRunIds: new Types.ObjectId(runId),
       organization: new Types.ObjectId(organizationId),
@@ -388,10 +388,10 @@ export class TaskOrchestratorService {
     );
     const startedRun = runStates.find((run) => run.id === runId);
 
-    await this.workspaceTasksService.recordTaskEvent(
+    await this.tasksService.recordTaskEvent(
       task._id.toString(),
       organizationId,
-      task.user.toString(),
+      task.assigneeUserId ?? '',
       {
         payload: {
           label: startedRun?.label,

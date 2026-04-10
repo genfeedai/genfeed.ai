@@ -1006,11 +1006,9 @@ async function handleBrandsRoute(route: Route): Promise<void> {
   });
 }
 
-async function handleWorkspaceTasksRoute(route: Route): Promise<void> {
+async function handleTasksRoute(route: Route): Promise<void> {
   await route.fulfill({
-    body: JSON.stringify(
-      wrapCollectionInJsonApi([], 'workspace-task', 'workspace-task'),
-    ),
+    body: JSON.stringify(wrapCollectionInJsonApi([], 'task', 'task')),
     contentType: 'application/json',
     status: 200,
   });
@@ -1059,8 +1057,8 @@ export async function setupApiMocks(
     await handleBrandsRoute(r);
   });
 
-  await routeApi('/workspace-tasks**', async (r) => {
-    await handleWorkspaceTasksRoute(r);
+  await routeApi('/tasks**', async (r) => {
+    await handleTasksRoute(r);
   });
 
   // Agent panel chrome requests made from the protected layout.
@@ -1196,8 +1194,8 @@ export async function setupApiMocks(
       return;
     }
 
-    if (url.includes('/v1/workspace-tasks')) {
-      await handleWorkspaceTasksRoute(r);
+    if (url.includes('/v1/tasks')) {
+      await handleTasksRoute(r);
       return;
     }
 

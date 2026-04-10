@@ -1347,7 +1347,7 @@ export async function mockWorkspaceTasks(
     };
   };
 
-  await routeApiPattern(page, '/workspace-tasks**', async (route) => {
+  await routeApiPattern(page, '/tasks**', async (route) => {
     const method = route.request().method();
     const url = new URL(route.request().url());
     const pathname = url.pathname;
@@ -1386,9 +1386,7 @@ export async function mockWorkspaceTasks(
       return;
     }
 
-    const planThreadMatch = pathname.match(
-      /\/workspace-tasks\/([^/]+)\/plan-thread$/,
-    );
+    const planThreadMatch = pathname.match(/\/tasks\/([^/]+)\/plan-thread$/);
     if (method === 'POST' && planThreadMatch) {
       const [, taskId] = planThreadMatch;
       const { created, seeded, thread } = ensurePlanningThread(taskId);
@@ -1406,7 +1404,7 @@ export async function mockWorkspaceTasks(
     }
 
     const followUpTasksMatch = pathname.match(
-      /\/workspace-tasks\/([^/]+)\/follow-up-tasks$/,
+      /\/tasks\/([^/]+)\/follow-up-tasks$/,
     );
     if (method === 'POST' && followUpTasksMatch) {
       const [, taskId] = followUpTasksMatch;
@@ -1456,7 +1454,7 @@ export async function mockWorkspaceTasks(
       return;
     }
 
-    if (method === 'POST' && pathname.endsWith('/workspace-tasks')) {
+    if (method === 'POST' && pathname.endsWith('/tasks')) {
       const payload = extractRequestPayload(route);
       const createdTask = buildWorkspaceTaskFromPayload(payload, sequence);
       sequence += 1;
@@ -1472,7 +1470,7 @@ export async function mockWorkspaceTasks(
       return;
     }
 
-    const approveMatch = pathname.match(/\/workspace-tasks\/([^/]+)\/approve$/);
+    const approveMatch = pathname.match(/\/tasks\/([^/]+)\/approve$/);
     if (method === 'PATCH' && approveMatch) {
       const [, taskId] = approveMatch;
       tasks = tasks.map((task) =>
@@ -1499,7 +1497,7 @@ export async function mockWorkspaceTasks(
     }
 
     const requestChangesMatch = pathname.match(
-      /\/workspace-tasks\/([^/]+)\/request-changes$/,
+      /\/tasks\/([^/]+)\/request-changes$/,
     );
     if (method === 'PATCH' && requestChangesMatch) {
       const [, taskId] = requestChangesMatch;
@@ -1531,7 +1529,7 @@ export async function mockWorkspaceTasks(
       return;
     }
 
-    const dismissMatch = pathname.match(/\/workspace-tasks\/([^/]+)\/dismiss$/);
+    const dismissMatch = pathname.match(/\/tasks\/([^/]+)\/dismiss$/);
     if (method === 'PATCH' && dismissMatch) {
       const [, taskId] = dismissMatch;
       const payload = extractRequestPayload(route);

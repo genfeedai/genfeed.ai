@@ -863,6 +863,15 @@
     "packages/models": {
       "name": "@genfeedai/models",
       "version": "0.1.0",
+      "dependencies": {
+        "@genfeedai/client": "workspace:*",
+        "@genfeedai/helpers": "workspace:*",
+        "@genfeedai/interfaces": "workspace:*",
+        "@genfeedai/services": "workspace:*",
+      },
+      "devDependencies": {
+        "vitest": "4.1.4",
+      },
     },
     "packages/next-config": {
       "name": "@genfeedai/next-config",
@@ -896,6 +905,13 @@
     "packages/props": {
       "name": "@genfeedai/props",
       "version": "0.1.0",
+      "dependencies": {
+        "@genfeedai/models": "workspace:*",
+        "@genfeedai/services": "workspace:*",
+      },
+      "devDependencies": {
+        "vitest": "4.1.4",
+      },
     },
     "packages/providers": {
       "name": "@genfeedai/providers",
@@ -933,6 +949,14 @@
     "packages/services": {
       "name": "@genfeedai/services",
       "version": "0.1.0",
+      "dependencies": {
+        "@genfeedai/client": "workspace:*",
+        "@genfeedai/helpers": "workspace:*",
+        "@genfeedai/interfaces": "workspace:*",
+      },
+      "devDependencies": {
+        "vitest": "4.1.4",
+      },
     },
     "packages/storage": {
       "name": "@genfeedai/storage",

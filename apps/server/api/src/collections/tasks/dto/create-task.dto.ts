@@ -127,4 +127,33 @@ export class CreateTaskDto {
     type: [LinkedEntityDto],
   })
   linkedEntities?: LinkedEntityDto[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(4000)
+  @ApiProperty({
+    description: 'AI generation request text',
+    required: false,
+    type: String,
+  })
+  request?: string;
+
+  @IsOptional()
+  @IsEnum(['caption', 'image', 'ingredient', 'newsletter', 'post', 'video'])
+  @ApiProperty({
+    description: 'Output type for AI generation',
+    enum: ['caption', 'image', 'ingredient', 'newsletter', 'post', 'video'],
+    required: false,
+  })
+  outputType?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @ApiProperty({
+    description: 'Target platforms',
+    required: false,
+    type: [String],
+  })
+  platforms?: string[];
 }

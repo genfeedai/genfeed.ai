@@ -5,7 +5,6 @@ import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { AgentRunsService } from '@services/ai/agent-runs.service';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { TasksService } from '@services/management/tasks.service';
-import { WorkspaceTasksService } from '@services/workspace/workspace-tasks.service';
 import {
   fireEvent,
   render,
@@ -58,19 +57,6 @@ vi.mock('next/navigation', () => ({
   }),
   useSearchParams: () => new URLSearchParams(),
 }));
-
-vi.mock('@services/workspace/workspace-tasks.service', async () => {
-  const actual = await vi.importActual<
-    typeof import('@services/workspace/workspace-tasks.service')
-  >('@services/workspace/workspace-tasks.service');
-
-  return {
-    ...actual,
-    WorkspaceTasksService: {
-      getInstance: vi.fn(),
-    },
-  };
-});
 
 vi.mock('@services/ai/agent-runs.service', async () => {
   const actual = await vi.importActual<
@@ -202,15 +188,16 @@ describe('WorkspacePageContent', () => {
       id: 'issue-1',
       identifier: 'GEN-42',
     });
-    vi.mocked(WorkspaceTasksService.getInstance).mockReturnValue({
+    vi.mocked(TasksService.getInstance).mockReturnValue({
       approve: vi.fn(),
-      createFollowUpTasks: vi.fn(),
+      createChildTasks: vi.fn(),
       createTask: createTaskMock,
       dismiss: vi.fn(),
       ensurePlanningThread: ensurePlanningThreadMock,
+      findOne: findIssueMock,
       list: listMock,
       requestChanges: vi.fn(),
-    } as unknown as WorkspaceTasksService);
+    } as unknown as ReturnType<typeof TasksService.getInstance>);
     vi.mocked(AgentRunsService.getInstance).mockReturnValue({
       getById: getRunByIdMock,
       getRunContent: getRunContentMock,
@@ -218,9 +205,6 @@ describe('WorkspacePageContent', () => {
     vi.mocked(IngredientsService.getInstance).mockReturnValue({
       findOne: findIngredientMock,
     } as unknown as ReturnType<typeof IngredientsService.getInstance>);
-    vi.mocked(TasksService.getInstance).mockReturnValue({
-      findOne: findIssueMock,
-    } as unknown as ReturnType<typeof TasksService.getInstance>);
   });
 
   it('renders the overview layout without duplicate workspace tabs', async () => {

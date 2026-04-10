@@ -34,7 +34,6 @@ import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/w
 import { BatchWorkflowProcessor } from '@api/collections/workflows/services/batch-workflow.processor';
 import { WorkflowExecutionProcessor as CollectionsWorkflowExecutionProcessor } from '@api/collections/workflows/services/workflow-execution.processor';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
-import { WorkspaceTasksModule } from '@api/collections/workspace-tasks/workspace-tasks.module';
 import { ConfigModule } from '@api/config/config.module';
 // --- queues/ processors ---
 import { AdBulkUploadProcessor } from '@api/queues/ad-bulk-upload/ad-bulk-upload.processor';
@@ -126,8 +125,6 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     forwardRef(() => ReplyBotConfigsModule),
     forwardRef(() => WorkflowExecutionsModule),
     forwardRef(() => WorkflowsModule),
-    forwardRef(() => WorkspaceTasksModule),
-
     // Service modules (provide services injected by processors)
     forwardRef(() => AgentCampaignOrchestratorModule),
     forwardRef(() => AgentOrchestratorModule),

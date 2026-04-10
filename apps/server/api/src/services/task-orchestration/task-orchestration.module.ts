@@ -1,5 +1,5 @@
 import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
-import { WorkspaceTasksModule } from '@api/collections/workspace-tasks/workspace-tasks.module';
+import { TasksModule } from '@api/collections/tasks/tasks.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { TaskDecompositionService } from '@api/services/task-orchestration/task-decomposition.service';
@@ -18,7 +18,7 @@ import { forwardRef, Module } from '@nestjs/common';
     LoggerModule,
     LlmDispatcherModule,
     forwardRef(() => AgentRunsModule),
-    forwardRef(() => WorkspaceTasksModule),
+    forwardRef(() => TasksModule),
     forwardRef(() => QueuesModule),
   ],
   providers: [

@@ -1,6 +1,6 @@
-import type { WorkspaceTask } from '@services/workspace/workspace-tasks.service';
+import type { Task } from '@services/management/tasks.service';
 
-export type WorkspaceTaskLaunchMode =
+export type TaskLaunchMode =
   | 'auto'
   | 'automate'
   | 'edit'
@@ -108,10 +108,7 @@ export function withTaskContextHref(
   return appendSearchParamsToHref(href, searchParams);
 }
 
-function getWorkspaceTaskLaunchPath(
-  task: WorkspaceTask,
-  mode: WorkspaceTaskLaunchMode,
-): string {
+function getTaskLaunchPath(task: Task, mode: TaskLaunchMode): string {
   if (mode === 'write') {
     if (task.outputType === 'newsletter') {
       return '/compose/newsletter';
@@ -150,20 +147,17 @@ function getWorkspaceTaskLaunchPath(
   }
 }
 
-export function buildWorkspaceTaskLaunchHref(
-  task: WorkspaceTask,
-  mode: WorkspaceTaskLaunchMode = 'auto',
+export function buildTaskLaunchHref(
+  task: Task,
+  mode: TaskLaunchMode = 'auto',
 ): string {
   const searchParams = new URLSearchParams({
-    taskExecutionPath: task.executionPathUsed,
+    taskExecutionPath: task.executionPathUsed ?? '',
     taskId: task.id,
-    taskOutputType: task.outputType,
+    taskOutputType: task.outputType ?? '',
     taskSource: 'workspace',
     taskTitle: task.title,
   });
 
-  return appendSearchParamsToHref(
-    getWorkspaceTaskLaunchPath(task, mode),
-    searchParams,
-  );
+  return appendSearchParamsToHref(getTaskLaunchPath(task, mode), searchParams);
 }
