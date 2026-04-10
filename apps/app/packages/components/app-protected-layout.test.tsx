@@ -281,10 +281,6 @@ vi.mock('@hooks/feature-flags/use-feature-flag', () => ({
   useFeatureFlag: () => true,
 }));
 
-vi.mock('@pages/studio/sidebar/StudioSidebarContent', () => ({
-  StudioSidebarContent: () => <div data-testid="studio-sidebar-content" />,
-}));
-
 vi.mock('@providers/protected-providers/protected-providers', () => ({
   default: ({
     children,

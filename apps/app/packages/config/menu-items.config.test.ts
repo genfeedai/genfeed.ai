@@ -68,6 +68,7 @@ describe('APP_MENU_ITEMS', () => {
       'Hooks',
       'Performance Lab',
       'Trend Turnover',
+      'Streaks',
     ]);
   });
 

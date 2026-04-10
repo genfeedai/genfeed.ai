@@ -1,8 +1,8 @@
-import MissionControlAgentLabPage from '@pages/mission-control/mission-control-agent-lab';
 import type { TableProps } from '@props/ui/display/table.props';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+import { MissionControlView } from './MissionControlView';
 
 vi.mock('@ui/banners/low-credits/LowCreditsBanner', () => ({
   default: () => <div data-testid="low-credits-banner" />,
@@ -93,9 +93,9 @@ vi.mock('@ui/display/table/Table', () => ({
   },
 }));
 
-describe('MissionControlAgentLabPage', () => {
+describe('MissionControlView', () => {
   it('keeps the composer anchored inside the active agent surface', () => {
-    render(<MissionControlAgentLabPage />);
+    render(<MissionControlView />);
 
     fireEvent.click(screen.getAllByText('Ask Agent')[0]);
 
@@ -115,7 +115,7 @@ describe('MissionControlAgentLabPage', () => {
   });
 
   it('preserves selection and conversation context when switching modes', () => {
-    render(<MissionControlAgentLabPage />);
+    render(<MissionControlView />);
 
     fireEvent.click(screen.getByLabelText('select-lab-row-1'));
     fireEvent.click(screen.getAllByText('Ask Agent')[0]);
@@ -141,7 +141,7 @@ describe('MissionControlAgentLabPage', () => {
   });
 
   it('keeps filters stable while opening and closing the comparison surface', () => {
-    render(<MissionControlAgentLabPage />);
+    render(<MissionControlView />);
 
     const search = screen.getByPlaceholderText(
       'Search assets, channels, owners, or status',

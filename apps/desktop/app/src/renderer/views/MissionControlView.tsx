@@ -475,7 +475,7 @@ function AgentLabSurface({
   );
 }
 
-export default function MissionControlAgentLabPage() {
+export function MissionControlView() {
   const [mode, setMode] = useState<AgentLabMode>('rail');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<AgentLabStatus | 'all'>(
