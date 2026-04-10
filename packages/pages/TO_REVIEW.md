@@ -64,6 +64,13 @@ _None remaining — all tracked features have been wired._
 - `packages/pages/trends/platform-detail/trends-platform-detail.tsx` — PR 3 moved from `apps/app/.../research/[platform]/trends-platform-detail.tsx` to `packages/pages/trends/platform-detail/` so both `/research/[platform]` and the new `/analytics/trends/platforms/[platform]` route can consume the same component. `SocialsNavigation` + `TrendsPlatformDetail` now accept an optional `basePath` prop so in-surface tab navigation stays consistent ('/research' vs '/analytics/trends').
 - `packages/pages/streaks/streaks-page.tsx` — PR 4 wired at `/analytics/streaks`. Added to the Analytics sidebar group in `apps/app/packages/config/menu-items.config.ts`; the corresponding `analyticsLabels` assertion in `menu-items.config.test.ts` was updated to include 'Streaks'.
 - `packages/pages/mission-control/mission-control-agent-lab.tsx` — PR 4 moved to `apps/desktop/app/src/renderer/views/MissionControlView.tsx` (Epic #9 scopes mission control to the desktop app; the existing `menu-items.config.test.ts` assertion that `/mission-control` is NOT in the web APP_MENU_ITEMS stays valid). The default export was renamed from `MissionControlAgentLabPage` to a named export `MissionControlView` to match the desktop view convention (`AgentsView`, `AnalyticsView`, etc.). Wired into `apps/desktop/app/src/renderer/nav-view.ts`, `App.tsx` (new `'mission-control'` case), and `Sidebar.tsx` (new NAV_ITEMS entry). The `packages/pages/mission-control/` directory was deleted entirely.
+- `packages/pages/calendar/posts/posts-calendar-page.tsx` — PR 5 reclassification; **no code change**. Live via `apps/app/app/(protected)/[orgSlug]/[brandSlug]/posts/calendar/page.tsx`. The original 04-09 sweep missed it (probably because the import form used the barrel).
+- `packages/pages/agents/campaigns/AgentCampaignsPage.tsx` — PR 5 reclassification; **no code change**. Live via `apps/app/.../orchestration/campaigns/page.tsx` through the `@pages/agents` barrel (`packages/pages/agents/index.ts`).
+- `packages/pages/agents/campaigns/AgentCampaignNewPage.tsx` — PR 5 reclassification; **no code change**. Live via `apps/app/.../orchestration/campaigns/new/page.tsx` through the `@pages/agents` barrel.
+- `packages/pages/agents/campaigns/AgentCampaignDetailPage.tsx` — PR 5 reclassification; **no code change**. Live via `apps/app/.../orchestration/campaigns/[id]/page.tsx` through the `@pages/agents` barrel.
+- `packages/pages/agents/campaigns/OutreachCampaignsList.tsx` — PR 5 reclassification; **no code change**. Live via `apps/app/.../orchestration/outreach-campaigns/page.tsx` through the `@pages/agents` barrel.
+- `packages/pages/agents/campaigns/OutreachCampaignWizard.tsx` — PR 5 reclassification; **no code change**. Live via `apps/app/.../orchestration/outreach-campaigns/new/page.tsx` through the `@pages/agents` barrel.
+- `packages/pages/agents/campaigns/OutreachCampaignDetail.tsx` — PR 5 reclassification; **no code change**. Live via `apps/app/.../orchestration/outreach-campaigns/[id]/page.tsx` through the `@pages/agents` barrel.
 
 ### Studio subtree (reachable via StudioGenerateLayout, not orphaned)
 
@@ -96,24 +103,17 @@ These files were misclassified by the sweep because the dependency chain from `a
 - `packages/pages/studio/queue/GenerationQueue.tsx`
 - `packages/pages/studio/selection/StudioSelectionActionsBar.tsx`
 
-### Untracked WIP (needs GitHub issue per PR 5)
+### Parked behind open issues (untracked WIP, decision pending)
 
-These were iterated in the last week but have no open GitHub issue. Per user decision, they get an issue opened rather than deletion.
+These have zero live consumers and no existing feature ticket. Per user decision (opt for issue-tracking over deletion), each has a GitHub issue opened during PR 5 so ownership can be resolved without losing the code. Every remaining entry in this section has an `Issue:` reference.
 
-- `packages/pages/twitter-pipeline/twitter-pipeline-engage.tsx`
-- `packages/pages/twitter-pipeline/components/opportunity-card.tsx`
-- `packages/pages/twitter-pipeline/components/tweet-card.tsx`
-- `packages/pages/agents/campaigns/AgentCampaignDetailPage.tsx`
-- `packages/pages/agents/campaigns/AgentCampaignNewPage.tsx`
-- `packages/pages/agents/campaigns/AgentCampaignsPage.tsx`
-- `packages/pages/agents/campaigns/OutreachCampaignDetail.tsx`
-- `packages/pages/agents/campaigns/OutreachCampaignsList.tsx`
-- `packages/pages/agents/campaigns/OutreachCampaignWizard.tsx`
-- `packages/pages/agents/tasks/CronJobsList.tsx`
-- `packages/pages/calendar/posts/posts-calendar-page.tsx`
-- `packages/pages/articles/list/articles-list.tsx`
-- `packages/pages/calendar/articles/articles-calendar-page.tsx`
-- `packages/pages/library/landing/library-landing-visual-preview.tsx`
+- `packages/pages/articles/list/articles-list.tsx` + `.test.tsx` — **Issue: #147** — divergent sibling exists at `apps/website/app/(content)/articles/articles-list.tsx` (101 lines vs 151); website consumes its own copy, package version has no consumer
+- `packages/pages/calendar/articles/articles-calendar-page.tsx` + `.test.tsx` — **Issue: #147** — zero consumers; bundled with the articles-list ticket because both are article-adjacent
+- `packages/pages/library/landing/library-landing-visual-preview.tsx` + `.test.tsx` — **Issue: #148** — zero consumers, no `/library/landing` route
+- `packages/pages/agents/tasks/CronJobsList.tsx` + `.test.tsx` — **Issue: #149** — zero consumers despite 8 commits of iteration; not re-exported from `packages/pages/agents/index.ts`, so no opaque barrel-path reference either
+- `packages/pages/twitter-pipeline/twitter-pipeline-engage.tsx` + `.test.tsx` — **Issue: #150** — zero external consumers (imports its own components only)
+- `packages/pages/twitter-pipeline/components/opportunity-card.tsx` + `.test.tsx` — **Issue: #150** — only consumed internally by `twitter-pipeline-engage.tsx`
+- `packages/pages/twitter-pipeline/components/tweet-card.tsx` + `.test.tsx` — **Issue: #150** — only consumed internally by `twitter-pipeline-engage.tsx`
 
 ### Posts subtree (needs per-file verification)
 
@@ -131,4 +131,6 @@ Deferred from PR 1 because the original sweep is untrustworthy and each file nee
 
 - Canonical task tracking stays in GitHub, per repo policy.
 - Do not use this file as a backlog — it is a preservation ledger only.
-- Every remaining entry should either land in a follow-up PR or gain a `GitHub Issue: #N` annotation during PR 5.
+- **As of PR 5 (2026-04-10), every entry in this file is either (a) wired into a live route, (b) genuinely-shared internal code with a documented consumer, or (c) tracked by an open GitHub issue.** There are no silent orphans.
+- The Studio subtree and the Posts subtree sections are the remaining cleanup candidates — Studio is live internal code (should be removed from the ledger after a barrel audit) and Posts needs per-file verification in a follow-up micro-PR.
+- This file can be deleted entirely once the Studio and Posts sections are resolved.
