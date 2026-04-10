@@ -1,3 +1,9 @@
+import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
+import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { SkillsService } from '@api/collections/skills/services/skills.service';
+import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import {
   TASK_STATUSES,
   Task,
@@ -8,6 +14,7 @@ import {
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
@@ -33,6 +40,33 @@ describe('TasksService', () => {
     warn: vi.fn(),
   };
 
+  const mockSkillsService = {
+    resolveBrandSkills: vi.fn(),
+  };
+
+  const mockIngredientsService = {
+    findOne: vi.fn(),
+    patch: vi.fn(),
+  };
+
+  const mockAgentThreadsService = {
+    create: vi.fn(),
+    findOne: vi.fn(),
+    updateThreadMetadata: vi.fn(),
+  };
+
+  const mockAgentMessagesService = {
+    getMessagesByRoom: vi.fn(),
+  };
+
+  const mockAgentRunsService = {
+    getById: vi.fn(),
+  };
+
+  const mockNotificationsPublisher = {
+    emit: vi.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -44,6 +78,30 @@ describe('TasksService', () => {
         {
           provide: LoggerService,
           useValue: mockLogger,
+        },
+        {
+          provide: SkillsService,
+          useValue: mockSkillsService,
+        },
+        {
+          provide: IngredientsService,
+          useValue: mockIngredientsService,
+        },
+        {
+          provide: AgentThreadsService,
+          useValue: mockAgentThreadsService,
+        },
+        {
+          provide: AgentMessagesService,
+          useValue: mockAgentMessagesService,
+        },
+        {
+          provide: AgentRunsService,
+          useValue: mockAgentRunsService,
+        },
+        {
+          provide: NotificationsPublisherService,
+          useValue: mockNotificationsPublisher,
         },
       ],
     }).compile();
@@ -336,6 +394,64 @@ describe('TasksService', () => {
       for (const field of aiFields) {
         expect(paths).toContain(field);
       }
+    });
+  });
+
+  describe('AI task methods — exist on service', () => {
+    it('listInbox method exists', () => {
+      expect(typeof service.listInbox).toBe('function');
+    });
+
+    it('approve method exists', () => {
+      expect(typeof service.approve).toBe('function');
+    });
+
+    it('recordTaskEvent method exists', () => {
+      expect(typeof service.recordTaskEvent).toBe('function');
+    });
+  });
+
+  describe('create — AI routing', () => {
+    it('routes a tweet request to caption_generation when no skills are matched', async () => {
+      const organizationId = new Types.ObjectId().toString();
+      const brandId = new Types.ObjectId().toString();
+      const taskId = new Types.ObjectId();
+      const expectedTask = {
+        _id: taskId,
+        executionPathUsed: 'caption_generation',
+        outputType: 'post',
+        status: 'backlog',
+      } as Partial<TaskDocument>;
+
+      mockSkillsService.resolveBrandSkills.mockResolvedValue([]);
+
+      // Spy on BaseService.create to avoid Mongoose model constructor requirement
+      const BaseService = Object.getPrototypeOf(Object.getPrototypeOf(service));
+      const superCreateSpy = vi
+        .spyOn(BaseService, 'create')
+        .mockResolvedValue(expectedTask as TaskDocument);
+
+      const result = await service.create({
+        brand: brandId,
+        organization: organizationId,
+        request: 'Write a tweet about our new product launch',
+        title: 'New product tweet',
+      } as CreateTaskDto & { brand?: string; organization?: string });
+
+      expect(result).toBe(expectedTask);
+      expect(mockSkillsService.resolveBrandSkills).toHaveBeenCalledWith(
+        organizationId,
+        brandId,
+        expect.objectContaining({ workflowStage: 'creation' }),
+      );
+      // Verify routing fields are merged into the super.create call
+      expect(superCreateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          executionPathUsed: 'caption_generation',
+          status: 'backlog',
+        }),
+      );
+      superCreateSpy.mockRestore();
     });
   });
 
