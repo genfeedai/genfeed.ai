@@ -11,4 +11,3 @@ export { default as PromptBarsVideoMerge } from '@pages/studio/prompt-bars/Promp
 export { default as PromptSuggestions } from '@pages/studio/prompt-bars/PromptSuggestions';
 export { default as GenerationQueue } from '@pages/studio/queue/GenerationQueue';
 export { default as StudioSelectionActionsBar } from '@pages/studio/selection/StudioSelectionActionsBar';
-export { StudioSidebarContent } from '@pages/studio/sidebar/StudioSidebarContent';
