@@ -124,6 +124,12 @@ export class TasksService extends BaseService<
     super(model, logger);
   }
 
+  private get rawModel() {
+    return this.model as unknown as import('mongoose').Model<
+      Record<string, unknown>
+    >;
+  }
+
   override async create(createDto: CreateTaskDto): Promise<TaskDocument> {
     const extended = createDto as CreateTaskDtoExtended;
     const routing = extended.request
@@ -233,9 +239,9 @@ export class TasksService extends BaseService<
       },
     };
 
-    const updated = await (
-      this.model as never as import('mongoose').Model<Record<string, unknown>>
-    ).findOneAndUpdate(filter, update, { new: true });
+    const updated = await this.rawModel.findOneAndUpdate(filter, update, {
+      new: true,
+    });
 
     return updated as unknown as TaskDocument | null;
   }
@@ -254,9 +260,9 @@ export class TasksService extends BaseService<
       },
     };
 
-    const updated = await (
-      this.model as never as import('mongoose').Model<Record<string, unknown>>
-    ).findOneAndUpdate(filter, update, { new: true });
+    const updated = await this.rawModel.findOneAndUpdate(filter, update, {
+      new: true,
+    });
 
     if (!updated) {
       throw new NotFoundException('Task', taskId);
@@ -284,9 +290,7 @@ export class TasksService extends BaseService<
 
   async approve(id: string, organizationId: string): Promise<TaskDocument> {
     const task = await this.requireAiTask(id, organizationId);
-    const updated = (await (
-      this.model as never as import('mongoose').Model<Record<string, unknown>>
-    ).findOneAndUpdate(
+    const updated = (await this.rawModel.findOneAndUpdate(
       {
         _id: new Types.ObjectId(id),
         isDeleted: false,
@@ -317,9 +321,7 @@ export class TasksService extends BaseService<
     reason: string,
   ): Promise<TaskDocument> {
     await this.requireAiTask(id, organizationId);
-    const updated = (await (
-      this.model as never as import('mongoose').Model<Record<string, unknown>>
-    ).findOneAndUpdate(
+    const updated = (await this.rawModel.findOneAndUpdate(
       {
         _id: new Types.ObjectId(id),
         isDeleted: false,
@@ -349,9 +351,7 @@ export class TasksService extends BaseService<
     reason?: string,
   ): Promise<TaskDocument> {
     await this.requireAiTask(id, organizationId);
-    const updated = (await (
-      this.model as never as import('mongoose').Model<Record<string, unknown>>
-    ).findOneAndUpdate(
+    const updated = (await this.rawModel.findOneAndUpdate(
       {
         _id: new Types.ObjectId(id),
         isDeleted: false,
@@ -385,9 +385,7 @@ export class TasksService extends BaseService<
       organizationId,
       outputId,
     );
-    const updated = (await (
-      this.model as never as import('mongoose').Model<Record<string, unknown>>
-    ).findOneAndUpdate(
+    const updated = (await this.rawModel.findOneAndUpdate(
       {
         _id: new Types.ObjectId(id),
         isDeleted: false,
@@ -415,9 +413,7 @@ export class TasksService extends BaseService<
       organizationId,
       outputId,
     );
-    const updated = (await (
-      this.model as never as import('mongoose').Model<Record<string, unknown>>
-    ).findOneAndUpdate(
+    const updated = (await this.rawModel.findOneAndUpdate(
       {
         _id: new Types.ObjectId(id),
         isDeleted: false,
@@ -452,9 +448,7 @@ export class TasksService extends BaseService<
     });
     if (!ingredient) throw new NotFoundException('Ingredient', outputId);
     await this.ingredientsService.patch(outputId, { isDeleted: true });
-    const updated = (await (
-      this.model as never as import('mongoose').Model<Record<string, unknown>>
-    ).findOneAndUpdate(
+    const updated = (await this.rawModel.findOneAndUpdate(
       {
         _id: new Types.ObjectId(id),
         isDeleted: false,
@@ -578,22 +572,20 @@ export class TasksService extends BaseService<
       );
     }
 
-    const createdTasks: TaskDocument[] = [];
-    for (const step of followUpSteps) {
-      const createdTask = await this.create({
-        brand: task.brand?.toString(),
-        organization: task.organization?.toString(),
-        outputType: step.outputType ?? task.outputType,
-        platforms: task.platforms,
-        priority: task.priority,
-        request: step.request,
-        title: step.title,
-        user: userId,
-      } as CreateTaskDto & { organization?: string; user?: string });
-      createdTasks.push(createdTask);
-    }
-
-    return createdTasks;
+    return Promise.all(
+      followUpSteps.map((step) =>
+        this.create({
+          brand: task.brand?.toString(),
+          organization: task.organization?.toString(),
+          outputType: step.outputType ?? task.outputType,
+          platforms: task.platforms,
+          priority: task.priority,
+          request: step.request,
+          title: step.title,
+          user: userId,
+        } as CreateTaskDto & { organization: string; user: string }),
+      ),
+    );
   }
 
   // ─── Private helpers ─────────────────────────────────────────────────────────
@@ -828,9 +820,7 @@ export class TasksService extends BaseService<
         organization: new Types.ObjectId(organizationId),
       });
     }
-    return (
-      this.model as never as import('mongoose').Model<Record<string, unknown>>
-    ).findOneAndUpdate(
+    return this.rawModel.findOneAndUpdate(
       {
         _id: new Types.ObjectId(id),
         isDeleted: false,
@@ -972,9 +962,7 @@ export class TasksService extends BaseService<
       userId: userId || undefined,
     };
 
-    const updated = (await (
-      this.model as never as import('mongoose').Model<Record<string, unknown>>
-    ).findOneAndUpdate(
+    const updated = (await this.rawModel.findOneAndUpdate(
       {
         _id: task._id,
         isDeleted: false,
@@ -1112,36 +1100,26 @@ export class TasksService extends BaseService<
       threadId?: string;
     }>
   > {
-    const runSummaries: Array<{
-      completedAt?: string;
-      error?: string;
-      id: string;
-      label: string;
-      startedAt?: string;
-      status: string;
-      summary?: string;
-      threadId?: string;
-    }> = [];
-
-    for (const linkedRunId of task.linkedRunIds ?? []) {
-      const run = await this.agentRunsService.getById(
-        linkedRunId.toString(),
-        organizationId,
-      );
-      if (!run) continue;
-      runSummaries.push({
-        completedAt: run.completedAt?.toISOString(),
-        error: run.error,
-        id: run._id.toString(),
-        label: run.label,
-        startedAt: run.startedAt?.toISOString(),
-        status: run.status,
-        summary: run.summary,
-        threadId: run.thread?.toString(),
-      });
-    }
-
-    return runSummaries;
+    const runSummaries = await Promise.all(
+      (task.linkedRunIds ?? []).map(async (linkedRunId) => {
+        const run = await this.agentRunsService.getById(
+          linkedRunId.toString(),
+          organizationId,
+        );
+        if (!run) return null;
+        return {
+          completedAt: run.completedAt?.toISOString(),
+          error: run.error,
+          id: run._id.toString(),
+          label: run.label,
+          startedAt: run.startedAt?.toISOString(),
+          status: run.status,
+          summary: run.summary,
+          threadId: run.thread?.toString(),
+        };
+      }),
+    );
+    return runSummaries.filter((s): s is NonNullable<typeof s> => s !== null);
   }
 
   private async getLatestApprovedPlanningMessage(
