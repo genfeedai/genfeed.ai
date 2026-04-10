@@ -1,6 +1,6 @@
 ---
 created: 2026-04-07T00:00:00Z
-last_updated: 2026-04-07T00:00:00Z
+last_updated: 2026-04-10T00:00:00Z
 version: 1.0
 author: Claude Code PM System
 ---
@@ -45,20 +45,32 @@ author: Claude Code PM System
 
 ## Development Ports
 
-| Service | Port | App | Port |
-|---------|------|-----|------|
-| API | 3001 | Admin | 3101 |
-| Clips | 3002 | App (Studio) | 3102 |
-| Discord | 3003 | Website | 3105 |
-| Files | 3005 | | |
-| MCP | 3006 | | |
-| Notifications | 3007 | | |
-| Slack | 3008 | | |
-| Telegram | 3009 | | |
-| Workers | 3010 | | |
-| Images | — | | |
-| Videos | — | | |
-| Voices | — | | |
+Frontend ports use the `300x` range:
+
+| App | Port |
+|-----|------|
+| App (Studio) | 3000 |
+| Docs | 3001 |
+| Website | 3002 |
+| Marketplace placeholder endpoint | 3003 |
+
+Backend ports start at `3010`, grouped by runtime role:
+
+| Service | Port | Role |
+|---------|------|------|
+| API | 3010 | API core |
+| Notifications | 3011 | API core |
+| Files | 3012 | API core |
+| Workers | 3013 | API core |
+| MCP | 3014 | Backend service |
+| Clips | 3015 | Service/bot |
+| Discord | 3016 | Service/bot |
+| Fanvue | 3017 | Reserved service endpoint |
+| Slack | 3018 | Service/bot |
+| Telegram | 3019 | Service/bot |
+| Images | 3020 | Fleet/GPU |
+| Videos | 3021 | Fleet/GPU |
+| Voices | 3022 | Fleet/GPU |
 
 ## Compiled Packages (dist/ required)
 

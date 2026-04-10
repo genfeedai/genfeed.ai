@@ -5,7 +5,7 @@
 @.agents/context/project-structure.md
 @.agents/context/project-style-guide.md
 
-TypeScript monorepo: 4 web/mobile apps, 12 backend services, 45+ shared packages.
+TypeScript monorepo: 6 app surfaces, 12 backend services, 45+ shared packages.
 Stack: Next.js + NestJS + MongoDB + Redis + BullMQ
 
 ## Git Workflow
@@ -37,7 +37,7 @@ If ANY step fails, fix it before pushing.
 # Development
 bun install                              # Install dependencies
 bun run dev:backend                      # All backend services
-bun dev:app @genfeedai/api               # Start API server (port 3001)
+bun dev:app @genfeedai/api               # Start API server (port 3010)
 bun dev:app @genfeedai/app               # Start main app
 bun dev:app @genfeedai/[name]            # Start any specific app
 
@@ -99,23 +99,24 @@ bun run test --filter=@genfeedai/[name]  # Run specific package tests
 ### Backend (`apps/server/`)
 | App | Port | Purpose |
 |-----|------|---------|
-| `api/` | 3001 | Main NestJS API |
-| `clips/` | 3002 | Clips processing |
-| `discord/` | 3003 | Discord integration |
-| `files/` | 3005 | File processing service |
-| `mcp/` | 3006 | MCP server for AI tools |
-| `notifications/` | 3007 | Notification service |
-| `slack/` | 3008 | Slack integration |
-| `telegram/` | 3009 | Telegram bot |
-| `workers/` | 3010 | Background job processors |
-| `images/` | — | Image generation pipeline |
-| `videos/` | — | Video generation pipeline |
-| `voices/` | — | Voice generation pipeline |
+| `api/` | 3010 | Main NestJS API |
+| `notifications/` | 3011 | Notification service |
+| `files/` | 3012 | File processing service |
+| `workers/` | 3013 | Background job processors |
+| `mcp/` | 3014 | MCP server for AI tools |
+| `clips/` | 3015 | Clips processing |
+| `discord/` | 3016 | Discord integration |
+| `slack/` | 3018 | Slack integration |
+| `telegram/` | 3019 | Telegram bot |
+| `images/` | 3020 | Image generation pipeline |
+| `videos/` | 3021 | Video generation pipeline |
+| `voices/` | 3022 | Voice generation pipeline |
 
 ### Frontend
 | App | Purpose |
 |-----|---------|
 | `apps/app/` | Main studio app |
+| `apps/docs/` | Documentation site |
 | `apps/website/` | Marketing site |
 | `apps/desktop/` | Electron desktop app |
 | `apps/mobile/` | React Native / Expo |

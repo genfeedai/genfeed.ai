@@ -1,6 +1,6 @@
 ---
 created: 2026-04-07T00:00:00Z
-last_updated: 2026-04-07T00:00:00Z
+last_updated: 2026-04-10T00:00:00Z
 version: 1.0
 author: Claude Code PM System
 ---
@@ -13,20 +13,20 @@ author: Claude Code PM System
 genfeed.ai/
 ├── apps/
 │   ├── server/              # 12 NestJS backend services
-│   │   ├── api/             # Main API (port 3001)
-│   │   ├── clips/           # Clips processing (3002)
-│   │   ├── discord/         # Discord integration (3003)
-│   │   ├── files/           # File processing (3005)
-│   │   ├── images/          # Image generation
-│   │   ├── mcp/             # MCP server (3006)
-│   │   ├── notifications/   # Notification service (3007)
-│   │   ├── slack/           # Slack integration (3008)
-│   │   ├── telegram/        # Telegram bot (3009)
-│   │   ├── videos/          # Video generation
-│   │   ├── voices/          # Voice generation
-│   │   └── workers/         # Background jobs (3010)
+│   │   ├── api/             # Main API (port 3010)
+│   │   ├── notifications/   # Notification service (3011)
+│   │   ├── files/           # File processing (3012)
+│   │   ├── workers/         # Background jobs (3013)
+│   │   ├── mcp/             # MCP server (3014)
+│   │   ├── clips/           # Clips processing (3015)
+│   │   ├── discord/         # Discord integration (3016)
+│   │   ├── slack/           # Slack integration (3018)
+│   │   ├── telegram/        # Telegram bot (3019)
+│   │   ├── images/          # Image generation (3020)
+│   │   ├── videos/          # Video generation (3021)
+│   │   └── voices/          # Voice generation (3022)
 │   ├── app/                 # Main studio app (Next.js)
-│   ├── admin/               # Admin panel (Next.js)
+│   ├── docs/                # Documentation site (Next.js)
 │   ├── website/             # Marketing site (Next.js)
 │   ├── desktop/             # Electron desktop app
 │   ├── mobile/              # React Native / Expo

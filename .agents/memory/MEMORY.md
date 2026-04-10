@@ -10,3 +10,4 @@
 - [proxy.ts is middleware](feedback_proxy_middleware.md) — Next.js 16 renamed middleware.ts → proxy.ts, never question this
 - [Use @ui/primitives](feedback_ui_primitives.md) — Never raw `<button>`, `<input>`, etc. — blocked by lint-no-raw-html.sh
 - [Codex adversarial review](feedback_codex_adversarial_review.md) — Use Agent(codex:codex-rescue) not Skill tool; strip --write for read-only reviews
+- [GitHub issue worktree workflow](feedback_gh_issue_worktree_workflow.md) — Assigned GitHub issues use worktrees from develop, PR to develop, CI, then merge

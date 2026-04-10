@@ -1,6 +1,6 @@
 ---
 created: 2026-04-07T00:00:00Z
-last_updated: 2026-04-07T00:00:00Z
+last_updated: 2026-04-10T00:00:00Z
 version: 1.0
 author: Claude Code PM System
 ---
@@ -22,11 +22,11 @@ Genfeed.ai is an open-source AI operating system for content creation — a self
 ## Architecture Summary
 
 - **12 backend services** (NestJS): api, clips, discord, files, images, mcp, notifications, slack, telegram, videos, voices, workers
-- **6 frontend apps** (Next.js): app (studio), admin, website, desktop, mobile, extensions
+- **6 app surfaces**: app (studio), docs, website, desktop, mobile, extensions
 - **~45 shared packages**: serializers, UI components, hooks, services, types, enums, workflow engine, integrations, etc.
 - **9 enterprise packages** (`ee/`): multi-tenancy, billing, analytics, SSO, teams, collaboration, scheduling, branding, admin-ee
 - **Infrastructure**: Docker self-hosted, MongoDB, Redis + BullMQ, Clerk auth
 
 ## Current State
 
-Recently migrated and consolidated from separate cloud + core repositories into this single monorepo. CI/CD runs on GitHub Actions. Branch flow: `develop` -> `staging` -> `master`. Active development focused on stabilization and open-source readiness.
+Migrated and consolidated from separate cloud + core repositories into this single monorepo. CI/CD runs on GitHub Actions. Branch flow: `develop` -> `staging` -> `master`. Assigned GitHub issue work should use isolated worktrees branched from `develop`, then PR back to `develop`.
