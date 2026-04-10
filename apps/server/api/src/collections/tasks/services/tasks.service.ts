@@ -19,11 +19,12 @@ import { Types } from 'mongoose';
  * Key = current status, Value = set of allowed next statuses.
  */
 const STATUS_TRANSITIONS: Record<TaskStatus, readonly TaskStatus[]> = {
-  backlog: ['todo', 'cancelled'],
+  backlog: ['todo', 'in_progress', 'cancelled'],
   blocked: ['todo', 'in_progress', 'cancelled'],
   cancelled: ['backlog', 'todo'],
   done: ['in_progress'],
-  in_progress: ['blocked', 'in_review', 'done', 'cancelled'],
+  failed: ['backlog', 'in_progress'],
+  in_progress: ['blocked', 'in_review', 'done', 'failed', 'cancelled'],
   in_review: ['in_progress', 'done', 'cancelled'],
   todo: ['in_progress', 'blocked', 'backlog', 'cancelled'],
 };

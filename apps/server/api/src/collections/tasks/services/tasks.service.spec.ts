@@ -338,4 +338,93 @@ describe('TasksService', () => {
       }
     });
   });
+
+  describe('status transitions — failed status', () => {
+    it('allows in_progress → failed', async () => {
+      const taskId = new Types.ObjectId().toString();
+      const updatedTask = {
+        _id: new Types.ObjectId(taskId),
+        status: 'failed',
+      } as TaskDocument;
+
+      mockModel.findOne.mockReturnValue({
+        exec: vi.fn().mockResolvedValue({
+          _id: new Types.ObjectId(taskId),
+          status: 'in_progress',
+        } as TaskDocument),
+      });
+      mockModel.findByIdAndUpdate.mockReturnValue({
+        populate: vi.fn().mockReturnValue({
+          exec: vi.fn().mockResolvedValue(updatedTask),
+        }),
+      });
+
+      await expect(
+        service.patch(taskId, { status: 'failed' }),
+      ).resolves.toBeDefined();
+    });
+
+    it('allows failed → backlog', async () => {
+      const taskId = new Types.ObjectId().toString();
+      const updatedTask = {
+        _id: new Types.ObjectId(taskId),
+        status: 'backlog',
+      } as TaskDocument;
+
+      mockModel.findOne.mockReturnValue({
+        exec: vi.fn().mockResolvedValue({
+          _id: new Types.ObjectId(taskId),
+          status: 'failed',
+        } as TaskDocument),
+      });
+      mockModel.findByIdAndUpdate.mockReturnValue({
+        populate: vi.fn().mockReturnValue({
+          exec: vi.fn().mockResolvedValue(updatedTask),
+        }),
+      });
+
+      await expect(
+        service.patch(taskId, { status: 'backlog' }),
+      ).resolves.toBeDefined();
+    });
+
+    it('allows failed → in_progress', async () => {
+      const taskId = new Types.ObjectId().toString();
+      const updatedTask = {
+        _id: new Types.ObjectId(taskId),
+        status: 'in_progress',
+      } as TaskDocument;
+
+      mockModel.findOne.mockReturnValue({
+        exec: vi.fn().mockResolvedValue({
+          _id: new Types.ObjectId(taskId),
+          status: 'failed',
+        } as TaskDocument),
+      });
+      mockModel.findByIdAndUpdate.mockReturnValue({
+        populate: vi.fn().mockReturnValue({
+          exec: vi.fn().mockResolvedValue(updatedTask),
+        }),
+      });
+
+      await expect(
+        service.patch(taskId, { status: 'in_progress' }),
+      ).resolves.toBeDefined();
+    });
+
+    it('rejects failed → done', async () => {
+      const taskId = new Types.ObjectId().toString();
+
+      mockModel.findOne.mockReturnValue({
+        exec: vi.fn().mockResolvedValue({
+          _id: new Types.ObjectId(taskId),
+          status: 'failed',
+        } as TaskDocument),
+      });
+
+      await expect(service.patch(taskId, { status: 'done' })).rejects.toThrow(
+        "Cannot transition from 'failed' to 'done'",
+      );
+    });
+  });
 });
