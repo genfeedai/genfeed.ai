@@ -35,7 +35,7 @@ vi.mock('@genfeedai/client/models', () => ({
   },
 }));
 
-vi.mock('@helpers/ui/mobile/mobile.helper', () => ({
+vi.mock('@genfeedai/helpers/ui/mobile/mobile.helper', () => ({
   getDeepLink: vi.fn((url: string, isMobile: boolean) =>
     isMobile ? `deeplink:${url}` : url,
   ),
@@ -69,13 +69,16 @@ vi.mock('@models/social/link.model', () => ({
   },
 }));
 
-vi.mock('@services/core/environment.service', () => ({
+vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     ingredientsEndpoint: 'https://ingredients.genfeed.ai',
   },
 }));
 
-import { getDeepLink, isMobileDevice } from '@helpers/ui/mobile/mobile.helper';
+import {
+  getDeepLink,
+  isMobileDevice,
+} from '@genfeedai/helpers/ui/mobile/mobile.helper';
 
 import { Brand } from '@models/organization/brand.model';
 

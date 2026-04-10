@@ -6,6 +6,16 @@ vi.mock('@genfeedai/client/models', () => ({
       Object.assign(this, partial);
     }
   },
+  HeyGenAvatar: class BaseHeyGenAvatar {
+    constructor(partial: any = {}) {
+      Object.assign(this, partial);
+    }
+  },
+  HeyGenVoice: class BaseHeyGenVoice {
+    constructor(partial: any = {}) {
+      Object.assign(this, partial);
+    }
+  },
 }));
 
 import { HeyGen } from '@models/integrations/heygen.model';

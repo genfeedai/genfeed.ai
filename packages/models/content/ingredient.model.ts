@@ -12,14 +12,14 @@ import type {
   IPrompt,
   ITag,
 } from '@genfeedai/interfaces';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { IngredientEndpoints } from '@genfeedai/utils/media/ingredients.util';
+import { resolveIngredientReferenceUrl } from '@genfeedai/utils/media/reference.util';
 import { User } from '@models/auth/user.model';
 import { Metadata } from '@models/content/metadata.model';
 import { Prompt } from '@models/content/prompt.model';
 import { Asset } from '@models/ingredients/asset.model';
 import { Brand } from '@models/organization/brand.model';
-import { EnvironmentService } from '@services/core/environment.service';
-import { IngredientEndpoints } from '@utils/media/ingredients.util';
-import { resolveIngredientReferenceUrl } from '@utils/media/reference.util';
 
 export class Ingredient extends BaseIngredient {
   private _ingredientUrl: string = '';
@@ -190,7 +190,7 @@ export class Ingredient extends BaseIngredient {
       return this.prompt;
     }
     const promptObj = this.prompt as IPrompt | undefined;
-    return promptObj?.enhanced ?? promptObj?.original ?? '';
+    return promptObj?.enhanced || promptObj?.original || '';
   }
 
   public get ingredientFormat(): IngredientFormat {

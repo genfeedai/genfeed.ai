@@ -1,5 +1,36 @@
 {
-  "compilerOptions": {},
+  "compilerOptions": {
+    "paths": {
+      "@genfeedai/client/*": ["../client/src/*"],
+      "@genfeedai/helpers/*": ["../helpers/src/*"],
+      "@genfeedai/interfaces/*": ["../interfaces/src/*"],
+      "@genfeedai/services/*": ["../services/*"],
+      "@genfeedai/utils/*": ["../utils/*"],
+      "@api-types/*": ["../api-types/src/*"],
+      "@genfeedai-types/*": ["../types/src/*"],
+      "@genfeedai/agent": ["../agent/src/index.ts"],
+      "@genfeedai/agent/*": ["../agent/src/*"],
+      "@genfeedai/workflow-engine/*": ["../workflow-engine/src/*"],
+      "@genfeedai/workflow-saas/*": ["../workflow-saas/src/*"],
+      "@components/*": ["../ui/src/components/*"],
+      "@configs/*": ["../next-config/*"],
+      "@contexts/*": ["../contexts/*"],
+      "@helpers/*": ["../helpers/src/*"],
+      "@hooks/*": ["../hooks/*"],
+      "@models/*": ["./*"],
+      "@pages/*": ["../pages/*"],
+      "@props/*": ["../props/*"],
+      "@providers/*": ["../providers/*"],
+      "@schemas/*": ["../schemas/*"],
+      "@serializers/*": ["../serializers/src/*"],
+      "@services/*": ["../services/*"],
+      "@styles/*": ["../styles/*"],
+      "@ui/*": ["../ui/src/*", "../ui/src/components/*"],
+      "@utils/*": ["../utils/*"],
+      "@workflow-engine/*": ["../workflow-engine/src/*"],
+      "@workflow-saas/*": ["../workflow-saas/src/*"]
+    }
+  },
   "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"],
   "extends": "../tsconfig/base.json",
   "include": ["**/*.ts", "**/*.tsx"]

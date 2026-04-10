@@ -36,6 +36,6 @@ export class Article extends BaseArticle {
   }
 
   get author(): string | undefined {
-    return this.user?.handle;
+    return this.user?.handle || undefined;
   }
 }
