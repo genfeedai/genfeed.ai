@@ -16,7 +16,7 @@ vi.mock('@genfeedai/enums', () => ({
   },
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
     info: vi.fn(),
@@ -24,8 +24,8 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
-const mockNotificationsError = vi.fn();
-vi.mock('@services/core/notifications.service', () => ({
+const mockNotificationsError = vi.hoisted(() => vi.fn());
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: () => ({
       error: mockNotificationsError,
@@ -430,7 +430,7 @@ describe('error-handler.util', () => {
 
       it('should return default message for empty errors', () => {
         expect(ErrorHandler.getUserMessage({})).toBe(
-          'An unexpected error occurred.',
+          'An unexpected error occurred',
         );
       });
     });

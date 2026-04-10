@@ -2,7 +2,7 @@ import { IngredientCategory } from '@genfeedai/enums';
 import type {
   TrendItem,
   TrendSourceItem,
-} from '@props/trends/trends-page.props';
+} from '@genfeedai/props/trends/trends-page.props';
 
 function buildQuery(params: Record<string, string | undefined>): string {
   const searchParams = new URLSearchParams();
