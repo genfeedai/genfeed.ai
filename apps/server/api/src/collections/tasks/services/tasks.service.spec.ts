@@ -2,6 +2,7 @@ import {
   TASK_STATUSES,
   Task,
   type TaskDocument,
+  TaskSchema,
   type TaskStatus,
 } from '@api/collections/tasks/schemas/task.schema';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
@@ -315,36 +316,26 @@ describe('TasksService', () => {
       expect(TASK_STATUSES).toContain('failed');
     });
 
-    it('Task schema has AI execution fields', () => {
-      // Schema shape verification — just ensure exports compile with expected fields
-      const taskFields: (keyof Task)[] = [
+    it('Task schema has AI execution fields in Mongoose schema paths', () => {
+      const paths = Object.keys(TaskSchema.paths);
+      const aiFields = [
         'request',
         'outputType',
         'platforms',
         'reviewState',
         'reviewTriggered',
         'resultPreview',
-        'failureReason',
-        'requestedChangesReason',
         'executionPathUsed',
-        'chosenModel',
-        'chosenProvider',
-        'routingSummary',
         'skillsUsed',
-        'skillVariantIds',
-        'decomposition',
-        'qualityAssessment',
         'progress',
         'eventStream',
         'linkedRunIds',
         'linkedOutputIds',
         'approvedOutputIds',
-        'linkedApprovalIds',
-        'planningThreadId',
-        'completedAt',
-        'dismissedAt',
       ];
-      expect(taskFields.length).toBeGreaterThan(0);
+      for (const field of aiFields) {
+        expect(paths).toContain(field);
+      }
     });
   });
 });

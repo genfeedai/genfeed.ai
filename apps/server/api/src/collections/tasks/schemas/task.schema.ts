@@ -86,8 +86,6 @@ export interface TaskEventStreamEntry {
   versionKey: false,
 })
 export class Task {
-  _id!: string;
-
   @Prop({ ref: 'Organization', required: true, type: Types.ObjectId })
   organization!: Types.ObjectId;
 
@@ -97,7 +95,7 @@ export class Task {
   @Prop({ required: true, type: Number })
   taskNumber!: number;
 
-  @Prop({ required: true, type: String, unique: true })
+  @Prop({ required: true, type: String })
   identifier!: string;
 
   @Prop({ required: true, trim: true, type: String })
@@ -276,6 +274,8 @@ export class Task {
   @Prop({ default: [], ref: 'Ingredient', type: [Types.ObjectId] })
   approvedOutputIds!: Types.ObjectId[];
 
+  // No ref added: approvals are not yet a first-class model in this codebase.
+  // Add ref: 'Approval' once an Approval collection is introduced.
   @Prop({ default: [], type: [Types.ObjectId] })
   linkedApprovalIds!: Types.ObjectId[];
 
