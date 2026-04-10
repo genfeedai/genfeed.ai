@@ -53,8 +53,7 @@ These still need resolution via routing, issue tracking, or per-file verificatio
 
 ### Prepared features with open GitHub issues (will be wired in follow-up PRs)
 
-- `packages/pages/streaks/streaks-page.tsx` — **Issue: #2** — will be wired to `/analytics/streaks` in PR 4.
-- `packages/pages/mission-control/mission-control-agent-lab.tsx` — **Issue: #9** — will be relocated to `apps/desktop/app/src/renderer/views/MissionControlView.tsx` in PR 4.
+_None remaining — all tracked features have been wired._
 
 ### Wired in earlier PRs (kept here as a change log)
 
@@ -63,6 +62,8 @@ These still need resolution via routing, issue tracking, or per-file verificatio
 - `packages/pages/analytics/trends/trend-detail/trend-detail.tsx` — PR 3 wired at `/analytics/trends/detail/[id]`. The existing trends list in `apps/app/.../analytics/trends/analytics-trends.tsx` was also repointed from a broken `router.push('/research/${item.id}')` (wrong: an id was being shoved into a `[platform]` slot) to the new detail route.
 - `packages/pages/trends/list/components/HookRemixModal.tsx` — PR 3 wired into the viral video leaderboard on `/analytics/trends`. Clicking a video now opens the hook remix modal (falls back to the video URL only when the video is missing an id).
 - `packages/pages/trends/platform-detail/trends-platform-detail.tsx` — PR 3 moved from `apps/app/.../research/[platform]/trends-platform-detail.tsx` to `packages/pages/trends/platform-detail/` so both `/research/[platform]` and the new `/analytics/trends/platforms/[platform]` route can consume the same component. `SocialsNavigation` + `TrendsPlatformDetail` now accept an optional `basePath` prop so in-surface tab navigation stays consistent ('/research' vs '/analytics/trends').
+- `packages/pages/streaks/streaks-page.tsx` — PR 4 wired at `/analytics/streaks`. Added to the Analytics sidebar group in `apps/app/packages/config/menu-items.config.ts`; the corresponding `analyticsLabels` assertion in `menu-items.config.test.ts` was updated to include 'Streaks'.
+- `packages/pages/mission-control/mission-control-agent-lab.tsx` — PR 4 moved to `apps/desktop/app/src/renderer/views/MissionControlView.tsx` (Epic #9 scopes mission control to the desktop app; the existing `menu-items.config.test.ts` assertion that `/mission-control` is NOT in the web APP_MENU_ITEMS stays valid). The default export was renamed from `MissionControlAgentLabPage` to a named export `MissionControlView` to match the desktop view convention (`AgentsView`, `AnalyticsView`, etc.). Wired into `apps/desktop/app/src/renderer/nav-view.ts`, `App.tsx` (new `'mission-control'` case), and `Sidebar.tsx` (new NAV_ITEMS entry). The `packages/pages/mission-control/` directory was deleted entirely.
 
 ### Studio subtree (reachable via StudioGenerateLayout, not orphaned)
 

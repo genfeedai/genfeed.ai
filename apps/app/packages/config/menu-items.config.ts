@@ -190,6 +190,14 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiArrowTrendingUp,
   },
   {
+    group: 'Analytics',
+    href: '/analytics/streaks',
+    label: 'Streaks',
+    matchPaths: ['/analytics/streaks'],
+    outline: HiOutlineSparkles,
+    solid: HiSparkles,
+  },
+  {
     drillDown: true,
     group: 'Posts',
     href: '/posts/analytics',

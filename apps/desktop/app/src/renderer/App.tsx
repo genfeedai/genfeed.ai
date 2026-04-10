@@ -12,6 +12,7 @@ import { AgentsView } from './views/AgentsView';
 import { AnalyticsView } from './views/AnalyticsView';
 import { ConversationView } from './views/ConversationView';
 import { LibraryView } from './views/LibraryView';
+import { MissionControlView } from './views/MissionControlView';
 import { TrendsView } from './views/TrendsView';
 import { WorkflowsView } from './views/WorkflowsView';
 
@@ -198,6 +199,8 @@ export const App = () => {
         return <WorkflowsView />;
       case 'agents':
         return <AgentsView />;
+      case 'mission-control':
+        return <MissionControlView />;
       case 'analytics':
         return <AnalyticsView workspaceId={selectedWorkspaceId} />;
       case 'library':

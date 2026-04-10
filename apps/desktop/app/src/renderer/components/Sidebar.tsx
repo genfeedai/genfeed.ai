@@ -17,6 +17,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { icon: '⚡', id: 'workflows', label: 'Automations' },
   { icon: '🤖', id: 'agents', label: 'Agents' },
+  { icon: '🧪', id: 'mission-control', label: 'Mission Control' },
   { icon: '📊', id: 'analytics', label: 'Analytics' },
   { icon: '📂', id: 'library', label: 'Library' },
   { icon: '📈', id: 'trends', label: 'Trends' },

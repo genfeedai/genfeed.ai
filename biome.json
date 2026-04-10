@@ -76,6 +76,7 @@
       "includes": [
         "apps/app/src/components/**",
         "apps/app/src/hooks/**",
+        "apps/desktop/app/src/renderer/views/**",
         "packages/agent/src/**",
         "packages/hooks/**",
         "packages/pages/**",
