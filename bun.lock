@@ -491,6 +491,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@genfeedai/config": "workspace:*",
+        "@genfeedai/enums": "workspace:*",
         "@genfeedai/integrations": "workspace:*",
         "grammy": "1.42.0",
       },
