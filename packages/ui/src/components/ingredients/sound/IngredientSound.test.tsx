@@ -3,7 +3,7 @@ import { render } from '@testing-library/react';
 import IngredientSound from '@ui/ingredients/sound/IngredientSound';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@hooks/media/use-audio-player/use-audio-player', () => ({
+vi.mock('@genfeedai/hooks/media/use-audio-player/use-audio-player', () => ({
   useAudioPlayer: () => ({
     play: vi.fn(),
     stop: vi.fn(),

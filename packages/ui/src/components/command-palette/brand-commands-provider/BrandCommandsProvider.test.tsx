@@ -1,22 +1,25 @@
-import { useBrandCommands } from '@hooks/commands/use-brand-commands/use-brand-commands';
-import { useBrandSwitchHandler } from '@hooks/commands/use-brand-switch-handler/use-brand-switch-handler';
+import { useBrandCommands } from '@genfeedai/hooks/commands/use-brand-commands/use-brand-commands';
+import { useBrandSwitchHandler } from '@genfeedai/hooks/commands/use-brand-switch-handler/use-brand-switch-handler';
 import { render } from '@testing-library/react';
 import { BrandCommandsProvider } from '@ui/command-palette/brand-commands-provider/BrandCommandsProvider';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Hoisted mocks - using inline factory functions
-vi.mock('@hooks/commands/use-brand-commands/use-brand-commands', () => {
-  const mockFn = vi.fn();
-  return {
-    __esModule: true,
-    default: mockFn,
-    getMock: () => mockFn,
-    useBrandCommands: mockFn,
-  };
-});
+vi.mock(
+  '@genfeedai/hooks/commands/use-brand-commands/use-brand-commands',
+  () => {
+    const mockFn = vi.fn();
+    return {
+      __esModule: true,
+      default: mockFn,
+      getMock: () => mockFn,
+      useBrandCommands: mockFn,
+    };
+  },
+);
 
 vi.mock(
-  '@hooks/commands/use-brand-switch-handler/use-brand-switch-handler',
+  '@genfeedai/hooks/commands/use-brand-switch-handler/use-brand-switch-handler',
   () => {
     const mockFn = vi.fn(() => vi.fn());
     return {

@@ -1,7 +1,7 @@
 'use client';
 
 import { PostStatus } from '@genfeedai/enums';
-import type { PostsFilterProps } from '@props/components/posts-filter.props';
+import type { PostsFilterProps } from '@genfeedai/props/components/posts-filter.props';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 
 const STATUS_OPTIONS = [

@@ -4,7 +4,7 @@ import type { TooltipPosition } from '@genfeedai/interfaces/ui/tooltip-position.
 import type {
   MenuTooltipProps,
   TooltipWrapperProps,
-} from '@props/navigation/menu-tooltip.props';
+} from '@genfeedai/props/navigation/menu-tooltip.props';
 import Portal from '@ui/layout/portal/Portal';
 import type {
   FocusEvent,

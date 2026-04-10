@@ -1,10 +1,10 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import { getClerkPublicData } from '@helpers/auth/clerk.helper';
-import { useAdminCommandRegistration } from '@hooks/commands/use-admin-command-registration/use-admin-command-registration';
-import { useDefaultCommandsRegistration } from '@hooks/commands/use-default-commands-registration/use-default-commands-registration';
-import { useCommandPalette } from '@hooks/ui/use-command-palette/use-command-palette';
+import { getClerkPublicData } from '@genfeedai/helpers/auth/clerk.helper';
+import { useAdminCommandRegistration } from '@genfeedai/hooks/commands/use-admin-command-registration/use-admin-command-registration';
+import { useDefaultCommandsRegistration } from '@genfeedai/hooks/commands/use-default-commands-registration/use-default-commands-registration';
+import { useCommandPalette } from '@genfeedai/hooks/ui/use-command-palette/use-command-palette';
 import { useMemo } from 'react';
 
 export function CommandPaletteInitializer(): null {

@@ -1,1 +1,1 @@
-export type { PromptBarSuggestionItem } from '@props/prompt-bars/prompt-bar-suggestion-item.props';
+export type { PromptBarSuggestionItem } from '@genfeedai/props/prompt-bars/prompt-bar-suggestion-item.props';

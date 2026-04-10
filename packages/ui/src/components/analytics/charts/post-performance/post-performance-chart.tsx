@@ -5,8 +5,8 @@ import {
   formatCompactNumberIntl,
   formatFullNumber,
   formatTooltipDateTime,
-} from '@helpers/formatting/format/format.helper';
-import type { PostPerformanceChartProps } from '@props/analytics/charts.props';
+} from '@genfeedai/helpers/formatting/format/format.helper';
+import type { PostPerformanceChartProps } from '@genfeedai/props/analytics/charts.props';
 import { Button } from '@ui/primitives/button';
 import { useState } from 'react';
 import {

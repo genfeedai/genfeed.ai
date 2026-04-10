@@ -10,18 +10,19 @@ import {
   WebSocketEventStatus,
   WebSocketEventType,
 } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useEvaluation } from '@genfeedai/hooks/ui/evaluation/use-evaluation/use-evaluation';
+import { useIngredientMetadata } from '@genfeedai/hooks/ui/ingredient/use-ingredient-metadata/use-ingredient-metadata';
+import { useIngredientSharing } from '@genfeedai/hooks/ui/ingredient/use-ingredient-sharing/use-ingredient-sharing';
+import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import type { ITag, IVideo } from '@genfeedai/interfaces';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useEvaluation } from '@hooks/ui/evaluation/use-evaluation/use-evaluation';
-import { useIngredientMetadata } from '@hooks/ui/ingredient/use-ingredient-metadata/use-ingredient-metadata';
-import { useIngredientSharing } from '@hooks/ui/ingredient/use-ingredient-sharing/use-ingredient-sharing';
-import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import type { IngredientDetailVideoProps } from '@props/content/ingredient.props';
-import type { TabItem } from '@props/ui/navigation/tabs.props';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
-import { VideosService } from '@services/ingredients/videos.service';
+import type { IngredientDetailVideoProps } from '@genfeedai/props/content/ingredient.props';
+import type { TabItem } from '@genfeedai/props/ui/navigation/tabs.props';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { VideosService } from '@genfeedai/services/ingredients/videos.service';
+import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import EvaluationCard from '@ui/evaluation/card/EvaluationCard';
 import IngredientWorkspacePanel from '@ui/ingredients/detail/shared/IngredientWorkspacePanel';
@@ -36,7 +37,6 @@ import IngredientTabsTags from '@ui/ingredients/tabs/tags/IngredientTabsTags';
 import LoadingOverlay from '@ui/loading/overlay/LoadingOverlay';
 import { Button } from '@ui/primitives/button';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
-import { WebSocketPaths } from '@utils/network/websocket.util';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { HiOutlineFilm } from 'react-icons/hi2';

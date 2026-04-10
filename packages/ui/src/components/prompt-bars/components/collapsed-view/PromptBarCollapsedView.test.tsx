@@ -25,7 +25,7 @@ vi.mock('next/image', () => ({
   default: ({ src, alt }: any) => <img src={src} alt={alt} />,
 }));
 
-vi.mock('@services/core/environment.service', () => ({
+vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     ingredientsEndpoint: 'https://test.com',
   },

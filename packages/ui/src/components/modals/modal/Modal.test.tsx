@@ -1,4 +1,4 @@
-import { openModal } from '@helpers/ui/modal/modal.helper';
+import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import { act, render, screen } from '@testing-library/react';
 import Modal from '@ui/modals/modal/Modal';
 import { describe, expect, it } from 'vitest';

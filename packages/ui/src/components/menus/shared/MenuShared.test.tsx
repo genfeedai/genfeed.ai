@@ -1,5 +1,5 @@
 import type { MenuConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
-import type { MenuShellConfig } from '@props/navigation/menu.props';
+import type { MenuShellConfig } from '@genfeedai/props/navigation/menu.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import MenuShared from '@ui/menus/shared/MenuShared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -66,7 +66,7 @@ vi.mock('@clerk/nextjs', () => {
   };
 });
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: null,
     brands: [],
@@ -74,7 +74,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
-vi.mock('@contexts/ui/sidebar-navigation-context', () => ({
+vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
   useSidebarNavigation: () => ({
     enterNestedGroup: mockEnterNestedGroup,
     exitNestedGroup: mockExitNestedGroup,
@@ -112,11 +112,11 @@ vi.mock('next/navigation', async () => {
   };
 });
 
-vi.mock('@hooks/ui/use-theme-logo/use-theme-logo', () => ({
+vi.mock('@genfeedai/hooks/ui/use-theme-logo/use-theme-logo', () => ({
   useThemeLogo: () => mockLogoUrl.value,
 }));
 
-vi.mock('@hooks/data/overview/use-overview-bootstrap', () => ({
+vi.mock('@genfeedai/hooks/data/overview/use-overview-bootstrap', () => ({
   useOverviewBootstrap: () => ({
     reviewInbox: {
       changesRequestedCount: 4,
@@ -156,7 +156,7 @@ vi.mock('@ui/cards/progress-sidebar-card/ProgressSidebarCard', () => ({
   default: () => <div data-testid="progress-sidebar-card" />,
 }));
 
-vi.mock('@services/core/environment.service', () => ({
+vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     LOGO_ALT: 'Genfeed',
     social: { discord: '#', twitter: '#' },

@@ -1,8 +1,8 @@
 'use client';
 
 import { AssetScope, ButtonVariant, ComponentSize } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { MasonryBadgeOverlayProps } from '@props/content/masonry.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { MasonryBadgeOverlayProps } from '@genfeedai/props/content/masonry.props';
 import Badge from '@ui/display/badge/Badge';
 import EvaluationBadge from '@ui/evaluation/badge/EvaluationBadge';
 import { SimpleTooltip } from '@ui/primitives/tooltip';

@@ -1,12 +1,12 @@
 'use client';
 
 import { ButtonVariant, CardVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { useStreak } from '@hooks/data/streaks/use-streak/use-streak';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useSetupCard } from '@hooks/utils/use-setup-card/use-setup-card';
-import { useSidebarProgressCollapsedPreference } from '@hooks/utils/use-sidebar-progress-collapsed-preference/use-sidebar-progress-collapsed-preference';
-import { useSidebarProgressPreference } from '@hooks/utils/use-sidebar-progress-preference/use-sidebar-progress-preference';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useStreak } from '@genfeedai/hooks/data/streaks/use-streak/use-streak';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { useSetupCard } from '@genfeedai/hooks/utils/use-setup-card/use-setup-card';
+import { useSidebarProgressCollapsedPreference } from '@genfeedai/hooks/utils/use-sidebar-progress-collapsed-preference/use-sidebar-progress-collapsed-preference';
+import { useSidebarProgressPreference } from '@genfeedai/hooks/utils/use-sidebar-progress-preference/use-sidebar-progress-preference';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { SCROLL_FOCUS_OUTER_SHADOW } from '@ui/styles/scroll-focus';

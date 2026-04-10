@@ -2,13 +2,13 @@ import { render } from '@testing-library/react';
 import SubscriptionPlanChanger from '@ui/subscription/SubscriptionPlanChanger';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@services/core/environment.service', () => ({
+vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     plans: { monthly: 'price_monthly', yearly: 'price_yearly' },
   },
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 }));
 

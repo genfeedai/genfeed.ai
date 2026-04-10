@@ -28,20 +28,20 @@ const { mockCurrentUserState, mockMutateUser, mockPatchSettings } = vi.hoisted(
 const SCROLL_FOCUS_OUTER_SHADOW_CLASS =
   'shadow-[0_-18px_30px_-18px_rgba(0,0,0,0.88),0_18px_32px_-24px_rgba(0,0,0,0.6)]';
 
-vi.mock('@contexts/user/user-context/user-context', () => ({
+vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   useCurrentUser: () => ({
     currentUser: mockCurrentUserState.currentUser,
     mutateUser: mockMutateUser,
   }),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
     patchSettings: mockPatchSettings,
   }),
 }));
 
-vi.mock('@hooks/utils/use-setup-card/use-setup-card', () => ({
+vi.mock('@genfeedai/hooks/utils/use-setup-card/use-setup-card', () => ({
   useSetupCard: () => ({
     completedCount: 1,
     isVisible: true,
@@ -65,7 +65,7 @@ vi.mock('@hooks/utils/use-setup-card/use-setup-card', () => ({
   }),
 }));
 
-vi.mock('@hooks/data/streaks/use-streak/use-streak', () => ({
+vi.mock('@genfeedai/hooks/data/streaks/use-streak/use-streak', () => ({
   useStreak: () => ({
     calendar: {},
     isLoading: false,
@@ -91,7 +91,7 @@ vi.mock('@hooks/data/streaks/use-streak/use-streak', () => ({
   }),
 }));
 
-vi.mock('@models/auth/user.model', () => ({
+vi.mock('@genfeedai/models/auth/user.model', () => ({
   User: class MockUser {
     constructor(partial: Record<string, unknown>) {
       Object.assign(this, partial);

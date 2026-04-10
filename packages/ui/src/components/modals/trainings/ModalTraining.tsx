@@ -1,25 +1,25 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   type TrainingEditSchema,
   trainingEditSchema,
 } from '@genfeedai/client/schemas';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AlertCategory,
   ButtonSize,
   ButtonVariant,
   ModalEnum,
 } from '@genfeedai/enums';
-import type { IBrand, ITraining } from '@genfeedai/interfaces';
-import { Code } from '@genfeedai/ui';
 import {
   hasFormErrors,
   parseFormErrors,
-} from '@helpers/ui/form-error/form-error.helper';
-import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
-import type { ModalTrainingProps } from '@props/modals/modal.props';
-import { TrainingsService } from '@services/ai/trainings.service';
+} from '@genfeedai/helpers/ui/form-error/form-error.helper';
+import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
+import type { IBrand, ITraining } from '@genfeedai/interfaces';
+import type { ModalTrainingProps } from '@genfeedai/props/modals/modal.props';
+import { TrainingsService } from '@genfeedai/services/ai/trainings.service';
+import { Code } from '@genfeedai/ui';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';

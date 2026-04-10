@@ -1,6 +1,6 @@
 'use client';
 
-import type { DraggableIngredientProps } from '@props/ui/content/draggable-ingredient.props';
+import type { DraggableIngredientProps } from '@genfeedai/props/ui/content/draggable-ingredient.props';
 import { writeIngredientTransferData } from '@ui/drag-drop/shared/ingredient-transfer';
 import type { DragEvent } from 'react';
 import { useRef, useState } from 'react';

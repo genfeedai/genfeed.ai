@@ -1,15 +1,15 @@
 'use client';
 
 import { EMPTY_STATES } from '@genfeedai/constants';
-import type { IPost } from '@genfeedai/interfaces';
 import {
   formatDateInTimezone,
   getBrowserTimezone,
-} from '@helpers/formatting/timezone/timezone.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { IngredientTabsPostsProps } from '@props/content/ingredient.props';
-import { IngredientsService } from '@services/content/ingredients.service';
-import { logger } from '@services/core/logger.service';
+} from '@genfeedai/helpers/formatting/timezone/timezone.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import type { IPost } from '@genfeedai/interfaces';
+import type { IngredientTabsPostsProps } from '@genfeedai/props/content/ingredient.props';
+import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
+import { logger } from '@genfeedai/services/core/logger.service';
 import Badge from '@ui/display/badge/Badge';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
 import AppTable from '@ui/display/table/Table';

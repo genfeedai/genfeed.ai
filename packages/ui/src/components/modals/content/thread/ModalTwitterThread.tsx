@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
-import type { ModalTwitterThreadProps } from '@props/modals/modal-twitter-thread.props';
+import type { ModalTwitterThreadProps } from '@genfeedai/props/modals/modal-twitter-thread.props';
 import Badge from '@ui/display/badge/Badge';
 import { Modal } from '@ui/modals/compound/Modal';
 import { Button } from '@ui/primitives/button';

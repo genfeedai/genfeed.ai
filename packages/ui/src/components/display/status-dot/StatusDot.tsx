@@ -1,8 +1,8 @@
 'use client';
 
 import { ComponentSize } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { StatusDotProps } from '@props/ui/display/status-dot.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { StatusDotProps } from '@genfeedai/props/ui/display/status-dot.props';
 import { memo } from 'react';
 
 const SIZE_CLASSES = {

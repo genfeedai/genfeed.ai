@@ -1,7 +1,7 @@
 'use client';
 
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { GradientDividerProps } from '@props/ui/layout/divider.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { GradientDividerProps } from '@genfeedai/props/ui/layout/divider.props';
 import { memo } from 'react';
 
 const SPACING_CLASSES = {

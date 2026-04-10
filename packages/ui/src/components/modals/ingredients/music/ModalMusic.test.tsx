@@ -7,7 +7,7 @@ vi.mock('@ui/modals/modal/Modal', () => ({
   default: ({ children }: any) => <div data-testid="modal">{children}</div>,
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () =>
     vi.fn(() =>
       Promise.resolve({
@@ -16,11 +16,11 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
     ),
 }));
 
-vi.mock('@helpers/ui/modal/modal.helper', () => ({
+vi.mock('@genfeedai/helpers/ui/modal/modal.helper', () => ({
   closeModal: vi.fn(),
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: { error: vi.fn(), info: vi.fn() },
 }));
 

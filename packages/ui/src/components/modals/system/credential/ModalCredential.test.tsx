@@ -17,7 +17,7 @@ vi.mock('@ui/buttons/base/Button', () => ({
   ),
 }));
 
-vi.mock('@hooks/ui/use-crud-modal/use-crud-modal', () => ({
+vi.mock('@genfeedai/hooks/ui/use-crud-modal/use-crud-modal', () => ({
   useCrudModal: () => ({
     closeModal: vi.fn(),
     form: {
@@ -37,7 +37,7 @@ vi.mock('@hooks/ui/use-crud-modal/use-crud-modal', () => ({
   }),
 }));
 
-vi.mock('@hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
+vi.mock('@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
   useModalAutoOpen: vi.fn(),
 }));
 
@@ -53,7 +53,7 @@ vi.mock('@ui/primitives/field', () => ({
   default: ({ children }: any) => <div>{children}</div>,
 }));
 
-vi.mock('@helpers/ui/form-error/form-error.helper', () => ({
+vi.mock('@genfeedai/helpers/ui/form-error/form-error.helper', () => ({
   hasFormErrors: () => false,
   parseFormErrors: () => [],
 }));

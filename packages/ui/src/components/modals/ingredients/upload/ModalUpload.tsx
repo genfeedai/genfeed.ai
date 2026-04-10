@@ -1,4 +1,4 @@
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AssetCategory,
   AssetScope,
@@ -9,6 +9,12 @@ import {
   UploadStatus,
   VoiceProvider,
 } from '@genfeedai/enums';
+import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useAudioRecording } from '@genfeedai/hooks/media/use-audio-recording/use-audio-recording';
+import { useFocusFirstInput } from '@genfeedai/hooks/ui/use-focus-first-input/use-focus-first-input';
+import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
+import { useFormSubmitWithState } from '@genfeedai/hooks/utils/use-form-submit/use-form-submit';
 import type {
   IAsset,
   IHttpInterceptorError,
@@ -16,20 +22,15 @@ import type {
   IUploadProgressData,
 } from '@genfeedai/interfaces';
 import type { FileUploadStatus } from '@genfeedai/interfaces/modals/file-upload-status.interface';
-import { closeModal } from '@helpers/ui/modal/modal.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useAudioRecording } from '@hooks/media/use-audio-recording/use-audio-recording';
-import { useFocusFirstInput } from '@hooks/ui/use-focus-first-input/use-focus-first-input';
-import { useModalAutoOpen } from '@hooks/ui/use-modal-auto-open/use-modal-auto-open';
-import { useFormSubmitWithState } from '@hooks/utils/use-form-submit/use-form-submit';
-import type { Asset } from '@models/ingredients/asset.model';
-import type { ModalUploadProps } from '@props/modals/modal.props';
-import { AssetsService } from '@services/content/assets.service';
-import { IngredientsService } from '@services/content/ingredients.service';
-import { EnvironmentService } from '@services/core/environment.service';
-import { logger } from '@services/core/logger.service';
-import { SocketService } from '@services/core/socket.service';
-import { VoiceCloneService } from '@services/ingredients/voice-clone.service';
+import type { Asset } from '@genfeedai/models/ingredients/asset.model';
+import type { ModalUploadProps } from '@genfeedai/props/modals/modal.props';
+import { AssetsService } from '@genfeedai/services/content/assets.service';
+import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { SocketService } from '@genfeedai/services/core/socket.service';
+import { VoiceCloneService } from '@genfeedai/services/ingredients/voice-clone.service';
+import { IngredientEndpoints } from '@genfeedai/utils/media/ingredients.util';
 import { ScopeSelector } from '@ui/assets/ScopeSelector';
 import Badge from '@ui/display/badge/Badge';
 import ModalActions from '@ui/modals/actions/ModalActions';
@@ -37,7 +38,6 @@ import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
-import { IngredientEndpoints } from '@utils/media/ingredients.util';
 import type { Dispatch, SetStateAction } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useDropzone } from 'react-dropzone';

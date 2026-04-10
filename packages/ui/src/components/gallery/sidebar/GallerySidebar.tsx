@@ -1,8 +1,8 @@
 'use client';
 
-import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
-import type { GallerySidebarProps } from '@props/content/gallery.props';
-import { EnvironmentService } from '@services/core/environment.service';
+import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo';
+import type { GallerySidebarProps } from '@genfeedai/props/content/gallery.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';

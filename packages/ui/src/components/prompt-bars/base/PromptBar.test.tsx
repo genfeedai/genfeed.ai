@@ -2,7 +2,7 @@ import { IngredientCategory, IngredientFormat } from '@genfeedai/enums';
 import {
   getDefaultVideoResolution,
   hasResolutionOptions,
-} from '@helpers/media/video-resolution/video-resolution.helper';
+} from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
 import {
   act,
   fireEvent,
@@ -58,13 +58,13 @@ vi.mock('next/navigation', () => ({
 }));
 
 // Mock all context providers
-vi.mock('@contexts/ui/asset-selection-context', () => ({
+vi.mock('@genfeedai/contexts/ui/asset-selection-context', () => ({
   useAssetSelection: () => ({
     activeGenerations: [],
   }),
 }));
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'test-brand-id',
     organizationId: 'test-org-id',
@@ -73,14 +73,14 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
-vi.mock('@contexts/user/user-context/user-context', () => ({
+vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   useCurrentUser: () => ({
     currentUser: { settings: { isAdvancedMode: true } },
   }),
 }));
 
 // Mock providers
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
   useGalleryModal: () => ({
     openGallery: mockOpenGallery,
   }),
@@ -90,15 +90,18 @@ vi.mock('@providers/global-modals/global-modals.provider', () => ({
 }));
 
 // Mock hooks
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => vi.fn(),
 }));
 
-vi.mock('@hooks/media/use-speech-recording/use-speech-recording', () => ({
-  useSpeechRecording: (options: any) => mockUseSpeechRecording(options),
-}));
 vi.mock(
-  '@hooks/prompt-bar/use-prompt-bar-enhancement/use-prompt-bar-enhancement',
+  '@genfeedai/hooks/media/use-speech-recording/use-speech-recording',
+  () => ({
+    useSpeechRecording: (options: any) => mockUseSpeechRecording(options),
+  }),
+);
+vi.mock(
+  '@genfeedai/hooks/prompt-bar/use-prompt-bar-enhancement/use-prompt-bar-enhancement',
   () => ({
     usePromptBarEnhancement: () => ({
       enhancePrompt: mockEnhancePrompt,
@@ -111,7 +114,7 @@ vi.mock(
 );
 
 vi.mock(
-  '@hooks/prompt-bar/use-prompt-bar-filters/use-prompt-bar-filters',
+  '@genfeedai/hooks/prompt-bar/use-prompt-bar-filters/use-prompt-bar-filters',
   () => ({
     usePromptBarFilters: (...args: any[]) => mockUsePromptBarFilters(...args),
   }),
@@ -126,59 +129,65 @@ const mockForm = {
   watch: vi.fn().mockReturnValue(1),
 };
 
-vi.mock('@hooks/prompt-bar/use-prompt-bar-form/use-prompt-bar-form', () => ({
-  usePromptBarForm: () => ({
-    currentFormat: IngredientFormat.PORTRAIT,
-    form: mockForm,
+vi.mock(
+  '@genfeedai/hooks/prompt-bar/use-prompt-bar-form/use-prompt-bar-form',
+  () => ({
+    usePromptBarForm: () => ({
+      currentFormat: IngredientFormat.PORTRAIT,
+      form: mockForm,
+    }),
   }),
-}));
+);
 
 vi.mock(
-  '@hooks/prompt-bar/use-prompt-bar-models/use-prompt-bar-models',
+  '@genfeedai/hooks/prompt-bar/use-prompt-bar-models/use-prompt-bar-models',
   () => ({
     usePromptBarModels: (...args: any[]) => mockUsePromptBarModels(...args),
   }),
 );
 
 vi.mock(
-  '@hooks/prompt-bar/use-prompt-bar-pricing/use-prompt-bar-pricing',
+  '@genfeedai/hooks/prompt-bar/use-prompt-bar-pricing/use-prompt-bar-pricing',
   () => ({
     usePromptBarPricing: (...args: any[]) => mockUsePromptBarPricing(...args),
   }),
 );
 
 vi.mock(
-  '@hooks/prompt-bar/use-prompt-bar-references/use-prompt-bar-references',
+  '@genfeedai/hooks/prompt-bar/use-prompt-bar-references/use-prompt-bar-references',
   () => ({
     usePromptBarReferences: (...args: any[]) =>
       mockUsePromptBarReferences(...args),
   }),
 );
 
-vi.mock('@hooks/prompt-bar/use-prompt-bar-sync/use-prompt-bar-sync', () => ({
-  usePromptBarSync: (...args: any[]) => mockUsePromptBarSync(...args),
-}));
+vi.mock(
+  '@genfeedai/hooks/prompt-bar/use-prompt-bar-sync/use-prompt-bar-sync',
+  () => ({
+    usePromptBarSync: (...args: any[]) => mockUsePromptBarSync(...args),
+  }),
+);
 
-vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
+vi.mock('@genfeedai/hooks/utils/use-socket-manager/use-socket-manager', () => ({
   useSocketManager: () => ({
     subscribe: vi.fn(),
   }),
 }));
 
 // Mock services
-vi.mock('@services/content/prompts.service', () => ({
+vi.mock('@genfeedai/services/content/prompts.service', () => ({
   PromptsService: {
     getInstance: vi.fn(),
   },
 }));
 
-vi.mock('@services/core/clipboard.service', () => ({
+vi.mock('@genfeedai/services/core/clipboard.service', () => ({
   ClipboardService: {
     getInstance: () => mockClipboard,
   },
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: () => mockNotifications,
   },
@@ -204,11 +213,14 @@ vi.mock('@genfeedai/constants', () => ({
   getModelMaxOutputs: vi.fn().mockReturnValue(4),
 }));
 
-vi.mock('@helpers/media/video-resolution/video-resolution.helper', () => ({
-  getDefaultVideoResolution: vi.fn().mockReturnValue('720p'),
-  getVideoResolutionsByModel: vi.fn().mockReturnValue([]),
-  hasResolutionOptions: vi.fn().mockReturnValue(false),
-}));
+vi.mock(
+  '@genfeedai/helpers/media/video-resolution/video-resolution.helper',
+  () => ({
+    getDefaultVideoResolution: vi.fn().mockReturnValue('720p'),
+    getVideoResolutionsByModel: vi.fn().mockReturnValue([]),
+    hasResolutionOptions: vi.fn().mockReturnValue(false),
+  }),
+);
 
 // Mock react-hook-form useWatch
 vi.mock('react-hook-form', () => ({

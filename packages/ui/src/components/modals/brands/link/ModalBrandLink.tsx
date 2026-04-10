@@ -6,14 +6,14 @@ import {
   LinkCategory,
   ModalEnum,
 } from '@genfeedai/enums';
-import type { ILink } from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
-} from '@helpers/ui/form-error/form-error.helper';
-import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
-import type { ModalBrandLinkProps } from '@props/modals/modal.props';
-import { LinksService } from '@services/social/links.service';
+} from '@genfeedai/helpers/ui/form-error/form-error.helper';
+import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
+import type { ILink } from '@genfeedai/interfaces';
+import type { ModalBrandLinkProps } from '@genfeedai/props/modals/modal.props';
+import { LinksService } from '@genfeedai/services/social/links.service';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';

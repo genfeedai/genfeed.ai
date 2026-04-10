@@ -1,6 +1,6 @@
 'use client';
 
-import { EnvironmentService } from '@services/core/environment.service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { useEffect, useState } from 'react';
 import { HiExclamationTriangle } from 'react-icons/hi2';
 

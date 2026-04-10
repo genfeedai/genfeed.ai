@@ -1,6 +1,6 @@
 'use client';
 
-import type { FolderCardProps } from '@props/ui/content/folder.props';
+import type { FolderCardProps } from '@genfeedai/props/ui/content/folder.props';
 import { HiFolder } from 'react-icons/hi2';
 
 export default function FolderCard({ folder, onClick }: FolderCardProps) {

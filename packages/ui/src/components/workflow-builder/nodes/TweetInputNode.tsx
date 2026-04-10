@@ -4,7 +4,7 @@ import { ButtonVariant, WorkflowNodeStatus } from '@genfeedai/enums';
 import type {
   TweetInputNodeData,
   TweetInputNodeProps,
-} from '@props/workflow/nodes.props';
+} from '@genfeedai/props/workflow/nodes.props';
 import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';

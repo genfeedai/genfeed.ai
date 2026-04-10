@@ -1,12 +1,12 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   formatCompactNumberIntl,
   formatPercentage,
-} from '@helpers/formatting/format/format.helper';
-import type { AnomalyDetectionCardProps } from '@props/analytics/insights.props';
+} from '@genfeedai/helpers/formatting/format/format.helper';
+import type { AnomalyDetectionCardProps } from '@genfeedai/props/analytics/insights.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { memo } from 'react';

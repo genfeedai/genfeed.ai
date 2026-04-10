@@ -1,7 +1,7 @@
 'use client';
 
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { PromptBarAttachedAsset } from '@props/studio/prompt-bar.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { memo } from 'react';

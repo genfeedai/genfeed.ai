@@ -278,7 +278,7 @@ export class ArticlesService extends BaseService<
     transcriptId: string,
   ): Promise<{ transcriptText?: string; videoTitle?: string } | null> {
     // Internal service communication
-    const apiUrl = `http://localhost:3010/transcripts/${transcriptId}`;
+    const apiUrl = `${this.configService.get('GENFEEDAI_API_URL')}/transcripts/${transcriptId}`;
 
     try {
       const response = await fetch(apiUrl);

@@ -11,6 +11,15 @@ import {
   TrainingCategory,
   UploadStatus,
 } from '@genfeedai/enums';
+import {
+  hasFormErrors,
+  parseFormErrors,
+} from '@genfeedai/helpers/ui/form-error/form-error.helper';
+import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useFocusFirstInput } from '@genfeedai/hooks/ui/use-focus-first-input/use-focus-first-input';
+import { useFormSubmitWithState } from '@genfeedai/hooks/utils/use-form-submit/use-form-submit';
+import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import type {
   IHttpInterceptorError,
   IUploadProgressData,
@@ -20,22 +29,13 @@ import type {
   ModalTrainingNewProps,
   TrainingStatusUpdate,
 } from '@genfeedai/interfaces/training/modal-training-new.interface';
-import {
-  hasFormErrors,
-  parseFormErrors,
-} from '@helpers/ui/form-error/form-error.helper';
-import { closeModal } from '@helpers/ui/modal/modal.helper';
+import { TrainingsService } from '@genfeedai/services/ai/trainings.service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { SocketService } from '@genfeedai/services/core/socket.service';
+import { ImagesService } from '@genfeedai/services/ingredients/images.service';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useFocusFirstInput } from '@hooks/ui/use-focus-first-input/use-focus-first-input';
-import { useFormSubmitWithState } from '@hooks/utils/use-form-submit/use-form-submit';
-import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import { TrainingsService } from '@services/ai/trainings.service';
-import { EnvironmentService } from '@services/core/environment.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
-import { SocketService } from '@services/core/socket.service';
-import { ImagesService } from '@services/ingredients/images.service';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';

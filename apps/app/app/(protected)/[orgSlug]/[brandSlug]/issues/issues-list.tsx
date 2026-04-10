@@ -4,9 +4,6 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import IssueOverlay, {
-  openIssueOverlay,
-} from '@pages/issues/overlay/issue-overlay';
 import {
   type Issue,
   type IssuePriority,
@@ -15,6 +12,7 @@ import {
 } from '@services/management/issues.service';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
+import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import {
   Dialog,
   DialogContent,
@@ -39,6 +37,7 @@ import {
   HiOutlinePlusCircle,
   HiOutlineViewColumns,
 } from 'react-icons/hi2';
+import IssueOverlay, { openIssueOverlay } from './issue-overlay';
 
 type ViewMode = 'kanban' | 'list';
 
@@ -356,9 +355,7 @@ export default function IssuesList() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white/60" />
-        </div>
+        <LazyLoadingFallback variant="minimal" />
       ) : issues.length === 0 ? (
         <Card>
           <div className="flex flex-col items-center justify-center py-16 text-center">

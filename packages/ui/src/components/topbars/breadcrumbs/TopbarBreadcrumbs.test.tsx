@@ -10,7 +10,7 @@ let mockNavigationState = {
   exitNestedGroup: mockExitNestedGroup,
 };
 
-vi.mock('@contexts/ui/sidebar-navigation-context', () => ({
+vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
   useSidebarNavigation: () => ({
     activeGroupId: mockNavigationState.activeGroupId,
     activePageLabel: mockNavigationState.activePageLabel,

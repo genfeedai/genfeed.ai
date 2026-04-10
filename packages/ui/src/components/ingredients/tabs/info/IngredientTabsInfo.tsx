@@ -1,24 +1,24 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { IngredientCategory } from '@genfeedai/enums';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useOrganization } from '@genfeedai/hooks/data/organization/use-organization/use-organization';
 import type { IMetadata } from '@genfeedai/interfaces';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
-import type { TabsIngredientInfoProps } from '@props/content/ingredient.props';
-import { IngredientsService } from '@services/content/ingredients.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
-import { OrganizationsService } from '@services/organization/organizations.service';
-import { BrandsService } from '@services/social/brands.service';
+import type { TabsIngredientInfoProps } from '@genfeedai/props/content/ingredient.props';
+import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
+import { BrandsService } from '@genfeedai/services/social/brands.service';
+import {
+  isAvatarSourceImageIngredient,
+  isImageIngredient,
+} from '@genfeedai/utils/media/ingredient-type.util';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
-import {
-  isAvatarSourceImageIngredient,
-  isImageIngredient,
-} from '@utils/media/ingredient-type.util';
 import type { KeyboardEvent } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 

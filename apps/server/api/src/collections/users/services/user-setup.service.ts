@@ -324,6 +324,7 @@ export class UserSetupService {
         organization: organizationId,
         primaryColor: '#000000',
         secondaryColor: '#FFFFFF',
+        slug: 'default',
         user: userId,
       }),
     );

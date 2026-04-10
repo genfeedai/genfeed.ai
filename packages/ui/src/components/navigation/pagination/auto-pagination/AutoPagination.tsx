@@ -1,7 +1,7 @@
 'use client';
 
-import type { AutoPaginationProps } from '@props/ui/navigation/pagination.props';
-import { PagesService } from '@services/content/pages.service';
+import type { AutoPaginationProps } from '@genfeedai/props/ui/navigation/pagination.props';
+import { PagesService } from '@genfeedai/services/content/pages.service';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback } from 'react';

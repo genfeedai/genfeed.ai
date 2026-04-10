@@ -1,8 +1,8 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { PageHeaderProps } from '@props/layout/page-header.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { PageHeaderProps } from '@genfeedai/props/layout/page-header.props';
 import ContainerTitle from '@ui/layout/container-title/ContainerTitle';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';

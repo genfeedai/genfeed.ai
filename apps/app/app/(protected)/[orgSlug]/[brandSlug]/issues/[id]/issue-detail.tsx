@@ -22,6 +22,7 @@ import {
 } from '@services/management/issues.service';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
+import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Button } from '@ui/primitives/button';
 import { Textarea } from '@ui/primitives/textarea';
 import Link from 'next/link';
@@ -292,9 +293,7 @@ export default function IssueDetail({
   if (isLoading) {
     return (
       <Container>
-        <div className="flex items-center justify-center py-20">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white/60" />
-        </div>
+        <LazyLoadingFallback variant="minimal" />
       </Container>
     );
   }

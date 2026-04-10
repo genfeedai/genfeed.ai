@@ -9,18 +9,18 @@ const { mockDownloadIngredient, mockNotificationsError } = vi.hoisted(() => ({
   mockNotificationsError: vi.fn(),
 }));
 
-vi.mock('@helpers/media/download/download.helper', () => ({
+vi.mock('@genfeedai/helpers/media/download/download.helper', () => ({
   downloadIngredient: mockDownloadIngredient,
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
     info: vi.fn(),
   },
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(() => ({
       error: mockNotificationsError,

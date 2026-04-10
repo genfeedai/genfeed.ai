@@ -1,7 +1,7 @@
 'use client';
 
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { useSetupCard } from '@hooks/utils/use-setup-card/use-setup-card';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useSetupCard } from '@genfeedai/hooks/utils/use-setup-card/use-setup-card';
 import Link from 'next/link';
 import { HiCheck, HiChevronRight } from 'react-icons/hi2';
 

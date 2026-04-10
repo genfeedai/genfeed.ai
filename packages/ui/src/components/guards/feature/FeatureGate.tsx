@@ -1,8 +1,8 @@
 'use client';
 
-import { useGrowthBookClientStatus } from '@hooks/feature-flags/provider';
-import { useFeatureFlag } from '@hooks/feature-flags/use-feature-flag';
-import type { FeatureGateProps } from '@props/guards/feature-gate.props';
+import { useGrowthBookClientStatus } from '@genfeedai/hooks/feature-flags/provider';
+import { useFeatureFlag } from '@genfeedai/hooks/feature-flags/use-feature-flag';
+import type { FeatureGateProps } from '@genfeedai/props/guards/feature-gate.props';
 import Link from 'next/link';
 
 export default function FeatureGate({ flagKey, children }: FeatureGateProps) {

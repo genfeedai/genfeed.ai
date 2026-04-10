@@ -1,6 +1,6 @@
 'use client';
 
-import type { TabItem } from '@props/ui/navigation/tabs.props';
+import type { TabItem } from '@genfeedai/props/ui/navigation/tabs.props';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import type { ReactNode } from 'react';
 

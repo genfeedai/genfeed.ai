@@ -20,7 +20,7 @@ vi.mock('@ui/buttons/base/Button', () => ({
 
 const copyToClipboard = vi.fn();
 
-vi.mock('@services/core/clipboard.service', () => ({
+vi.mock('@genfeedai/services/core/clipboard.service', () => ({
   ClipboardService: {
     getInstance: () => ({
       copyToClipboard,

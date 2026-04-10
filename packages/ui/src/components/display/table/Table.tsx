@@ -2,8 +2,8 @@
 
 import { EMPTY_STATES } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { TableProps } from '@props/ui/display/table.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { TableProps } from '@genfeedai/props/ui/display/table.props';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import { SkeletonTable } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';

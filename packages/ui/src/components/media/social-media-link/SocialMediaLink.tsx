@@ -1,7 +1,10 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import { getDeepLink, isMobileDevice } from '@helpers/ui/mobile/mobile.helper';
-import { addUTMParameters } from '@helpers/utm/utm-builder.helper';
-import type { SocialMediaLinkProps } from '@props/social/social-media-link.props';
+import {
+  getDeepLink,
+  isMobileDevice,
+} from '@genfeedai/helpers/ui/mobile/mobile.helper';
+import { addUTMParameters } from '@genfeedai/helpers/utm/utm-builder.helper';
+import type { SocialMediaLinkProps } from '@genfeedai/props/social/social-media-link.props';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Link from 'next/link';
 

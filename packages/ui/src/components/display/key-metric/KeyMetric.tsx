@@ -1,4 +1,4 @@
-import { cn } from '@helpers/formatting/cn/cn.util';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import InsetSurface, {
   type InsetSurfaceProps,
 } from '@ui/display/inset-surface/InsetSurface';

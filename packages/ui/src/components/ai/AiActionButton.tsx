@@ -8,7 +8,7 @@ import {
   ButtonVariant,
   ComponentSize,
 } from '@genfeedai/enums';
-import { useAiAction } from '@hooks/ai/use-ai-action';
+import { useAiAction } from '@genfeedai/hooks/ai/use-ai-action';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import { useCallback } from 'react';

@@ -7,7 +7,7 @@ vi.mock('@ui/modals/modal/Modal', () => ({
   default: ({ children }: any) => <div data-testid="modal">{children}</div>,
 }));
 
-vi.mock('@hooks/ui/use-crud-modal', () => ({
+vi.mock('@genfeedai/hooks/ui/use-crud-modal', () => ({
   useCrudModal: () => ({
     form: {
       formState: { errors: {} },

@@ -4,7 +4,7 @@ import ModalGallery from '@ui/modals/gallery/ModalGallery';
 import { describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'test-brand-id',
     selectedBrand: {

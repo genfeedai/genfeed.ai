@@ -1,18 +1,18 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ButtonVariant,
   DropdownDirection,
   TagCategory,
 } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { ITag } from '@genfeedai/interfaces';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { DropdownTagsProps } from '@props/tags/dropdown-tags.props';
-import { TagsService } from '@services/content/tags.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
+import type { DropdownTagsProps } from '@genfeedai/props/tags/dropdown-tags.props';
+import { TagsService } from '@genfeedai/services/content/tags.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import TagBadge from '@ui/tags/badge/TagBadge';

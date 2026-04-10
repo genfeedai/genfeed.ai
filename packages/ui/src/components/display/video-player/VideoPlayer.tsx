@@ -1,7 +1,7 @@
 import { ComponentSize } from '@genfeedai/enums';
-import type { VideoPlayerProps } from '@props/studio/video-player.props';
-import { EnvironmentService } from '@services/core/environment.service';
-import { logger } from '@services/core/logger.service';
+import type { VideoPlayerProps } from '@genfeedai/props/studio/video-player.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { logger } from '@genfeedai/services/core/logger.service';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import Image from 'next/image';
 import { useCallback, useEffect, useState } from 'react';

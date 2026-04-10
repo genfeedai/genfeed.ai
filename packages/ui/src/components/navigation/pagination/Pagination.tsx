@@ -1,4 +1,4 @@
-import type { PaginationProps } from '@props/ui/navigation/pagination.props';
+import type { PaginationProps } from '@genfeedai/props/ui/navigation/pagination.props';
 import {
   PaginationContent,
   PaginationEllipsis,

@@ -8,16 +8,16 @@ import {
   IngredientCategory,
   ModalEnum,
 } from '@genfeedai/enums';
-import { closeModal } from '@helpers/ui/modal/modal.helper';
+import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useFocusFirstInput } from '@genfeedai/hooks/ui/use-focus-first-input/use-focus-first-input';
+import { useFormSubmitWithState } from '@genfeedai/hooks/utils/use-form-submit/use-form-submit';
+import { Ingredient } from '@genfeedai/models/content/ingredient.model';
+import type { ModalAvatarProps } from '@genfeedai/props/modals/modal.props';
+import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { logger } from '@genfeedai/services/core/logger.service';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useFocusFirstInput } from '@hooks/ui/use-focus-first-input/use-focus-first-input';
-import { useFormSubmitWithState } from '@hooks/utils/use-form-submit/use-form-submit';
-import { Ingredient } from '@models/content/ingredient.model';
-import type { ModalAvatarProps } from '@props/modals/modal.props';
-import { IngredientsService } from '@services/content/ingredients.service';
-import { EnvironmentService } from '@services/core/environment.service';
-import { logger } from '@services/core/logger.service';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';

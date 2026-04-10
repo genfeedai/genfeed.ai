@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import type { SwitcherDropdownItem } from '@props/ui/menus/switcher-dropdown.props';
+import type { SwitcherDropdownItem } from '@genfeedai/props/ui/menus/switcher-dropdown.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
 import { HiOutlineCog6Tooth } from 'react-icons/hi2';

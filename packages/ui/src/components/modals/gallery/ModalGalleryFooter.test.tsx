@@ -23,14 +23,14 @@ vi.mock('@ui/buttons/base/Button', () => ({
   ),
 }));
 
-vi.mock('@services/content/pages.service', () => ({
+vi.mock('@genfeedai/services/content/pages.service', () => ({
   PagesService: {
     getCurrentPage: () => 1,
     getTotalPages: () => 5,
   },
 }));
 
-vi.mock('@services/core/environment.service', () => ({
+vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     ingredientsEndpoint: 'https://test.com/ingredients',
   },

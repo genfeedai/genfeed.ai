@@ -6,9 +6,9 @@ import {
   IngredientCategory,
   IngredientFormat,
 } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { PromptBarCollapsedViewProps } from '@props/prompt-bars/prompt-bar-layout.props';
-import { EnvironmentService } from '@services/core/environment.service';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { PromptBarCollapsedViewProps } from '@genfeedai/props/prompt-bars/prompt-bar-layout.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import PromptBarDivider from '@ui/prompt-bars/components/divider/PromptBarDivider';

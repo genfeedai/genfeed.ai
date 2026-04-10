@@ -1,8 +1,8 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { ViewToggleProps } from '@props/ui/navigation/view-toggle.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { ViewToggleProps } from '@genfeedai/props/ui/navigation/view-toggle.props';
 import { Button } from '@ui/primitives/button';
 
 /** Tab-style component for switching between view types. See Storybook for examples. */

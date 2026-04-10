@@ -12,17 +12,17 @@ import {
 import {
   hasFormErrors,
   parseFormErrors,
-} from '@helpers/ui/form-error/form-error.helper';
-import { closeModal as closeModalHelper } from '@helpers/ui/modal/modal.helper';
+} from '@genfeedai/helpers/ui/form-error/form-error.helper';
+import { closeModal as closeModalHelper } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useFocusFirstInput } from '@genfeedai/hooks/ui/use-focus-first-input/use-focus-first-input';
+import { useFormSubmitWithState } from '@genfeedai/hooks/utils/use-form-submit/use-form-submit';
+import type { Article } from '@genfeedai/models/content/article.model';
+import type { ModalArticleProps } from '@genfeedai/props/modals/modal.props';
+import { ArticlesService } from '@genfeedai/services/content/articles.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useFocusFirstInput } from '@hooks/ui/use-focus-first-input/use-focus-first-input';
-import { useFormSubmitWithState } from '@hooks/utils/use-form-submit/use-form-submit';
-import type { Article } from '@models/content/article.model';
-import type { ModalArticleProps } from '@props/modals/modal.props';
-import { ArticlesService } from '@services/content/articles.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
 import Alert from '@ui/feedback/alert/Alert';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import ModalActions from '@ui/modals/actions/ModalActions';

@@ -5,11 +5,15 @@ import {
   DropdownDirection,
   IngredientCategory,
 } from '@genfeedai/enums';
+import {
+  BG_BLUR,
+  BORDER_WHITE_30,
+  cn,
+} from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useQuickActions } from '@genfeedai/hooks/ui/use-quick-actions/use-quick-actions';
 import type { IIngredient } from '@genfeedai/interfaces';
 import type { IQuickAction } from '@genfeedai/interfaces/ui/quick-actions.interface';
-import { BG_BLUR, BORDER_WHITE_30, cn } from '@helpers/formatting/cn/cn.util';
-import { useQuickActions } from '@hooks/ui/use-quick-actions/use-quick-actions';
-import type { StudioQuickActionsProps } from '@props/studio/studio.props';
+import type { StudioQuickActionsProps } from '@genfeedai/props/studio/studio.props';
 import DropdownPrompt from '@ui/dropdowns/prompt/DropdownPrompt';
 import DropdownScope from '@ui/dropdowns/scope/DropdownScope';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';

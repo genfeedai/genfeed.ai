@@ -16,7 +16,7 @@ vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
   useResource: (...args: unknown[]) => useResourceMock(...args),
 }));
 
-vi.mock('@pages/review/components/ReviewGrid', () => ({
+vi.mock('./components/ReviewGrid', () => ({
   default: ({
     activeItem,
     onApprove,
@@ -47,7 +47,7 @@ vi.mock('@pages/review/components/ReviewGrid', () => ({
   isReadyToReview: () => true,
 }));
 
-vi.mock('@pages/review/components/ReviewStatsHeader', () => ({
+vi.mock('./components/ReviewStatsHeader', () => ({
   default: () => <div>Review Stats Header</div>,
 }));
 

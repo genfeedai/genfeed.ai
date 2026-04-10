@@ -5,9 +5,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUseSubscription = vi.fn();
 
-vi.mock('@hooks/data/subscription/use-subscription/use-subscription', () => ({
-  useSubscription: () => mockUseSubscription(),
-}));
+vi.mock(
+  '@genfeedai/hooks/data/subscription/use-subscription/use-subscription',
+  () => ({
+    useSubscription: () => mockUseSubscription(),
+  }),
+);
 
 vi.mock('next/link', () => ({
   default: ({ children, href }: { children: ReactNode; href: string }) => (

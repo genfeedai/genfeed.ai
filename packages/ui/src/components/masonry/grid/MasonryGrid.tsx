@@ -2,19 +2,19 @@
 
 import { EMPTY_STATES } from '@genfeedai/constants';
 import { IngredientFormat, MediaType, TagCategory } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useTags } from '@genfeedai/hooks/data/tags/use-tags/use-tags';
+import { useMasonryHoverController } from '@genfeedai/hooks/ui/use-masonry-hover-controller/use-masonry-hover-controller';
 import type { IImage, IIngredient, IVideo } from '@genfeedai/interfaces';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { useTags } from '@hooks/data/tags/use-tags/use-tags';
-import { useMasonryHoverController } from '@hooks/ui/use-masonry-hover-controller/use-masonry-hover-controller';
-import { Video } from '@models/ingredients/video.model';
-import type { IngredientListProps } from '@props/content/ingredient.props';
+import { Video } from '@genfeedai/models/ingredients/video.model';
+import type { IngredientListProps } from '@genfeedai/props/content/ingredient.props';
+import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import { SkeletonMasonryGrid } from '@ui/display/skeleton/skeleton';
 import {
   LazyMasonryImage,
   LazyMasonryVideo,
 } from '@ui/lazy/masonry/LazyMasonry';
-import { isVideoIngredient } from '@utils/media/ingredient-type.util';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 function getColumnsConfig(format?: IngredientFormat): {

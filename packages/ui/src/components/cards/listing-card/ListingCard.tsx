@@ -1,7 +1,7 @@
 'use client';
 
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { ListingCardProps } from '@props/cards/listing-card.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { ListingCardProps } from '@genfeedai/props/cards/listing-card.props';
 import Image from 'next/image';
 import Link from 'next/link';
 import { memo } from 'react';

@@ -1,11 +1,11 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { CaptionGeneratorButtonProps } from '@props/ai/generator-button.props';
-import { OptimizersService } from '@services/ai/optimizers.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import type { CaptionGeneratorButtonProps } from '@genfeedai/props/ai/generator-button.props';
+import { OptimizersService } from '@genfeedai/services/ai/optimizers.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';

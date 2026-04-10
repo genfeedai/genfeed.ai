@@ -2,9 +2,9 @@
 
 import { EMPTY_STATES } from '@genfeedai/constants';
 import { CardVariant } from '@genfeedai/enums';
-import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
-import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
-import { EnvironmentService } from '@services/core/environment.service';
+import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
+import { getPlatformIcon } from '@genfeedai/helpers/ui/platform-icon/platform-icon.helper';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Card from '@ui/card/Card';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Image from 'next/image';

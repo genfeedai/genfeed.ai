@@ -1,13 +1,13 @@
 'use client';
 
-import { cn } from '@helpers/formatting/cn/cn.util';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   closeModal,
   isModalOpen,
   openModal,
   subscribeModal,
-} from '@helpers/ui/modal/modal.helper';
-import type { ModalProps } from '@props/modals/modal.props';
+} from '@genfeedai/helpers/ui/modal/modal.helper';
+import type { ModalProps } from '@genfeedai/props/modals/modal.props';
 import { Modal as CompoundModal } from '@ui/modals/compound/Modal';
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import { HiExclamationTriangle } from 'react-icons/hi2';

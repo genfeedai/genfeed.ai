@@ -2,8 +2,8 @@
 
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { IngredientCategory, ModalEnum } from '@genfeedai/enums';
-import type { ModalImageToVideoProps } from '@props/modals/modal.props';
-import { EnvironmentService } from '@services/core/environment.service';
+import type { ModalImageToVideoProps } from '@genfeedai/props/modals/modal.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Modal from '@ui/modals/modal/Modal';
 import PromptBar from '@ui/prompt-bars/base/PromptBar';
 import Image from 'next/image';

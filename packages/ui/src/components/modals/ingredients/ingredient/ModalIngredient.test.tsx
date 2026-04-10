@@ -24,11 +24,11 @@ vi.mock('@clerk/nextjs', () => ({
   useAuth: () => ({ getToken: vi.fn(), isSignedIn: true }),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => vi.fn(() => Promise.resolve({ findOne: vi.fn() })),
 }));
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ credentials: [] }),
 }));
 
@@ -36,12 +36,12 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 
-vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
+vi.mock('@genfeedai/hooks/data/resource/use-resource/use-resource', () => ({
   useResource: () => ({ data: [], refresh: vi.fn() }),
 }));
 
 vi.mock(
-  '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions',
+  '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions',
   () => ({
     useIngredientActions: () => ({
       clearUpscaleConfirm: vi.fn(),
@@ -60,33 +60,33 @@ vi.mock(
   }),
 );
 
-vi.mock('@hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
+vi.mock('@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
   useModalAutoOpen: vi.fn(),
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
   useConfirmModal: () => ({ openConfirm: vi.fn() }),
   usePostModal: () => ({ openPostBatchModal: vi.fn() }),
 }));
 
-vi.mock('@services/core/clipboard.service', () => ({
+vi.mock('@genfeedai/services/core/clipboard.service', () => ({
   ClipboardService: { getInstance: () => ({ copyToClipboard: vi.fn() }) },
 }));
 
-vi.mock('@services/core/environment.service', () => ({
+vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     apps: { app: 'http://localhost' },
     isDevelopment: false,
   },
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: () => ({ error: vi.fn(), info: vi.fn(), success: vi.fn() }),
   },
 }));
 
-vi.mock('@helpers/ui/modal/modal.helper', () => ({
+vi.mock('@genfeedai/helpers/ui/modal/modal.helper', () => ({
   closeModal: vi.fn(),
 }));
 

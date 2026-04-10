@@ -1,4 +1,4 @@
-import type { SwitcherDropdownFooterAction } from '@props/ui/menus/switcher-dropdown.props';
+import type { SwitcherDropdownFooterAction } from '@genfeedai/props/ui/menus/switcher-dropdown.props';
 import { render } from '@testing-library/react';
 import MenuBrandSwitcher from '@ui/menus/switchers/MenuBrandSwitcher';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -20,23 +20,23 @@ vi.mock('@clerk/nextjs', () => ({
   }),
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
   useBrandOverlay: () => ({
     openBrandOverlay: vi.fn(),
   }),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => vi.fn(),
 }));
 
-vi.mock('@services/organization/users.service', () => ({
+vi.mock('@genfeedai/services/organization/users.service', () => ({
   UsersService: {
     getInstance: () => ({}),
   },
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 }));
 

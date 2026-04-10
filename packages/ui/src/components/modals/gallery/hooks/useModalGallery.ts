@@ -1,13 +1,14 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AssetCategory,
   IngredientCategory,
   type IngredientFormat,
   IngredientStatus,
 } from '@genfeedai/enums';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type {
   IAsset,
   IImage,
@@ -15,18 +16,17 @@ import type {
   IQueryParams,
   IVideo,
 } from '@genfeedai/interfaces';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
   UseModalGalleryProps,
   UseModalGalleryReturn,
-} from '@props/modals/modal-gallery.props';
-import { AssetsService } from '@services/content/assets.service';
-import { PagesService } from '@services/content/pages.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
-import { ImagesService } from '@services/ingredients/images.service';
-import { MusicsService } from '@services/ingredients/musics.service';
-import { VideosService } from '@services/ingredients/videos.service';
+} from '@genfeedai/props/modals/modal-gallery.props';
+import { AssetsService } from '@genfeedai/services/content/assets.service';
+import { PagesService } from '@genfeedai/services/content/pages.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { ImagesService } from '@genfeedai/services/ingredients/images.service';
+import { MusicsService } from '@genfeedai/services/ingredients/musics.service';
+import { VideosService } from '@genfeedai/services/ingredients/videos.service';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export function useModalGallery({

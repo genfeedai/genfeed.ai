@@ -1,6 +1,6 @@
 'use client';
 
-import type { AINodeProps } from '@props/automation/workflow-builder.props';
+import type { AINodeProps } from '@genfeedai/props/automation/workflow-builder.props';
 import BaseNode from '@ui/workflow-builder/nodes/BaseNode';
 import { memo } from 'react';
 import {

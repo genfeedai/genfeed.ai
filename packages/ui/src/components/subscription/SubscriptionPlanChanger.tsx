@@ -2,9 +2,9 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { SubscriptionChangePreview } from '@genfeedai/interfaces';
-import type { SubscriptionPlanChangerProps } from '@props/content/subscription.props';
-import { EnvironmentService } from '@services/core/environment.service';
-import { logger } from '@services/core/logger.service';
+import type { SubscriptionPlanChangerProps } from '@genfeedai/props/content/subscription.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { logger } from '@genfeedai/services/core/logger.service';
 import { Button } from '@ui/primitives/button';
 import { useState } from 'react';
 

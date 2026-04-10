@@ -1,10 +1,10 @@
-import { PagesService } from '@services/content/pages.service';
+import { PagesService } from '@genfeedai/services/content/pages.service';
 import { render, screen } from '@testing-library/react';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock PagesService
-vi.mock('@services/content/pages.service', () => ({
+vi.mock('@genfeedai/services/content/pages.service', () => ({
   PagesService: {
     getTotalDocs: vi.fn(),
     getTotalPages: vi.fn(),

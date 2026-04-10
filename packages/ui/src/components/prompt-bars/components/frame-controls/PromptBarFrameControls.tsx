@@ -1,10 +1,10 @@
 'use client';
 
 import { ButtonVariant, IngredientCategory } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IAsset, IImage } from '@genfeedai/interfaces';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { PromptBarFrameControlsProps } from '@props/studio/prompt-bar.props';
-import { EnvironmentService } from '@services/core/environment.service';
+import type { PromptBarFrameControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { type MouseEvent, memo } from 'react';

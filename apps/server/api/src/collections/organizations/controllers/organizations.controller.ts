@@ -631,6 +631,7 @@ export class OrganizationsController extends BaseCRUDController<
             id: org._id.toString(),
             isActive: publicMetadata.organization === org._id.toString(),
             label: org.label,
+            slug: org.slug ?? '',
           };
         }),
     );

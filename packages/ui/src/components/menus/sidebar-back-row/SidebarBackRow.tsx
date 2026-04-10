@@ -1,6 +1,6 @@
 'use client';
 
-import { cn } from '@helpers/formatting/cn/cn.util';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import Link from 'next/link';
 import { HiArrowLeft } from 'react-icons/hi2';
 

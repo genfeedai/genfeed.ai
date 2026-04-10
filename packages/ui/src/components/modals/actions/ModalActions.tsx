@@ -1,4 +1,4 @@
-import type { ModalActionsProps } from '@props/modals/modal.props';
+import type { ModalActionsProps } from '@genfeedai/props/modals/modal.props';
 
 export default function ModalActions({
   children,

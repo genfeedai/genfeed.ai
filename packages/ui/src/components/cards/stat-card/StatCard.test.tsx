@@ -3,20 +3,23 @@ import StatCard from '@ui/cards/stat-card/StatCard';
 import { describe, expect, it, vi } from 'vitest';
 
 // Mock the animated counter hook
-vi.mock('@hooks/ui/use-animated-counter/use-animated-counter', () => ({
-  useAnimatedCounter: ({
-    end,
-    suffix,
-    decimals,
-  }: {
-    end: number;
-    suffix: string;
-    decimals: number;
-  }) => ({
-    ref: { current: null },
-    value: `${end.toFixed(decimals)}${suffix}`,
+vi.mock(
+  '@genfeedai/hooks/ui/use-animated-counter/use-animated-counter',
+  () => ({
+    useAnimatedCounter: ({
+      end,
+      suffix,
+      decimals,
+    }: {
+      end: number;
+      suffix: string;
+      decimals: number;
+    }) => ({
+      ref: { current: null },
+      value: `${end.toFixed(decimals)}${suffix}`,
+    }),
   }),
-}));
+);
 
 describe('StatCard', () => {
   const defaultProps = {

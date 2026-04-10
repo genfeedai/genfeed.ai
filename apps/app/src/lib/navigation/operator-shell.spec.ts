@@ -5,7 +5,6 @@ import {
   buildWorkspaceTaskLaunchHref,
   normalizeProtectedPathname,
   pickOperatorTaskContextSearchParams,
-  resolveOperatorSurface,
 } from './operator-shell';
 
 describe('operator-shell helpers', () => {
@@ -15,16 +14,6 @@ describe('operator-shell helpers', () => {
     );
     expect(normalizeProtectedPathname('/acme/~/settings/organization')).toBe(
       '/settings/organization',
-    );
-  });
-
-  it('resolves create and workspace operator surfaces', () => {
-    expect(resolveOperatorSurface('/acme/brand-x/studio/video')).toBe('create');
-    expect(resolveOperatorSurface('/acme/brand-x/workspace/overview')).toBe(
-      'workspace',
-    );
-    expect(resolveOperatorSurface('/acme/brand-x/library/images')).toBe(
-      'library',
     );
   });
 

@@ -1,14 +1,14 @@
 'use client';
 
-import { resolvePostSignupIntent } from '@app/(onboarding)/onboarding/post-signup/post-signup-routing.util';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
-import { PERSONAL_EMAIL_DOMAINS } from '@genfeedai/constants';
+import { getResumeStep, ONBOARDING_STEPS } from '@genfeedai/constants';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { StripeService } from '@services/billing/stripe.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
+import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import { Button } from '@ui/primitives/button';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { isEEEnabled, isSelfHosted } from '@/lib/config/edition';
@@ -23,49 +23,43 @@ export default function PostSignupPage() {
     'Setting up your workspace...',
   );
 
-  const resolveOnboardingHref = useCallback(
-    async (_prompt?: string): Promise<string> => {
-      if (!isEEEnabled() || isSelfHosted()) {
-        return '/onboarding/brand';
-      }
+  const resolveOnboardingHref = useCallback(async (): Promise<string> => {
+    if (clerkUser?.publicMetadata?.proactiveLeadId) {
+      return '/onboarding/proactive';
+    }
 
-      const token = await resolveClerkToken(getToken);
-      if (!token) {
-        return '/onboarding/brand';
-      }
+    const completedSteps = currentUser?.onboardingStepsCompleted ?? [];
+    const hasCompletedAllOnboardingSteps = ONBOARDING_STEPS.every((step) =>
+      completedSteps.includes(step),
+    );
 
-      await OrganizationsService.getInstance(token)
-        .getMyOrganizations()
-        .catch((error) => {
-          logger.error(
-            'Failed to resolve organizations for post-signup routing',
-            error,
-          );
-          return [];
-        });
+    if (hasCompletedAllOnboardingSteps) {
+      return '/onboarding/summary';
+    }
 
-      return '/onboarding/brand';
-    },
-    [getToken],
-  );
+    const resumeStep = getResumeStep(completedSteps);
 
-  const resolveAutoBrandHref = useCallback(
-    async (domain: string): Promise<string> => {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('gf_brand_domain', domain);
-      }
+    if (!isEEEnabled() || isSelfHosted()) {
+      return `/onboarding/${resumeStep}`;
+    }
 
-      const prompt = `My website is ${domain}. Help me set up my brand and generate my first onboarding image.`;
-      const onboardingHref = await resolveOnboardingHref(prompt);
+    const token = await resolveClerkToken(getToken);
+    if (!token) {
+      return `/onboarding/${resumeStep}`;
+    }
 
-      if (onboardingHref === '/onboarding/brand') {
-        return '/onboarding/brand?auto=true';
-      }
+    await OrganizationsService.getInstance(token)
+      .getMyOrganizations()
+      .catch((error) => {
+        logger.error(
+          'Failed to resolve organizations for post-signup routing',
+          error,
+        );
+        return [];
+      });
 
-      return onboardingHref;
-    },
-    [resolveOnboardingHref],
-  );
+    return `/onboarding/${resumeStep}`;
+  }, [clerkUser, currentUser, getToken]);
 
   useEffect(() => {
     if (isLoading || !currentUser || !clerkUser || calledRef.current) {
@@ -80,19 +74,9 @@ export default function PostSignupPage() {
     const route = async () => {
       const selectedPlan = localStorage.getItem('gf_selected_plan');
       const selectedCredits = localStorage.getItem('gf_selected_credits');
-      const primaryEmail =
-        clerkUser.primaryEmailAddress?.emailAddress ||
-        clerkUser.emailAddresses[0]?.emailAddress;
-      const intent = resolvePostSignupIntent({
-        personalEmailDomains: PERSONAL_EMAIL_DOMAINS,
-        primaryEmail,
-        selectedCredits,
-        selectedPlan,
-      });
-
-      if (intent.kind === 'plan-checkout') {
+      if (selectedPlan?.trim()) {
         if (!isEEEnabled()) {
-          window.location.href = '/onboarding/brand';
+          window.location.href = await resolveOnboardingHref();
           return;
         }
 
@@ -111,7 +95,7 @@ export default function PostSignupPage() {
           const result = await service.createCheckoutSession({
             cancelUrl: `${window.location.origin}/onboarding/providers`,
             quantity: null,
-            stripePriceId: intent.stripePriceId,
+            stripePriceId: selectedPlan,
             successUrl: `${window.location.origin}${onboardingHref}`,
           });
 
@@ -131,9 +115,10 @@ export default function PostSignupPage() {
         return;
       }
 
-      if (intent.kind === 'credits-checkout') {
+      const credits = Number.parseInt(selectedCredits ?? '', 10);
+      if (!Number.isNaN(credits) && credits > 0) {
         if (!isEEEnabled()) {
-          window.location.href = '/onboarding/brand';
+          window.location.href = await resolveOnboardingHref();
           return;
         }
 
@@ -157,7 +142,7 @@ export default function PostSignupPage() {
           const service = StripeService.getInstance(token);
           const result = await service.createCheckoutSession({
             cancelUrl: `${window.location.origin}/onboarding/providers`,
-            quantity: intent.credits,
+            quantity: credits,
             stripePriceId: paygPriceId,
             successUrl: `${window.location.origin}${onboardingHref}`,
           });
@@ -177,14 +162,6 @@ export default function PostSignupPage() {
         return;
       }
 
-      if (intent.kind === 'auto-brand') {
-        setStatusMessage(
-          'Detected your workspace domain. Continuing to brand setup...',
-        );
-        window.location.href = await resolveAutoBrandHref(intent.domain);
-        return;
-      }
-
       setStatusMessage('Continuing to onboarding...');
       window.location.href = await resolveOnboardingHref();
     };
@@ -197,42 +174,30 @@ export default function PostSignupPage() {
     return () => {
       window.clearTimeout(fallbackTimeout);
     };
-  }, [
-    isLoading,
-    currentUser,
-    clerkUser,
-    getToken,
-    resolveAutoBrandHref,
-    resolveOnboardingHref,
-  ]);
+  }, [clerkUser, currentUser, getToken, isLoading, resolveOnboardingHref]);
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center">
-      <div className="flex max-w-md flex-col items-center gap-4 px-6 text-center">
-        <div
-          aria-hidden="true"
-          className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin"
-        />
-        <output className="text-sm text-white/40" aria-live="polite">
-          {statusMessage}
-        </output>
-        {showFallback && (
-          <div className="mt-2 rounded-lg border border-white/10 bg-white/[0.03] p-4">
-            <p className="text-xs text-white/50 mb-3">
-              This is taking longer than expected. You can continue manually.
-            </p>
-            <Button
-              label="Continue to onboarding"
-              onClick={() => {
-                void resolveOnboardingHref().then((href) => {
-                  window.location.href = href;
-                });
-              }}
-              className="h-8 px-3 text-xs font-medium"
-            />
-          </div>
-        )}
-      </div>
-    </div>
+    <PageLoadingState
+      className="bg-black"
+      fullScreen={true}
+      message={statusMessage}
+    >
+      {showFallback ? (
+        <div className="mt-2 rounded-lg border border-white/10 bg-white/[0.03] p-4">
+          <p className="mb-3 text-xs text-white/50">
+            This is taking longer than expected. You can continue manually.
+          </p>
+          <Button
+            label="Continue to onboarding"
+            onClick={() => {
+              void resolveOnboardingHref().then((href) => {
+                window.location.href = href;
+              });
+            }}
+            className="h-8 px-3 text-xs font-medium"
+          />
+        </div>
+      ) : null}
+    </PageLoadingState>
   );
 }

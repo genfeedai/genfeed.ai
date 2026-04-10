@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import DropdownPrompt from '@ui/dropdowns/prompt/DropdownPrompt';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@services/core/clipboard.service', () => ({
+vi.mock('@genfeedai/services/core/clipboard.service', () => ({
   ClipboardService: {
     getInstance: () => ({
       copyToClipboard: vi.fn(),

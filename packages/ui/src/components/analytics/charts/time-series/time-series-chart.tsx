@@ -5,8 +5,8 @@ import {
   formatChartDate,
   formatCompactNumberIntl,
   formatPercentageSimple,
-} from '@helpers/formatting/format/format.helper';
-import type { TimeSeriesChartProps } from '@props/analytics/analytics.props';
+} from '@genfeedai/helpers/formatting/format/format.helper';
+import type { TimeSeriesChartProps } from '@genfeedai/props/analytics/analytics.props';
 import { Button } from '@ui/primitives/button';
 import { useState } from 'react';
 import {

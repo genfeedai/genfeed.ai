@@ -1,6 +1,6 @@
 import type { IVideo } from '@genfeedai/interfaces';
-import type { ModalProps } from '@props/modals/modal.props';
-import type { BaseButtonProps } from '@props/ui/forms/button.props';
+import type { ModalProps } from '@genfeedai/props/modals/modal.props';
+import type { BaseButtonProps } from '@genfeedai/props/ui/forms/button.props';
 import { render, screen } from '@testing-library/react';
 import ModalTextOverlay from '@ui/modals/content/overlay/ModalTextOverlay';
 import type { PropsWithChildren } from 'react';
@@ -35,7 +35,7 @@ vi.mock('@ui/primitives/input', () => ({
   default: () => <input data-testid="form-input" />,
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   __esModule: true,
   default: () => () =>
     Promise.resolve({
@@ -47,7 +47,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
     }),
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: () => ({
       error: vi.fn(),

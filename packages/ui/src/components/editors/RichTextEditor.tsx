@@ -6,10 +6,10 @@ import {
   ButtonVariant,
   ComponentSize,
 } from '@genfeedai/enums';
-import type { RichTextEditorProps } from '@props/components/rich-text-editor.props';
-import { AiActionsService } from '@services/ai/ai-actions.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
+import type { RichTextEditorProps } from '@genfeedai/props/components/rich-text-editor.props';
+import { AiActionsService } from '@genfeedai/services/ai/ai-actions.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import type {} from '@tiptap/extension-blockquote';
 import type {} from '@tiptap/extension-bold';
 import type {} from '@tiptap/extension-code';

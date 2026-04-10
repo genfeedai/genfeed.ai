@@ -1,6 +1,6 @@
 import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { MenuItemProps } from '@props/navigation/menu.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { MenuItemProps } from '@genfeedai/props/navigation/menu.props';
 import ComingSoonBadge from '@ui/badges/ComingSoonBadge';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';

@@ -9,19 +9,19 @@ import {
   Platform,
   PostStatus,
 } from '@genfeedai/enums';
-import type { ICredential, IIngredient, IPost } from '@genfeedai/interfaces';
-import { getPostStatusOptions } from '@helpers/content/posts.helper';
-import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
+import { getPostStatusOptions } from '@genfeedai/helpers/content/posts.helper';
+import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import {
   hasFormErrors,
   parseFormErrors,
-} from '@helpers/ui/form-error/form-error.helper';
-import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
-import { useModalAutoOpen } from '@hooks/ui/use-modal-auto-open/use-modal-auto-open';
-import type { ModalPostProps } from '@props/modals/modal.props';
-import { PostsService } from '@services/content/posts.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
+} from '@genfeedai/helpers/ui/form-error/form-error.helper';
+import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
+import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
+import type { ICredential, IIngredient, IPost } from '@genfeedai/interfaces';
+import type { ModalPostProps } from '@genfeedai/props/modals/modal.props';
+import { PostsService } from '@genfeedai/services/content/posts.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';

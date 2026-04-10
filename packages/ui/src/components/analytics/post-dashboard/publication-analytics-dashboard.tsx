@@ -1,18 +1,18 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
+import { formatDate } from '@genfeedai/helpers/formatting/date/date.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useResource } from '@genfeedai/hooks/data/resource/use-resource/use-resource';
 import type { IPostAnalyticsSummary } from '@genfeedai/interfaces';
-import { formatDate } from '@helpers/formatting/date/date.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
-import type { PostAnalyticsDashboardProps } from '@props/analytics/analytics.props';
-import { PostAnalyticsService } from '@services/analytics/publication-analytics.service';
-import { NotificationsService } from '@services/core/notifications.service';
+import type { PostAnalyticsDashboardProps } from '@genfeedai/props/analytics/analytics.props';
+import { PostAnalyticsService } from '@genfeedai/services/analytics/publication-analytics.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { getErrorStatus } from '@genfeedai/utils/error/error-handler.util';
 import AnalyticsOverview from '@ui/analytics/overview/analytics-overview';
 import PlatformAnalyticsBreakdown from '@ui/analytics/platform-breakdown/platform-analytics-breakdown';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Loading from '@ui/loading/default/Loading';
-import { getErrorStatus } from '@utils/error/error-handler.util';
 import { useCallback, useMemo, useState } from 'react';
 
 export default function PostAnalyticsDashboard({

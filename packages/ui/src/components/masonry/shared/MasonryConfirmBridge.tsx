@@ -1,9 +1,9 @@
 'use client';
 
 import { IngredientCategory, MediaType } from '@genfeedai/enums';
+import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { IIngredient } from '@genfeedai/interfaces';
-import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
-import type { ModalConfirmProps } from '@props/modals/modal.props';
+import type { ModalConfirmProps } from '@genfeedai/props/modals/modal.props';
 import ModalConfirm from '@ui/modals/system/confirm/ModalConfirm';
 import { useCallback, useEffect, useRef, useState } from 'react';
 

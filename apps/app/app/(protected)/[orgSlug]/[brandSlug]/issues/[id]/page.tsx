@@ -1,5 +1,6 @@
 import { createPageMetadata } from '@helpers/media/metadata/page-metadata.helper';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
+import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Suspense } from 'react';
 import IssueDetail from './issue-detail';
 
@@ -14,13 +15,7 @@ export default async function IssueDetailPage({
 
   return (
     <ErrorBoundary>
-      <Suspense
-        fallback={
-          <div className="flex items-center justify-center py-20">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white/60" />
-          </div>
-        }
-      >
+      <Suspense fallback={<LazyLoadingFallback variant="minimal" />}>
         <IssueDetail issueId={id} useIdentifier={id.includes('-')} />
       </Suspense>
     </ErrorBoundary>

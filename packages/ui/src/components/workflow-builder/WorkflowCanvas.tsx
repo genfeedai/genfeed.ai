@@ -1,7 +1,7 @@
 'use client';
 
 import type { WorkflowNodeData } from '@genfeedai/interfaces/automation/workflow-builder.interface';
-import type { WorkflowCanvasProps } from '@props/automation/workflow-builder.props';
+import type { WorkflowCanvasProps } from '@genfeedai/props/automation/workflow-builder.props';
 import {
   Background,
   BackgroundVariant,

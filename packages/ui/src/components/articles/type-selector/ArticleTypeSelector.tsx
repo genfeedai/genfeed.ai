@@ -1,6 +1,6 @@
 'use client';
 
-import type { XArticleTypeSelectorProps } from '@props/content/x-article.props';
+import type { XArticleTypeSelectorProps } from '@genfeedai/props/content/x-article.props';
 import Card from '@ui/card/Card';
 import { HiDocumentText, HiNewspaper } from 'react-icons/hi2';
 

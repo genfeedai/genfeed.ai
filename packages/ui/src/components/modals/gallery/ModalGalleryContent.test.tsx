@@ -13,7 +13,7 @@ type GalleryItem = Partial<IImage> | Partial<IVideo> | Partial<IMusic>;
 
 // Mock the upload modal provider
 const mockOpenUpload = vi.fn();
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
   useUploadModal: () => ({
     openUpload: mockOpenUpload,
   }),

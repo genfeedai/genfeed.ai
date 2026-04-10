@@ -1,7 +1,7 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { MODEL_KEYS } from '@genfeedai/constants';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AlertCategory,
   AssetCategory,
@@ -14,23 +14,42 @@ import {
   PromptCategory,
   SystemPromptKey,
 } from '@genfeedai/enums';
-import type { IBrand, IFontFamily, ILink, IModel } from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
-} from '@helpers/ui/form-error/form-error.helper';
-import { closeModal, openModal } from '@helpers/ui/modal/modal.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useElements } from '@hooks/data/elements/use-elements/use-elements';
-import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useModalAutoOpen } from '@hooks/ui/use-modal-auto-open/use-modal-auto-open';
-import { useFormSubmitWithState } from '@hooks/utils/use-form-submit/use-form-submit';
-import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import { Prompt } from '@models/content/prompt.model';
-import { Brand } from '@models/organization/brand.model';
-import type { Link } from '@models/social/link.model';
+} from '@genfeedai/helpers/ui/form-error/form-error.helper';
+import {
+  closeModal,
+  openModal,
+} from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useElements } from '@genfeedai/hooks/data/elements/use-elements/use-elements';
+import { useOrganization } from '@genfeedai/hooks/data/organization/use-organization/use-organization';
+import { useResource } from '@genfeedai/hooks/data/resource/use-resource/use-resource';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
+import { useFormSubmitWithState } from '@genfeedai/hooks/utils/use-form-submit/use-form-submit';
+import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
+import type { IBrand, IFontFamily, ILink, IModel } from '@genfeedai/interfaces';
+import { Prompt } from '@genfeedai/models/content/prompt.model';
+import { Brand } from '@genfeedai/models/organization/brand.model';
+import type { Link } from '@genfeedai/models/social/link.model';
+import type { BrandOverlayProps } from '@genfeedai/props/modals/modal.props';
+import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
+import {
+  useConfirmModal,
+  useUploadModal,
+} from '@genfeedai/providers/global-modals/global-modals.provider';
+import { AssetsService } from '@genfeedai/services/content/assets.service';
+import { PromptsService } from '@genfeedai/services/content/prompts.service';
+import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { createPromptHandler } from '@genfeedai/services/core/socket-manager.service';
+import { BrandsService } from '@genfeedai/services/social/brands.service';
+import { LinksService } from '@genfeedai/services/social/links.service';
+import { hasErrorDetail } from '@genfeedai/utils/error/error-handler.util';
+import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
 import BrandDetailBanner from '@pages/brands/components/banner/BrandDetailBanner';
 import BrandDetailSidebar from '@pages/brands/components/detail-sidebar/BrandDetailSidebar';
 import BrandDetailOverview from '@pages/brands/components/overview/BrandDetailOverview';
@@ -38,20 +57,7 @@ import BrandDetailLinkEditor, {
   type BrandLinkEditorValues,
 } from '@pages/brands/components/sidebar/BrandDetailLinkEditor';
 import BrandDetailSystemPrompt from '@pages/brands/components/system-prompt/BrandDetailSystemPrompt';
-import type { BrandOverlayProps } from '@props/modals/modal.props';
-import type { BrandDetailSocialConnection } from '@props/pages/brand-detail.props';
-import {
-  useConfirmModal,
-  useUploadModal,
-} from '@providers/global-modals/global-modals.provider';
-import { AssetsService } from '@services/content/assets.service';
-import { PromptsService } from '@services/content/prompts.service';
-import { ClipboardService } from '@services/core/clipboard.service';
-import { EnvironmentService } from '@services/core/environment.service';
-import { logger } from '@services/core/logger.service';
-import { createPromptHandler } from '@services/core/socket-manager.service';
-import { BrandsService } from '@services/social/brands.service';
-import { LinksService } from '@services/social/links.service';
+import Card from '@ui/card/Card';
 import TextareaLabelActions from '@ui/content/textarea-label-actions/TextareaLabelActions';
 import Alert from '@ui/feedback/alert/Alert';
 import { LazyModalBrandGenerate } from '@ui/lazy/modal/LazyModal';
@@ -64,8 +70,6 @@ import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { THEME_COLORS } from '@ui-constants/theme.constant';
-import { hasErrorDetail } from '@utils/error/error-handler.util';
-import { WebSocketPaths } from '@utils/network/websocket.util';
 import { useRouter } from 'next/navigation';
 import {
   type ChangeEvent,
@@ -124,9 +128,6 @@ const DEFAULT_BRAND_LINK_FORM_VALUES: BrandLinkEditorValues = {
   label: '',
   url: '',
 };
-
-const BRAND_PANEL_CLASS_NAME =
-  'rounded-3xl border border-white/[0.08] bg-card/80 shadow-[0_18px_50px_rgba(0,0,0,0.24)] backdrop-blur-sm';
 
 interface BrandEditorFormProps {
   activeBrand: BrandOverlayRecord | null;
@@ -266,7 +267,10 @@ function BrandEditorForm({
         onTabChange={(id) => onTabChange(id as BrandEditorTab)}
       />
 
-      <div className={`${BRAND_PANEL_CLASS_NAME} p-5`}>
+      <Card
+        className="rounded-3xl bg-card/80 backdrop-blur-sm"
+        bodyClassName="p-5 sm:p-5"
+      >
         {editorTab === 'info' ? (
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -490,7 +494,7 @@ function BrandEditorForm({
             </FormControl>
           </div>
         ) : null}
-      </div>
+      </Card>
 
       <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
         <Button
@@ -1197,7 +1201,10 @@ export default function BrandOverlay({
 
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
                 <div className="space-y-6 xl:col-span-8">
-                  <div className={`${BRAND_PANEL_CLASS_NAME} p-6`}>
+                  <Card
+                    className="rounded-3xl bg-card/80 backdrop-blur-sm"
+                    bodyClassName="p-6"
+                  >
                     <BrandDetailOverview
                       brand={activeBrand}
                       isGeneratingLogo={false}
@@ -1215,15 +1222,18 @@ export default function BrandOverlay({
                           : undefined
                       }
                     />
-                  </div>
+                  </Card>
 
                   {activeBrand.text ? (
-                    <div className={`${BRAND_PANEL_CLASS_NAME} p-6`}>
+                    <Card
+                      className="rounded-3xl bg-card/80 backdrop-blur-sm"
+                      bodyClassName="p-6"
+                    >
                       <BrandDetailSystemPrompt
                         text={activeBrand.text}
                         onCopy={handleCopy}
                       />
-                    </div>
+                    </Card>
                   ) : null}
                 </div>
 

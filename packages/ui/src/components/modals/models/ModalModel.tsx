@@ -9,16 +9,16 @@ import {
   ModelCategory,
   ModelProvider,
 } from '@genfeedai/enums';
-import type { IModel } from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
-} from '@helpers/ui/form-error/form-error.helper';
-import { closeModal as closeModalHelper } from '@helpers/ui/modal/modal.helper';
-import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
-import { Model } from '@models/ai/model.model';
-import type { ModalModelProps } from '@props/modals/modal.props';
-import { ModelsService } from '@services/ai/models.service';
+} from '@genfeedai/helpers/ui/form-error/form-error.helper';
+import { closeModal as closeModalHelper } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
+import type { IModel } from '@genfeedai/interfaces';
+import { Model } from '@genfeedai/models/ai/model.model';
+import type { ModalModelProps } from '@genfeedai/props/modals/modal.props';
+import { ModelsService } from '@genfeedai/services/ai/models.service';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';

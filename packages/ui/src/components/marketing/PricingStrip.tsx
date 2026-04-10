@@ -1,7 +1,7 @@
 'use client';
 
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { PricingStripProps } from '@props/website/pricing-strip.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { PricingStripProps } from '@genfeedai/props/website/pricing-strip.props';
 import Link from 'next/link';
 import { LuArrowRight } from 'react-icons/lu';
 

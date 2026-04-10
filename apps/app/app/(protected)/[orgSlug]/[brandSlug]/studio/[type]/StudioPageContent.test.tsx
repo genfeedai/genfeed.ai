@@ -40,7 +40,7 @@ vi.mock('@pages/studio/generate', () => ({
   default: () => <div data-testid="studio-generate-layout" />,
 }));
 
-vi.mock('@pages/studio/guards/GenerationFeatureGuard', () => ({
+vi.mock('./GenerationFeatureGuard', () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 

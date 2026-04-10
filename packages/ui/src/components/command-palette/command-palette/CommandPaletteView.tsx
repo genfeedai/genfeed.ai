@@ -1,11 +1,11 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   ICommand,
   ICommandPaletteProps,
 } from '@genfeedai/interfaces/ui/command-palette.interface';
 import { Kbd } from '@genfeedai/ui';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import { CommandPaletteItem } from '@ui/command-palette/command-palette-item/CommandPaletteItem';
 import Modal from '@ui/modals/modal/Modal';
 import { Input } from '@ui/primitives/input';

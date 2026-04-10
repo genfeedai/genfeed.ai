@@ -1,8 +1,12 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
-import { BG_BLUR, BORDER_WHITE_30, cn } from '@helpers/formatting/cn/cn.util';
-import type { PromptBarContentProps } from '@props/prompt-bars/prompt-bar-content.props';
+import {
+  BG_BLUR,
+  BORDER_WHITE_30,
+  cn,
+} from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { PromptBarContentProps } from '@genfeedai/props/prompt-bars/prompt-bar-content.props';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import FormDropdown from '@ui/primitives/dropdown-field';

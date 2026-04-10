@@ -1,7 +1,7 @@
 import { ComponentSize } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IPlatformBadgeConfig } from '@genfeedai/interfaces/ui/platform-badge-config.interface';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { PlatformBadgeProps } from '@props/ui/display/platform-badge.props';
+import type { PlatformBadgeProps } from '@genfeedai/props/ui/display/platform-badge.props';
 import {
   FaFacebook,
   FaGhost,

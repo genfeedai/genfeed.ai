@@ -11,18 +11,18 @@ import {
 } from '@genfeedai/types';
 import { useActiveAgentRuns } from '@hooks/data/agent-runs/use-active-agent-runs';
 import { useAgentRuns } from '@hooks/data/agent-runs/use-agent-runs';
-import ActiveRunsPanel from '@pages/mission-control/components/ActiveRunsPanel';
-import RunAnomaliesPanel from '@pages/mission-control/components/RunAnomaliesPanel';
-import RunHistoryList from '@pages/mission-control/components/RunHistoryList';
-import RunRoutingInsights from '@pages/mission-control/components/RunRoutingInsights';
-import RunStatsStrip from '@pages/mission-control/components/RunStatsStrip';
-import RunTrendsPanel from '@pages/mission-control/components/RunTrendsPanel';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import Container from '@ui/layout/container/Container';
 import FormSearchbar from '@ui/primitives/searchbar';
 import { SelectField } from '@ui/primitives/select';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import ActiveRunsPanel from './ActiveRunsPanel';
+import RunAnomaliesPanel from './RunAnomaliesPanel';
+import RunHistoryList from './RunHistoryList';
+import RunRoutingInsights from './RunRoutingInsights';
+import RunStatsStrip from './RunStatsStrip';
+import RunTrendsPanel from './RunTrendsPanel';
 
 function getMetadataString(
   metadata: Record<string, unknown> | undefined,

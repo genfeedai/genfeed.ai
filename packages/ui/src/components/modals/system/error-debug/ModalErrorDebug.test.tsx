@@ -1,10 +1,10 @@
 import { ModalEnum } from '@genfeedai/enums';
+import { openModal as openModalHelper } from '@genfeedai/helpers/ui/modal/modal.helper';
 import type { IErrorDebugInfo } from '@genfeedai/interfaces/modals/error-debug.interface';
-import { openModal as openModalHelper } from '@helpers/ui/modal/modal.helper';
 import {
   clearErrorDebugInfo,
   setErrorDebugInfo,
-} from '@services/core/error-debug-store';
+} from '@genfeedai/services/core/error-debug-store';
 import ModalErrorDebug from '@ui/modals/system/error-debug/ModalErrorDebug';
 import '@testing-library/jest-dom';
 import { act, fireEvent, render, screen } from '@testing-library/react';
@@ -33,16 +33,18 @@ vi.mock('next/navigation', () => ({
 }));
 
 // Mock modules
-vi.mock('@helpers/ui/modal/modal.helper', async (importOriginal) => {
+vi.mock('@genfeedai/helpers/ui/modal/modal.helper', async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import('@helpers/ui/modal/modal.helper')>();
+    await importOriginal<
+      typeof import('@genfeedai/helpers/ui/modal/modal.helper')
+    >();
   return {
     ...actual,
     closeModal: vi.fn(actual.closeModal),
   };
 });
 
-vi.mock('@services/core/clipboard.service', () => ({
+vi.mock('@genfeedai/services/core/clipboard.service', () => ({
   ClipboardService: {
     getInstance: vi.fn(() => ({
       copyToClipboard: mockCopyToClipboard,

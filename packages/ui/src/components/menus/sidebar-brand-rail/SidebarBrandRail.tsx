@@ -1,14 +1,14 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useBrandOverlay } from '@providers/global-modals/global-modals.provider';
-import { logger } from '@services/core/logger.service';
-import { UsersService } from '@services/organization/users.service';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { useBrandOverlay } from '@genfeedai/providers/global-modals/global-modals.provider';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { UsersService } from '@genfeedai/services/organization/users.service';
 import { Button } from '@ui/primitives/button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Image from 'next/image';

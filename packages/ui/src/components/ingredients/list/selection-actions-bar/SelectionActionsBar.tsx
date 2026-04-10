@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import type { SelectionActionsBarProps } from '@props/content/ingredient.props';
+import type { SelectionActionsBarProps } from '@genfeedai/props/content/ingredient.props';
 import { Button } from '@ui/primitives/button';
 import { HiFilm, HiTrash, HiXMark } from 'react-icons/hi2';
 

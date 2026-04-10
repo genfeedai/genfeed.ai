@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import type { TopbarProps } from '@props/navigation/topbar.props';
+import type { TopbarProps } from '@genfeedai/props/navigation/topbar.props';
 import { Button } from '@ui/primitives/button';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarEnd from '@ui/topbars/end/TopbarEnd';

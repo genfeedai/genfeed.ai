@@ -1,12 +1,16 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, IngredientFormat } from '@genfeedai/enums';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { IngredientTabsProps } from '@props/content/ingredient.props';
-import { IngredientsService } from '@services/content/ingredients.service';
-import { EnvironmentService } from '@services/core/environment.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import type { IngredientTabsProps } from '@genfeedai/props/content/ingredient.props';
+import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import {
+  isImageIngredient,
+  isVideoIngredient,
+} from '@genfeedai/utils/media/ingredient-type.util';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import IngredientTabsInfo from '@ui/ingredients/tabs/info/IngredientTabsInfo';
 import IngredientTabsMetadata from '@ui/ingredients/tabs/metadata/IngredientTabsMetadata';
@@ -15,10 +19,6 @@ import IngredientTabsPrompts from '@ui/ingredients/tabs/prompts/IngredientTabsPr
 import IngredientTabsSharing from '@ui/ingredients/tabs/sharing/IngredientTabsSharing';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
-import {
-  isImageIngredient,
-  isVideoIngredient,
-} from '@utils/media/ingredient-type.util';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useState } from 'react';

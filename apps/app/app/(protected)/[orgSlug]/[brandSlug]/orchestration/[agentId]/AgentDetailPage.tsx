@@ -54,10 +54,9 @@ import {
   HiOutlineVideoCamera,
 } from 'react-icons/hi2';
 
-const AgentRunContentGrid = dynamic(
-  () => import('@pages/agents/agents/components/AgentRunContentGrid'),
-  { ssr: false },
-);
+const AgentRunContentGrid = dynamic(() => import('./AgentRunContentGrid'), {
+  ssr: false,
+});
 
 const AGENT_TYPE_LABELS: Record<AgentType, string> = {
   [AgentType.GENERAL]: 'General',

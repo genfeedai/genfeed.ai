@@ -10,14 +10,14 @@ import {
   ButtonVariant,
   ModalEnum,
 } from '@genfeedai/enums';
-import { closeModal } from '@helpers/ui/modal/modal.helper';
+import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useFocusFirstInput } from '@genfeedai/hooks/ui/use-focus-first-input/use-focus-first-input';
+import { useFormSubmitWithState } from '@genfeedai/hooks/utils/use-form-submit/use-form-submit';
+import type { ModalBrandGenerateProps } from '@genfeedai/props/modals/modal.props';
+import { AssetsService } from '@genfeedai/services/content/assets.service';
+import { logger } from '@genfeedai/services/core/logger.service';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useFocusFirstInput } from '@hooks/ui/use-focus-first-input/use-focus-first-input';
-import { useFormSubmitWithState } from '@hooks/utils/use-form-submit/use-form-submit';
-import type { ModalBrandGenerateProps } from '@props/modals/modal.props';
-import { AssetsService } from '@services/content/assets.service';
-import { logger } from '@services/core/logger.service';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';

@@ -1,8 +1,8 @@
 'use client';
 
 import { ModalEnum } from '@genfeedai/enums';
-import { openModal } from '@helpers/ui/modal/modal.helper';
-import { useOnboarding } from '@hooks/utils/use-onboarding/use-onboarding';
+import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useOnboarding } from '@genfeedai/hooks/utils/use-onboarding/use-onboarding';
 import ModalOnboarding from '@ui/modals/onboarding/ModalOnboarding';
 import { useEffect, useRef } from 'react';
 

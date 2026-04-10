@@ -1,8 +1,8 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { ButtonRefreshProps } from '@props/ui/forms/button.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { ButtonRefreshProps } from '@genfeedai/props/ui/forms/button.props';
 import { Button } from '@ui/primitives/button';
 import { HiArrowPath } from 'react-icons/hi2';
 

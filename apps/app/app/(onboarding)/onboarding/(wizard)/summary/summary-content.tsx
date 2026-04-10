@@ -11,13 +11,7 @@ import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
-import {
-  HiArrowLeft,
-  HiArrowUpRight,
-  HiCheckCircle,
-  HiCloudArrowUp,
-  HiSparkles,
-} from 'react-icons/hi2';
+import { HiArrowLeft, HiArrowUpRight, HiSparkles } from 'react-icons/hi2';
 
 const TIMELINE_STEPS = [
   {
@@ -151,21 +145,6 @@ export default function SummaryContent() {
 
   return (
     <div ref={sectionRef}>
-      <Button
-        variant={ButtonVariant.GHOST}
-        size={ButtonSize.SM}
-        onClick={() => router.push('/onboarding/providers')}
-        icon={<HiArrowLeft className="h-4 w-4" />}
-        className="mb-8 text-white/40 hover:text-white/70"
-      >
-        Back
-      </Button>
-
-      <div className="step-badge opacity-0 mb-8 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-white/60">
-        <HiSparkles className="h-3 w-3" />
-        Step 3 of 3
-      </div>
-
       <h1 className="step-headline opacity-0 mb-4 text-4xl font-serif leading-none tracking-tighter text-white md:text-5xl">
         Finish with the setup{' '}
         <span className="font-light italic">that fits.</span>
@@ -176,7 +155,7 @@ export default function SummaryContent() {
         Cloud if you want the faster managed path.
       </p>
 
-      <div className="grid gap-5 lg:grid-cols-[0.95fr_1.2fr]">
+      <div className="space-y-5">
         <div className="summary-card opacity-0 border border-white/[0.08] bg-white/[0.02] p-5 md:p-6">
           <h2 className="text-lg font-semibold text-white">Install summary</h2>
           <div className="mt-5 space-y-3 text-sm">
@@ -207,67 +186,44 @@ export default function SummaryContent() {
           </div>
 
           <Button
-            variant={ButtonVariant.WHITE}
+            variant={ButtonVariant.DEFAULT}
             size={ButtonSize.SM}
             onClick={() => router.push('/onboarding/success')}
             label="Continue with self-hosted"
-            className="mt-5 w-full"
+            className="mt-5 w-full md:w-auto"
           />
         </div>
 
-        <div className="summary-card opacity-0 border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] p-5 md:p-6">
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/15 bg-emerald-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-200/80">
-            <HiCloudArrowUp className="h-4 w-4" />
-            Genfeed Cloud
+        <div className="summary-card opacity-0 flex flex-col gap-3 border border-white/[0.08] bg-white/[0.02] p-5 md:flex-row md:items-center md:justify-between md:p-6">
+          <div className="max-w-2xl text-sm leading-6 text-white/45">
+            Don&apos;t know what you&apos;re looking for? Use our cloud solution
+            instead.
           </div>
 
-          <h2 className="mt-4 text-2xl font-serif tracking-tight text-white md:text-3xl">
-            Don&apos;t know what you&apos;re looking for yet?
-          </h2>
+          <Link
+            href={EnvironmentService.apps.website}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-white/75 transition hover:border-white/15 hover:bg-white/[0.06] hover:text-white md:w-auto"
+          >
+            Explore Genfeed Cloud
+            <HiArrowUpRight className="h-4 w-4" />
+          </Link>
+        </div>
 
-          <p className="mt-3 max-w-xl text-sm leading-6 text-white/50">
-            Use our cloud solution instead. You skip local model wiring, get a
-            cleaner default setup, and can start generating content faster.
-          </p>
+        <div className="summary-card opacity-0 flex items-center justify-between gap-4 pt-2">
+          <Button
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.SM}
+            withWrapper={false}
+            onClick={() => router.push('/onboarding/providers')}
+            icon={<HiArrowLeft className="h-4 w-4" />}
+            className="h-8 rounded-full border border-white/10 bg-white/[0.03] px-4 text-white/45 hover:border-white/15 hover:bg-white/[0.06] hover:text-white/75"
+          >
+            Back
+          </Button>
 
-          <div className="mt-6 grid gap-3 md:grid-cols-2">
-            <div className="rounded-2xl border border-white/[0.08] bg-black/20 p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                <HiCheckCircle className="h-4 w-4 text-emerald-300" />
-                Faster start
-              </div>
-              <p className="mt-2 text-sm text-white/45">
-                No local CLI or provider key setup before you can get value.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-white/[0.08] bg-black/20 p-4">
-              <div className="flex items-center gap-2 text-sm font-semibold text-white">
-                <HiCheckCircle className="h-4 w-4 text-emerald-300" />
-                Managed stack
-              </div>
-              <p className="mt-2 text-sm text-white/45">
-                Hosted workflows, billing, and provider orchestration are
-                already in place.
-              </p>
-            </div>
-          </div>
-
-          <div className="mt-6 flex flex-col gap-3 md:flex-row">
-            <Link
-              href={EnvironmentService.apps.website}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-4 py-2.5 text-sm font-medium text-black transition hover:bg-white/90 md:w-auto"
-            >
-              Explore Genfeed Cloud
-              <HiArrowUpRight className="h-4 w-4" />
-            </Link>
-
-            <Button
-              variant={ButtonVariant.GHOST}
-              size={ButtonSize.SM}
-              onClick={() => router.push('/onboarding/success')}
-              label="Stay self-hosted"
-              className="w-full md:w-auto"
-            />
+          <div className="step-badge inline-flex h-8 shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[10px] font-black uppercase tracking-[0.2em] text-white/60">
+            <HiSparkles className="h-3 w-3" />
+            Step 3 of 3
           </div>
         </div>
       </div>

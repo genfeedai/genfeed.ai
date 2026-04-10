@@ -1,8 +1,8 @@
 'use client';
 
 import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { TagBadgeProps } from '@props/tags/tag-badge.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { TagBadgeProps } from '@genfeedai/props/tags/tag-badge.props';
 import { Button } from '@ui/primitives/button';
 import type { MouseEvent } from 'react';
 import { HiXMark } from 'react-icons/hi2';

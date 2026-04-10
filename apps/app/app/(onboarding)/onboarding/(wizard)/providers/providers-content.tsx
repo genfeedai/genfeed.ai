@@ -152,21 +152,6 @@ export default function ProvidersContent() {
 
   return (
     <div ref={sectionRef}>
-      <Button
-        variant={ButtonVariant.GHOST}
-        size={ButtonSize.SM}
-        onClick={() => router.push('/onboarding/brand')}
-        icon={<HiArrowLeft className="h-4 w-4" />}
-        className="text-white/40 hover:text-white/70 mb-8"
-      >
-        Back
-      </Button>
-
-      <div className="step-badge opacity-0 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-white/60 mb-8">
-        <HiSparkles className="h-3 w-3" />
-        Step 2 of 3
-      </div>
-
       <h1 className="step-headline opacity-0 mb-4 text-4xl font-serif leading-none tracking-tighter text-white md:text-5xl">
         Configure your <span className="font-light italic">providers.</span>
       </h1>
@@ -193,7 +178,7 @@ export default function ProvidersContent() {
             {localToolRows.map((tool) => (
               <div
                 key={tool.key}
-                className="flex flex-col gap-3 border-t border-white/[0.06] pt-3 first:border-t-0 first:pt-0 md:flex-row md:items-start md:justify-between"
+                className="flex flex-col gap-3 border-t border-white/[0.06] pt-3 first:border-t-0 first:pt-0 md:flex-row md:items-center md:justify-between"
               >
                 <div className="min-w-0">
                   <h3 className="text-base font-semibold text-white">
@@ -237,7 +222,7 @@ export default function ProvidersContent() {
             {providerRows.map((provider) => (
               <div
                 key={provider.key}
-                className="flex flex-col gap-3 border-t border-white/[0.06] pt-3 first:border-t-0 first:pt-0 md:flex-row md:items-start md:justify-between"
+                className="flex flex-col gap-3 border-t border-white/[0.06] pt-3 first:border-t-0 first:pt-0 md:flex-row md:items-center md:justify-between"
               >
                 <div className="min-w-0">
                   <h3 className="text-base font-semibold text-white">
@@ -273,13 +258,31 @@ export default function ProvidersContent() {
           </div>
 
           <Button
-            variant={ButtonVariant.WHITE}
+            variant={ButtonVariant.DEFAULT}
             size={ButtonSize.SM}
             onClick={handleContinue}
             label={loading ? 'Loading summary...' : 'Review summary'}
             disabled={loading}
             className="w-full md:w-auto"
           />
+        </div>
+
+        <div className="provider-card opacity-0 flex items-center justify-between gap-4 pt-2">
+          <Button
+            variant={ButtonVariant.GHOST}
+            size={ButtonSize.SM}
+            withWrapper={false}
+            onClick={() => router.push('/onboarding/brand')}
+            icon={<HiArrowLeft className="h-4 w-4" />}
+            className="h-8 rounded-full border border-white/10 bg-white/[0.03] px-4 text-white/45 hover:border-white/15 hover:bg-white/[0.06] hover:text-white/75"
+          >
+            Back
+          </Button>
+
+          <div className="step-badge inline-flex h-8 shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 text-[10px] font-black uppercase tracking-[0.2em] text-white/60">
+            <HiSparkles className="h-3 w-3" />
+            Step 2 of 3
+          </div>
         </div>
       </div>
     </div>

@@ -3,7 +3,7 @@
 import type {
   PostPreviewItemProps,
   ThreadPreviewPanelProps,
-} from '@props/components/thread-preview-panel.props';
+} from '@genfeedai/props/components/thread-preview-panel.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';

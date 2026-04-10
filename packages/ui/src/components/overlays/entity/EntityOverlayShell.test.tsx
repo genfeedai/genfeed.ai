@@ -2,13 +2,13 @@ import '@testing-library/jest-dom/vitest';
 import {
   ENTITY_OVERLAY_OPEN_AGENT_REQUESTED_EVENT,
   ENTITY_OVERLAY_OPENED_EVENT,
-} from '@services/core/agent-overlay-coordination.service';
+} from '@genfeedai/services/core/agent-overlay-coordination.service';
 import { fireEvent, render, screen } from '@testing-library/react';
 import EntityOverlayShell from '@ui/overlays/entity/EntityOverlayShell';
 import type { PropsWithChildren, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@helpers/ui/modal/modal.helper', () => ({
+vi.mock('@genfeedai/helpers/ui/modal/modal.helper', () => ({
   closeModal: vi.fn(),
   isModalOpen: vi.fn(() => true),
   openModal: vi.fn(),

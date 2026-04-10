@@ -6,7 +6,7 @@ import {
   ComponentSize,
   IngredientCategory,
 } from '@genfeedai/enums';
-import { EnvironmentService } from '@services/core/environment.service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import CaptionGeneratorButton from '@ui/ai/caption-generator/CaptionGeneratorButton';
 import HashtagGeneratorButton from '@ui/ai/hashtag-generator/HashtagGeneratorButton';
 import Spinner from '@ui/feedback/spinner/Spinner';

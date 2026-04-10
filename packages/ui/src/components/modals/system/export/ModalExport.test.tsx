@@ -1,5 +1,5 @@
-import type { ModalProps } from '@props/modals/modal.props';
-import type { BaseButtonProps } from '@props/ui/forms/button.props';
+import type { ModalProps } from '@genfeedai/props/modals/modal.props';
+import type { BaseButtonProps } from '@genfeedai/props/ui/forms/button.props';
 import { render, screen } from '@testing-library/react';
 import ModalExport from '@ui/modals/system/export/ModalExport';
 import type { PropsWithChildren } from 'react';
@@ -41,7 +41,7 @@ vi.mock('@ui/primitives/checkbox', () => ({
   default: () => <div data-testid="form-checkbox" />,
 }));
 
-vi.mock('@helpers/ui/modal/modal.helper', () => ({
+vi.mock('@genfeedai/helpers/ui/modal/modal.helper', () => ({
   __esModule: true,
   closeModal: vi.fn(),
 }));

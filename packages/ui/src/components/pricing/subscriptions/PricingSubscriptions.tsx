@@ -1,10 +1,10 @@
 'use client';
 
-import { websitePlans } from '@helpers/business/pricing/pricing.helper';
+import { websitePlans } from '@genfeedai/helpers/business/pricing/pricing.helper';
 import type {
   PricingPlanProps,
   PricingSubscriptionsProps,
-} from '@props/content/subscription.props';
+} from '@genfeedai/props/content/subscription.props';
 import PricingCard from '@ui/pricing/card/PricingCard';
 import PricingToggle from '@ui/pricing/toggle/PricingToggle';
 import { useState } from 'react';

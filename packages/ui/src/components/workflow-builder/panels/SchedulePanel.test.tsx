@@ -4,7 +4,7 @@ import SchedulePanel from '@ui/workflow-builder/panels/SchedulePanel';
 import { describe, expect, it, vi } from 'vitest';
 
 // Mock NotificationsService
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     show: vi.fn(),
   },

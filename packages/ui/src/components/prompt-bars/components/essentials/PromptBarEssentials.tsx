@@ -2,10 +2,10 @@
 
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { ButtonVariant, IngredientCategory } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { PromptBarSuggestionItem } from '@props/prompt-bars/prompt-bar-suggestion-item.props';
-import type { PromptBarEssentialsProps } from '@props/prompt-bars/prompt-bar-tiers.props';
-import { EnvironmentService } from '@services/core/environment.service';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { PromptBarSuggestionItem } from '@genfeedai/props/prompt-bars/prompt-bar-suggestion-item.props';
+import type { PromptBarEssentialsProps } from '@genfeedai/props/prompt-bars/prompt-bar-tiers.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import { Textarea } from '@ui/primitives/textarea';

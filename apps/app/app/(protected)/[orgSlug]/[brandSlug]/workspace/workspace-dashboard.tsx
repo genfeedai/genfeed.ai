@@ -550,7 +550,7 @@ function getTaskStatusClass(task: WorkspaceTask): string {
 }
 
 function formatTaskEventLabel(task: WorkspaceTask): string {
-  const latestEvent = task.eventStream.at(-1);
+  const latestEvent = task.eventStream?.at(-1);
   if (!latestEvent) {
     return task.status.replaceAll('_', ' ');
   }
@@ -559,7 +559,7 @@ function formatTaskEventLabel(task: WorkspaceTask): string {
 }
 
 function ActivityRow({ task }: { task: WorkspaceTask }) {
-  const latestEvent = task.eventStream.at(-1);
+  const latestEvent = task.eventStream?.at(-1);
   const message =
     typeof latestEvent?.payload?.summary === 'string'
       ? latestEvent.payload.summary

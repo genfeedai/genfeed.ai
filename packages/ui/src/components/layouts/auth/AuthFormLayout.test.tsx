@@ -15,11 +15,11 @@ vi.mock('next/image', () => ({
   ),
 }));
 
-vi.mock('@hooks/ui/use-theme-logo/use-theme-logo', () => ({
+vi.mock('@genfeedai/hooks/ui/use-theme-logo/use-theme-logo', () => ({
   useThemeLogo: () => '/mock-logo.png',
 }));
 
-vi.mock('@services/core/environment.service', () => ({
+vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     LOGO_ALT: 'Test Logo',
   },

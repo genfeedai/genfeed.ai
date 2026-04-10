@@ -1,7 +1,7 @@
 import { PostStatus } from '@genfeedai/enums';
 import type { IPost } from '@genfeedai/interfaces';
-import type { ModalProps } from '@props/modals/modal.props';
-import type { BaseButtonProps } from '@props/ui/forms/button.props';
+import type { ModalProps } from '@genfeedai/props/modals/modal.props';
+import type { BaseButtonProps } from '@genfeedai/props/ui/forms/button.props';
 import { render, screen } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -51,7 +51,7 @@ vi.mock('@ui/primitives/input', () => ({
   default: () => <input data-testid="form-input" />,
 }));
 
-vi.mock('@hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
+vi.mock('@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
   __esModule: true,
   useModalAutoOpen: () => undefined,
 }));

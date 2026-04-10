@@ -1,6 +1,6 @@
 import { CardVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { CardProps } from '@props/ui/ui.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { CardProps } from '@genfeedai/props/ui/ui.props';
 import CardIcon from '@ui/card/icon/CardIcon';
 import Image from 'next/image';
 import { memo } from 'react';

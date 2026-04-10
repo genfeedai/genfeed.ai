@@ -1,7 +1,7 @@
 'use client';
 
 import type { MenuConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
-import type { MenuSharedProps } from '@props/navigation/menu.props';
+import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
 import MenuShared from '@ui/menus/shared/MenuShared';
 
 export interface AdminSidebarProps extends Partial<MenuSharedProps> {

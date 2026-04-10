@@ -160,6 +160,10 @@ describe('OrganizationsController', () => {
       const result = await controller.findMine(mockUser);
 
       expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        label: 'Test Org',
+        slug: '',
+      });
       expect(membersService.find).toHaveBeenCalled();
     });
 

@@ -1,8 +1,8 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { ModelSelectorFamilyItemProps } from '@props/ui/model-selector/model-selector.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { ModelSelectorFamilyItemProps } from '@genfeedai/props/ui/model-selector/model-selector.props';
 import { Button } from '@ui/primitives/button';
 import { memo } from 'react';
 import { HiChevronDown, HiChevronRight } from 'react-icons/hi2';

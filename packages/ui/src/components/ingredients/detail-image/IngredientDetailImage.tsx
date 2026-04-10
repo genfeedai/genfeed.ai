@@ -2,17 +2,17 @@
 
 import type { IEvaluation } from '@genfeedai/client/models';
 import { IngredientCategory, IngredientStatus } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useEvaluation } from '@genfeedai/hooks/ui/evaluation/use-evaluation/use-evaluation';
+import { useIngredientMetadata } from '@genfeedai/hooks/ui/ingredient/use-ingredient-metadata/use-ingredient-metadata';
+import { useIngredientSharing } from '@genfeedai/hooks/ui/ingredient/use-ingredient-sharing/use-ingredient-sharing';
 import type { IImage, IMetadata, ITag } from '@genfeedai/interfaces';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useEvaluation } from '@hooks/ui/evaluation/use-evaluation/use-evaluation';
-import { useIngredientMetadata } from '@hooks/ui/ingredient/use-ingredient-metadata/use-ingredient-metadata';
-import { useIngredientSharing } from '@hooks/ui/ingredient/use-ingredient-sharing/use-ingredient-sharing';
-import type { IngredientDetailImageProps } from '@props/content/ingredient.props';
-import type { TabItem } from '@props/ui/navigation/tabs.props';
-import { EnvironmentService } from '@services/core/environment.service';
-import { logger } from '@services/core/logger.service';
-import { ImagesService } from '@services/ingredients/images.service';
+import type { IngredientDetailImageProps } from '@genfeedai/props/content/ingredient.props';
+import type { TabItem } from '@genfeedai/props/ui/navigation/tabs.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { ImagesService } from '@genfeedai/services/ingredients/images.service';
 import EvaluationCard from '@ui/evaluation/card/EvaluationCard';
 import IngredientWorkspacePanel from '@ui/ingredients/detail/shared/IngredientWorkspacePanel';
 import IngredientTabsChildren from '@ui/ingredients/tabs/children/IngredientTabsChildren';
@@ -54,8 +54,8 @@ export default function IngredientDetailImage({
   onReprompt,
   onUsePrompt,
   onSeeDetails,
-  onUpdateMetadata,
-  onUpdateSharing,
+  _onUpdateMetadata,
+  _onUpdateSharing,
   onScopeChange,
   isUpscaling = false,
   isPublishing = false,

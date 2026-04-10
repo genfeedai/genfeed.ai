@@ -1,10 +1,10 @@
 'use client';
 
-import { SidebarNavigationProvider } from '@contexts/ui/sidebar-navigation-context';
+import { SidebarNavigationProvider } from '@genfeedai/contexts/ui/sidebar-navigation-context';
 import { ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { AppLayoutProps } from '@props/layout/app-layout.props';
-import type { TopbarProps } from '@props/navigation/topbar.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { AppLayoutProps } from '@genfeedai/props/layout/app-layout.props';
+import type { TopbarProps } from '@genfeedai/props/navigation/topbar.props';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import { Button } from '@ui/primitives/button';
 import {

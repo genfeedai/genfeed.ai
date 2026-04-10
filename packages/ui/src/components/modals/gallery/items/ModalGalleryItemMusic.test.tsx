@@ -12,7 +12,7 @@ vi.mock('@ui/buttons/base/Button', () => ({
   ),
 }));
 
-vi.mock('@services/core/environment.service', () => ({
+vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     ingredientsEndpoint: 'http://api.example.com/ingredients',
   },

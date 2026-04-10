@@ -1,23 +1,27 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/enums';
+import {
+  BG_BLUR,
+  BORDER_WHITE_30,
+  cn,
+} from '@genfeedai/helpers/formatting/cn/cn.util';
+import {
+  formatCompactNumber,
+  formatNumberWithCommas,
+} from '@genfeedai/helpers/formatting/format/format.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscription/use-subscription';
+import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import type {
   ICreditsEventData,
   IOrganizationEventData,
 } from '@genfeedai/interfaces';
-import { BG_BLUR, BORDER_WHITE_30, cn } from '@helpers/formatting/cn/cn.util';
-import {
-  formatCompactNumber,
-  formatNumberWithCommas,
-} from '@helpers/formatting/format/format.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useSubscription } from '@hooks/data/subscription/use-subscription/use-subscription';
-import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import type { ButtonCreditsProps } from '@props/ui/forms/button-credits.props';
-import { EnvironmentService } from '@services/core/environment.service';
-import { logger } from '@services/core/logger.service';
-import { OrganizationsService } from '@services/organization/organizations.service';
+import type { ButtonCreditsProps } from '@genfeedai/props/ui/forms/button-credits.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import { Button } from '@ui/primitives/button';
 import {
   Popover,

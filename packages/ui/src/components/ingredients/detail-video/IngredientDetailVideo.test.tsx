@@ -65,7 +65,7 @@ vi.mock('@ui/display/video-player/VideoPlayer', () => ({
   default: () => <div data-testid="video-player" />,
 }));
 
-vi.mock('@hooks/ui/evaluation/use-evaluation/use-evaluation', () => ({
+vi.mock('@genfeedai/hooks/ui/evaluation/use-evaluation/use-evaluation', () => ({
   useEvaluation: () => ({
     evaluate: vi.fn(),
     evaluation: null,
@@ -74,7 +74,7 @@ vi.mock('@hooks/ui/evaluation/use-evaluation/use-evaluation', () => ({
 }));
 
 vi.mock(
-  '@hooks/ui/ingredient/use-ingredient-metadata/use-ingredient-metadata',
+  '@genfeedai/hooks/ui/ingredient/use-ingredient-metadata/use-ingredient-metadata',
   () => ({
     useIngredientMetadata: () => ({
       isUpdating: false,
@@ -84,7 +84,7 @@ vi.mock(
 );
 
 vi.mock(
-  '@hooks/ui/ingredient/use-ingredient-sharing/use-ingredient-sharing',
+  '@genfeedai/hooks/ui/ingredient/use-ingredient-sharing/use-ingredient-sharing',
   () => ({
     useIngredientSharing: () => ({
       isUpdating: false,
@@ -93,11 +93,11 @@ vi.mock(
   }),
 );
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => vi.fn(),
 }));
 
-vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
+vi.mock('@genfeedai/hooks/utils/use-socket-manager/use-socket-manager', () => ({
   useSocketManager: () => ({
     isReady: false,
     subscribe: vi.fn(() => vi.fn()),

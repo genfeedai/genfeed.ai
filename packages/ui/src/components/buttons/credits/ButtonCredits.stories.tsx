@@ -1,8 +1,12 @@
-import { BG_BLUR, BORDER_WHITE_30, cn } from '@helpers/formatting/cn/cn.util';
+import {
+  BG_BLUR,
+  BORDER_WHITE_30,
+  cn,
+} from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   formatCompactNumber,
   formatNumberWithCommas,
-} from '@helpers/formatting/format/format.helper';
+} from '@genfeedai/helpers/formatting/format/format.helper';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import Portal from '@ui/layout/portal/Portal';
 import { useEffect, useRef, useState } from 'react';

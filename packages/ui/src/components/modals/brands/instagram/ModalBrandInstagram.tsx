@@ -1,13 +1,16 @@
 'use client';
 
 import { AlertCategory, ButtonVariant, ModalEnum } from '@genfeedai/enums';
-import { closeModal, isModalOpen } from '@helpers/ui/modal/modal.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { CredentialInstagram } from '@models/auth/credential.model';
-import type { ModalBrandInstagramProps } from '@props/modals/modal.props';
-import { logger } from '@services/core/logger.service';
-import { ServicesService } from '@services/external/services.service';
-import { CredentialsService } from '@services/organization/credentials.service';
+import {
+  closeModal,
+  isModalOpen,
+} from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import type { CredentialInstagram } from '@genfeedai/models/auth/credential.model';
+import type { ModalBrandInstagramProps } from '@genfeedai/props/modals/modal.props';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { ServicesService } from '@genfeedai/services/external/services.service';
+import { CredentialsService } from '@genfeedai/services/organization/credentials.service';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';

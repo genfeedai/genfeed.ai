@@ -3,10 +3,10 @@ import {
   elementSimpleSchema,
 } from '@genfeedai/client/schemas';
 import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
 import type { IFontFamily } from '@genfeedai/interfaces';
-import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
-import type { ModalCrudProps } from '@props/modals/modal.props';
-import { FontFamiliesService } from '@services/elements/font-families.service';
+import type { ModalCrudProps } from '@genfeedai/props/modals/modal.props';
+import { FontFamiliesService } from '@genfeedai/services/elements/font-families.service';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';

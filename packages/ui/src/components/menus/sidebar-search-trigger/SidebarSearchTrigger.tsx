@@ -1,8 +1,8 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Kbd } from '@genfeedai/ui';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import { HiMagnifyingGlass } from 'react-icons/hi2';
 

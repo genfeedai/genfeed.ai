@@ -1,13 +1,13 @@
 'use client';
 
 import { AssetScope, ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { ScopeDropdownProps } from '@props/social/scope-dropdown.props';
-import { ArticlesService } from '@services/content/articles.service';
-import { IngredientsService } from '@services/content/ingredients.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import type { ScopeDropdownProps } from '@genfeedai/props/social/scope-dropdown.props';
+import { ArticlesService } from '@genfeedai/services/content/articles.service';
+import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
 import { SCOPE_OPTIONS } from '@ui-constants/scope.constant';
@@ -60,7 +60,7 @@ export default function DropdownScope({
 
   const handleChange = async (newScope: AssetScope) => {
     try {
-      let updatedItem;
+      let updatedItem: unknown;
 
       if (isArticle) {
         // Use articles service

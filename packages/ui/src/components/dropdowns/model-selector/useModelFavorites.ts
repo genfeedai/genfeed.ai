@@ -1,11 +1,11 @@
 'use client';
 
-import { useOptionalUser } from '@contexts/user/user-context/user-context';
+import { useOptionalUser } from '@genfeedai/contexts/user/user-context/user-context';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { ISetting } from '@genfeedai/interfaces';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { User } from '@models/auth/user.model';
-import { logger } from '@services/core/logger.service';
-import { UsersService } from '@services/organization/users.service';
+import { User } from '@genfeedai/models/auth/user.model';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { UsersService } from '@genfeedai/services/organization/users.service';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 export const MODEL_FAVORITES_STORAGE_KEY = 'genfeed:model-favorite-keys';

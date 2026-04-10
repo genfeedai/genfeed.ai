@@ -2,23 +2,23 @@ import { render } from '@testing-library/react';
 import DropdownTags from '@ui/tags/dropdown/DropdownTags';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ brandId: 'brand_1' }),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => vi.fn(),
 }));
 
-vi.mock('@services/content/tags.service', () => ({
+vi.mock('@genfeedai/services/content/tags.service', () => ({
   TagsService: { getInstance: () => ({}) },
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: () => ({ error: vi.fn(), success: vi.fn() }),
   },

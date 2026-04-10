@@ -77,7 +77,7 @@ export default function ModeIndicator({
               </Button>
               <SignIn
                 routing="hash"
-                fallbackRedirectUrl="/workspace/overview"
+                fallbackRedirectUrl="/"
                 appearance={{
                   elements: {
                     card: 'shadow-2xl',

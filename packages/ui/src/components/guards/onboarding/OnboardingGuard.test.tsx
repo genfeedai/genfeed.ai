@@ -15,7 +15,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 const useCurrentUserMock = vi.fn();
-vi.mock('@contexts/user/user-context/user-context', () => ({
+vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   useCurrentUser: () => useCurrentUserMock(),
 }));
 
@@ -25,11 +25,11 @@ vi.mock('@clerk/nextjs', () => ({
 }));
 
 const useAccessStateMock = vi.fn();
-vi.mock('@providers/access-state/access-state.provider', () => ({
+vi.mock('@genfeedai/providers/access-state/access-state.provider', () => ({
   useAccessState: () => useAccessStateMock(),
 }));
 
-vi.mock('@helpers/auth/clerk.helper', () => ({
+vi.mock('@genfeedai/helpers/auth/clerk.helper', () => ({
   getPlaywrightAuthState: () => null,
 }));
 

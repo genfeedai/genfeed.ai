@@ -8,7 +8,7 @@ import {
   IngredientStatus,
 } from '@genfeedai/enums';
 import type { IFilters } from '@genfeedai/interfaces/utils/filters.interface';
-import type { FiltersBarProps } from '@props/ui/forms/filters.props';
+import type { FiltersBarProps } from '@genfeedai/props/ui/forms/filters.props';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import { Button } from '@ui/primitives/button';

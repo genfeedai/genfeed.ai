@@ -1,5 +1,5 @@
-import { CommandPaletteProvider } from '@contexts/features/command-palette.context';
 import { PLATFORM_COLORS } from '@genfeedai/constants';
+import { CommandPaletteProvider } from '@genfeedai/contexts/features/command-palette.context';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import { BrandCommandsProvider } from '@ui/command-palette/brand-commands-provider/BrandCommandsProvider';
 

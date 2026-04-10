@@ -7,8 +7,8 @@ import {
   SubscriptionTier,
 } from '@genfeedai/enums';
 import { QUALITY_TIER_OPTIONS, TIER_QUALITY_ACCESS } from '@genfeedai/helpers';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { EnvironmentService } from '@services/core/environment.service';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import { useCallback, useState } from 'react';

@@ -3,8 +3,8 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { formatDuration } from '@genfeedai/helpers';
 import type { IMetadata } from '@genfeedai/interfaces';
-import type { ModalGalleryItemMusicProps } from '@props/modals/modal-gallery.props';
-import { EnvironmentService } from '@services/core/environment.service';
+import type { ModalGalleryItemMusicProps } from '@genfeedai/props/modals/modal-gallery.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import { HiMusicalNote, HiPause, HiPlay } from 'react-icons/hi2';
 

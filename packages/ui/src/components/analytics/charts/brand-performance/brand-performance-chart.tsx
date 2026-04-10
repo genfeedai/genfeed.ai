@@ -4,8 +4,8 @@ import { AnalyticsMetric, ButtonVariant } from '@genfeedai/enums';
 import {
   formatCompactNumberIntl,
   formatFullNumber,
-} from '@helpers/formatting/format/format.helper';
-import type { BrandPerformanceChartProps } from '@props/analytics/charts.props';
+} from '@genfeedai/helpers/formatting/format/format.helper';
+import type { BrandPerformanceChartProps } from '@genfeedai/props/analytics/charts.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { useState } from 'react';

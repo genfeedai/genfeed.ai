@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth, useSession, useUser } from '@clerk/nextjs';
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
@@ -71,6 +72,7 @@ export default function SuccessContent() {
   const { session } = useSession();
   const { user } = useUser();
   const { currentUser } = useCurrentUser();
+  const { selectedBrand } = useBrand();
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -128,7 +130,18 @@ export default function SuccessContent() {
     localStorage.removeItem('gf_brand_domain');
     localStorage.removeItem('gf_onboarding_content_type');
 
-    window.location.assign('/workspace/overview');
+    const org = selectedBrand?.organization;
+    const orgSlug =
+      org && typeof org === 'object' && 'slug' in org
+        ? (org as { slug: string }).slug
+        : '';
+    const brandSlug = selectedBrand?.slug ?? '';
+
+    if (orgSlug && brandSlug) {
+      window.location.assign(`/${orgSlug}/${brandSlug}/workspace/overview`);
+    } else {
+      window.location.assign('/workspace/overview');
+    }
   };
 
   return (

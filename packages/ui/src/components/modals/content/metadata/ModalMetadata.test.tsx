@@ -1,5 +1,5 @@
-import type { ModalProps } from '@props/modals/modal.props';
-import type { BaseButtonProps } from '@props/ui/forms/button.props';
+import type { ModalProps } from '@genfeedai/props/modals/modal.props';
+import type { BaseButtonProps } from '@genfeedai/props/ui/forms/button.props';
 import { render, screen } from '@testing-library/react';
 import ModalMetadata from '@ui/modals/content/metadata/ModalMetadata';
 import type { PropsWithChildren } from 'react';
@@ -53,7 +53,7 @@ vi.mock('@ui/primitives/select', () => ({
   ),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   __esModule: true,
   default: () => () =>
     Promise.resolve({
@@ -67,12 +67,12 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
     }),
 }));
 
-vi.mock('@hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
+vi.mock('@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
   __esModule: true,
   useModalAutoOpen: () => undefined,
 }));
 
-vi.mock('@hooks/utils/use-form-submit/use-form-submit', () => ({
+vi.mock('@genfeedai/hooks/utils/use-form-submit/use-form-submit', () => ({
   __esModule: true,
   useFormSubmitWithState: () => ({
     isSubmitting: false,

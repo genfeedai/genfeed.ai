@@ -1,8 +1,8 @@
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   type WatchlistSchema,
   watchlistSchema,
 } from '@genfeedai/client/schemas';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AlertCategory,
   ButtonVariant,
@@ -10,14 +10,14 @@ import {
   PageScope,
   Platform,
 } from '@genfeedai/enums';
-import type { IBrand, IWatchlist } from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
-} from '@helpers/ui/form-error/form-error.helper';
-import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
-import type { ModalWatchlistProps } from '@props/components/modal-watchlist.props';
-import { WatchlistService } from '@services/analytics/watchlist.service';
+} from '@genfeedai/helpers/ui/form-error/form-error.helper';
+import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
+import type { IBrand, IWatchlist } from '@genfeedai/interfaces';
+import type { ModalWatchlistProps } from '@genfeedai/props/components/modal-watchlist.props';
+import { WatchlistService } from '@genfeedai/services/analytics/watchlist.service';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';

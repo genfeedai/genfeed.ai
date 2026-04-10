@@ -1,7 +1,7 @@
 'use client';
 
-import type { IngredientDropZoneProps } from '@props/ui/content/ingredient-drop-zone.props';
-import { logger } from '@services/core/logger.service';
+import type { IngredientDropZoneProps } from '@genfeedai/props/ui/content/ingredient-drop-zone.props';
+import { logger } from '@genfeedai/services/core/logger.service';
 import { readIngredientTransferData } from '@ui/drag-drop/shared/ingredient-transfer';
 import type { DragEvent } from 'react';
 import { useState } from 'react';

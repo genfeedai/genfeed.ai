@@ -8,10 +8,10 @@ import {
   ButtonVariant,
   ComponentSize,
 } from '@genfeedai/enums';
-import type { PostQuickActionsProps } from '@props/posts/post-quick-actions.props';
-import { AiActionsService } from '@services/ai/ai-actions.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
+import type { PostQuickActionsProps } from '@genfeedai/props/posts/post-quick-actions.props';
+import { AiActionsService } from '@genfeedai/services/ai/ai-actions.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import { useCallback, useState } from 'react';

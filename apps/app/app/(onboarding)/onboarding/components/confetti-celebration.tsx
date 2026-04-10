@@ -136,11 +136,9 @@ export default function ConfettiCelebration() {
   }
 
   return (
-    // biome-ignore lint/a11y/noAriaHiddenOnFocusable: decorative canvas, intentionally hidden from AT
     <canvas
       ref={canvasRef}
       className="fixed inset-0 pointer-events-none z-50"
-      aria-hidden="true"
     />
   );
 }

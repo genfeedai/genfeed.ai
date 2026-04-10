@@ -1,7 +1,7 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { MODEL_KEYS } from '@genfeedai/constants';
 import type { MediaConfig } from '@genfeedai/interfaces/ui/media-config.interface';
-import type { PromptBarSecondaryControlsRowProps } from '@props/prompt-bars/prompt-bar-layout.props';
+import type { PromptBarSecondaryControlsRowProps } from '@genfeedai/props/prompt-bars/prompt-bar-layout.props';
 import { render } from '@testing-library/react';
 import PromptBarSecondaryControlsRow from '@ui/prompt-bars/components/secondary-controls-row/PromptBarSecondaryControlsRow';
 import type { UseFormReturn } from 'react-hook-form';

@@ -1,4 +1,4 @@
-import type { QuickActionsContainerProps } from '@props/content/quick-actions.props';
+import type { QuickActionsContainerProps } from '@genfeedai/props/content/quick-actions.props';
 import { memo } from 'react';
 
 const QuickActionsContainer = memo(

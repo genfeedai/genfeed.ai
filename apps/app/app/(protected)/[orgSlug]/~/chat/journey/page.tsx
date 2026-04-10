@@ -6,6 +6,7 @@ import {
   ONBOARDING_JOURNEY_TOTAL_CREDITS,
 } from '@genfeedai/types';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
+import PageLoadingState from '@ui/loading/page/PageLoadingState';
 import Link from 'next/link';
 import { useEffect } from 'react';
 
@@ -59,11 +60,7 @@ export default function ChatJourneyPage() {
       : 0;
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-      </div>
-    );
+    return <PageLoadingState />;
   }
 
   return (

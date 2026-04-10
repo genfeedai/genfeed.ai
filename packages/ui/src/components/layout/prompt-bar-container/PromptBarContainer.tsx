@@ -1,7 +1,7 @@
 'use client';
 
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { PromptBarContainerProps } from '@props/ui/content/prompt-bar-container.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { PromptBarContainerProps } from '@genfeedai/props/ui/content/prompt-bar-container.props';
 
 const MAX_WIDTH_CLASSES: Record<string, string> = {
   '2xl': 'max-w-2xl',

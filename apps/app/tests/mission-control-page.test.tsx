@@ -142,17 +142,23 @@ vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
   ),
 }));
 
-vi.mock('@pages/mission-control/components/ActiveRunsPanel', () => ({
-  default: () => <div data-testid="active-runs-panel" />,
-}));
+vi.mock(
+  '../app/(protected)/[orgSlug]/[brandSlug]/orchestration/runs/ActiveRunsPanel',
+  () => ({
+    default: () => <div data-testid="active-runs-panel" />,
+  }),
+);
 
-vi.mock('@pages/mission-control/components/RunHistoryList', () => ({
-  default: ({ runs }: { runs: IAgentRun[] }) => (
-    <div data-testid="run-history-list">
-      {runs.map((run) => run.label).join(',')}
-    </div>
-  ),
-}));
+vi.mock(
+  '../app/(protected)/[orgSlug]/[brandSlug]/orchestration/runs/RunHistoryList',
+  () => ({
+    default: ({ runs }: { runs: IAgentRun[] }) => (
+      <div data-testid="run-history-list">
+        {runs.map((run) => run.label).join(',')}
+      </div>
+    ),
+  }),
+);
 
 function mockUseAgentRunsImplementation() {
   useAgentRunsMock.mockImplementation((options?: Record<string, unknown>) => {

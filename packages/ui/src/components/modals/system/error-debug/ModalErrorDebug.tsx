@@ -6,15 +6,15 @@ import {
   CardVariant,
   ModalEnum,
 } from '@genfeedai/enums';
+import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import type { IErrorDebugInfo } from '@genfeedai/interfaces/modals/error-debug.interface';
-import { Pre } from '@genfeedai/ui';
-import { closeModal } from '@helpers/ui/modal/modal.helper';
-import { ClipboardService } from '@services/core/clipboard.service';
+import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import {
   clearErrorDebugInfo,
   getErrorDebugInfo,
   subscribe,
-} from '@services/core/error-debug-store';
+} from '@genfeedai/services/core/error-debug-store';
+import { Pre } from '@genfeedai/ui';
 import Card from '@ui/card/Card';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';

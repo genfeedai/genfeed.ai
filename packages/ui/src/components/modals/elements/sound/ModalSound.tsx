@@ -3,11 +3,11 @@
 import { useUser } from '@clerk/nextjs';
 import { soundElementSchema } from '@genfeedai/client/schemas';
 import { ButtonVariant, ModalEnum, ModelCategory } from '@genfeedai/enums';
+import { getClerkPublicData } from '@genfeedai/helpers/auth/clerk.helper';
+import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
 import type { ISound } from '@genfeedai/interfaces';
-import { getClerkPublicData } from '@helpers/auth/clerk.helper';
-import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
-import type { ModalSoundProps } from '@props/modals/modal.props';
-import { SoundsService } from '@services/elements/sounds.service';
+import type { ModalSoundProps } from '@genfeedai/props/modals/modal.props';
+import { SoundsService } from '@genfeedai/services/elements/sounds.service';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';

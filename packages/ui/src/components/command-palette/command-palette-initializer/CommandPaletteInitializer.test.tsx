@@ -1,8 +1,8 @@
 import { useUser } from '@clerk/nextjs';
-import { getClerkPublicData } from '@helpers/auth/clerk.helper';
-import { useAdminCommandRegistration } from '@hooks/commands/use-admin-command-registration/use-admin-command-registration';
-import { useDefaultCommandsRegistration } from '@hooks/commands/use-default-commands-registration/use-default-commands-registration';
-import { useCommandPalette } from '@hooks/ui/use-command-palette/use-command-palette';
+import { getClerkPublicData } from '@genfeedai/helpers/auth/clerk.helper';
+import { useAdminCommandRegistration } from '@genfeedai/hooks/commands/use-admin-command-registration/use-admin-command-registration';
+import { useDefaultCommandsRegistration } from '@genfeedai/hooks/commands/use-default-commands-registration/use-default-commands-registration';
+import { useCommandPalette } from '@genfeedai/hooks/ui/use-command-palette/use-command-palette';
 import { render } from '@testing-library/react';
 import { CommandPaletteInitializer } from '@ui/command-palette/command-palette-initializer/CommandPaletteInitializer';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -11,23 +11,23 @@ vi.mock('@clerk/nextjs', () => ({
   useUser: vi.fn(),
 }));
 
-vi.mock('@helpers/auth/clerk.helper', () => ({
+vi.mock('@genfeedai/helpers/auth/clerk.helper', () => ({
   getClerkPublicData: vi.fn(),
 }));
 
-vi.mock('@hooks/ui/use-command-palette/use-command-palette', () => ({
+vi.mock('@genfeedai/hooks/ui/use-command-palette/use-command-palette', () => ({
   useCommandPalette: vi.fn(),
 }));
 
 vi.mock(
-  '@hooks/commands/use-default-commands-registration/use-default-commands-registration',
+  '@genfeedai/hooks/commands/use-default-commands-registration/use-default-commands-registration',
   () => ({
     useDefaultCommandsRegistration: vi.fn(),
   }),
 );
 
 vi.mock(
-  '@hooks/commands/use-admin-command-registration/use-admin-command-registration',
+  '@genfeedai/hooks/commands/use-admin-command-registration/use-admin-command-registration',
   () => ({
     useAdminCommandRegistration: vi.fn(),
   }),

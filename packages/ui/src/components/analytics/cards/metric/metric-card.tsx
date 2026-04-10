@@ -1,11 +1,11 @@
 'use client';
 
 import { TrendDirection } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   formatCompactNumberIntl,
   formatPercentage,
-} from '@helpers/formatting/format/format.helper';
+} from '@genfeedai/helpers/formatting/format/format.helper';
 import type { IconType } from 'react-icons';
 import {
   HiArrowTrendingDown,

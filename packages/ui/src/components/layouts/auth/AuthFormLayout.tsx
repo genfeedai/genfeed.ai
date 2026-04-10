@@ -1,8 +1,8 @@
 'use client';
 
-import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
-import type { AuthFormLayoutProps } from '@props/layout/auth-form-layout.props';
-import { EnvironmentService } from '@services/core/environment.service';
+import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo';
+import type { AuthFormLayoutProps } from '@genfeedai/props/layout/auth-form-layout.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Image from 'next/image';
 
 export default function AuthFormLayout({ children }: AuthFormLayoutProps) {

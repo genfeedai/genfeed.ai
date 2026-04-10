@@ -5,16 +5,16 @@ import {
   ModalEnum,
   TagCategory,
 } from '@genfeedai/enums';
-import type { ITag } from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
-} from '@helpers/ui/form-error/form-error.helper';
-import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
-import type { Tag } from '@models/content/tag.model';
-import type { ModalTagProps } from '@props/modals/modal.props';
-import { TagsService } from '@services/content/tags.service';
-import type { BaseService } from '@services/core/base.service';
+} from '@genfeedai/helpers/ui/form-error/form-error.helper';
+import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
+import type { ITag } from '@genfeedai/interfaces';
+import type { Tag } from '@genfeedai/models/content/tag.model';
+import type { ModalTagProps } from '@genfeedai/props/modals/modal.props';
+import { TagsService } from '@genfeedai/services/content/tags.service';
+import type { BaseService } from '@genfeedai/services/core/base.service';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';

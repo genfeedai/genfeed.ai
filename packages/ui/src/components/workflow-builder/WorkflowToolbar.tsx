@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
-import type { WorkflowToolbarProps } from '@props/automation/workflow-builder.props';
+import type { WorkflowToolbarProps } from '@genfeedai/props/automation/workflow-builder.props';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import {
@@ -14,7 +14,7 @@ import {
 } from 'react-icons/hi2';
 
 export default function WorkflowToolbar({
-  workflowId,
+  _workflowId,
   workflowLabel,
   isDirty,
   isSaving,

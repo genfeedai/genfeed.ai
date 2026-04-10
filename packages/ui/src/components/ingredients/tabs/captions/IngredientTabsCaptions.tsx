@@ -7,16 +7,16 @@ import {
   ButtonVariant,
   CaptionFormat,
 } from '@genfeedai/enums';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useResource } from '@genfeedai/hooks/data/resource/use-resource/use-resource';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { ICaption, IFieldOption, IMetadata } from '@genfeedai/interfaces';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { Caption } from '@models/content/caption.model';
-import type { IngredientTabsCaptionsProps } from '@props/content/ingredient.props';
-import { CaptionsService } from '@services/content/captions.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
-import { VideosService } from '@services/ingredients/videos.service';
+import type { Caption } from '@genfeedai/models/content/caption.model';
+import type { IngredientTabsCaptionsProps } from '@genfeedai/props/content/ingredient.props';
+import { CaptionsService } from '@genfeedai/services/content/captions.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { VideosService } from '@genfeedai/services/ingredients/videos.service';
 import Card from '@ui/card/Card';
 import Alert from '@ui/feedback/alert/Alert';
 import Loading from '@ui/loading/default/Loading';

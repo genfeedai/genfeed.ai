@@ -7,7 +7,6 @@
     "@genfeedai/props": "workspace:*",
     "@genfeedai/providers": "workspace:*",
     "@genfeedai/services": "workspace:*",
-    "@genfeedai/ui": "workspace:*",
     "@genfeedai/utils": "workspace:*",
     "@xyflow/react": "12.10.2",
     "@growthbook/growthbook-react": "1.6.5",

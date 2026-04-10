@@ -5,13 +5,6 @@ import type { IBatchItem, IBatchSummary } from '@genfeedai/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import PostDetailOverlay from '@pages/posts/detail/PostDetailOverlay';
-import ReviewGrid, {
-  getReviewFilterCounts,
-  getVisibleReviewItems,
-  type ReviewFilter,
-} from '@pages/review/components/ReviewGrid';
-import ReviewStatsHeader from '@pages/review/components/ReviewStatsHeader';
-import { isReadyToReview } from '@pages/review/components/review-state';
 import { BatchesService } from '@services/batch/batches.service';
 import { logger } from '@services/core/logger.service';
 import Container from '@ui/layout/container/Container';
@@ -29,6 +22,13 @@ import {
   HiOutlineClipboardDocumentCheck,
   HiOutlineExclamationTriangle,
 } from 'react-icons/hi2';
+import ReviewGrid, {
+  getReviewFilterCounts,
+  getVisibleReviewItems,
+  type ReviewFilter,
+} from './components/ReviewGrid';
+import ReviewStatsHeader from './components/ReviewStatsHeader';
+import { isReadyToReview } from './components/review-state';
 
 function getBatchOptionLabel(batch: IBatchSummary): string {
   return `Batch ${batch.id.slice(-6)} - ${batch.totalCount} items (${batch.status})`;

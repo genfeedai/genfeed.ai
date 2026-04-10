@@ -1,7 +1,7 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AlertCategory,
   type AssetScope,
@@ -11,28 +11,32 @@ import {
   IngredientStatus,
   ModalEnum,
 } from '@genfeedai/enums';
+import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/format.helper';
+import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useResource } from '@genfeedai/hooks/data/resource/use-resource/use-resource';
+import { stopAndResetVideo } from '@genfeedai/hooks/media/video-utils/video.utils';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { useIngredientActions } from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
+import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
-import { formatNumberWithCommas } from '@helpers/formatting/format/format.helper';
-import { closeModal } from '@helpers/ui/modal/modal.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
-import { stopAndResetVideo } from '@hooks/media/video-utils/video.utils';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useIngredientActions } from '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
-import { useModalAutoOpen } from '@hooks/ui/use-modal-auto-open/use-modal-auto-open';
-import type { IngredientOverlayProps } from '@props/modals/modal.props';
+import type { IngredientOverlayProps } from '@genfeedai/props/modals/modal.props';
 import {
   useConfirmModal,
   usePostModal,
-} from '@providers/global-modals/global-modals.provider';
-import { IngredientsService } from '@services/content/ingredients.service';
-import { ClipboardService } from '@services/core/clipboard.service';
-import { EnvironmentService } from '@services/core/environment.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
-import { GIFsService } from '@services/ingredients/gifs.service';
-import { ImagesService } from '@services/ingredients/images.service';
-import { VideosService } from '@services/ingredients/videos.service';
+} from '@genfeedai/providers/global-modals/global-modals.provider';
+import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
+import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { GIFsService } from '@genfeedai/services/ingredients/gifs.service';
+import { ImagesService } from '@genfeedai/services/ingredients/images.service';
+import { VideosService } from '@genfeedai/services/ingredients/videos.service';
+import {
+  isImageIngredient,
+  isVideoIngredient,
+} from '@genfeedai/utils/media/ingredient-type.util';
 import Alert from '@ui/feedback/alert/Alert';
 import IngredientDetailImage from '@ui/ingredients/detail-image/IngredientDetailImage';
 import IngredientDetailVideo from '@ui/ingredients/detail-video/IngredientDetailVideo';
@@ -40,10 +44,6 @@ import TextOverlayPanel from '@ui/ingredients/text-overlay-panel/TextOverlayPane
 import Loading from '@ui/loading/default/Loading';
 import EntityOverlayShell from '@ui/overlays/entity/EntityOverlayShell';
 import { Button } from '@ui/primitives/button';
-import {
-  isImageIngredient,
-  isVideoIngredient,
-} from '@utils/media/ingredient-type.util';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -305,7 +305,7 @@ export default function IngredientOverlay({
       const targetRoute = isIngredientVideo ? '/studio/video' : '/studio/image';
 
       // Import dynamically to avoid circular dependency
-      import('@utils/url/prompt-config-url.util').then(
+      import('@genfeedai/utils/url/prompt-config-url.util').then(
         ({ buildUsePromptUrl }) => {
           const url = buildUsePromptUrl(ingredientToUse, targetRoute);
           closeModal(ModalEnum.INGREDIENT);

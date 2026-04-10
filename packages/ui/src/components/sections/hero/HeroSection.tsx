@@ -1,7 +1,7 @@
 'use client';
 
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { HeroSectionProps } from '@props/sections/hero.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { HeroSectionProps } from '@genfeedai/props/sections/hero.props';
 import Link from 'next/link';
 import { memo } from 'react';
 

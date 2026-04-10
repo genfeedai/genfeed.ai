@@ -1,13 +1,13 @@
 'use client';
 
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { NavigationTab } from '@genfeedai/interfaces/ui/navigation.interface';
-import { cn } from '@helpers/formatting/cn/cn.util';
 import type {
   RouteTabItem,
   TabItem,
   TabsEnhancedProps,
   TabsItem,
-} from '@props/ui/navigation/tabs.props';
+} from '@genfeedai/props/ui/navigation/tabs.props';
 import { TabsList, Tabs as TabsRoot, TabsTrigger } from '@ui/primitives/tabs';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';

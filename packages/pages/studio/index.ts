@@ -2,13 +2,8 @@
 
 export { default as StudioCanvas } from '@pages/studio/canvas/StudioCanvas';
 export { default as StudioEditTopbar } from '@pages/studio/edit-topbar/StudioEditTopbar';
-export { EditorPreview } from '@pages/studio/editor/EditorPreview';
-export { EditorTimeline } from '@pages/studio/editor/EditorTimeline';
-export { EditorToolbar } from '@pages/studio/editor/EditorToolbar';
-export { default as EditorPageContent } from '@pages/studio/editor/editor-page-content';
 export { default as CanvasGallery } from '@pages/studio/gallery/CanvasGallery';
 export { StudioGenerateLayout } from '@pages/studio/generate';
-export { default as GenerationFeatureGuard } from '@pages/studio/guards/GenerationFeatureGuard';
 export { default as MaskEditor } from '@pages/studio/mask-editor/MaskEditor';
 export { default as StudioPage } from '@pages/studio/page/StudioPage';
 export { default as PromptBarsImageMerge } from '@pages/studio/prompt-bars/PromptBarsImageMerge';

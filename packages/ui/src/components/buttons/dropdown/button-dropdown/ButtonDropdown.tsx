@@ -1,8 +1,8 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { ButtonDropdownProps } from '@props/ui/forms/button.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { ButtonDropdownProps } from '@genfeedai/props/ui/forms/button.props';
 import {
   buttonVariants,
   Button as PrimitiveButton,

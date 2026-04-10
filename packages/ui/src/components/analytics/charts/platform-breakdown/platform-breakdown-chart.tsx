@@ -1,7 +1,7 @@
 'use client';
 
-import { formatFullNumber } from '@helpers/formatting/format/format.helper';
-import type { PlatformBreakdownChartProps } from '@props/analytics/analytics.props';
+import { formatFullNumber } from '@genfeedai/helpers/formatting/format/format.helper';
+import type { PlatformBreakdownChartProps } from '@genfeedai/props/analytics/analytics.props';
 import Card from '@ui/card/Card';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 

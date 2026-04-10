@@ -476,7 +476,7 @@ export class OnboardingService {
       await this.upsertBrandWebsiteLink(targetBrand._id, dto.brandUrl);
       await this.updateBrandGuidance(targetBrand._id, extractedData);
 
-      // 6b. Sync organization label and slug
+      // 6b. Sync organization and brand label and slug
       if (resolvedLabel) {
         const slug =
           await this.organizationsService.generateUniqueSlug(resolvedLabel);
@@ -484,6 +484,7 @@ export class OnboardingService {
           label: resolvedLabel,
           slug,
         });
+        await this.brandsService.patch(targetBrand._id, { slug });
       }
 
       await this.unlockCompanyInfoJourneyReward(organizationId.toString());
@@ -625,7 +626,7 @@ export class OnboardingService {
         await this.brandsService.patch(brand._id, updateData);
       }
 
-      // Sync organization label and slug when brand label is updated
+      // Sync organization and brand label and slug when brand label is updated
       if (dto.label) {
         const slug = await this.organizationsService.generateUniqueSlug(
           dto.label,
@@ -634,6 +635,7 @@ export class OnboardingService {
           label: dto.label,
           slug,
         });
+        await this.brandsService.patch(brand._id, { slug });
       }
 
       // Update canonical brand guidance if voice overrides provided

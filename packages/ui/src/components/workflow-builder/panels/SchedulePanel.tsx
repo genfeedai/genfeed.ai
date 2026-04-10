@@ -2,10 +2,10 @@
 
 import { useAuth } from '@clerk/nextjs';
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
-import { resolveClerkToken } from '@helpers/auth/clerk.helper';
-import { formatRecurringSchedule } from '@helpers/formatting/recurring-schedule/recurring-schedule.helper';
-import { EnvironmentService } from '@services/core/environment.service';
-import { NotificationsService } from '@services/core/notifications.service';
+import { resolveClerkToken } from '@genfeedai/helpers/auth/clerk.helper';
+import { formatRecurringSchedule } from '@genfeedai/helpers/formatting/recurring-schedule/recurring-schedule.helper';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';

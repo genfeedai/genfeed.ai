@@ -1,6 +1,6 @@
 import { ComponentSize } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { MergeProgressBarsProps } from '@props/studio/merge.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { MergeProgressBarsProps } from '@genfeedai/props/studio/merge.props';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { HiCheckCircle, HiXCircle } from 'react-icons/hi2';
 

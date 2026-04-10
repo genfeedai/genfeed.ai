@@ -10,17 +10,17 @@ import {
   ReplyBotPlatform,
   ReplyBotType,
 } from '@genfeedai/enums';
+import {
+  hasFormErrors,
+  parseFormErrors,
+} from '@genfeedai/helpers/ui/form-error/form-error.helper';
+import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
 import type {
   IReplyBotConfig,
   IReplyBotRateLimits,
 } from '@genfeedai/interfaces';
-import {
-  hasFormErrors,
-  parseFormErrors,
-} from '@helpers/ui/form-error/form-error.helper';
-import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
-import type { ModalReplyBotProps } from '@props/modals/modal.props';
-import { ReplyBotConfigsService } from '@services/automation/reply-bot-configs.service';
+import type { ModalReplyBotProps } from '@genfeedai/props/modals/modal.props';
+import { ReplyBotConfigsService } from '@genfeedai/services/automation/reply-bot-configs.service';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';

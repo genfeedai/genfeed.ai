@@ -1,7 +1,7 @@
 import { ButtonSize, ButtonVariant, ModalEnum } from '@genfeedai/enums';
-import { closeModal } from '@helpers/ui/modal/modal.helper';
-import { useModalAutoOpen } from '@hooks/ui/use-modal-auto-open/use-modal-auto-open';
-import type { ModalConfirmProps } from '@props/modals/modal.props';
+import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
+import type { ModalConfirmProps } from '@genfeedai/props/modals/modal.props';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';

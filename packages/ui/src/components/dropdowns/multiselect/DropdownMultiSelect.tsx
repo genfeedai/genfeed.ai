@@ -6,9 +6,9 @@ import {
   ComponentSize,
   DropdownDirection,
 } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import * as formatHelper from '@helpers/formatting/format/format.helper';
-import type { MultiSelectDropdownProps } from '@props/ui/forms/button.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import * as formatHelper from '@genfeedai/helpers/formatting/format/format.helper';
+import type { MultiSelectDropdownProps } from '@genfeedai/props/ui/forms/button.props';
 import {
   Button,
   buttonVariants,

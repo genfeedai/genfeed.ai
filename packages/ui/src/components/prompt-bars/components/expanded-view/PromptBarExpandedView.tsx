@@ -6,8 +6,8 @@ import {
   ModelCategory,
   TagCategory,
 } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { PromptBarExpandedViewProps } from '@props/studio/prompt-bar.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { PromptBarExpandedViewProps } from '@genfeedai/props/studio/prompt-bar.props';
 import PromptBarAttachedAssetsTray from '@ui/prompt-bars/components/attached-assets-tray/PromptBarAttachedAssetsTray';
 import PromptBarEssentials from '@ui/prompt-bars/components/essentials/PromptBarEssentials';
 import PromptBarFolderSelector from '@ui/prompt-bars/components/folder-selector/PromptBarFolderSelector';

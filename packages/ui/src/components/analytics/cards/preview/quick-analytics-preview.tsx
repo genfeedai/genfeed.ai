@@ -1,10 +1,10 @@
 'use client';
 
-import type { IAnalytics } from '@genfeedai/interfaces';
 import {
   formatCompactNumberIntl,
   formatPercentage,
-} from '@helpers/formatting/format/format.helper';
+} from '@genfeedai/helpers/formatting/format/format.helper';
+import type { IAnalytics } from '@genfeedai/interfaces';
 import Link from 'next/link';
 import {
   HiArrowRight,

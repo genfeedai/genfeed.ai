@@ -10,8 +10,8 @@ import {
   hasQualityAccess,
   QUALITY_TIER_OPTIONS,
 } from '@genfeedai/helpers';
-import { openModal } from '@helpers/ui/modal/modal.helper';
-import type { PromptBarQualityControlsProps } from '@props/studio/prompt-bar.props';
+import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import type { PromptBarQualityControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import { type ChangeEvent, memo, useCallback } from 'react';
 import { HiLockClosed, HiSparkles } from 'react-icons/hi2';

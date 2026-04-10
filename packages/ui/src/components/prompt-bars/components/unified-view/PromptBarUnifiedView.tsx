@@ -5,7 +5,7 @@ import {
   IngredientCategory,
   TagCategory,
 } from '@genfeedai/enums';
-import type { PromptBarUnifiedViewProps } from '@props/studio/prompt-bar.props';
+import type { PromptBarUnifiedViewProps } from '@genfeedai/props/studio/prompt-bar.props';
 import PromptBarEssentials from '@ui/prompt-bars/components/essentials/PromptBarEssentials';
 import PromptBarFolderSelector from '@ui/prompt-bars/components/folder-selector/PromptBarFolderSelector';
 import PromptBarMetadataSelectors from '@ui/prompt-bars/components/metadata-selectors/PromptBarMetadataSelectors';

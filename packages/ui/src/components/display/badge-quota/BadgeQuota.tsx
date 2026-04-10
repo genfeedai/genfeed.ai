@@ -1,5 +1,5 @@
 import { ComponentSize } from '@genfeedai/enums';
-import type { BadgeQuotaProps } from '@props/ui/display/badge.props';
+import type { BadgeQuotaProps } from '@genfeedai/props/ui/display/badge.props';
 import Badge from '@ui/display/badge/Badge';
 
 function getVariant(

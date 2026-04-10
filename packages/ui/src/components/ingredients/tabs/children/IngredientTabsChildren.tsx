@@ -1,11 +1,11 @@
 'use client';
 
 import { TransformationCategory } from '@genfeedai/enums';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { IIngredient } from '@genfeedai/interfaces';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { ExtendedIngredientTabsChildrenProps } from '@props/content/ingredient.props';
-import { IngredientsService } from '@services/content/ingredients.service';
-import { logger } from '@services/core/logger.service';
+import type { ExtendedIngredientTabsChildrenProps } from '@genfeedai/props/content/ingredient.props';
+import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
+import { logger } from '@genfeedai/services/core/logger.service';
 import Card from '@ui/card/Card';
 import { LazyMasonryGrid } from '@ui/lazy/masonry/LazyMasonry';
 import Loading from '@ui/loading/default/Loading';

@@ -1,8 +1,8 @@
 'use client';
 
 import { AlertCategory } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { KPISectionProps } from '@props/ui/kpi/kpi-section.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { KPISectionProps } from '@genfeedai/props/ui/kpi/kpi-section.props';
 import Alert from '@ui/feedback/alert/Alert';
 import KPICard from '@ui/kpi/kpi-card/KPICard';
 

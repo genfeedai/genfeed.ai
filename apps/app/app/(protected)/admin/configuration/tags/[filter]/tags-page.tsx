@@ -3,14 +3,14 @@
 import { ButtonVariant, ModalEnum, PageScope } from '@genfeedai/enums';
 import type { IFiltersState } from '@genfeedai/interfaces/utils/filters.interface';
 import { openModal } from '@helpers/ui/modal/modal.helper';
-import TagsLayout from '@pages/tags/layout/tags-layout';
-import TagsList from '@pages/tags/list/tags-list';
 import type { ContentProps } from '@props/layout/content.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
 import { Button } from '@ui/primitives/button';
 import { useState } from 'react';
 import { HiPlus } from 'react-icons/hi2';
+import TagsLayout from './tags-layout';
+import TagsList from './tags-list';
 
 export interface ITagsPageProps {
   scope: ContentProps['scope'];

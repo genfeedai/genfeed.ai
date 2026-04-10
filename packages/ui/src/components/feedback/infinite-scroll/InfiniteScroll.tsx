@@ -1,6 +1,6 @@
 'use client';
 
-import type { InfiniteScrollProps } from '@props/ui/content/infinite-scroll.props';
+import type { InfiniteScrollProps } from '@genfeedai/props/ui/content/infinite-scroll.props';
 import Loading from '@ui/loading/default/Loading';
 import { useEffect, useRef } from 'react';
 

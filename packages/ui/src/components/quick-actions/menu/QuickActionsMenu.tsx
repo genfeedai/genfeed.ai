@@ -1,8 +1,12 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
-import { BG_BLUR, BORDER_WHITE_30, cn } from '@helpers/formatting/cn/cn.util';
-import type { QuickActionsMenuProps } from '@props/content/quick-actions.props';
+import {
+  BG_BLUR,
+  BORDER_WHITE_30,
+  cn,
+} from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { QuickActionsMenuProps } from '@genfeedai/props/content/quick-actions.props';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';

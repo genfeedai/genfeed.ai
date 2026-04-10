@@ -4,7 +4,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import IngredientTabsInfo from '@ui/ingredients/tabs/info/IngredientTabsInfo';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
     organizationId: 'org-1',
     refreshBrands: vi.fn(),
@@ -12,17 +12,20 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   })),
 }));
 
-vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
-  useOrganization: vi.fn(() => ({
-    refresh: vi.fn(),
-  })),
-}));
+vi.mock(
+  '@genfeedai/hooks/data/organization/use-organization/use-organization',
+  () => ({
+    useOrganization: vi.fn(() => ({
+      refresh: vi.fn(),
+    })),
+  }),
+);
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => vi.fn()),
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(() => ({
       error: vi.fn(),

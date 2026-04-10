@@ -1,5 +1,5 @@
 import { PageScope } from '@genfeedai/enums';
-import type { IngredientsListSidebarProps } from '@props/pages/ingredients-list.props';
+import type { IngredientsListSidebarProps } from '@genfeedai/props/pages/ingredients-list.props';
 import { render } from '@testing-library/react';
 import IngredientsListSidebar from '@ui/ingredients/list/sidebar/IngredientsListSidebar';
 import { describe, expect, it, vi } from 'vitest';

@@ -1,7 +1,7 @@
 'use client';
 
 import { ComponentSize, IngredientFormat } from '@genfeedai/enums';
-import type { ModalGalleryItemImageProps } from '@props/modals/modal-gallery.props';
+import type { ModalGalleryItemImageProps } from '@genfeedai/props/modals/modal-gallery.props';
 import Badge from '@ui/display/badge/Badge';
 import MasonryImage from '@ui/masonry/image/MasonryImage';
 

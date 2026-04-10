@@ -1,6 +1,8 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Button } from '@ui/primitives/button';
 
 interface SelectableButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -20,7 +22,7 @@ export function SelectableButton({
   ...props
 }: SelectableButtonProps): React.JSX.Element {
   return (
-    <button
+    <Button
       className={cn(
         'p-2 border flex items-center gap-1 text-xs transition',
         selected
@@ -28,10 +30,11 @@ export function SelectableButton({
           : 'border-white/[0.08] hover:bg-muted',
         className,
       )}
+      variant={ButtonVariant.UNSTYLED}
       {...props}
     >
       {icon}
       {children}
-    </button>
+    </Button>
   );
 }

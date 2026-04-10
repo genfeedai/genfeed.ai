@@ -1,8 +1,8 @@
 'use client';
 
 import { ButtonVariant, CardVariant } from '@genfeedai/enums';
-import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
-import type { TrendingSoundsProps } from '@props/analytics/trends.props';
+import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
+import type { TrendingSoundsProps } from '@genfeedai/props/analytics/trends.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';

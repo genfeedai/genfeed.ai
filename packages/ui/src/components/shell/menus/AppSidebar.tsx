@@ -5,7 +5,7 @@ import type {
   MenuPrimaryActionConfig,
   MenuSharedProps,
   MenuShellConfig,
-} from '@props/navigation/menu.props';
+} from '@genfeedai/props/navigation/menu.props';
 import MenuShared from '@ui/menus/shared/MenuShared';
 import type { ReactNode } from 'react';
 import { useMemo } from 'react';

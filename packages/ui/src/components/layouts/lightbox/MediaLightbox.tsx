@@ -2,7 +2,7 @@
 
 import { IngredientCategory } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
-import type { MediaLightboxProps } from '@props/layout/media-lightbox.props';
+import type { MediaLightboxProps } from '@genfeedai/props/layout/media-lightbox.props';
 import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import 'yet-another-react-lightbox/plugins/captions.css';
@@ -178,6 +178,7 @@ export default function MediaLightbox({
                   width: '100%',
                 }}
               >
+                {/* biome-ignore lint/a11y/useMediaCaption: user-generated video content */}
                 <video
                   src={videoSlide.sources?.[0]?.src}
                   poster={thumbnailSrc}

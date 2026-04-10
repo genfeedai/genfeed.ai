@@ -1,35 +1,38 @@
 import '@testing-library/jest-dom';
-import * as workflowBuilderHook from '@hooks/automation/use-workflow-builder/use-workflow-builder';
+import * as workflowBuilderHook from '@genfeedai/hooks/automation/use-workflow-builder/use-workflow-builder';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import WorkflowBuilder from '@ui/workflow-builder/WorkflowBuilder';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock the hook
-vi.mock('@hooks/automation/use-workflow-builder/use-workflow-builder', () => ({
-  useWorkflowBuilder: vi.fn(() => ({
-    edges: [],
-    error: null,
-    inputVariables: [],
-    isDirty: false,
-    isLoading: false,
-    isSaving: false,
-    nodes: [],
-    nodesByCategory: {},
-    onAddNode: vi.fn(),
-    onAddVariable: vi.fn(),
-    onConnect: vi.fn(),
-    onDeleteVariable: vi.fn(),
-    onEdgesChange: vi.fn(),
-    onNodeSelect: vi.fn(),
-    onNodesChange: vi.fn(),
-    onUpdateNodeConfig: vi.fn(),
-    onUpdateVariable: vi.fn(),
-    runWorkflow: vi.fn(),
-    saveWorkflow: vi.fn(),
-    selectedNodeId: null,
-    validateWorkflow: vi.fn(),
-  })),
-}));
+vi.mock(
+  '@genfeedai/hooks/automation/use-workflow-builder/use-workflow-builder',
+  () => ({
+    useWorkflowBuilder: vi.fn(() => ({
+      edges: [],
+      error: null,
+      inputVariables: [],
+      isDirty: false,
+      isLoading: false,
+      isSaving: false,
+      nodes: [],
+      nodesByCategory: {},
+      onAddNode: vi.fn(),
+      onAddVariable: vi.fn(),
+      onConnect: vi.fn(),
+      onDeleteVariable: vi.fn(),
+      onEdgesChange: vi.fn(),
+      onNodeSelect: vi.fn(),
+      onNodesChange: vi.fn(),
+      onUpdateNodeConfig: vi.fn(),
+      onUpdateVariable: vi.fn(),
+      runWorkflow: vi.fn(),
+      saveWorkflow: vi.fn(),
+      selectedNodeId: null,
+      validateWorkflow: vi.fn(),
+    })),
+  }),
+);
 
 describe('WorkflowBuilder', () => {
   const defaultProps = {

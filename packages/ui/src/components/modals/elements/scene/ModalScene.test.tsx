@@ -7,7 +7,7 @@ vi.mock('@ui/modals/modal/Modal', () => ({
   default: ({ children }: any) => <div data-testid="modal">{children}</div>,
 }));
 
-vi.mock('@hooks/ui/use-crud-modal/use-crud-modal', () => ({
+vi.mock('@genfeedai/hooks/ui/use-crud-modal/use-crud-modal', () => ({
   useCrudModal: () => ({
     closeModal: vi.fn(),
     form: {
@@ -35,7 +35,7 @@ vi.mock('@clerk/nextjs', () => ({
   }),
 }));
 
-vi.mock('@helpers/auth/clerk.helper', () => ({
+vi.mock('@genfeedai/helpers/auth/clerk.helper', () => ({
   getClerkPublicData: () => ({ isSuperAdmin: false }),
 }));
 

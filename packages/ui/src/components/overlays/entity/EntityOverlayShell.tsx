@@ -1,13 +1,13 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   closeModal,
   isModalOpen,
   openModal,
   subscribeModal,
-} from '@helpers/ui/modal/modal.helper';
+} from '@genfeedai/helpers/ui/modal/modal.helper';
 import {
   AGENT_PANEL_DESKTOP_MEDIA_QUERY,
   AGENT_PANEL_STATE_CHANGED_EVENT,
@@ -17,7 +17,7 @@ import {
   dispatchEntityOverlayOpened,
   getStoredAgentPanelOpenState,
   isDesktopAgentViewport,
-} from '@services/core/agent-overlay-coordination.service';
+} from '@genfeedai/services/core/agent-overlay-coordination.service';
 import { Button } from '@ui/primitives/button';
 import {
   Sheet,

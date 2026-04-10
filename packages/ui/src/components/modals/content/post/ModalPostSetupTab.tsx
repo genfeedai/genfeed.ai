@@ -1,19 +1,19 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ButtonSize,
   ButtonVariant,
   IngredientCategory,
   PromptCategory,
 } from '@genfeedai/enums';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useWebsocketPrompt } from '@hooks/utils/use-websocket-prompt/use-websocket-prompt';
-import { Prompt } from '@models/content/prompt.model';
-import type { ModalPostSetupTabProps } from '@props/modals/modal.props';
-import { PromptsService } from '@services/content/prompts.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useWebsocketPrompt } from '@genfeedai/hooks/utils/use-websocket-prompt/use-websocket-prompt';
+import { Prompt } from '@genfeedai/models/content/prompt.model';
+import type { ModalPostSetupTabProps } from '@genfeedai/props/modals/modal.props';
+import { PromptsService } from '@genfeedai/services/content/prompts.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { Button } from '@ui/primitives/button';
 import FormDateTimePicker from '@ui/primitives/date-time-picker';
 import FormControl from '@ui/primitives/field';

@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Switch } from '@ui/primitives/switch';
 
 export interface ToggleProps {
   checked: boolean;
@@ -39,25 +40,18 @@ export default function Toggle({
   const sizes = sizeClasses[size];
 
   return (
-    <button
-      type="button"
-      onClick={onChange}
-      disabled={disabled}
-      className={cn(
-        'relative inline-flex items-center rounded-full transition-colors',
+    <Switch
+      checked={checked}
+      isDisabled={disabled}
+      switchClassName={cn(
+        'relative inline-flex items-center rounded-full transition-colors border-0 shadow-none',
         sizes.track,
         checked ? 'bg-primary' : 'bg-muted',
         disabled && 'opacity-50 cursor-not-allowed',
         className,
       )}
-    >
-      <span
-        className={cn(
-          'inline-block transform rounded-full bg-white transition-transform shadow-sm',
-          sizes.knob,
-          checked ? sizes.translateActive : sizes.translateInactive,
-        )}
-      />
-    </button>
+      className="border-0 shadow-none"
+      onCheckedChange={() => onChange()}
+    />
   );
 }

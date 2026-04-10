@@ -1,7 +1,7 @@
 'use client';
 
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { TrendBadgeProps } from '@props/ui/display/trend-badge.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { TrendBadgeProps } from '@genfeedai/props/ui/display/trend-badge.props';
 import { memo } from 'react';
 import {
   HiArrowTrendingDown,

@@ -5,9 +5,9 @@ import {
   IngredientCategory,
   ModelCategory,
 } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { getVideoResolutionsByModel } from '@helpers/media/video-resolution/video-resolution.helper';
-import type { PromptBarQuickOptionsProps } from '@props/prompt-bars/prompt-bar-tiers.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { getVideoResolutionsByModel } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
+import type { PromptBarQuickOptionsProps } from '@genfeedai/props/prompt-bars/prompt-bar-tiers.props';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormDropdown from '@ui/primitives/dropdown-field';

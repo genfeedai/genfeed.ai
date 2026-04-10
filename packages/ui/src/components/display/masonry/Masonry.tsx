@@ -1,6 +1,6 @@
 'use client';
 
-import type { MasonryProps } from '@props/content/masonry.props';
+import type { MasonryProps } from '@genfeedai/props/content/masonry.props';
 import { Children, useEffect, useMemo, useRef, useState } from 'react';
 
 const BREAKPOINTS = [

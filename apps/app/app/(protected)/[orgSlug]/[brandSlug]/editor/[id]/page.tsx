@@ -6,9 +6,7 @@ import dynamic from 'next/dynamic';
 import { Suspense } from 'react';
 
 export const generateMetadata = createPageMetadata('Editor');
-const EditorPageContent = dynamic(
-  () => import('@pages/studio/editor/editor-page-content'),
-);
+const EditorPageContent = dynamic(() => import('./editor-page-content'));
 
 export default async function EditorDetailPage({ params }: DetailPageProps) {
   const { id } = await params;

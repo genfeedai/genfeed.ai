@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import type { IBrand } from '@genfeedai/interfaces';
 import { useParams } from 'next/navigation';
 
 export interface OrgUrlContext {
@@ -10,6 +11,21 @@ export interface OrgUrlContext {
   href: (path: string) => string;
   /** Build an org-level URL: /:orgSlug/~/path */
   orgHref: (path: string) => string;
+}
+
+function getBrandOrganizationSlug(brand: IBrand | null | undefined): string {
+  const organization = brand?.organization;
+
+  if (
+    organization &&
+    typeof organization === 'object' &&
+    'slug' in organization &&
+    typeof organization.slug === 'string'
+  ) {
+    return organization.slug;
+  }
+
+  return '';
 }
 
 /**
@@ -31,7 +47,8 @@ export function useOrgUrl(): OrgUrlContext {
   const params = useParams<{ orgSlug: string; brandSlug: string }>();
   const { selectedBrand } = useBrand();
 
-  const orgSlug = params.orgSlug ?? '';
+  const orgSlug =
+    params.orgSlug ?? getBrandOrganizationSlug(selectedBrand) ?? '';
   // On org-level pages (/:orgSlug/~/...) brandSlug is absent from params.
   // Fall back to the active brand slug from context so href() still works.
   const brandSlug = params.brandSlug ?? selectedBrand?.slug ?? '';

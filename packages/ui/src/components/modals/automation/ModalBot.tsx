@@ -12,19 +12,19 @@ import {
   Platform,
   PublishingFrequency,
 } from '@genfeedai/enums';
+import {
+  hasFormErrors,
+  parseFormErrors,
+} from '@genfeedai/helpers/ui/form-error/form-error.helper';
+import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
 import type {
   IBot,
   IEngagementBotSettings,
   IMonitoringBotSettings,
   IPublishingBotSettings,
 } from '@genfeedai/interfaces';
-import {
-  hasFormErrors,
-  parseFormErrors,
-} from '@helpers/ui/form-error/form-error.helper';
-import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
-import type { ModalBotProps } from '@props/modals/modal.props';
-import { BotsService } from '@services/automation/bots.service';
+import type { ModalBotProps } from '@genfeedai/props/modals/modal.props';
+import { BotsService } from '@genfeedai/services/automation/bots.service';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';

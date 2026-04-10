@@ -4,7 +4,7 @@ import type {
   ISetting,
   TrendNotificationFrequency,
 } from '@genfeedai/interfaces';
-import type { TrendNotificationSettingsProps } from '@props/settings/notifications.props';
+import type { TrendNotificationSettingsProps } from '@genfeedai/props/settings/notifications.props';
 import { Input } from '@ui/primitives/input';
 import FormRange from '@ui/primitives/range-field';
 import { SelectField } from '@ui/primitives/select';

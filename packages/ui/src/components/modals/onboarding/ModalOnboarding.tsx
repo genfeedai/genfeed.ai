@@ -7,12 +7,12 @@ import {
   ModalEnum,
   OnboardingStep,
 } from '@genfeedai/enums';
+import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import type { IExtractedBrandData } from '@genfeedai/interfaces';
-import { closeModal } from '@helpers/ui/modal/modal.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useModalAutoOpen } from '@hooks/ui/use-modal-auto-open/use-modal-auto-open';
-import { logger } from '@services/core/logger.service';
-import { OnboardingService } from '@services/onboarding/onboarding.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { OnboardingService } from '@genfeedai/services/onboarding/onboarding.service';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';

@@ -1,8 +1,8 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { SmartAlertsPanelProps } from '@props/analytics/insights.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { SmartAlertsPanelProps } from '@genfeedai/props/analytics/insights.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { formatDistanceToNow } from 'date-fns';

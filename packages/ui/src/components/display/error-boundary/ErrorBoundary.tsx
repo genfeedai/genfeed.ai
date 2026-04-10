@@ -1,15 +1,18 @@
 'use client';
 
 import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import {
+  closeModal,
+  openModal,
+} from '@genfeedai/helpers/ui/modal/modal.helper';
 import type { IErrorDebugInfo } from '@genfeedai/interfaces/modals/error-debug.interface';
 import type {
   IErrorBoundaryProps,
   IErrorBoundaryState,
 } from '@genfeedai/interfaces/utils/error.interface';
-import { closeModal, openModal } from '@helpers/ui/modal/modal.helper';
-import { EnvironmentService } from '@services/core/environment.service';
-import { setErrorDebugInfo } from '@services/core/error-debug-store';
-import { logger } from '@services/core/logger.service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { setErrorDebugInfo } from '@genfeedai/services/core/error-debug-store';
+import { logger } from '@genfeedai/services/core/logger.service';
 import { Button } from '@ui/primitives/button';
 import { Component, type ErrorInfo } from 'react';
 

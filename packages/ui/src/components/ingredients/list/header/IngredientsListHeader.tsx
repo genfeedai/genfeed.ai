@@ -1,6 +1,6 @@
 'use client';
 
-import type { IngredientsListHeaderProps } from '@props/pages/ingredients-list.props';
+import type { IngredientsListHeaderProps } from '@genfeedai/props/pages/ingredients-list.props';
 import SelectionActionsBar from '@ui/ingredients/list/selection-actions-bar/SelectionActionsBar';
 
 export default function IngredientsListHeader({

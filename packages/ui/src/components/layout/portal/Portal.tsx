@@ -1,6 +1,6 @@
 'use client';
 
-import type { PortalProps } from '@props/ui/content/portal.props';
+import type { PortalProps } from '@genfeedai/props/ui/content/portal.props';
 import { useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 

@@ -18,13 +18,13 @@ vi.mock('@ui/modals/actions/ModalActions', () => ({
   default: ({ children }: any) => <div>{children}</div>,
 }));
 
-vi.mock('@helpers/ui/modal/modal.helper', () => ({
+vi.mock('@genfeedai/helpers/ui/modal/modal.helper', () => ({
   closeModal: vi.fn(),
   isModalOpen: vi.fn(() => false),
   openModal: vi.fn(),
 }));
 
-vi.mock('@hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
+vi.mock('@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
   useModalAutoOpen: vi.fn(),
 }));
 

@@ -1,8 +1,8 @@
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   type MultiPostSchema,
   multiPostSchema,
 } from '@genfeedai/client/schemas';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AlertCategory,
   ButtonVariant,
@@ -13,6 +13,17 @@ import {
   PostCategory,
   PostStatus,
 } from '@genfeedai/enums';
+import { getPublisherPostsHref } from '@genfeedai/helpers/content/posts.helper';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import {
+  hasFormErrors,
+  parseFormErrors,
+} from '@genfeedai/helpers/ui/form-error/form-error.helper';
+import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useFocusFirstInput } from '@genfeedai/hooks/ui/use-focus-first-input/use-focus-first-input';
+import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
+import { useFormSubmitWithState } from '@genfeedai/hooks/utils/use-form-submit/use-form-submit';
 import type {
   ICredential,
   IIngredient,
@@ -21,25 +32,15 @@ import type {
   IPostPlatformConfig,
 } from '@genfeedai/interfaces';
 import type { PlatformSubmissionStatus } from '@genfeedai/interfaces/modals/platform-submission-status.interface';
-import { getPublisherPostsHref } from '@helpers/content/posts.helper';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import {
-  hasFormErrors,
-  parseFormErrors,
-} from '@helpers/ui/form-error/form-error.helper';
-import { closeModal } from '@helpers/ui/modal/modal.helper';
+import type { ModalPostProps } from '@genfeedai/props/modals/modal.props';
+import { PostsService } from '@genfeedai/services/content/posts.service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { CredentialsService } from '@genfeedai/services/organization/credentials.service';
+import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
+import { ErrorHandler } from '@genfeedai/utils/error/error-handler.util';
 import { standardSchemaResolver } from '@hookform/resolvers/standard-schema';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useFocusFirstInput } from '@hooks/ui/use-focus-first-input/use-focus-first-input';
-import { useModalAutoOpen } from '@hooks/ui/use-modal-auto-open/use-modal-auto-open';
-import { useFormSubmitWithState } from '@hooks/utils/use-form-submit/use-form-submit';
-import type { ModalPostProps } from '@props/modals/modal.props';
-import { PostsService } from '@services/content/posts.service';
-import { EnvironmentService } from '@services/core/environment.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
-import { CredentialsService } from '@services/organization/credentials.service';
-import { OrganizationsService } from '@services/organization/organizations.service';
 import Badge from '@ui/display/badge/Badge';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Alert from '@ui/feedback/alert/Alert';
@@ -48,7 +49,6 @@ import ModalPostFooter from '@ui/modals/content/post/ModalPostFooter';
 import ModalPostHeader from '@ui/modals/content/post/ModalPostHeader';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
-import { ErrorHandler } from '@utils/error/error-handler.util';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import {

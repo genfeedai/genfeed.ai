@@ -3,7 +3,7 @@
 import {
   formatCompactNumberIntl,
   formatPercentageSimple,
-} from '@helpers/formatting/format/format.helper';
+} from '@genfeedai/helpers/formatting/format/format.helper';
 
 export interface VideoCompletionData {
   started: number; // 100% of viewers

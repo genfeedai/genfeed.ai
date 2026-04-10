@@ -1,16 +1,16 @@
 'use client';
 
 import { UserButton, useAuth, useUser } from '@clerk/nextjs';
-import { useSidebarNavigation } from '@contexts/ui/sidebar-navigation-context';
+import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-context';
 import { ButtonVariant } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useOverviewBootstrap } from '@genfeedai/hooks/data/overview/use-overview-bootstrap';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
+import type { MenuSharedProps } from '@genfeedai/props/navigation/menu.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Kbd } from '@genfeedai/ui';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
-import type { MenuSharedProps } from '@props/navigation/menu.props';
-import { EnvironmentService } from '@services/core/environment.service';
 import ProgressSidebarCard from '@ui/cards/progress-sidebar-card/ProgressSidebarCard';
 import MenuItem from '@ui/menus/item/MenuItem';
 import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';

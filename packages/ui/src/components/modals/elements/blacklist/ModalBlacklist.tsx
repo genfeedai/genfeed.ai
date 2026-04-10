@@ -9,15 +9,15 @@ import {
   ModalEnum,
   ModelCategory,
 } from '@genfeedai/enums';
-import { getClerkPublicData } from '@helpers/auth/clerk.helper';
+import { getClerkPublicData } from '@genfeedai/helpers/auth/clerk.helper';
 import {
   hasFormErrors,
   parseFormErrors,
-} from '@helpers/ui/form-error/form-error.helper';
-import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
-import type { ElementBlacklist } from '@models/elements/blacklist.model';
-import type { ModalBlacklistProps } from '@props/modals/modal.props';
-import { BlacklistsService } from '@services/elements/blacklists.service';
+} from '@genfeedai/helpers/ui/form-error/form-error.helper';
+import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
+import type { ElementBlacklist } from '@genfeedai/models/elements/blacklist.model';
+import type { ModalBlacklistProps } from '@genfeedai/props/modals/modal.props';
+import { BlacklistsService } from '@genfeedai/services/elements/blacklists.service';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';

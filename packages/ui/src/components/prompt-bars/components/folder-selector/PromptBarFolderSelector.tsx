@@ -1,6 +1,6 @@
 'use client';
 
-import type { PromptBarFolderSelectorProps } from '@props/studio/prompt-bar.props';
+import type { PromptBarFolderSelectorProps } from '@genfeedai/props/studio/prompt-bar.props';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import { type ChangeEvent, memo } from 'react';
 import { HiFolder } from 'react-icons/hi2';

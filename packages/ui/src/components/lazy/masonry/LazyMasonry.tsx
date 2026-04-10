@@ -1,11 +1,11 @@
 'use client';
 
 import { IngredientFormat } from '@genfeedai/enums';
-import type { IngredientListProps } from '@props/content/ingredient.props';
+import type { IngredientListProps } from '@genfeedai/props/content/ingredient.props';
 import type {
   MasonryImageProps,
   MasonryVideoProps,
-} from '@props/content/masonry.props';
+} from '@genfeedai/props/content/masonry.props';
 import { SkeletonMasonryGrid } from '@ui/display/skeleton/skeleton';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import dynamic from 'next/dynamic';

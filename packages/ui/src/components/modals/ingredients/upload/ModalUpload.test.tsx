@@ -5,7 +5,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock modules
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   default: vi.fn(() =>
     vi.fn(() => ({
       create: vi.fn(),
@@ -14,18 +14,18 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   ),
 }));
 
-vi.mock('@hooks/ui/use-focus-first-input', () => ({
+vi.mock('@genfeedai/hooks/ui/use-focus-first-input', () => ({
   default: vi.fn(() => ({ current: null })),
 }));
 
-vi.mock('@hooks/utils/use-form-submit', () => ({
+vi.mock('@genfeedai/hooks/utils/use-form-submit', () => ({
   useFormSubmitWithState: vi.fn(() => ({
     isSubmitting: false,
     onSubmit: vi.fn(),
   })),
 }));
 
-vi.mock('@services/core/socket.service', () => ({
+vi.mock('@genfeedai/services/core/socket.service', () => ({
   SocketService: {
     getInstance: vi.fn(() => ({
       emit: vi.fn(),
@@ -35,7 +35,7 @@ vi.mock('@services/core/socket.service', () => ({
   },
 }));
 
-vi.mock('@helpers/ui/modal/modal.helper', () => ({
+vi.mock('@genfeedai/helpers/ui/modal/modal.helper', () => ({
   closeModal: vi.fn(),
 }));
 
@@ -242,7 +242,9 @@ describe.skip('ModalUpload', () => {
   });
 
   it('should call onConfirm when cancel is clicked', async () => {
-    const { closeModal } = await import('@helpers/ui/modal/modal.helper');
+    const { closeModal } = await import(
+      '@genfeedai/helpers/ui/modal/modal.helper'
+    );
 
     render(
       <ModalUpload
@@ -304,7 +306,7 @@ describe.skip('ModalUpload', () => {
       onSubmit: vi.fn(),
     }));
 
-    vi.doMock('@hooks/utils/use-form-submit', () => ({
+    vi.doMock('@genfeedai/hooks/utils/use-form-submit', () => ({
       useFormSubmitWithState,
     }));
 

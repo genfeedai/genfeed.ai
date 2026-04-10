@@ -5,7 +5,7 @@ import { render, screen } from '@testing-library/react';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@hooks/ui/use-quick-actions/use-quick-actions', () => ({
+vi.mock('@genfeedai/hooks/ui/use-quick-actions/use-quick-actions', () => ({
   useQuickActions: vi.fn(
     (params: {
       hasPromptControl?: boolean;

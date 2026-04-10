@@ -1,8 +1,8 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
-import type { PricingCardProps } from '@props/content/pricing.props';
-import type { PricingPlanProps } from '@props/content/subscription.props';
+import type { PricingCardProps } from '@genfeedai/props/content/pricing.props';
+import type { PricingPlanProps } from '@genfeedai/props/content/subscription.props';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';

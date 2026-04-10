@@ -12,7 +12,7 @@ import type {
   IFontFamily,
   IPreset,
 } from '@genfeedai/interfaces';
-import type { PromptBarMetadataSelectorsProps } from '@props/prompt-bars/prompt-bar-metadata-selectors.props';
+import type { PromptBarMetadataSelectorsProps } from '@genfeedai/props/prompt-bars/prompt-bar-metadata-selectors.props';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import type { ChangeEvent } from 'react';
 import { memo } from 'react';

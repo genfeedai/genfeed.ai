@@ -290,28 +290,35 @@ export function getPlanByLabel(label: string): PricingPlanProps | undefined {
   );
 }
 
+function getRequiredPlan(label: string): PricingPlanProps {
+  const plan = getPlanByLabel(label);
+
+  if (!plan) {
+    throw new Error(`Missing pricing plan: ${label}`);
+  }
+
+  return plan;
+}
+
 /**
  * Get Pro tier plan
  */
 export function getProPlan(): PricingPlanProps {
-  // biome-ignore lint/style/noNonNullAssertion: Pro plan is always present in websitePlans
-  return websitePlans.find((plan) => plan.label === 'Pro')!;
+  return getRequiredPlan('Pro');
 }
 
 /**
  * Get Scale tier plan
  */
 export function getScalePlan(): PricingPlanProps {
-  // biome-ignore lint/style/noNonNullAssertion: Scale plan is always present in websitePlans
-  return websitePlans.find((plan) => plan.label === 'Scale')!;
+  return getRequiredPlan('Scale');
 }
 
 /**
  * Get Enterprise tier plan
  */
 export function getEnterprisePlan(): PricingPlanProps {
-  // biome-ignore lint/style/noNonNullAssertion: Enterprise plan is always present in websitePlans
-  return websitePlans.find((plan) => plan.label === 'Enterprise')!;
+  return getRequiredPlan('Enterprise');
 }
 
 /**

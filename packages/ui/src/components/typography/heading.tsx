@@ -1,4 +1,4 @@
-import { cn } from '@helpers/formatting/cn/cn.util';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { type ElementType, forwardRef, type HTMLAttributes } from 'react';
 

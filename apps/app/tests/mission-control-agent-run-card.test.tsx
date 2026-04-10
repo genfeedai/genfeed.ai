@@ -1,9 +1,9 @@
 import { AgentExecutionStatus, AgentExecutionTrigger } from '@genfeedai/enums';
 import type { IAgentRun } from '@genfeedai/interfaces';
-import AgentRunCard from '@pages/mission-control/components/AgentRunCard';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+import AgentRunCard from '../app/(protected)/[orgSlug]/[brandSlug]/orchestration/runs/AgentRunCard';
 
 vi.mock('@ui/buttons/base/Button', () => ({
   default: ({

@@ -5,7 +5,7 @@ import {
 } from '@genfeedai/constants/model-brands.constant';
 import type { CostTier } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
-import type { ModelSelectorOption } from '@props/ui/model-selector/model-selector.props';
+import type { ModelSelectorOption } from '@genfeedai/props/ui/model-selector/model-selector.props';
 
 type ModelWithLifecycle = IModel & {
   deprecatedAt?: string | Date;

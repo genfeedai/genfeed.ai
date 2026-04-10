@@ -1,6 +1,6 @@
 'use client';
 
-import { cn } from '@helpers/formatting/cn/cn.util';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import type { ReactNode } from 'react';
 

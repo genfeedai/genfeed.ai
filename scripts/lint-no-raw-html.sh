@@ -7,7 +7,6 @@
 #   - buttons/base/        — the Button wrapper component
 #   - inputs/input/        — the Input wrapper
 #   - inputs/textarea/     — the Textarea wrapper
-#   - inputs/select/       — the Select wrapper
 #   - editors/             — rich text editors (contenteditable)
 #   - forms/inputs/        — form field input wrappers
 #   - forms/selectors/     — form field selector wrappers
@@ -23,6 +22,7 @@ set -euo pipefail
 # ─── Raw HTML → @ui primitive mapping ──────────────────────────────────
 # Each entry: "pattern|replacement"
 RULES=(
+  '<input\b|Input from @ui/primitives/input'
   '<button\b|Button from @ui/primitives/button'
   '<textarea\b|Textarea from @ui/primitives/textarea'
   '<select\b|Select from @ui/primitives/select'
@@ -45,17 +45,39 @@ for rule in "${RULES[@]}"; do
   fi
 done
 
+# ─── Dead wrapper import bans ───────────────────────────────────────────
+# Each entry: "pattern|replacement"
+IMPORT_RULES=(
+  "@/components/ui/input|@ui/primitives/input"
+  "@/components/ui/textarea|@ui/primitives/textarea"
+  "@/components/ui/select|@ui/primitives/select"
+  "@/features/workflows/components/ui/inputs/input/Input|@ui/primitives/input"
+  "@/features/workflows/components/ui/inputs/textarea/Textarea|@ui/primitives/textarea"
+  "@/features/workflows/components/ui/inputs/select/Select|@ui/primitives/select"
+)
+
+IMPORT_PATTERN=""
+for rule in "${IMPORT_RULES[@]}"; do
+  import_pattern="${rule%%|*}"
+  if [ -z "$IMPORT_PATTERN" ]; then
+    IMPORT_PATTERN="$import_pattern"
+  else
+    IMPORT_PATTERN="$IMPORT_PATTERN|$import_pattern"
+  fi
+done
+
 violations=0
 violated_files=()
 
 for file in "$@"; do
-  # Skip non-tsx files
-  [[ "$file" != *.tsx ]] && continue
+  # Skip unsupported files
+  [[ "$file" != *.tsx && "$file" != *.ts ]] && continue
 
-  # Skip test, spec, story files
+  # Skip test, spec, story, and mock files
   [[ "$file" == *.test.* ]] && continue
   [[ "$file" == *.spec.* ]] && continue
   [[ "$file" == *.stories.* ]] && continue
+  [[ "$file" == */__mocks__/* ]] && continue
 
   # Skip workflow-cloud (being absorbed into apps/app by PR #119)
   [[ "$file" == *packages/workflow-cloud/* ]] && continue
@@ -68,7 +90,6 @@ for file in "$@"; do
   [[ "$file" == */buttons/base/* ]] && continue
   [[ "$file" == */inputs/input/* ]] && continue
   [[ "$file" == */inputs/textarea/* ]] && continue
-  [[ "$file" == */inputs/select/* ]] && continue
   [[ "$file" == */editors/* ]] && continue
   [[ "$file" == */forms/inputs/* ]] && continue
   [[ "$file" == */forms/selectors/* ]] && continue
@@ -80,11 +101,25 @@ for file in "$@"; do
   # Skip workflow-ui package (internal UI components with own modal/dialog patterns)
   [[ "$file" == *packages/workflow-ui/* ]] && continue
 
-  # Check for raw HTML elements
-  if grep -qnE "$PATTERN" "$file" 2>/dev/null; then
+  # Check for raw HTML elements in TSX only
+  if [[ "$file" == *.tsx ]] && grep -qnE "$PATTERN" "$file" 2>/dev/null; then
     matches=$(grep -nE "$PATTERN" "$file" 2>/dev/null || true)
     # Filter out JSX comments {/* ... */} — crude but effective
     matches=$(echo "$matches" | grep -v '{/\*' | grep -v '\*/' || true)
+    if [ -n "$matches" ]; then
+      violated_files+=("$file")
+      violations=$((violations + 1))
+      echo ""
+      echo "  ✘ $file"
+      echo "$matches" | while IFS= read -r line; do
+        echo "    $line"
+      done
+    fi
+  fi
+
+  # Check for banned wrapper imports in TS/TSX
+  if grep -qnE "$IMPORT_PATTERN" "$file" 2>/dev/null; then
+    matches=$(grep -nE "$IMPORT_PATTERN" "$file" 2>/dev/null || true)
     if [ -n "$matches" ]; then
       violated_files+=("$file")
       violations=$((violations + 1))
@@ -110,6 +145,14 @@ if [ "$violations" -gt 0 ]; then
     # Clean up the pattern for display
     display_tag=$(echo "$element_pattern" | sed 's/\\b/>/g' | sed 's/</</g')
     printf "    %-14s → %s\n" "$display_tag" "$replacement"
+  done
+  echo ""
+  echo "  Dead wrapper imports are also blocked:"
+  echo ""
+  for rule in "${IMPORT_RULES[@]}"; do
+    import_pattern="${rule%%|*}"
+    replacement="${rule#*|}"
+    printf "    %-64s → %s\n" "$import_pattern" "$replacement"
   done
   echo ""
   echo "  If this is a legitimate wrapper, add the path to the"

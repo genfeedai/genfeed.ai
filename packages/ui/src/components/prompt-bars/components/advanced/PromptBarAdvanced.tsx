@@ -2,7 +2,7 @@
 
 import { DropdownDirection, TagCategory } from '@genfeedai/enums';
 import type { ISound } from '@genfeedai/interfaces';
-import type { PromptBarAdvancedProps } from '@props/prompt-bars/prompt-bar-tiers.props';
+import type { PromptBarAdvancedProps } from '@genfeedai/props/prompt-bars/prompt-bar-tiers.props';
 import DropdownMultiSelect from '@ui/dropdowns/multiselect/DropdownMultiSelect';
 import {
   Sheet,

@@ -14,6 +14,9 @@ type ClerkSessionState = {
 type BootstrapBrandSummary = {
   _id?: string;
   id?: string;
+  organization?: {
+    slug?: string;
+  };
   slug?: string;
 };
 
@@ -102,9 +105,15 @@ function isBareProtectedPath(pathname: string): boolean {
   );
 }
 
+type WorkspaceSlugs = {
+  brandCount: number;
+  brandSlug: string;
+  orgSlug: string;
+};
+
 async function resolveActiveWorkspaceSlugs(
   token: string,
-): Promise<{ brandSlug: string; orgSlug: string } | null> {
+): Promise<WorkspaceSlugs | null> {
   const headers = {
     Authorization: `Bearer ${token}`,
     Accept: 'application/json',
@@ -131,20 +140,26 @@ async function resolveActiveWorkspaceSlugs(
     | OrganizationMineResponseItem[]
     | null;
 
+  const brands = bootstrap?.brands ?? [];
+  const activeBrandId = bootstrap?.access?.brandId ?? '';
+  const matchedBrand = brands.find((brand) => {
+    return String(brand.id ?? brand._id ?? '') === activeBrandId;
+  });
+  const resolvedBrand =
+    (matchedBrand?.slug ? matchedBrand : null) ??
+    brands.find((brand) => Boolean(brand.slug)) ??
+    matchedBrand;
+  const brandSlug = resolvedBrand?.slug;
   const orgSlug =
+    resolvedBrand?.organization?.slug ??
     organizations?.find((organization) => organization.isActive)?.slug ??
     organizations?.[0]?.slug;
-
-  const activeBrandId = bootstrap?.access?.brandId ?? '';
-  const brandSlug = bootstrap?.brands?.find((brand) => {
-    return String(brand.id ?? brand._id ?? '') === activeBrandId;
-  })?.slug;
 
   if (!orgSlug || !brandSlug) {
     return null;
   }
 
-  return { brandSlug, orgSlug };
+  return { brandCount: brands.length, brandSlug, orgSlug };
 }
 
 async function resolveCanonicalProtectedPath(
@@ -197,6 +212,22 @@ const clerkProxy = isCloudConnected
         // (except routes that must remain accessible while signed in)
         const pathname = req.nextUrl.pathname;
         if (pathname === '/') {
+          if (!userId || !sessionId) {
+            return NextResponse.redirect(new URL('/login', req.url));
+          }
+
+          const token = await session.getToken?.();
+          if (token) {
+            const slugs = await resolveActiveWorkspaceSlugs(token);
+            if (slugs) {
+              return NextResponse.redirect(
+                new URL(
+                  `/${slugs.orgSlug}/${slugs.brandSlug}/workspace/overview`,
+                  req.url,
+                ),
+              );
+            }
+          }
           return NextResponse.next();
         }
 
@@ -214,7 +245,11 @@ const clerkProxy = isCloudConnected
                 )
               : null;
 
-            return NextResponse.redirect(new URL(resolvedPath ?? '/', req.url));
+            if (resolvedPath) {
+              return NextResponse.redirect(new URL(resolvedPath, req.url));
+            }
+
+            return NextResponse.next();
           }
           return NextResponse.next();
         }
@@ -229,7 +264,11 @@ const clerkProxy = isCloudConnected
             ? await resolveCanonicalProtectedPath(pathname, token)
             : null;
 
-          return NextResponse.redirect(new URL(resolvedPath ?? '/', req.url));
+          if (!resolvedPath) {
+            return NextResponse.next();
+          }
+
+          return NextResponse.redirect(new URL(resolvedPath, req.url));
         }
 
         return NextResponse.next();

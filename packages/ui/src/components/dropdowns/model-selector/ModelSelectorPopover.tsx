@@ -2,9 +2,9 @@
 
 import { getBrandConfig } from '@genfeedai/constants/model-brands.constant';
 import { ButtonVariant, RouterPriority } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IModel } from '@genfeedai/interfaces';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { ModelSelectorPopoverProps } from '@props/ui/model-selector/model-selector.props';
+import type { ModelSelectorPopoverProps } from '@genfeedai/props/ui/model-selector/model-selector.props';
 import ModelSelectorFamilyItem from '@ui/dropdowns/model-selector/ModelSelectorFamilyItem';
 import ModelSelectorModelItem from '@ui/dropdowns/model-selector/ModelSelectorModelItem';
 import ModelSelectorProviderSidebar from '@ui/dropdowns/model-selector/ModelSelectorProviderSidebar';

@@ -1,4 +1,4 @@
-import type { MenuLabelProps } from '@props/navigation/menu.props';
+import type { MenuLabelProps } from '@genfeedai/props/navigation/menu.props';
 
 export default function MenuLabel({
   label,

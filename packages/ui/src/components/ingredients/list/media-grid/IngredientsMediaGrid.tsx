@@ -2,14 +2,14 @@
 
 import { IngredientFormat } from '@genfeedai/enums';
 import type { IImage, IIngredient, IVideo } from '@genfeedai/interfaces';
-import { Video } from '@models/ingredients/video.model';
-import type { IngredientsMediaGridProps } from '@props/content/ingredient.props';
+import { Video } from '@genfeedai/models/ingredients/video.model';
+import type { IngredientsMediaGridProps } from '@genfeedai/props/content/ingredient.props';
+import { isVideoIngredient } from '@genfeedai/utils/media/ingredient-type.util';
 import { Skeleton } from '@ui/display/skeleton/skeleton';
 import {
   LazyMasonryImage,
   LazyMasonryVideo,
 } from '@ui/lazy/masonry/LazyMasonry';
-import { isVideoIngredient } from '@utils/media/ingredient-type.util';
 
 function getGridClassName(format?: IngredientFormat): string {
   switch (format) {

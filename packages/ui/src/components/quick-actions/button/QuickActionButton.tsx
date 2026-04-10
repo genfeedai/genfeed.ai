@@ -1,6 +1,6 @@
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { QuickActionButtonProps } from '@props/content/quick-actions.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { QuickActionButtonProps } from '@genfeedai/props/content/quick-actions.props';
 import { Button } from '@ui/primitives/button';
 import type { ReactNode } from 'react';
 

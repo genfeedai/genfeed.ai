@@ -25,13 +25,10 @@ import {
   HiOutlineFire,
 } from 'react-icons/hi2';
 
-const TrendFlowChart = dynamic(
-  () => import('@pages/analytics/trend-turnover/TrendFlowChart'),
-  {
-    loading: () => <div className="h-72 w-full bg-muted/40 animate-pulse" />,
-    ssr: false,
-  },
-);
+const TrendFlowChart = dynamic(() => import('./TrendFlowChart'), {
+  loading: () => <div className="h-72 w-full bg-muted/40 animate-pulse" />,
+  ssr: false,
+});
 
 const PERIOD_OPTIONS = [
   { days: 7 as const, label: '7D' },

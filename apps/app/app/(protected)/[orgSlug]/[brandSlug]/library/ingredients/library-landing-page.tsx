@@ -1,7 +1,6 @@
 'use client';
 
 import { cn } from '@helpers/formatting/cn/cn.util';
-import LibraryLandingCreditNotice from '@pages/library/landing/library-landing-credit-notice';
 import CardIcon from '@ui/card/icon/CardIcon';
 import Container from '@ui/layout/container/Container';
 import { PageSection } from '@ui/layout/page-section';
@@ -18,6 +17,7 @@ import {
   HiOutlineSparkles,
   HiOutlineVideoCamera,
 } from 'react-icons/hi2';
+import LibraryLandingCreditNotice from './library-landing-credit-notice';
 
 interface LibraryCategoryCardConfig {
   description: string;

@@ -6,10 +6,14 @@ import {
   CredentialPlatform,
   PostStatus,
 } from '@genfeedai/enums';
+import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
+import { useEvaluation } from '@genfeedai/hooks/ui/evaluation/use-evaluation/use-evaluation';
 import type { IImage, IVideo } from '@genfeedai/interfaces';
-import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
-import { useEvaluation } from '@hooks/ui/evaluation/use-evaluation/use-evaluation';
-import type { PostDetailSidebarProps } from '@props/components/post-detail-sidebar.props';
+import type { PostDetailSidebarProps } from '@genfeedai/props/components/post-detail-sidebar.props';
+import {
+  isImageIngredient,
+  isVideoIngredient,
+} from '@genfeedai/utils/media/ingredient-type.util';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import EvaluationCard from '@ui/evaluation/card/EvaluationCard';
@@ -19,10 +23,6 @@ import {
 } from '@ui/lazy/masonry/LazyMasonry';
 import { Button } from '@ui/primitives/button';
 import FormDateTimePicker from '@ui/primitives/date-time-picker';
-import {
-  isImageIngredient,
-  isVideoIngredient,
-} from '@utils/media/ingredient-type.util';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import type { IconType } from 'react-icons';

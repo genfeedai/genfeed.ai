@@ -7,13 +7,13 @@ import {
   IngredientCategory,
   ModalEnum,
 } from '@genfeedai/enums';
+import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { IMetadata } from '@genfeedai/interfaces';
-import { closeModal } from '@helpers/ui/modal/modal.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { Music } from '@models/ingredients/music.model';
-import type { ModalMusicProps } from '@props/modals/modal.props';
-import { logger } from '@services/core/logger.service';
-import { MusicsService } from '@services/ingredients/musics.service';
+import type { Music } from '@genfeedai/models/ingredients/music.model';
+import type { ModalMusicProps } from '@genfeedai/props/modals/modal.props';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { MusicsService } from '@genfeedai/services/ingredients/musics.service';
 import Loading from '@ui/loading/default/Loading';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';

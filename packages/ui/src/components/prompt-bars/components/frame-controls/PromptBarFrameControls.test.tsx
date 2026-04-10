@@ -1,8 +1,8 @@
 import '@testing-library/jest-dom';
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { IngredientFormat } from '@genfeedai/enums';
-import type { PromptBarFrameControlsProps } from '@props/studio/prompt-bar.props';
-import type { BaseButtonProps } from '@props/ui/forms/button.props';
+import type { PromptBarFrameControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
+import type { BaseButtonProps } from '@genfeedai/props/ui/forms/button.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import PromptBarFrameControls from '@ui/prompt-bars/components/frame-controls/PromptBarFrameControls';
 import type { UseFormReturn } from 'react-hook-form';

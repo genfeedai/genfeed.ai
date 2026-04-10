@@ -4,8 +4,8 @@ import { Timeframe, TrendDirection } from '@genfeedai/enums';
 import {
   formatCompactNumberIntl,
   formatPercentage,
-} from '@helpers/formatting/format/format.helper';
-import type { GrowthTrendsCardProps } from '@props/analytics/analytics.props';
+} from '@genfeedai/helpers/formatting/format/format.helper';
+import type { GrowthTrendsCardProps } from '@genfeedai/props/analytics/analytics.props';
 import {
   HiArrowTrendingDown,
   HiArrowTrendingUp,

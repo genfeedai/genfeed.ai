@@ -1,4 +1,4 @@
-import type { TopbarProps } from '@props/navigation/topbar.props';
+import type { TopbarProps } from '@genfeedai/props/navigation/topbar.props';
 import { render, screen } from '@testing-library/react';
 import AppLayout from '@ui/layouts/app/AppLayout';
 import type { ReactElement } from 'react';

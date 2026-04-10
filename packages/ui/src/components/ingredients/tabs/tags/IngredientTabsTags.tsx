@@ -2,20 +2,20 @@
 
 import { useAuth } from '@clerk/nextjs';
 import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useResource } from '@genfeedai/hooks/data/resource/use-resource/use-resource';
 import type { ITag } from '@genfeedai/interfaces';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
-import type { ExtendedIngredientTabsTagsProps } from '@props/content/ingredient-tabs.props';
-import { IngredientsService } from '@services/content/ingredients.service';
-import { TagsService } from '@services/content/tags.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
+import type { ExtendedIngredientTabsTagsProps } from '@genfeedai/props/content/ingredient-tabs.props';
+import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
+import { TagsService } from '@genfeedai/services/content/tags.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { IngredientEndpoints } from '@genfeedai/utils/media/ingredients.util';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import TagsManager from '@ui/tags/manager/TagsManager';
-import { IngredientEndpoints } from '@utils/media/ingredients.util';
 import { useMemo, useState } from 'react';
 import { HiPlus, HiTag, HiXMark } from 'react-icons/hi2';
 

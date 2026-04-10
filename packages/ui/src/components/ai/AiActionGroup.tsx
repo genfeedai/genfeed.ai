@@ -7,7 +7,7 @@ import {
   ButtonVariant,
   ComponentSize,
 } from '@genfeedai/enums';
-import type { AiActionGroupProps } from '@props/ai/ai-action.props';
+import type { AiActionGroupProps } from '@genfeedai/props/ai/ai-action.props';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';
 import { useCallback, useState } from 'react';
@@ -34,8 +34,9 @@ export default function AiActionGroup({
     async (action: AiActionType) => {
       setActiveAction(action);
       try {
-        const service = (await import('@services/ai/ai-actions.service'))
-          .AiActionsService;
+        const service = (
+          await import('@genfeedai/services/ai/ai-actions.service')
+        ).AiActionsService;
         const instance = service.getInstance(token);
         const response = await instance.execute(orgId, {
           action,

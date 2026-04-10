@@ -1,9 +1,9 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import MenuItem from '@ui/menus/item/MenuItem';
 import { Button } from '@ui/primitives/button';
 import { usePathname } from 'next/navigation';

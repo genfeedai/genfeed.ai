@@ -7,17 +7,17 @@ import {
   IngredientStatus,
   PostStatus,
 } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { StatusDropdownProps } from '@props/social/status-dropdown.props';
-import { ArticlesService } from '@services/content/articles.service';
-import { IngredientsService } from '@services/content/ingredients.service';
-import { PostsService } from '@services/content/posts.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
-import { GIFsService } from '@services/ingredients/gifs.service';
-import { ImagesService } from '@services/ingredients/images.service';
-import { VideosService } from '@services/ingredients/videos.service';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import type { StatusDropdownProps } from '@genfeedai/props/social/status-dropdown.props';
+import { ArticlesService } from '@genfeedai/services/content/articles.service';
+import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
+import { PostsService } from '@genfeedai/services/content/posts.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { GIFsService } from '@genfeedai/services/ingredients/gifs.service';
+import { ImagesService } from '@genfeedai/services/ingredients/images.service';
+import { VideosService } from '@genfeedai/services/ingredients/videos.service';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
 import { getStatusMeta } from '@ui-constants/status.constant';
@@ -179,7 +179,7 @@ export default function DropdownStatus({
     newStatus: IngredientStatus | ArticleStatus | PostStatus,
   ) => {
     try {
-      let updatedItem;
+      let updatedItem: unknown;
 
       if (isArticle) {
         // Use articles service for both PATCH and GET

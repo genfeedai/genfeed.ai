@@ -1,6 +1,6 @@
 'use client';
 
-import type { PromptBarSurfaceRendererProps } from '@props/prompt-bars/prompt-bar-surface.props';
+import type { PromptBarSurfaceRendererProps } from '@genfeedai/props/prompt-bars/prompt-bar-surface.props';
 import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContainer';
 import type { ReactNode } from 'react';
 

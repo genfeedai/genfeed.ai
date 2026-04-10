@@ -14,7 +14,7 @@ vi.mock('@ui/modals/actions/ModalActions', () => ({
   default: ({ children }: PropsWithChildren) => <div>{children}</div>,
 }));
 
-vi.mock('@hooks/ui/use-crud-modal/use-crud-modal', () => ({
+vi.mock('@genfeedai/hooks/ui/use-crud-modal/use-crud-modal', () => ({
   useCrudModal: () => ({
     closeModal: vi.fn(),
     form: {

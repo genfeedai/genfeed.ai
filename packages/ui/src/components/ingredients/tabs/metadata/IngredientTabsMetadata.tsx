@@ -1,12 +1,12 @@
 'use client';
 
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { IUser } from '@genfeedai/interfaces';
 import type { IngredientTabsMetadataProps } from '@genfeedai/interfaces/components/ingredient-tabs.interface';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { IngredientsService } from '@services/content/ingredients.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
+import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';

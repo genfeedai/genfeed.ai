@@ -1,4 +1,4 @@
-import { CommandPaletteProvider } from '@contexts/features/command-palette.context';
+import { CommandPaletteProvider } from '@genfeedai/contexts/features/command-palette.context';
 // @ts-expect-error storybook types not available
 import type { Meta, StoryObj } from '@storybook/react';
 import { CommandPaletteInitializer } from '@ui/command-palette/command-palette-initializer/CommandPaletteInitializer';

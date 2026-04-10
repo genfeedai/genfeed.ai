@@ -6,10 +6,10 @@ import {
   IngredientCategory,
   IngredientFormat,
 } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IImage } from '@genfeedai/interfaces';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { FrameSequenceSelectorProps } from '@props/studio/frame-sequence.props';
-import { useGalleryModal } from '@providers/global-modals/global-modals.provider';
+import type { FrameSequenceSelectorProps } from '@genfeedai/props/studio/frame-sequence.props';
+import { useGalleryModal } from '@genfeedai/providers/global-modals/global-modals.provider';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';

@@ -28,11 +28,11 @@ const overviewState = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('@hooks/data/overview/use-overview-bootstrap', () => ({
+vi.mock('@genfeedai/hooks/data/overview/use-overview-bootstrap', () => ({
   useOverviewBootstrap: () => overviewState.value,
 }));
 
-vi.mock('@contexts/ui/background-task-context', () => ({
+vi.mock('@genfeedai/contexts/ui/background-task-context', () => ({
   useBackgroundTaskContext: () => ({
     tasks: [{ id: 'task-1', status: 'processing' }],
   }),

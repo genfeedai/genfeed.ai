@@ -7,13 +7,13 @@ import {
   ComponentSize,
   TagCategory,
 } from '@genfeedai/enums';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useResource } from '@genfeedai/hooks/data/resource/use-resource/use-resource';
 import type { ITag } from '@genfeedai/interfaces';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
-import type { TagsManagerComponentProps } from '@props/content/tags-manager.props';
-import { IngredientsService } from '@services/content/ingredients.service';
-import { TagsService } from '@services/content/tags.service';
-import { logger } from '@services/core/logger.service';
+import type { TagsManagerComponentProps } from '@genfeedai/props/content/tags-manager.props';
+import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
+import { TagsService } from '@genfeedai/services/content/tags.service';
+import { logger } from '@genfeedai/services/core/logger.service';
 import Badge from '@ui/display/badge/Badge';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';

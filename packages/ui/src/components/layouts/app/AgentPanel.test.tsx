@@ -42,7 +42,7 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('@contexts/user/user-context/user-context', () => ({
+vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   useOptionalUser: () => ({
     currentUser: {
       settings: {

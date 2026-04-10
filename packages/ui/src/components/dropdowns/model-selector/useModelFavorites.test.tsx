@@ -28,7 +28,7 @@ let mockCurrentUser: {
   settings?: Record<string, unknown>;
 } | null;
 
-vi.mock('@contexts/user/user-context/user-context', () => ({
+vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   useOptionalUser: () =>
     mockCurrentUser
       ? {
@@ -38,11 +38,11 @@ vi.mock('@contexts/user/user-context/user-context', () => ({
       : undefined,
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mockGetUsersService,
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     error: mockLoggerError,
   },

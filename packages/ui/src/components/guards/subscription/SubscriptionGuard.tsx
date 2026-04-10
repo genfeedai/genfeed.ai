@@ -2,8 +2,8 @@
 
 import { useUser } from '@clerk/nextjs';
 import { SubscriptionStatus } from '@genfeedai/enums';
-import { getClerkPublicData } from '@helpers/auth/clerk.helper';
-import type { SubscriptionGuardProps } from '@props/guards/subscription-guard.props';
+import { getClerkPublicData } from '@genfeedai/helpers/auth/clerk.helper';
+import type { SubscriptionGuardProps } from '@genfeedai/props/guards/subscription-guard.props';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 

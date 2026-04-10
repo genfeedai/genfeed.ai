@@ -1,17 +1,19 @@
 'use client';
 
+import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Button } from '@ui/primitives/button';
 
-type ButtonVariant = 'primary' | 'success' | 'danger' | 'ghost';
+type WorkflowNodeButtonVariant = 'primary' | 'success' | 'danger' | 'ghost';
 
 interface NodeButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant;
+  variant?: WorkflowNodeButtonVariant;
   icon?: React.ReactNode;
   fullWidth?: boolean;
 }
 
-const variantClasses: Record<ButtonVariant, string> = {
+const variantClasses: Record<WorkflowNodeButtonVariant, string> = {
   danger: 'bg-red-600 text-white hover:bg-red-700',
   ghost: 'bg-muted text-foreground hover:bg-muted/80',
   primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
@@ -31,7 +33,7 @@ export function NodeButton({
   ...props
 }: NodeButtonProps): React.JSX.Element {
   return (
-    <button
+    <Button
       className={cn(
         'py-2 text-sm font-black transition flex items-center justify-center gap-2',
         variantClasses[variant],
@@ -40,11 +42,12 @@ export function NodeButton({
         className,
       )}
       disabled={disabled}
+      variant={ButtonVariant.UNSTYLED}
       {...props}
     >
       {icon}
       {children}
-    </button>
+    </Button>
   );
 }
 
@@ -57,11 +60,12 @@ export function NodeIconButton({
   ...props
 }: React.ButtonHTMLAttributes<HTMLButtonElement>): React.JSX.Element {
   return (
-    <button
+    <Button
       className={cn('p-1.5 hover:bg-muted transition flex-shrink-0', className)}
+      variant={ButtonVariant.UNSTYLED}
       {...props}
     >
       {children}
-    </button>
+    </Button>
   );
 }

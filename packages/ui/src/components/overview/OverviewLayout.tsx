@@ -1,8 +1,8 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { OverviewContentProps } from '@props/layout/overview.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { OverviewContentProps } from '@genfeedai/props/layout/overview.props';
 import Card from '@ui/card/Card';
 import CardIcon from '@ui/card/icon/CardIcon';
 import Container from '@ui/layout/container/Container';

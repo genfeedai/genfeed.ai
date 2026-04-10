@@ -2,7 +2,7 @@ import { render } from '@testing-library/react';
 import TopbarLogo from '@ui/topbars/logo/TopbarLogo';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@hooks/ui/use-theme-logo/use-theme-logo', () => ({
+vi.mock('@genfeedai/hooks/ui/use-theme-logo/use-theme-logo', () => ({
   useThemeLogo: () => '/logo.png',
 }));
 

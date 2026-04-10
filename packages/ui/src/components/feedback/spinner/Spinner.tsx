@@ -1,6 +1,6 @@
 import { ComponentSize } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { SpinnerProps } from '@props/ui/feedback/spinner.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { SpinnerProps } from '@genfeedai/props/ui/feedback/spinner.props';
 import { cva } from 'class-variance-authority';
 
 /**

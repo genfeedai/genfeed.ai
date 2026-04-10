@@ -14,7 +14,7 @@ vi.mock('@ui/modals/actions/ModalActions', () => ({
   default: ({ children }: PropsWithChildren) => <div>{children}</div>,
 }));
 
-vi.mock('@hooks/ui/use-crud-modal/use-crud-modal', () => ({
+vi.mock('@genfeedai/hooks/ui/use-crud-modal/use-crud-modal', () => ({
   useCrudModal: () => ({
     closeModal: vi.fn(),
     form: {
@@ -34,13 +34,13 @@ vi.mock('@hooks/ui/use-crud-modal/use-crud-modal', () => ({
   }),
 }));
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brands: [],
   }),
 }));
 
-vi.mock('@services/core/environment.service', () => ({
+vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     currentApp: 'app',
   },
@@ -68,7 +68,7 @@ vi.mock('@ui/buttons/base/Button', () => ({
   ),
 }));
 
-vi.mock('@helpers/ui/form-error/form-error.helper', () => ({
+vi.mock('@genfeedai/helpers/ui/form-error/form-error.helper', () => ({
   hasFormErrors: () => false,
   parseFormErrors: () => [],
 }));

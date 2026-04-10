@@ -2,11 +2,11 @@ import { render } from '@testing-library/react';
 import TagsManager from '@ui/tags/manager/TagsManager';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => vi.fn(),
 }));
 
-vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
+vi.mock('@genfeedai/hooks/data/resource/use-resource/use-resource', () => ({
   useResource: () => ({
     data: [],
     isLoading: false,
@@ -14,15 +14,15 @@ vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
   }),
 }));
 
-vi.mock('@services/content/ingredients.service', () => ({
+vi.mock('@genfeedai/services/content/ingredients.service', () => ({
   IngredientsService: { getInstance: () => ({}) },
 }));
 
-vi.mock('@services/content/tags.service', () => ({
+vi.mock('@genfeedai/services/content/tags.service', () => ({
   TagsService: { getInstance: () => ({}) },
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 }));
 

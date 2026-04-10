@@ -1,7 +1,7 @@
 'use client';
 
 import { VideoEaseCurve } from '@genfeedai/enums';
-import type { EaseCurveSelectorProps } from '@props/studio/storyboard.props';
+import type { EaseCurveSelectorProps } from '@genfeedai/props/studio/storyboard.props';
 import type { DropdownFieldOption } from '@ui/primitives/dropdown-field';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import type { ChangeEvent } from 'react';

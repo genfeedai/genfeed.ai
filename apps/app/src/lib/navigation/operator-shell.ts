@@ -1,12 +1,5 @@
 import type { WorkspaceTask } from '@services/workspace/workspace-tasks.service';
 
-export type OperatorSurface =
-  | 'analytics'
-  | 'create'
-  | 'library'
-  | 'settings'
-  | 'workspace';
-
 export type WorkspaceTaskLaunchMode =
   | 'auto'
   | 'automate'
@@ -62,78 +55,6 @@ export function normalizeProtectedPathname(rawPathname: string): string {
   }
 
   return rawPathname;
-}
-
-export function resolveOperatorSurface(pathname: string): OperatorSurface {
-  const normalizedPathname = normalizeProtectedPathname(pathname);
-
-  if (
-    normalizedPathname === '/workspace' ||
-    normalizedPathname.startsWith('/workspace/') ||
-    normalizedPathname === '/tasks' ||
-    normalizedPathname.startsWith('/tasks/') ||
-    normalizedPathname === '/chat' ||
-    normalizedPathname.startsWith('/chat/')
-  ) {
-    return 'workspace';
-  }
-
-  if (
-    normalizedPathname === '/compose' ||
-    normalizedPathname.startsWith('/compose/') ||
-    normalizedPathname === '/studio' ||
-    normalizedPathname.startsWith('/studio/') ||
-    normalizedPathname === '/editor' ||
-    normalizedPathname.startsWith('/editor/') ||
-    normalizedPathname === '/workflows' ||
-    normalizedPathname.startsWith('/workflows/') ||
-    normalizedPathname === '/orchestration' ||
-    normalizedPathname.startsWith('/orchestration/')
-  ) {
-    return 'create';
-  }
-
-  if (
-    normalizedPathname === '/library' ||
-    normalizedPathname.startsWith('/library/')
-  ) {
-    return 'library';
-  }
-
-  if (
-    normalizedPathname === '/analytics' ||
-    normalizedPathname.startsWith('/analytics/') ||
-    normalizedPathname === '/posts/analytics' ||
-    normalizedPathname.startsWith('/posts/analytics/')
-  ) {
-    return 'analytics';
-  }
-
-  if (
-    normalizedPathname === '/settings' ||
-    normalizedPathname.startsWith('/settings/')
-  ) {
-    return 'settings';
-  }
-
-  return 'workspace';
-}
-
-export function getOperatorSurfaceDefaultPath(
-  surface: OperatorSurface,
-): string {
-  switch (surface) {
-    case 'create':
-      return '/studio/image';
-    case 'library':
-      return '/library/ingredients';
-    case 'analytics':
-      return '/analytics/overview';
-    case 'settings':
-      return '/settings';
-    default:
-      return '/workspace/overview';
-  }
 }
 
 export function pickOperatorTaskContextSearchParams(

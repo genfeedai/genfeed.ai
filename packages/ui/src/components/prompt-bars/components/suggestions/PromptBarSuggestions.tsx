@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import type { PromptBarSuggestionItem } from '@ui/prompt-bars/types/prompt-bar-suggestion-item';
 import { memo, type ReactElement } from 'react';

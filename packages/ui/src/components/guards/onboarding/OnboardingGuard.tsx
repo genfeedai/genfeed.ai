@@ -1,11 +1,12 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { getResumeStep, ONBOARDING_STEPS } from '@genfeedai/constants';
-import { getPlaywrightAuthState } from '@helpers/auth/clerk.helper';
-import type { OnboardingGuardProps } from '@props/guards/onboarding-guard.props';
-import { useAccessState } from '@providers/access-state/access-state.provider';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
+import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/clerk.helper';
+import type { OnboardingGuardProps } from '@genfeedai/props/guards/onboarding-guard.props';
+import { useAccessState } from '@genfeedai/providers/access-state/access-state.provider';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
 
@@ -26,6 +27,7 @@ export default function OnboardingGuard({ children }: OnboardingGuardProps) {
   const effectiveIsAuthLoaded =
     isAuthLoaded || playwrightAuth?.isLoaded === true;
   const effectiveIsSignedIn = isSignedIn || playwrightAuth?.isSignedIn === true;
+  const { brandId, organizationId } = useBrand();
   const { currentUser, isLoading: isUserLoading } = useCurrentUser();
   const {
     accessState,
@@ -55,6 +57,20 @@ export default function OnboardingGuard({ children }: OnboardingGuardProps) {
     }
 
     if (needsOnboarding) {
+      const hasExistingWorkspace =
+        (typeof organizationId === 'string' &&
+          organizationId.length > 0 &&
+          typeof brandId === 'string' &&
+          brandId.length > 0) ||
+        (typeof accessState.organizationId === 'string' &&
+          accessState.organizationId.length > 0 &&
+          typeof accessState.brandId === 'string' &&
+          accessState.brandId.length > 0);
+
+      if (!isOnboardingRoute && hasExistingWorkspace) {
+        return null;
+      }
+
       if (isOnboardingRoute) {
         return null;
       }
@@ -89,6 +105,7 @@ export default function OnboardingGuard({ children }: OnboardingGuardProps) {
     return null;
   }, [
     accessState,
+    brandId,
     currentUser,
     effectiveIsAuthLoaded,
     effectiveIsSignedIn,
@@ -101,6 +118,7 @@ export default function OnboardingGuard({ children }: OnboardingGuardProps) {
     isSuperAdmin,
     isUserLoading,
     needsOnboarding,
+    organizationId,
   ]);
 
   useEffect(() => {

@@ -37,7 +37,7 @@ vi.mock('@ui/modals/actions/ModalActions', () => ({
   default: ({ children }: any) => <div>{children}</div>,
 }));
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     selectedBrand: {
       id: 'brand-1',

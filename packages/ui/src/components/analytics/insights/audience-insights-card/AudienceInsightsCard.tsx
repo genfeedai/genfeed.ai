@@ -1,13 +1,13 @@
 'use client';
 
-import { cn } from '@helpers/formatting/cn/cn.util';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   formatCompactNumberIntl,
   formatHour,
   formatPercentage,
-} from '@helpers/formatting/format/format.helper';
-import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
-import type { AudienceInsightsCardProps } from '@props/analytics/insights.props';
+} from '@genfeedai/helpers/formatting/format/format.helper';
+import { getPlatformIcon } from '@genfeedai/helpers/ui/platform-icon/platform-icon.helper';
+import type { AudienceInsightsCardProps } from '@genfeedai/props/analytics/insights.props';
 import Card from '@ui/card/Card';
 import { memo } from 'react';
 import {

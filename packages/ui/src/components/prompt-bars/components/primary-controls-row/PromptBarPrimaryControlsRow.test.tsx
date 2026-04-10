@@ -46,9 +46,12 @@ vi.mock(
   }),
 );
 
-vi.mock('@helpers/media/video-resolution/video-resolution.helper', () => ({
-  getVideoResolutionsByModel: () => [],
-}));
+vi.mock(
+  '@genfeedai/helpers/media/video-resolution/video-resolution.helper',
+  () => ({
+    getVideoResolutionsByModel: () => [],
+  }),
+);
 
 describe('PromptBarPrimaryControlsRow', () => {
   const mockForm = {

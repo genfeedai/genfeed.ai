@@ -34,7 +34,7 @@ All exported surfaces now have colocated specs and Storybook stories, mirroring 
 ### 1. Add Provider to Root Layout
 
 ```tsx
-import { CommandPaletteProvider } from '@contexts/command-palette.context';
+import { CommandPaletteProvider } from '@genfeedai/contexts/command-palette.context';
 import { CommandPalette } from '@components/command-palette';
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -93,7 +93,7 @@ The command palette automatically listens for `⌘K` / `Ctrl+K` keyboard shortcu
 ### Programmatic Control
 
 ```tsx
-import { useCommandPalette } from '@hooks/ui/use-command-palette';
+import { useCommandPalette } from '@genfeedai/hooks/ui/use-command-palette';
 
 function MyComponent() {
   const { open, close, toggle } = useCommandPalette();
@@ -105,7 +105,7 @@ function MyComponent() {
 ### Registering Custom Commands
 
 ```tsx
-import { useCommandPalette } from '@hooks/ui/use-command-palette';
+import { useCommandPalette } from '@genfeedai/hooks/ui/use-command-palette';
 import { useEffect } from 'react';
 
 function MyFeature() {
@@ -310,7 +310,7 @@ The component uses Tailwind CSS and can be customized via the `className` prop:
 ```tsx
 import { render, fireEvent, screen } from '@testing-library/react';
 import { CommandPalette } from '@components/command-palette';
-import { CommandPaletteProvider } from '@contexts/command-palette.context';
+import { CommandPaletteProvider } from '@genfeedai/contexts/command-palette.context';
 
 test('opens with keyboard shortcut', () => {
   render(

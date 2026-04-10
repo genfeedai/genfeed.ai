@@ -1,9 +1,9 @@
 import { IngredientCategory } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useAudioPlayer } from '@genfeedai/hooks/media/use-audio-player/use-audio-player';
 import type { IIngredient } from '@genfeedai/interfaces';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { useAudioPlayer } from '@hooks/media/use-audio-player/use-audio-player';
-import { Ingredient } from '@models/content/ingredient.model';
-import type { ListProps } from '@props/content/list.props';
+import { Ingredient } from '@genfeedai/models/content/ingredient.model';
+import type { ListProps } from '@genfeedai/props/content/list.props';
 import ListRowSound from '@ui/lists/row-sound/ListRowSound';
 
 const PLAYABLE_CATEGORIES = new Set([

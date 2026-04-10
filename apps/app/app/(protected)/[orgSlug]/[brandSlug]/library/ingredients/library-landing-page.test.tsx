@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import LibraryLandingPage from './library-landing-page';
 
-vi.mock('@pages/library/landing/library-landing-credit-notice', () => ({
+vi.mock('./library-landing-credit-notice', () => ({
   default: () => <div data-testid="library-credit-notice" />,
 }));
 

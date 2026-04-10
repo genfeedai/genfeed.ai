@@ -602,7 +602,10 @@ function AppLayoutWithDynamicMenu({
           isChatRoute
             ? undefined
             : {
-                href: '/workspace/overview#new-task',
+                href: `${withTaskContextHref(
+                  buildHref('/workspace/overview'),
+                  taskContextSearchParams,
+                )}#new-task`,
                 icon: <HiPlus className="h-4 w-4" />,
                 label: 'New Task',
               }

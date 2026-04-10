@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonVariant, CredentialPlatform } from '@genfeedai/enums';
-import type { ContentPreviewSidebarProps } from '@props/components/content-preview-sidebar.props';
+import type { ContentPreviewSidebarProps } from '@genfeedai/props/components/content-preview-sidebar.props';
 import Badge from '@ui/display/badge/Badge';
 import { Button } from '@ui/primitives/button';
 

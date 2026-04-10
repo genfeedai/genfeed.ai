@@ -2,7 +2,7 @@
 
 import { EMPTY_STATES } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
-import type { ListPageLayoutProps } from '@props/layout/list-page-layout.props';
+import type { ListPageLayoutProps } from '@genfeedai/props/layout/list-page-layout.props';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import FiltersButton from '@ui/content/filters-button/FiltersButton';
 import AppTable from '@ui/display/table/Table';

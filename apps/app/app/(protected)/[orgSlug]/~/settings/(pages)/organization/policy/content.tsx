@@ -2,7 +2,6 @@
 
 import { AgentReplyStyle } from '@genfeedai/enums';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
-import SettingsAgentsPage from '@pages/settings/agents/settings-agents-page';
 import { logger } from '@services/core/logger.service';
 import Card from '@ui/card/Card';
 import {
@@ -13,6 +12,7 @@ import {
   SelectValue,
 } from '@ui/primitives';
 import { useCallback, useState } from 'react';
+import SettingsAgentsPage from './settings-agents-page';
 
 const REPLY_STYLE_OPTIONS: Array<{ label: string; value: AgentReplyStyle }> = [
   { label: 'Concise', value: AgentReplyStyle.CONCISE },

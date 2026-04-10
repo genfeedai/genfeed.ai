@@ -6,9 +6,9 @@ import {
   IngredientCategory,
 } from '@genfeedai/enums';
 import type { IAsset } from '@genfeedai/interfaces';
-import type { ModalGalleryFooterProps } from '@props/modals/modal-gallery.props';
-import { PagesService } from '@services/content/pages.service';
-import { EnvironmentService } from '@services/core/environment.service';
+import type { ModalGalleryFooterProps } from '@genfeedai/props/modals/modal-gallery.props';
+import { PagesService } from '@genfeedai/services/content/pages.service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Pagination from '@ui/navigation/pagination/Pagination';
 import { Button } from '@ui/primitives/button';
 

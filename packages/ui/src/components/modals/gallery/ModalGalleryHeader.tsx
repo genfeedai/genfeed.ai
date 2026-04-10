@@ -6,9 +6,9 @@ import {
   ButtonVariant,
   IngredientCategory,
 } from '@genfeedai/enums';
-import { formatVideos } from '@helpers/data/data/data.helper';
-import type { ModalGalleryHeaderProps } from '@props/modals/modal-gallery.props';
-import { useUploadModal } from '@providers/global-modals/global-modals.provider';
+import { formatVideos } from '@genfeedai/helpers/data/data/data.helper';
+import type { ModalGalleryHeaderProps } from '@genfeedai/props/modals/modal-gallery.props';
+import { useUploadModal } from '@genfeedai/providers/global-modals/global-modals.provider';
 import Badge from '@ui/display/badge/Badge';
 import Alert from '@ui/feedback/alert/Alert';
 import Tabs from '@ui/navigation/tabs/Tabs';

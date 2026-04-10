@@ -1,25 +1,26 @@
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   type PresetElementSchema,
   presetElementSchema,
 } from '@genfeedai/client/schemas';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ButtonVariant,
   ModalEnum,
   ModelCategory,
   SystemPromptKey,
 } from '@genfeedai/enums';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
+import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import type { IPreset } from '@genfeedai/interfaces';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
-import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import { Prompt } from '@models/content/prompt.model';
-import type { ModalCrudProps } from '@props/modals/modal.props';
-import { PromptsService } from '@services/content/prompts.service';
-import { ClipboardService } from '@services/core/clipboard.service';
-import { logger } from '@services/core/logger.service';
-import { createPromptHandler } from '@services/core/socket-manager.service';
-import { PresetsService } from '@services/elements/presets.service';
+import { Prompt } from '@genfeedai/models/content/prompt.model';
+import type { ModalCrudProps } from '@genfeedai/props/modals/modal.props';
+import { PromptsService } from '@genfeedai/services/content/prompts.service';
+import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { createPromptHandler } from '@genfeedai/services/core/socket-manager.service';
+import { PresetsService } from '@genfeedai/services/elements/presets.service';
+import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
 import TextareaLabelActions from '@ui/content/textarea-label-actions/TextareaLabelActions';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
@@ -28,7 +29,6 @@ import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { WebSocketPaths } from '@utils/network/websocket.util';
 import {
   type ChangeEvent,
   useCallback,

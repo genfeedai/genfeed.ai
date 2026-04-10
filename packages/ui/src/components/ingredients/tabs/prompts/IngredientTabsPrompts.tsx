@@ -1,7 +1,7 @@
 'use client';
 
 import type { IPrompt } from '@genfeedai/interfaces';
-import type { IngredientTabsPromptsProps } from '@props/content/ingredient.props';
+import type { IngredientTabsPromptsProps } from '@genfeedai/props/content/ingredient.props';
 
 export default function IngredientTabsPrompts({
   ingredient,

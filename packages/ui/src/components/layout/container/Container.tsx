@@ -1,7 +1,7 @@
 'use client';
 
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { ContainerProps } from '@props/ui/ui.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { ContainerProps } from '@genfeedai/props/ui/ui.props';
 import ContainerTitle from '@ui/layout/container-title/ContainerTitle';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { useState } from 'react';

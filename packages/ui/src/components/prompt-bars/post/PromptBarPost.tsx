@@ -1,10 +1,10 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, Platform } from '@genfeedai/enums';
-import { PLATFORM_LABEL_MAP } from '@helpers/content/posts.helper';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
-import type { PromptBarContentProps } from '@props/prompt-bars/prompt-bar-content.props';
+import { PLATFORM_LABEL_MAP } from '@genfeedai/helpers/content/posts.helper';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { getPlatformIcon } from '@genfeedai/helpers/ui/platform-icon/platform-icon.helper';
+import type { PromptBarContentProps } from '@genfeedai/props/prompt-bars/prompt-bar-content.props';
 import { Button } from '@ui/primitives/button';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import { Input } from '@ui/primitives/input';

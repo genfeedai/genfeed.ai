@@ -46,8 +46,8 @@ import type {
   ModalUploadProps,
   ModalVideoProps,
   PostMetadataOverlayProps,
-} from '@props/modals/modal.props';
-import type { ModalPostRemixProps } from '@props/modals/modal-post-remix.props';
+} from '@genfeedai/props/modals/modal.props';
+import type { ModalPostRemixProps } from '@genfeedai/props/modals/modal-post-remix.props';
 import dynamic from 'next/dynamic';
 import type { ComponentType } from 'react';
 

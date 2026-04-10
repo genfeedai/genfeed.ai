@@ -7,8 +7,8 @@ import {
   IngredientCategory,
   Status,
 } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { EvaluationCardProps } from '@props/components/evaluation-card.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { EvaluationCardProps } from '@genfeedai/props/components/evaluation-card.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import { useState } from 'react';

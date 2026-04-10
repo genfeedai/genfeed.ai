@@ -1,11 +1,11 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   GeneratedPromptCardProps,
   PromptMetadataTagProps,
-} from '@props/studio/prompt-generator.props';
+} from '@genfeedai/props/studio/prompt-generator.props';
 import { Button } from '@ui/primitives/button';
 import { memo, useCallback } from 'react';
 import {

@@ -1,6 +1,6 @@
-import { Training } from '@models/ai/training.model';
-import type { ModalProps } from '@props/modals/modal.props';
-import type { BaseButtonProps } from '@props/ui/forms/button.props';
+import { Training } from '@genfeedai/models/ai/training.model';
+import type { ModalProps } from '@genfeedai/props/modals/modal.props';
+import type { BaseButtonProps } from '@genfeedai/props/ui/forms/button.props';
 import { render, screen } from '@testing-library/react';
 import ModalTraining from '@ui/modals/trainings/ModalTraining';
 import type { PropsWithChildren, RefObject } from 'react';
@@ -48,14 +48,14 @@ vi.mock('@ui/primitives/select', () => ({
   ),
 }));
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   __esModule: true,
   useBrand: () => ({
     brands: [{ id: 'brand-1', label: 'Brand 1' }],
   }),
 }));
 
-vi.mock('@hooks/ui/use-crud-modal/use-crud-modal', () => ({
+vi.mock('@genfeedai/hooks/ui/use-crud-modal/use-crud-modal', () => ({
   __esModule: true,
   useCrudModal: () => ({
     closeModal: vi.fn(),

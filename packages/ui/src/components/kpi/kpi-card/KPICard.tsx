@@ -1,9 +1,9 @@
 'use client';
 
 import { CardVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { useAnimatedCounter } from '@hooks/ui/use-animated-counter/use-animated-counter';
-import type { KPICardProps } from '@props/ui/kpi/kpi-card.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useAnimatedCounter } from '@genfeedai/hooks/ui/use-animated-counter/use-animated-counter';
+import type { KPICardProps } from '@genfeedai/props/ui/kpi/kpi-card.props';
 import Card from '@ui/card/Card';
 import {
   HiOutlineArrowTrendingDown,
@@ -17,14 +17,11 @@ interface AnimatedValueProps {
 function AnimatedValue({ value }: AnimatedValueProps) {
   // Extract numeric part and suffix (e.g., "1.2K" -> 1.2, "K")
   const match = value.match(/^([\d.]+)(.*)$/);
-  if (!match) {
-    return <>{value}</>;
-  }
 
-  const numericValue = parseFloat(match[1]);
-  const suffix = match[2] || '';
+  const numericValue = match ? parseFloat(match[1]) : 0;
+  const suffix = match ? match[2] || '' : '';
   // Determine decimal places from the original value
-  const decimalMatch = match[1].match(/\.(\d+)/);
+  const decimalMatch = match ? match[1].match(/\.(\d+)/) : null;
   const decimals = decimalMatch ? decimalMatch[1].length : 0;
 
   const { ref, value: animatedValue } = useAnimatedCounter({
@@ -33,6 +30,10 @@ function AnimatedValue({ value }: AnimatedValueProps) {
     end: numericValue,
     suffix,
   });
+
+  if (!match) {
+    return <>{value}</>;
+  }
 
   return <span ref={ref}>{animatedValue}</span>;
 }

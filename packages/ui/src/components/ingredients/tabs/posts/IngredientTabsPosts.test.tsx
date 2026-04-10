@@ -3,7 +3,7 @@ import { render } from '@testing-library/react';
 import IngredientTabsPosts from '@ui/ingredients/tabs/posts/IngredientTabsPosts';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@services/content/ingredients.service', () => ({
+vi.mock('@genfeedai/services/content/ingredients.service', () => ({
   IngredientsService: {
     getInstance: () => ({
       getPosts: vi.fn().mockResolvedValue([]),

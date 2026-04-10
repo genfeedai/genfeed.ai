@@ -5,21 +5,21 @@ import {
   Platform,
   PostStatus,
 } from '@genfeedai/enums';
-import { getPostStatusOptions } from '@helpers/content/posts.helper';
-import { getBrowserTimezone } from '@helpers/formatting/timezone/timezone.helper';
+import { getPostStatusOptions } from '@genfeedai/helpers/content/posts.helper';
+import { getBrowserTimezone } from '@genfeedai/helpers/formatting/timezone/timezone.helper';
 import {
   hasFormErrors,
   parseFormErrors,
-} from '@helpers/ui/form-error/form-error.helper';
-import { closeModal as closeModalHelper } from '@helpers/ui/modal/modal.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useFocusFirstInput } from '@hooks/ui/use-focus-first-input/use-focus-first-input';
-import { useModalAutoOpen } from '@hooks/ui/use-modal-auto-open/use-modal-auto-open';
-import { useFormSubmitWithState } from '@hooks/utils/use-form-submit/use-form-submit';
-import type { PostMetadataOverlayProps } from '@props/modals/modal.props';
-import { PostsService } from '@services/content/posts.service';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
+} from '@genfeedai/helpers/ui/form-error/form-error.helper';
+import { closeModal as closeModalHelper } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useFocusFirstInput } from '@genfeedai/hooks/ui/use-focus-first-input/use-focus-first-input';
+import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
+import { useFormSubmitWithState } from '@genfeedai/hooks/utils/use-form-submit/use-form-submit';
+import type { PostMetadataOverlayProps } from '@genfeedai/props/modals/modal.props';
+import { PostsService } from '@genfeedai/services/content/posts.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import Alert from '@ui/feedback/alert/Alert';
 import EntityOverlayShell from '@ui/overlays/entity/EntityOverlayShell';
 import { Button } from '@ui/primitives/button';

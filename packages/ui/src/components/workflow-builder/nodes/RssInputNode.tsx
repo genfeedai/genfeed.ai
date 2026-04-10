@@ -5,7 +5,7 @@ import type {
   RssFeedItem,
   RssInputNodeData,
   RssInputNodeProps,
-} from '@props/workflow/nodes.props';
+} from '@genfeedai/props/workflow/nodes.props';
 import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';

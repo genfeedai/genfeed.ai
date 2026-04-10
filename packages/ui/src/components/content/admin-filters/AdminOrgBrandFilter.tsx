@@ -1,9 +1,9 @@
 'use client';
 
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useResource } from '@genfeedai/hooks/data/resource/use-resource/use-resource';
 import type { IBrand, IOrganization } from '@genfeedai/interfaces';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
-import { OrganizationsService } from '@services/organization/organizations.service';
+import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import { useCallback, useMemo } from 'react';
 

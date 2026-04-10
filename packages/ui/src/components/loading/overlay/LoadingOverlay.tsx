@@ -1,5 +1,5 @@
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { LoadingOverlayProps } from '@props/ui/feedback/loading.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { LoadingOverlayProps } from '@genfeedai/props/ui/feedback/loading.props';
 
 export default function LoadingOverlay({
   message = 'Loading...',

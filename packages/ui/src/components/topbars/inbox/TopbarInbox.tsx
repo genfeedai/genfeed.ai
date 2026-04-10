@@ -1,9 +1,9 @@
 'use client';
 
-import { useBackgroundTaskContext } from '@contexts/ui/background-task-context';
+import { useBackgroundTaskContext } from '@genfeedai/contexts/ui/background-task-context';
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { useOverviewBootstrap } from '@hooks/data/overview/use-overview-bootstrap';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useOverviewBootstrap } from '@genfeedai/hooks/data/overview/use-overview-bootstrap';
 import Badge from '@ui/display/badge/Badge';
 import {
   buttonVariants,

@@ -1,9 +1,9 @@
 'use client';
 
 import { AlertCategory, ButtonVariant } from '@genfeedai/enums';
-import { closeModal } from '@helpers/ui/modal/modal.helper';
-import { useVideoTrim } from '@hooks/media/use-video-trim/use-video-trim';
-import type { ModalTrimProps } from '@props/modals/modal.props';
+import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useVideoTrim } from '@genfeedai/hooks/media/use-video-trim/use-video-trim';
+import type { ModalTrimProps } from '@genfeedai/props/modals/modal.props';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import VideoTrimTimeline from '@ui/display/video-trim-timeline/VideoTrimTimeline';
 import Alert from '@ui/feedback/alert/Alert';

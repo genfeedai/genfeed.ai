@@ -1,6 +1,6 @@
 'use client';
 
-import type { ContainerTitleProps } from '@props/layout/container-title.props';
+import type { ContainerTitleProps } from '@genfeedai/props/layout/container-title.props';
 import CardIcon from '@ui/card/icon/CardIcon';
 
 export default function ContainerTitle({

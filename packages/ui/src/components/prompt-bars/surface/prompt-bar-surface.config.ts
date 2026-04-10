@@ -1,4 +1,4 @@
-import type { PromptBarSurfaceConfig } from '@props/prompt-bars/prompt-bar-surface.props';
+import type { PromptBarSurfaceConfig } from '@genfeedai/props/prompt-bars/prompt-bar-surface.props';
 
 export const STUDIO_PROMPT_BAR_SURFACE: PromptBarSurfaceConfig = {
   container: {

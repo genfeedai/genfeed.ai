@@ -4,27 +4,30 @@ import { describe, expect, it, vi } from 'vitest';
 
 const findOneMock = vi.fn().mockResolvedValue({ balance: 1000 });
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ organizationId: 'org_123' }),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () =>
     vi.fn(async () => ({
       findOne: findOneMock,
     })),
 }));
 
-vi.mock('@hooks/data/subscription/use-subscription/use-subscription', () => ({
-  useSubscription: () => ({
-    creditsBreakdown: {
-      planLimit: 1000,
-    },
-    refreshCreditsBreakdown: vi.fn(),
+vi.mock(
+  '@genfeedai/hooks/data/subscription/use-subscription/use-subscription',
+  () => ({
+    useSubscription: () => ({
+      creditsBreakdown: {
+        planLimit: 1000,
+      },
+      refreshCreditsBreakdown: vi.fn(),
+    }),
   }),
-}));
+);
 
-vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
+vi.mock('@genfeedai/hooks/utils/use-socket-manager/use-socket-manager', () => ({
   useSocketManager: () => ({
     subscribe: vi.fn(),
     unsubscribe: vi.fn(),

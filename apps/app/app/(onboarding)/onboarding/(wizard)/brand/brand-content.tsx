@@ -89,6 +89,15 @@ function deriveBrandNameFromDomain(domain: string): string {
     .trim();
 }
 
+function normalizeWebsiteUrl(url: string): string | null {
+  const trimmedUrl = url.trim();
+  if (!trimmedUrl) {
+    return null;
+  }
+
+  return trimmedUrl.includes('://') ? trimmedUrl : `https://${trimmedUrl}`;
+}
+
 export default function BrandContent() {
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
   const { getToken } = useAuth();
@@ -181,7 +190,15 @@ export default function BrandContent() {
   );
 
   const handleContinue = useCallback(
-    async (urlOverride?: string, brandNameOverride?: string) => {
+    async ({
+      brandNameOverride,
+      skipWebsite = false,
+      urlOverride,
+    }: {
+      brandNameOverride?: string;
+      skipWebsite?: boolean;
+      urlOverride?: string;
+    } = {}) => {
       const effectiveBrandName = (brandNameOverride ?? brandName).trim();
       if (!effectiveBrandName) {
         return;
@@ -195,24 +212,19 @@ export default function BrandContent() {
           return;
         }
 
-        const url = urlOverride || websiteUrl.trim();
         const service = OnboardingService.getInstance(token);
+        const brandUrl = skipWebsite
+          ? null
+          : normalizeWebsiteUrl(urlOverride ?? websiteUrl);
 
-        // Fire-and-forget: setup brand in background, don't await
-        const brandUrl = url
-          ? url.includes('://')
-            ? url
-            : `https://${url}`
-          : `https://${effectiveBrandName.toLowerCase().replace(/\s+/g, '')}.com`;
-
-        service
-          .setupBrand({
+        if (brandUrl) {
+          await service.setupBrand({
             brandName: effectiveBrandName,
             brandUrl,
-          })
-          .catch((error) => {
-            logger.error('Background brand setup failed', error);
           });
+        } else {
+          await service.updateBrandName(effectiveBrandName);
+        }
 
         router.push('/onboarding/providers');
       } catch (error) {
@@ -222,6 +234,25 @@ export default function BrandContent() {
     },
     [getToken, brandName, websiteUrl, router],
   );
+
+  const handleSkipOnboarding = useCallback(async () => {
+    setSubmitting(true);
+
+    try {
+      const token = await resolveClerkToken(getToken);
+      if (!token) {
+        return;
+      }
+
+      await OnboardingService.getInstance(token).skip(
+        'skipped-from-brand-step',
+      );
+      router.push('/');
+    } catch (error) {
+      logger.error('Failed to skip onboarding', error);
+      setSubmitting(false);
+    }
+  }, [getToken, router]);
 
   // Auto-scan from corporate email flow
   useEffect(() => {
@@ -237,7 +268,10 @@ export default function BrandContent() {
       autoScanRef.current = true;
       setWebsiteUrl(storedDomain);
       setBrandName((prev) => prev || inferredBrandName);
-      handleContinue(storedDomain, inferredBrandName).catch((error) => {
+      handleContinue({
+        brandNameOverride: inferredBrandName,
+        urlOverride: storedDomain,
+      }).catch((error) => {
         logger.error('Failed to continue auto onboarding flow', error);
       });
     }
@@ -353,16 +387,26 @@ export default function BrandContent() {
 
         {/* Continue button */}
         <div className="step-actions opacity-0">
-          <Button
-            variant={ButtonVariant.WHITE}
-            size={ButtonSize.DEFAULT}
-            label="Continue"
-            icon={<HiArrowRight className="h-4 w-4" />}
-            isLoading={submitting}
-            isDisabled={!brandName.trim()}
-            onClick={() => handleContinue()}
-            className="rounded-none px-5"
-          />
+          <div className="flex items-center gap-3">
+            <Button
+              variant={ButtonVariant.WHITE}
+              size={ButtonSize.DEFAULT}
+              label="Continue"
+              icon={<HiArrowRight className="h-4 w-4" />}
+              isLoading={submitting}
+              isDisabled={!brandName.trim()}
+              onClick={() => handleContinue()}
+              className="rounded-none px-5"
+            />
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.DEFAULT}
+              label="Skip Onboarding"
+              isLoading={submitting}
+              onClick={handleSkipOnboarding}
+              className="rounded-none px-5"
+            />
+          </div>
         </div>
       </div>
     </div>

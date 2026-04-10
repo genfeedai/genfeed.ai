@@ -1,7 +1,7 @@
 import type {
   SwitcherDropdownFooterAction,
   SwitcherDropdownItem,
-} from '@props/ui/menus/switcher-dropdown.props';
+} from '@genfeedai/props/ui/menus/switcher-dropdown.props';
 import { render, screen, waitFor } from '@testing-library/react';
 import TopbarOrganizationSwitcher from '@ui/topbars/organization-switcher/TopbarOrganizationSwitcher';
 import type { ReactNode } from 'react';
@@ -19,7 +19,7 @@ vi.mock('next/navigation', () => ({
   }),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
     createOrganization: vi.fn(),
     getMyOrganizations: mockGetMyOrganizations,
@@ -27,7 +27,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   }),
 }));
 
-vi.mock('@services/organization/organizations.service', () => ({
+vi.mock('@genfeedai/services/organization/organizations.service', () => ({
   OrganizationsService: {
     getInstance: vi.fn(),
   },

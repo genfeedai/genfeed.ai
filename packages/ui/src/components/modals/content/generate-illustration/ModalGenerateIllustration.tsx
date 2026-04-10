@@ -11,24 +11,24 @@ import {
   ModelCategory,
   Platform,
 } from '@genfeedai/enums';
+import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
+import { useGenerationListener } from '@genfeedai/hooks/utils/use-generation-listener/use-generation-listener';
+import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import type { IImage, IModel } from '@genfeedai/interfaces';
-import { closeModal } from '@helpers/ui/modal/modal.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useModalAutoOpen } from '@hooks/ui/use-modal-auto-open/use-modal-auto-open';
-import { useGenerationListener } from '@hooks/utils/use-generation-listener/use-generation-listener';
-import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import type { ModalGenerateIllustrationProps } from '@props/modals/modal.props';
-import { ModelsService } from '@services/ai/models.service';
-import { EnvironmentService } from '@services/core/environment.service';
-import { logger } from '@services/core/logger.service';
-import { ImagesService } from '@services/ingredients/images.service';
+import type { ModalGenerateIllustrationProps } from '@genfeedai/props/modals/modal.props';
+import { ModelsService } from '@genfeedai/services/ai/models.service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { ImagesService } from '@genfeedai/services/ingredients/images.service';
+import { resolvePendingIds } from '@genfeedai/utils/network/generation.util';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
 import { Textarea } from '@ui/primitives/textarea';
-import { resolvePendingIds } from '@utils/network/generation.util';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';

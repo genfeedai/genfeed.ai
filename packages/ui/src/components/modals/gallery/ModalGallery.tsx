@@ -5,10 +5,10 @@ import {
   IngredientFormat,
   ModalEnum,
 } from '@genfeedai/enums';
+import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import type { IAsset, IImage } from '@genfeedai/interfaces';
-import { useModalAutoOpen } from '@hooks/ui/use-modal-auto-open/use-modal-auto-open';
-import type { ModalGalleryProps } from '@props/modals/modal.props';
-import { PagesService } from '@services/content/pages.service';
+import type { ModalGalleryProps } from '@genfeedai/props/modals/modal.props';
+import { PagesService } from '@genfeedai/services/content/pages.service';
 import { useModalGallery } from '@ui/modals/gallery/hooks/useModalGallery';
 import ModalGalleryContent from '@ui/modals/gallery/ModalGalleryContent';
 import ModalGalleryFooter from '@ui/modals/gallery/ModalGalleryFooter';

@@ -1,22 +1,25 @@
 import type { MultiPostSchema } from '@genfeedai/client/schemas';
-import type { BaseButtonProps } from '@props/ui/forms/button.props';
+import type { BaseButtonProps } from '@genfeedai/props/ui/forms/button.props';
 import { render, screen } from '@testing-library/react';
 import ModalPostSetupTab from '@ui/modals/content/post/ModalPostSetupTab';
 import type { PropsWithChildren } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   __esModule: true,
   useBrand: () => ({
     brandId: 'brand-1',
   }),
 }));
 
-vi.mock('@hooks/utils/use-websocket-prompt/use-websocket-prompt', () => ({
-  __esModule: true,
-  useWebsocketPrompt: () => vi.fn(),
-}));
+vi.mock(
+  '@genfeedai/hooks/utils/use-websocket-prompt/use-websocket-prompt',
+  () => ({
+    __esModule: true,
+    useWebsocketPrompt: () => vi.fn(),
+  }),
+);
 
 vi.mock('@ui/buttons/base/Button', () => ({
   __esModule: true,

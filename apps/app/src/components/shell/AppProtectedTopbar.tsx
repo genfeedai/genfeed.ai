@@ -7,54 +7,19 @@ import { Button } from '@ui/primitives/button';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarEnd from '@ui/topbars/end/TopbarEnd';
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { HiBars3, HiXMark } from 'react-icons/hi2';
-import {
-  appendSearchParamsToHref,
-  getOperatorSurfaceDefaultPath,
-  type OperatorSurface,
-  pickOperatorTaskContextSearchParams,
-  resolveOperatorSurface,
-} from '@/lib/navigation/operator-shell';
-
-const OPERATOR_SURFACE_ITEMS: Array<{
-  id: OperatorSurface;
-  label: string;
-}> = [
-  { id: 'workspace', label: 'Workspace' },
-  { id: 'create', label: 'Create' },
-  { id: 'library', label: 'Library' },
-  { id: 'analytics', label: 'Analytics' },
-  { id: 'settings', label: 'Settings' },
-];
-
-function getSurfaceHref(
-  surface: OperatorSurface,
-  href: (path: string) => string,
-  orgHref: (path: string) => string,
-  taskContextParams: URLSearchParams,
-): string {
-  const basePath = getOperatorSurfaceDefaultPath(surface);
-  const scopedHref =
-    surface === 'settings' ? orgHref(basePath) : href(basePath);
-
-  return appendSearchParamsToHref(scopedHref, taskContextParams);
-}
+import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
 
 export default function AppProtectedTopbar({
   isMenuOpen,
   onMenuToggle,
 }: TopbarProps = {}) {
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { href, orgHref } = useOrgUrl();
+  const { href } = useOrgUrl();
 
-  const activeSurface = resolveOperatorSurface(pathname);
   const taskId = searchParams?.get('taskId');
   const taskTitle = searchParams?.get('taskTitle');
-  const taskContextParams = pickOperatorTaskContextSearchParams(
-    new URLSearchParams(searchParams?.toString()),
-  );
   const ToggleIcon = isMenuOpen ? HiXMark : HiBars3;
   const backToTaskHref = taskId
     ? href(
@@ -83,35 +48,7 @@ export default function AppProtectedTopbar({
             </Button>
           ) : null}
 
-          <nav
-            aria-label="Operator mode switcher"
-            className="hidden items-center gap-1 rounded-full border border-white/10 bg-black/20 p-1 md:flex"
-          >
-            {OPERATOR_SURFACE_ITEMS.map((item) => {
-              const isActive = item.id === activeSurface;
-
-              return (
-                <Link
-                  key={item.id}
-                  href={getSurfaceHref(
-                    item.id,
-                    href,
-                    orgHref,
-                    taskContextParams,
-                  )}
-                  className={`rounded-full px-3 py-1.5 text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-white/[0.12] text-foreground'
-                      : 'text-foreground/55 hover:bg-white/[0.06] hover:text-foreground'
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="hidden min-w-0 lg:block">
+          <div className="hidden min-w-0 md:block">
             <TopbarBreadcrumbs />
           </div>
         </div>

@@ -6,8 +6,8 @@ import {
   ComponentSize,
   IngredientFormat,
 } from '@genfeedai/enums';
-import type { ModalVideoProps } from '@props/modals/modal.props';
-import { EnvironmentService } from '@services/core/environment.service';
+import type { ModalVideoProps } from '@genfeedai/props/modals/modal.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Masonry from '@ui/display/masonry/Masonry';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import Spinner from '@ui/feedback/spinner/Spinner';

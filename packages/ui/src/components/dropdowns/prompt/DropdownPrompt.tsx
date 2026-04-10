@@ -1,9 +1,13 @@
 'use client';
 
 import { ButtonVariant, DropdownDirection } from '@genfeedai/enums';
-import { BG_BLUR, BORDER_WHITE_30, cn } from '@helpers/formatting/cn/cn.util';
-import type { PromptDropdownProps } from '@props/prompts/prompt-dropdown.props';
-import { ClipboardService } from '@services/core/clipboard.service';
+import {
+  BG_BLUR,
+  BORDER_WHITE_30,
+  cn,
+} from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { PromptDropdownProps } from '@genfeedai/props/prompts/prompt-dropdown.props';
+import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { Button } from '@ui/primitives/button';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';

@@ -1,7 +1,7 @@
 'use client';
 
 import { AlertCategory, ComponentSize } from '@genfeedai/enums';
-import type { VideoTrimTimelineProps } from '@props/ui/media/video-trim-timeline.props';
+import type { VideoTrimTimelineProps } from '@genfeedai/props/ui/media/video-trim-timeline.props';
 import Alert from '@ui/feedback/alert/Alert';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import Slider from 'rc-slider';

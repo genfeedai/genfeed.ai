@@ -1,7 +1,7 @@
 'use client';
 
-import type { ModalGalleryItemReferenceProps } from '@props/modals/modal-gallery.props';
-import { EnvironmentService } from '@services/core/environment.service';
+import type { ModalGalleryItemReferenceProps } from '@genfeedai/props/modals/modal-gallery.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Image from 'next/image';
 
 export default function ModalGalleryItemReference({

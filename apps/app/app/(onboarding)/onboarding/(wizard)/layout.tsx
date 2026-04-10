@@ -21,6 +21,7 @@ function OnboardingLayoutInner({ children }: LayoutProps) {
   const segment = pathname.split('/').pop();
   const isCountedStep =
     !!segment && (ONBOARDING_STEPS as readonly string[]).includes(segment);
+  const showCloudFooter = isCountedStep && segment !== 'summary';
 
   return (
     <div className="min-h-screen bg-black">
@@ -45,28 +46,28 @@ function OnboardingLayoutInner({ children }: LayoutProps) {
 
         {/* Progress — only on counted steps (brand, plan) */}
         <div className="max-w-4xl mx-auto">
-          {isCountedStep && (
-            <>
-              <OnboardingProgress
-                currentStep={currentStepIndex}
-                totalSteps={stepLabels.length}
-                stepLabels={stepLabels}
-              />
-
-              <p className="mt-4 text-sm text-white/30">
-                Don&apos;t know what you&apos;re looking for?{' '}
-                <Link
-                  href={EnvironmentService.apps.website}
-                  className="text-white/65 underline decoration-white/20 underline-offset-4 transition hover:text-white"
-                >
-                  Use our cloud solution instead.
-                </Link>
-              </p>
-            </>
-          )}
+          {isCountedStep ? (
+            <OnboardingProgress
+              currentStep={currentStepIndex}
+              totalSteps={stepLabels.length}
+              stepLabels={stepLabels}
+            />
+          ) : null}
 
           {/* Step content */}
           <div className="mt-12">{children}</div>
+
+          {showCloudFooter ? (
+            <p className="mt-8 text-sm text-white/30">
+              Don&apos;t know what you&apos;re looking for?{' '}
+              <Link
+                href={EnvironmentService.apps.website}
+                className="text-white/65 underline decoration-white/20 underline-offset-4 transition hover:text-white"
+              >
+                Use our cloud solution instead.
+              </Link>
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

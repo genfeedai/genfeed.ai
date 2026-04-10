@@ -4,11 +4,11 @@ import {
   elementSimpleSchema,
 } from '@genfeedai/client/schemas';
 import { ButtonVariant, ModalEnum } from '@genfeedai/enums';
+import { getClerkPublicData } from '@genfeedai/helpers/auth/clerk.helper';
+import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
 import type { IElementMood } from '@genfeedai/interfaces';
-import { getClerkPublicData } from '@helpers/auth/clerk.helper';
-import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
-import type { ModalCrudProps } from '@props/modals/modal.props';
-import { MoodsService } from '@services/elements/moods.service';
+import type { ModalCrudProps } from '@genfeedai/props/modals/modal.props';
+import { MoodsService } from '@genfeedai/services/elements/moods.service';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';

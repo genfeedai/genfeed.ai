@@ -1,11 +1,11 @@
 import { PostStatus } from '@genfeedai/enums';
-import type { PostDetailSidebarProps } from '@props/components/post-detail-sidebar.props';
+import type { PostDetailSidebarProps } from '@genfeedai/props/components/post-detail-sidebar.props';
 import { render, screen } from '@testing-library/react';
 import PostDetailSidebar from '@ui/posts/post-detail-sidebar/PostDetailSidebar';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@hooks/ui/evaluation/use-evaluation/use-evaluation', () => ({
+vi.mock('@genfeedai/hooks/ui/evaluation/use-evaluation/use-evaluation', () => ({
   useEvaluation: () => ({
     evaluate: vi.fn(),
     evaluation: null,
@@ -13,7 +13,7 @@ vi.mock('@hooks/ui/evaluation/use-evaluation/use-evaluation', () => ({
   }),
 }));
 
-vi.mock('@helpers/formatting/timezone/timezone.helper', () => ({
+vi.mock('@genfeedai/helpers/formatting/timezone/timezone.helper', () => ({
   getBrowserTimezone: () => 'UTC',
 }));
 

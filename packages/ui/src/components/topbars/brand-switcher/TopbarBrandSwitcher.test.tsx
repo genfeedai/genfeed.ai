@@ -1,4 +1,4 @@
-import type { SwitcherDropdownFooterAction } from '@props/ui/menus/switcher-dropdown.props';
+import type { SwitcherDropdownFooterAction } from '@genfeedai/props/ui/menus/switcher-dropdown.props';
 import { render, screen } from '@testing-library/react';
 import TopbarBrandSwitcher from '@ui/topbars/brand-switcher/TopbarBrandSwitcher';
 import type { ReactNode } from 'react';
@@ -14,7 +14,7 @@ vi.mock('@clerk/nextjs', () => ({
   }),
 }));
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'brand-1',
     brands: [
@@ -24,25 +24,25 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
   useBrandOverlay: () => ({
     openBrandOverlay: openBrandOverlaySpy,
   }),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
     patchMeBrand: vi.fn(),
   }),
 }));
 
-vi.mock('@services/organization/users.service', () => ({
+vi.mock('@genfeedai/services/organization/users.service', () => ({
   UsersService: {
     getInstance: vi.fn(),
   },
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 }));
 

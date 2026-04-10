@@ -7,7 +7,7 @@ vi.mock('@ui/modals/modal/Modal', () => ({
   default: ({ children }: any) => <div data-testid="modal">{children}</div>,
 }));
 
-vi.mock('@hooks/ui/use-crud-modal', () => ({
+vi.mock('@genfeedai/hooks/ui/use-crud-modal', () => ({
   useCrudModal: () => ({
     form: {
       formState: { errors: {} },
@@ -21,7 +21,7 @@ vi.mock('@hooks/ui/use-crud-modal', () => ({
   }),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => () =>
     Promise.resolve({
       create: vi.fn(),

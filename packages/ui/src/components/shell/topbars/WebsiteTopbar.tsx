@@ -2,7 +2,7 @@
 
 import { UserButton, useAuth } from '@clerk/nextjs';
 import { ButtonSize } from '@genfeedai/enums';
-import { EnvironmentService } from '@services/core/environment.service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Button } from '@ui/primitives/button';
 import TopbarPublic from '@ui/topbars/public/TopbarPublic';
 import {

@@ -1,13 +1,13 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
   useConfirmModal: () => ({
     openConfirm: vi.fn(),
   }),
 }));
 
-vi.mock('@helpers/formatting/format/format.helper', () => ({
+vi.mock('@genfeedai/helpers/formatting/format/format.helper', () => ({
   formatNumberWithCommas: (n: number) => String(n),
 }));
 

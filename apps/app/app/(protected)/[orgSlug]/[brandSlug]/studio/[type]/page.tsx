@@ -1,10 +1,7 @@
-import {
-  buildStudioPath,
-  shouldRedirectStudioTypeRoute,
-} from '@pages/studio/page/studio-route';
 import ErrorBoundary from '@ui/display/error-boundary/ErrorBoundary';
 import { redirect } from 'next/navigation';
 import StudioPageContent from './StudioPageContent';
+import { buildStudioPath, shouldRedirectStudioTypeRoute } from './studio-route';
 
 type StudioTypePageProps = {
   params: Promise<{ type: string }>;

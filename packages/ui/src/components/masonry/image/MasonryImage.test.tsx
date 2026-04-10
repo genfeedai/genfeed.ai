@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
     selectedBrand: { isDarkroomEnabled: false },
     settings: { isDarkroomNsfwVisible: false },
@@ -10,7 +10,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 
 // Mock hooks used by MasonryImage
 vi.mock(
-  '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions',
+  '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions',
   () => ({
     default: () => ({
       actionStates: {},
@@ -82,13 +82,13 @@ vi.mock('@ui/loading/overlay/LoadingOverlay', () => ({
   default: () => <div data-testid="loading-overlay" />,
 }));
 
-vi.mock('@services/core/environment.service', () => ({
+vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     assetsEndpoint: 'https://assets.test.com',
   },
 }));
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import type { IImage } from '@genfeedai/interfaces';
 import MasonryImage from '@ui/masonry/image/MasonryImage';
 

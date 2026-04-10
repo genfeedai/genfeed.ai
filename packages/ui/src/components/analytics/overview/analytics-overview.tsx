@@ -1,7 +1,7 @@
 'use client';
 
-import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
-import type { AnalyticsOverviewProps } from '@props/analytics/analytics.props';
+import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
+import type { AnalyticsOverviewProps } from '@genfeedai/props/analytics/analytics.props';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
 import {
   FiEye,

@@ -1,16 +1,16 @@
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { type FolderSchema, folderSchema } from '@genfeedai/client/schemas';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { AlertCategory, ButtonVariant, ModalEnum } from '@genfeedai/enums';
-import type { IBrand, IFolder } from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
-} from '@helpers/ui/form-error/form-error.helper';
-import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
-import { Folder } from '@models/content/folder.model';
-import type { ModalFolderProps } from '@props/modals/modal.props';
-import { FoldersService } from '@services/content/folders.service';
-import { EnvironmentService } from '@services/core/environment.service';
+} from '@genfeedai/helpers/ui/form-error/form-error.helper';
+import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
+import type { IBrand, IFolder } from '@genfeedai/interfaces';
+import { Folder } from '@genfeedai/models/content/folder.model';
+import type { ModalFolderProps } from '@genfeedai/props/modals/modal.props';
+import { FoldersService } from '@genfeedai/services/content/folders.service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';

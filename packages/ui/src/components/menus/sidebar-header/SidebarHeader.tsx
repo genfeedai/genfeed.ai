@@ -1,7 +1,7 @@
 'use client';
 
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { SidebarHeaderProps } from '@props/navigation/sidebar-header.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { SidebarHeaderProps } from '@genfeedai/props/navigation/sidebar-header.props';
 import MenuBrandSwitcher from '@ui/menus/switchers/MenuBrandSwitcher';
 import { memo } from 'react';
 

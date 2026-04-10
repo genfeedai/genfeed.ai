@@ -1,16 +1,16 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
-import { useBrandOverlay } from '@providers/global-modals/global-modals.provider';
-import { EnvironmentService } from '@services/core/environment.service';
-import { logger } from '@services/core/logger.service';
-import { OrganizationsService } from '@services/organization/organizations.service';
-import { UsersService } from '@services/organization/users.service';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo';
+import { useBrandOverlay } from '@genfeedai/providers/global-modals/global-modals.provider';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';
+import { UsersService } from '@genfeedai/services/organization/users.service';
 import { Modal } from '@ui/modals/compound/Modal';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';

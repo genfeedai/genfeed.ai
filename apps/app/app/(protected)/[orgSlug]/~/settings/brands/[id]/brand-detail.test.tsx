@@ -69,26 +69,17 @@ vi.mock('@pages/brands/components/overview/BrandDetailOverview', () => ({
   default: () => <div>Overview</div>,
 }));
 
-vi.mock(
-  '@pages/brands/components/latest-articles/BrandDetailLatestArticles',
-  () => ({
-    default: () => <div>Articles</div>,
-  }),
-);
+vi.mock('./BrandDetailLatestArticles', () => ({
+  default: () => <div>Articles</div>,
+}));
 
-vi.mock(
-  '@pages/brands/components/latest-images/BrandDetailLatestImages',
-  () => ({
-    default: () => <div>Images</div>,
-  }),
-);
+vi.mock('./BrandDetailLatestImages', () => ({
+  default: () => <div>Images</div>,
+}));
 
-vi.mock(
-  '@pages/brands/components/latest-videos/BrandDetailLatestVideos',
-  () => ({
-    default: () => <div>Videos</div>,
-  }),
-);
+vi.mock('./BrandDetailLatestVideos', () => ({
+  default: () => <div>Videos</div>,
+}));
 
 vi.mock(
   '@pages/brands/components/system-prompt/BrandDetailSystemPrompt',

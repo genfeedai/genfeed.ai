@@ -1,9 +1,9 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { NodeConfigField } from '@genfeedai/interfaces/automation/workflow-builder.interface';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { NodeConfigPanelProps } from '@props/automation/workflow-builder.props';
+import type { NodeConfigPanelProps } from '@genfeedai/props/automation/workflow-builder.props';
 import Textarea from '@ui/inputs/textarea/Textarea';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
@@ -195,6 +195,17 @@ export default function NodeConfigPanel({
   inputVariables,
   onClose,
 }: NodeConfigPanelProps) {
+  const handleConfigChange = useCallback(
+    (key: string, value: unknown) => {
+      if (!selectedNode) return;
+      onUpdateConfig(selectedNode.id, {
+        ...selectedNode.data.config,
+        [key]: value,
+      });
+    },
+    [selectedNode, onUpdateConfig],
+  );
+
   if (!selectedNode) {
     return null;
   }
@@ -202,13 +213,6 @@ export default function NodeConfigPanel({
   const { data } = selectedNode;
   const { definition, config } = data;
   const configSchema = definition?.configSchema || {};
-
-  const handleConfigChange = useCallback(
-    (key: string, value: unknown) => {
-      onUpdateConfig(selectedNode.id, { ...config, [key]: value });
-    },
-    [selectedNode.id, config, onUpdateConfig],
-  );
 
   const variableKeys = inputVariables.map((v) => v.key);
 

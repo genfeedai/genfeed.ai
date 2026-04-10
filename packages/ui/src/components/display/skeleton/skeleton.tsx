@@ -1,4 +1,4 @@
-import { cn } from '@helpers/formatting/cn/cn.util';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   SkeletonCardProps,
   SkeletonListProps,
@@ -6,7 +6,7 @@ import type {
   SkeletonProps,
   SkeletonTableProps,
   SkeletonVideoGridProps,
-} from '@props/ui/feedback/skeleton.props';
+} from '@genfeedai/props/ui/feedback/skeleton.props';
 import { Skeleton as ShadcnSkeleton } from '@ui/primitives/skeleton';
 
 type SkeletonVariant = 'circular' | 'rectangular' | 'rounded' | 'text';

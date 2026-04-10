@@ -1,9 +1,9 @@
 import { useAuth } from '@clerk/nextjs';
 import type { ICredential, IUser } from '@genfeedai/interfaces';
-import { Brand } from '@models/organization/brand.model';
-import { NotificationsService } from '@services/core/notifications.service';
-import { ServicesService } from '@services/external/services.service';
-import { CredentialsService } from '@services/organization/credentials.service';
+import { Brand } from '@genfeedai/models/organization/brand.model';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
+import { ServicesService } from '@genfeedai/services/external/services.service';
+import { CredentialsService } from '@genfeedai/services/organization/credentials.service';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import ModalBrandInstagram from '@ui/modals/brands/instagram/ModalBrandInstagram';
 import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
@@ -21,9 +21,9 @@ interface MockServicesService {
 
 // Mock dependencies
 vi.mock('@clerk/nextjs');
-vi.mock('@services/external/services.service');
-vi.mock('@services/core/notifications.service');
-vi.mock('@services/organization/credentials.service');
+vi.mock('@genfeedai/services/external/services.service');
+vi.mock('@genfeedai/services/core/notifications.service');
+vi.mock('@genfeedai/services/organization/credentials.service');
 
 // Mock fetch
 global.fetch = vi.fn();

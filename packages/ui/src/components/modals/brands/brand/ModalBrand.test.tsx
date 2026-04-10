@@ -1,8 +1,8 @@
-import type { BrandOverlayProps } from '@props/modals/modal.props';
-import type { BaseButtonProps } from '@props/ui/forms/button.props';
-import type { TextareaLabelActionsProps } from '@props/ui/forms/textarea-label-actions.props';
-import type { TabsProps } from '@props/ui/navigation/tabs.props';
-import type { AlertProps } from '@props/ui/ui.props';
+import type { BrandOverlayProps } from '@genfeedai/props/modals/modal.props';
+import type { BaseButtonProps } from '@genfeedai/props/ui/forms/button.props';
+import type { TextareaLabelActionsProps } from '@genfeedai/props/ui/forms/textarea-label-actions.props';
+import type { TabsProps } from '@genfeedai/props/ui/navigation/tabs.props';
+import type { AlertProps } from '@genfeedai/props/ui/ui.props';
 import { fireEvent, render, screen } from '@testing-library/react';
 import ModalBrand from '@ui/modals/brands/brand/ModalBrand';
 import type { ColorPickerProps } from '@ui/primitives/color-picker';
@@ -119,7 +119,7 @@ vi.mock('@ui/navigation/tabs/Tabs', () => ({
   ),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   __esModule: true,
   default: () => () =>
     Promise.resolve({
@@ -133,7 +133,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
     }),
 }));
 
-vi.mock('@hooks/data/elements/use-elements/use-elements', () => ({
+vi.mock('@genfeedai/hooks/data/elements/use-elements/use-elements', () => ({
   __esModule: true,
   useElements: () => ({
     fontFamilies: [],
@@ -142,7 +142,7 @@ vi.mock('@hooks/data/elements/use-elements/use-elements', () => ({
   }),
 }));
 
-vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
+vi.mock('@genfeedai/hooks/data/resource/use-resource/use-resource', () => ({
   __esModule: true,
   useResource: () => ({
     data: null,
@@ -152,7 +152,7 @@ vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
   }),
 }));
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   __esModule: true,
   useBrand: () => ({
     organizationId: 'org-1',
@@ -170,12 +170,12 @@ vi.mock('@pages/brands/components/detail-sidebar/BrandDetailSidebar', () => ({
   default: () => <div data-testid="brand-detail-sidebar" />,
 }));
 
-vi.mock('@hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
+vi.mock('@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
   __esModule: true,
   useModalAutoOpen: () => undefined,
 }));
 
-vi.mock('@hooks/utils/use-form-submit/use-form-submit', () => ({
+vi.mock('@genfeedai/hooks/utils/use-form-submit/use-form-submit', () => ({
   __esModule: true,
   useFormSubmitWithState: () => ({
     isSubmitting: false,
@@ -183,14 +183,14 @@ vi.mock('@hooks/utils/use-form-submit/use-form-submit', () => ({
   }),
 }));
 
-vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
+vi.mock('@genfeedai/hooks/utils/use-socket-manager/use-socket-manager', () => ({
   __esModule: true,
   useSocketManager: () => ({
     subscribe: vi.fn(() => vi.fn()),
   }),
 }));
 
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
   __esModule: true,
   useConfirmModal: () => ({
     openConfirm: vi.fn(),

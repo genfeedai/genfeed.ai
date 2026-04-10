@@ -7,7 +7,7 @@ import {
   RouterPriority,
 } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
-import type { PromptBarModelControlsProps } from '@props/studio/prompt-bar.props';
+import type { PromptBarModelControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import PromptBarModelControls from '@ui/prompt-bars/components/model-controls/PromptBarModelControls';
@@ -15,9 +15,11 @@ import { createRef } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@helpers/aspect-ratio.helper', async (importOriginal) => {
+vi.mock('@genfeedai/helpers/aspect-ratio.helper', async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import('@helpers/aspect-ratio.helper')>();
+    await importOriginal<
+      typeof import('@genfeedai/helpers/aspect-ratio.helper')
+    >();
 
   return {
     ...actual,

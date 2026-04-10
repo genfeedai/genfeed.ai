@@ -1,17 +1,17 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ButtonSize,
   ButtonVariant,
   ComponentSize,
   IngredientStatus,
 } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import useIngredientActions from '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
 import type { IImage, IIngredient, IMetadata } from '@genfeedai/interfaces';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import useIngredientActions from '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions';
-import type { MasonryImageProps } from '@props/content/masonry.props';
-import { EnvironmentService } from '@services/core/environment.service';
+import type { MasonryImageProps } from '@genfeedai/props/content/masonry.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import DraggableIngredient from '@ui/drag-drop/draggable/DraggableIngredient';
 import DropZoneIngredient from '@ui/drag-drop/zone-ingredient/DropZoneIngredient';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';

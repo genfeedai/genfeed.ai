@@ -1,12 +1,12 @@
 'use client';
 
 import { AnalyticsMetric, ButtonVariant } from '@genfeedai/enums';
-import type { PlatformComparisonMetricType } from '@genfeedai/interfaces/analytics/analytics-ui.interface';
 import {
   formatCompactNumberIntl,
   formatFullNumber,
-} from '@helpers/formatting/format/format.helper';
-import type { PlatformComparisonChartProps } from '@props/analytics/analytics.props';
+} from '@genfeedai/helpers/formatting/format/format.helper';
+import type { PlatformComparisonMetricType } from '@genfeedai/interfaces/analytics/analytics-ui.interface';
+import type { PlatformComparisonChartProps } from '@genfeedai/props/analytics/analytics.props';
 import { Button } from '@ui/primitives/button';
 import { useState } from 'react';
 import {

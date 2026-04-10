@@ -4,7 +4,7 @@ import {
   IngredientStatus,
 } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
-import type { ScopeDropdownProps } from '@props/social/scope-dropdown.props';
+import type { ScopeDropdownProps } from '@genfeedai/props/social/scope-dropdown.props';
 import { render } from '@testing-library/react';
 import DropdownScope from '@ui/dropdowns/scope/DropdownScope';
 import type { ReactNode } from 'react';

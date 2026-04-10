@@ -1,13 +1,13 @@
 'use client';
 
-import { useAssetSelection } from '@contexts/ui/asset-selection-context';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import {
   getModelDefaultDuration,
   getModelDurations,
   getModelMaxOutputs,
 } from '@genfeedai/constants';
+import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
 import {
   IngredientCategory,
   IngredientFormat,
@@ -15,35 +15,35 @@ import {
   type QualityTier,
   type SubscriptionTier,
 } from '@genfeedai/enums';
-import type { IAsset, IImage, IIngredient } from '@genfeedai/interfaces';
-import { cn } from '@helpers/formatting/cn/cn.util';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   getDefaultVideoResolution,
   hasResolutionOptions,
-} from '@helpers/media/video-resolution/video-resolution.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useSpeechRecording } from '@hooks/media/use-speech-recording/use-speech-recording';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { usePromptBarEnhancement } from '@hooks/prompt-bar/use-prompt-bar-enhancement/use-prompt-bar-enhancement';
-import { usePromptBarFilters } from '@hooks/prompt-bar/use-prompt-bar-filters/use-prompt-bar-filters';
-import { usePromptBarForm } from '@hooks/prompt-bar/use-prompt-bar-form/use-prompt-bar-form';
-import { usePromptBarModels } from '@hooks/prompt-bar/use-prompt-bar-models/use-prompt-bar-models';
-import { usePromptBarPricing } from '@hooks/prompt-bar/use-prompt-bar-pricing/use-prompt-bar-pricing';
-import { usePromptBarReferences } from '@hooks/prompt-bar/use-prompt-bar-references/use-prompt-bar-references';
-import { usePromptBarSync } from '@hooks/prompt-bar/use-prompt-bar-sync/use-prompt-bar-sync';
-import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
+} from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useSpeechRecording } from '@genfeedai/hooks/media/use-speech-recording/use-speech-recording';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { usePromptBarEnhancement } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-enhancement/use-prompt-bar-enhancement';
+import { usePromptBarFilters } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-filters/use-prompt-bar-filters';
+import { usePromptBarForm } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-form/use-prompt-bar-form';
+import { usePromptBarModels } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-models/use-prompt-bar-models';
+import { usePromptBarPricing } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-pricing/use-prompt-bar-pricing';
+import { usePromptBarReferences } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-references/use-prompt-bar-references';
+import { usePromptBarSync } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-sync/use-prompt-bar-sync';
+import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
+import type { IAsset, IImage, IIngredient } from '@genfeedai/interfaces';
 import type {
   GalleryModalOptions,
   PromptBarAttachedAsset,
   PromptBarProps,
-} from '@props/studio/prompt-bar.props';
+} from '@genfeedai/props/studio/prompt-bar.props';
 import {
   useGalleryModal,
   useUploadModal,
-} from '@providers/global-modals/global-modals.provider';
-import { PromptsService } from '@services/content/prompts.service';
-import { ClipboardService } from '@services/core/clipboard.service';
-import { NotificationsService } from '@services/core/notifications.service';
+} from '@genfeedai/providers/global-modals/global-modals.provider';
+import { PromptsService } from '@genfeedai/services/content/prompts.service';
+import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import PromptBarCollapsedView from '@ui/prompt-bars/components/collapsed-view/PromptBarCollapsedView';
 import PromptBarExpandedView from '@ui/prompt-bars/components/expanded-view/PromptBarExpandedView';
 import PromptBarUnifiedView from '@ui/prompt-bars/components/unified-view/PromptBarUnifiedView';

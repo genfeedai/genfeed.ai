@@ -8,13 +8,14 @@ import {
   PromptCategory,
   SystemPromptKey,
 } from '@genfeedai/enums';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import { Prompt } from '@models/content/prompt.model';
-import type { ModalPostPlatformsTabProps } from '@props/modals/modal.props';
-import { PromptsService } from '@services/content/prompts.service';
-import { logger } from '@services/core/logger.service';
-import { createPromptHandler } from '@services/core/socket-manager.service';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
+import { Prompt } from '@genfeedai/models/content/prompt.model';
+import type { ModalPostPlatformsTabProps } from '@genfeedai/props/modals/modal.props';
+import { PromptsService } from '@genfeedai/services/content/prompts.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { createPromptHandler } from '@genfeedai/services/core/socket-manager.service';
+import { WebSocketPaths } from '@genfeedai/utils/network/websocket.util';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
@@ -22,7 +23,6 @@ import { Input } from '@ui/primitives/input';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
-import { WebSocketPaths } from '@utils/network/websocket.util';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { IconType } from 'react-icons';
 import { FaInstagram, FaTiktok, FaXTwitter, FaYoutube } from 'react-icons/fa6';

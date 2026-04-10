@@ -2,12 +2,12 @@ import { render, screen } from '@testing-library/react';
 import SocialMediaLink from '@ui/media/social-media-link/SocialMediaLink';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@helpers/ui/mobile/mobile.helper', () => ({
+vi.mock('@genfeedai/helpers/ui/mobile/mobile.helper', () => ({
   getDeepLink: (url: string) => url,
   isMobileDevice: () => false,
 }));
 
-vi.mock('@helpers/utm/utm-builder.helper', () => ({
+vi.mock('@genfeedai/helpers/utm/utm-builder.helper', () => ({
   addUTMParameters: (url: string) => url,
 }));
 

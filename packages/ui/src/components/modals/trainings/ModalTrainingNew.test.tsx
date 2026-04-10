@@ -1,5 +1,5 @@
-import type { ModalProps } from '@props/modals/modal.props';
-import type { BaseButtonProps } from '@props/ui/forms/button.props';
+import type { ModalProps } from '@genfeedai/props/modals/modal.props';
+import type { BaseButtonProps } from '@genfeedai/props/ui/forms/button.props';
 import { render, screen } from '@testing-library/react';
 import ModalTrainingNew from '@ui/modals/trainings/ModalTrainingNew';
 import type { PropsWithChildren } from 'react';
@@ -46,7 +46,7 @@ vi.mock('@ui/primitives/dropdown-field', () => ({
   default: () => <select data-testid="form-dropdown" />,
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   __esModule: true,
   default: () => () =>
     Promise.resolve({
@@ -62,7 +62,7 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
     }),
 }));
 
-vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
+vi.mock('@genfeedai/hooks/utils/use-socket-manager/use-socket-manager', () => ({
   __esModule: true,
   useSocketManager: () => ({
     isReady: false,
@@ -70,7 +70,7 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
   }),
 }));
 
-vi.mock('@hooks/utils/use-form-submit/use-form-submit', () => ({
+vi.mock('@genfeedai/hooks/utils/use-form-submit/use-form-submit', () => ({
   __esModule: true,
   useFormSubmitWithState: () => ({
     isSubmitting: false,

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 // Mock hooks used by MasonryVideo
 vi.mock(
-  '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions',
+  '@genfeedai/hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions',
   () => ({
     default: () => ({
       actionStates: {},
@@ -30,11 +30,11 @@ vi.mock(
   }),
 );
 
-vi.mock('@hooks/media/video-utils/video.utils', () => ({
+vi.mock('@genfeedai/hooks/media/video-utils/video.utils', () => ({
   stopAndResetVideo: vi.fn(),
 }));
 
-vi.mock('@utils/media/reference.util', () => ({
+vi.mock('@genfeedai/utils/media/reference.util', () => ({
   resolveIngredientReferenceUrl: vi.fn(() => ''),
 }));
 
@@ -77,14 +77,14 @@ vi.mock('@ui/drag-drop/shared/ingredient-transfer', () => ({
     writeIngredientTransferDataMock(...args),
 }));
 
-vi.mock('@services/core/environment.service', () => ({
+vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     assetsEndpoint: 'https://assets.test.com',
     cdnUrl: 'https://cdn.test.com',
   },
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     debug: vi.fn(),
     error: vi.fn(),

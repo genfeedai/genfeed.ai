@@ -1,7 +1,7 @@
+import { downloadIngredient } from '@genfeedai/helpers/media/download/download.helper';
 import type { IIngredient } from '@genfeedai/interfaces';
-import { downloadIngredient } from '@helpers/media/download/download.helper';
-import { logger } from '@services/core/logger.service';
-import { NotificationsService } from '@services/core/notifications.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import type { MouseEvent } from 'react';
 import {
   startTransition,

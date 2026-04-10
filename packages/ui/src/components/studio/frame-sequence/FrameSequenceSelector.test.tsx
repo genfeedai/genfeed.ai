@@ -4,7 +4,7 @@ import FrameSequenceSelector from '@ui/studio/frame-sequence/FrameSequenceSelect
 import { describe, expect, it, vi } from 'vitest';
 
 // Mock the dependencies
-vi.mock('@providers/global-modals/global-modals.provider', () => ({
+vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
   useGalleryModal: () => ({
     openGallery: vi.fn(),
   }),

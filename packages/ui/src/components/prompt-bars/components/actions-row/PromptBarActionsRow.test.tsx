@@ -17,7 +17,7 @@ vi.mock('next/image', () => ({
 }));
 
 // Mock the environment service
-vi.mock('@services/core/environment.service', () => ({
+vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     ingredientsEndpoint: 'https://test.com/ingredients',
   },

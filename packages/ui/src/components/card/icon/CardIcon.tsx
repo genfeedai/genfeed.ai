@@ -1,5 +1,5 @@
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { CardIconProps } from '@props/ui/ui.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { CardIconProps } from '@genfeedai/props/ui/ui.props';
 import { isValidElement } from 'react';
 
 export default function CardIcon({

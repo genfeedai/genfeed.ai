@@ -11,7 +11,7 @@ vi.mock('@ui/card/Card', () => ({
   ),
 }));
 
-vi.mock('@helpers/formatting/format/format.helper', () => ({
+vi.mock('@genfeedai/helpers/formatting/format/format.helper', () => ({
   formatCompactNumber: (num: number) => num.toLocaleString(),
 }));
 

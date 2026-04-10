@@ -1,11 +1,11 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import type { XArticleSectionCardProps } from '@genfeedai/props/content/x-article.props';
 import { Blockquote } from '@genfeedai/ui';
-import type { XArticleSectionCardProps } from '@props/content/x-article.props';
+import { createMarkup } from '@genfeedai/utils/sanitize-html';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
-import { createMarkup } from '@utils/sanitize-html';
 import { HiClipboard } from 'react-icons/hi2';
 
 export default function XArticleSectionCard({
@@ -29,6 +29,7 @@ export default function XArticleSectionCard({
 
         <div
           className="prose prose-sm max-w-none mt-3 text-foreground/80"
+          // biome-ignore lint/security/noDangerouslySetInnerHtml: sanitized content from createMarkup
           dangerouslySetInnerHTML={createMarkup(section.content)}
         />
 

@@ -1,6 +1,6 @@
 'use client';
 
-import type { ModalGalleryItemVideoProps } from '@props/modals/modal-gallery.props';
+import type { ModalGalleryItemVideoProps } from '@genfeedai/props/modals/modal-gallery.props';
 import MasonryVideo from '@ui/masonry/video/MasonryVideo';
 
 export default function ModalGalleryItemVideo({

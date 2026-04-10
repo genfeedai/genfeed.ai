@@ -2,7 +2,7 @@ import { IngredientCategory, ModelCategory } from '@genfeedai/enums';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock EnvironmentService
-vi.mock('@services/core/environment.service', () => ({
+vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     MODELS_DEFAULT: {
       image: MODEL_KEYS.REPLICATE_FLUX_SCHNELL,

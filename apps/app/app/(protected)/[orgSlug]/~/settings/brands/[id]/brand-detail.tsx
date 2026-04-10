@@ -14,9 +14,6 @@ import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import type { Link } from '@models/social/link.model';
 import BrandDetailBanner from '@pages/brands/components/banner/BrandDetailBanner';
 import BrandDetailSidebar from '@pages/brands/components/detail-sidebar/BrandDetailSidebar';
-import BrandDetailLatestArticles from '@pages/brands/components/latest-articles/BrandDetailLatestArticles';
-import BrandDetailLatestImages from '@pages/brands/components/latest-images/BrandDetailLatestImages';
-import BrandDetailLatestVideos from '@pages/brands/components/latest-videos/BrandDetailLatestVideos';
 import BrandDetailOverview from '@pages/brands/components/overview/BrandDetailOverview';
 import BrandDetailLinkEditor, {
   type BrandLinkEditorValues,
@@ -31,6 +28,9 @@ import Container from '@ui/layout/container/Container';
 import { LazyModalBrandGenerate } from '@ui/lazy/modal/LazyModal';
 import Loading from '@ui/loading/default/Loading';
 import { type ChangeEvent, useCallback, useMemo, useState } from 'react';
+import BrandDetailLatestArticles from './BrandDetailLatestArticles';
+import BrandDetailLatestImages from './BrandDetailLatestImages';
+import BrandDetailLatestVideos from './BrandDetailLatestVideos';
 
 const DEFAULT_BRAND_LINK_FORM_VALUES: BrandLinkEditorValues = {
   category: LinkCategory.WEBSITE,

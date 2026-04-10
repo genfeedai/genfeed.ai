@@ -1,8 +1,8 @@
 'use client';
 
 import type { IIngredient } from '@genfeedai/interfaces';
-import type { FolderDropZoneProps } from '@props/content/folder-drop-zone.props';
-import { logger } from '@services/core/logger.service';
+import type { FolderDropZoneProps } from '@genfeedai/props/content/folder-drop-zone.props';
+import { logger } from '@genfeedai/services/core/logger.service';
 import { readIngredientTransferData } from '@ui/drag-drop/shared/ingredient-transfer';
 import type { DragEvent } from 'react';
 import { useState } from 'react';

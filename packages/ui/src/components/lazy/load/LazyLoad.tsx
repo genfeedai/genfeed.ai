@@ -1,7 +1,7 @@
 'use client';
 
-import { useIntersectionObserver } from '@hooks/ui/use-intersection-observer/use-intersection-observer';
-import type { LazyLoadProps } from '@props/components/lazy-load.props';
+import { useIntersectionObserver } from '@genfeedai/hooks/ui/use-intersection-observer/use-intersection-observer';
+import type { LazyLoadProps } from '@genfeedai/props/components/lazy-load.props';
 import Loading from '@ui/loading/default/Loading';
 import { useEffect, useState } from 'react';
 

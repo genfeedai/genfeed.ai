@@ -5,14 +5,14 @@ import {
   ButtonVariant,
   ModalEnum,
 } from '@genfeedai/enums';
-import type { IWorkflow } from '@genfeedai/interfaces';
 import {
   hasFormErrors,
   parseFormErrors,
-} from '@helpers/ui/form-error/form-error.helper';
-import { useCrudModal } from '@hooks/ui/use-crud-modal/use-crud-modal';
-import type { ModalCrudProps } from '@props/modals/modal.props';
-import { WorkflowsService } from '@services/automation/workflows.service';
+} from '@genfeedai/helpers/ui/form-error/form-error.helper';
+import { useCrudModal } from '@genfeedai/hooks/ui/use-crud-modal/use-crud-modal';
+import type { IWorkflow } from '@genfeedai/interfaces';
+import type { ModalCrudProps } from '@genfeedai/props/modals/modal.props';
+import { WorkflowsService } from '@genfeedai/services/automation/workflows.service';
 import Alert from '@ui/feedback/alert/Alert';
 import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';

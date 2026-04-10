@@ -1,14 +1,16 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { IngredientFormat } from '@genfeedai/enums';
-import type { PromptBarFormatControlsProps } from '@props/studio/prompt-bar.props';
+import type { PromptBarFormatControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
 import { render } from '@testing-library/react';
 import PromptBarFormatControls from '@ui/prompt-bars/components/format-controls/PromptBarFormatControls';
 import type { UseFormReturn } from 'react-hook-form';
 import { describe, expect, it, vi } from 'vitest';
 
-vi.mock('@helpers/aspect-ratio.helper', async (importOriginal) => {
+vi.mock('@genfeedai/helpers/aspect-ratio.helper', async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import('@helpers/aspect-ratio.helper')>();
+    await importOriginal<
+      typeof import('@genfeedai/helpers/aspect-ratio.helper')
+    >();
 
   return {
     ...actual,

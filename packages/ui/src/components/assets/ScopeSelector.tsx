@@ -1,10 +1,10 @@
 import { AssetScope } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   ScopeBadgeProps,
   ScopeIconProps,
   ScopeSelectorProps,
-} from '@props/components/scope-selector.props';
+} from '@genfeedai/props/components/scope-selector.props';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import { SCOPE_OPTIONS } from '@ui-constants/scope.constant';
 

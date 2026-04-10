@@ -1,11 +1,11 @@
 'use client';
 
 import { useXArticleCompose } from '@hooks/pages/use-x-article-compose/use-x-article-compose';
-import ArticleDetail from '@pages/articles/detail/article-detail';
 import ArticleTypeSelector from '@ui/articles/type-selector/ArticleTypeSelector';
 import XArticleGenerateForm from '@ui/articles/x-article/XArticleGenerateForm';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
+import ArticleDetail from './article-detail';
 
 export default function ArticleCompose() {
   const searchParams = useSearchParams();

@@ -7,10 +7,10 @@ import {
   useEnabledCategories,
 } from '@hooks/data/organization/use-enabled-categories/use-enabled-categories';
 import StudioGenerateLayout from '@pages/studio/generate';
-import GenerationFeatureGuard from '@pages/studio/guards/GenerationFeatureGuard';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
+import GenerationFeatureGuard from './GenerationFeatureGuard';
 
 function StudioPageContentInner() {
   const router = useRouter();

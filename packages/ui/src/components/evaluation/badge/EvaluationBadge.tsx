@@ -1,7 +1,7 @@
 'use client';
 
 import { ComponentSize } from '@genfeedai/enums';
-import type { EvaluationBadgeProps } from '@props/components/evaluation-card.props';
+import type { EvaluationBadgeProps } from '@genfeedai/props/components/evaluation-card.props';
 
 const getScoreColor = (score: number) => {
   if (score >= 90) {

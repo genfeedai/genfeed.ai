@@ -1,8 +1,8 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { LayoutProps } from '@props/layout/layout.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import GallerySidebar from '@ui/gallery/layout/GallerySidebar';
 import { Button } from '@ui/primitives/button';
 import { usePathname } from 'next/navigation';

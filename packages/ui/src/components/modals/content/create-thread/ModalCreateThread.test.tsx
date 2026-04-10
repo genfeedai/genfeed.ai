@@ -11,7 +11,7 @@ vi.mock('@ui/modals/actions/ModalActions', () => ({
   default: ({ children }: any) => <div>{children}</div>,
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => vi.fn()),
 }));
 

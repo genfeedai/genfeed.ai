@@ -86,7 +86,73 @@ describe('proxy', () => {
     );
   });
 
-  it('allows the root route through without invoking Clerk protect', async () => {
+  it('redirects signed-in root to workspace when single brand', async () => {
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/' },
+        url: 'http://localhost:3000/',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+    );
+  });
+
+  it('redirects signed-in root to active brand workspace when multiple brands', async () => {
+    fetchMock.mockImplementation(async (input: string | URL) => {
+      const url = String(input);
+
+      if (url.endsWith('/auth/bootstrap')) {
+        return new Response(
+          JSON.stringify({
+            access: { brandId: 'brand_1' },
+            brands: [
+              { id: 'brand_1', slug: 'moonrise-studio' },
+              { id: 'brand_2', slug: 'second-brand' },
+            ],
+          }),
+          { status: 200 },
+        );
+      }
+
+      if (url.endsWith('/organizations/mine')) {
+        return new Response(
+          JSON.stringify([{ isActive: true, slug: 'acme' }]),
+          { status: 200 },
+        );
+      }
+
+      return new Response('not found', { status: 404 });
+    });
+
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/' },
+        url: 'http://localhost:3000/',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+    );
+  });
+
+  it('falls through on root when slug resolution fails', async () => {
+    fetchMock.mockImplementation(async () => {
+      return new Response('error', { status: 500 });
+    });
+
     const { default: proxy } = await import('./proxy');
 
     const response = await proxy(
@@ -99,6 +165,30 @@ describe('proxy', () => {
     );
 
     expect(response.status).toBe(200);
+  });
+
+  it('redirects unauthenticated root to login', async () => {
+    authStateMock.mockResolvedValue({
+      getToken: vi.fn().mockResolvedValue(null),
+      sessionId: null,
+      userId: null,
+    });
+
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/' },
+        url: 'http://localhost:3000/',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/login',
+    );
   });
 
   it('redirects signed-in flat protected routes to the canonical org and brand path', async () => {
@@ -141,5 +231,24 @@ describe('proxy', () => {
     expect(response.headers.get('location')).toBe(
       'http://localhost:3000/login',
     );
+  });
+
+  it('falls through on signed-in public routes when canonical slug resolution fails', async () => {
+    fetchMock.mockImplementation(async () => {
+      return new Response('error', { status: 500 });
+    });
+
+    const { default: proxy } = await import('./proxy');
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        nextUrl: { pathname: '/login' },
+        url: 'http://localhost:3000/login',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(200);
   });
 });

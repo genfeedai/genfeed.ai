@@ -10,7 +10,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import type {
   CalendarItem,
   ContentCalendarProps,
-} from '@props/components/calendar.props';
+} from '@genfeedai/props/components/calendar.props';
 import Card from '@ui/card/Card';
 import dynamic from 'next/dynamic';
 import { useCallback, useMemo, useState } from 'react';

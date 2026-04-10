@@ -1,13 +1,13 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useBrandOverlay } from '@providers/global-modals/global-modals.provider';
-import { logger } from '@services/core/logger.service';
-import { UsersService } from '@services/organization/users.service';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { useBrandOverlay } from '@genfeedai/providers/global-modals/global-modals.provider';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { UsersService } from '@genfeedai/services/organization/users.service';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';

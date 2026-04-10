@@ -1,13 +1,13 @@
 'use client';
 
 import type { IngredientFormat } from '@genfeedai/enums';
-import { isAspectRatioSupported } from '@helpers/aspect-ratio.helper';
-import { formatVideos } from '@helpers/data/data/data.helper';
+import { isAspectRatioSupported } from '@genfeedai/helpers/aspect-ratio.helper';
+import { formatVideos } from '@genfeedai/helpers/data/data/data.helper';
 import {
   getAspectRatioForFormat,
   getFormatForAspectRatio,
-} from '@helpers/generation-controls.helper';
-import type { PromptBarFormatControlsProps } from '@props/studio/prompt-bar.props';
+} from '@genfeedai/helpers/generation-controls.helper';
+import type { PromptBarFormatControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
 import AspectRatioDropdown from '@ui/dropdowns/aspect-ratio/AspectRatioDropdown';
 import { memo } from 'react';
 

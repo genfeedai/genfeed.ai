@@ -4,8 +4,8 @@ import { ButtonVariant } from '@genfeedai/enums';
 import {
   formatChartDate,
   formatCompactNumberIntl,
-} from '@helpers/formatting/format/format.helper';
-import type { PlatformTimeSeriesChartProps } from '@props/analytics/charts.props';
+} from '@genfeedai/helpers/formatting/format/format.helper';
+import type { PlatformTimeSeriesChartProps } from '@genfeedai/props/analytics/charts.props';
 import { Button } from '@ui/primitives/button';
 import { useState } from 'react';
 import {

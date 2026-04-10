@@ -1,10 +1,10 @@
 'use client';
 
 import { AssetScope, ButtonVariant } from '@genfeedai/enums';
-import type { IngredientTabsSharingProps } from '@props/content/ingredient.props';
-import { ClipboardService } from '@services/core/clipboard.service';
-import { EnvironmentService } from '@services/core/environment.service';
-import { NotificationsService } from '@services/core/notifications.service';
+import type { IngredientTabsSharingProps } from '@genfeedai/props/content/ingredient.props';
+import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { ScopeSelector } from '@ui/assets/ScopeSelector';
 import { Button } from '@ui/primitives/button';
 import { HiDocumentDuplicate } from 'react-icons/hi2';

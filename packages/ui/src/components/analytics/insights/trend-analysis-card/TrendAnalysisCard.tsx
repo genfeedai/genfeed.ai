@@ -1,12 +1,12 @@
 'use client';
 
 import { TrendDirection } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   formatCompactNumberIntl,
   formatPercentage,
-} from '@helpers/formatting/format/format.helper';
-import type { TrendAnalysisCardProps } from '@props/analytics/insights.props';
+} from '@genfeedai/helpers/formatting/format/format.helper';
+import type { TrendAnalysisCardProps } from '@genfeedai/props/analytics/insights.props';
 import Card from '@ui/card/Card';
 import { memo, useMemo } from 'react';
 import {

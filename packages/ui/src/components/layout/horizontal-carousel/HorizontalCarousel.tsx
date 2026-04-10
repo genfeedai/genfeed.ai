@@ -1,8 +1,8 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { HorizontalCarouselProps } from '@props/ui/ui.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { HorizontalCarouselProps } from '@genfeedai/props/ui/ui.props';
 import { Button } from '@ui/primitives/button';
 import { memo, useCallback, useRef } from 'react';
 import { HiChevronLeft, HiChevronRight } from 'react-icons/hi2';

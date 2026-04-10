@@ -5,8 +5,8 @@ import {
   ButtonVariant,
   IngredientCategory,
 } from '@genfeedai/enums';
-import { getVideoResolutionsByModel } from '@helpers/media/video-resolution/video-resolution.helper';
-import type { PromptBarPrimaryControlsRowProps } from '@props/prompt-bars/prompt-bar-layout.props';
+import { getVideoResolutionsByModel } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
+import type { PromptBarPrimaryControlsRowProps } from '@genfeedai/props/prompt-bars/prompt-bar-layout.props';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormDropdown from '@ui/primitives/dropdown-field';

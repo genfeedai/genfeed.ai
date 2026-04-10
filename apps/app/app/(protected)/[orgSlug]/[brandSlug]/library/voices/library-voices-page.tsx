@@ -13,8 +13,6 @@ import { useOrganization } from '@hooks/data/organization/use-organization/use-o
 import type { Voice } from '@models/ingredients/voice.model';
 import IngredientsLayout from '@pages/ingredients/layout/ingredients-layout';
 import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
-import VoiceCatalogList from '@pages/library/voices/voice-catalog-list';
-import VoiceCatalogRow from '@pages/library/voices/voice-catalog-row';
 import { useUploadModal } from '@providers/global-modals/global-modals.provider';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
@@ -24,6 +22,8 @@ import { BrandsService } from '@services/social/brands.service';
 import AutoPagination from '@ui/navigation/pagination/auto-pagination/AutoPagination';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import VoiceCatalogList from './voice-catalog-list';
+import VoiceCatalogRow from './voice-catalog-row';
 
 type SelectedBrandState = {
   agentConfig?: {

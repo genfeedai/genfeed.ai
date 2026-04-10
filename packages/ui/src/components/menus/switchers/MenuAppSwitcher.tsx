@@ -3,13 +3,17 @@
 import { useUser } from '@clerk/nextjs';
 import type { UserResource } from '@clerk/types';
 import { ButtonVariant } from '@genfeedai/enums';
+import { getClerkPublicData } from '@genfeedai/helpers/auth/clerk.helper';
+import { getPublisherPostsHref } from '@genfeedai/helpers/content/posts.helper';
+import {
+  BG_BLUR,
+  BORDER_WHITE_30,
+  cn,
+} from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo';
 import type { AppLink } from '@genfeedai/interfaces/ui/navigation.interface';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { Kbd } from '@genfeedai/ui';
-import { getClerkPublicData } from '@helpers/auth/clerk.helper';
-import { getPublisherPostsHref } from '@helpers/content/posts.helper';
-import { BG_BLUR, BORDER_WHITE_30, cn } from '@helpers/formatting/cn/cn.util';
-import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
-import { EnvironmentService } from '@services/core/environment.service';
 import Badge from '@ui/display/badge/Badge';
 import Portal from '@ui/layout/portal/Portal';
 import { Button } from '@ui/primitives/button';

@@ -2,6 +2,7 @@
 
 import { useUser } from '@clerk/nextjs';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
+import { getResumeStep, ONBOARDING_STEPS } from '@genfeedai/constants';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -18,18 +19,23 @@ export default function OnboardingRootPage() {
       return;
     }
 
-    if (currentUser.isOnboardingCompleted) {
-      router.replace('/');
-      return;
-    }
-
     if (clerkUser?.publicMetadata?.proactiveLeadId) {
       router.replace('/onboarding/proactive');
       return;
     }
 
-    router.replace('/onboarding/brand');
-  }, [isLoading, currentUser, isClerkLoaded, clerkUser, router]);
+    const completedSteps = currentUser.onboardingStepsCompleted ?? [];
+    const hasCompletedAllOnboardingSteps = ONBOARDING_STEPS.every((step) =>
+      completedSteps.includes(step),
+    );
+
+    if (hasCompletedAllOnboardingSteps) {
+      router.replace('/onboarding/summary');
+      return;
+    }
+
+    router.replace(`/onboarding/${getResumeStep(completedSteps)}`);
+  }, [clerkUser, currentUser, isClerkLoaded, isLoading, router]);
 
   return (
     <div className="flex items-center justify-center min-h-[60vh]">

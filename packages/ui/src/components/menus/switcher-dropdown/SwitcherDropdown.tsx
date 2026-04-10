@@ -1,11 +1,11 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   SwitcherDropdownItem,
   SwitcherDropdownProps,
-} from '@props/ui/menus/switcher-dropdown.props';
+} from '@genfeedai/props/ui/menus/switcher-dropdown.props';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {

@@ -6,11 +6,11 @@ import {
   ComponentSize,
   IngredientCategory,
 } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IAsset, IImage } from '@genfeedai/interfaces';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { Image as ImageModel } from '@models/ingredients/image.model';
-import type { PromptBarActionsRowProps } from '@props/prompt-bars/prompt-bar-layout.props';
-import { EnvironmentService } from '@services/core/environment.service';
+import type { Image as ImageModel } from '@genfeedai/models/ingredients/image.model';
+import type { PromptBarActionsRowProps } from '@genfeedai/props/prompt-bars/prompt-bar-layout.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import AiActionGroup from '@ui/ai/AiActionGroup';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';

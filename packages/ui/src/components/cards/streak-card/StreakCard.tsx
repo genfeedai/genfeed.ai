@@ -1,9 +1,9 @@
 'use client';
 
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { useStreak } from '@hooks/data/streaks/use-streak/use-streak';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { STREAK_CELEBRATION_EVENT } from '@services/engagement/streak-events';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useStreak } from '@genfeedai/hooks/data/streaks/use-streak/use-streak';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { STREAK_CELEBRATION_EVENT } from '@genfeedai/services/engagement/streak-events';
 import StreakCelebrationBurst from '@ui/feedback/streak-celebration/StreakCelebrationBurst';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';

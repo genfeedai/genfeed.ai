@@ -1,6 +1,6 @@
 'use client';
 
-import type { ModalPostContentProps } from '@props/modals/modal.props';
+import type { ModalPostContentProps } from '@genfeedai/props/modals/modal.props';
 import ModalPostPlatformsTab from '@ui/modals/content/post/ModalPostPlatformsTab';
 import ModalPostSetupTab from '@ui/modals/content/post/ModalPostSetupTab';
 

@@ -1,4 +1,4 @@
-import type { SkeletonLoadingProps } from '@props/ui/feedback/skeleton-loading.props';
+import type { SkeletonLoadingProps } from '@genfeedai/props/ui/feedback/skeleton-loading.props';
 import {
   SkeletonAnalyticsDashboard,
   SkeletonBrandsList,

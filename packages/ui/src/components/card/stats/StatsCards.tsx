@@ -1,6 +1,6 @@
 import { CardVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { StatsCardsProps } from '@props/ui/cards/stats-cards.props';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { StatsCardsProps } from '@genfeedai/props/ui/cards/stats-cards.props';
 import Card from '@ui/card/Card';
 
 const GRID_COLS_CLASSES: Record<number, string> = {

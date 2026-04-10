@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const useCommandPaletteMock = vi.fn();
 
-vi.mock('@hooks/ui/use-command-palette/use-command-palette', () => ({
+vi.mock('@genfeedai/hooks/ui/use-command-palette/use-command-palette', () => ({
   useCommandPalette: (...args: unknown[]) => useCommandPaletteMock(...args),
 }));
 
@@ -19,7 +19,7 @@ vi.mock('./CommandPaletteView', () => ({
 
 const dialogMock = vi.fn();
 vi.mock(
-  '@hooks/ui/use-command-palette-dialog/use-command-palette-dialog',
+  '@genfeedai/hooks/ui/use-command-palette-dialog/use-command-palette-dialog',
   () => ({
     useCommandPaletteDialog: (args: unknown) => {
       dialogMock(args);

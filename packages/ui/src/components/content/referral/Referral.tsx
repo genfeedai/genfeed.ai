@@ -1,7 +1,7 @@
 'use client';
 
-import type { ReferralProps } from '@props/content/referral.props';
-import { EnvironmentService } from '@services/core/environment.service';
+import type { ReferralProps } from '@genfeedai/props/content/referral.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Card from '@ui/card/Card';
 import Link from 'next/link';
 import { HiShare, HiSparkles } from 'react-icons/hi2';

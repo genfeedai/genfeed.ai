@@ -1,9 +1,9 @@
 'use client';
 
 import { ButtonVariant, ComponentSize } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IIngredient } from '@genfeedai/interfaces';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import type { FoldersSidebarProps } from '@props/content/folders-sidebar.props';
+import type { FoldersSidebarProps } from '@genfeedai/props/content/folders-sidebar.props';
 import DropZoneFolder from '@ui/drag-drop/zone-folder/DropZoneFolder';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import { Button } from '@ui/primitives/button';

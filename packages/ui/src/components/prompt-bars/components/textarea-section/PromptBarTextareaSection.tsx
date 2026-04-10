@@ -1,6 +1,6 @@
 'use client';
 
-import type { PromptBarTextareaSectionProps } from '@props/prompt-bars/prompt-bar-layout.props';
+import type { PromptBarTextareaSectionProps } from '@genfeedai/props/prompt-bars/prompt-bar-layout.props';
 import { Textarea } from '@ui/primitives/textarea';
 import { memo } from 'react';
 

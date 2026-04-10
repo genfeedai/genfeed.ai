@@ -2,11 +2,11 @@ import { render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 // Mock hooks used by MasonryGrid
-vi.mock('@hooks/data/tags/use-tags/use-tags', () => ({
+vi.mock('@genfeedai/hooks/data/tags/use-tags/use-tags', () => ({
   useTags: () => ({ isLoading: false, tags: [] }),
 }));
 
-vi.mock('@hooks/ui/use-masonry-grid/use-masonry-grid', () => ({
+vi.mock('@genfeedai/hooks/ui/use-masonry-grid/use-masonry-grid', () => ({
   useMasonryGrid: () => ({
     containerHeight: 500,
     containerRef: { current: null },
@@ -16,7 +16,7 @@ vi.mock('@hooks/ui/use-masonry-grid/use-masonry-grid', () => ({
 }));
 
 vi.mock(
-  '@hooks/ui/use-masonry-hover-controller/use-masonry-hover-controller',
+  '@genfeedai/hooks/ui/use-masonry-hover-controller/use-masonry-hover-controller',
   () => ({
     useMasonryHoverController: () => ({
       createHoverChangeHandler: vi.fn(() => vi.fn()),

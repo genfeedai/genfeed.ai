@@ -1,6 +1,7 @@
 'use client';
 
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { Badge } from '@ui/primitives/badge';
 
 type BadgeVariant = 'purple' | 'blue' | 'orange' | 'green' | 'red' | 'yellow';
 
@@ -31,14 +32,14 @@ export function NodeBadge({
   className,
 }: NodeBadgeProps): React.JSX.Element {
   return (
-    <span
+    <Badge
       className={cn(
-        'text-xs px-2 py-0.5 rounded-full flex items-center gap-1',
+        'text-xs px-2 py-0.5 rounded-full flex items-center gap-1 border-0 shadow-none',
         variantClasses[variant],
         className,
       )}
     >
       {children}
-    </span>
+    </Badge>
   );
 }

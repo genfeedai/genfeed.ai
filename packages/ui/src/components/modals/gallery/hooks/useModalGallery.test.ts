@@ -40,15 +40,15 @@ const {
 }));
 
 // Mock dependencies
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({ brandId: 'brand_test123' })),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn((factory) => async () => factory('mock-token')),
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     debug: vi.fn(),
     error: vi.fn(),
@@ -57,37 +57,37 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: vi.fn(() => mockNotificationsService),
   },
 }));
 
-vi.mock('@services/ingredients/videos.service', () => ({
+vi.mock('@genfeedai/services/ingredients/videos.service', () => ({
   VideosService: {
     getInstance: vi.fn(() => mockVideosService),
   },
 }));
 
-vi.mock('@services/ingredients/musics.service', () => ({
+vi.mock('@genfeedai/services/ingredients/musics.service', () => ({
   MusicsService: {
     getInstance: vi.fn(() => mockMusicsService),
   },
 }));
 
-vi.mock('@services/ingredients/images.service', () => ({
+vi.mock('@genfeedai/services/ingredients/images.service', () => ({
   ImagesService: {
     getInstance: vi.fn(() => mockImagesService),
   },
 }));
 
-vi.mock('@services/content/assets.service', () => ({
+vi.mock('@genfeedai/services/content/assets.service', () => ({
   AssetsService: {
     getInstance: vi.fn(() => mockAssetsService),
   },
 }));
 
-vi.mock('@services/content/pages.service', () => ({
+vi.mock('@genfeedai/services/content/pages.service', () => ({
   PagesService: mockPagesService,
 }));
 

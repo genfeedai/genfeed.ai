@@ -1,8 +1,8 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, CardVariant } from '@genfeedai/enums';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { EnvironmentService } from '@services/core/environment.service';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives';
 import Image from 'next/image';

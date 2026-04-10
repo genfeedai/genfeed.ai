@@ -1,7 +1,7 @@
 'use client';
 
-import { useAssetSelection } from '@contexts/ui/asset-selection-context';
-import { useBackgroundTaskContext } from '@contexts/ui/background-task-context';
+import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection-context';
+import { useBackgroundTaskContext } from '@genfeedai/contexts/ui/background-task-context';
 import {
   ActivityKey,
   ButtonSize,
@@ -9,6 +9,13 @@ import {
   ComponentSize,
   IngredientCategory,
 } from '@genfeedai/enums';
+import { getPublisherPostsHref } from '@genfeedai/helpers/content/posts.helper';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useActivities } from '@genfeedai/hooks/data/activities/use-activities/use-activities';
+import { playAudio } from '@genfeedai/hooks/media/audio-utils/audio.utils';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { useBackgroundTasks } from '@genfeedai/hooks/utils/use-background-tasks/use-background-tasks';
+import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import type {
   IActivity,
   IActivityPopulated,
@@ -17,16 +24,9 @@ import type {
 } from '@genfeedai/interfaces';
 import type { IGenerationItem } from '@genfeedai/interfaces/components/generation.interface';
 import type { UnifiedActivityItem } from '@genfeedai/interfaces/components/topbar-activities.interface';
-import { getPublisherPostsHref } from '@helpers/content/posts.helper';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
-import { playAudio } from '@hooks/media/audio-utils/audio.utils';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useBackgroundTasks } from '@hooks/utils/use-background-tasks/use-background-tasks';
-import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
-import { useIngredientOverlay } from '@providers/global-modals/global-modals.provider';
-import { EnvironmentService } from '@services/core/environment.service';
-import { NotificationsService } from '@services/core/notifications.service';
+import { useIngredientOverlay } from '@genfeedai/providers/global-modals/global-modals.provider';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import Badge from '@ui/display/badge/Badge';
 import {
   Button,
@@ -689,6 +689,7 @@ export default function TopbarActivities() {
       openIngredientOverlay,
       navigateToPublisherArticles,
       router,
+      href,
     ],
   );
 
@@ -958,7 +959,7 @@ export default function TopbarActivities() {
 
       router.push(href('/overview/activities'));
     },
-    [notificationsService, removeTask, router],
+    [notificationsService, removeTask, router, href],
   );
 
   const renderRealtimeTask = (task: IBackgroundTask) => {

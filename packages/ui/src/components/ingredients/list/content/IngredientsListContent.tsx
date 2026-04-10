@@ -9,8 +9,9 @@ import {
   PageScope,
 } from '@genfeedai/enums';
 import type { IIngredient } from '@genfeedai/interfaces';
-import type { IngredientsListContentProps } from '@props/pages/ingredients-list.props';
-import { EnvironmentService } from '@services/core/environment.service';
+import type { IngredientsListContentProps } from '@genfeedai/props/pages/ingredients-list.props';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { getIngredientDisplayLabel } from '@genfeedai/utils/media/ingredient-type.util';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
@@ -18,7 +19,6 @@ import AppTable from '@ui/display/table/Table';
 import DropdownStatus from '@ui/dropdowns/status/DropdownStatus';
 import IngredientsMediaGrid from '@ui/ingredients/list/media-grid/IngredientsMediaGrid';
 import IngredientSound from '@ui/ingredients/sound/IngredientSound';
-import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import Image from 'next/image';
 import { useCallback, useMemo } from 'react';
 import { HiEye } from 'react-icons/hi2';

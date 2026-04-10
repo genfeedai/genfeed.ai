@@ -2,8 +2,8 @@
 
 import { ButtonVariant } from '@genfeedai/enums';
 import type { BrandCompletenessGroup } from '@genfeedai/helpers';
-import { cn } from '@helpers/formatting/cn/cn.util';
-import { useBrandCompleteness } from '@hooks/utils/use-brand-completeness/use-brand-completeness';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useBrandCompleteness } from '@genfeedai/hooks/utils/use-brand-completeness/use-brand-completeness';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';

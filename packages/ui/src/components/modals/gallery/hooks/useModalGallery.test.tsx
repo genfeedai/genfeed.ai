@@ -4,20 +4,20 @@ import { useModalGallery } from '@ui/modals/gallery/hooks/useModalGallery';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'test-brand-id',
   }),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => () =>
     Promise.resolve({
       findAll: vi.fn(() => Promise.resolve([])),
     }),
 }));
 
-vi.mock('@services/content/pages.service', () => ({
+vi.mock('@genfeedai/services/content/pages.service', () => ({
   PagesService: {
     getCurrentPage: () => 1,
     getTotalPages: () => 1,
@@ -25,14 +25,14 @@ vi.mock('@services/content/pages.service', () => ({
   },
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
     info: vi.fn(),
   },
 }));
 
-vi.mock('@services/core/notifications.service', () => ({
+vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {
     getInstance: () => ({
       error: vi.fn(),
@@ -40,7 +40,7 @@ vi.mock('@services/core/notifications.service', () => ({
   },
 }));
 
-vi.mock('@services/content/assets.service', () => ({
+vi.mock('@genfeedai/services/content/assets.service', () => ({
   AssetsService: {
     getInstance: () => ({
       findAll: vi.fn(() => Promise.resolve([])),
@@ -48,7 +48,7 @@ vi.mock('@services/content/assets.service', () => ({
   },
 }));
 
-vi.mock('@services/ingredients/images.service', () => ({
+vi.mock('@genfeedai/services/ingredients/images.service', () => ({
   ImagesService: {
     getInstance: () => ({
       findAll: vi.fn(() => Promise.resolve([])),
@@ -56,7 +56,7 @@ vi.mock('@services/ingredients/images.service', () => ({
   },
 }));
 
-vi.mock('@services/ingredients/videos.service', () => ({
+vi.mock('@genfeedai/services/ingredients/videos.service', () => ({
   VideosService: {
     getInstance: () => ({
       findAll: vi.fn(() => Promise.resolve([])),
@@ -64,7 +64,7 @@ vi.mock('@services/ingredients/videos.service', () => ({
   },
 }));
 
-vi.mock('@services/ingredients/musics.service', () => ({
+vi.mock('@genfeedai/services/ingredients/musics.service', () => ({
   MusicsService: {
     getInstance: () => ({
       findAll: vi.fn(() => Promise.resolve([])),

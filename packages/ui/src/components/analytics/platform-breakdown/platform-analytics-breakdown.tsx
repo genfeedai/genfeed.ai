@@ -1,8 +1,8 @@
 'use client';
 
+import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
 import type { IPlatformStats } from '@genfeedai/interfaces';
-import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
-import type { PlatformAnalyticsBreakdownProps } from '@props/analytics/analytics.props';
+import type { PlatformAnalyticsBreakdownProps } from '@genfeedai/props/analytics/analytics.props';
 import Card from '@ui/card/Card';
 
 export default function PlatformAnalyticsBreakdown({

@@ -1,8 +1,8 @@
 'use client';
 
-import PostsLayoutContent from '@pages/posts/posts-layout-content';
 import type { LayoutProps } from '@props/layout/layout.props';
 import FeatureGate from '@ui/guards/feature/FeatureGate';
+import PostsLayoutContent from './posts-layout-content';
 
 export default function PostsLayout({ children }: LayoutProps) {
   return (

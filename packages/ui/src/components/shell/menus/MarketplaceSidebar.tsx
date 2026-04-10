@@ -1,6 +1,6 @@
 'use client';
 
-import type { BaseMenuProps } from '@props/navigation/menu.props';
+import type { BaseMenuProps } from '@genfeedai/props/navigation/menu.props';
 import MenuShared from '@ui/menus/shared/MenuShared';
 import { createMarketplaceMenuConfig } from '@ui/menus/shared/menu-config.factory';
 
