@@ -6,6 +6,7 @@
       "@genfeedai/interfaces/*": ["../interfaces/src/*"],
       "@genfeedai/models/*": ["../models/*"],
       "@genfeedai/props/*": ["../props/*"],
+      "@genfeedai/services/*": ["./*"],
       "@genfeedai/types/*": ["../types/src/*"],
       "@genfeedai/utils/*": ["../utils/*"],
       "@api-types/*": ["../api-types/src/*"],

@@ -1,8 +1,10 @@
 {
   "compilerOptions": {
     "paths": {
+      "@genfeedai/helpers/*": ["../helpers/src/*"],
       "@genfeedai/models/*": ["../models/*"],
       "@genfeedai/services/*": ["../services/*"],
+      "@genfeedai/utils/*": ["../utils/*"],
       "@props/*": ["./*"],
       "@contexts/*": ["../contexts/*"],
       "@helpers/*": ["../helpers/src/*"],
