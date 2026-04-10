@@ -1,5 +1,6 @@
 # Genfeed.ai — Open Source AI OS for Content Creation
 
+@.agents/memory/MEMORY.md
 @.agents/context/system-patterns.md
 @.agents/context/project-structure.md
 @.agents/context/project-style-guide.md
@@ -73,6 +74,7 @@ bun run test --filter=@genfeedai/[name]  # Run specific package tests
 - AbortController in every useEffect with async calls
 - No `deletedAt` field — use `isDeleted: boolean`
 - Components use `function` declarations (not arrow), default export
+- **Never raw HTML elements** — use `@ui/primitives/*` instead. `<button>`, `<input>`, `<textarea>`, `<select>`, `<dialog>`, `<table>`, `<hr>`, etc. are blocked by `scripts/lint-no-raw-html.sh` pre-commit hook. For unstyled usage, use `Button` with `variant={ButtonVariant.UNSTYLED}` + `withWrapper={false}`. Never nest `Button` inside `Button` (invalid HTML) — restructure as siblings.
 
 ### Backend (ALWAYS)
 - Compound indexes in module `useFactory`, simple indexes via `@Prop` decorator
