@@ -278,7 +278,6 @@ export default function AnalyticsTrends() {
   }, [brandId, getTrendsService]);
 
   const [remixVideo, setRemixVideo] = useState<ITrendVideo | null>(null);
-  const [remixOpenKey, setRemixOpenKey] = useState(0);
 
   // Handle video click - open the hook remix modal so creators can remix
   // the viral clip. Falls back to opening the video URL for videos that
@@ -286,7 +285,6 @@ export default function AnalyticsTrends() {
   const handleVideoClick = useCallback((video: ITrendVideo) => {
     if (video?.id) {
       setRemixVideo(video);
-      setRemixOpenKey((key) => key + 1);
       return;
     }
     if (video?.videoUrl) {
@@ -895,7 +893,6 @@ export default function AnalyticsTrends() {
       <HookRemixModal
         video={remixVideo}
         isOpen={remixVideo !== null}
-        openKey={remixOpenKey}
         onClose={handleRemixClose}
       />
     </div>

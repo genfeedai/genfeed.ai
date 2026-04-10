@@ -36,7 +36,10 @@ import {
   HiOutlineSparkles,
 } from 'react-icons/hi2';
 
-export default function TrendDetail({ trendId }: TrendDetailProps) {
+export default function TrendDetail({
+  backHref = '/research/discovery',
+  trendId,
+}: TrendDetailProps) {
   const router = useRouter();
   const getTrendsService = useAuthedService((token: string) =>
     TrendsService.getInstance(token),
@@ -194,7 +197,7 @@ export default function TrendDetail({ trendId }: TrendDetailProps) {
             variant={ButtonVariant.GHOST}
             size={ButtonSize.SM}
             icon={<HiArrowLeft className="h-4 w-4" />}
-            onClick={() => router.push('/research/discovery')}
+            onClick={() => router.push(backHref)}
           />
           <div className="flex items-center gap-3">
             {platformConfig && (

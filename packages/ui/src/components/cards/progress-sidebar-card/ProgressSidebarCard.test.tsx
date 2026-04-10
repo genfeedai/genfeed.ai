@@ -114,6 +114,13 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+vi.mock('next/navigation', () => ({
+  useParams: () => ({
+    brandSlug: 'moonrise-studio',
+    orgSlug: 'acme',
+  }),
+}));
+
 describe('ProgressSidebarCard', () => {
   beforeEach(() => {
     const storage = new Map<string, string>();
@@ -205,7 +212,7 @@ describe('ProgressSidebarCard', () => {
     expect(toggleButton).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByRole('link', { name: /view all/i })).toHaveAttribute(
       'href',
-      '/settings/personal',
+      '/acme/~/settings/personal',
     );
     expect(mockMutateUser).toHaveBeenCalled();
   });

@@ -1,5 +1,3 @@
-'use client';
-
 import { AgentChatInput } from '@genfeedai/agent/components/AgentChatInput';
 import { AgentChatMessage } from '@genfeedai/agent/components/AgentChatMessage';
 import type {
@@ -17,7 +15,6 @@ import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import PromptBarSurfaceRenderer from '@ui/prompt-bars/surface/PromptBarSurfaceRenderer';
 import { MISSION_CONTROL_PROMPT_BAR_SURFACE } from '@ui/prompt-bars/surface/prompt-bar-surface.config';
-import Link from 'next/link';
 import {
   type ReactElement,
   useCallback,
@@ -475,7 +472,11 @@ function AgentLabSurface({
   );
 }
 
-export function MissionControlView() {
+export function MissionControlView({
+  onStartNewThread,
+}: {
+  onStartNewThread: () => void;
+}) {
   const [mode, setMode] = useState<AgentLabMode>('rail');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<AgentLabStatus | 'all'>(
@@ -689,11 +690,9 @@ export function MissionControlView() {
         description="Compare a compact right rail against a wider overlay sheet while staying inside Mission Control."
         icon={HiOutlineBeaker}
         right={
-          <Link href="/chat/new">
-            <Button variant={ButtonVariant.SECONDARY}>
-              Open /chat Workspace
-            </Button>
-          </Link>
+          <Button variant={ButtonVariant.SECONDARY} onClick={onStartNewThread}>
+            Open Chat Workspace
+          </Button>
         }
       >
         <div className="space-y-6">

@@ -83,6 +83,15 @@ function canonicalizeFlatProtectedPath(pathname: string): string {
   return FLAT_PATH_REDIRECTS.get(pathname) ?? pathname;
 }
 
+function redirectPreservingSearch(req: NextRequest, pathname: string) {
+  const url = new URL(pathname, req.url);
+  const search = req.nextUrl.search;
+  if (search) {
+    url.search = search;
+  }
+  return NextResponse.redirect(url);
+}
+
 function getTopLevelSegment(pathname: string): string | null {
   const [segment] = pathname.split('/').filter(Boolean);
   return segment ?? null;
@@ -220,11 +229,9 @@ const clerkProxy = isCloudConnected
           if (token) {
             const slugs = await resolveActiveWorkspaceSlugs(token);
             if (slugs) {
-              return NextResponse.redirect(
-                new URL(
-                  `/${slugs.orgSlug}/${slugs.brandSlug}/workspace/overview`,
-                  req.url,
-                ),
+              return redirectPreservingSearch(
+                req,
+                `/${slugs.orgSlug}/${slugs.brandSlug}/workspace/overview`,
               );
             }
           }
@@ -246,7 +253,7 @@ const clerkProxy = isCloudConnected
               : null;
 
             if (resolvedPath) {
-              return NextResponse.redirect(new URL(resolvedPath, req.url));
+              return redirectPreservingSearch(req, resolvedPath);
             }
 
             return NextResponse.next();
@@ -255,7 +262,7 @@ const clerkProxy = isCloudConnected
         }
 
         if (!userId || !sessionId) {
-          return NextResponse.redirect(new URL('/login', req.url));
+          return redirectPreservingSearch(req, '/login');
         }
 
         if (isBareProtectedPath(pathname)) {
@@ -268,7 +275,7 @@ const clerkProxy = isCloudConnected
             return NextResponse.next();
           }
 
-          return NextResponse.redirect(new URL(resolvedPath, req.url));
+          return redirectPreservingSearch(req, resolvedPath);
         }
 
         return NextResponse.next();

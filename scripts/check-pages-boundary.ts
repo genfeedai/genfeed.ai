@@ -14,50 +14,7 @@ const IGNORE_DIR_NAMES = new Set([
 
 const SOURCE_FILE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
 
-const FORBIDDEN_PAGE_PREFIXES = [
-  '@pages/agent',
-  '@pages/agents/',
-  '@pages/analytics/hooks/',
-  '@pages/analytics/organizations-list/',
-  '@pages/analytics/posts-list/',
-  '@pages/analytics/trend-turnover/',
-  '@pages/analytics/trends/',
-  '@pages/articles/',
-  '@pages/auth/',
-  '@pages/brands/detail/',
-  '@pages/brands/list/',
-  '@pages/calendar/',
-  '@pages/captions/',
-  '@pages/content/',
-  '@pages/elements/',
-  '@pages/folders/',
-  '@pages/ingredients/detail/',
-  '@pages/insights/',
-  '@pages/issues/',
-  '@pages/library/captions/',
-  '@pages/library/landing/',
-  '@pages/library/voices/library-voices-page',
-  '@pages/library/voices/voice-catalog-list',
-  '@pages/library/voices/voice-catalog-row',
-  '@pages/login/',
-  '@pages/logout/',
-  '@pages/members/',
-  '@pages/mission-control/',
-  '@pages/newsletters/',
-  '@pages/posts/[id]/',
-  '@pages/posts/ingredients/',
-  '@pages/posts/posts-layout-content',
-  '@pages/posts/write/',
-  '@pages/review/',
-  '@pages/scenes/',
-  '@pages/settings/',
-  '@pages/sign-up/',
-  '@pages/studio/',
-  '@pages/tags/',
-  '@pages/trainings/detail/',
-  '@pages/trainings/tabs/',
-  '@pages/trends/',
-];
+const FORBIDDEN_APP_LOCAL_PREFIXES: string[] = [];
 
 type Violation = {
   file: string;
@@ -69,7 +26,9 @@ const MODULE_SPECIFIER_PATTERN =
   /(?:import|export)\s+(?:type\s+)?(?:[^'"]+?\s+from\s+)?['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)/g;
 
 function isForbiddenSpecifier(specifier: string): boolean {
-  return FORBIDDEN_PAGE_PREFIXES.some((prefix) => specifier.startsWith(prefix));
+  return FORBIDDEN_APP_LOCAL_PREFIXES.some((prefix) =>
+    specifier.startsWith(prefix),
+  );
 }
 
 function collectSourceFiles(dirPath: string): string[] {

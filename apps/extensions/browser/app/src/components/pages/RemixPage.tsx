@@ -1,5 +1,6 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { Input } from '@ui/primitives/input';
 import {
   Select,
   SelectContent,
@@ -222,7 +223,7 @@ export function RemixPage({
           <div className="flex flex-col gap-2">
             {remixItems.map((item, i) => (
               <div
-                key={i}
+                key={item}
                 className="rounded border border-border bg-card p-3 text-sm text-foreground"
               >
                 <p className="mb-2">{item}</p>
@@ -280,7 +281,7 @@ export function RemixPage({
         <label className="text-xs font-medium text-muted-foreground">
           Source URL (optional)
         </label>
-        <input
+        <Input
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}

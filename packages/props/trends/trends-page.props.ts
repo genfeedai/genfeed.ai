@@ -118,6 +118,7 @@ export interface TrendDetailData {
 }
 
 export interface TrendDetailProps {
+  backHref?: string;
   trendId: string;
 }
 

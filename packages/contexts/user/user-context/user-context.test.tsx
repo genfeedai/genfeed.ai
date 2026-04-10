@@ -1,6 +1,10 @@
 // @vitest-environment jsdom
 'use client';
 
+import {
+  UserProvider,
+  useCurrentUser,
+} from '@genfeedai/contexts/user/user-context/user-context';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -23,9 +27,6 @@ vi.mock('../internal/context-resource', () => ({
 }));
 
 describe('UserProvider', () => {
-  let UserProvider: typeof import('@genfeedai/contexts/user/user-context/user-context').UserProvider;
-  let useCurrentUser: typeof import('@genfeedai/contexts/user/user-context/user-context').useCurrentUser;
-
   const initialUser = {
     id: 'user_123',
     settings: {
@@ -33,7 +34,7 @@ describe('UserProvider', () => {
     },
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
     useAuthMock.mockReturnValue({
       isLoaded: true,
@@ -53,12 +54,6 @@ describe('UserProvider', () => {
         refresh: vi.fn().mockResolvedValue(undefined),
       }),
     );
-
-    const module = await import(
-      '@genfeedai/contexts/user/user-context/user-context'
-    );
-    UserProvider = module.UserProvider;
-    useCurrentUser = module.useCurrentUser;
   });
 
   it('exposes the bootstrap user without forcing a findMe request on mount', () => {

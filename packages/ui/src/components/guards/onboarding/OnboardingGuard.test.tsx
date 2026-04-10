@@ -63,7 +63,7 @@ describe('OnboardingGuard', () => {
         hasEverHadCredits: true,
         isOnboardingCompleted: false,
         isSuperAdmin: false,
-        organizationId: 'org_1',
+        organizationId: '',
         subscriptionStatus: 'canceled',
         subscriptionTier: 'payg',
         userId: 'user_1',
@@ -99,12 +99,12 @@ describe('OnboardingGuard', () => {
     });
     useAccessStateMock.mockReturnValue({
       accessState: {
-        brandId: 'brand_1',
+        brandId: '',
         creditsBalance: 0,
         hasEverHadCredits: false,
         isOnboardingCompleted: false,
         isSuperAdmin: false,
-        organizationId: 'org_1',
+        organizationId: '',
         subscriptionStatus: 'canceled',
         subscriptionTier: 'free',
         userId: 'user_1',
@@ -140,12 +140,12 @@ describe('OnboardingGuard', () => {
     });
     useAccessStateMock.mockReturnValue({
       accessState: {
-        brandId: 'brand_1',
+        brandId: '',
         creditsBalance: 0,
         hasEverHadCredits: false,
         isOnboardingCompleted: false,
         isSuperAdmin: false,
-        organizationId: 'org_1',
+        organizationId: '',
         subscriptionStatus: 'canceled',
         subscriptionTier: 'free',
         userId: 'user_1',

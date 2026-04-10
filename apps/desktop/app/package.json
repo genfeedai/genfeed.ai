@@ -51,14 +51,18 @@
   "devDependencies": {
     "@biomejs/biome": "2.4.10",
     "@electron/notarize": "3.1.1",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.2",
     "@types/node": "25.5.2",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "electron": "41.2.0",
     "electron-builder": "26.8.1",
     "esbuild": "0.28.0",
+    "jsdom": "29.0.2",
     "sass": "1.93.2",
-    "typescript": "6.0.2"
+    "typescript": "6.0.2",
+    "vitest": "4.1.4"
   },
   "main": "dist/main.js",
   "name": "@genfeedai/desktop",
@@ -86,7 +90,7 @@
     "release:mac": "bun run electron:install-binary && bun run native:rebuild && bun run build:release && electron-builder --mac dmg zip --publish never",
     "smoke": "bun run electron:install-binary && bun run native:rebuild && bun run build && electron dist/main.js --smoke-test",
     "start": "bun run electron:install-binary && bun run native:rebuild && electron dist/main.js",
-    "test": "bun test ./src/**/*.test.ts",
+    "test": "bun test ./src/**/*.test.ts && vitest run --config vitest.config.ts",
     "type-check": "rm -rf .next && next typegen && bunx tsc --noEmit"
   },
   "version": "0.1.0"

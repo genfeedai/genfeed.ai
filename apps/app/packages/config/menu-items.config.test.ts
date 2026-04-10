@@ -3,6 +3,7 @@ import {
   APP_LOGO_HREF,
   APP_MENU_ITEMS,
   APP_SECONDARY_MENU_ITEMS,
+  AppMenuGroup,
 } from './menu-items.config';
 
 describe('APP_MENU_ITEMS', () => {
@@ -15,10 +16,10 @@ describe('APP_MENU_ITEMS', () => {
 
   it('renders the workspace entrypoints as standalone top-level rows', () => {
     const ungroupedLabels = APP_MENU_ITEMS.filter(
-      (item) => item.group === '' && !item.isPrimary,
+      (item) => item.group === AppMenuGroup.Root && !item.isPrimary,
     ).map((item) => item.label);
 
-    expect(ungroupedLabels).toEqual(['Dashboard', 'Inbox']);
+    expect(ungroupedLabels).toEqual(['Dashboard', 'Inbox', 'Issues']);
   });
 
   it('surfaces the new top-level workspace groups', () => {
@@ -30,20 +31,26 @@ describe('APP_MENU_ITEMS', () => {
       ),
     ];
 
-    expect(groups).toEqual(['Library', 'Analytics', 'Posts', 'Operations']);
+    expect(groups).toEqual([
+      AppMenuGroup.Library,
+      AppMenuGroup.Analytics,
+      AppMenuGroup.Posts,
+      AppMenuGroup.Operations,
+      AppMenuGroup.Create,
+    ]);
   });
 
   it('gives workspace first-class subroutes in the main sidebar', () => {
     const workspaceLabels = APP_MENU_ITEMS.filter(
-      (item) => item.group === '',
+      (item) => item.group === AppMenuGroup.Root,
     ).map((item) => item.label);
 
-    expect(workspaceLabels).toEqual(['Dashboard', 'Inbox']);
+    expect(workspaceLabels).toEqual(['Dashboard', 'Inbox', 'Issues']);
   });
 
   it('orders the posts group around the new canonical routes', () => {
     const postsLabels = APP_MENU_ITEMS.filter(
-      (item) => item.group === 'Posts',
+      (item) => item.group === AppMenuGroup.Posts,
     ).map((item) => item.label);
 
     expect(postsLabels).toEqual([
@@ -57,7 +64,7 @@ describe('APP_MENU_ITEMS', () => {
 
   it('keeps analytics directly under overview', () => {
     const analyticsLabels = APP_MENU_ITEMS.filter(
-      (item) => item.group === 'Analytics',
+      (item) => item.group === AppMenuGroup.Analytics,
     ).map((item) => item.label);
 
     expect(analyticsLabels).toEqual([
@@ -74,7 +81,7 @@ describe('APP_MENU_ITEMS', () => {
 
   it('treats analytics as a drill-down group instead of exposing every analytics page in the main rail', () => {
     const analyticsItems = APP_MENU_ITEMS.filter(
-      (item) => item.group === 'Analytics',
+      (item) => item.group === AppMenuGroup.Analytics,
     );
 
     expect(analyticsItems[0]?.drillDown).toBe(true);
@@ -83,10 +90,15 @@ describe('APP_MENU_ITEMS', () => {
     ).toBe(true);
   });
 
-  it('does not expose Compose in the main sidebar menu', () => {
+  it('exposes Compose under the Create group', () => {
     const composeItem = APP_MENU_ITEMS.find((item) => item.label === 'Compose');
 
-    expect(composeItem).toBeUndefined();
+    expect(composeItem).toEqual(
+      expect.objectContaining({
+        group: AppMenuGroup.Create,
+        href: '/compose/post',
+      }),
+    );
   });
 
   it('keeps chat out of the main sidebar and surfaces workflow tools under operations', () => {
@@ -94,7 +106,7 @@ describe('APP_MENU_ITEMS', () => {
       (item) => item.group === 'Chat',
     ).map((item) => item.label);
     const workflowLabels = APP_MENU_ITEMS.filter(
-      (item) => item.group === 'Operations',
+      (item) => item.group === AppMenuGroup.Operations,
     ).map((item) => item.label);
 
     expect(chatLabels).toEqual([]);
@@ -109,7 +121,7 @@ describe('APP_MENU_ITEMS', () => {
 
   it('treats workflows as a drill-down group instead of flat main-nav links', () => {
     const workflowItems = APP_MENU_ITEMS.filter(
-      (item) => item.group === 'Operations',
+      (item) => item.group === AppMenuGroup.Operations,
     );
 
     expect(workflowItems[0]?.drillDown).toBe(true);
@@ -145,7 +157,6 @@ describe('APP_MENU_ITEMS', () => {
     expect(hrefs).not.toContain('/orchestration/autopilot');
     expect(hrefs).not.toContain('/orchestration/configuration');
     expect(hrefs).not.toContain('/chat');
-    expect(hrefs).not.toContain('/compose');
     expect(hrefs).not.toContain('/posts/composer');
     expect(hrefs).not.toContain('/posts/articles');
     expect(hrefs).not.toContain('/posts/newsletters');

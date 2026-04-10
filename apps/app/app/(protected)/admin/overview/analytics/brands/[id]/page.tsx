@@ -13,7 +13,10 @@ export default async function BrandDetailPage({
 
   return (
     <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-      <AnalyticsBrandOverview brandId={id} />
+      <AnalyticsBrandOverview
+        brandId={id}
+        basePath="/admin/overview/analytics"
+      />
     </Suspense>
   );
 }

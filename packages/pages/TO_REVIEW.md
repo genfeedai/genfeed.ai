@@ -64,7 +64,6 @@ _None remaining — all tracked features have been wired._
 - `packages/pages/trends/platform-detail/trends-platform-detail.tsx` — PR 3 moved from `apps/app/.../research/[platform]/trends-platform-detail.tsx` to `packages/pages/trends/platform-detail/` so both `/research/[platform]` and the new `/analytics/trends/platforms/[platform]` route can consume the same component. `SocialsNavigation` + `TrendsPlatformDetail` now accept an optional `basePath` prop so in-surface tab navigation stays consistent ('/research' vs '/analytics/trends').
 - `packages/pages/streaks/streaks-page.tsx` — PR 4 wired at `/analytics/streaks`. Added to the Analytics sidebar group in `apps/app/packages/config/menu-items.config.ts`; the corresponding `analyticsLabels` assertion in `menu-items.config.test.ts` was updated to include 'Streaks'.
 - `packages/pages/mission-control/mission-control-agent-lab.tsx` — PR 4 moved to `apps/desktop/app/src/renderer/views/MissionControlView.tsx` (Epic #9 scopes mission control to the desktop app; the existing `menu-items.config.test.ts` assertion that `/mission-control` is NOT in the web APP_MENU_ITEMS stays valid). The default export was renamed from `MissionControlAgentLabPage` to a named export `MissionControlView` to match the desktop view convention (`AgentsView`, `AnalyticsView`, etc.). Wired into `apps/desktop/app/src/renderer/nav-view.ts`, `App.tsx` (new `'mission-control'` case), and `Sidebar.tsx` (new NAV_ITEMS entry). The `packages/pages/mission-control/` directory was deleted entirely.
-- `packages/pages/calendar/posts/posts-calendar-page.tsx` — PR 5 reclassification; **no code change**. Live via `apps/app/app/(protected)/[orgSlug]/[brandSlug]/posts/calendar/page.tsx`. The original 04-09 sweep missed it (probably because the import form used the barrel).
 - `packages/pages/agents/campaigns/AgentCampaignsPage.tsx` — PR 5 reclassification; **no code change**. Live via `apps/app/.../orchestration/campaigns/page.tsx` through the `@pages/agents` barrel (`packages/pages/agents/index.ts`).
 - `packages/pages/agents/campaigns/AgentCampaignNewPage.tsx` — PR 5 reclassification; **no code change**. Live via `apps/app/.../orchestration/campaigns/new/page.tsx` through the `@pages/agents` barrel.
 - `packages/pages/agents/campaigns/AgentCampaignDetailPage.tsx` — PR 5 reclassification; **no code change**. Live via `apps/app/.../orchestration/campaigns/[id]/page.tsx` through the `@pages/agents` barrel.
@@ -126,11 +125,12 @@ Deferred from PR 1 because the original sweep is untrustworthy and each file nee
 - `packages/pages/posts/detail/components/PostDetailHeader.tsx`
 - `packages/pages/posts/list/components/PostsGrid.tsx`
 - `packages/pages/posts/list/components/PostsListToolbar.tsx`
+- `packages/pages/calendar/posts/posts-calendar-page.tsx` + `.test.tsx` — current posts calendar route renders its local `content-calendar-page.tsx`, not this package module
 
 ## Notes
 
 - Canonical task tracking stays in GitHub, per repo policy.
 - Do not use this file as a backlog — it is a preservation ledger only.
-- **As of PR 5 (2026-04-10), every entry in this file is either (a) wired into a live route, (b) genuinely-shared internal code with a documented consumer, or (c) tracked by an open GitHub issue.** There are no silent orphans.
+- **As of PR 5 (2026-04-10), every entry outside the Studio and Posts verification sections is either (a) wired into a live route, (b) genuinely-shared internal code with a documented consumer, or (c) tracked by an open GitHub issue.**
 - The Studio subtree and the Posts subtree sections are the remaining cleanup candidates — Studio is live internal code (should be removed from the ledger after a barrel audit) and Posts needs per-file verification in a follow-up micro-PR.
 - This file can be deleted entirely once the Studio and Posts sections are resolved.

@@ -21,6 +21,14 @@ export default defineConfig({
         replacement: path.resolve(__dirname, './src/$1'),
       },
       {
+        find: '@genfeedai/helpers',
+        replacement: path.resolve(__dirname, '../helpers/src'),
+      },
+      {
+        find: /^@genfeedai\/helpers\/(.*)$/,
+        replacement: path.resolve(__dirname, '../helpers/src/$1'),
+      },
+      {
         find: '@genfeedai/contexts',
         replacement: path.resolve(__dirname, '../contexts'),
       },

@@ -21,39 +21,45 @@ for (const file of enumFiles) {
   const enums: { name: string; members: { key: string; value: string }[] }[] =
     [];
 
-  let match;
-  while ((match = enumRegex.exec(content)) !== null) {
+  let match: RegExpExecArray | null = enumRegex.exec(content);
+  while (match !== null) {
     const name = match[1];
     const body = match[2];
     const members: { key: string; value: string }[] = [];
 
     const memberRegex = /(\w+)\s*=\s*['"]([^'"]+)['"]/g;
-    let memberMatch;
-    while ((memberMatch = memberRegex.exec(body)) !== null) {
+    let memberMatch: RegExpExecArray | null = memberRegex.exec(body);
+    while (memberMatch !== null) {
       members.push({ key: memberMatch[1], value: memberMatch[2] });
+      memberMatch = memberRegex.exec(body);
     }
 
     // Also handle numeric enums
     const numMemberRegex = /(\w+)\s*=\s*(\d+)/g;
-    while ((memberMatch = numMemberRegex.exec(body)) !== null) {
+    memberMatch = numMemberRegex.exec(body);
+    while (memberMatch !== null) {
       members.push({ key: memberMatch[1], value: memberMatch[2] });
+      memberMatch = numMemberRegex.exec(body);
     }
 
     if (members.length > 0) {
       enums.push({ members, name });
     }
+    match = enumRegex.exec(content);
   }
 
   // Check for aliased exports
   const reExportRegex =
     /export\s*\{\s*(\w+)(?:\s+as\s+(\w+))?\s*\}\s*from\s*['"]([^'"]+)['"]/g;
   const reExports: { original: string; alias: string; from: string }[] = [];
-  while ((match = reExportRegex.exec(content)) !== null) {
+  match = reExportRegex.exec(content);
+  while (match !== null) {
     reExports.push({
       alias: match[2] || match[1],
       from: match[3],
       original: match[1],
     });
+    match = reExportRegex.exec(content);
   }
 
   if (enums.length === 0 && reExports.length === 0) continue;

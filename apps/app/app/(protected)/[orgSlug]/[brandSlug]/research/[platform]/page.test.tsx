@@ -9,7 +9,7 @@ const mockNotFound = vi.fn(() => {
   throw new Error('NEXT_NOT_FOUND');
 });
 
-vi.mock('./trends-platform-detail', () => ({
+vi.mock('@pages/trends/platform-detail/trends-platform-detail', () => ({
   default: ({ platform }: { platform: string }) => (
     <div>Mocked platform detail: {platform}</div>
   ),

@@ -14,7 +14,7 @@ export default async function AnalyticsTrendDetailPage({
 
   return (
     <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-      <TrendDetail trendId={id} />
+      <TrendDetail trendId={id} backHref="/analytics/trends" />
     </Suspense>
   );
 }

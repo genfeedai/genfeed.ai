@@ -1,5 +1,6 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { type ReactElement, useEffect, useState } from 'react';
 import { LoadingSpinner } from '~components/ui';
@@ -215,7 +216,10 @@ export function ReplyPage({
 
         <div className="flex flex-col gap-2">
           {replies.map((reply, i) => (
-            <div key={i} className="rounded border border-border bg-card p-3">
+            <div
+              key={reply.text}
+              className="rounded border border-border bg-card p-3"
+            >
               <p className="mb-2 text-sm text-foreground">{reply.text}</p>
               <Button
                 type="button"
@@ -274,7 +278,7 @@ export function ReplyPage({
           <label className="text-xs font-medium text-muted-foreground">
             Author (optional)
           </label>
-          <input
+          <Input
             type="text"
             value={author}
             onChange={(e) => setAuthor(e.target.value)}

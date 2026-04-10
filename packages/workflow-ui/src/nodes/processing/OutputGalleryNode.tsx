@@ -164,7 +164,7 @@ function OutputGalleryNodeComponent(props: NodeProps) {
                 >
                   <img
                     src={img}
-                    alt={`Image ${idx + 1}`}
+                    alt={`Generated result ${idx + 1}`}
                     className="w-full h-full object-cover"
                   />
                 </Button>
@@ -188,7 +188,7 @@ function OutputGalleryNodeComponent(props: NodeProps) {
             >
               <img
                 src={displayImages[lightboxIndex]}
-                alt={`Gallery image ${lightboxIndex + 1}`}
+                alt={`Generated result ${lightboxIndex + 1}`}
                 className="max-w-full max-h-[90vh] object-contain rounded"
               />
 

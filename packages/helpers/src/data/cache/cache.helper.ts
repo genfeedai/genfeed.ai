@@ -225,7 +225,9 @@ export function createLocalStorageCache<T = unknown>(
             keysToRemove.push(key);
           }
         }
-        keysToRemove.forEach((key) => localStorage.removeItem(key));
+        keysToRemove.forEach((key) => {
+          localStorage.removeItem(key);
+        });
       }
     },
     get: (key: string) => {
@@ -287,7 +289,9 @@ export function createSessionStorageCache<T = unknown>(
           keysToRemove.push(key);
         }
       }
-      keysToRemove.forEach((key) => sessionStorage.removeItem(key));
+      keysToRemove.forEach((key) => {
+        sessionStorage.removeItem(key);
+      });
     },
     get: (key: string) => {
       try {

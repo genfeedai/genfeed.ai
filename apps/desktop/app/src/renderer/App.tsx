@@ -200,7 +200,7 @@ export const App = () => {
       case 'agents':
         return <AgentsView />;
       case 'mission-control':
-        return <MissionControlView />;
+        return <MissionControlView onStartNewThread={handleNewThread} />;
       case 'analytics':
         return <AnalyticsView workspaceId={selectedWorkspaceId} />;
       case 'library':

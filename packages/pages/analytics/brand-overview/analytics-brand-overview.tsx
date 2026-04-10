@@ -64,10 +64,12 @@ type PostWithAnalytics = Post & {
 };
 
 export interface AnalyticsBrandOverviewProps {
+  basePath?: string;
   brandId: string;
 }
 
 export default function AnalyticsBrandOverview({
+  basePath = '/analytics',
   brandId,
 }: AnalyticsBrandOverviewProps) {
   const _router = useRouter();
@@ -336,7 +338,7 @@ export default function AnalyticsBrandOverview({
                 {platformComparisonData.map(({ platform }) => (
                   <Link
                     key={platform}
-                    href={`/analytics/brands/${brandId}/platforms/${platform}`}
+                    href={`${basePath}/brands/${brandId}/platforms/${platform}`}
                     className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground/70 hover:text-foreground transition-colors px-3 py-1.5 border border-border hover:border-primary/40"
                   >
                     {getPlatformIcon(platform, 'w-4 h-4')}

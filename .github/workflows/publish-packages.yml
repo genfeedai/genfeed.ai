@@ -87,7 +87,13 @@ jobs:
             exit 0
           fi
 
-          git add packages/*/package.json packages/integrations/*/package.json ee/packages/*/package.json || true
+          git diff --name-only -- packages ee/packages | grep '/package.json$' > /tmp/package-version-files
+          if [ ! -s /tmp/package-version-files ]; then
+            echo "No package version files changed"
+            exit 0
+          fi
+
+          xargs -a /tmp/package-version-files git add --
           if git diff --cached --quiet; then
             echo "No staged package version changes to commit"
             exit 0

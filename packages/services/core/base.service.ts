@@ -61,7 +61,10 @@ class ServiceInstanceManager {
   }
 
   static clear(serviceKey?: unknown, token?: string): void {
-    if (!serviceKey) return ServiceInstanceManager.instances.clear();
+    if (!serviceKey) {
+      ServiceInstanceManager.instances.clear();
+      return;
+    }
 
     const instancesForService =
       ServiceInstanceManager.instances.get(serviceKey);

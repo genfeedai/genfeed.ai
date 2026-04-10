@@ -283,7 +283,9 @@ function PromptBarProviderContent({
       userId: null,
     };
     await findAllPromptBarData();
-    refreshCallbacksRef.current.forEach((callback) => callback());
+    refreshCallbacksRef.current.forEach((callback) => {
+      callback();
+    });
   }, [findAllPromptBarData]);
 
   const onRefresh = useCallback((callback: () => void) => {

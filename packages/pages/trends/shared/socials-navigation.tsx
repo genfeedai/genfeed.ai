@@ -61,8 +61,6 @@ function buildSocialsNavItems(
   });
 }
 
-export const SOCIALS_NAV_ITEMS = buildSocialsNavItems('/research');
-
 export const PLATFORM_DROPDOWN_OPTIONS = PLATFORM_LABELS.map(
   ({ id, label }) => ({
     label: id === 'overview' ? 'All Platforms' : label,

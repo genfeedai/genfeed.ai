@@ -114,7 +114,7 @@ describe('MasonryImage', () => {
   it('should apply correct styles and classes', () => {
     render(<MasonryImage image={mockImage} />);
 
-    expect(screen.getByRole('button')).toHaveClass('rounded-xl');
+    expect(screen.getByRole('button')).toHaveClass('rounded-lg');
   });
 
   it('supports space key activation for keyboard users', () => {

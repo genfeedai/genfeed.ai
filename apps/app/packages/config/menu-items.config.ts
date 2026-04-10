@@ -10,6 +10,7 @@ import {
   HiCog6Tooth,
   HiDocumentText,
   HiFilm,
+  HiFire,
   HiFolder,
   HiInboxStack,
   HiMicrophone,
@@ -24,6 +25,7 @@ import {
   HiOutlineCog6Tooth,
   HiOutlineDocumentText,
   HiOutlineFilm,
+  HiOutlineFire,
   HiOutlineFolder,
   HiOutlineInboxStack,
   HiOutlineMicrophone,
@@ -45,9 +47,18 @@ import {
 /** Label after which dynamic credential items are inserted in the Posts group */
 export const POSTS_INSERT_AFTER_LABEL = 'Review';
 
+export enum AppMenuGroup {
+  Root = '',
+  Analytics = 'Analytics',
+  Create = 'Create',
+  Library = 'Library',
+  Operations = 'Operations',
+  Posts = 'Posts',
+}
+
 export const APP_MENU_ITEMS: MenuItemConfig[] = [
   {
-    group: '',
+    group: AppMenuGroup.Root,
     href: '/workspace/overview',
     label: 'Dashboard',
     matchPaths: ['/workspace', '/workspace/overview'],
@@ -55,7 +66,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiSquares2X2,
   },
   {
-    group: '',
+    group: AppMenuGroup.Root,
     href: '/workspace/inbox/unread',
     label: 'Inbox',
     matchPaths: [
@@ -68,7 +79,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiInboxStack,
   },
   {
-    group: '',
+    group: AppMenuGroup.Root,
     href: '/issues',
     label: 'Issues',
     matchPaths: ['/issues'],
@@ -77,7 +88,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     drillDown: true,
-    group: 'Library',
+    group: AppMenuGroup.Library,
     href: '/library/ingredients',
     label: 'Library',
     matchPaths: ['/library', '/library/ingredients'],
@@ -85,7 +96,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiFolder,
   },
   {
-    group: 'Library',
+    group: AppMenuGroup.Library,
     href: '/library/images',
     label: 'Images',
     matchPaths: ['/library/images'],
@@ -93,7 +104,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiPhoto,
   },
   {
-    group: 'Library',
+    group: AppMenuGroup.Library,
     href: '/library/videos',
     label: 'Videos',
     matchPaths: ['/library/videos'],
@@ -101,7 +112,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiDocumentText,
   },
   {
-    group: 'Library',
+    group: AppMenuGroup.Library,
     href: '/library/gifs',
     label: 'GIFs',
     matchPaths: ['/library/gifs'],
@@ -109,7 +120,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiPlayCircle,
   },
   {
-    group: 'Library',
+    group: AppMenuGroup.Library,
     href: '/library/voices',
     label: 'Voices',
     matchPaths: ['/library/voices'],
@@ -117,7 +128,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiMicrophone,
   },
   {
-    group: 'Library',
+    group: AppMenuGroup.Library,
     href: '/library/music',
     label: 'Music',
     matchPaths: ['/library/music'],
@@ -125,7 +136,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiMusicalNote,
   },
   {
-    group: 'Library',
+    group: AppMenuGroup.Library,
     href: '/library/captions',
     label: 'Captions',
     matchPaths: ['/library/captions', '/captions'],
@@ -134,7 +145,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     drillDown: true,
-    group: 'Analytics',
+    group: AppMenuGroup.Analytics,
     href: '/analytics/overview',
     label: 'Overview',
     matchPaths: ['/analytics', '/analytics/overview'],
@@ -142,7 +153,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiChartBar,
   },
   {
-    group: 'Analytics',
+    group: AppMenuGroup.Analytics,
     href: '/analytics/posts',
     label: 'Posts',
     matchPaths: ['/analytics/posts'],
@@ -150,7 +161,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiDocumentText,
   },
   {
-    group: 'Analytics',
+    group: AppMenuGroup.Analytics,
     href: '/analytics/brands',
     label: 'Brands',
     matchPaths: ['/analytics/brands'],
@@ -158,7 +169,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiBuildingOffice2,
   },
   {
-    group: 'Analytics',
+    group: AppMenuGroup.Analytics,
     href: '/analytics/insights',
     label: 'Insights',
     matchPaths: ['/analytics/insights'],
@@ -166,7 +177,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiSparkles,
   },
   {
-    group: 'Analytics',
+    group: AppMenuGroup.Analytics,
     href: '/analytics/hooks',
     label: 'Hooks',
     matchPaths: ['/analytics/hooks'],
@@ -174,7 +185,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiArrowTrendingUp,
   },
   {
-    group: 'Analytics',
+    group: AppMenuGroup.Analytics,
     href: '/analytics/performance-lab',
     label: 'Performance Lab',
     matchPaths: ['/analytics/performance-lab'],
@@ -182,7 +193,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiChartBar,
   },
   {
-    group: 'Analytics',
+    group: AppMenuGroup.Analytics,
     href: '/analytics/trend-turnover',
     label: 'Trend Turnover',
     matchPaths: ['/analytics/trend-turnover'],
@@ -190,16 +201,16 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiArrowTrendingUp,
   },
   {
-    group: 'Analytics',
+    group: AppMenuGroup.Analytics,
     href: '/analytics/streaks',
     label: 'Streaks',
     matchPaths: ['/analytics/streaks'],
-    outline: HiOutlineSparkles,
-    solid: HiSparkles,
+    outline: HiOutlineFire,
+    solid: HiFire,
   },
   {
     drillDown: true,
-    group: 'Posts',
+    group: AppMenuGroup.Posts,
     href: '/posts/analytics',
     label: 'Analytics',
     matchPaths: ['/posts/analytics'],
@@ -207,7 +218,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiChartBar,
   },
   {
-    group: 'Posts',
+    group: AppMenuGroup.Posts,
     href: '/posts/remix',
     label: 'Remix',
     matchPaths: ['/posts/remix'],
@@ -215,7 +226,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiPlayCircle,
   },
   {
-    group: 'Posts',
+    group: AppMenuGroup.Posts,
     href: '/posts/calendar',
     label: 'Calendar',
     matchPaths: ['/posts/calendar'],
@@ -223,7 +234,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiCalendar,
   },
   {
-    group: 'Posts',
+    group: AppMenuGroup.Posts,
     href: '/posts/review',
     label: 'Review',
     matchPaths: ['/posts/review'],
@@ -231,7 +242,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiClipboardDocumentCheck,
   },
   {
-    group: 'Posts',
+    group: AppMenuGroup.Posts,
     href: '/posts',
     label: 'Posts',
     matchPaths: ['/posts'],
@@ -240,7 +251,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     drillDown: true,
-    group: 'Operations',
+    group: AppMenuGroup.Operations,
     href: '/workflows/executions',
     label: 'Runs',
     matchPaths: ['/workflows/executions', '/orchestration/runs'],
@@ -248,7 +259,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiChartBar,
   },
   {
-    group: 'Operations',
+    group: AppMenuGroup.Operations,
     href: '/workflows',
     label: 'Workflows',
     matchPaths: ['/orchestration/workflows', '/workflows'],
@@ -256,7 +267,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiWrenchScrewdriver,
   },
   {
-    group: 'Operations',
+    group: AppMenuGroup.Operations,
     href: '/orchestration/skills',
     label: 'Skills',
     matchPaths: ['/orchestration/skills'],
@@ -264,7 +275,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiSparkles,
   },
   {
-    group: 'Operations',
+    group: AppMenuGroup.Operations,
     href: '/workflows/autopilot',
     label: 'Autopilot',
     matchPaths: [
@@ -276,7 +287,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiSparkles,
   },
   {
-    group: 'Operations',
+    group: AppMenuGroup.Operations,
     href: '/workflows/configuration',
     label: 'Configuration',
     matchPaths: ['/workflows/configuration', '/orchestration/configuration'],
@@ -285,7 +296,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     drillDown: true,
-    group: 'Create',
+    group: AppMenuGroup.Create,
     href: '/studio/image',
     label: 'Studio',
     matchPaths: ['/studio', '/studio/image', '/studio/video'],
@@ -293,7 +304,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiSparkles,
   },
   {
-    group: 'Create',
+    group: AppMenuGroup.Create,
     href: '/compose/post',
     label: 'Compose',
     matchPaths: [
@@ -306,7 +317,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
     solid: HiPencilSquare,
   },
   {
-    group: 'Create',
+    group: AppMenuGroup.Create,
     href: '/editor',
     label: 'Editor',
     matchPaths: ['/editor'],
@@ -317,7 +328,7 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
 
 export const APP_SECONDARY_MENU_ITEMS: MenuItemConfig[] = [
   {
-    group: '',
+    group: AppMenuGroup.Root,
     href: '/workspace/activity',
     label: 'Activity',
     matchPaths: ['/workspace/activity'],
@@ -336,7 +347,7 @@ export function getAppSecondaryMenuItems(
   return [
     ...APP_SECONDARY_MENU_ITEMS,
     {
-      group: '',
+      group: AppMenuGroup.Root,
       href: `/settings/brands/${brandId}`,
       label: 'Settings',
       matchPaths: [`/settings/brands/${brandId}`],

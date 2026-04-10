@@ -61,7 +61,8 @@ class HTTPServiceInstanceManager {
 
   static clear(serviceKey?: unknown, token?: string): void {
     if (!serviceKey) {
-      return HTTPServiceInstanceManager.instances.clear();
+      HTTPServiceInstanceManager.instances.clear();
+      return;
     }
 
     const instancesForService =

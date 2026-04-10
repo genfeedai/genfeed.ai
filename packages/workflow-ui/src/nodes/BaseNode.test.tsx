@@ -300,7 +300,10 @@ describe('BaseNode', () => {
     it('should call selectNode when clicked', () => {
       render(<BaseNode {...defaultProps} />);
 
-      fireEvent.click(screen.getByText('Test Node').closest('div')!);
+      const nodeElement = screen.getByText('Test Node').closest('div');
+      expect(nodeElement).not.toBeNull();
+
+      fireEvent.pointerDown(nodeElement as Element);
 
       expect(mockSelectNode).toHaveBeenCalledWith('node-1');
     });

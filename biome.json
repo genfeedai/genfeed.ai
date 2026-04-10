@@ -10,6 +10,8 @@
       "!**/build",
       "!**/out",
       "!**/coverage",
+      "!**/.plasmo",
+      "!**/.plasmo",
       "!**/test-results",
       "!**/playwright-report",
       "!**/*.snap",
@@ -101,7 +103,8 @@
         "packages/agent/src/**",
         "packages/hooks/**",
         "packages/pages/**",
-        "packages/ui/src/components/**"
+        "packages/ui/src/components/**",
+        "packages/workflow-ui/src/**"
       ],
       "linter": {
         "rules": {

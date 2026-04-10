@@ -27,7 +27,10 @@ async function migrate() {
   }
 
   await mongoose.connect(MONGO_URI);
-  const db = mongoose.connection.db!;
+  const db = mongoose.connection.db;
+  if (!db) {
+    throw new Error('MongoDB connection database is not available.');
+  }
   const orgs = db.collection('organizations');
 
   const cursor = orgs.find({ isDeleted: false, slug: { $exists: false } });

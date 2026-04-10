@@ -7,7 +7,9 @@ const listeners = new Set<Listener>();
 
 export function setErrorDebugInfo(info: IErrorDebugInfo): void {
   errorDebugInfo = info;
-  listeners.forEach((fn) => fn(info));
+  listeners.forEach((fn) => {
+    fn(info);
+  });
 }
 
 export function getErrorDebugInfo(): IErrorDebugInfo | null {

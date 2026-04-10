@@ -6,6 +6,7 @@
       "@components/*": ["../../../packages/ui/src/components/*"],
       "@genfeedai/agent": ["../../../packages/agent/src/index.ts"],
       "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
+      "@genfeedai/contexts/*": ["../../../packages/contexts/*"],
       "@genfeedai/desktop-contracts": [
         "../../../packages/desktop-contracts/src/index.ts"
       ],
@@ -14,6 +15,18 @@
       ],
       "@genfeedai/interfaces": ["../../../packages/interfaces/src/index.ts"],
       "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
+      "@genfeedai/helpers/*": ["../../../packages/helpers/src/*"],
+      "@genfeedai/hooks/*": ["../../../packages/hooks/*"],
+      "@genfeedai/models/*": ["../../../packages/models/*"],
+      "@genfeedai/props/*": ["../../../packages/props/*"],
+      "@genfeedai/serializers": ["../../../packages/serializers/src/index.ts"],
+      "@genfeedai/serializers/*": ["../../../packages/serializers/src/*"],
+      "@genfeedai/services/*": ["../../../packages/services/*"],
+      "@genfeedai/ui/*": [
+        "../../../packages/ui/src/*",
+        "../../../packages/ui/src/components/*"
+      ],
+      "@genfeedai/utils/*": ["../../../packages/utils/*"],
       "@configs/*": ["../../../configs/*"],
       "@contexts/*": ["../../../packages/contexts/*"],
       "@helpers/*": ["../../../packages/helpers/src/*"],
@@ -24,9 +37,10 @@
       "@providers/*": ["../../../packages/providers/*"],
       "@renderer/*": ["./src/renderer/*"],
       "@schemas/*": ["../../../packages/schemas/*"],
+      "@serializers/*": ["../../../packages/serializers/src/*"],
       "@services/*": ["../../../packages/services/*"],
       "@styles/*": ["../../../packages/styles/*"],
-      "@ui-constants/*": ["../../../packages/ui/constants/*"],
+      "@ui-constants/*": ["../../../packages/ui/src/components/constants/*"],
       "@ui/*": [
         "../../../packages/ui/src/*",
         "../../../packages/ui/src/components/*"
@@ -39,7 +53,7 @@
       "../../../packages/node_modules/.bun/@types+react-dom@19.2.3+878e0db68a4d0502/node_modules/@types"
     ]
   },
-  "exclude": ["src/**/*.test.ts"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"],
   "include": [
     "next-env.d.ts",
     "pages/**/*.ts",

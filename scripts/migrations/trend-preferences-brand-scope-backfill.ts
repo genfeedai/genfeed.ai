@@ -53,7 +53,14 @@ async function resolveCollectionName(db: Db): Promise<string> {
     );
   }
 
-  return matchingCollections[0]!;
+  const collectionName = matchingCollections[0];
+  if (!collectionName) {
+    throw new Error(
+      `Could not find a trend preferences collection. Checked: ${CANDIDATE_COLLECTIONS.join(', ')}`,
+    );
+  }
+
+  return collectionName;
 }
 
 runScript(

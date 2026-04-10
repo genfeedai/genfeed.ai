@@ -42,6 +42,14 @@ function run(command, args, options = {}) {
   }
 }
 
+function isPathInside(parentPath, childPath) {
+  const relativePath = path.relative(parentPath, childPath);
+  return (
+    relativePath === '' ||
+    (!relativePath.startsWith('..') && !path.isAbsolute(relativePath))
+  );
+}
+
 const args = process.argv.slice(2);
 const packagesArgIndex = args.indexOf('--packages-json');
 const dryRun = args.includes('--dry-run');
@@ -88,7 +96,7 @@ const normalizedRequests = requests.map((request, index) => {
 
   const packageDir = path.resolve(root, candidatePath);
   const packageJsonPath = path.join(packageDir, 'package.json');
-  if (!packageJsonPath.startsWith(root)) {
+  if (!isPathInside(root, packageDir)) {
     fail(`packages_json[${index}].path resolves outside the repo`);
   }
   if (!fs.existsSync(packageJsonPath)) {
@@ -152,7 +160,7 @@ const outputPath =
 if (outputPath) {
   fs.writeFileSync(
     outputPath,
-    JSON.stringify({ dryRun, releases }, null, 2) + '\n',
+    `${JSON.stringify({ dryRun, releases }, null, 2)}\n`,
   );
 }
 

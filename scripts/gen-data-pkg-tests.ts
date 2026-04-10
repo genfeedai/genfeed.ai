@@ -46,27 +46,35 @@ function generateEnumTests() {
     const enumRegex = /export\s+enum\s+(\w+)\s*\{([^}]+)\}/g;
     const enums: { name: string; members: { key: string; value: string }[] }[] =
       [];
-    let match;
-    while ((match = enumRegex.exec(content)) !== null) {
+    let match: RegExpExecArray | null = enumRegex.exec(content);
+    while (match !== null) {
       const members: { key: string; value: string }[] = [];
       // String values
       const strRegex = /(\w+)\s*=\s*['"]([^'"]+)['"]/g;
-      let m;
-      while ((m = strRegex.exec(match[2])) !== null)
+      let m: RegExpExecArray | null = strRegex.exec(match[2]);
+      while (m !== null) {
         members.push({ key: m[1], value: m[2] });
+        m = strRegex.exec(match[2]);
+      }
       // Numeric values
       const numRegex = /(\w+)\s*=\s*(\d+)/g;
-      while ((m = numRegex.exec(match[2])) !== null)
+      m = numRegex.exec(match[2]);
+      while (m !== null) {
         members.push({ key: m[1], value: m[2] });
+        m = numRegex.exec(match[2]);
+      }
       if (members.length > 0) enums.push({ members, name: match[1] });
+      match = enumRegex.exec(content);
     }
 
     // Aliased exports
     const reExportRegex =
       /export\s*\{\s*(\w+)(?:\s+as\s+(\w+))?\s*\}\s*from\s*['"]([^'"]+)['"]/g;
     const reExports: { alias: string }[] = [];
-    while ((match = reExportRegex.exec(content)) !== null) {
+    match = reExportRegex.exec(content);
+    while (match !== null) {
       reExports.push({ alias: match[2] || match[1] });
+      match = reExportRegex.exec(content);
     }
 
     if (enums.length === 0 && reExports.length === 0) continue;
@@ -152,12 +160,13 @@ function generateAttributeTests() {
   for (const file of files) {
     const content = fs.readFileSync(path.join(attrDir, file), 'utf-8');
     const regex = /export\s+const\s+(\w+)\s*=/g;
-    let m;
-    while ((m = regex.exec(content)) !== null) {
+    let m: RegExpExecArray | null = regex.exec(content);
+    while (m !== null) {
       imports.push(
         `import { ${m[1]} } from '../src/attributes/${file.replace('.ts', '')}';`,
       );
       names.push(m[1]);
+      m = regex.exec(content);
     }
   }
 
@@ -194,12 +203,13 @@ function generateConfigTests() {
   for (const file of files) {
     const content = fs.readFileSync(path.join(configDir, file), 'utf-8');
     const regex = /export\s+const\s+(\w+)\s*(?::\s*\w+\s*)?=/g;
-    let m;
-    while ((m = regex.exec(content)) !== null) {
+    let m: RegExpExecArray | null = regex.exec(content);
+    while (m !== null) {
       imports.push(
         `import { ${m[1]} } from '../src/configs/${file.replace('.ts', '')}';`,
       );
       names.push(m[1]);
+      m = regex.exec(content);
     }
   }
 
@@ -249,12 +259,13 @@ function generateConfigPkgTests() {
   for (const file of schemaFiles) {
     const content = fs.readFileSync(path.join(schemaDir, file), 'utf-8');
     const regex = /export\s+const\s+(\w+)\s*=\s*\{/g;
-    let m;
-    while ((m = regex.exec(content)) !== null) {
+    let m: RegExpExecArray | null = regex.exec(content);
+    while (m !== null) {
       schemaImports.push(
         `import { ${m[1]} } from '../src/schemas/${file.replace('.ts', '')}';`,
       );
       schemas.push({ file, name: m[1] });
+      m = regex.exec(content);
     }
   }
 

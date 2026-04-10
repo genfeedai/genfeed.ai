@@ -35,8 +35,8 @@ for (const file of attrFiles) {
     'utf-8',
   );
   const exportRegex = /export\s+const\s+(\w+)\s*=/g;
-  let match;
-  while ((match = exportRegex.exec(content)) !== null) {
+  let match: RegExpExecArray | null = exportRegex.exec(content);
+  while (match !== null) {
     const name = match[1];
     const importPath = `../src/attributes/${file.replace('.ts', '')}`;
     attrImports.push(`import { ${name} } from '${importPath}';`);
@@ -56,6 +56,7 @@ for (const file of attrFiles) {
       expect(unique.size).toBe(${name}.length);
     });
   });`);
+    match = exportRegex.exec(content);
   }
 }
 
@@ -72,8 +73,8 @@ const configTests: string[] = [];
 for (const file of configFiles) {
   const content = fs.readFileSync(path.join(srcDir, 'configs', file), 'utf-8');
   const exportRegex = /export\s+const\s+(\w+)\s*(?::\s*\w+\s*)?=/g;
-  let match;
-  while ((match = exportRegex.exec(content)) !== null) {
+  let match: RegExpExecArray | null = exportRegex.exec(content);
+  while (match !== null) {
     const name = match[1];
     const importPath = `../src/configs/${file.replace('.ts', '')}`;
     configImports.push(`import { ${name} } from '${importPath}';`);
@@ -107,6 +108,7 @@ for (const file of configFiles) {
       }
     });
   });`);
+    match = exportRegex.exec(content);
   }
 }
 
@@ -124,8 +126,8 @@ for (const file of serverFiles) {
   const content = fs.readFileSync(path.join(srcDir, 'server', file), 'utf-8');
   // Match: export const { FooSerializer } = buildSerializer(...)
   const exportRegex = /export\s+const\s*\{\s*(\w+)\s*\}/g;
-  let match;
-  while ((match = exportRegex.exec(content)) !== null) {
+  let match: RegExpExecArray | null = exportRegex.exec(content);
+  while (match !== null) {
     const name = match[1];
     const importPath = `../src/server/${file.replace('.ts', '')}`;
     serverImports.push(`import { ${name} } from '${importPath}';`);
@@ -139,6 +141,7 @@ for (const file of serverFiles) {
       expect(typeof ${name}.serialize).toBe('function');
     });
   });`);
+    match = exportRegex.exec(content);
   }
 }
 
