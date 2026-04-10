@@ -9,6 +9,7 @@ export type TaskStatus =
   | 'blocked'
   | 'cancelled'
   | 'done'
+  | 'failed'
   | 'in_progress'
   | 'in_review'
   | 'todo';
@@ -21,20 +22,82 @@ export type TaskLinkedEntityModel =
   | 'Ingredient'
   | 'Post';
 
+export type TaskExecutionPath =
+  | 'agent_orchestrator'
+  | 'caption_generation'
+  | 'image_generation'
+  | 'video_generation';
+
+export type TaskOutputType =
+  | 'caption'
+  | 'image'
+  | 'ingredient'
+  | 'newsletter'
+  | 'post'
+  | 'video';
+
+export type TaskReviewState =
+  | 'approved'
+  | 'changes_requested'
+  | 'dismissed'
+  | 'none'
+  | 'pending_approval';
+
 export interface TaskLinkedEntity {
   entityId: string;
   entityModel: TaskLinkedEntityModel;
 }
 
+export interface TaskPlanThreadResponse {
+  created: boolean;
+  seeded: boolean;
+  threadId: string;
+}
+
+export interface TaskQualityAssessmentDimension {
+  label: string;
+  notes?: string;
+  score: number;
+}
+
+export interface TaskQualityAssessment {
+  dimensions: TaskQualityAssessmentDimension[];
+  gate: 'fail' | 'needs_revision' | 'pass';
+  repairLoopUsed: boolean;
+  rubricVersion: string;
+  score: number;
+  suggestedFixes: string[];
+  summary?: string;
+  winnerSummary?: string;
+}
+
+export interface TaskProgress {
+  activeRunCount: number;
+  message?: string;
+  percent: number;
+  stage?: string;
+}
+
+export interface TaskEvent {
+  id: string;
+  payload?: Record<string, unknown>;
+  timestamp: string;
+  type: string;
+}
+
 export interface CreateTaskInput {
   assigneeAgentId?: string;
   assigneeUserId?: string;
+  brand?: string;
   description?: string;
   goalId?: string;
   linkedEntities?: TaskLinkedEntity[];
+  outputType?: TaskOutputType;
   parentId?: string;
+  platforms?: string[];
   priority?: TaskPriority;
   projectId?: string;
+  request?: string;
   status?: TaskStatus;
   title: string;
 }
@@ -45,8 +108,10 @@ export interface ListTasksParams {
   page?: number;
   parentId?: string;
   priority?: TaskPriority;
+  reviewState?: TaskReviewState;
   sort?: string;
   status?: TaskStatus;
+  view?: 'all' | 'inbox' | 'in_progress';
 }
 
 const taskSerializer: IServiceSerializer<Task> = {
@@ -72,6 +137,35 @@ export class Task {
   checkoutAgentId?: string;
   checkedOutAt?: string;
   linkedEntities!: TaskLinkedEntity[];
+
+  // AI execution fields
+  request?: string;
+  outputType?: TaskOutputType;
+  platforms?: string[];
+  reviewState?: TaskReviewState;
+  executionPathUsed?: TaskExecutionPath;
+  chosenModel?: string;
+  chosenProvider?: string;
+  routingSummary?: string;
+  skillsUsed?: string[];
+  skillVariantIds?: string[];
+  reviewTriggered?: boolean;
+  linkedRunIds?: string[];
+  linkedOutputIds?: string[];
+  approvedOutputIds?: string[];
+  linkedApprovalIds?: string[];
+  linkedIssueId?: string;
+  planningThreadId?: string;
+  resultPreview?: string;
+  qualityAssessment?: TaskQualityAssessment;
+  progress?: TaskProgress;
+  eventStream?: TaskEvent[];
+  failureReason?: string;
+  requestedChangesReason?: string;
+  decomposition?: Record<string, unknown>;
+  completedAt?: string;
+  dismissedAt?: string;
+
   isDeleted!: boolean;
   createdAt!: string;
   updatedAt!: string;
@@ -135,5 +229,81 @@ export class TasksService extends BaseService<
 
   async updateTask(id: string, input: Partial<CreateTaskInput>): Promise<Task> {
     return this.patch(id, input);
+  }
+
+  async getInbox(limit?: number): Promise<Task[]> {
+    return this.list({ limit, view: 'inbox' } as ListTasksParams);
+  }
+
+  async approve(id: string): Promise<Task> {
+    return this.executeWithErrorHandling(
+      `PATCH ${this.baseURL}/${id}/approve`,
+      this.instance
+        .patch<JsonApiResponseDocument>(`/${id}/approve`)
+        .then((response) => this.mapOne(response.data)),
+    );
+  }
+
+  async requestChanges(id: string, reason: string): Promise<Task> {
+    return this.executeWithErrorHandling(
+      `PATCH ${this.baseURL}/${id}/request-changes`,
+      this.instance
+        .patch<JsonApiResponseDocument>(`/${id}/request-changes`, { reason })
+        .then((response) => this.mapOne(response.data)),
+    );
+  }
+
+  async dismiss(id: string, reason?: string): Promise<Task> {
+    return this.executeWithErrorHandling(
+      `PATCH ${this.baseURL}/${id}/dismiss`,
+      this.instance
+        .patch<JsonApiResponseDocument>(`/${id}/dismiss`, { reason })
+        .then((response) => this.mapOne(response.data)),
+    );
+  }
+
+  async ensurePlanningThread(id: string): Promise<TaskPlanThreadResponse> {
+    return this.executeWithErrorHandling(
+      `POST ${this.baseURL}/${id}/plan-thread`,
+      this.instance
+        .post<TaskPlanThreadResponse>(`/${id}/plan-thread`)
+        .then((response) => response.data),
+    );
+  }
+
+  async createChildTasks(id: string): Promise<Task[]> {
+    return this.executeWithErrorHandling(
+      `POST ${this.baseURL}/${id}/children`,
+      this.instance
+        .post<JsonApiResponseDocument>(`/${id}/children`)
+        .then((response) => this.mapMany(response.data)),
+    );
+  }
+
+  async keepOutput(id: string, outputId: string): Promise<Task> {
+    return this.executeWithErrorHandling(
+      `PATCH ${this.baseURL}/${id}/outputs/${outputId}/keep`,
+      this.instance
+        .patch<JsonApiResponseDocument>(`/${id}/outputs/${outputId}/keep`)
+        .then((response) => this.mapOne(response.data)),
+    );
+  }
+
+  async unkeepOutput(id: string, outputId: string): Promise<Task> {
+    return this.executeWithErrorHandling(
+      `PATCH ${this.baseURL}/${id}/outputs/${outputId}/unkeep`,
+      this.instance
+        .patch<JsonApiResponseDocument>(`/${id}/outputs/${outputId}/unkeep`)
+        .then((response) => this.mapOne(response.data)),
+    );
+  }
+
+  async trashOutput(id: string, outputId: string): Promise<Task> {
+    return this.executeWithErrorHandling(
+      `PATCH ${this.baseURL}/${id}/outputs/${outputId}/trash`,
+      this.instance
+        .patch<JsonApiResponseDocument>(`/${id}/outputs/${outputId}/trash`)
+        .then((response) => this.mapOne(response.data)),
+    );
   }
 }
