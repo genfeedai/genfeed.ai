@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "@genfeedai/config": "workspace:*",
+    "@genfeedai/enums": "workspace:*",
     "@genfeedai/integrations": "workspace:*",
     "grammy": "1.42.0"
   },
