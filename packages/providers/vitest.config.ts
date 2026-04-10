@@ -94,6 +94,14 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../services'),
       },
       {
+        find: '@genfeedai/utils',
+        replacement: path.resolve(__dirname, '../utils'),
+      },
+      {
+        find: /^@genfeedai\/utils\/(.*)$/,
+        replacement: path.resolve(__dirname, '../utils/$1'),
+      },
+      {
         find: '@utils',
         replacement: path.resolve(__dirname, '../utils'),
       },
