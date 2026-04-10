@@ -35,6 +35,18 @@ import mongooseAggregatePaginateV2 from 'mongoose-aggregate-paginate-v2';
             schema.index({ isDeleted: 1, parentId: 1 });
             schema.index({ isDeleted: 1, organization: 1, projectId: 1 });
             schema.index({ goalId: 1, isDeleted: 1, organization: 1 });
+            schema.index({
+              isDeleted: 1,
+              organization: 1,
+              reviewState: 1,
+              updatedAt: -1,
+            });
+            schema.index({
+              isDeleted: 1,
+              organization: 1,
+              status: 1,
+              updatedAt: -1,
+            });
             schema.index(
               { 'linkedEntities.entityId': 1, 'linkedEntities.entityModel': 1 },
               {

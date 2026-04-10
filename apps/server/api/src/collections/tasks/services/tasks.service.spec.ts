@@ -1,4 +1,5 @@
 import {
+  TASK_STATUSES,
   Task,
   type TaskDocument,
   type TaskStatus,
@@ -306,6 +307,44 @@ describe('TasksService', () => {
       await expect(
         service.release(new Types.ObjectId().toString(), 'agent-1'),
       ).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('schema constants', () => {
+    it('TASK_STATUSES includes failed', () => {
+      expect(TASK_STATUSES).toContain('failed');
+    });
+
+    it('Task schema has AI execution fields', () => {
+      // Schema shape verification — just ensure exports compile with expected fields
+      const taskFields: (keyof Task)[] = [
+        'request',
+        'outputType',
+        'platforms',
+        'reviewState',
+        'reviewTriggered',
+        'resultPreview',
+        'failureReason',
+        'requestedChangesReason',
+        'executionPathUsed',
+        'chosenModel',
+        'chosenProvider',
+        'routingSummary',
+        'skillsUsed',
+        'skillVariantIds',
+        'decomposition',
+        'qualityAssessment',
+        'progress',
+        'eventStream',
+        'linkedRunIds',
+        'linkedOutputIds',
+        'approvedOutputIds',
+        'linkedApprovalIds',
+        'planningThreadId',
+        'completedAt',
+        'dismissedAt',
+      ];
+      expect(taskFields.length).toBeGreaterThan(0);
     });
   });
 });
