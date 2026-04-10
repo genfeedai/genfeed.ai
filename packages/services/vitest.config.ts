@@ -77,6 +77,7 @@ export default defineConfig({
         find: /^@genfeedai\/utils\/(.*)$/,
         replacement: path.resolve(__dirname, '../utils/$1'),
       },
+      // Legacy aliases for transitive deps (helpers/models/props/utils self-references)
       {
         find: '@helpers',
         replacement: path.resolve(__dirname, '../helpers/src'),

@@ -3,6 +3,7 @@
     "paths": {
       "@genfeedai/helpers/*": ["../helpers/src/*"],
       "@genfeedai/models/*": ["../models/*"],
+      "@genfeedai/props/*": ["./*"],
       "@genfeedai/services/*": ["../services/*"],
       "@genfeedai/utils/*": ["../utils/*"],
       "@props/*": ["./*"],

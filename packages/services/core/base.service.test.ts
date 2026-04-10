@@ -51,7 +51,7 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
-vi.mock('@utils/error/error-handler.util', () => ({
+vi.mock('@genfeedai/utils/error/error-handler.util', () => ({
   ErrorHandler: {
     extractErrorDetails: vi.fn((error) => ({
       code: 'ERR_UNKNOWN',
@@ -62,7 +62,7 @@ vi.mock('@utils/error/error-handler.util', () => ({
   },
 }));
 
-vi.mock('@utils/validation/type-validator.util', () => ({
+vi.mock('@genfeedai/utils/validation/type-validator.util', () => ({
   TypeValidator: {
     assertType: vi.fn(),
     isArray: vi.fn((val) => Array.isArray(val)),

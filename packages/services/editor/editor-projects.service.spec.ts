@@ -40,7 +40,7 @@ vi.mock('@services/core/logger.service', () => ({
   logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 }));
 
-vi.mock('@utils/error/error-handler.util', () => ({
+vi.mock('@genfeedai/utils/error/error-handler.util', () => ({
   getErrorStatus: vi.fn((err) => (err as { status?: number })?.status ?? 500),
 }));
 
