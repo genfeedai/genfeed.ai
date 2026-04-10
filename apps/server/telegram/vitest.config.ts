@@ -17,6 +17,13 @@ export default defineConfig({
   resolve: {
     alias: [
       { find: '@', replacement: path.resolve(__dirname, './src') },
+      {
+        find: '@genfeedai/enums',
+        replacement: path.resolve(
+          __dirname,
+          '../../../packages/enums/src/index.ts',
+        ),
+      },
       { find: '@config', replacement: path.resolve(__dirname, './src/config') },
       {
         find: '@controllers',

@@ -25,11 +25,12 @@
       "@data/*": ["./packages/data/*"],
       "@genfeedai/client": ["../../packages/client/dist/index"],
       "@genfeedai/client/*": ["../../packages/client/dist/*"],
-      "@genfeedai/client/schemas": ["../../packages/client/dist/schemas/index"],
-      "@genfeedai/client/schemas/*": [
-        "../../packages/client/dist/schemas/*/index",
-        "../../packages/client/dist/schemas/*"
+      "@genfeedai/client/models": ["../../packages/client/src/models/index.ts"],
+      "@genfeedai/client/models/*": ["../../packages/client/src/models/*"],
+      "@genfeedai/client/schemas": [
+        "../../packages/client/src/schemas/index.ts"
       ],
+      "@genfeedai/client/schemas/*": ["../../packages/client/src/schemas/*"],
       "@genfeedai/enums": ["../../packages/enums/dist/index"],
       "@genfeedai/enums/*": ["../../packages/enums/dist/*"],
       "@genfeedai/helpers": ["../../packages/helpers/src/index.ts"],
@@ -43,6 +44,10 @@
       "@providers/*": ["../../packages/providers/*"],
       "@public/*": ["./app/(public)/*"],
       "@schemas/*": ["../../packages/schemas/*"],
+      "@genfeedai/fonts": ["../../packages/fonts/index.ts"],
+      "@genfeedai/serializers": ["../../packages/serializers/src/index.ts"],
+      "@genfeedai/serializers/*": ["../../packages/serializers/src/*"],
+      "@genfeedai/ui": ["../../packages/ui/src/index.ts"],
       "@serializers/*": ["../../packages/serializers/src/*"],
       "@services/*": ["../../packages/services/*"],
       "@shared/*": ["../../packages/*", "../../../tests/*"],
