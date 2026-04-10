@@ -1,4 +1,4 @@
-import { WorkspaceTasksService } from '@api/collections/workspace-tasks/services/workspace-tasks.service';
+import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';
 import { WorkspaceTaskJobData } from '@api/services/task-orchestration/workspace-task-queue.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -21,8 +21,8 @@ export class WorkspaceTaskProcessor extends WorkerHost {
     private readonly logger: LoggerService,
     @Inject(forwardRef(() => TaskOrchestratorService))
     private readonly taskOrchestratorService: TaskOrchestratorService,
-    @Inject(forwardRef(() => WorkspaceTasksService))
-    private readonly workspaceTasksService: WorkspaceTasksService,
+    @Inject(forwardRef(() => TasksService))
+    private readonly tasksService: TasksService,
   ) {
     super();
   }
@@ -55,7 +55,7 @@ export class WorkspaceTaskProcessor extends WorkerHost {
         error,
       );
 
-      await this.workspaceTasksService
+      await this.tasksService
         .recordTaskEvent(
           data.taskId,
           data.organizationId,
