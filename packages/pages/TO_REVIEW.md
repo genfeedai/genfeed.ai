@@ -53,12 +53,15 @@ These still need resolution via routing, issue tracking, or per-file verificatio
 
 ### Prepared features with open GitHub issues (will be wired in follow-up PRs)
 
-- `packages/pages/analytics/overview/analytics-agent-dashboard.tsx` — **Issue: #36, #38** — misclassified as orphan; actually live via dynamic import in `analytics-overview.tsx:120-126`, rendered at `:769`. Will be removed from ledger in PR 2 without a code change.
-- `packages/pages/analytics/platform-detail/analytics-platform-detail.tsx` — **Issue: #36, #38** — will be wired to `/analytics/platforms/[platform]` in PR 2.
 - `packages/pages/analytics/trends/trend-detail/trend-detail.tsx` — **Issue: #35** — will be wired to `/analytics/trends/[id]` in PR 3.
 - `packages/pages/trends/list/components/HookRemixModal.tsx` — **Issue: #35** — will be wired into the trends list in PR 3.
 - `packages/pages/streaks/streaks-page.tsx` — **Issue: #2** — will be wired to `/analytics/streaks` in PR 4.
 - `packages/pages/mission-control/mission-control-agent-lab.tsx` — **Issue: #9** — will be relocated to `apps/desktop/app/src/renderer/views/MissionControlView.tsx` in PR 4.
+
+### Wired in earlier PRs (kept here as a change log)
+
+- `packages/pages/analytics/overview/analytics-agent-dashboard.tsx` — PR 2 removed from ledger; live via dynamic import in `analytics-overview.tsx:120-126`, rendered at `:769`.
+- `packages/pages/analytics/platform-detail/analytics-platform-detail.tsx` — PR 2 wired at `/analytics/brands/[id]/platforms/[platform]` (brand-scoped route; the component requires a `brandId` prop it cannot obtain from a standalone `/analytics/platforms/[platform]` URL). Drill-through links added under the Platform Comparison card in `analytics-brand-overview.tsx`.
 
 ### Studio subtree (reachable via StudioGenerateLayout, not orphaned)
 

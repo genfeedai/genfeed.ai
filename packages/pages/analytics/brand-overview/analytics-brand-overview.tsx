@@ -331,6 +331,21 @@ export default function AnalyticsBrandOverview({
               isLoading={isLoading}
               height={300}
             />
+            {platformComparisonData.length > 0 && (
+              <div className="flex flex-wrap gap-2 mt-4">
+                {platformComparisonData.map(({ platform }) => (
+                  <Link
+                    key={platform}
+                    href={`/analytics/brands/${brandId}/platforms/${platform}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-foreground/70 hover:text-foreground transition-colors px-3 py-1.5 border border-border hover:border-primary/40"
+                  >
+                    {getPlatformIcon(platform, 'w-4 h-4')}
+                    <span className="capitalize">{platform}</span>
+                    <HiArrowRight className="w-3 h-3" />
+                  </Link>
+                ))}
+              </div>
+            )}
           </Card>
 
           <Card label="Performance Trends">
