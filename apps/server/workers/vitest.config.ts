@@ -18,6 +18,20 @@ export default defineConfig({
     alias: [
       { find: '@', replacement: path.resolve(__dirname, './src') },
       { find: '@api', replacement: path.resolve(__dirname, '../api/src') },
+      {
+        find: '@genfeedai/constants',
+        replacement: path.resolve(
+          __dirname,
+          '../../../packages/constants/src/index.ts',
+        ),
+      },
+      {
+        find: '@genfeedai/enums',
+        replacement: path.resolve(
+          __dirname,
+          '../../../packages/enums/src/index.ts',
+        ),
+      },
       { find: '@config', replacement: path.resolve(__dirname, './src/config') },
       { find: '@files', replacement: path.resolve(__dirname, '../files/src') },
       {
