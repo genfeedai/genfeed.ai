@@ -3,6 +3,17 @@ dist/
 .next/
 .turbo/
 *.tsbuildinfo
+# Compiled output must never land in src/ — these are emitted by misconfigured tsc runs
+packages/*/src/**/*.js
+packages/*/src/**/*.js.map
+packages/*/*.js
+packages/*/*.js.map
+# Orphaned declaration maps (no corresponding .d.ts committed)
+packages/models/**/*.d.ts.map
+packages/props/**/*.d.ts.map
+packages/services/**/*.d.ts.map
+packages/hooks/**/*.d.ts.map
+packages/utils/**/*.d.ts.map
 .env
 .env.local
 .env.*.local
