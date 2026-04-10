@@ -80,9 +80,9 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
   },
   {
     group: AppMenuGroup.Root,
-    href: '/issues',
-    label: 'Issues',
-    matchPaths: ['/issues'],
+    href: '/tasks',
+    label: 'Tasks',
+    matchPaths: ['/tasks'],
     outline: HiOutlineClipboardDocumentList,
     solid: HiClipboardDocumentList,
   },

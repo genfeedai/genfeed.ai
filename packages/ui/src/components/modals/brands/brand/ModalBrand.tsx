@@ -267,10 +267,7 @@ function BrandEditorForm({
         onTabChange={(id) => onTabChange(id as BrandEditorTab)}
       />
 
-      <Card
-        className="rounded-3xl bg-card/80 backdrop-blur-sm"
-        bodyClassName="p-5 sm:p-5"
-      >
+      <Card className="bg-card/80 backdrop-blur-sm" bodyClassName="p-5 sm:p-5">
         {editorTab === 'info' ? (
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -1202,7 +1199,7 @@ export default function BrandOverlay({
               <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
                 <div className="space-y-6 xl:col-span-8">
                   <Card
-                    className="rounded-3xl bg-card/80 backdrop-blur-sm"
+                    className="bg-card/80 backdrop-blur-sm"
                     bodyClassName="p-6"
                   >
                     <BrandDetailOverview
@@ -1226,7 +1223,7 @@ export default function BrandOverlay({
 
                   {activeBrand.text ? (
                     <Card
-                      className="rounded-3xl bg-card/80 backdrop-blur-sm"
+                      className="bg-card/80 backdrop-blur-sm"
                       bodyClassName="p-6"
                     >
                       <BrandDetailSystemPrompt

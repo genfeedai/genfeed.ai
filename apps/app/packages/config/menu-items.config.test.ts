@@ -19,7 +19,7 @@ describe('APP_MENU_ITEMS', () => {
       (item) => item.group === AppMenuGroup.Root && !item.isPrimary,
     ).map((item) => item.label);
 
-    expect(ungroupedLabels).toEqual(['Dashboard', 'Inbox', 'Issues']);
+    expect(ungroupedLabels).toEqual(['Dashboard', 'Inbox', 'Tasks']);
   });
 
   it('surfaces the new top-level workspace groups', () => {
@@ -45,7 +45,7 @@ describe('APP_MENU_ITEMS', () => {
       (item) => item.group === AppMenuGroup.Root,
     ).map((item) => item.label);
 
-    expect(workspaceLabels).toEqual(['Dashboard', 'Inbox', 'Issues']);
+    expect(workspaceLabels).toEqual(['Dashboard', 'Inbox', 'Tasks']);
   });
 
   it('orders the posts group around the new canonical routes', () => {

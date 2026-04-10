@@ -46,7 +46,7 @@ const BRAND_SCOPED_PREFIXES = [
   'analytics',
   'compose',
   'editor',
-  'issues',
+  'tasks',
   'library',
   'orchestration',
   'overview',

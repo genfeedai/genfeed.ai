@@ -101,6 +101,12 @@ export interface BentoGridProps {
   children: ReactNode;
 }
 
+export interface DashboardGridProps {
+  cols?: 2 | 4;
+  className?: string;
+  children: ReactNode;
+}
+
 export interface HorizontalCarouselProps {
   gap?: 'sm' | 'md' | 'lg';
   showNavigation?: boolean;

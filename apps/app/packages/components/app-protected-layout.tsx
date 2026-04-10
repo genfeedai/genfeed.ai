@@ -65,7 +65,6 @@ import { CommandPaletteInitializer } from '@ui/command-palette/command-palette-i
 import OnboardingGuard from '@ui/guards/onboarding/OnboardingGuard';
 import AppLayout from '@ui/layouts/app/AppLayout';
 import SidebarBackRow from '@ui/menus/sidebar-back-row/SidebarBackRow';
-import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearchTrigger';
 import AdminSidebar from '@ui/shell/menus/AdminSidebar';
 import AppSidebar from '@ui/shell/menus/AppSidebar';
 import AdminTopbar from '@ui/shell/topbars/AdminTopbar';
@@ -396,14 +395,20 @@ function AppLayoutWithDynamicMenu({
     },
     [router],
   );
-  const handleOpenSidebarSearch = useCallback(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent): void => {
+      if (
+        (event.metaKey || event.ctrlKey) &&
+        event.shiftKey &&
+        event.key.toLowerCase() === 'n'
+      ) {
+        event.preventDefault();
+        dispatchOpenTaskComposer();
+      }
+    };
 
-    window.dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'k', metaKey: true }),
-    );
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   const studioMenuItems = useMemo(() => {
@@ -608,11 +613,6 @@ function AppLayoutWithDynamicMenu({
                 onClick: dispatchOpenTaskComposer,
               }
         }
-        renderTopSlot={
-          isChatRoute
-            ? undefined
-            : () => <SidebarSearchTrigger onClick={handleOpenSidebarSearch} />
-        }
         secondaryItems={isChatRoute ? undefined : secondaryMenuItems}
         renderBody={
           isChatRoute
@@ -645,7 +645,6 @@ function AppLayoutWithDynamicMenu({
     isSettingsRoute,
     isStudioRoute,
     renderConversations,
-    handleOpenSidebarSearch,
     isFocusedOnboardingRoute,
     isChatRoute,
     orgMenuItems,
@@ -760,7 +759,7 @@ export default function AppProtectedLayout({
         'compose',
         'editor',
         'research',
-        'issues',
+        'tasks',
         'overview',
         'ingredients',
         'videos',

@@ -10,7 +10,7 @@ import { logger } from '@genfeedai/services/core/logger.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
 import SwitcherDropdown from '@ui/menus/switcher-dropdown/SwitcherDropdown';
 import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { HiChevronDown, HiOutlineCog6Tooth } from 'react-icons/hi2';
 
@@ -18,9 +18,8 @@ export default function TopbarBrandSwitcher() {
   const { brands, brandId } = useBrand();
   const { user } = useUser();
   const { openBrandOverlay } = useBrandOverlay();
-  const pathname = usePathname();
   const router = useRouter();
-  const { href, orgHref } = useOrgUrl();
+  const { orgSlug, orgHref } = useOrgUrl();
 
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
@@ -48,13 +47,9 @@ export default function TopbarBrandSwitcher() {
         logger.info(`${url} success`);
         await user?.reload();
 
-        // Redirect if on ingredient detail page
-        const isPathnameValid = pathname?.match(/\/ingredients\/[^/]+/);
-        if (isPathnameValid) {
-          const parts = pathname?.split('/') ?? [];
-          const typeIndex = parts.indexOf('ingredients') + 1;
-          const type = parts[typeIndex];
-          router.push(href(`/ingredients/${type}`));
+        const newBrand = brands.find((b) => b.id === id);
+        if (newBrand?.slug) {
+          router.push(`/${orgSlug}/${newBrand.slug}/workspace/overview`);
         } else {
           router.refresh();
         }
@@ -65,7 +60,7 @@ export default function TopbarBrandSwitcher() {
         setIsUpdatingBrand(false);
       }
     },
-    [getUsersService, user, pathname, router, href],
+    [getUsersService, user, brands, router, orgSlug],
   );
 
   if (brands.length === 0) {

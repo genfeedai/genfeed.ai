@@ -12,7 +12,7 @@ import { UsersService } from '@genfeedai/services/organization/users.service';
 import { Button } from '@ui/primitives/button';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
 import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 import { HiPlus } from 'react-icons/hi2';
 
@@ -31,7 +31,7 @@ function BrandAvatar({
         className={cn(
           'flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl transition-transform duration-200',
           isActive
-            ? 'bg-white ring-1 ring-white/30'
+            ? 'bg-white ring-2 ring-white/60'
             : 'bg-white/[0.06] ring-1 ring-white/[0.08]',
         )}
       >
@@ -87,7 +87,7 @@ function RailButton({
         className={cn(
           'flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl transition-colors duration-200',
           active
-            ? 'bg-white/[0.08]'
+            ? 'bg-white/[0.12] ring-2 ring-white/[0.25]'
             : 'hover:bg-white/[0.04] focus-visible:bg-white/[0.04]',
         )}
       >
@@ -101,9 +101,8 @@ export default function SidebarBrandRail() {
   const { brands, brandId } = useBrand();
   const { user } = useUser();
   const { openBrandOverlay } = useBrandOverlay();
-  const pathname = usePathname();
   const router = useRouter();
-  const { href } = useOrgUrl();
+  const { orgSlug } = useOrgUrl();
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
   );
@@ -121,11 +120,9 @@ export default function SidebarBrandRail() {
         logger.info(`${url} success`);
         await user?.reload();
 
-        if (pathname?.match(/\/ingredients\/[^/]+/)) {
-          const parts = pathname.split('/');
-          const typeIndex = parts.indexOf('ingredients') + 1;
-          const type = parts[typeIndex];
-          router.push(href(`/ingredients/${type}`));
+        const newBrand = brands.find((b) => b.id === id);
+        if (newBrand?.slug) {
+          router.push(`/${orgSlug}/${newBrand.slug}/workspace/overview`);
         } else {
           router.refresh();
         }
@@ -135,7 +132,7 @@ export default function SidebarBrandRail() {
         setIsUpdatingBrand(false);
       }
     },
-    [getUsersService, pathname, router, user],
+    [getUsersService, brands, router, user, orgSlug],
   );
 
   return (
@@ -147,20 +144,31 @@ export default function SidebarBrandRail() {
         {brands.map((brand) => {
           const label = brand.label ?? 'Untitled brand';
 
+          const isActive = brand.id === brandId;
+
           return (
-            <RailButton
-              key={brand.id}
-              active={brand.id === brandId}
-              ariaLabel={label}
-              onClick={() => void handleSelect(brand.id)}
-              testId={`sidebar-brand-${brand.id}`}
-            >
-              <BrandAvatar
-                isActive={brand.id === brandId}
-                label={label}
-                logoUrl={brand.logoUrl}
+            <div key={brand.id} className="relative flex flex-col items-center">
+              <RailButton
+                active={isActive}
+                ariaLabel={label}
+                onClick={() => void handleSelect(brand.id)}
+                testId={`sidebar-brand-${brand.id}`}
+              >
+                <BrandAvatar
+                  isActive={isActive}
+                  label={label}
+                  logoUrl={brand.logoUrl}
+                />
+              </RailButton>
+              <div
+                className={cn(
+                  'absolute -bottom-1.5 h-1 w-1 rounded-full transition-all duration-300',
+                  isActive
+                    ? 'bg-white scale-100 opacity-90'
+                    : 'scale-0 opacity-0',
+                )}
               />
-            </RailButton>
+            </div>
           );
         })}
       </div>

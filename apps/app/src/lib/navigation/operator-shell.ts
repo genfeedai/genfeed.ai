@@ -28,7 +28,7 @@ const KNOWN_PROTECTED_PREFIXES = [
   'compose',
   'editor',
   'research',
-  'issues',
+  'tasks',
   'overview',
   'ingredients',
   'videos',

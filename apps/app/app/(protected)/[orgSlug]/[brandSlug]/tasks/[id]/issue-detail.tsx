@@ -14,12 +14,12 @@ import {
   IssueCommentsService,
 } from '@services/management/issue-comments.service';
 import {
-  type Issue,
-  type IssueLinkedEntityModel,
-  type IssuePriority,
-  type IssueStatus,
-  IssuesService,
-} from '@services/management/issues.service';
+  type Task,
+  type TaskLinkedEntityModel,
+  type TaskPriority,
+  type TaskStatus,
+  TasksService,
+} from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
@@ -40,7 +40,7 @@ import {
   HiOutlineUser,
 } from 'react-icons/hi2';
 
-const STATUS_TRANSITIONS: Record<IssueStatus, IssueStatus[]> = {
+const STATUS_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
   backlog: ['todo', 'cancelled'],
   blocked: ['todo', 'in_progress', 'cancelled'],
   cancelled: ['backlog', 'todo'],
@@ -50,7 +50,7 @@ const STATUS_TRANSITIONS: Record<IssueStatus, IssueStatus[]> = {
   todo: ['in_progress', 'blocked', 'backlog', 'cancelled'],
 };
 
-const STATUS_LABELS: Record<IssueStatus, string> = {
+const STATUS_LABELS: Record<TaskStatus, string> = {
   backlog: 'Backlog',
   blocked: 'Blocked',
   cancelled: 'Cancelled',
@@ -60,7 +60,7 @@ const STATUS_LABELS: Record<IssueStatus, string> = {
   todo: 'To Do',
 };
 
-const STATUS_COLORS: Record<IssueStatus, string> = {
+const STATUS_COLORS: Record<TaskStatus, string> = {
   backlog: 'bg-white/10 text-white/50',
   blocked: 'bg-red-500/20 text-red-400',
   cancelled: 'bg-white/5 text-white/30',
@@ -70,28 +70,28 @@ const STATUS_COLORS: Record<IssueStatus, string> = {
   todo: 'bg-white/15 text-white/70',
 };
 
-const PRIORITY_LABELS: Record<IssuePriority, string> = {
+const PRIORITY_LABELS: Record<TaskPriority, string> = {
   critical: 'Critical',
   high: 'High',
   low: 'Low',
   medium: 'Medium',
 };
 
-const PRIORITY_COLORS: Record<IssuePriority, string> = {
+const PRIORITY_COLORS: Record<TaskPriority, string> = {
   critical: 'text-red-400',
   high: 'text-orange-400',
   low: 'text-white/40',
   medium: 'text-white/60',
 };
 
-const ENTITY_MODEL_LABELS: Record<IssueLinkedEntityModel, string> = {
+const ENTITY_MODEL_LABELS: Record<TaskLinkedEntityModel, string> = {
   Article: 'Article',
   Evaluation: 'Evaluation',
   Ingredient: 'Ingredient',
   Post: 'Post',
 };
 
-const ENTITY_MODEL_COLORS: Record<IssueLinkedEntityModel, string> = {
+const ENTITY_MODEL_COLORS: Record<TaskLinkedEntityModel, string> = {
   Article: 'bg-purple-500/15 text-purple-400',
   Evaluation: 'bg-amber-500/15 text-amber-400',
   Ingredient: 'bg-cyan-500/15 text-cyan-400',
@@ -143,10 +143,10 @@ function CommentItem({ comment }: { comment: IssueComment }) {
   );
 }
 
-function SubIssueRow({ issue }: { issue: Issue }) {
+function SubIssueRow({ issue }: { issue: Task }) {
   return (
     <Link
-      href={`/issues/${issue.identifier}`}
+      href={`/tasks/${issue.identifier}`}
       className="flex items-center gap-3 border-b border-white/5 px-4 py-2 transition-colors hover:bg-white/[0.02]"
     >
       <span className="text-xs font-mono text-white/40">
@@ -171,9 +171,9 @@ export default function IssueDetail({
   issueId,
   useIdentifier,
 }: IssueDetailProps) {
-  const [issue, setIssue] = useState<Issue | null>(null);
+  const [issue, setIssue] = useState<Task | null>(null);
   const [comments, setComments] = useState<IssueComment[]>([]);
-  const [children, setChildren] = useState<Issue[]>([]);
+  const [children, setChildren] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [commentBody, setCommentBody] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -183,8 +183,8 @@ export default function IssueDetail({
 
   const resolvedIdRef = useRef<string | null>(null);
 
-  const getIssuesService = useAuthedService((token) =>
-    IssuesService.getInstance(token),
+  const getTasksService = useAuthedService((token) =>
+    TasksService.getInstance(token),
   );
 
   const getCommentsService = useAuthedService((token) =>
@@ -201,7 +201,7 @@ export default function IssueDetail({
 
     setIsLoading(true);
     try {
-      const issuesService = await getIssuesService();
+      const issuesService = await getTasksService();
 
       const issueData = useIdentifier
         ? await issuesService.getByIdentifier(issueId)
@@ -229,7 +229,7 @@ export default function IssueDetail({
         setIsLoading(false);
       }
     }
-  }, [getIssuesService, getCommentsService, issueId, useIdentifier]);
+  }, [getTasksService, getCommentsService, issueId, useIdentifier]);
 
   useEffect(() => {
     loadIssue();
@@ -240,11 +240,11 @@ export default function IssueDetail({
   }, [loadIssue]);
 
   const handleStatusUpdate = useCallback(
-    async (newStatus: IssueStatus) => {
+    async (newStatus: TaskStatus) => {
       if (!issue) return;
       try {
-        const issuesService = await getIssuesService();
-        const updated = await issuesService.updateIssue(issue.id, {
+        const issuesService = await getTasksService();
+        const updated = await issuesService.updateTask(issue.id, {
           status: newStatus,
         });
         setIssue(updated);
@@ -252,7 +252,7 @@ export default function IssueDetail({
         // Status update failed
       }
     },
-    [getIssuesService, issue],
+    [getTasksService, issue],
   );
 
   const handleAddComment = useCallback(async () => {
@@ -306,7 +306,7 @@ export default function IssueDetail({
             <HiOutlineExclamationTriangle className="mb-3 h-8 w-8 text-white/20" />
             <p className="text-sm text-white/50">Issue not found</p>
             <Link
-              href="/issues"
+              href="/tasks"
               className="mt-3 text-xs text-blue-400 hover:text-blue-300"
             >
               Back to issues
@@ -321,7 +321,7 @@ export default function IssueDetail({
     <Container>
       <div className="mb-4">
         <Link
-          href="/issues"
+          href="/tasks"
           className="inline-flex items-center gap-1 text-xs text-white/40 transition-colors hover:text-white/60"
         >
           <HiArrowLeft className="h-3 w-3" />
@@ -537,7 +537,7 @@ export default function IssueDetail({
                     </DefinitionTerm>
                     <DefinitionDetail variant="inline">
                       <Link
-                        href={`/issues/${issue.parentId}`}
+                        href={`/tasks/${issue.parentId}`}
                         className="text-blue-400 hover:text-blue-300"
                       >
                         View parent

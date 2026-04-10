@@ -743,8 +743,7 @@ export class WorkspaceTasksService extends BaseService<
           chosenProvider: 'genfeed-router',
           executionPathUsed: 'caption_generation',
           outputType: inferredOutputType,
-          resultPreview: `Draft ${inferredOutputType} prepared for review: ${this.buildTaskTitle(createDto)}`,
-          reviewState: 'pending_approval',
+          reviewState: 'none',
           reviewTriggered: true,
           routingSummary:
             inferredOutputType === 'newsletter'
@@ -754,7 +753,7 @@ export class WorkspaceTasksService extends BaseService<
                 : 'Detected a writing request and routed it to the caption generation path for review.',
           skillsUsed: [],
           skillVariantIds: [],
-          status: 'needs_review',
+          status: 'triaged',
         };
 
       default:

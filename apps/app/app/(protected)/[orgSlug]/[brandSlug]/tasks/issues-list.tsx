@@ -5,11 +5,11 @@ import { cn } from '@helpers/formatting/cn/cn.util';
 import { getRelativeTime } from '@helpers/formatting/date/date.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
-  type Issue,
-  type IssuePriority,
-  type IssueStatus,
-  IssuesService,
-} from '@services/management/issues.service';
+  type Task,
+  type TaskPriority,
+  type TaskStatus,
+  TasksService,
+} from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
@@ -41,7 +41,7 @@ import IssueOverlay, { openIssueOverlay } from './issue-overlay';
 
 type ViewMode = 'kanban' | 'list';
 
-const STATUS_ORDER: IssueStatus[] = [
+const STATUS_ORDER: TaskStatus[] = [
   'backlog',
   'todo',
   'in_progress',
@@ -51,7 +51,7 @@ const STATUS_ORDER: IssueStatus[] = [
   'cancelled',
 ];
 
-const STATUS_LABELS: Record<IssueStatus, string> = {
+const STATUS_LABELS: Record<TaskStatus, string> = {
   backlog: 'Backlog',
   blocked: 'Blocked',
   cancelled: 'Cancelled',
@@ -61,7 +61,7 @@ const STATUS_LABELS: Record<IssueStatus, string> = {
   todo: 'To Do',
 };
 
-const STATUS_COLORS: Record<IssueStatus, string> = {
+const STATUS_COLORS: Record<TaskStatus, string> = {
   backlog: 'bg-white/10 text-white/50',
   blocked: 'bg-red-500/20 text-red-400',
   cancelled: 'bg-white/5 text-white/30',
@@ -71,21 +71,21 @@ const STATUS_COLORS: Record<IssueStatus, string> = {
   todo: 'bg-white/15 text-white/70',
 };
 
-const PRIORITY_LABELS: Record<IssuePriority, string> = {
+const PRIORITY_LABELS: Record<TaskPriority, string> = {
   critical: 'Critical',
   high: 'High',
   low: 'Low',
   medium: 'Medium',
 };
 
-const PRIORITY_COLORS: Record<IssuePriority, string> = {
+const PRIORITY_COLORS: Record<TaskPriority, string> = {
   critical: 'text-red-400',
   high: 'text-orange-400',
   low: 'text-white/40',
   medium: 'text-white/60',
 };
 
-function IssueStatusBadge({ status }: { status: IssueStatus }) {
+function TaskStatusBadge({ status }: { status: TaskStatus }) {
   return (
     <span
       className={cn(
@@ -98,7 +98,7 @@ function IssueStatusBadge({ status }: { status: IssueStatus }) {
   );
 }
 
-function IssuePriorityIndicator({ priority }: { priority: IssuePriority }) {
+function TaskPriorityIndicator({ priority }: { priority: TaskPriority }) {
   return (
     <span
       className={cn(
@@ -115,8 +115,8 @@ function IssueRow({
   issue,
   onSelect,
 }: {
-  issue: Issue;
-  onSelect: (issue: Issue) => void;
+  issue: Task;
+  onSelect: (issue: Task) => void;
 }) {
   return (
     <Button
@@ -130,8 +130,8 @@ function IssueRow({
       <span className="min-w-0 flex-1 truncate text-sm text-white/90">
         {issue.title}
       </span>
-      <IssuePriorityIndicator priority={issue.priority} />
-      <IssueStatusBadge status={issue.status} />
+      <TaskPriorityIndicator priority={issue.priority} />
+      <TaskStatusBadge status={issue.status} />
       <span className="w-28 shrink-0 text-right text-xs text-white/30">
         {getRelativeTime(issue.updatedAt)}
       </span>
@@ -143,8 +143,8 @@ function IssueCard({
   issue,
   onSelect,
 }: {
-  issue: Issue;
-  onSelect: (issue: Issue) => void;
+  issue: Task;
+  onSelect: (issue: Task) => void;
 }) {
   return (
     <Button
@@ -156,7 +156,7 @@ function IssueCard({
         <span className="text-[10px] font-mono text-white/40">
           {issue.identifier}
         </span>
-        <IssuePriorityIndicator priority={issue.priority} />
+        <TaskPriorityIndicator priority={issue.priority} />
       </div>
       <p className="mb-2 text-sm leading-snug text-white/90">{issue.title}</p>
       {issue.assigneeUserId ? (
@@ -171,14 +171,14 @@ function KanbanColumn({
   issues,
   onSelect,
 }: {
-  status: IssueStatus;
-  issues: Issue[];
-  onSelect: (issue: Issue) => void;
+  status: TaskStatus;
+  issues: Task[];
+  onSelect: (issue: Task) => void;
 }) {
   return (
     <div className="flex w-72 shrink-0 flex-col">
       <div className="mb-3 flex items-center gap-2 px-1">
-        <IssueStatusBadge status={status} />
+        <TaskStatusBadge status={status} />
         <span className="text-xs text-white/30">{issues.length}</span>
       </div>
       <div className="flex flex-col gap-2">
@@ -187,7 +187,7 @@ function KanbanColumn({
         ))}
         {issues.length === 0 ? (
           <div className="rounded border border-dashed border-white/10 p-4 text-center text-xs text-white/20">
-            No issues
+            No tasks
           </div>
         ) : null}
       </div>
@@ -196,20 +196,20 @@ function KanbanColumn({
 }
 
 export default function IssuesList() {
-  const [issues, setIssues] = useState<Issue[]>([]);
+  const [issues, setIssues] = useState<Task[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [statusFilter, setStatusFilter] = useState<IssueStatus | ''>('');
+  const [statusFilter, setStatusFilter] = useState<TaskStatus | ''>('');
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [createTitle, setCreateTitle] = useState('');
   const [createDescription, setCreateDescription] = useState('');
-  const [createPriority, setCreatePriority] = useState<IssuePriority>('medium');
+  const [createPriority, setCreatePriority] = useState<TaskPriority>('medium');
   const [isCreating, setIsCreating] = useState(false);
-  const [selectedIssue, setSelectedIssue] = useState<Issue | null>(null);
+  const [selectedIssue, setSelectedIssue] = useState<Task | null>(null);
   const controllerRef = useRef<AbortController | null>(null);
 
-  const getIssuesService = useAuthedService((token) =>
-    IssuesService.getInstance(token),
+  const getTasksService = useAuthedService((token) =>
+    TasksService.getInstance(token),
   );
 
   const loadIssues = useCallback(async () => {
@@ -219,7 +219,7 @@ export default function IssuesList() {
 
     setIsLoading(true);
     try {
-      const service = await getIssuesService();
+      const service = await getTasksService();
       const params = statusFilter ? { status: statusFilter } : {};
       const result = await service.list(params);
       if (!controller.signal.aborted) {
@@ -234,14 +234,14 @@ export default function IssuesList() {
         setIsLoading(false);
       }
     }
-  }, [getIssuesService, statusFilter]);
+  }, [getTasksService, statusFilter]);
 
   const handleCreateIssue = useCallback(async () => {
     if (!createTitle.trim() || isCreating) return;
     setIsCreating(true);
     try {
-      const service = await getIssuesService();
-      await service.createIssue({
+      const service = await getTasksService();
+      await service.createTask({
         description: createDescription.trim() || undefined,
         priority: createPriority,
         status: 'todo',
@@ -262,7 +262,7 @@ export default function IssuesList() {
     createDescription,
     createPriority,
     isCreating,
-    getIssuesService,
+    getTasksService,
     loadIssues,
   ]);
 
@@ -274,7 +274,7 @@ export default function IssuesList() {
     };
   }, [loadIssues]);
 
-  const handleSelectIssue = useCallback((issue: Issue) => {
+  const handleSelectIssue = useCallback((issue: Task) => {
     setSelectedIssue(issue);
     openIssueOverlay();
   }, []);
@@ -288,13 +288,13 @@ export default function IssuesList() {
       acc[status] = issues.filter((issue) => issue.status === status);
       return acc;
     },
-    {} as Record<IssueStatus, Issue[]>,
+    {} as Record<TaskStatus, Task[]>,
   );
 
   return (
     <Container>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-lg font-semibold text-white">Issues</h1>
+        <h1 className="text-lg font-semibold text-white">Tasks</h1>
         <div className="flex items-center gap-3">
           <Button
             variant={ButtonVariant.GHOST}
@@ -303,12 +303,12 @@ export default function IssuesList() {
             onClick={() => setShowCreateDialog(true)}
           >
             <HiOutlinePlusCircle className="h-3.5 w-3.5" />
-            New Issue
+            New Task
           </Button>
           <Select
             value={statusFilter || 'all'}
             onValueChange={(value) =>
-              setStatusFilter(value === 'all' ? '' : (value as IssueStatus))
+              setStatusFilter(value === 'all' ? '' : (value as TaskStatus))
             }
           >
             <SelectTrigger className="w-auto text-xs">
@@ -360,28 +360,40 @@ export default function IssuesList() {
         <Card>
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <HiOutlineExclamationTriangle className="mb-3 h-8 w-8 text-white/20" />
-            <p className="text-sm text-white/50">No issues found</p>
+            <p className="text-sm text-white/50">No tasks found</p>
             <p className="mt-1 text-xs text-white/30">
-              Issues will appear here once created
+              Tasks will appear here once created
             </p>
           </div>
         </Card>
       ) : viewMode === 'list' ? (
         <Card>
-          <div className="flex items-center gap-4 border-b border-white/10 px-4 py-2 text-[10px] font-semibold uppercase tracking-wider text-white/30">
-            <span className="w-20 shrink-0">ID</span>
-            <span className="flex-1">Title</span>
-            <span className="w-16">Priority</span>
-            <span className="w-20">Status</span>
-            <span className="w-28 text-right">Updated</span>
+          <div className="divide-y divide-white/[0.04]">
+            {STATUS_ORDER.filter(
+              (status) => groupedByStatus[status].length > 0,
+            ).map((status) => {
+              const statusTasks = groupedByStatus[status];
+              return (
+                <div key={status}>
+                  <div className="flex items-center gap-2 bg-white/[0.02] px-4 py-2">
+                    <TaskStatusBadge status={status} />
+                    <span className="text-xs text-white/30">
+                      {statusTasks.length}
+                    </span>
+                  </div>
+                  <div>
+                    {statusTasks.map((issue) => (
+                      <IssueRow
+                        issue={issue}
+                        key={issue.id}
+                        onSelect={handleSelectIssue}
+                      />
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </div>
-          {issues.map((issue) => (
-            <IssueRow
-              issue={issue}
-              key={issue.id}
-              onSelect={handleSelectIssue}
-            />
-          ))}
         </Card>
       ) : (
         <div className="flex gap-4 overflow-x-auto pb-4">
@@ -398,7 +410,7 @@ export default function IssuesList() {
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent aria-describedby={undefined}>
           <DialogHeader>
-            <DialogTitle>Create Issue</DialogTitle>
+            <DialogTitle>Create Task</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -407,7 +419,7 @@ export default function IssuesList() {
               </label>
               <Input
                 type="text"
-                placeholder="Issue title"
+                placeholder="Task title"
                 value={createTitle}
                 onChange={(e) => setCreateTitle(e.target.value)}
                 autoFocus
@@ -432,7 +444,7 @@ export default function IssuesList() {
               <Select
                 value={createPriority}
                 onValueChange={(value) =>
-                  setCreatePriority(value as IssuePriority)
+                  setCreatePriority(value as TaskPriority)
                 }
               >
                 <SelectTrigger>
@@ -462,7 +474,7 @@ export default function IssuesList() {
               disabled={isCreating || !createTitle.trim()}
               onClick={handleCreateIssue}
             >
-              {isCreating ? 'Creating...' : 'Create Issue'}
+              {isCreating ? 'Creating...' : 'Create Task'}
             </Button>
           </DialogFooter>
         </DialogContent>

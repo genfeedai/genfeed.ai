@@ -17,3 +17,5 @@ type: feedback
 - Codex task process ends by writing a final assistant message to the `.output` file. If the file stops growing and no `codex` / `codex-companion` processes appear in `ps`, the task is dead (possibly stalled mid-turn). Check with `lsof <output-file>` and `ps -ef | grep codex`.
 
 **When to use:** Any time the user asks for `/codex:review`, `/codex:adversarial-review`, or similar — go straight to `Agent(subagent_type="codex:codex-rescue", ...)` without flailing through Skill tool attempts.
+
+**Mandatory: run before every ExitPlanMode.** After writing the plan file but before calling ExitPlanMode, always run a Codex adversarial review against the plan. Do not skip this even for "simple" plans. The review should inline the plan content in the prompt and ask the agent to find missing steps, wrong assumptions, and edge cases. Incorporate any actionable findings into the plan file before calling ExitPlanMode.

@@ -9,6 +9,10 @@ export default function FeatureGate({ flagKey, children }: FeatureGateProps) {
   const { isConfigured, isReady } = useGrowthBookClientStatus();
   const isEnabled = useFeatureFlag(flagKey);
 
+  if (!isConfigured) {
+    return <>{children}</>;
+  }
+
   if (isConfigured && !isReady) {
     return (
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">

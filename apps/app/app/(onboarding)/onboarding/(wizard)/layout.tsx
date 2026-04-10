@@ -24,7 +24,7 @@ function OnboardingLayoutInner({ children }: LayoutProps) {
   const showCloudFooter = isCountedStep && segment !== 'summary';
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen bg-background">
       <div className="container mx-auto px-6 py-8">
         {/* Logo */}
         <div className="flex items-center gap-3 mb-12">

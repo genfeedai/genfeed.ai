@@ -21,7 +21,7 @@ import { AgentRunsService } from '@services/ai/agent-runs.service';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { PromptsService } from '@services/content/prompts.service';
 import { logger } from '@services/core/logger.service';
-import { IssuesService } from '@services/management/issues.service';
+import { TasksService } from '@services/management/tasks.service';
 import {
   WorkspaceTask,
   type WorkspaceTaskEvent,
@@ -39,6 +39,7 @@ import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Modal } from '@ui/modals/compound/Modal';
 import { Button as BaseButton, Button } from '@ui/primitives/button';
+import { Checkbox } from '@ui/primitives/checkbox';
 import {
   Sheet,
   SheetContent,
@@ -919,14 +920,14 @@ function useWorkspaceTaskLinkedIssue(
           return;
         }
 
-        const issue = await IssuesService.getInstance(token).findOne(linkedId);
+        const issue = await TasksService.getInstance(token).findOne(linkedId);
 
         if (isCancelled) {
           return;
         }
 
         setSummary({
-          href: `/issues/${issue.identifier}`,
+          href: `/tasks/${issue.identifier}`,
           identifier: issue.identifier,
           isLoading: false,
         });
@@ -1242,7 +1243,7 @@ function WorkspaceTaskInspector({
                 </Card>
               ) : null}
 
-              {task.eventStream.length > 0 ? (
+              {task.eventStream?.length > 0 ? (
                 <Card
                   label="Task thread"
                   bodyClassName="space-y-3 border-l border-sky-400/30 p-4 text-sm text-foreground/75"
@@ -1251,7 +1252,7 @@ function WorkspaceTaskInspector({
                     className="space-y-3"
                     data-testid="workspace-task-events"
                   >
-                    {[...task.eventStream]
+                    {[...(task.eventStream ?? [])]
                       .slice()
                       .sort(
                         (left, right) =>
@@ -1638,6 +1639,7 @@ export default function WorkspacePageContent({
   const [taskMode, setTaskMode] = useState<WorkspaceTaskMode>('standard');
   const [taskError, setTaskError] = useState<string | null>(null);
   const [taskEnhancementBusy, setTaskEnhancementBusy] = useState(false);
+  const [taskKeepOpen, setTaskKeepOpen] = useState(false);
   const [previousTaskRequest, setPreviousTaskRequest] = useState<string | null>(
     null,
   );
@@ -2141,7 +2143,9 @@ export default function WorkspacePageContent({
       taskTargetEditor?.commands.clearContent();
       setTaskTargetBrandId(null);
       setTaskTargetBrandLabel(null);
-      setTaskComposerOpen(false);
+      if (!taskKeepOpen) {
+        setTaskComposerOpen(false);
+      }
     } catch (error) {
       setTaskError(
         error instanceof Error ? error.message : 'Failed to create task.',
@@ -2226,7 +2230,7 @@ export default function WorkspacePageContent({
   const isOverviewSection = section === 'overview';
   const isInboxSection = section === 'inbox';
   const sectionCopy = SECTION_COPY[section];
-  const shouldShowComposer = isOverviewSection;
+  const shouldShowComposer = false;
   const shouldShowInbox = section === 'overview' || section === 'inbox';
   const shouldShowHistory = section === 'activity';
   const shouldShowSectionSnapshot = section === 'activity';
@@ -2394,68 +2398,17 @@ export default function WorkspacePageContent({
       >
         <Modal.Content size="lg" className="border-white/10 bg-[#111111]">
           <Modal.Header>
-            <Modal.Title>Start a task</Modal.Title>
+            <Modal.Title>New Task</Modal.Title>
             <Modal.Description>
               Describe the outcome you want. Genfeed routes it automatically.
             </Modal.Description>
           </Modal.Header>
 
-          <Modal.Body className="space-y-5">
-            <div className="flex flex-wrap gap-2">
-              {TASK_PRESETS.map((preset) => (
-                <Button
-                  key={preset.outputType}
-                  size={ButtonSize.SM}
-                  variant={
-                    taskOutputType === preset.outputType
-                      ? ButtonVariant.DEFAULT
-                      : ButtonVariant.SECONDARY
-                  }
-                  className="font-semibold uppercase tracking-[0.14em]"
-                  disabled={taskMode !== 'standard'}
-                  onClick={() => setTaskOutputType(preset.outputType)}
-                >
-                  {preset.label}
-                </Button>
-              ))}
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-foreground">Task mode</p>
-              <div className="flex flex-wrap gap-2">
-                {TASK_MODE_OPTIONS.map((mode) => (
-                  <Button
-                    key={mode.id}
-                    size={ButtonSize.SM}
-                    variant={
-                      taskMode === mode.id
-                        ? ButtonVariant.DEFAULT
-                        : ButtonVariant.SECONDARY
-                    }
-                    className="font-semibold"
-                    onClick={() => setTaskMode(mode.id)}
-                  >
-                    {mode.label}
-                  </Button>
-                ))}
-              </div>
-              <p className="text-xs text-foreground/45">
-                {
-                  TASK_MODE_OPTIONS.find((mode) => mode.id === taskMode)
-                    ?.description
-                }
-              </p>
-              {taskMode !== 'standard' ? (
-                <p className="text-xs text-foreground/35">
-                  Research and trends requests are submitted as report-style
-                  orchestration tasks, so output type selection is ignored.
-                </p>
-              ) : null}
-            </div>
-
-            <div className="space-y-2">
+          <Modal.Body className="space-y-4">
+            {/* Target brand */}
+            <div className="space-y-1.5">
               <div className="flex items-center justify-between gap-3">
-                <label className="block text-sm font-medium text-foreground">
+                <label className="block text-xs font-medium text-foreground/60">
                   Target brand
                 </label>
                 {taskTargetBrandId ? (
@@ -2469,34 +2422,80 @@ export default function WorkspacePageContent({
                       setTaskTargetBrandLabel(null);
                     }}
                   >
-                    Clear explicit target
+                    Clear
                   </Button>
                 ) : null}
               </div>
               {taskTargetEditor ? (
                 <EditorContent editor={taskTargetEditor} />
               ) : (
-                <div className="min-h-11 rounded-lg border border-white/10 bg-black/30 px-4 py-3 text-sm text-foreground/35">
+                <div className="min-h-9 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-foreground/35">
                   Type @ to target a brand.
                 </div>
               )}
-              <p className="text-xs text-foreground/45">
+              <p className="text-xs text-foreground/35">
                 Targeting{' '}
-                <span className="font-medium text-foreground/70">
+                <span className="font-medium text-foreground/55">
                   {selectedTargetBrandLabel}
                 </span>
                 {taskTargetBrandId ? ' from this modal' : ' by default'}.
               </p>
             </div>
 
-            <div className="flex items-center justify-between gap-3">
-              <label
-                htmlFor="workspace-task-request"
-                className="block text-sm font-medium text-foreground"
-              >
-                Task request
-              </label>
-              <div className="flex items-center gap-2">
+            {/* Task request */}
+            <Textarea
+              id="workspace-task-request"
+              className="min-h-48 w-full rounded-lg border border-white/10 bg-black/30 px-4 py-3 text-sm text-foreground outline-none placeholder:text-foreground/35 focus:border-white/20"
+              placeholder="Create three thumbnail directions for our next launch, then draft a caption."
+              value={taskRequest}
+              onChange={(event) => setTaskRequest(event.target.value)}
+              onKeyDown={(event) => {
+                if (
+                  (event.metaKey || event.ctrlKey) &&
+                  event.key === 'Enter' &&
+                  !taskBusy
+                ) {
+                  event.preventDefault();
+                  void handleCreateTask();
+                }
+              }}
+            />
+
+            {/* Inline toolbar: output type + task mode + enhance */}
+            <div className="flex flex-wrap items-center gap-2">
+              {TASK_PRESETS.map((preset) => (
+                <Button
+                  key={preset.outputType}
+                  size={ButtonSize.XS}
+                  variant={
+                    taskOutputType === preset.outputType
+                      ? ButtonVariant.DEFAULT
+                      : ButtonVariant.SECONDARY
+                  }
+                  className="font-semibold uppercase tracking-[0.12em]"
+                  disabled={taskMode !== 'standard'}
+                  onClick={() => setTaskOutputType(preset.outputType)}
+                >
+                  {preset.label}
+                </Button>
+              ))}
+              <span className="h-4 w-px bg-white/10" />
+              {TASK_MODE_OPTIONS.map((mode) => (
+                <Button
+                  key={mode.id}
+                  size={ButtonSize.XS}
+                  variant={
+                    taskMode === mode.id
+                      ? ButtonVariant.DEFAULT
+                      : ButtonVariant.SECONDARY
+                  }
+                  className="font-semibold"
+                  onClick={() => setTaskMode(mode.id)}
+                >
+                  {mode.label}
+                </Button>
+              ))}
+              <div className="ml-auto flex items-center gap-1.5">
                 {previousTaskRequest ? (
                   <Button
                     size={ButtonSize.XS}
@@ -2519,26 +2518,15 @@ export default function WorkspacePageContent({
                 </Button>
               </div>
             </div>
-            <Textarea
-              id="workspace-task-request"
-              className="min-h-48 w-full rounded-lg border border-white/10 bg-black/30 px-4 py-3 text-sm text-foreground outline-none placeholder:text-foreground/35 focus:border-white/20"
-              placeholder="Create three thumbnail directions for our next launch, then draft a caption."
-              value={taskRequest}
-              onChange={(event) => setTaskRequest(event.target.value)}
-              onKeyDown={(event) => {
-                if (
-                  (event.metaKey || event.ctrlKey) &&
-                  event.key === 'Enter' &&
-                  !taskBusy
-                ) {
-                  event.preventDefault();
-                  void handleCreateTask();
+
+            {taskMode !== 'standard' ? (
+              <p className="text-xs text-foreground/35">
+                {
+                  TASK_MODE_OPTIONS.find((mode) => mode.id === taskMode)
+                    ?.description
                 }
-              }}
-            />
-            <p className="text-xs text-foreground/45">
-              Press Cmd/Ctrl + Enter to create the task.
-            </p>
+              </p>
+            ) : null}
 
             {taskError ? (
               <p className="text-sm text-rose-300">{taskError}</p>
@@ -2546,6 +2534,12 @@ export default function WorkspacePageContent({
           </Modal.Body>
 
           <Modal.Footer>
+            <Checkbox
+              isChecked={taskKeepOpen}
+              label="Add another task"
+              className="mr-auto text-xs text-foreground/50"
+              onCheckedChange={(checked) => setTaskKeepOpen(checked === true)}
+            />
             <Modal.CloseButton asChild>
               <Button variant={ButtonVariant.SECONDARY} disabled={taskBusy}>
                 Cancel
@@ -2557,6 +2551,7 @@ export default function WorkspacePageContent({
               onClick={() => void handleCreateTask()}
             >
               {taskBusy ? 'Creating...' : 'Create Task'}
+              {!taskBusy && <span className="ml-2 text-xs opacity-50">⌘↵</span>}
             </Button>
           </Modal.Footer>
         </Modal.Content>
@@ -2573,7 +2568,7 @@ export default function WorkspacePageContent({
       ) : null}
 
       {shouldShowSectionSnapshot ? (
-        <section data-testid="workspace-snapshot" className="space-y-4">
+        <section data-testid="workspace-snapshot" className="space-y-4 mb-6">
           <div className="space-y-1">
             <h2 className="text-xl font-semibold tracking-[-0.02em] text-foreground">
               Workspace at a glance

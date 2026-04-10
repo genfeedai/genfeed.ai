@@ -10,10 +10,10 @@ import {
   IssueCommentsService,
 } from '@services/management/issue-comments.service';
 import type {
-  Issue,
-  IssueLinkedEntityModel,
-  IssueStatus,
-} from '@services/management/issues.service';
+  Task,
+  TaskLinkedEntityModel,
+  TaskStatus,
+} from '@services/management/tasks.service';
 import EntityOverlayShell from '@ui/overlays/entity/EntityOverlayShell';
 import { Button } from '@ui/primitives/button';
 import { useRouter } from 'next/navigation';
@@ -31,21 +31,21 @@ import {
 const OVERLAY_ID = 'issue-overlay';
 const VISIBLE_COMMENT_COUNT = 3;
 
-const ENTITY_MODEL_LABELS: Record<IssueLinkedEntityModel, string> = {
+const ENTITY_MODEL_LABELS: Record<TaskLinkedEntityModel, string> = {
   Article: 'Article',
   Evaluation: 'Evaluation',
   Ingredient: 'Ingredient',
   Post: 'Post',
 };
 
-const ENTITY_MODEL_COLORS: Record<IssueLinkedEntityModel, string> = {
+const ENTITY_MODEL_COLORS: Record<TaskLinkedEntityModel, string> = {
   Article: 'bg-purple-500/15 text-purple-400',
   Evaluation: 'bg-amber-500/15 text-amber-400',
   Ingredient: 'bg-cyan-500/15 text-cyan-400',
   Post: 'bg-emerald-500/15 text-emerald-400',
 };
 
-const STATUS_LABELS: Record<IssueStatus, string> = {
+const STATUS_LABELS: Record<TaskStatus, string> = {
   backlog: 'Backlog',
   blocked: 'Blocked',
   cancelled: 'Cancelled',
@@ -55,7 +55,7 @@ const STATUS_LABELS: Record<IssueStatus, string> = {
   todo: 'To Do',
 };
 
-const STATUS_COLORS: Record<IssueStatus, string> = {
+const STATUS_COLORS: Record<TaskStatus, string> = {
   backlog: 'bg-white/10 text-white/50',
   blocked: 'bg-red-500/20 text-red-400',
   cancelled: 'bg-white/5 text-white/30',
@@ -74,7 +74,7 @@ export function closeIssueOverlay(): void {
 }
 
 interface IssueOverlayProps {
-  issue: Issue | null;
+  issue: Task | null;
   onClose?: () => void;
 }
 
@@ -133,7 +133,7 @@ export default function IssueOverlay({ issue, onClose }: IssueOverlayProps) {
 
   const handleOpenDetail = useCallback(() => {
     if (issue) {
-      router.push(`/issues/${issue.identifier}`);
+      router.push(`/tasks/${issue.identifier}`);
       closeIssueOverlay();
     }
   }, [issue, router]);

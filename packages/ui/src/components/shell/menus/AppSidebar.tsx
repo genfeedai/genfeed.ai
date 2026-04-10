@@ -12,6 +12,7 @@ import { useMemo } from 'react';
 
 export interface AppSidebarProps extends BaseMenuProps {
   renderTopSlot?: MenuSharedProps['renderTopSlot'];
+
   renderBody?: () => ReactNode;
   renderAfterNavigation?: MenuSharedProps['renderAfterNavigation'];
   backHref?: string;

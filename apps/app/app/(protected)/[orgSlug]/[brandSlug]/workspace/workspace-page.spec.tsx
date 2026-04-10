@@ -4,7 +4,7 @@
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
 import { AgentRunsService } from '@services/ai/agent-runs.service';
 import { IngredientsService } from '@services/content/ingredients.service';
-import { IssuesService } from '@services/management/issues.service';
+import { TasksService } from '@services/management/tasks.service';
 import { WorkspaceTasksService } from '@services/workspace/workspace-tasks.service';
 import {
   fireEvent,
@@ -98,14 +98,14 @@ vi.mock('@services/content/ingredients.service', async () => {
   };
 });
 
-vi.mock('@services/management/issues.service', async () => {
+vi.mock('@services/management/tasks.service', async () => {
   const actual = await vi.importActual<
-    typeof import('@services/management/issues.service')
-  >('@services/management/issues.service');
+    typeof import('@services/management/tasks.service')
+  >('@services/management/tasks.service');
 
   return {
     ...actual,
-    IssuesService: {
+    TasksService: {
       getInstance: vi.fn(),
     },
   };
@@ -218,9 +218,9 @@ describe('WorkspacePageContent', () => {
     vi.mocked(IngredientsService.getInstance).mockReturnValue({
       findOne: findIngredientMock,
     } as unknown as ReturnType<typeof IngredientsService.getInstance>);
-    vi.mocked(IssuesService.getInstance).mockReturnValue({
+    vi.mocked(TasksService.getInstance).mockReturnValue({
       findOne: findIssueMock,
-    } as unknown as ReturnType<typeof IssuesService.getInstance>);
+    } as unknown as ReturnType<typeof TasksService.getInstance>);
   });
 
   it('renders the overview layout without duplicate workspace tabs', async () => {
@@ -244,7 +244,7 @@ describe('WorkspacePageContent', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /^new task$/i }));
 
-    expect(screen.getByText('Start a task')).toBeInTheDocument();
+    expect(screen.getByText('New Task')).toBeInTheDocument();
   });
 
   it('opens the task composer modal when the sidebar requests a new task', async () => {
@@ -256,7 +256,7 @@ describe('WorkspacePageContent', () => {
 
     window.dispatchEvent(new Event(OPEN_TASK_COMPOSER_EVENT));
 
-    expect(screen.getByText('Start a task')).toBeInTheDocument();
+    expect(screen.getByText('New Task')).toBeInTheDocument();
   });
 
   it('creates a task from the modal composer', async () => {

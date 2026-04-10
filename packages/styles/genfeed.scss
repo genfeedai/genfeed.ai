@@ -340,7 +340,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse at center, transparent 40%, hsl(0 0% 4%) 100%);
+    background: radial-gradient(ellipse at center, transparent 40%, hsl(0 0% 1%) 100%);
     pointer-events: none;
     z-index: 1;
   }

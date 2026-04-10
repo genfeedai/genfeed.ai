@@ -392,7 +392,6 @@ export default function MenuShared({
       className={cn(
         'flex h-full min-h-0 flex-1 flex-shrink-0',
         shellChromeVariant === 'default' ? 'bg-background' : 'bg-transparent',
-        !isCollapsed && 'border-r border-white/[0.08]',
       )}
       style={{
         minWidth:
@@ -485,7 +484,7 @@ export default function MenuShared({
                   data-testid="sidebar-primary-action"
                   href={prefixHref(config.primaryAction.href)}
                   onClick={handleLinkClick}
-                  className="flex h-10 w-full items-center gap-3 rounded-md bg-white px-3 py-2 text-left text-sm font-semibold text-black transition-colors duration-200 hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                  className="flex h-10 w-full items-center gap-3 rounded-sm bg-white px-3 py-2 text-left text-sm font-semibold text-black transition-colors duration-200 hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                 >
                   {config.primaryAction.icon ? (
                     config.primaryAction.icon
@@ -502,7 +501,7 @@ export default function MenuShared({
                     size="xs"
                     className="bg-black/[0.08] text-black/45"
                   >
-                    {'\u2318'}N
+                    {'\u2318\u21E7'}N
                   </Kbd>
                 </Link>
               ) : (
@@ -514,7 +513,7 @@ export default function MenuShared({
                     handleLinkClick();
                     config.primaryAction?.onClick?.();
                   }}
-                  className="flex h-10 w-full items-center gap-3 rounded-md bg-white px-3 py-2 text-left text-sm font-semibold text-black transition-colors duration-200 hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                  className="flex h-10 w-full items-center gap-3 rounded-sm bg-white px-3 py-2 text-left text-sm font-semibold text-black transition-colors duration-200 hover:bg-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
                 >
                   {config.primaryAction.icon ? (
                     config.primaryAction.icon
@@ -531,7 +530,7 @@ export default function MenuShared({
                     size="xs"
                     className="bg-black/[0.08] text-black/45"
                   >
-                    {'\u2318'}N
+                    {'\u2318\u21E7'}N
                   </Kbd>
                 </Button>
               )}

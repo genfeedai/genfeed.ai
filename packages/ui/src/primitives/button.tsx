@@ -198,7 +198,9 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             transformClass,
           );
 
-    const content = (
+    const content = asChild ? (
+      children
+    ) : (
       <>
         {isLoading ? <Spinner /> : icon}
         {isLoading && !icon ? null : (children ?? label)}

@@ -36,7 +36,7 @@ describe('PageSection', () => {
 
   it('renders actions when provided', () => {
     render(
-      <PageSection actions={<button>Action Button</button>}>
+      <PageSection actions={<button type="button">Action Button</button>}>
         Content
       </PageSection>,
     );
@@ -50,7 +50,7 @@ describe('PageSection', () => {
       <PageSection
         title="Complete Section"
         description="With description"
-        actions={<button>Action</button>}
+        actions={<button type="button">Action</button>}
       >
         Content
       </PageSection>,
@@ -149,7 +149,7 @@ describe('PageSection', () => {
   describe('actions rendering', () => {
     it('renders single action', () => {
       render(
-        <PageSection actions={<button>Single Action</button>}>
+        <PageSection actions={<button type="button">Single Action</button>}>
           Content
         </PageSection>,
       );
@@ -161,8 +161,8 @@ describe('PageSection', () => {
         <PageSection
           actions={
             <>
-              <button>Action 1</button>
-              <button>Action 2</button>
+              <button type="button">Action 1</button>
+              <button type="button">Action 2</button>
             </>
           }
         >
@@ -203,7 +203,9 @@ describe('PageSection', () => {
 
     it('renders header when actions are provided', () => {
       const { container } = render(
-        <PageSection actions={<button>Action</button>}>Content</PageSection>,
+        <PageSection actions={<button type="button">Action</button>}>
+          Content
+        </PageSection>,
       );
       const header = container.querySelector('.flex.flex-wrap');
       expect(header).toBeInTheDocument();

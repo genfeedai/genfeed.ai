@@ -108,18 +108,19 @@ function AgentPanelShell({
       <div
         data-panel-body=""
         className={cn(
-          'relative flex-1 overflow-hidden transition-opacity duration-200',
+          'flex flex-1 flex-col overflow-hidden transition-opacity duration-200',
           !isOpen && 'opacity-0 pointer-events-none',
         )}
       >
-        <div className="border-b border-white/[0.08] px-3 py-2">
+        <div className="shrink-0 border-b border-white/[0.08] px-3 py-2">
           <div className="grid grid-cols-2 gap-2 rounded-xl bg-white/[0.03] p-1">
             <Button
               variant={ButtonVariant.GHOST}
               size={ButtonSize.SM}
+              withWrapper={false}
               onClick={() => handleTabChange('chat')}
               className={cn(
-                'rounded-lg px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+                'w-full rounded-lg px-3 py-2 text-sm font-medium',
                 activeTab === 'chat'
                   ? 'bg-white/[0.08] text-foreground'
                   : 'text-foreground/50 hover:text-foreground',
@@ -130,9 +131,10 @@ function AgentPanelShell({
             <Button
               variant={ButtonVariant.GHOST}
               size={ButtonSize.SM}
+              withWrapper={false}
               onClick={() => handleTabChange('outputs')}
               className={cn(
-                'rounded-lg px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+                'w-full rounded-lg px-3 py-2 text-sm font-medium',
                 activeTab === 'outputs'
                   ? 'bg-white/[0.08] text-foreground'
                   : 'text-foreground/50 hover:text-foreground',
@@ -143,12 +145,22 @@ function AgentPanelShell({
           </div>
         </div>
 
-        <div className={cn('h-full', activeTab !== 'chat' && 'hidden')}>
+        <div
+          className={cn(
+            'flex-1 overflow-hidden',
+            activeTab !== 'chat' && 'hidden',
+          )}
+        >
           {chatContent}
         </div>
 
         {outputsContent && (
-          <div className={cn('h-full', activeTab !== 'outputs' && 'hidden')}>
+          <div
+            className={cn(
+              'flex-1 overflow-hidden',
+              activeTab !== 'outputs' && 'hidden',
+            )}
+          >
             {outputsContent}
           </div>
         )}

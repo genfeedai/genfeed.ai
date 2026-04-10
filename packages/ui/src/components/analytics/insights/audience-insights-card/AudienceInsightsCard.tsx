@@ -157,9 +157,9 @@ const AudienceInsightsCard = memo(function AudienceInsightsCard({
                     Top performing content types:
                   </p>
                   <div className="flex flex-wrap gap-1">
-                    {segment.topContent.slice(0, 3).map((content, idx) => (
+                    {segment.topContent.slice(0, 3).map((content) => (
                       <span
-                        key={idx}
+                        key={content}
                         className="text-xs px-2 py-0.5 rounded-full bg-muted text-foreground/70"
                       >
                         {content}

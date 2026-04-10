@@ -10,6 +10,7 @@ import type { AgentRunStats, AgentRunTrendPoint } from '@genfeedai/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import type { WorkspaceTask } from '@services/workspace/workspace-tasks.service';
 import Card from '@ui/card/Card';
+import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
 import { useMemo } from 'react';
@@ -241,7 +242,7 @@ export function DashboardStatsStrip({
 
   return (
     <section data-testid="dashboard-stats-strip">
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <DashboardGrid>
         {items.map((item) => (
           <Card
             key={item.label}
@@ -261,7 +262,7 @@ export function DashboardStatsStrip({
             ) : null}
           </Card>
         ))}
-      </div>
+      </DashboardGrid>
     </section>
   );
 }
@@ -519,7 +520,7 @@ export function DashboardChartsGrid({
 
   return (
     <section data-testid="dashboard-charts">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <DashboardGrid>
         <MiniChartCard title="Run Activity" subtitle="Last 14 days">
           <RunActivityChart trends={trends} />
         </MiniChartCard>
@@ -532,7 +533,7 @@ export function DashboardChartsGrid({
         <MiniChartCard title="Success Rate" subtitle="Last 14 days">
           <SuccessRateChart trends={trends} />
         </MiniChartCard>
-      </div>
+      </DashboardGrid>
     </section>
   );
 }
@@ -745,10 +746,10 @@ export function WorkspaceDashboard({
 
       <DashboardChartsGrid runs={runs} stats={stats} />
 
-      <div className="grid gap-6 xl:grid-cols-2">
+      <DashboardGrid cols={2}>
         <DashboardRecentActivity workspaceTasks={workspaceTasks} />
         <DashboardRecentTasks workspaceTasks={workspaceTasks} />
-      </div>
+      </DashboardGrid>
     </div>
   );
 }

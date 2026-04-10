@@ -171,10 +171,10 @@ describe('WorkspaceTasksService', () => {
     expect(created).toEqual(
       expect.objectContaining({
         executionPathUsed: 'caption_generation',
-        reviewState: 'pending_approval',
+        reviewState: 'none',
         reviewTriggered: true,
         skillsUsed: [],
-        status: 'needs_review',
+        status: 'triaged',
       }),
     );
   });
@@ -193,9 +193,9 @@ describe('WorkspaceTasksService', () => {
       expect.objectContaining({
         executionPathUsed: 'caption_generation',
         outputType: 'newsletter',
-        reviewState: 'pending_approval',
+        reviewState: 'none',
         reviewTriggered: true,
-        status: 'needs_review',
+        status: 'triaged',
       }),
     );
   });

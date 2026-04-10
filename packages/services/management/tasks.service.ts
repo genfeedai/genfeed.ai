@@ -57,7 +57,7 @@ export class Task {
   id!: string;
   organization!: string;
   brand?: string;
-  issueNumber!: number;
+  taskNumber!: number;
   identifier!: string;
   title!: string;
   description?: string;

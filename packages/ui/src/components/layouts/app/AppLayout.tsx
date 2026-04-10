@@ -97,9 +97,7 @@ function DesktopSidebar({
         shellChromeVariant === 'default'
           ? 'bg-background/95 shadow-[18px_0_48px_rgba(0,0,0,0.18)]'
           : 'bg-transparent shadow-none',
-        shellChromeVariant === 'default' &&
-          !isCollapsed &&
-          'border-r border-white/[0.12]',
+        !isCollapsed && 'border-r border-white/[0.08]',
       )}
       style={{
         minWidth: targetWidth,
