@@ -189,9 +189,8 @@ export abstract class BaseService<
   }
 
   static getInstance(this: new (token: string) => any, token: string): any {
-    const serviceConstructor = BaseService as unknown as new (
-      token: string,
-    ) => any;
+    // biome-ignore lint: 'this' refers to the subclass constructor in static context
+    const serviceConstructor = this as unknown as new (token: string) => any;
     const serviceKey = serviceConstructor;
 
     // Check if we have a cached instance for this service + token
@@ -239,11 +238,11 @@ export abstract class BaseService<
   static clearInstance(...args: unknown[]): void {
     const [firstArg, secondArg] = args;
     const hasConstructor = typeof firstArg === 'function';
-    const serviceConstructor = (
-      hasConstructor ? firstArg : BaseService
-    ) as new (
-      token: string,
-    ) => BaseService<unknown>;
+    const serviceConstructor =
+      // biome-ignore lint: this refers to the subclass constructor, not BaseService
+      (hasConstructor ? firstArg : this) as new (
+        token: string,
+      ) => BaseService<unknown>;
     const token = hasConstructor
       ? (secondArg as string | undefined)
       : (firstArg as string | undefined);
