@@ -41,10 +41,10 @@ import type {
   ITag,
   IVideo,
 } from '@genfeedai/interfaces';
-import type { Training } from '@models/ai/training.model';
-import type { ElementBlacklist } from '@models/elements/blacklist.model';
-import type { Music } from '@models/ingredients/music.model';
-import type { Brand } from '@models/organization/brand.model';
+import type { Training } from '@genfeedai/models/ai/training.model';
+import type { ElementBlacklist } from '@genfeedai/models/elements/blacklist.model';
+import type { Music } from '@genfeedai/models/ingredients/music.model';
+import type { Brand } from '@genfeedai/models/organization/brand.model';
 import type { ContentProps } from '@props/layout/content.props';
 import type { ReactNode } from 'react';
 import type { UseFormReturn } from 'react-hook-form';

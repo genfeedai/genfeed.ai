@@ -1,4 +1,4 @@
-import type { Brand } from '@models/organization/brand.model';
+import type { Brand } from '@genfeedai/models/organization/brand.model';
 
 export interface BrandSwitcherProps {
   brands: Brand[];

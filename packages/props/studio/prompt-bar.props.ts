@@ -29,8 +29,8 @@ import type {
   ITraining,
 } from '@genfeedai/interfaces';
 import type { IGenerationItem } from '@genfeedai/interfaces/components/generation.interface';
+import type { PromptsService } from '@genfeedai/services/content/prompts.service';
 import type { PromptBarSuggestionItem } from '@props/prompt-bars/prompt-bar-suggestion-item.props';
-import type { PromptsService } from '@services/content/prompts.service';
 import type {
   Dispatch,
   DragEvent,

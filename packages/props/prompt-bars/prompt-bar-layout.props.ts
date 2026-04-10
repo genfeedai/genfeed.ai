@@ -21,7 +21,7 @@ import type {
   ISound,
 } from '@genfeedai/interfaces';
 import type { MediaConfig } from '@genfeedai/interfaces/ui/media-config.interface';
-import type { Image as ImageModel } from '@models/ingredients/image.model';
+import type { Image as ImageModel } from '@genfeedai/models/ingredients/image.model';
 import type {
   PromptBarFormatControlsProps,
   PromptBarModelControlsProps,

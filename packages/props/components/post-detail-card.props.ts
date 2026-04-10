@@ -4,8 +4,8 @@ import type {
   IPost,
   PostQuickActionKey,
 } from '@genfeedai/interfaces';
-import type { PostsService } from '@services/content/posts.service';
-import type { NotificationsService } from '@services/core/notifications.service';
+import type { PostsService } from '@genfeedai/services/content/posts.service';
+import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import type { MutableRefObject } from 'react';
 
 export interface PostDetailCardProps {
