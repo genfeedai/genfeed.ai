@@ -1,5 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import { type AnalyticsMetric, IngredientCategory } from '@genfeedai/enums';
+import { deserializeCollection } from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type {
   IActivity,
   IAnalytics,
@@ -14,25 +15,24 @@ import type {
   ISubscription,
   UpdateMemberData,
 } from '@genfeedai/interfaces';
+import { Avatar } from '@genfeedai/models/ai/avatar.model';
+import { Activity } from '@genfeedai/models/analytics/activity.model';
+import { Ingredient } from '@genfeedai/models/content/ingredient.model';
+import { Post } from '@genfeedai/models/content/post.model';
+import { Tag } from '@genfeedai/models/content/tag.model';
+import { Image } from '@genfeedai/models/ingredients/image.model';
+import { Music } from '@genfeedai/models/ingredients/music.model';
+import { Video } from '@genfeedai/models/ingredients/video.model';
+import { Voice } from '@genfeedai/models/ingredients/voice.model';
+import { Brand } from '@genfeedai/models/organization/brand.model';
+import { Member } from '@genfeedai/models/organization/member.model';
+import { Organization } from '@genfeedai/models/organization/organization.model';
+import { OrganizationSetting } from '@genfeedai/models/organization/organization-setting.model';
 import {
   MemberInvitationSerializer,
   OrganizationSerializer,
   OrganizationSettingSerializer,
 } from '@genfeedai/serializers';
-import { deserializeCollection } from '@helpers/data/json-api/json-api.helper';
-import { Avatar } from '@models/ai/avatar.model';
-import { Activity } from '@models/analytics/activity.model';
-import { Ingredient } from '@models/content/ingredient.model';
-import { Post } from '@models/content/post.model';
-import { Tag } from '@models/content/tag.model';
-import { Image } from '@models/ingredients/image.model';
-import { Music } from '@models/ingredients/music.model';
-import { Video } from '@models/ingredients/video.model';
-import { Voice } from '@models/ingredients/voice.model';
-import { Brand } from '@models/organization/brand.model';
-import { Member } from '@models/organization/member.model';
-import { Organization } from '@models/organization/organization.model';
-import { OrganizationSetting } from '@models/organization/organization-setting.model';
 import { PagesService } from '@services/content/pages.service';
 import {
   BaseService,

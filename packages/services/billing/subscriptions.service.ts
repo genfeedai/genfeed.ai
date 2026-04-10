@@ -1,10 +1,10 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type { ISubscriptionPreview } from '@genfeedai/interfaces';
+import { Subscription } from '@genfeedai/models/billing/subscription.model';
 import {
   SubscriptionPreviewSerializer,
   SubscriptionSerializer,
 } from '@genfeedai/serializers';
-import { Subscription } from '@models/billing/subscription.model';
 import {
   BaseService,
   type JsonApiResponseDocument,

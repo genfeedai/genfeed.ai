@@ -50,6 +50,10 @@ vi.mock('@services/core/base.service', () => {
       // Avoids cross-test cache contamination (no singleton cache in tests).
       return new MockBaseService(token);
     }
+
+    static getDataServiceInstance(ServiceClass: any, ...args: any[]) {
+      return new ServiceClass(...args);
+    }
   }
 
   return {

@@ -5,16 +5,16 @@
  * Backend: /profiles API
  */
 
+import {
+  deserializeCollection,
+  deserializeResource,
+} from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type {
   IApplyToneRequest,
   IApplyToneResult,
   IToneAnalysis,
   IToneProfile,
 } from '@genfeedai/interfaces/ai/tone-profile.interface';
-import {
-  deserializeCollection,
-  deserializeResource,
-} from '@helpers/data/json-api/json-api.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 

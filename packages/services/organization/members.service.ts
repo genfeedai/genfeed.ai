@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { Member } from '@genfeedai/models/organization/member.model';
 import { MemberSerializer } from '@genfeedai/serializers';
-import { Member } from '@models/organization/member.model';
 import { BaseService } from '@services/core/base.service';
 
 export class MembersService extends BaseService<Member> {

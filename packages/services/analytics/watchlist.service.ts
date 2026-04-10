@@ -1,5 +1,5 @@
+import { Watchlist } from '@genfeedai/models/analytics/watchlist.model';
 import { WatchlistSerializer } from '@genfeedai/serializers';
-import { Watchlist } from '@models/analytics/watchlist.model';
 import { BaseService } from '@services/core/base.service';
 
 export class WatchlistService extends BaseService<Watchlist> {

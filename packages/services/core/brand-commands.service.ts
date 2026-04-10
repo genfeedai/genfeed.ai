@@ -5,7 +5,7 @@
 
 import type { IBrand } from '@genfeedai/interfaces';
 import type { ICommand } from '@genfeedai/interfaces/ui/command-palette.interface';
-import type { Brand } from '@models/organization/brand.model';
+import type { Brand } from '@genfeedai/models/organization/brand.model';
 import { HiOutlineUserCircle } from 'react-icons/hi2';
 
 export class BrandCommandsService {

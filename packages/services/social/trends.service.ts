@@ -1,4 +1,5 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { deserializeCollection } from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type {
   ILeaderboardOptions,
   ITrend,
@@ -10,16 +11,15 @@ import type {
   ITrendVideo,
   IViralVideoOptions,
 } from '@genfeedai/interfaces';
-import { TrendSerializer } from '@genfeedai/serializers';
-import { deserializeCollection } from '@helpers/data/json-api/json-api.helper';
-import { Trend } from '@models/analytics/trend.model';
+import { Trend } from '@genfeedai/models/analytics/trend.model';
 import type {
   RefreshTrendsResponse,
   TrendContentResponse,
   TrendDetailData,
   TrendSourceItem,
   TrendsResponse,
-} from '@props/trends/trends-page.props';
+} from '@genfeedai/props/trends/trends-page.props';
+import { TrendSerializer } from '@genfeedai/serializers';
 import { BaseService } from '@services/core/base.service';
 
 export class TrendsService extends BaseService<Trend> {

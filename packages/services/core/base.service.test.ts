@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
-vi.mock('@helpers/data/json-api/json-api.helper', () => ({
+vi.mock('@genfeedai/helpers/data/json-api/json-api.helper', () => ({
   deserializeCollection: vi.fn((doc) => doc.data || []),
   deserializeResource: vi.fn((doc) => doc.data || {}),
 }));

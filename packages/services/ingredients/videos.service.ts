@@ -1,3 +1,4 @@
+import { buildResourcePath } from '@genfeedai/helpers/formatting/url/url.helper';
 import type {
   ICaption,
   IIngredient,
@@ -10,15 +11,14 @@ import type {
   IVideoResizeParams,
   IVideoTextOverlayParams,
 } from '@genfeedai/interfaces/components/video-operations.interface';
+import { Caption } from '@genfeedai/models/content/caption.model';
+import type { Video } from '@genfeedai/models/ingredients/video.model';
 import {
   IngredientMergeSerializer,
   VideoCaptionSerializer,
   VideoEditSerializer,
   VideoSerializer,
 } from '@genfeedai/serializers';
-import { buildResourcePath } from '@helpers/formatting/url/url.helper';
-import { Caption } from '@models/content/caption.model';
-import type { Video } from '@models/ingredients/video.model';
 import { IngredientsService } from '@services/content/ingredients.service';
 import type { JsonApiResponseDocument } from '@services/core/base.service';
 

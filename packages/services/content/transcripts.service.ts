@@ -1,5 +1,5 @@
+import { Transcript } from '@genfeedai/models/content/transcript.model';
 import { TranscriptSerializer } from '@genfeedai/serializers';
-import { Transcript } from '@models/content/transcript.model';
 import { BaseService } from '@services/core/base.service';
 
 export class TranscriptsService extends BaseService<Transcript> {

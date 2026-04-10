@@ -4,16 +4,16 @@
  * Backend: /contexts and /rag APIs
  */
 
+import {
+  deserializeCollection,
+  deserializeResource,
+} from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type {
   IEnhancedPrompt,
   IRAGEnhanceRequest,
   IRAGQuery,
   IRAGResult,
 } from '@genfeedai/interfaces/knowledge-base/knowledge-base.interface';
-import {
-  deserializeCollection,
-  deserializeResource,
-} from '@helpers/data/json-api/json-api.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 

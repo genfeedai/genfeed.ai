@@ -1,4 +1,4 @@
-import type { Brand } from '@models/organization/brand.model';
+import type { Brand } from '@genfeedai/models/organization/brand.model';
 import { BrandCommandsService } from '@services/core/brand-commands.service';
 import { describe, expect, it, vi } from 'vitest';
 

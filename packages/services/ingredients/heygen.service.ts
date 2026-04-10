@@ -1,7 +1,7 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type { IHeyGen } from '@genfeedai/interfaces';
+import { HeyGen } from '@genfeedai/models/integrations/heygen.model';
 import { HeyGenServiceSerializer } from '@genfeedai/serializers';
-import { HeyGen } from '@models/integrations/heygen.model';
 import { BaseService } from '@services/core/base.service';
 import { EnvironmentService } from '@services/core/environment.service';
 

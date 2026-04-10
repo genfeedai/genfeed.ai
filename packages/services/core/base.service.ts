@@ -1,25 +1,25 @@
+import {
+  deserializeCollection,
+  deserializeResource,
+  type JsonApiResponseDocument,
+} from '@genfeedai/helpers/data/json-api/json-api.helper';
+import { normalizeJsonApiRelationshipGraph } from '@genfeedai/helpers/data/json-api/relationship.helper';
 import type {
   IHttpError,
   IServiceSerializer,
   IStructuredError,
 } from '@genfeedai/interfaces/utils/error.interface';
+import { ErrorHandler } from '@genfeedai/utils/error/error-handler.util';
 import {
-  deserializeCollection,
-  deserializeResource,
-  type JsonApiResponseDocument,
-} from '@helpers/data/json-api/json-api.helper';
-import { normalizeJsonApiRelationshipGraph } from '@helpers/data/json-api/relationship.helper';
+  TypeValidator,
+  type ValidationSchema,
+} from '@genfeedai/utils/validation/type-validator.util';
 import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import { logger } from '@services/core/logger.service';
-import { ErrorHandler } from '@utils/error/error-handler.util';
-import {
-  TypeValidator,
-  type ValidationSchema,
-} from '@utils/validation/type-validator.util';
 
-export type { JsonApiResponseDocument } from '@helpers/data/json-api/json-api.helper';
+export type { JsonApiResponseDocument } from '@genfeedai/helpers/data/json-api/json-api.helper';
 
 /**
  * Global singleton instance manager

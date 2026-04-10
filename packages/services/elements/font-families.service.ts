@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { FontFamily } from '@genfeedai/models/elements/font-family.model';
 import { FontFamilySerializer } from '@genfeedai/serializers';
-import { FontFamily } from '@models/elements/font-family.model';
 import { BaseService } from '@services/core/base.service';
 
 export class FontFamiliesService extends BaseService<FontFamily> {

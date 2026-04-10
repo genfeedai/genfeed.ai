@@ -4,17 +4,17 @@
  * Backend: /runs API
  */
 
+import {
+  deserializeCollection,
+  deserializeResource,
+  type JsonApiResponseDocument,
+} from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type { IAgentRun, IAgentRunContent } from '@genfeedai/interfaces';
 import type {
   AgentRunListQueryParams,
   AgentRunStats,
   AgentRunStatsQueryParams,
 } from '@genfeedai/types';
-import {
-  deserializeCollection,
-  deserializeResource,
-  type JsonApiResponseDocument,
-} from '@helpers/data/json-api/json-api.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 

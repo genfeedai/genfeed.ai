@@ -1,8 +1,8 @@
+import { Newsletter } from '@genfeedai/models/content/newsletter.model';
 import {
   buildSerializer,
   newsletterSerializerConfig,
 } from '@genfeedai/serializers';
-import { Newsletter } from '@models/content/newsletter.model';
 import {
   BaseService,
   type JsonApiResponseDocument,

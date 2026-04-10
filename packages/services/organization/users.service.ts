@@ -6,11 +6,11 @@ import type {
   ISetting,
   IUser,
 } from '@genfeedai/interfaces';
+import { Setting } from '@genfeedai/models/analytics/setting.model';
+import { User } from '@genfeedai/models/auth/user.model';
+import { Brand } from '@genfeedai/models/organization/brand.model';
+import { Organization } from '@genfeedai/models/organization/organization.model';
 import { SettingSerializer, UserSerializer } from '@genfeedai/serializers';
-import { Setting } from '@models/analytics/setting.model';
-import { User } from '@models/auth/user.model';
-import { Brand } from '@models/organization/brand.model';
-import { Organization } from '@models/organization/organization.model';
 import {
   BaseService,
   type JsonApiResponseDocument,

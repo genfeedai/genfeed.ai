@@ -1,8 +1,8 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type { ArticleCategory } from '@genfeedai/enums';
 import { PublishStatus } from '@genfeedai/enums';
+import { Article } from '@genfeedai/models/content/article.model';
 import { ArticleSerializer } from '@genfeedai/serializers';
-import { Article } from '@models/content/article.model';
 import {
   BaseService,
   type JsonApiResponseDocument,

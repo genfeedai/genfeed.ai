@@ -1,5 +1,5 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
-import { Member } from '@models/organization/member.model';
+import { Member } from '@genfeedai/models/organization/member.model';
 import { MembersService } from '@services/organization/members.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

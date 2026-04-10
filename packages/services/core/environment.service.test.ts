@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { EnvironmentService } from '@services/core/environment.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 

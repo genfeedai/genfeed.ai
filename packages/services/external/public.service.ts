@@ -1,17 +1,17 @@
-import type { IQueryParams } from '@genfeedai/interfaces';
 import {
   deserializeCollection,
   deserializeResource,
   type JsonApiResponseDocument,
-} from '@helpers/data/json-api/json-api.helper';
-import { Article } from '@models/content/article.model';
-import { Ingredient } from '@models/content/ingredient.model';
-import { Post } from '@models/content/post.model';
-import { Image } from '@models/ingredients/image.model';
-import { Music } from '@models/ingredients/music.model';
-import { Video } from '@models/ingredients/video.model';
-import { Brand } from '@models/organization/brand.model';
-import { Link } from '@models/social/link.model';
+} from '@genfeedai/helpers/data/json-api/json-api.helper';
+import type { IQueryParams } from '@genfeedai/interfaces';
+import { Article } from '@genfeedai/models/content/article.model';
+import { Ingredient } from '@genfeedai/models/content/ingredient.model';
+import { Post } from '@genfeedai/models/content/post.model';
+import { Image } from '@genfeedai/models/ingredients/image.model';
+import { Music } from '@genfeedai/models/ingredients/music.model';
+import { Video } from '@genfeedai/models/ingredients/video.model';
+import { Brand } from '@genfeedai/models/organization/brand.model';
+import { Link } from '@genfeedai/models/social/link.model';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 

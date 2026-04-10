@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { ElementLighting } from '@genfeedai/models/elements/lighting.model';
 import { LightingSerializer } from '@genfeedai/serializers';
-import { ElementLighting } from '@models/elements/lighting.model';
 import { BaseService } from '@services/core/base.service';
 
 export class LightingsService extends BaseService<ElementLighting> {

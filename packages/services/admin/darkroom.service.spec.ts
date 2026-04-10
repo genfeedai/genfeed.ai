@@ -33,7 +33,7 @@ vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: { apiEndpoint: 'https://api.genfeed.ai' },
 }));
 
-vi.mock('@helpers/data/json-api/json-api.helper', () => ({
+vi.mock('@genfeedai/helpers/data/json-api/json-api.helper', () => ({
   deserializeCollection: vi.fn((doc) => doc?.data ?? []),
   deserializeResource: vi.fn((doc) => doc?.data ?? doc),
 }));
