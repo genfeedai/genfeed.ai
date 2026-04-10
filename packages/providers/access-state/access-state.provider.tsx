@@ -1,16 +1,16 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
-import { getPlaywrightAuthState } from '@helpers/auth/clerk.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useResource } from '@hooks/data/resource/use-resource/use-resource';
-import type { LayoutProps } from '@props/layout/layout.props';
+import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/clerk.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useResource } from '@genfeedai/hooks/data/resource/use-resource/use-resource';
+import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import {
   type AccessBootstrapState,
   AuthService,
-} from '@services/auth/auth.service';
+} from '@genfeedai/services/auth/auth.service';
 import { createContext, useContext, useMemo } from 'react';
 
 export interface AccessStateContextValue {

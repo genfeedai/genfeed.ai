@@ -1,7 +1,7 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { Training } from '@genfeedai/models/ai/training.model';
+import { Image } from '@genfeedai/models/ingredients/image.model';
 import { TrainingSerializer } from '@genfeedai/serializers';
-import { Training } from '@models/ai/training.model';
-import { Image } from '@models/ingredients/image.model';
 import { PagesService } from '@services/content/pages.service';
 import {
   BaseService,

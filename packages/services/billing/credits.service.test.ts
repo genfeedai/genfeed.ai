@@ -6,7 +6,7 @@ const { mockDeserializeResource, mockGet } = vi.hoisted(() => ({
   mockGet: vi.fn(),
 }));
 
-vi.mock('@helpers/data/json-api/json-api.helper', () => ({
+vi.mock('@genfeedai/helpers/data/json-api/json-api.helper', () => ({
   deserializeResource: mockDeserializeResource,
 }));
 

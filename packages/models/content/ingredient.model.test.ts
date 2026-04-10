@@ -107,14 +107,14 @@ vi.mock('@models/organization/brand.model', () => ({
   },
 }));
 
-vi.mock('@services/core/environment.service', () => ({
+vi.mock('@genfeedai/services/core/environment.service', () => ({
   EnvironmentService: {
     assetsEndpoint: 'https://assets.genfeed.ai',
     ingredientsEndpoint: 'https://ingredients.genfeed.ai',
   },
 }));
 
-vi.mock('@utils/media/ingredients.util', () => ({
+vi.mock('@genfeedai/utils/media/ingredients.util', () => ({
   IngredientEndpoints: {
     getEndpoint: vi.fn((category: string) => {
       const map: Record<string, string> = {
@@ -129,7 +129,7 @@ vi.mock('@utils/media/ingredients.util', () => ({
   },
 }));
 
-vi.mock('@utils/media/reference.util', () => ({
+vi.mock('@genfeedai/utils/media/reference.util', () => ({
   resolveIngredientReferenceUrl: vi.fn((ref) => {
     if (!ref) {
       return null;
@@ -518,7 +518,7 @@ describe('Ingredient', () => {
 
       const withoutLabel = createIngredient({
         id: '12345678901234567890',
-        metadata: createMetadata(),
+        metadata: createMetadata({ label: undefined }),
       });
       expect(withoutLabel.metadataLabel).toBe('12345678');
     });

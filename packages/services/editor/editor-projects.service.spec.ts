@@ -29,7 +29,7 @@ vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: { apiEndpoint: 'https://api.genfeed.ai' },
 }));
 
-vi.mock('@helpers/data/json-api/json-api.helper', () => ({
+vi.mock('@genfeedai/helpers/data/json-api/json-api.helper', () => ({
   deserializeCollection: vi.fn((doc) =>
     Array.isArray(doc) ? doc : (doc?.data ?? []),
   ),
@@ -40,7 +40,7 @@ vi.mock('@services/core/logger.service', () => ({
   logger: { error: vi.fn(), info: vi.fn(), warn: vi.fn() },
 }));
 
-vi.mock('@utils/error/error-handler.util', () => ({
+vi.mock('@genfeedai/utils/error/error-handler.util', () => ({
   getErrorStatus: vi.fn((err) => (err as { status?: number })?.status ?? 500),
 }));
 

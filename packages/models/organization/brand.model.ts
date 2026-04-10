@@ -1,11 +1,14 @@
 import { Brand as BaseBrand } from '@genfeedai/client/models';
 import { CredentialPlatform } from '@genfeedai/enums';
+import {
+  getDeepLink,
+  isMobileDevice,
+} from '@genfeedai/helpers/ui/mobile/mobile.helper';
 import type { IAsset, IBrand, ICredential, ILink } from '@genfeedai/interfaces';
-import { getDeepLink, isMobileDevice } from '@helpers/ui/mobile/mobile.helper';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { User } from '@models/auth/user.model';
 import { Asset } from '@models/ingredients/asset.model';
 import { Link } from '@models/social/link.model';
-import { EnvironmentService } from '@services/core/environment.service';
 
 export class Brand extends BaseBrand {
   constructor(partial: Partial<IBrand>) {

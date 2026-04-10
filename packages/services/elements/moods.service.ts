@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { ElementMood } from '@genfeedai/models/elements/mood.model';
 import { MoodSerializer } from '@genfeedai/serializers';
-import { ElementMood } from '@models/elements/mood.model';
 import { BaseService } from '@services/core/base.service';
 
 export class MoodsService extends BaseService<ElementMood> {
@@ -9,9 +9,6 @@ export class MoodsService extends BaseService<ElementMood> {
   }
 
   public static getInstance(token: string): MoodsService {
-    return BaseService.getDataServiceInstance(
-      MoodsService,
-      token,
-    ) as MoodsService;
+    return BaseService.getInstance.call(MoodsService, token) as MoodsService;
   }
 }

@@ -1,4 +1,4 @@
-import { logger } from '@services/core/logger.service';
+import { logger } from '@genfeedai/services/core/logger.service';
 
 /**
  * Runtime type validation for API responses

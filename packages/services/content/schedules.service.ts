@@ -1,5 +1,5 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
-import type { ISchedule } from '@props/publisher/schedule.props';
+import type { Schedule } from '@genfeedai/props/publisher/schedule.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 
@@ -8,8 +8,8 @@ export class SchedulesService extends HTTPBaseService {
     super(`${EnvironmentService.apiEndpoint}${API_ENDPOINTS.SCHEDULES}`, token);
   }
 
-  async getCalendar(startDate: string, endDate: string): Promise<ISchedule[]> {
-    const response = await this.instance.get<ISchedule[]>('/calendar', {
+  async getCalendar(startDate: string, endDate: string): Promise<Schedule[]> {
+    const response = await this.instance.get<Schedule[]>('/calendar', {
       params: { end: endDate, start: startDate },
     });
 

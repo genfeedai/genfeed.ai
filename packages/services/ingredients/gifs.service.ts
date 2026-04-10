@@ -1,4 +1,4 @@
-import type { GIF } from '@models/ingredients/gif.model';
+import type { GIF } from '@genfeedai/models/ingredients/gif.model';
 import { IngredientsService } from '@services/content/ingredients.service';
 
 export class GIFsService extends IngredientsService<GIF> {

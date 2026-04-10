@@ -1,4 +1,8 @@
 import { SubscriptionStatus } from '@genfeedai/enums';
+import {
+  deserializeResource,
+  type JsonApiResponseDocument,
+} from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type {
   CreateCheckoutSessionDto,
   IBillingPortalResponse,
@@ -6,10 +10,6 @@ import type {
   IClerkPublicData,
 } from '@genfeedai/interfaces';
 import { StripeCheckoutSerializer } from '@genfeedai/serializers';
-import {
-  deserializeResource,
-  type JsonApiResponseDocument,
-} from '@helpers/data/json-api/json-api.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 

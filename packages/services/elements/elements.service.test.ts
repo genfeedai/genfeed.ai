@@ -10,7 +10,23 @@ vi.mock('@genfeedai/constants', () => ({
 }));
 
 vi.mock('axios', () => ({
-  default: { get: vi.fn().mockResolvedValue({ data: { data: {} } }) },
+  default: {
+    get: vi.fn().mockResolvedValue({
+      data: {
+        data: {
+          blacklists: { data: [] },
+          cameraMovements: { data: [] },
+          cameras: { data: [] },
+          lenses: { data: [] },
+          lightings: { data: [] },
+          moods: { data: [] },
+          scenes: { data: [] },
+          sounds: { data: [] },
+          styles: { data: [] },
+        },
+      },
+    }),
+  },
 }));
 
 describe('ElementsService', () => {

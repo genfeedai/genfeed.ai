@@ -3,11 +3,11 @@ import type {
   IBulkOperationResult,
   IBulkPatchData,
 } from '@genfeedai/interfaces';
+import { Activity } from '@genfeedai/models/analytics/activity.model';
 import {
   ActivityBulkPatchSerializer,
   ActivitySerializer,
 } from '@genfeedai/serializers';
-import { Activity } from '@models/analytics/activity.model';
 import { BaseService } from '@services/core/base.service';
 
 export class ActivitiesService extends BaseService<Activity> {

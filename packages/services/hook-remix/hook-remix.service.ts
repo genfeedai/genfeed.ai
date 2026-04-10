@@ -4,7 +4,7 @@ import type {
   HookRemixCreateResponse,
   HookRemixFormData,
   HookRemixJobStatus,
-} from '@props/trends/hook-remix.props';
+} from '@genfeedai/props/trends/hook-remix.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import { logger } from '@services/core/logger.service';

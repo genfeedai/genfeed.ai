@@ -1,7 +1,10 @@
+import {
+  getErrorStatus,
+  isAxiosError,
+} from '@genfeedai/utils/error/error-handler.util';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import { logger } from '@services/core/logger.service';
-import { getErrorStatus, isAxiosError } from '@utils/error/error-handler.util';
 
 export interface SpeechTranscriptionOptions {
   language?: string;

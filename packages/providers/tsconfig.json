@@ -1,6 +1,37 @@
 {
-  "compilerOptions": {},
-  "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"],
+  "compilerOptions": {
+    "paths": {
+      "@genfeedai/contexts/*": ["../contexts/*"],
+      "@genfeedai/helpers/*": ["../helpers/src/*"],
+      "@genfeedai/models/*": ["../models/*"],
+      "@genfeedai/props/*": ["../props/*"],
+      "@genfeedai/services/*": ["../services/*"],
+      "@genfeedai/ui": ["../ui/src"],
+      "@genfeedai/ui/*": ["../ui/src/*"],
+      "@providers/*": ["./*"],
+      "@api-types/*": ["../api-types/src/*"],
+      "@contexts/*": ["../contexts/*"],
+      "@helpers/*": ["../helpers/src/*"],
+      "@hooks/*": ["../hooks/*"],
+      "@models/*": ["../models/*"],
+      "@pages/*": ["../pages/*"],
+      "@props/*": ["../props/*"],
+      "@schemas/*": ["../schemas/*"],
+      "@serializers/*": ["../serializers/src/*"],
+      "@services/*": ["../services/*"],
+      "@styles/*": ["../styles/*"],
+      "@ui/*": ["../ui/src/*", "../ui/src/components/*"],
+      "@utils/*": ["../utils/*"]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/*.stories.ts",
+    "**/*.stories.tsx"
+  ],
   "extends": "../tsconfig/base.json",
   "include": ["**/*.ts", "**/*.tsx"]
 }

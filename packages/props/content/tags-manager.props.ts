@@ -1,5 +1,5 @@
 import type { IIngredient, ITag } from '@genfeedai/interfaces';
-import type { Tag } from '@models/content/tag.model';
+import type { Tag } from '@genfeedai/models/content/tag.model';
 
 export interface TagsManagerProps {
   entityId: string;

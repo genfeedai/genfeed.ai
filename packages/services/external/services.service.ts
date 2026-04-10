@@ -1,9 +1,12 @@
 import type { ICredential, ICredentialOAuth } from '@genfeedai/interfaces';
 import {
+  Credential,
+  CredentialOAuth,
+} from '@genfeedai/models/auth/credential.model';
+import {
   CredentialOAuthSerializer,
   ServiceSerializer,
 } from '@genfeedai/serializers';
-import { Credential, CredentialOAuth } from '@models/auth/credential.model';
 import {
   BaseService,
   type JsonApiResponseDocument,

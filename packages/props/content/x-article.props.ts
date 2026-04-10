@@ -2,8 +2,8 @@ import type {
   IXArticleMetadata,
   IXArticleSection,
 } from '@genfeedai/interfaces';
-import type { Article } from '@models/content/article.model';
-import type { GenerateArticlesRequest } from '@services/content/articles.service';
+import type { Article } from '@genfeedai/models/content/article.model';
+import type { GenerateArticlesRequest } from '@genfeedai/services/content/articles.service';
 
 export interface XArticleTypeSelectorProps {
   onSelect: (type: 'quick' | 'x-article') => void;

@@ -383,6 +383,7 @@ describe('Post', () => {
 
     it('should build Twitter fallback URL without username', () => {
       const post = createPost({
+        credential: createCredential({ externalHandle: '' }),
         externalId: 'tweet123',
         id: 'post-123',
         platform: CredentialPlatform.TWITTER,
@@ -584,6 +585,7 @@ describe('Post', () => {
 
       it('should build Twitter fallback URL without username for PUBLIC', () => {
         const post = createPost({
+          credential: createCredential({ externalHandle: '' }),
           externalId: 'tweet123',
           id: 'post-123',
           platform: CredentialPlatform.TWITTER,

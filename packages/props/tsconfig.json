@@ -1,18 +1,23 @@
 {
   "compilerOptions": {
     "paths": {
+      "@genfeedai/helpers/*": ["../helpers/src/*"],
+      "@genfeedai/models/*": ["../models/*"],
+      "@genfeedai/props/*": ["./*"],
+      "@genfeedai/services/*": ["../services/*"],
+      "@genfeedai/utils/*": ["../utils/*"],
+      "@props/*": ["./*"],
       "@contexts/*": ["../contexts/*"],
       "@helpers/*": ["../helpers/src/*"],
       "@hooks/*": ["../hooks/*"],
       "@models/*": ["../models/*"],
       "@pages/*": ["../pages/*"],
-      "@props/*": ["./*"],
       "@providers/*": ["../providers/*"],
+      "@schemas/*": ["../schemas/*"],
       "@serializers/*": ["../serializers/src/*"],
       "@services/*": ["../services/*"],
       "@styles/*": ["../styles/*"],
-      "@ui-constants/*": ["../ui/constants/*"],
-      "@ui/*": ["../ui/*"],
+      "@ui/*": ["../ui/src/*", "../ui/src/components/*"],
       "@utils/*": ["../utils/*"]
     }
   },

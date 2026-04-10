@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { Vote } from '@genfeedai/models/analytics/vote.model';
 import { VoteSerializer } from '@genfeedai/serializers';
-import { Vote } from '@models/analytics/vote.model';
 import { BaseService } from '@services/core/base.service';
 
 export class VotesService extends BaseService<Vote> {

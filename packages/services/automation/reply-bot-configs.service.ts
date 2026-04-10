@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { ReplyBotConfig } from '@genfeedai/models/automation/reply-bot-config.model';
 import { ReplyBotConfigSerializer } from '@genfeedai/serializers';
-import { ReplyBotConfig } from '@models/automation/reply-bot-config.model';
 import {
   BaseService,
   type JsonApiResponseDocument,

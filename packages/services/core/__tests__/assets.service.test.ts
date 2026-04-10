@@ -1,4 +1,4 @@
-import { Asset } from '@models/ingredients/asset.model';
+import { Asset } from '@genfeedai/models/ingredients/asset.model';
 import { AssetsService } from '@services/content/assets.service';
 import type { AxiosInstance } from 'axios';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -39,13 +39,13 @@ vi.mock('@services/core/environment.service', () => ({
   },
 }));
 
-vi.mock('@helpers/data/deserializer.helper', () => ({
+vi.mock('@genfeedai/helpers/data/deserializer.helper', () => ({
   deserializer: {
     deserialize: vi.fn((data) => data),
   },
 }));
 
-vi.mock('@models/ingredients/asset.model', () => ({
+vi.mock('@genfeedai/models/ingredients/asset.model', () => ({
   Asset: class MockAsset {
     id = '';
     name = '';

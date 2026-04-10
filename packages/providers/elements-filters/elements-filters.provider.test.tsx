@@ -1,21 +1,32 @@
 import { ElementsFiltersProvider } from '@providers/elements-filters/elements-filters.provider';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 describe('ElementsFiltersProvider', () => {
   it('should render without crashing', () => {
-    const { container } = render(<ElementsFiltersProvider />);
-    expect(container.firstChild).toBeInTheDocument();
+    render(
+      <ElementsFiltersProvider>
+        <span data-testid="child">test</span>
+      </ElementsFiltersProvider>,
+    );
+    expect(screen.getByTestId('child')).toBeInTheDocument();
   });
 
   it('should handle user interactions correctly', () => {
-    const { container } = render(<ElementsFiltersProvider />);
-    expect(container.firstChild).toBeInTheDocument();
+    render(
+      <ElementsFiltersProvider>
+        <span data-testid="child">test</span>
+      </ElementsFiltersProvider>,
+    );
+    expect(screen.getByTestId('child')).toBeInTheDocument();
   });
 
   it('should apply correct styles and classes', () => {
-    const { container } = render(<ElementsFiltersProvider />);
-    const rootElement = container.firstChild as HTMLElement;
-    expect(rootElement).toBeInTheDocument();
+    render(
+      <ElementsFiltersProvider>
+        <span data-testid="child">test</span>
+      </ElementsFiltersProvider>,
+    );
+    expect(screen.getByTestId('child')).toBeInTheDocument();
   });
 });

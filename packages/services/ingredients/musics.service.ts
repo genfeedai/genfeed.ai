@@ -1,6 +1,6 @@
 import type { IMusic } from '@genfeedai/interfaces';
+import type { Music } from '@genfeedai/models/ingredients/music.model';
 import { MusicSerializer } from '@genfeedai/serializers';
-import type { Music } from '@models/ingredients/music.model';
 import { IngredientsService } from '@services/content/ingredients.service';
 import type { JsonApiResponseDocument } from '@services/core/base.service';
 

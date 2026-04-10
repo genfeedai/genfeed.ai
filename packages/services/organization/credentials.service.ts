@@ -1,7 +1,10 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type { QuotaStatus } from '@genfeedai/interfaces/organization/quota-status.interface';
+import {
+  Credential,
+  CredentialInstagram,
+} from '@genfeedai/models/auth/credential.model';
 import { CredentialSerializer } from '@genfeedai/serializers';
-import { Credential, CredentialInstagram } from '@models/auth/credential.model';
 import {
   BaseService,
   type JsonApiResponseDocument,

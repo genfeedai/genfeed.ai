@@ -1,3 +1,8 @@
+import {
+  deserializeCollection,
+  deserializeResource,
+  type JsonApiResponseDocument,
+} from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type {
   ICrmAlignmentRule,
   ICrmAlignmentSummary,
@@ -11,11 +16,6 @@ import type {
   IMonthlyMargin,
   IProactivePreparationStatus,
 } from '@genfeedai/interfaces';
-import {
-  deserializeCollection,
-  deserializeResource,
-  type JsonApiResponseDocument,
-} from '@helpers/data/json-api/json-api.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 

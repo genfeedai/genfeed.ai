@@ -1,11 +1,11 @@
 import type { IImage } from '@genfeedai/interfaces';
 import type { IImageEditParams } from '@genfeedai/interfaces/components/image-edit.interface';
-import { ImageEditSerializer, ImageSerializer } from '@genfeedai/serializers';
-import type { Image } from '@models/ingredients/image.model';
+import type { Image } from '@genfeedai/models/ingredients/image.model';
 import type {
   SplitFrameResult,
   SplitResponse,
-} from '@props/studio/contact-sheet.props';
+} from '@genfeedai/props/studio/contact-sheet.props';
+import { ImageEditSerializer, ImageSerializer } from '@genfeedai/serializers';
 import { IngredientsService } from '@services/content/ingredients.service';
 import type { JsonApiResponseDocument } from '@services/core/base.service';
 

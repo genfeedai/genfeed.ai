@@ -1,5 +1,5 @@
 import type { IAgentRun } from '@genfeedai/interfaces';
-import type { AgentStrategy } from '@services/automation/agent-strategies.service';
+import type { AgentStrategy } from '@genfeedai/services/automation/agent-strategies.service';
 
 export interface AgentDetailPageProps {
   agentId: string;

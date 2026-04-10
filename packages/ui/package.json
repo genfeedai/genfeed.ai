@@ -22,6 +22,11 @@
       "default": "./dist/index.js",
       "types": "./dist/index.d.ts"
     },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js",
+      "require": "./dist/*.js"
+    },
     "./gen-vars.scss": "./gen-vars.scss",
     "./presets/dark.scss": "./presets/dark.scss",
     "./web-tokens.scss": "./web-tokens.scss"

@@ -1,14 +1,14 @@
 import type { AnalyticsMetric } from '@genfeedai/enums';
+import {
+  deserializeCollection,
+  deserializeResource,
+  type JsonApiResponseDocument,
+} from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type { IAnalytics, IQueryParams } from '@genfeedai/interfaces';
 import type {
   IViralHookAnalysis,
   IViralHookVideo,
 } from '@genfeedai/interfaces/analytics/viral-hooks.interface';
-import {
-  deserializeCollection,
-  deserializeResource,
-  type JsonApiResponseDocument,
-} from '@helpers/data/json-api/json-api.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 

@@ -448,6 +448,7 @@ describe('commands.registry', () => {
     });
 
     it('should have billing command', () => {
+      process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY = 'test-key';
       const settingsCommands = createSettingsCommands(TEST_ORG);
       const billingCmd = settingsCommands.find(
         (c) => c.id === 'settings-billing',
@@ -456,6 +457,7 @@ describe('commands.registry', () => {
       expect(billingCmd).toBeDefined();
       expect(billingCmd?.label).toBe('Billing & Subscription');
       expect(billingCmd?.keywords).toContain('billing');
+      delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
     });
 
     it('personal action should navigate to org-scoped personal settings URL', () => {

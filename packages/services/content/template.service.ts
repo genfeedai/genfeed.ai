@@ -6,6 +6,7 @@
  */
 
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import type { JsonApiResponseDocument } from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type {
   ITemplateFilter,
   ITemplateGenerationRequest,
@@ -14,9 +15,8 @@ import type {
   ITemplateUsage,
 } from '@genfeedai/interfaces';
 import type { IContentTemplate } from '@genfeedai/interfaces/content/template-ui.interface';
+import { Template } from '@genfeedai/models/content/template.model';
 import { TemplateSerializer } from '@genfeedai/serializers';
-import type { JsonApiResponseDocument } from '@helpers/data/json-api/json-api.helper';
-import { Template } from '@models/content/template.model';
 import { BaseService } from '@services/core/base.service';
 import { logger } from '@services/core/logger.service';
 

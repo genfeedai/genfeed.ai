@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { ElementMood } from '@genfeedai/models/elements/mood.model';
 import { MoodSerializer } from '@genfeedai/serializers';
-import { ElementMood } from '@models/elements/mood.model';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockConstructor = vi.hoisted(() => vi.fn());
@@ -14,6 +14,10 @@ vi.mock('@services/core/base.service', () => {
 
     static getInstance(token: string) {
       return mockGetInstance(token);
+    }
+
+    static getDataServiceInstance(ServiceClass: any, ...args: any[]) {
+      return new ServiceClass(...args);
     }
   }
 

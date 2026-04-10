@@ -1,7 +1,7 @@
 import type {
   GeneratedPrompt,
   GeneratePromptsRequest,
-} from '@props/studio/prompt-generator.props';
+} from '@genfeedai/props/studio/prompt-generator.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import axios, { type AxiosInstance } from 'axios';
 

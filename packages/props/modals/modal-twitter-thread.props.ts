@@ -1,6 +1,6 @@
-import type { TwitterThreadResponse } from '@services/content/articles.service';
-import type { ClipboardService } from '@services/core/clipboard.service';
-import type { NotificationsService } from '@services/core/notifications.service';
+import type { TwitterThreadResponse } from '@genfeedai/services/content/articles.service';
+import type { ClipboardService } from '@genfeedai/services/core/clipboard.service';
+import type { NotificationsService } from '@genfeedai/services/core/notifications.service';
 
 export interface ModalTwitterThreadProps {
   thread: (TwitterThreadResponse & { articleId: string }) | null;

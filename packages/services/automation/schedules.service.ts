@@ -3,6 +3,10 @@
  * AI-powered content scheduling and automation
  */
 
+import {
+  deserializeResource,
+  type JsonApiResponseDocument,
+} from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type {
   IAIScheduleRecommendation,
   IAutoPostingRule,
@@ -15,10 +19,6 @@ import type {
   IWorkflowExecution,
   RepurposeFormat,
 } from '@genfeedai/interfaces/automation/smart-scheduler.interface';
-import {
-  deserializeResource,
-  type JsonApiResponseDocument,
-} from '@helpers/data/json-api/json-api.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 

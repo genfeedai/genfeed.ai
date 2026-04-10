@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { ElementStyle } from '@genfeedai/models/elements/style.model';
 import { StyleSerializer } from '@genfeedai/serializers';
-import { ElementStyle } from '@models/elements/style.model';
 import { BaseService } from '@services/core/base.service';
 
 export class StylesService extends BaseService<ElementStyle> {

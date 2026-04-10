@@ -14,27 +14,28 @@ vi.mock('@clerk/nextjs', () => ({
   useUser: () => ({ user: null }),
 }));
 
-vi.mock('@helpers/auth/clerk.helper', () => ({
+vi.mock('@genfeedai/helpers/auth/clerk.helper', () => ({
   getPlaywrightAuthState: () => getPlaywrightAuthStateMock(),
   hasPlaywrightJwtToken: () => hasPlaywrightJwtTokenMock(),
+  resolveClerkToken: vi.fn().mockResolvedValue('jwt-token'),
 }));
 
-vi.mock('@contexts/ui/asset-selection-context', () => ({
+vi.mock('@genfeedai/contexts/ui/asset-selection-context', () => ({
   AssetSelectionProvider: ({ children }: { children: React.ReactNode }) =>
     children,
 }));
 
-vi.mock('@contexts/ui/background-task-context', () => ({
+vi.mock('@genfeedai/contexts/ui/background-task-context', () => ({
   BackgroundTaskProvider: ({ children }: { children: React.ReactNode }) =>
     children,
 }));
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   BrandProvider: ({ children }: { children: React.ReactNode }) => children,
   useBrand: () => ({ organizationId: null, settings: null }),
 }));
 
-vi.mock('@contexts/user/user-context/user-context', () => ({
+vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   UserProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
@@ -60,11 +61,12 @@ vi.mock('@providers/promptbar/promptbar.provider', () => ({
   default: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
+  clearTokenCache: vi.fn(),
   useAuthedService: () => vi.fn(),
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: { error: vi.fn(), info: vi.fn() },
 }));
 

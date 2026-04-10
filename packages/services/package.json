@@ -1,10 +1,23 @@
 {
+  "dependencies": {
+    "@genfeedai/client": "workspace:*",
+    "@genfeedai/helpers": "workspace:*",
+    "@genfeedai/interfaces": "workspace:*"
+  },
   "description": "Shared client-facing services and orchestration helpers for Genfeed applications",
+  "devDependencies": {
+    "vitest": "4.1.4"
+  },
   "exports": {
     "./*": "./*"
   },
   "name": "@genfeedai/services",
   "private": true,
+  "scripts": {
+    "test": "vitest run --config vitest.config.ts",
+    "test:watch": "vitest watch --config vitest.config.ts",
+    "type-check": "tsc --noEmit"
+  },
   "sideEffects": false,
   "version": "0.1.0"
 }

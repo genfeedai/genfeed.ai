@@ -5,7 +5,7 @@
  * Backend: /optimizers API
  */
 
-import { deserializeCollection } from '@helpers/data/json-api/json-api.helper';
+import { deserializeCollection } from '@genfeedai/helpers/data/json-api/json-api.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 

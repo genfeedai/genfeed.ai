@@ -49,12 +49,16 @@ vi.mock('@services/core/base.service', () => {
     static getInstance(this: unknown, token: string) {
       return new (MockBaseService as new (token: string) => unknown)(token);
     }
+
+    static getDataServiceInstance(ServiceClass: any, ...args: any[]) {
+      return new ServiceClass(...args);
+    }
   }
 
   return { BaseService: MockBaseService };
 });
 
-vi.mock('@helpers/data/json-api/json-api.helper', () => ({
+vi.mock('@genfeedai/helpers/data/json-api/json-api.helper', () => ({
   deserializeCollection: vi.fn(<T>(doc: { data: T[] }) => doc.data),
   deserializeResource: vi.fn(<T>(doc: { data: T }) => doc.data),
 }));

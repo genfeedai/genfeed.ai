@@ -1,5 +1,11 @@
 {
-  "compilerOptions": {},
+  "compilerOptions": {
+    "paths": {
+      "@genfeedai/props/*": ["../props/*"],
+      "@genfeedai/services/*": ["../services/*"],
+      "@utils/*": ["./*"]
+    }
+  },
   "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"],
   "extends": "../tsconfig/base.json",
   "include": ["**/*.ts", "**/*.tsx"]

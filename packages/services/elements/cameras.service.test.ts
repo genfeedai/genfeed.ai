@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { ElementCamera } from '@genfeedai/models/elements/camera.model';
 import { CameraSerializer } from '@genfeedai/serializers';
-import { ElementCamera } from '@models/elements/camera.model';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockConstructor = vi.hoisted(() => vi.fn());
@@ -14,6 +14,10 @@ vi.mock('@services/core/base.service', () => {
 
     static getInstance(token: string) {
       return mockGetInstance(token);
+    }
+
+    static getDataServiceInstance(ServiceClass: any, ...args: any[]) {
+      return new ServiceClass(...args);
     }
   }
 

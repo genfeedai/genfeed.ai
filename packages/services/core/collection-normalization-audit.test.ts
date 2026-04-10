@@ -12,8 +12,8 @@ describe('collection-normalization-audit', () => {
     const rendered = renderCollectionNormalizationAudit();
     const current = readFileSync(
       resolve(
-        process.cwd(),
-        'scripts/migrations/collection-normalization-audit.md',
+        __dirname,
+        '../../../scripts/migrations/collection-normalization-audit.md',
       ),
       'utf8',
     );

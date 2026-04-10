@@ -1,4 +1,4 @@
-import type { Post } from '@models/content/post.model';
+import type { Post } from '@genfeedai/models/content/post.model';
 import type { CalendarItem } from '@props/components/calendar.props';
 import type { ContentProps } from '@props/layout/content.props';
 

@@ -1,5 +1,5 @@
 import type { IAsset } from '@genfeedai/interfaces';
-import { EnvironmentService } from '@services/core/environment.service';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 
 /**
  * Resolve the primary reference image URL for an ingredient.

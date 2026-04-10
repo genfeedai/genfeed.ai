@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { ElementLens } from '@genfeedai/models/elements/lens.model';
 import { LensSerializer } from '@genfeedai/serializers';
-import { ElementLens } from '@models/elements/lens.model';
 import { BaseService } from '@services/core/base.service';
 
 export class LensesService extends BaseService<ElementLens> {
