@@ -9,7 +9,7 @@ services:
     container_name: llm-vllm
     runtime: nvidia
     ports:
-      - '8000:8000'
+      - '${LLM_PORT:-8000}:${LLM_PORT:-8000}'
     command: >
       --model Qwen/Qwen2.5-32B-Instruct-GPTQ-Int8
       --served-model-name local/qwen-32b
@@ -32,7 +32,7 @@ services:
     networks:
       - llm-network
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:8000/health']
+      test: ['CMD', 'curl', '-f', 'http://localhost:${LLM_PORT:-8000}/health']
       interval: 30s
       timeout: 10s
       retries: 10

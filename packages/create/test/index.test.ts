@@ -34,8 +34,10 @@ describe('writeDefaultEnv', () => {
 
     const content = await readFile(join(directory, '.env'), 'utf8');
     expect(content).toContain('MONGODB_URI=mongodb://127.0.0.1:27017/genfeed');
-    expect(content).toContain('PORT=4001');
-    expect(content).toContain('NEXT_PUBLIC_API_URL=http://localhost:4001/api');
+    expect(content).toContain('PORT=3010');
+    expect(content).toContain(
+      'NEXT_PUBLIC_API_ENDPOINT=http://localhost:3010/v1',
+    );
   });
 
   it('does not overwrite an existing .env file', async () => {

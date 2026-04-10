@@ -74,7 +74,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 
 # Application
 NODE_ENV=development
-PORT=3001
+PORT=3010
 JWT_SECRET=your-secure-random-string
 
 # Optional: External storage
@@ -115,7 +115,7 @@ You should see:
 
 ```
 [Nest] Starting...
-[API] Listening on http://localhost:3001
+[API] Listening on http://localhost:3010
 [Queue] BullMQ connected to Redis
 [DB] MongoDB connected
 ```
@@ -125,7 +125,7 @@ You should see:
 Open your browser and visit:
 
 ```
-http://localhost:3001/health
+http://localhost:3010/health
 ```
 
 You should see a JSON response confirming the API, database, and Redis are connected and ready.
@@ -143,7 +143,7 @@ bun install
 bun run dev
 ```
 
-The app UI will be available at `http://localhost:3102`.
+The app UI will be available at `http://localhost:3000`.
 
 ---
 
@@ -174,7 +174,7 @@ services:
   api:
     build: .
     ports:
-      - "3001:3001"
+      - "3010:3010"
     environment:
       - MONGODB_URI=mongodb://mongo:27017/genfeed
       - REDIS_URL=redis://redis:6379
@@ -238,10 +238,10 @@ redis-cli ping
 
 ```bash
 # Find what's using the port
-lsof -i :3001
+lsof -i :3010
 
 # Use a different port
-PORT=3002 bun run dev:api
+PORT=3050 bun run dev:api
 ```
 
 ### API Keys Not Working

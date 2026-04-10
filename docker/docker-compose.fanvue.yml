@@ -5,21 +5,21 @@ services:
     container_name: genfeed-ai-fanvue
     restart: unless-stopped
     ports:
-      - '3004:3004'
+      - '${FANVUE_PORT:-3017}:${FANVUE_PORT:-3017}'
     env_file:
       - ../.env.production
     environment:
       - MONGODB_URI=${MONGODB_URI}
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
-      - API_URL=http://api:3010
+      - API_URL=http://api:${API_PORT:-3010}
       - NODE_ENV=production
-      - PORT=3004
+      - PORT=${FANVUE_PORT:-3017}
       - SERVICE_NAME=fanvue
       - VERSION=1.0.0
     networks:
       - genfeed-network
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3004/health']
+      test: ['CMD', 'curl', '-f', 'http://localhost:${FANVUE_PORT:-3017}/health']
       interval: 30s
       timeout: 10s
       retries: 5

@@ -59,7 +59,7 @@ describe('TelegramBotManager', () => {
   beforeEach(async () => {
     const mockConfigService = {
       API_KEY: 'test-key',
-      API_URL: 'http://localhost:3000',
+      API_URL: 'http://localhost:3010',
       get: vi.fn(),
     };
 

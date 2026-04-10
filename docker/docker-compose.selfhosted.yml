@@ -2,8 +2,8 @@ services:
   genfeed:
     image: ghcr.io/genfeedai/genfeed.ai:latest
     ports:
-      - "3102:3102"  # Web UI
-      - "4001:4001"  # API
+      - "${SELFHOSTED_APP_PORT:-3000}:${SELFHOSTED_APP_PORT:-3000}"  # Web UI
+      - "${SELFHOSTED_API_PORT:-3010}:${SELFHOSTED_API_PORT:-3010}"  # API
     volumes:
       - genfeed_data:/data
 

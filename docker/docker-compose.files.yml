@@ -9,17 +9,17 @@ services:
     container_name: genfeed-ai-files
     restart: unless-stopped
     ports:
-      - '3012:3012'
+      - '${FILES_PORT:-3012}:${FILES_PORT:-3012}'
     env_file:
       - ../.env.production
     environment:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - NODE_ENV=production
-      - PORT=3012
+      - PORT=${FILES_PORT:-3012}
     networks:
       - genfeed-network
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3012/v1/health']
+      test: ['CMD', 'curl', '-f', 'http://localhost:${FILES_PORT:-3012}/v1/health']
       interval: 30s
       timeout: 10s
       retries: 5

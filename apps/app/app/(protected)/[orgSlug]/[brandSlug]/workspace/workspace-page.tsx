@@ -74,6 +74,7 @@ import {
   buildWorkspaceTaskLaunchHref,
   OPERATOR_TASK_CONTEXT_QUERY_KEYS,
 } from '@/lib/navigation/operator-shell';
+import { OPEN_TASK_COMPOSER_EVENT } from '@/lib/workspace/task-composer-events';
 import { WorkspaceDashboard } from './workspace-dashboard';
 
 type WorkspaceSection = 'activity' | 'inbox' | 'overview';
@@ -1666,20 +1667,6 @@ export default function WorkspacePageContent({
     () => taskTargetBrandLabel || getBrandDisplayLabel(selectedBrand),
     [selectedBrand, taskTargetBrandLabel],
   );
-  const clearTaskComposerHash = useCallback(() => {
-    if (
-      typeof window === 'undefined' ||
-      !window.location.hash.includes('new-task')
-    ) {
-      return;
-    }
-
-    window.history.replaceState(
-      null,
-      '',
-      `${window.location.pathname}${window.location.search}`,
-    );
-  }, []);
   const effectiveTaskBrandId = taskTargetBrandId || brandId || undefined;
   const taskBrandSuggestion = useMemo(
     () => ({
@@ -2155,7 +2142,6 @@ export default function WorkspacePageContent({
       setTaskTargetBrandId(null);
       setTaskTargetBrandLabel(null);
       setTaskComposerOpen(false);
-      clearTaskComposerHash();
     } catch (error) {
       setTaskError(
         error instanceof Error ? error.message : 'Failed to create task.',
@@ -2246,33 +2232,23 @@ export default function WorkspacePageContent({
   const shouldShowSectionSnapshot = section === 'activity';
 
   useEffect(() => {
-    if (!isOverviewSection || typeof window === 'undefined') {
+    if (typeof window === 'undefined') {
       return;
     }
 
-    const openComposerFromHash = () => {
-      if (!window.location.hash.includes('new-task')) {
-        return;
-      }
-
-      if (window.location.hash !== '#new-task') {
-        window.history.replaceState(
-          null,
-          '',
-          `${window.location.pathname}${window.location.search}#new-task`,
-        );
-      }
-
+    const openComposerFromSidebar = () => {
       setTaskComposerOpen(true);
     };
 
-    openComposerFromHash();
-    window.addEventListener('hashchange', openComposerFromHash);
+    window.addEventListener(OPEN_TASK_COMPOSER_EVENT, openComposerFromSidebar);
 
     return () => {
-      window.removeEventListener('hashchange', openComposerFromHash);
+      window.removeEventListener(
+        OPEN_TASK_COMPOSER_EVENT,
+        openComposerFromSidebar,
+      );
     };
-  }, [isOverviewSection]);
+  }, []);
 
   const renderTaskStream = (
     tasks: WorkspaceTask[],
@@ -2412,7 +2388,6 @@ export default function WorkspacePageContent({
         onOpenChange={(open) => {
           if (!open) {
             setTaskError(null);
-            clearTaskComposerHash();
           }
           setTaskComposerOpen(open);
         }}

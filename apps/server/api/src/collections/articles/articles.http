@@ -5,7 +5,7 @@
 # Variables from .vscode/settings.json
 ########################################
 # {{bearerToken}} - Your JWT token
-# {{apiBaseUrl}} - API base URL (http://local.genfeed.ai:3001/v1)
+# {{apiBaseUrl}} - API base URL (http://local.genfeed.ai:3010/v1)
 # {{testArticleId}} - Test article ID from settings
 #
 # To switch environments, use REST Client extension:

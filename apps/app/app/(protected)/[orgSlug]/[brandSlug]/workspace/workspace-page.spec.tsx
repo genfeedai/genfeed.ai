@@ -14,6 +14,7 @@ import {
   within,
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { OPEN_TASK_COMPOSER_EVENT } from '@/lib/workspace/task-composer-events';
 import WorkspacePageContent from './workspace-page';
 
 const getTokenMock = vi.fn();
@@ -246,21 +247,16 @@ describe('WorkspacePageContent', () => {
     expect(screen.getByText('Start a task')).toBeInTheDocument();
   });
 
-  it('opens the task composer modal when the overview hash requests a new task', async () => {
-    window.history.replaceState(
-      {},
-      '',
-      '/workspace/overview#new-task#new-task',
-    );
-
+  it('opens the task composer modal when the sidebar requests a new task', async () => {
     render(<WorkspacePageContent section="overview" />);
 
     await waitFor(() => {
       expect(listMock).toHaveBeenCalledWith({ limit: 24 });
     });
 
+    window.dispatchEvent(new Event(OPEN_TASK_COMPOSER_EVENT));
+
     expect(screen.getByText('Start a task')).toBeInTheDocument();
-    expect(window.location.hash).toBe('#new-task');
   });
 
   it('creates a task from the modal composer', async () => {

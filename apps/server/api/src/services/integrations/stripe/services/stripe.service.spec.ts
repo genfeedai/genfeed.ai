@@ -10,7 +10,7 @@ describe('StripeService', () => {
   beforeEach(async () => {
     const configGetMock = vi.fn((key: string) => {
       const map: Record<string, string> = {
-        GENFEEDAI_APP_URL: 'http://localhost:3010',
+        GENFEEDAI_APP_URL: 'http://localhost:3000',
         STRIPE_API_VERSION: '2026-01-28.clover',
         STRIPE_PRICE_PAYG: 'payg_id',
         STRIPE_PRICE_SUBSCRIPTION_ENTERPRISE_MONTHLY: 'enterprise_id',

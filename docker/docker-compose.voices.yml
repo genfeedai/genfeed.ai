@@ -7,12 +7,12 @@ services:
     command: ["bun", "--filter", "@genfeedai/voices", "start:prod"]
     container_name: voices-api
     ports:
-      - '8189:3032'
+      - '${GPU_API_PORT:-8189}:${VOICES_PORT:-3022}'
     environment:
       - REDIS_URL=redis://redis:6379
       - TTS_INFERENCE_URL=http://tts:8188
       - NODE_ENV=production
-      - PORT=3032
+      - PORT=${VOICES_PORT:-3022}
       - SERVICE_NAME=voices
       - VERSION=1.0.0
     env_file:
@@ -26,7 +26,7 @@ services:
     networks:
       - fleet-network
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3032/health']
+      test: ['CMD', 'curl', '-f', 'http://localhost:${VOICES_PORT:-3022}/health']
       interval: 30s
       timeout: 10s
       retries: 5

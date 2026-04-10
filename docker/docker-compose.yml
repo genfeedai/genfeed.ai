@@ -1,80 +1,106 @@
 services:
   api:
     build: { context: .., dockerfile: docker/Dockerfile, target: api }
-    ports: ["3010:3010"]
+    ports: ["${API_PORT:-3010}:${API_PORT:-3010}"]
     env_file: .env
+    environment:
+      - PORT=${API_PORT:-3010}
     depends_on: [mongo, redis]
 
   web:
     build: { context: .., dockerfile: docker/Dockerfile, target: web }
-    ports: ["3000:3000"]
+    ports: ["${APP_PORT:-3000}:${APP_PORT:-3000}"]
     env_file: .env
-
-  admin:
-    build: { context: .., dockerfile: docker/Dockerfile, target: admin }
-    ports: ["3001:3001"]
-    env_file: .env
+    environment:
+      - PORT=${APP_PORT:-3000}
 
   workers:
     build: { context: .., dockerfile: docker/Dockerfile, target: workers }
+    ports: ["${WORKERS_PORT:-3013}:${WORKERS_PORT:-3013}"]
     env_file: .env
+    environment:
+      - PORT=${WORKERS_PORT:-3013}
     depends_on: [redis, mongo]
 
   files:
     build: { context: .., dockerfile: docker/Dockerfile, target: files }
+    ports: ["${FILES_PORT:-3012}:${FILES_PORT:-3012}"]
     env_file: .env
+    environment:
+      - PORT=${FILES_PORT:-3012}
     depends_on: [redis, mongo]
 
   notifications:
     build: { context: .., dockerfile: docker/Dockerfile, target: notifications }
+    ports: ["${NOTIFICATIONS_PORT:-3011}:${NOTIFICATIONS_PORT:-3011}"]
     env_file: .env
+    environment:
+      - PORT=${NOTIFICATIONS_PORT:-3011}
     depends_on: [redis]
 
   # Bot services (opt-in: docker compose --profile bots up)
   discord:
     build: { context: .., dockerfile: docker/Dockerfile, target: discord }
+    ports: ["${DISCORD_PORT:-3016}:${DISCORD_PORT:-3016}"]
     env_file: .env
+    environment:
+      - PORT=${DISCORD_PORT:-3016}
     depends_on: [redis]
     profiles: [bots]
 
   slack:
     build: { context: .., dockerfile: docker/Dockerfile, target: slack }
+    ports: ["${SLACK_PORT:-3018}:${SLACK_PORT:-3018}"]
     env_file: .env
+    environment:
+      - PORT=${SLACK_PORT:-3018}
     depends_on: [redis]
     profiles: [bots]
 
   telegram:
     build: { context: .., dockerfile: docker/Dockerfile, target: telegram }
+    ports: ["${TELEGRAM_PORT:-3019}:${TELEGRAM_PORT:-3019}"]
     env_file: .env
+    environment:
+      - PORT=${TELEGRAM_PORT:-3019}
     depends_on: [redis]
     profiles: [bots]
 
   # GPU services (opt-in: docker compose --profile gpu up)
   images:
     build: { context: .., dockerfile: docker/Dockerfile, target: images }
+    ports: ["${IMAGES_PORT:-3020}:${IMAGES_PORT:-3020}"]
     env_file: .env
+    environment:
+      - PORT=${IMAGES_PORT:-3020}
     profiles: [gpu]
 
   videos:
     build: { context: .., dockerfile: docker/Dockerfile, target: videos }
+    ports: ["${VIDEOS_PORT:-3021}:${VIDEOS_PORT:-3021}"]
     env_file: .env
+    environment:
+      - PORT=${VIDEOS_PORT:-3021}
     profiles: [gpu]
 
   voices:
     build: { context: .., dockerfile: docker/Dockerfile, target: voices }
+    ports: ["${VOICES_PORT:-3022}:${VOICES_PORT:-3022}"]
     env_file: .env
+    environment:
+      - PORT=${VOICES_PORT:-3022}
     profiles: [gpu]
 
   # Infrastructure
   mongo:
     image: mongo:7
     volumes: ["mongo_data:/data/db"]
-    ports: ["27017:27017"]
+    ports: ["${MONGODB_PORT:-27017}:27017"]
 
   redis:
     image: redis:7-alpine
     volumes: ["redis_data:/data"]
-    ports: ["6379:6379"]
+    ports: ["${REDIS_PORT:-6379}:6379"]
 
 volumes:
   mongo_data:

@@ -22,7 +22,7 @@ describe('AppModule (Notifications)', () => {
       GENFEEDAI_API_URL:
         process.env.GENFEEDAI_API_URL || 'http://localhost:3010',
       NODE_ENV: process.env.NODE_ENV || 'test',
-      PORT: process.env.PORT || '3007',
+      PORT: process.env.PORT || '3011',
       RESEND_API_KEY: 're_test_key',
       RESEND_FROM_EMAIL: 'notifications@example.com',
     };

@@ -95,9 +95,6 @@ export const EnvironmentService = {
     if (hostname.includes('marketplace.genfeed.ai')) {
       return 'marketplace';
     }
-    if (hostname.includes('admin.genfeed.ai')) {
-      return 'admin';
-    }
     if (hostname === 'genfeed.ai' || hostname === 'www.genfeed.ai') {
       return 'website';
     }
@@ -109,10 +106,7 @@ export const EnvironmentService = {
       if (port === '3000') {
         return 'app';
       }
-      if (port === '3001') {
-        return 'admin';
-      }
-      if (port === '3104') {
+      if (port === '3003') {
         return 'marketplace';
       }
       if (port === '3002') {

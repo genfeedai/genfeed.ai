@@ -349,7 +349,7 @@ log "Cleanup complete"
 if is_changed "api"; then
   log_header "Final API Verification"
   for i in $(seq 1 10); do
-    if curl -sf --max-time 10 http://localhost:3010/v1/health >/dev/null 2>&1; then
+    if curl -sf --max-time 10 "http://localhost:${API_PORT:-3010}/v1/health" >/dev/null 2>&1; then
       log "api.genfeed.ai is healthy (HTTP check passed)"
       break
     fi

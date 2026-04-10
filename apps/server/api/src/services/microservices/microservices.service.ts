@@ -59,7 +59,7 @@ export class MicroservicesService implements OnModuleInit {
 
     const notificationsUrl =
       this.configService.get('GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL') ||
-      'http://localhost:3013';
+      'http://localhost:3011';
 
     const MCPUrl =
       this.configService.get('GENFEEDAI_MICROSERVICES_MCP_URL') ||

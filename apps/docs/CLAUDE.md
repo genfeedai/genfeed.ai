@@ -16,9 +16,9 @@ Project guidance lives in `AGENTS.md` and `.agents/`. Docs in `.agents/`.
 
 ```bash
 bun install      # Install dependencies
-bun run dev      # Local preview on port 3007
+bun run dev      # Local preview on port 3001
 bun run build    # Production build (.next output)
-bun run start    # Start production server on port 3007
+bun run start    # Start production server on port 3001
 ```
 
 ## Structure

@@ -64,6 +64,7 @@ COPY --from=workers-pruned /app/out/json/ .
 RUN bun install --frozen-lockfile
 COPY --from=workers-pruned /app/out/full/ .
 RUN bun run build --filter=@genfeedai/workers
+EXPOSE 3013
 CMD ["bun", "run", "apps/server/workers/dist/main.js"]
 
 # ─── Files ──────────────────────────────────────────────────────────
@@ -89,7 +90,7 @@ COPY --from=notifications-pruned /app/out/json/ .
 RUN bun install --frozen-lockfile
 COPY --from=notifications-pruned /app/out/full/ .
 RUN bun run build --filter=@genfeedai/notifications
-EXPOSE 3013
+EXPOSE 3011
 CMD ["bun", "run", "apps/server/notifications/dist/main.js"]
 
 # ─── Discord Bot ────────────────────────────────────────────────────
@@ -102,7 +103,7 @@ COPY --from=discord-pruned /app/out/json/ .
 RUN bun install --frozen-lockfile
 COPY --from=discord-pruned /app/out/full/ .
 RUN bun run build --filter=@genfeedai/discord
-EXPOSE 3020
+EXPOSE 3016
 CMD ["bun", "run", "apps/server/discord/dist/main.js"]
 
 # ─── Slack Bot ──────────────────────────────────────────────────────
@@ -115,7 +116,7 @@ COPY --from=slack-pruned /app/out/json/ .
 RUN bun install --frozen-lockfile
 COPY --from=slack-pruned /app/out/full/ .
 RUN bun run build --filter=@genfeedai/slack
-EXPOSE 3021
+EXPOSE 3018
 CMD ["bun", "run", "apps/server/slack/dist/main.js"]
 
 # ─── Telegram Bot ───────────────────────────────────────────────────
@@ -128,7 +129,7 @@ COPY --from=telegram-pruned /app/out/json/ .
 RUN bun install --frozen-lockfile
 COPY --from=telegram-pruned /app/out/full/ .
 RUN bun run build --filter=@genfeedai/telegram
-EXPOSE 3022
+EXPOSE 3019
 CMD ["bun", "run", "apps/server/telegram/dist/main.js"]
 
 # ─── GPU: Images ────────────────────────────────────────────────────
@@ -141,7 +142,7 @@ COPY --from=images-pruned /app/out/json/ .
 RUN bun install --frozen-lockfile
 COPY --from=images-pruned /app/out/full/ .
 RUN bun run build --filter=@genfeedai/images
-EXPOSE 3031
+EXPOSE 3020
 CMD ["bun", "run", "apps/server/images/dist/main.js"]
 
 # ─── GPU: Videos ────────────────────────────────────────────────────
@@ -154,6 +155,7 @@ COPY --from=videos-pruned /app/out/json/ .
 RUN bun install --frozen-lockfile
 COPY --from=videos-pruned /app/out/full/ .
 RUN bun run build --filter=@genfeedai/videos
+EXPOSE 3021
 CMD ["bun", "run", "apps/server/videos/dist/main.js"]
 
 # ─── GPU: Voices ────────────────────────────────────────────────────
@@ -166,7 +168,7 @@ COPY --from=voices-pruned /app/out/json/ .
 RUN bun install --frozen-lockfile
 COPY --from=voices-pruned /app/out/full/ .
 RUN bun run build --filter=@genfeedai/voices
-EXPOSE 3032
+EXPOSE 3022
 CMD ["bun", "run", "apps/server/voices/dist/main.js"]
 
 # ─── MCP ────────────────────────────────────────────────────────────
@@ -192,5 +194,5 @@ COPY --from=clips-pruned /app/out/json/ .
 RUN bun install --frozen-lockfile
 COPY --from=clips-pruned /app/out/full/ .
 RUN bun run build --filter=@genfeedai/clips
-EXPOSE 3030
+EXPOSE 3015
 CMD ["bun", "run", "apps/server/clips/dist/main.js"]

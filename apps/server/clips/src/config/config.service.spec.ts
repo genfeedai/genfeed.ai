@@ -5,7 +5,7 @@ describe('ConfigService (Clips)', () => {
 
   beforeEach(() => {
     process.env.NODE_ENV = 'test';
-    process.env.PORT = '3010';
+    process.env.PORT = '3015';
     configService = new ConfigService();
   });
 
@@ -44,10 +44,10 @@ describe('ConfigService (Clips)', () => {
       expect(svc.FILES_URL).toBe('http://files.example.com');
     });
 
-    it('defaults to localhost:3002 when not configured', () => {
+    it('defaults to localhost:3012 when not configured', () => {
       delete process.env.GENFEEDAI_MICROSERVICES_FILES_URL;
       const svc = new ConfigService();
-      expect(svc.FILES_URL).toBe('http://localhost:3002');
+      expect(svc.FILES_URL).toBe('http://localhost:3012');
     });
   });
 

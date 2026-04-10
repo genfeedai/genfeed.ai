@@ -90,6 +90,7 @@ import {
   pickOperatorTaskContextSearchParams,
   withTaskContextHref,
 } from '@/lib/navigation/operator-shell';
+import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
 
 type AgentPanelProps = {
   apiService: AgentApiService;
@@ -602,12 +603,9 @@ function AppLayoutWithDynamicMenu({
           isChatRoute
             ? undefined
             : {
-                href: `${withTaskContextHref(
-                  buildHref('/workspace/overview'),
-                  taskContextSearchParams,
-                )}#new-task`,
                 icon: <HiPlus className="h-4 w-4" />,
                 label: 'New Task',
+                onClick: dispatchOpenTaskComposer,
               }
         }
         renderTopSlot={

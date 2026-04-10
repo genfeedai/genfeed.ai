@@ -5,19 +5,19 @@ services:
     container_name: genfeed-ai-discord
     restart: unless-stopped
     ports:
-      - '3020:3020'
+      - '${DISCORD_PORT:-3016}:${DISCORD_PORT:-3016}'
     env_file:
       - ../.env.production
     environment:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
-      - GENFEEDAI_API_URL=http://api:3010
+      - GENFEEDAI_API_URL=http://api:${API_PORT:-3010}
       - GENFEEDAI_API_KEY=${GENFEEDAI_API_KEY}
       - NODE_ENV=production
-      - PORT=3020
+      - PORT=${DISCORD_PORT:-3016}
     networks:
       - genfeed-network
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3020/v1/health']
+      test: ['CMD', 'curl', '-f', 'http://localhost:${DISCORD_PORT:-3016}/v1/health']
       interval: 30s
       timeout: 10s
       retries: 5

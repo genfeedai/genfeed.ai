@@ -1,20 +1,20 @@
 # Docker Compose v2 Configuration
 # Production Docker Compose — single source of truth for all services
-# Services: Redis, API, Clips, Discord, Fanvue, Files, MCP, Notifications, Slack, Telegram, Workers
+# Services: Redis, API, Notifications, Files, Workers, MCP, Clips, Discord, Fanvue, Slack, Telegram
 # Used by deploy-production.sh for wave-based deployment
 #
 # Port scheme:
 #   redis         6379
 #   api           3010
-#   workers       3011
+#   notifications 3011
 #   files         3012
-#   notifications 3013
+#   workers       3013
 #   mcp           3014
-#   discord       3020
-#   slack         3021
-#   telegram      3022
-#   clips         3030
-#   fanvue        3004
+#   clips         3015
+#   discord       3016
+#   fanvue        3017
+#   slack         3018
+#   telegram      3019
 #
 # Environment strategy:
 #   env_file: root + service envs  — shared defaults plus service overrides
@@ -62,14 +62,14 @@ services:
     cap_drop:
       - ALL
     ports:
-      - '3012:3012'
+      - '${FILES_PORT:-3012}:${FILES_PORT:-3012}'
     env_file:
       - ../.env.production
       - ../apps/server/files/.env.production
     environment:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - NODE_ENV=production
-      - PORT=3012
+      - PORT=${FILES_PORT:-3012}
       - SERVICE_NAME=files
       - VERSION=1.0.0
     volumes:
@@ -78,7 +78,7 @@ services:
       - genfeed-infra
       - genfeed-api
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3012/v1/health']
+      test: ['CMD', 'curl', '-f', 'http://localhost:${FILES_PORT:-3012}/v1/health']
       interval: 30s
       timeout: 10s
       retries: 5
@@ -97,14 +97,14 @@ services:
     cap_drop:
       - ALL
     ports:
-      - '3014:3014'
+      - '${MCP_PORT:-3014}:${MCP_PORT:-3014}'
     env_file:
       - ../.env.production
       - ../apps/server/mcp/.env.production
     environment:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - NODE_ENV=production
-      - PORT=3014
+      - PORT=${MCP_PORT:-3014}
       - SERVICE_NAME=mcp
       - VERSION=1.0.0
     volumes:
@@ -113,7 +113,7 @@ services:
       - genfeed-infra
       - genfeed-api
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3014/v1/health']
+      test: ['CMD', 'curl', '-f', 'http://localhost:${MCP_PORT:-3014}/v1/health']
       interval: 30s
       timeout: 10s
       retries: 5
@@ -132,14 +132,14 @@ services:
     cap_drop:
       - ALL
     ports:
-      - '3013:3013'
+      - '${NOTIFICATIONS_PORT:-3011}:${NOTIFICATIONS_PORT:-3011}'
     env_file:
       - ../.env.production
       - ../apps/server/notifications/.env.production
     environment:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - NODE_ENV=production
-      - PORT=3013
+      - PORT=${NOTIFICATIONS_PORT:-3011}
       - SERVICE_NAME=notifications
       - VERSION=1.0.0
     volumes:
@@ -148,7 +148,7 @@ services:
       - genfeed-infra
       - genfeed-api
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3013/v1/health']
+      test: ['CMD', 'curl', '-f', 'http://localhost:${NOTIFICATIONS_PORT:-3011}/v1/health']
       interval: 30s
       timeout: 10s
       retries: 5
@@ -175,18 +175,18 @@ services:
     cap_drop:
       - ALL
     ports:
-      - '3010:3010'
+      - '${API_PORT:-3010}:${API_PORT:-3010}'
     env_file:
       - ../.env.production
       - ../apps/server/api/.env.production
     environment:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - GENFEEDAI_API_KEY=${GENFEEDAI_API_KEY}
-      - GENFEEDAI_MICROSERVICES_FILES_URL=http://files:3012
-      - GENFEEDAI_MICROSERVICES_MCP_URL=http://mcp:3014
-      - GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL=http://notifications:3013
+      - GENFEEDAI_MICROSERVICES_FILES_URL=http://files:${FILES_PORT:-3012}
+      - GENFEEDAI_MICROSERVICES_MCP_URL=http://mcp:${MCP_PORT:-3014}
+      - GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL=http://notifications:${NOTIFICATIONS_PORT:-3011}
       - NODE_ENV=production
-      - PORT=3010
+      - PORT=${API_PORT:-3010}
       - SERVICE_NAME=api
       - VERSION=1.0.0
     volumes:
@@ -195,7 +195,7 @@ services:
       - genfeed-infra
       - genfeed-api
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3010/v1/health']
+      test: ['CMD', 'curl', '-f', 'http://localhost:${API_PORT:-3010}/v1/health']
       interval: 30s
       timeout: 10s
       retries: 5
@@ -216,18 +216,18 @@ services:
     cap_drop:
       - ALL
     ports:
-      - '3030:3030'
+      - '${CLIPS_PORT:-3015}:${CLIPS_PORT:-3015}'
     env_file:
       - ../.env.production
       - ../apps/server/clips/.env.production
     environment:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
-      - GENFEEDAI_API_URL=http://api:3010
+      - GENFEEDAI_API_URL=http://api:${API_PORT:-3010}
       - GENFEEDAI_API_KEY=${GENFEEDAI_API_KEY}
-      - GENFEEDAI_MICROSERVICES_FILES_URL=http://files:3012
+      - GENFEEDAI_MICROSERVICES_FILES_URL=http://files:${FILES_PORT:-3012}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - NODE_ENV=production
-      - PORT=3030
+      - PORT=${CLIPS_PORT:-3015}
       - SERVICE_NAME=clips
       - VERSION=1.0.0
     volumes:
@@ -236,7 +236,7 @@ services:
       - genfeed-infra
       - genfeed-api
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3030/v1/health']
+      test: ['CMD', 'curl', '-f', 'http://localhost:${CLIPS_PORT:-3015}/v1/health']
       interval: 30s
       timeout: 10s
       retries: 5
@@ -257,16 +257,16 @@ services:
     cap_drop:
       - ALL
     ports:
-      - '3020:3020'
+      - '${DISCORD_PORT:-3016}:${DISCORD_PORT:-3016}'
     env_file:
       - ../.env.production
       - ../apps/server/discord/.env.production
     environment:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
-      - GENFEEDAI_API_URL=http://api:3010
+      - GENFEEDAI_API_URL=http://api:${API_PORT:-3010}
       - GENFEEDAI_API_KEY=${GENFEEDAI_API_KEY}
       - NODE_ENV=production
-      - PORT=3020
+      - PORT=${DISCORD_PORT:-3016}
       - SERVICE_NAME=discord
       - VERSION=1.0.0
     volumes:
@@ -276,7 +276,7 @@ services:
       - genfeed-bots
       - genfeed-api
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3020/v1/health']
+      test: ['CMD', 'curl', '-f', 'http://localhost:${DISCORD_PORT:-3016}/v1/health']
       interval: 30s
       timeout: 10s
       retries: 5
@@ -295,14 +295,14 @@ services:
     cap_drop:
       - ALL
     ports:
-      - '3004:3004'
+      - '${FANVUE_PORT:-3017}:${FANVUE_PORT:-3017}'
     env_file:
       - ../.env.production
       - ../apps/server/fanvue/.env.production
     environment:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - NODE_ENV=production
-      - PORT=3004
+      - PORT=${FANVUE_PORT:-3017}
       - SERVICE_NAME=fanvue
       - VERSION=1.0.0
     volumes:
@@ -312,7 +312,7 @@ services:
       - genfeed-bots
       - genfeed-api
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3004/v1/health']
+      test: ['CMD', 'curl', '-f', 'http://localhost:${FANVUE_PORT:-3017}/v1/health']
       interval: 30s
       timeout: 10s
       retries: 5
@@ -331,16 +331,16 @@ services:
     cap_drop:
       - ALL
     ports:
-      - '3021:3021'
+      - '${SLACK_PORT:-3018}:${SLACK_PORT:-3018}'
     env_file:
       - ../.env.production
       - ../apps/server/slack/.env.production
     environment:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
-      - GENFEEDAI_API_URL=http://api:3010
+      - GENFEEDAI_API_URL=http://api:${API_PORT:-3010}
       - GENFEEDAI_API_KEY=${GENFEEDAI_API_KEY}
       - NODE_ENV=production
-      - PORT=3021
+      - PORT=${SLACK_PORT:-3018}
       - SERVICE_NAME=slack
       - VERSION=1.0.0
     volumes:
@@ -350,7 +350,7 @@ services:
       - genfeed-bots
       - genfeed-api
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3021/v1/health']
+      test: ['CMD', 'curl', '-f', 'http://localhost:${SLACK_PORT:-3018}/v1/health']
       interval: 30s
       timeout: 10s
       retries: 5
@@ -369,16 +369,16 @@ services:
     cap_drop:
       - ALL
     ports:
-      - '3022:3022'
+      - '${TELEGRAM_PORT:-3019}:${TELEGRAM_PORT:-3019}'
     env_file:
       - ../.env.production
       - ../apps/server/telegram/.env.production
     environment:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
-      - GENFEEDAI_API_URL=http://api:3010
+      - GENFEEDAI_API_URL=http://api:${API_PORT:-3010}
       - GENFEEDAI_API_KEY=${GENFEEDAI_API_KEY}
       - NODE_ENV=production
-      - PORT=3022
+      - PORT=${TELEGRAM_PORT:-3019}
       - SERVICE_NAME=telegram
       - VERSION=1.0.0
     volumes:
@@ -388,7 +388,7 @@ services:
       - genfeed-bots
       - genfeed-api
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3022/v1/health']
+      test: ['CMD', 'curl', '-f', 'http://localhost:${TELEGRAM_PORT:-3019}/v1/health']
       interval: 30s
       timeout: 10s
       retries: 5
@@ -409,14 +409,14 @@ services:
     cap_drop:
       - ALL
     ports:
-      - '3011:3011'
+      - '${WORKERS_PORT:-3013}:${WORKERS_PORT:-3013}'
     env_file:
       - ../.env.production
       - ../apps/server/workers/.env.production
     environment:
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - NODE_ENV=production
-      - PORT=3011
+      - PORT=${WORKERS_PORT:-3013}
       - SERVICE_NAME=workers
       - VERSION=1.0.0
     networks:
@@ -426,7 +426,7 @@ services:
       - workers-logs:/usr/src/app/apps/server/workers/logs
       - workers-data:/usr/src/app/apps/server/workers/data
     healthcheck:
-      test: ['CMD', 'curl', '-f', 'http://localhost:3011/v1/health']
+      test: ['CMD', 'curl', '-f', 'http://localhost:${WORKERS_PORT:-3013}/v1/health']
       interval: 30s
       timeout: 10s
       retries: 5

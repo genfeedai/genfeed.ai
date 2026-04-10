@@ -19,7 +19,7 @@ describe('ConfigService', () => {
     env.AWS_SECRET_ACCESS_KEY = 'test-secret';
     env.MONGODB_URI = 'mongodb://mongo.internal:27017/test-db';
     delete env.DB_MODE;
-    env.PORT = '3001';
+    env.PORT = '3010';
     env.CLERK_PUBLISHABLE_KEY = 'pk_test_test';
     env.CLERK_SECRET_KEY = 'sk_test_test';
     env.CLERK_WEBHOOK_SIGNING_SECRET = 'test-secret';

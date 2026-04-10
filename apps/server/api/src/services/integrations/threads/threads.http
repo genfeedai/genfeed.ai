@@ -1,7 +1,7 @@
 ### Threads Integration Test Requests
-### Base URL: http://localhost:3001
+### Base URL: http://localhost:3010
 
-@baseUrl = http://localhost:3001
+@baseUrl = http://localhost:3010
 @token = Bearer YOUR_JWT_TOKEN
 
 ### Connect Threads Account (Step 1 - Get OAuth URL)
