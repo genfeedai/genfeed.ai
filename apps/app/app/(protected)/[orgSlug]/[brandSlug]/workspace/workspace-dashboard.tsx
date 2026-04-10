@@ -8,7 +8,7 @@ import {
 import type { IAgentRun } from '@genfeedai/interfaces';
 import type { AgentRunStats, AgentRunTrendPoint } from '@genfeedai/types';
 import { cn } from '@helpers/formatting/cn/cn.util';
-import type { WorkspaceTask } from '@services/workspace/workspace-tasks.service';
+import type { Task } from '@services/management/tasks.service';
 import Card from '@ui/card/Card';
 import { DashboardGrid } from '@ui/dashboard/DashboardGrid';
 import { Button } from '@ui/primitives/button';
@@ -39,7 +39,7 @@ interface DashboardProps {
   reviewInbox: ReviewInboxSummary;
   runs: IAgentRun[];
   stats: AgentRunStats | null;
-  workspaceTasks: WorkspaceTask[];
+  workspaceTasks: Task[];
 }
 
 /* ------------------------------------------------------------------ */
@@ -209,10 +209,10 @@ export function DashboardStatsStrip({
   activeRuns: IAgentRun[];
   reviewInbox: ReviewInboxSummary;
   stats: AgentRunStats | null;
-  workspaceTasks: WorkspaceTask[];
+  workspaceTasks: Task[];
 }) {
   const inProgressTaskCount = workspaceTasks.filter(
-    (task) => task.status === 'triaged' || task.status === 'in_progress',
+    (task) => task.status === 'backlog' || task.status === 'in_progress',
   ).length;
   const items: StatItem[] = useMemo(
     () => [
@@ -542,15 +542,15 @@ export function DashboardChartsGrid({
 /*  Recent Activity & Recent Tasks                                     */
 /* ------------------------------------------------------------------ */
 
-function getTaskStatusClass(task: WorkspaceTask): string {
+function getTaskStatusClass(task: Task): string {
   if (task.status === 'failed') return 'bg-rose-400';
-  if (task.status === 'needs_review' || task.reviewState === 'pending_approval')
+  if (task.status === 'in_review' || task.reviewState === 'pending_approval')
     return 'bg-amber-400';
-  if (task.status === 'completed') return 'bg-emerald-400';
+  if (task.status === 'done') return 'bg-emerald-400';
   return 'bg-sky-400 animate-pulse';
 }
 
-function formatTaskEventLabel(task: WorkspaceTask): string {
+function formatTaskEventLabel(task: Task): string {
   const latestEvent = task.eventStream?.at(-1);
   if (!latestEvent) {
     return task.status.replaceAll('_', ' ');
@@ -559,7 +559,7 @@ function formatTaskEventLabel(task: WorkspaceTask): string {
   return latestEvent.type.replaceAll('_', ' ');
 }
 
-function ActivityRow({ task }: { task: WorkspaceTask }) {
+function ActivityRow({ task }: { task: Task }) {
   const latestEvent = task.eventStream?.at(-1);
   const message =
     typeof latestEvent?.payload?.summary === 'string'
@@ -599,7 +599,7 @@ function ActivityRow({ task }: { task: WorkspaceTask }) {
 export function DashboardRecentActivity({
   workspaceTasks,
 }: {
-  workspaceTasks: WorkspaceTask[];
+  workspaceTasks: Task[];
 }) {
   const sortedTasks = useMemo(
     () =>
@@ -638,7 +638,7 @@ export function DashboardRecentActivity({
   );
 }
 
-function TaskRow({ task }: { task: WorkspaceTask }) {
+function TaskRow({ task }: { task: Task }) {
   return (
     <div className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0">
       <div className="flex items-center gap-3 min-w-0">
@@ -647,9 +647,9 @@ function TaskRow({ task }: { task: WorkspaceTask }) {
             'inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium',
             task.status === 'failed'
               ? 'bg-rose-500/10 text-rose-300 border-rose-500/20'
-              : task.status === 'needs_review'
+              : task.status === 'in_review'
                 ? 'bg-amber-500/10 text-amber-300 border-amber-500/20'
-                : task.status === 'completed'
+                : task.status === 'done'
                   ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20'
                   : 'bg-sky-500/10 text-sky-300 border-sky-500/20',
           )}
@@ -683,7 +683,7 @@ function TaskRow({ task }: { task: WorkspaceTask }) {
 export function DashboardRecentTasks({
   workspaceTasks,
 }: {
-  workspaceTasks: WorkspaceTask[];
+  workspaceTasks: Task[];
 }) {
   const sortedTasks = useMemo(
     () =>

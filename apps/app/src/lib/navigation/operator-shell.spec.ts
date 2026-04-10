@@ -1,8 +1,8 @@
-import type { WorkspaceTask } from '@services/workspace/workspace-tasks.service';
+import type { Task } from '@services/management/tasks.service';
 import { describe, expect, it } from 'vitest';
 import {
   appendSearchParamsToHref,
-  buildWorkspaceTaskLaunchHref,
+  buildTaskLaunchHref,
   normalizeProtectedPathname,
   pickOperatorTaskContextSearchParams,
 } from './operator-shell';
@@ -40,12 +40,12 @@ describe('operator-shell helpers', () => {
       id: 'task-42',
       outputType: 'caption',
       title: 'Draft launch hooks',
-    } as WorkspaceTask;
+    } as Task;
 
-    expect(buildWorkspaceTaskLaunchHref(task, 'auto')).toBe(
+    expect(buildTaskLaunchHref(task, 'auto')).toBe(
       '/compose/post?taskExecutionPath=caption_generation&taskId=task-42&taskOutputType=caption&taskSource=workspace&taskTitle=Draft+launch+hooks',
     );
-    expect(buildWorkspaceTaskLaunchHref(task, 'edit')).toBe(
+    expect(buildTaskLaunchHref(task, 'edit')).toBe(
       '/editor?taskExecutionPath=caption_generation&taskId=task-42&taskOutputType=caption&taskSource=workspace&taskTitle=Draft+launch+hooks',
     );
   });
@@ -56,9 +56,9 @@ describe('operator-shell helpers', () => {
       id: 'task-99',
       outputType: 'newsletter',
       title: 'Draft weekly founder issue',
-    } as WorkspaceTask;
+    } as Task;
 
-    expect(buildWorkspaceTaskLaunchHref(task, 'auto')).toBe(
+    expect(buildTaskLaunchHref(task, 'auto')).toBe(
       '/compose/newsletter?taskExecutionPath=caption_generation&taskId=task-99&taskOutputType=newsletter&taskSource=workspace&taskTitle=Draft+weekly+founder+issue',
     );
   });
