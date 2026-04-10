@@ -15,7 +15,7 @@
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
-    "target": "ES2022"
+    "target": "es2022"
   },
   "exclude": ["dist", "node_modules", "**/*.spec.ts", "**/*.test.ts"],
   "extends": "../../tsconfig.json",

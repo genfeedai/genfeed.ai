@@ -1,5 +1,26 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.4.10/schema.json",
+  "files": {
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/.next",
+      "!**/.turbo",
+      "!**/dist",
+      "!**/build",
+      "!**/out",
+      "!**/coverage",
+      "!**/test-results",
+      "!**/playwright-report",
+      "!**/*.snap",
+      "!**/bun.lock",
+      "!**/.env",
+      "!**/.env.*",
+      "!.agents",
+      "!.worktrees",
+      "!.shipcode"
+    ]
+  },
   "assist": {
     "actions": {
       "source": {

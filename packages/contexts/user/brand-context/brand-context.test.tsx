@@ -8,7 +8,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const useAuthMock = vi.fn();
 const useUserMock = vi.fn();
 const useAuthedServiceMock = vi.fn();
-const useResourceMock = vi.fn();
+const useResourceMock = vi.fn(() => ({
+  data: null,
+  error: null,
+  isLoading: false,
+  mutate: vi.fn(),
+  refresh: vi.fn(),
+}));
 
 vi.mock('@clerk/nextjs', () => ({
   useAuth: () => useAuthMock(),
@@ -19,8 +25,8 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => useAuthedServiceMock,
 }));
 
-vi.mock('@genfeedai/hooks/data/resource/use-resource/use-resource', () => ({
-  useResource: (...args: unknown[]) => useResourceMock(...args),
+vi.mock('../internal/context-resource', () => ({
+  useContextResource: (...args: unknown[]) => useResourceMock(...args),
 }));
 
 vi.mock('@genfeedai/services/organization/organizations.service', () => ({

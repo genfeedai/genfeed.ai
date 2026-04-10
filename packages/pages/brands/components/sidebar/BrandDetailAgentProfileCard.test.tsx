@@ -84,7 +84,9 @@ describe('BrandDetailAgentProfileCard', () => {
       target: { value: 'clarity, proof' },
     });
     fireEvent.change(screen.getByLabelText('Approved Hooks'), {
-      target: { value: 'Say the quiet part out loud, Most teams get this wrong' },
+      target: {
+        value: 'Say the quiet part out loud, Most teams get this wrong',
+      },
     });
     fireEvent.change(screen.getByLabelText('Banned Phrases'), {
       target: { value: 'game-changing AI, unlock your potential' },
@@ -137,7 +139,10 @@ describe('BrandDetailAgentProfileCard', () => {
               voice: expect.objectContaining({
                 approvedHooks: ['speed', 'practicality'],
                 doNotSoundLike: ['hype', 'fluff'],
-                exemplarTexts: ['Open with a sharp claim', 'then prove it fast.'],
+                exemplarTexts: [
+                  'Open with a sharp claim',
+                  'then prove it fast.',
+                ],
                 messagingPillars: ['speed', 'practicality'],
                 sampleOutput: 'Fast-moving Twitter voice with crisp hooks.',
               }),
@@ -148,10 +153,7 @@ describe('BrandDetailAgentProfileCard', () => {
               'Say the quiet part out loud',
               'Most teams get this wrong',
             ],
-            bannedPhrases: [
-              'game-changing AI',
-              'unlock your potential',
-            ],
+            bannedPhrases: ['game-changing AI', 'unlock your potential'],
             canonicalSource: 'brand',
             doNotSoundLike: ['clickbait', 'jargon'],
             exemplarTexts: ['We ship systems', 'not vibes'],

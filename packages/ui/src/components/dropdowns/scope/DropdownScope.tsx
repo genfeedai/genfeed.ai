@@ -3,6 +3,7 @@
 import { AssetScope, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import type { IArticle, IIngredient } from '@genfeedai/interfaces';
 import type { ScopeDropdownProps } from '@genfeedai/props/social/scope-dropdown.props';
 import { ArticlesService } from '@genfeedai/services/content/articles.service';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
@@ -60,20 +61,20 @@ export default function DropdownScope({
 
   const handleChange = async (newScope: AssetScope) => {
     try {
-      let updatedItem: unknown;
+      let updatedItem: IIngredient | IArticle | undefined;
 
       if (isArticle) {
         // Use articles service
         const service = await getArticlesService();
-        updatedItem = await service.patch(item.id, {
+        updatedItem = (await service.patch(item.id, {
           scope: newScope,
-        });
+        })) as IArticle | undefined;
       } else {
         // Use ingredients service
         const service = await getIngredientsService();
-        updatedItem = await service.patch(item.id, {
+        updatedItem = (await service.patch(item.id, {
           scope: newScope,
-        });
+        })) as IIngredient | undefined;
       }
 
       // Emit the full updated item to parent

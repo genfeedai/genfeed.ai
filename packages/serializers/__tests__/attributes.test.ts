@@ -100,9 +100,6 @@ import {
 } from '@serializers/attributes/integrations/stripe.attributes';
 import { folderAttributes } from '@serializers/attributes/management/folder.attributes';
 import { tagAttributes } from '@serializers/attributes/management/tag.attributes';
-import { listingAttributes } from '@serializers/attributes/marketplace/listing.attributes';
-import { purchaseAttributes } from '@serializers/attributes/marketplace/purchase.attributes';
-import { sellerAttributes } from '@serializers/attributes/marketplace/seller.attributes';
 import { brandAttributes } from '@serializers/attributes/organizations/brand.attributes';
 import {
   credentialAttributes,
@@ -1075,51 +1072,6 @@ describe('Serializer Attributes', () => {
     it('should not contain duplicates', () => {
       const unique = new Set(assetAttributes);
       expect(unique.size).toBe(assetAttributes.length);
-    });
-  });
-
-  describe('listingAttributes', () => {
-    it('should be a non-empty array of strings', () => {
-      expect(Array.isArray(listingAttributes)).toBe(true);
-      expect(listingAttributes.length).toBeGreaterThan(0);
-      for (const attr of listingAttributes) {
-        expect(typeof attr).toBe('string');
-      }
-    });
-
-    it('should not contain duplicates', () => {
-      const unique = new Set(listingAttributes);
-      expect(unique.size).toBe(listingAttributes.length);
-    });
-  });
-
-  describe('sellerAttributes', () => {
-    it('should be a non-empty array of strings', () => {
-      expect(Array.isArray(sellerAttributes)).toBe(true);
-      expect(sellerAttributes.length).toBeGreaterThan(0);
-      for (const attr of sellerAttributes) {
-        expect(typeof attr).toBe('string');
-      }
-    });
-
-    it('should not contain duplicates', () => {
-      const unique = new Set(sellerAttributes);
-      expect(unique.size).toBe(sellerAttributes.length);
-    });
-  });
-
-  describe('purchaseAttributes', () => {
-    it('should be a non-empty array of strings', () => {
-      expect(Array.isArray(purchaseAttributes)).toBe(true);
-      expect(purchaseAttributes.length).toBeGreaterThan(0);
-      for (const attr of purchaseAttributes) {
-        expect(typeof attr).toBe('string');
-      }
-    });
-
-    it('should not contain duplicates', () => {
-      const unique = new Set(purchaseAttributes);
-      expect(unique.size).toBe(purchaseAttributes.length);
     });
   });
 

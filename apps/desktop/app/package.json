@@ -37,6 +37,8 @@
     ]
   },
   "dependencies": {
+    "@genfeedai/desktop-contracts": "workspace:*",
+    "@genfeedai/desktop-core": "workspace:*",
     "@genfeedai/desktop-shell": "workspace:*",
     "@sentry/browser": "10.47.0",
     "better-sqlite3": "12.8.0",

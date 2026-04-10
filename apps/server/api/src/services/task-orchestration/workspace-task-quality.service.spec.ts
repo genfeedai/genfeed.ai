@@ -16,7 +16,8 @@ describe('WorkspaceTaskQualityService', () => {
   const assessmentInput = {
     outputType: 'post',
     platforms: ['x'],
-    request: 'Write a founder post about why open source GTM needs quality gates.',
+    request:
+      'Write a founder post about why open source GTM needs quality gates.',
     summaries: ['Open source GTM without quality gates just ships mediocrity.'],
   };
 

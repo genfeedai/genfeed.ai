@@ -54,8 +54,6 @@ export default function IngredientDetailImage({
   onReprompt,
   onUsePrompt,
   onSeeDetails,
-  _onUpdateMetadata,
-  _onUpdateSharing,
   onScopeChange,
   isUpscaling = false,
   isPublishing = false,

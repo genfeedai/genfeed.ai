@@ -12,37 +12,47 @@ import {
   resolveQualityToModelFromDb,
 } from '@helpers/quality-routing.helper';
 
-vi.mock('@genfeedai/constants', () => ({
-  MODEL_OUTPUT_CAPABILITIES: {
-    [MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO]: {
-      aspectRatios: ['1:1', '16:9', '9:16'],
-      category: ModelCategory.IMAGE,
+vi.mock('@genfeedai/constants', async () => {
+  const actual = await vi.importActual<typeof import('@genfeedai/constants')>(
+    '@genfeedai/constants',
+  );
+  const enums =
+    await vi.importActual<typeof import('@genfeedai/enums')>(
+      '@genfeedai/enums',
+    );
+  return {
+    ...actual,
+    MODEL_OUTPUT_CAPABILITIES: {
+      [actual.MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_TURBO]: {
+        aspectRatios: ['1:1', '16:9', '9:16'],
+        category: enums.ModelCategory.IMAGE,
+      },
+      [actual.MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED]: {
+        aspectRatios: ['1:1', '16:9', '9:16'],
+        category: enums.ModelCategory.IMAGE,
+      },
+      [actual.MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_QUALITY]: {
+        aspectRatios: ['1:1', '16:9', '9:16'],
+        category: enums.ModelCategory.IMAGE,
+      },
+      [actual.MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST]: {
+        aspectRatios: ['16:9', '9:16'],
+        category: enums.ModelCategory.VIDEO,
+      },
+      [actual.MODEL_KEYS.REPLICATE_GOOGLE_VEO_3]: {
+        aspectRatios: ['16:9', '9:16'],
+        category: enums.ModelCategory.VIDEO,
+      },
+      [actual.MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1]: {
+        aspectRatios: ['16:9', '9:16'],
+        category: enums.ModelCategory.VIDEO,
+      },
+      [actual.MODEL_KEYS.REPLICATE_META_MUSICGEN]: {
+        category: enums.ModelCategory.MUSIC,
+      },
     },
-    [MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_BALANCED]: {
-      aspectRatios: ['1:1', '16:9', '9:16'],
-      category: ModelCategory.IMAGE,
-    },
-    [MODEL_KEYS.REPLICATE_IDEOGRAM_AI_IDEOGRAM_V3_QUALITY]: {
-      aspectRatios: ['1:1', '16:9', '9:16'],
-      category: ModelCategory.IMAGE,
-    },
-    [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_FAST]: {
-      aspectRatios: ['16:9', '9:16'],
-      category: ModelCategory.VIDEO,
-    },
-    [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3]: {
-      aspectRatios: ['16:9', '9:16'],
-      category: ModelCategory.VIDEO,
-    },
-    [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1]: {
-      aspectRatios: ['16:9', '9:16'],
-      category: ModelCategory.VIDEO,
-    },
-    [MODEL_KEYS.REPLICATE_META_MUSICGEN]: {
-      category: ModelCategory.MUSIC,
-    },
-  },
-}));
+  };
+});
 
 vi.mock('../src/aspect-ratio.helper', () => ({
   isAspectRatioSupported: vi.fn((modelKey: string, aspectRatio: string) => {

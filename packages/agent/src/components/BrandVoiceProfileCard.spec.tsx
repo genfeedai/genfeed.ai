@@ -34,14 +34,10 @@ describe('BrandVoiceProfileCard', () => {
     expect(screen.getByText('founder')).toBeInTheDocument();
     expect(screen.getByText('founders, operators')).toBeInTheDocument();
     expect(screen.getByText('clarity, systems')).toBeInTheDocument();
-    expect(
-      screen.getByText('Say the quiet part out loud'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Say the quiet part out loud')).toBeInTheDocument();
     expect(screen.getByText('game-changing AI')).toBeInTheDocument();
     expect(screen.getByText('Lead with proof')).toBeInTheDocument();
-    expect(
-      screen.getByText('We ship systems, not vibes'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('We ship systems, not vibes')).toBeInTheDocument();
     expect(
       screen.getByText('Clear systems create compounding output.'),
     ).toBeInTheDocument();

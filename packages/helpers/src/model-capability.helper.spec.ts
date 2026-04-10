@@ -1,6 +1,9 @@
-import { type ImageModelCapability,
+import {
+  type ImageModelCapability,
+  MODEL_KEYS,
   MODEL_OUTPUT_CAPABILITIES,
-  type VideoModelCapability,, MODEL_KEYS } from '@genfeedai/constants';
+  type VideoModelCapability,
+} from '@genfeedai/constants';
 import { ModelCategory, ModelProvider } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 

@@ -9,36 +9,46 @@ import {
   normalizeAspectRatioForModel,
 } from '@helpers/aspect-ratio.helper';
 
-vi.mock('@genfeedai/constants', () => ({
-  MODEL_OUTPUT_CAPABILITIES: {
-    [MODEL_KEYS.REPLICATE_GOOGLE_VEO_3]: {
-      aspectRatios: ['16:9', '9:16', '1:1'],
-      category: ModelCategory.VIDEO,
-      defaultAspectRatio: '16:9',
-      usesOrientation: false,
+vi.mock('@genfeedai/constants', async () => {
+  const actual = await vi.importActual<typeof import('@genfeedai/constants')>(
+    '@genfeedai/constants',
+  );
+  const enums =
+    await vi.importActual<typeof import('@genfeedai/enums')>(
+      '@genfeedai/enums',
+    );
+  return {
+    ...actual,
+    MODEL_OUTPUT_CAPABILITIES: {
+      [actual.MODEL_KEYS.REPLICATE_GOOGLE_VEO_3]: {
+        aspectRatios: ['16:9', '9:16', '1:1'],
+        category: enums.ModelCategory.VIDEO,
+        defaultAspectRatio: '16:9',
+        usesOrientation: false,
+      },
+      [actual.MODEL_KEYS.REPLICATE_OPENAI_SORA_2]: {
+        aspectRatios: ['16:9', '9:16'],
+        category: enums.ModelCategory.VIDEO,
+        defaultAspectRatio: '16:9',
+        usesOrientation: true,
+      },
+      [actual.MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3]: {
+        aspectRatios: ['1:1', '16:9', '9:16', '4:3', '3:4'],
+        category: enums.ModelCategory.IMAGE,
+        defaultAspectRatio: '1:1',
+      },
+      [actual.MODEL_KEYS.REPLICATE_META_MUSICGEN]: {
+        category: enums.ModelCategory.MUSIC,
+      },
+      [actual.MODEL_KEYS.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1]: {
+        category: enums.ModelCategory.TEXT,
+      },
+      [actual.MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE]: {
+        category: enums.ModelCategory.IMAGE_UPSCALE,
+      },
     },
-    [MODEL_KEYS.REPLICATE_OPENAI_SORA_2]: {
-      aspectRatios: ['16:9', '9:16'],
-      category: ModelCategory.VIDEO,
-      defaultAspectRatio: '16:9',
-      usesOrientation: true,
-    },
-    [MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3]: {
-      aspectRatios: ['1:1', '16:9', '9:16', '4:3', '3:4'],
-      category: ModelCategory.IMAGE,
-      defaultAspectRatio: '1:1',
-    },
-    [MODEL_KEYS.REPLICATE_META_MUSICGEN]: {
-      category: ModelCategory.MUSIC,
-    },
-    [MODEL_KEYS.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1]: {
-      category: ModelCategory.TEXT,
-    },
-    [MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE]: {
-      category: ModelCategory.IMAGE_UPSCALE,
-    },
-  },
-}));
+  };
+});
 
 describe('aspect-ratio.helper', () => {
   describe('getDefaultAspectRatio', () => {
