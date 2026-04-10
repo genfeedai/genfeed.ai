@@ -1,4 +1,4 @@
-import type { Voice } from '@models/ingredients/voice.model';
+import type { Voice } from '@genfeedai/models/ingredients/voice.model';
 import { IngredientsService } from '@services/content/ingredients.service';
 import type { JsonApiResponseDocument } from '@services/core/base.service';
 

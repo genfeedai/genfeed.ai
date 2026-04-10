@@ -5,6 +5,13 @@ import type {
   IIngredient,
   IPost,
 } from '@genfeedai/interfaces';
+import { Avatar } from '@genfeedai/models/ai/avatar.model';
+import { Ingredient } from '@genfeedai/models/content/ingredient.model';
+import { GIF } from '@genfeedai/models/ingredients/gif.model';
+import { Image } from '@genfeedai/models/ingredients/image.model';
+import { Music } from '@genfeedai/models/ingredients/music.model';
+import { Video } from '@genfeedai/models/ingredients/video.model';
+import { Voice } from '@genfeedai/models/ingredients/voice.model';
 import {
   AvatarSerializer,
   ImageSerializer,
@@ -14,13 +21,6 @@ import {
   MusicSerializer,
   VideoSerializer,
 } from '@genfeedai/serializers';
-import { Avatar } from '@models/ai/avatar.model';
-import { Ingredient } from '@models/content/ingredient.model';
-import { GIF } from '@models/ingredients/gif.model';
-import { Image } from '@models/ingredients/image.model';
-import { Music } from '@models/ingredients/music.model';
-import { Video } from '@models/ingredients/video.model';
-import { Voice } from '@models/ingredients/voice.model';
 import {
   BaseService,
   type JsonApiResponseDocument,

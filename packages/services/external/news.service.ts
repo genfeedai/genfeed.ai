@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { News } from '@genfeedai/models/integrations/news.model';
 import { NewsSerializer } from '@genfeedai/serializers';
-import { News } from '@models/integrations/news.model';
 import { BaseService } from '@services/core/base.service';
 
 export class NewsService extends BaseService<News> {

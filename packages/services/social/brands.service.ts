@@ -1,4 +1,10 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import {
+  deserializeCollection,
+  deserializeResource,
+  type JsonApiResponseDocument,
+} from '@genfeedai/helpers/data/json-api/json-api.helper';
+import type { DefaultVoiceRef } from '@genfeedai/helpers/voice/default-voice-ref.helper';
 import type {
   IActivity,
   IAnalytics,
@@ -9,21 +15,15 @@ import type {
   IVideo,
 } from '@genfeedai/interfaces';
 import type { BrandQueryParams } from '@genfeedai/interfaces/utils/query.interface';
+import { Activity } from '@genfeedai/models/analytics/activity.model';
+import { Credential } from '@genfeedai/models/auth/credential.model';
+import { Article } from '@genfeedai/models/content/article.model';
+import { Post } from '@genfeedai/models/content/post.model';
+import { Image } from '@genfeedai/models/ingredients/image.model';
+import { Video } from '@genfeedai/models/ingredients/video.model';
+import { Brand } from '@genfeedai/models/organization/brand.model';
+import { Link } from '@genfeedai/models/social/link.model';
 import { BrandSerializer } from '@genfeedai/serializers';
-import {
-  deserializeCollection,
-  deserializeResource,
-  type JsonApiResponseDocument,
-} from '@helpers/data/json-api/json-api.helper';
-import type { DefaultVoiceRef } from '@helpers/voice/default-voice-ref.helper';
-import { Activity } from '@models/analytics/activity.model';
-import { Credential } from '@models/auth/credential.model';
-import { Article } from '@models/content/article.model';
-import { Post } from '@models/content/post.model';
-import { Image } from '@models/ingredients/image.model';
-import { Video } from '@models/ingredients/video.model';
-import { Brand } from '@models/organization/brand.model';
-import { Link } from '@models/social/link.model';
 import { PagesService } from '@services/content/pages.service';
 import { BaseService } from '@services/core/base.service';
 
@@ -262,7 +262,10 @@ export class BrandsService extends BaseService<Brand> {
     },
   ): Promise<IAnalytics> {
     return await this.instance
-      .get<JsonApiResponseDocument>(`/${id}/analytics`, { params: query })
+      .get<JsonApiResponseDocument>(
+        `/${id}/analytics`,
+        ...(query ? [{ params: query }] : []),
+      )
       .then((res) => deserializeResource<IAnalytics>(res.data));
   }
 

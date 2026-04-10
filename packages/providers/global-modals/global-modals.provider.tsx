@@ -1,13 +1,17 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   type IngredientCategory,
   ModalEnum,
   type Platform,
   type SubscriptionTier,
 } from '@genfeedai/enums';
+import { capitalize } from '@genfeedai/helpers/formatting/format/format.helper';
+import { closeModal } from '@genfeedai/helpers/ui/modal/modal.helper';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type {
   IAsset,
   IBrand,
@@ -18,19 +22,15 @@ import type {
   IPost,
 } from '@genfeedai/interfaces';
 import type { UsePostModalOptions } from '@genfeedai/interfaces/hooks/use-publication-modal.interface';
-import { capitalize } from '@helpers/formatting/format/format.helper';
-import { closeModal } from '@helpers/ui/modal/modal.helper';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import type { Brand } from '@models/organization/brand.model';
+import type { Brand } from '@genfeedai/models/organization/brand.model';
 import type {
   ModalConfirmProps,
   ModalExportProps,
   ModalMetadataProps,
   ModalPromptProps,
-} from '@props/modals/modal.props';
-import { logger } from '@services/core/logger.service';
-import { UsersService } from '@services/organization/users.service';
+} from '@genfeedai/props/modals/modal.props';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { UsersService } from '@genfeedai/services/organization/users.service';
 import {
   LazyBrandOverlay,
   LazyIngredientOverlay,
@@ -440,7 +440,7 @@ export function GlobalModalsProvider({
       closeModal(ModalEnum.POST);
       router.push(href(`/posts/${postId}`));
     },
-    [router],
+    [router, href],
   );
 
   const [publishIngredients, setPublishIngredients] = useState<IIngredient[]>(

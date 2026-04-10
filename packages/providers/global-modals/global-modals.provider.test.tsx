@@ -8,7 +8,7 @@ vi.mock('@clerk/nextjs', () => ({
   }),
 }));
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     credentials: [],
     refreshBrands: vi.fn(),
@@ -17,13 +17,14 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  useParams: () => ({ brandSlug: undefined, orgSlug: undefined }),
   useRouter: () => ({
     push: vi.fn(),
     refresh: vi.fn(),
   }),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => vi.fn(),
 }));
 

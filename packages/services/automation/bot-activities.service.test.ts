@@ -1,7 +1,7 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type { IBotActivityStats } from '@genfeedai/interfaces';
+import { BotActivity } from '@genfeedai/models/automation/bot-activity.model';
 import { BotActivitySerializer } from '@genfeedai/serializers';
-import { BotActivity } from '@models/automation/bot-activity.model';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock BaseService
@@ -39,6 +39,10 @@ vi.mock('@services/core/base.service', () => {
         BotActivity,
         BotActivitySerializer,
       );
+    }
+
+    static getDataServiceInstance(ServiceClass: any, ...args: any[]) {
+      return new ServiceClass(...args);
     }
 
     protected extractCollection<T>(data: any): T[] {

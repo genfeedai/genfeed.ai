@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { ElementCameraMovement } from '@genfeedai/models/elements/camera-movement.model';
 import { CameraMovementSerializer } from '@genfeedai/serializers';
-import { ElementCameraMovement } from '@models/elements/camera-movement.model';
 import { BaseService } from '@services/core/base.service';
 
 export class CameraMovementsService extends BaseService<ElementCameraMovement> {

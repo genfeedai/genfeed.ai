@@ -1,8 +1,8 @@
-import { deserializeCollection } from '@helpers/data/json-api/json-api.helper';
+import { deserializeCollection } from '@genfeedai/helpers/data/json-api/json-api.helper';
 import { TrendsService } from '@services/social/trends.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@helpers/data/json-api/json-api.helper', () => ({
+vi.mock('@genfeedai/helpers/data/json-api/json-api.helper', () => ({
   deserializeCollection: vi.fn(),
 }));
 

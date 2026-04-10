@@ -4,9 +4,9 @@ import type {
   IOrganizationSetting,
   IUser,
 } from '@genfeedai/interfaces';
+import type { AccessBootstrapState } from '@genfeedai/services/auth/auth.service';
 import type { IStreakSummary } from '@genfeedai/types';
 import type { LayoutProps } from '@props/layout/layout.props';
-import type { AccessBootstrapState } from '@services/auth/auth.service';
 
 export interface ProtectedBootstrapData {
   accessState: AccessBootstrapState | null;

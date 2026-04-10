@@ -1,18 +1,18 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { AssetSelectionProvider } from '@contexts/ui/asset-selection-context';
-import { BackgroundTaskProvider } from '@contexts/ui/background-task-context';
-import { BrandProvider } from '@contexts/user/brand-context/brand-context';
-import { UserProvider } from '@contexts/user/user-context/user-context';
+import { AssetSelectionProvider } from '@genfeedai/contexts/ui/asset-selection-context';
+import { BackgroundTaskProvider } from '@genfeedai/contexts/ui/background-task-context';
+import { BrandProvider } from '@genfeedai/contexts/user/brand-context/brand-context';
+import { UserProvider } from '@genfeedai/contexts/user/user-context/user-context';
 import {
   getPlaywrightAuthState,
   hasPlaywrightJwtToken,
   resolveClerkToken,
-} from '@helpers/auth/clerk.helper';
-import { clearTokenCache } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { LayoutProps } from '@props/layout/layout.props';
-import type { ProtectedBootstrapData } from '@props/layout/protected-bootstrap.props';
+} from '@genfeedai/helpers/auth/clerk.helper';
+import { clearTokenCache } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
+import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
+import type { ProtectedBootstrapData } from '@genfeedai/props/layout/protected-bootstrap.props';
 import { AccessStateProvider } from '@providers/access-state/access-state.provider';
 import ApiStatusProvider from '@providers/api-status/api-status.provider';
 import ElementsProvider from '@providers/elements/elements.provider';
@@ -45,10 +45,12 @@ function ProtectedAuthGate({ children }: LayoutProps): ReactNode {
     [effectiveIsSignedIn, effectiveUserId],
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentional trigger — sessionKey changes drive cache clear
   useEffect(() => {
     clearTokenCache();
   }, [sessionKey]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: sessionKey as a change trigger for auth token refresh
   useEffect(() => {
     if (!effectiveIsAuthLoaded || !effectiveIsSignedIn) {
       setHasJwtToken(false);

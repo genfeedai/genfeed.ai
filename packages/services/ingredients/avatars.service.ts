@@ -1,4 +1,4 @@
-import type { Ingredient } from '@models/content/ingredient.model';
+import type { Ingredient } from '@genfeedai/models/content/ingredient.model';
 import { IngredientsService } from '@services/content/ingredients.service';
 
 export class AvatarsService extends IngredientsService<Ingredient> {

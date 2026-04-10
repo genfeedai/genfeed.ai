@@ -1,11 +1,11 @@
 import { ModalEnum } from '@genfeedai/enums';
+import { openModal } from '@genfeedai/helpers/ui/modal/modal.helper';
 import type { IErrorDebugInfo } from '@genfeedai/interfaces/modals/error-debug.interface';
 import type {
   IHttpCancelledError,
   IHttpInterceptorError,
   IHttpSanitizedError,
 } from '@genfeedai/interfaces/utils/http-interceptor-error.interface';
-import { openModal } from '@helpers/ui/modal/modal.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import { setErrorDebugInfo } from '@services/core/error-debug-store';
 import axios, {

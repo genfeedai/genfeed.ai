@@ -15,7 +15,7 @@ vi.mock('./environment.service', () => ({
     isProduction: vi.fn(() => false),
   },
 }));
-vi.mock('@helpers/ui/modal/modal.helper');
+vi.mock('@genfeedai/helpers/ui/modal/modal.helper');
 vi.mock('@services/core/error-debug-store', () => ({
   clearErrorDebugInfo: vi.fn(),
   getErrorDebugInfo: vi.fn(),

@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { ElementBlacklist } from '@genfeedai/models/elements/blacklist.model';
 import { BlacklistSerializer } from '@genfeedai/serializers';
-import { ElementBlacklist } from '@models/elements/blacklist.model';
 import { BaseService } from '@services/core/base.service';
 
 export class BlacklistsService extends BaseService<ElementBlacklist> {

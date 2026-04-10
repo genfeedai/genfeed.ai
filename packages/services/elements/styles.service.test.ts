@@ -1,4 +1,4 @@
-import { ElementStyle } from '@models/elements/style.model';
+import { ElementStyle } from '@genfeedai/models/elements/style.model';
 import { StylesService } from '@services/elements/styles.service';
 import axios from 'axios';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -76,16 +76,22 @@ describe('StylesService', () => {
     it('fetches all styles', async () => {
       const mockStyles = [
         {
-          description: 'Cinematic style',
+          attributes: {
+            description: 'Cinematic style',
+            key: 'cinematic',
+            label: 'Cinematic',
+          },
           id: '1',
-          key: 'cinematic',
-          label: 'Cinematic',
+          type: 'styles',
         },
         {
-          description: 'Documentary style',
+          attributes: {
+            description: 'Documentary style',
+            key: 'documentary',
+            label: 'Documentary',
+          },
           id: '2',
-          key: 'documentary',
-          label: 'Documentary',
+          type: 'styles',
         },
       ];
 

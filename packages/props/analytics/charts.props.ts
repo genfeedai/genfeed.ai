@@ -1,6 +1,6 @@
 import type { AnalyticsMetric } from '@genfeedai/enums';
 import type { PostPerformanceDataPoint } from '@genfeedai/interfaces/analytics/analytics-ui.interface';
-import type { BrandPerformanceData } from '@services/analytics/analytics.service';
+import type { BrandPerformanceData } from '@genfeedai/services/analytics/analytics.service';
 
 export interface PostPerformanceChartProps {
   data: PostPerformanceDataPoint[];

@@ -1,4 +1,8 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import {
+  deserializeCollection,
+  type JsonApiResponseDocument,
+} from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type {
   IElementBlacklist,
   IElementCamera,
@@ -10,10 +14,6 @@ import type {
   IElementStyle,
   ISound,
 } from '@genfeedai/interfaces';
-import {
-  deserializeCollection,
-  type JsonApiResponseDocument,
-} from '@helpers/data/json-api/json-api.helper';
 import { EnvironmentService } from '@services/core/environment.service';
 import axios from 'axios';
 

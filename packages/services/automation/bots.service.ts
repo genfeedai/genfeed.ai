@@ -1,8 +1,8 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { deserializeResource } from '@genfeedai/helpers/data/json-api/json-api.helper';
+import { Bot } from '@genfeedai/models/automation/bot.model';
+import { LivestreamSession } from '@genfeedai/models/automation/livestream-session.model';
 import { BotSerializer } from '@genfeedai/serializers';
-import { deserializeResource } from '@helpers/data/json-api/json-api.helper';
-import { Bot } from '@models/automation/bot.model';
-import { LivestreamSession } from '@models/automation/livestream-session.model';
 import {
   BaseService,
   type JsonApiResponseDocument,

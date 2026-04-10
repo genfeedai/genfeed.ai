@@ -1,12 +1,12 @@
-import type {
-  IAnnouncement,
-  IAnnouncementBroadcastRequest,
-} from '@genfeedai/interfaces';
 import {
   deserializeCollection,
   deserializeResource,
   type JsonApiResponseDocument,
-} from '@helpers/data/json-api/json-api.helper';
+} from '@genfeedai/helpers/data/json-api/json-api.helper';
+import type {
+  IAnnouncement,
+  IAnnouncementBroadcastRequest,
+} from '@genfeedai/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 

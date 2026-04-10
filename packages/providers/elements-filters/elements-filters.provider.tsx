@@ -5,7 +5,7 @@ import type {
   IFilters,
   IFiltersState,
 } from '@genfeedai/interfaces/utils/filters.interface';
-import type { LayoutProps } from '@props/layout/layout.props';
+import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import type { ReactNode } from 'react';
 import { createContext, useContext, useMemo, useState } from 'react';
 

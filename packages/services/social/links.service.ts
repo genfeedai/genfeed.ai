@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { Link } from '@genfeedai/models/social/link.model';
 import { LinkSerializer } from '@genfeedai/serializers';
-import { Link } from '@models/social/link.model';
 import { BaseService } from '@services/core/base.service';
 
 export class LinksService extends BaseService<Link> {

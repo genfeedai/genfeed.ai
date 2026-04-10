@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { Sound } from '@genfeedai/models/ingredients/sound.model';
 import { SoundSerializer } from '@genfeedai/serializers';
-import { Sound } from '@models/ingredients/sound.model';
 import { BaseService } from '@services/core/base.service';
 
 export class SoundsService extends BaseService<Sound> {

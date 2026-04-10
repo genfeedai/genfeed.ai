@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { Caption } from '@genfeedai/models/content/caption.model';
 import { CaptionSerializer } from '@genfeedai/serializers';
-import { Caption } from '@models/content/caption.model';
 import { BaseService } from '@services/core/base.service';
 
 export class CaptionsService extends BaseService<Caption> {

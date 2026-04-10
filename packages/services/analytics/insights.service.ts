@@ -4,17 +4,17 @@
  */
 
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
+import {
+  deserializeCollection,
+  deserializeResource,
+  type JsonApiResponseDocument,
+} from '@genfeedai/helpers/data/json-api/json-api.helper';
 import type {
   IDateRange,
   IInsightResponse,
   IReportConfig,
 } from '@genfeedai/interfaces';
-import {
-  deserializeCollection,
-  deserializeResource,
-  type JsonApiResponseDocument,
-} from '@helpers/data/json-api/json-api.helper';
-import type { Insight } from '@props/analytics/insights.props';
+import type { Insight } from '@genfeedai/props/analytics/insights.props';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
 import { logger } from '@services/core/logger.service';

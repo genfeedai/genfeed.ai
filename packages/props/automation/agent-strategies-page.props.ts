@@ -3,7 +3,7 @@ import type {
   AgentRunFrequency,
   AgentType,
 } from '@genfeedai/enums';
-import type { AgentStrategy } from '@services/automation/agent-strategies.service';
+import type { AgentStrategy } from '@genfeedai/services/automation/agent-strategies.service';
 
 export interface AgentStrategyFormState {
   agentType: AgentType;

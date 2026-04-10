@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type { IServiceSerializer } from '@genfeedai/interfaces/utils/error.interface';
-import { Workflow } from '@models/automation/workflow.model';
+import { Workflow } from '@genfeedai/models/automation/workflow.model';
 import { BaseService } from '@services/core/base.service';
 
 const workflowSerializer: IServiceSerializer<Workflow> = {

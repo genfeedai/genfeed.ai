@@ -1,7 +1,7 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
 import type { IBotActivityStats } from '@genfeedai/interfaces';
+import { BotActivity } from '@genfeedai/models/automation/bot-activity.model';
 import { BotActivitySerializer } from '@genfeedai/serializers';
-import { BotActivity } from '@models/automation/bot-activity.model';
 import {
   BaseService,
   type JsonApiResponseDocument,
@@ -58,7 +58,6 @@ export class BotActivitiesService extends BaseService<BotActivity> {
    * Get aggregated statistics for bot activities
    */
   async getStats(
-    brandId?: string,
     replyBotConfigId?: string,
     fromDate?: string,
     toDate?: string,
@@ -67,7 +66,6 @@ export class BotActivitiesService extends BaseService<BotActivity> {
       '/stats/summary',
       {
         params: {
-          ...(brandId ? { brand: brandId } : {}),
           fromDate,
           replyBotConfig: replyBotConfigId,
           toDate,
@@ -100,7 +98,6 @@ export class BotActivitiesService extends BaseService<BotActivity> {
    */
   async findByOrganization(
     organizationId: string,
-    brandId?: string,
     options?: {
       page?: number;
       limit?: number;
@@ -108,7 +105,6 @@ export class BotActivitiesService extends BaseService<BotActivity> {
     },
   ): Promise<{ data: BotActivity[]; total: number }> {
     return this.findWithFilters({
-      ...(brandId ? { brand: brandId } : {}),
       organization: organizationId,
       ...options,
     });

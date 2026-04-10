@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { ReplyBotConfig } from '@genfeedai/models/automation/reply-bot-config.model';
 import { ReplyBotConfigSerializer } from '@genfeedai/serializers';
-import { ReplyBotConfig } from '@models/automation/reply-bot-config.model';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock BaseService
@@ -41,6 +41,10 @@ vi.mock('@services/core/base.service', () => {
         ReplyBotConfig,
         ReplyBotConfigSerializer,
       );
+    }
+
+    static getDataServiceInstance(ServiceClass: any, ...args: any[]) {
+      return new ServiceClass(...args);
     }
 
     protected extractResource(data: any): any {

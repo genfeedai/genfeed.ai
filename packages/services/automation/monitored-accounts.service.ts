@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { MonitoredAccount } from '@genfeedai/models/automation/monitored-account.model';
 import { MonitoredAccountSerializer } from '@genfeedai/serializers';
-import { MonitoredAccount } from '@models/automation/monitored-account.model';
 import {
   BaseService,
   type JsonApiResponseDocument,

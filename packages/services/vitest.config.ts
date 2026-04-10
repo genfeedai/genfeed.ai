@@ -1,7 +1,8 @@
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
-const root = path.resolve(__dirname, '../..');
+const require = createRequire(import.meta.url);
 
 export default defineConfig({
   resolve: {
@@ -13,24 +14,85 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '__mocks__/serializers.mock.ts'),
       },
       {
-        find: '@ui-constants',
-        replacement: path.resolve(root, 'packages/ui/constants'),
+        find: '@services',
+        replacement: path.resolve(__dirname, '.'),
       },
       {
+        find: '@genfeedai/constants',
+        replacement: require.resolve('@genfeedai/constants'),
+      },
+      {
+        find: '@genfeedai/enums',
+        replacement: require.resolve('@genfeedai/enums'),
+      },
+      {
+        find: '@genfeedai/client',
+        replacement: path.resolve(__dirname, '../client/src'),
+      },
+      {
+        find: /^@genfeedai\/client\/(.*)$/,
+        replacement: path.resolve(__dirname, '../client/src/$1'),
+      },
+      {
+        find: '@genfeedai/helpers',
+        replacement: path.resolve(__dirname, '../helpers/src'),
+      },
+      {
+        find: /^@genfeedai\/helpers\/(.*)$/,
+        replacement: path.resolve(__dirname, '../helpers/src/$1'),
+      },
+      {
+        find: '@genfeedai/interfaces',
+        replacement: path.resolve(__dirname, '../interfaces/src'),
+      },
+      {
+        find: /^@genfeedai\/interfaces\/(.*)$/,
+        replacement: path.resolve(__dirname, '../interfaces/src/$1'),
+      },
+      {
+        find: '@genfeedai/models',
+        replacement: path.resolve(__dirname, '../models'),
+      },
+      {
+        find: /^@genfeedai\/models\/(.*)$/,
+        replacement: path.resolve(__dirname, '../models/$1'),
+      },
+      {
+        find: '@genfeedai/props',
+        replacement: path.resolve(__dirname, '../props'),
+      },
+      {
+        find: /^@genfeedai\/props\/(.*)$/,
+        replacement: path.resolve(__dirname, '../props/$1'),
+      },
+      {
+        find: '@genfeedai/types',
+        replacement: path.resolve(__dirname, '../types/src'),
+      },
+      {
+        find: '@genfeedai/utils',
+        replacement: path.resolve(__dirname, '../utils'),
+      },
+      {
+        find: /^@genfeedai\/utils\/(.*)$/,
+        replacement: path.resolve(__dirname, '../utils/$1'),
+      },
+      // Legacy aliases for transitive deps (helpers/models/props/utils self-references)
+      {
         find: '@helpers',
-        replacement: path.resolve(root, 'packages/helpers/src'),
+        replacement: path.resolve(__dirname, '../helpers/src'),
       },
       {
         find: '@models',
-        replacement: path.resolve(root, 'packages/models'),
+        replacement: path.resolve(__dirname, '../models'),
       },
       {
-        find: '@services',
-        replacement: path.resolve(__dirname),
+        find: '@props',
+        replacement: path.resolve(__dirname, '../props'),
       },
       {
         find: '@utils',
-        replacement: path.resolve(root, 'packages/utils'),
+        replacement: path.resolve(__dirname, '../utils'),
       },
     ],
   },

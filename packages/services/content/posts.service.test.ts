@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { Post } from '@genfeedai/models/content/post.model';
 import { PostSerializer } from '@genfeedai/serializers';
-import { Post } from '@models/content/post.model';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock EnvironmentService

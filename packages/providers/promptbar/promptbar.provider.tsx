@@ -1,9 +1,10 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
-import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { IngredientCategory } from '@genfeedai/enums';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type {
   IFontFamily,
   IModel,
@@ -11,14 +12,13 @@ import type {
   ITag,
   ITraining,
 } from '@genfeedai/interfaces';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { LayoutProps } from '@props/layout/layout.props';
-import { ModelsService } from '@services/ai/models.service';
-import { TrainingsService } from '@services/ai/trainings.service';
-import { TagsService } from '@services/content/tags.service';
-import { logger } from '@services/core/logger.service';
-import { FontFamiliesService } from '@services/elements/font-families.service';
-import { PresetsService } from '@services/elements/presets.service';
+import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
+import { ModelsService } from '@genfeedai/services/ai/models.service';
+import { TrainingsService } from '@genfeedai/services/ai/trainings.service';
+import { TagsService } from '@genfeedai/services/content/tags.service';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { FontFamiliesService } from '@genfeedai/services/elements/font-families.service';
+import { PresetsService } from '@genfeedai/services/elements/presets.service';
 import {
   createContext,
   type ReactNode,

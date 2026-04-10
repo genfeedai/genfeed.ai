@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { Asset } from '@genfeedai/models/ingredients/asset.model';
 import { AssetSerializer } from '@genfeedai/serializers';
-import { Asset } from '@models/ingredients/asset.model';
 import {
   BaseService,
   type JsonApiResponseDocument,

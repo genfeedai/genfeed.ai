@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { Prompt } from '@genfeedai/models/content/prompt.model';
 import { PromptSerializer } from '@genfeedai/serializers';
-import { Prompt } from '@models/content/prompt.model';
 import {
   BaseService,
   type JsonApiResponseDocument,

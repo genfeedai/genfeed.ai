@@ -1,9 +1,9 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
+import { EnvironmentService } from '@genfeedai/services/core/environment.service';
+import { logger } from '@genfeedai/services/core/logger.service';
 import { Code } from '@genfeedai/ui';
-import { EnvironmentService } from '@services/core/environment.service';
-import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
 import {
   createContext,

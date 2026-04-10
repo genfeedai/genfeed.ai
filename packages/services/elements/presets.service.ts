@@ -1,6 +1,6 @@
 import { API_ENDPOINTS } from '@genfeedai/constants';
+import { Preset } from '@genfeedai/models/elements/preset.model';
 import { PresetSerializer } from '@genfeedai/serializers';
-import { Preset } from '@models/elements/preset.model';
 import { BaseService } from '@services/core/base.service';
 
 export class PresetsService extends BaseService<Preset> {

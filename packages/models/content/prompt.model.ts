@@ -31,6 +31,6 @@ export class Prompt extends BasePrompt {
   }
 
   public get promptText(): string | undefined {
-    return this.enhanced ?? this.original;
+    return this.enhanced || this.original;
   }
 }

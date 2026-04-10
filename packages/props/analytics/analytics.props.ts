@@ -4,7 +4,7 @@ import type {
   IGrowthTrends,
   ITimeSeriesDataPoint,
 } from '@genfeedai/interfaces';
-import type { PlatformBreakdownData } from '@services/analytics/analytics.service';
+import type { PlatformBreakdownData } from '@genfeedai/services/analytics/analytics.service';
 import type { ComponentType } from 'react';
 
 export interface AnalyticsTool {

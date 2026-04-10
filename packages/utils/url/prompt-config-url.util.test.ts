@@ -70,7 +70,7 @@ describe('prompt-config-url.util', () => {
 
       const params = serializePromptConfigToParams(config);
 
-      expect(params.get('isBrandingEnabled')).toBe('1');
+      expect(params.get('brandingMode')).toBe('brand');
       expect(params.get('isAudioEnabled')).toBe('0');
     });
 
@@ -585,7 +585,7 @@ describe('prompt-config-url.util', () => {
       expect(parsed.duration).toBe(original.duration);
       expect(parsed.models).toEqual(original.models);
       expect(parsed.references).toEqual(original.references);
-      expect(parsed.isBrandingEnabled).toBe(original.isBrandingEnabled);
+      expect(parsed.brandingMode).toBe('brand');
       expect(parsed.isAudioEnabled).toBe(original.isAudioEnabled);
       expect(parsed.style).toBe(original.style);
       expect(parsed.mood).toBe(original.mood);
