@@ -1,3 +1,4 @@
+import { ApiKeyHelperModule } from '@api/services/api-key/api-key-helper.module';
 import { AvatarVideoService } from '@api/services/avatar-video/avatar-video.service';
 import { DidAvatarProvider } from '@api/services/avatar-video/providers/did-avatar.provider';
 import { HeygenAvatarProvider } from '@api/services/avatar-video/providers/heygen-avatar.provider';
@@ -10,8 +11,14 @@ import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 
 @Module({
-  exports: [AvatarVideoService],
-  imports: [HeyGenModule, ByokModule, HttpModule, LoggerModule],
+  exports: [AvatarVideoService, HeygenAvatarProvider],
+  imports: [
+    HeyGenModule,
+    ByokModule,
+    HttpModule,
+    LoggerModule,
+    ApiKeyHelperModule,
+  ],
   providers: [
     AvatarVideoService,
     HeygenAvatarProvider,

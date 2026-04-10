@@ -52,6 +52,8 @@ import { ClipAnalyzeProcessor } from '@api/queues/clip-analyze/clip-analyze.proc
 import { ClipFactoryProcessor } from '@api/queues/clip-factory/clip-factory.processor';
 import { CreditDeductionProcessor } from '@api/queues/credit-deduction/credit-deduction.processor';
 import { EmailDigestProcessor } from '@api/queues/email-digest/email-digest.processor';
+import { HeygenPollModule } from '@api/queues/heygen-poll/heygen-poll.module';
+import { HeygenPollProcessor } from '@api/queues/heygen-poll/heygen-poll.processor';
 import { PatternExtractionProcessor } from '@api/queues/pattern-extraction/pattern-extraction.processor';
 import { ReplyBotPollingProcessor } from '@api/queues/reply-bot/reply-bot-polling.processor';
 import { TelegramDistributeProcessor } from '@api/queues/telegram-distribute/telegram-distribute.processor';
@@ -140,6 +142,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     forwardRef(() => ReplyBotModule),
     forwardRef(() => SkillExecutorModule),
     forwardRef(() => TaskOrchestrationModule),
+    forwardRef(() => HeygenPollModule),
     forwardRef(() => TelegramDistributionModule),
     forwardRef(() => TiktokModule),
     forwardRef(() => TwitterModule),
@@ -165,6 +168,7 @@ import { WorkersQueuesModule } from '@workers/queues/queues.module';
     ClipFactoryProcessor,
     CreditDeductionProcessor,
     EmailDigestProcessor,
+    HeygenPollProcessor,
     PatternExtractionProcessor,
     ReplyBotPollingProcessor,
     TelegramDistributeProcessor,

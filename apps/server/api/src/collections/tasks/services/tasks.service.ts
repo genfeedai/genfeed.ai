@@ -466,6 +466,30 @@ export class TasksService extends BaseService<
     return updated;
   }
 
+  async attachOutput(
+    id: string,
+    outputId: string,
+    organizationId: string,
+    userId: string,
+  ): Promise<TaskDocument> {
+    const task = await this.requireAiTask(id, organizationId);
+    const updated = (await this.rawModel.findOneAndUpdate(
+      {
+        _id: new Types.ObjectId(id),
+        isDeleted: false,
+        organization: new Types.ObjectId(organizationId),
+      },
+      { $addToSet: { linkedOutputIds: new Types.ObjectId(outputId) } },
+      { new: true },
+    )) as TaskDocument | null;
+    if (!updated) throw new NotFoundException('Task', id);
+    await this.appendEventAndBroadcast(updated, organizationId, userId, {
+      payload: { outputId },
+      type: 'output_attached',
+    });
+    return updated;
+  }
+
   async recordTaskEvent(
     id: string,
     organizationId: string,

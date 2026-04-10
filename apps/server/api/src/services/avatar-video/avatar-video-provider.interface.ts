@@ -31,5 +31,8 @@ export interface AvatarVideoJobResult {
 export interface AvatarVideoProvider {
   readonly providerName: AvatarVideoProviderName;
   generateVideo(input: AvatarVideoJobInput): Promise<AvatarVideoJobResult>;
-  getStatus(jobId: string): Promise<AvatarVideoJobResult>;
+  getStatus(
+    jobId: string,
+    organizationId: string,
+  ): Promise<AvatarVideoJobResult>;
 }

@@ -188,6 +188,8 @@ export class BrandsService extends BaseService<Brand> {
       defaultVoiceRef?: DefaultVoiceRef | null;
       defaultAvatarPhotoUrl?: string | null;
       defaultAvatarIngredientId?: string | null;
+      heygenAvatarId?: string | null;
+      heygenVoiceId?: string | null;
       persona?: string;
       voice?: {
         approvedHooks?: string[];

@@ -16,7 +16,10 @@ export class DidAvatarProvider implements AvatarVideoProvider {
     throw new NotImplementedException('D-ID provider coming soon');
   }
 
-  async getStatus(_jobId: string): Promise<AvatarVideoJobResult> {
+  async getStatus(
+    _jobId: string,
+    _organizationId: string,
+  ): Promise<AvatarVideoJobResult> {
     throw new NotImplementedException('D-ID provider coming soon');
   }
 }

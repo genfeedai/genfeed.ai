@@ -1,5 +1,6 @@
 import { AgentRunsModule } from '@api/collections/agent-runs/agent-runs.module';
 import { TasksModule } from '@api/collections/tasks/tasks.module';
+import { VideoGenerationModule } from '@api/collections/videos/video-generation.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { TaskDecompositionService } from '@api/services/task-orchestration/task-decomposition.service';
@@ -20,6 +21,7 @@ import { forwardRef, Module } from '@nestjs/common';
     forwardRef(() => AgentRunsModule),
     forwardRef(() => TasksModule),
     forwardRef(() => QueuesModule),
+    forwardRef(() => VideoGenerationModule),
   ],
   providers: [
     TaskDecompositionService,

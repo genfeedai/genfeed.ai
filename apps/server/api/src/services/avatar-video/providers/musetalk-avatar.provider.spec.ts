@@ -75,19 +75,19 @@ describe('MusetalkAvatarProvider', () => {
 
   describe('getStatus', () => {
     it('throws NotImplementedException', async () => {
-      await expect(provider.getStatus('any-job-id')).rejects.toThrow(
+      await expect(provider.getStatus('any-job-id', 'org-1')).rejects.toThrow(
         NotImplementedException,
       );
     });
 
     it('throws with "coming soon" message', async () => {
-      await expect(provider.getStatus('job-123')).rejects.toThrow(
+      await expect(provider.getStatus('job-123', 'org-1')).rejects.toThrow(
         'MuseTalk provider coming soon',
       );
     });
 
     it('throws for any job id', async () => {
-      await expect(provider.getStatus('')).rejects.toThrow(
+      await expect(provider.getStatus('', 'org-1')).rejects.toThrow(
         NotImplementedException,
       );
     });
@@ -95,7 +95,7 @@ describe('MusetalkAvatarProvider', () => {
     it('does not return a resolved promise', async () => {
       let resolved = false;
       await provider
-        .getStatus('job')
+        .getStatus('job', 'org-1')
         .then(() => {
           resolved = true;
         })
@@ -104,7 +104,7 @@ describe('MusetalkAvatarProvider', () => {
     });
 
     it('providerName is still accessible after failed calls', async () => {
-      await provider.getStatus('x').catch(() => {});
+      await provider.getStatus('x', 'org-1').catch(() => {});
       expect(provider.providerName).toBe('musetalk');
     });
   });

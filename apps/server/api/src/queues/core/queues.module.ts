@@ -12,6 +12,7 @@ import { ConfigService } from '@api/config/config.service';
 import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { CampaignQueueService } from '@api/queues/campaign/campaign-queue.service';
 import { QueueService } from '@api/queues/core/queue.service';
+import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
 import { ReplyBotQueueService } from '@api/queues/reply-bot/reply-bot-queue.service';
 import { WorkflowQueueService } from '@api/queues/workflow/workflow-queue.service';
 import { WorkspaceTaskQueueService } from '@api/services/task-orchestration/workspace-task-queue.service';
@@ -25,6 +26,7 @@ import { Module } from '@nestjs/common';
 @Module({
   exports: [
     AgentRunQueueService,
+    HeygenPollQueueService,
     QueueService,
     ReplyBotQueueService,
     CampaignQueueService,
@@ -221,6 +223,15 @@ import { Module } from '@nestjs/common';
         },
         name: 'workspace-task',
       },
+      {
+        defaultJobOptions: {
+          attempts: 2,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: 'heygen-poll',
+      },
     ),
   ],
   providers: [
@@ -230,6 +241,7 @@ import { Module } from '@nestjs/common';
     WorkflowQueueService,
     AgentRunQueueService,
     WorkspaceTaskQueueService,
+    HeygenPollQueueService,
   ],
 })
 export class QueuesModule {}

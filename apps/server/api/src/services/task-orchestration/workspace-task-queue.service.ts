@@ -20,6 +20,10 @@ export interface WorkspaceTaskJobData {
   brandId?: string;
   /** Brand name for context */
   brandName?: string;
+  /** HeyGen avatar ID (facecam tasks only) */
+  heygenAvatarId?: string;
+  /** HeyGen voice ID (facecam tasks only) */
+  heygenVoiceId?: string;
 }
 
 @Injectable()

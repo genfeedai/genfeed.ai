@@ -287,6 +287,24 @@ export class UpdateBrandAgentConfigDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(200)
+  @ApiProperty({
+    description: 'Default HeyGen avatar ID for facecam tasks',
+    required: false,
+  })
+  heygenAvatarId?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  @ApiProperty({
+    description: 'Default HeyGen voice ID for facecam tasks',
+    required: false,
+  })
+  heygenVoiceId?: string;
+
+  @IsString()
+  @IsOptional()
   @MaxLength(5000)
   @ApiProperty({
     description: 'Custom agent persona/system prompt',

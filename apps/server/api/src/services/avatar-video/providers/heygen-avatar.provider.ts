@@ -1,3 +1,4 @@
+import { ApiKeyHelperService } from '@api/services/api-key/api-key-helper.service';
 import type {
   AvatarVideoJobInput,
   AvatarVideoJobResult,
@@ -6,7 +7,7 @@ import type {
 } from '@api/services/avatar-video/avatar-video-provider.interface';
 import { ByokService } from '@api/services/byok/byok.service';
 import { HeyGenService } from '@api/services/integrations/heygen/services/heygen.service';
-import { ByokProvider } from '@genfeedai/enums';
+import { ApiKeyCategory, ByokProvider } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -23,6 +24,7 @@ export class HeygenAvatarProvider implements AvatarVideoProvider {
     private readonly byokService: ByokService,
     private readonly httpService: HttpService,
     private readonly logger: LoggerService,
+    private readonly apiKeyHelperService: ApiKeyHelperService,
   ) {}
 
   async generateVideo(
@@ -68,11 +70,35 @@ export class HeygenAvatarProvider implements AvatarVideoProvider {
     }
   }
 
-  async getStatus(jobId: string): Promise<AvatarVideoJobResult> {
+  async getStatus(
+    jobId: string,
+    organizationId: string,
+  ): Promise<AvatarVideoJobResult> {
     try {
+      const byokKey = await this.byokService.resolveApiKey(
+        organizationId,
+        ByokProvider.HEYGEN,
+      );
+      const apiKey =
+        byokKey?.apiKey ??
+        this.apiKeyHelperService.getApiKey(ApiKeyCategory.HEYGEN);
+
+      if (!apiKey) {
+        this.logger.error(
+          `${this.logContext} getStatus failed: no HeyGen API key resolved`,
+          { organizationId },
+        );
+        return {
+          error: 'No HeyGen API key configured (BYOK or env HEYGEN_KEY).',
+          jobId,
+          providerName: this.providerName,
+          status: 'failed',
+        };
+      }
+
       const response = await firstValueFrom(
         this.httpService.get(this.statusUrl, {
-          headers: { 'X-Api-Key': '' },
+          headers: { 'X-Api-Key': apiKey },
           params: { video_id: jobId },
           timeout: 15_000,
         }),
