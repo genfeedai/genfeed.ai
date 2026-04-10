@@ -1,5 +1,12 @@
-import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { DashboardGridProps } from '@genfeedai/props/ui/ui.props';
+import type { ReactNode } from 'react';
+
+import { cn } from '../lib/utils';
+
+interface DashboardGridProps {
+  cols?: 2 | 4;
+  className?: string;
+  children: ReactNode;
+}
 
 const COLS_CLASSES = {
   2: 'grid-cols-1 xl:grid-cols-2',
