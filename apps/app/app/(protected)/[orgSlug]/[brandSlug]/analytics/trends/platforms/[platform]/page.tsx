@@ -17,13 +17,13 @@ export async function generateMetadata({
   const { platform } = await params;
 
   if (!isTrendPlatform(platform)) {
-    return createPageMetadata('Social Research');
+    return createPageMetadata('Platform Trends');
   }
 
-  return createPageMetadata(`${getTrendPlatformLabel(platform)} Research`);
+  return createPageMetadata(`${getTrendPlatformLabel(platform)} Trends`);
 }
 
-export default async function ResearchPlatformPage({
+export default async function AnalyticsTrendsPlatformPage({
   params,
 }: {
   params: Promise<{ platform: string }>;
@@ -36,7 +36,10 @@ export default async function ResearchPlatformPage({
 
   return (
     <Suspense fallback={<LazyLoadingFallback variant="grid" />}>
-      <TrendsPlatformDetail platform={platform as TrendPlatform} />
+      <TrendsPlatformDetail
+        platform={platform as TrendPlatform}
+        basePath="/analytics/trends"
+      />
     </Suspense>
   );
 }

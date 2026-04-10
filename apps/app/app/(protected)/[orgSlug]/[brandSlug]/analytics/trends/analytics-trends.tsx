@@ -15,6 +15,7 @@ import { createLocalStorageCache } from '@helpers/data/cache/cache.helper';
 import { formatDate } from '@helpers/formatting/date/date.helper';
 import { formatCompactNumber } from '@helpers/formatting/format/format.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import HookRemixModal from '@pages/trends/list/components/HookRemixModal';
 import type { TrendItem } from '@props/trends/trends-page.props';
 import { logger } from '@services/core/logger.service';
 import { TrendsService } from '@services/social/trends.service';
@@ -276,11 +277,25 @@ export default function AnalyticsTrends() {
     return () => controller.abort();
   }, [brandId, getTrendsService]);
 
-  // Handle video click - navigate to video URL or show details
+  const [remixVideo, setRemixVideo] = useState<ITrendVideo | null>(null);
+  const [remixOpenKey, setRemixOpenKey] = useState(0);
+
+  // Handle video click - open the hook remix modal so creators can remix
+  // the viral clip. Falls back to opening the video URL for videos that
+  // cannot be remixed (missing id/url).
   const handleVideoClick = useCallback((video: ITrendVideo) => {
-    if (video.videoUrl) {
+    if (video?.id) {
+      setRemixVideo(video);
+      setRemixOpenKey((key) => key + 1);
+      return;
+    }
+    if (video?.videoUrl) {
       window.open(video.videoUrl, '_blank');
     }
+  }, []);
+
+  const handleRemixClose = useCallback(() => {
+    setRemixVideo(null);
   }, []);
 
   // Handle hashtag click - could filter or search
@@ -507,7 +522,9 @@ export default function AnalyticsTrends() {
             <Table<TrendItem>
               items={trendingTopics.slice(0, 20)}
               getRowKey={(item) => item.id}
-              onRowClick={(item) => router.push(`/research/${item.id}`)}
+              onRowClick={(item) =>
+                router.push(`/analytics/trends/detail/${item.id}`)
+              }
               columns={[
                 {
                   className: 'min-w-32',
@@ -874,6 +891,13 @@ export default function AnalyticsTrends() {
           </Card>
         </section>
       )}
+
+      <HookRemixModal
+        video={remixVideo}
+        isOpen={remixVideo !== null}
+        openKey={remixOpenKey}
+        onClose={handleRemixClose}
+      />
     </div>
   );
 }

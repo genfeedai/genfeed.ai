@@ -10,7 +10,10 @@ import type {
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useResource } from '@hooks/data/resource/use-resource/use-resource';
 import { useTrendContent } from '@hooks/data/trends/use-trend-content/use-trend-content';
-import { SocialsNavigation } from '@pages/trends/shared/socials-navigation';
+import {
+  SocialsNavigation,
+  type SocialsNavigationBasePath,
+} from '@pages/trends/shared/socials-navigation';
 import TrendContentCard from '@pages/trends/shared/trend-content-card';
 import {
   getTrendPlatformLabel,
@@ -57,8 +60,10 @@ function RelatedMetricCard({
 
 export default function TrendsPlatformDetail({
   platform,
+  basePath = '/research',
 }: {
   platform: TrendPlatform;
+  basePath?: SocialsNavigationBasePath;
 }) {
   const brandId = useBrandId();
   const label = getTrendPlatformLabel(platform);
@@ -171,7 +176,7 @@ export default function TrendsPlatformDetail({
       }
     >
       <div className="mb-6">
-        <SocialsNavigation active={platform} />
+        <SocialsNavigation active={platform} basePath={basePath} />
       </div>
 
       <div className="mb-5 flex flex-wrap items-baseline gap-x-6 gap-y-2">

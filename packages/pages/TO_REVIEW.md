@@ -53,8 +53,6 @@ These still need resolution via routing, issue tracking, or per-file verificatio
 
 ### Prepared features with open GitHub issues (will be wired in follow-up PRs)
 
-- `packages/pages/analytics/trends/trend-detail/trend-detail.tsx` — **Issue: #35** — will be wired to `/analytics/trends/[id]` in PR 3.
-- `packages/pages/trends/list/components/HookRemixModal.tsx` — **Issue: #35** — will be wired into the trends list in PR 3.
 - `packages/pages/streaks/streaks-page.tsx` — **Issue: #2** — will be wired to `/analytics/streaks` in PR 4.
 - `packages/pages/mission-control/mission-control-agent-lab.tsx` — **Issue: #9** — will be relocated to `apps/desktop/app/src/renderer/views/MissionControlView.tsx` in PR 4.
 
@@ -62,6 +60,9 @@ These still need resolution via routing, issue tracking, or per-file verificatio
 
 - `packages/pages/analytics/overview/analytics-agent-dashboard.tsx` — PR 2 removed from ledger; live via dynamic import in `analytics-overview.tsx:120-126`, rendered at `:769`.
 - `packages/pages/analytics/platform-detail/analytics-platform-detail.tsx` — PR 2 wired at `/analytics/brands/[id]/platforms/[platform]` (brand-scoped route; the component requires a `brandId` prop it cannot obtain from a standalone `/analytics/platforms/[platform]` URL). Drill-through links added under the Platform Comparison card in `analytics-brand-overview.tsx`.
+- `packages/pages/analytics/trends/trend-detail/trend-detail.tsx` — PR 3 wired at `/analytics/trends/detail/[id]`. The existing trends list in `apps/app/.../analytics/trends/analytics-trends.tsx` was also repointed from a broken `router.push('/research/${item.id}')` (wrong: an id was being shoved into a `[platform]` slot) to the new detail route.
+- `packages/pages/trends/list/components/HookRemixModal.tsx` — PR 3 wired into the viral video leaderboard on `/analytics/trends`. Clicking a video now opens the hook remix modal (falls back to the video URL only when the video is missing an id).
+- `packages/pages/trends/platform-detail/trends-platform-detail.tsx` — PR 3 moved from `apps/app/.../research/[platform]/trends-platform-detail.tsx` to `packages/pages/trends/platform-detail/` so both `/research/[platform]` and the new `/analytics/trends/platforms/[platform]` route can consume the same component. `SocialsNavigation` + `TrendsPlatformDetail` now accept an optional `basePath` prop so in-surface tab navigation stays consistent ('/research' vs '/analytics/trends').
 
 ### Studio subtree (reachable via StudioGenerateLayout, not orphaned)
 

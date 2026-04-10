@@ -3,49 +3,86 @@
 import type { TrendPlatform } from '@pages/trends/shared/trends-platforms';
 import Tabs from '@ui/navigation/tabs/Tabs';
 
-export const SOCIALS_NAV_ITEMS = [
-  {
-    href: '/research/socials',
-    id: 'overview',
-    label: 'Overview',
-    matchMode: 'exact' as const,
-  },
-  { href: '/research/twitter', id: 'twitter', label: 'X' },
-  {
-    href: '/research/instagram',
-    id: 'instagram',
-    label: 'Instagram',
-  },
-  { href: '/research/youtube', id: 'youtube', label: 'YouTube' },
-  { href: '/research/tiktok', id: 'tiktok', label: 'TikTok' },
-  { href: '/research/linkedin', id: 'linkedin', label: 'LinkedIn' },
-  { href: '/research/reddit', id: 'reddit', label: 'Reddit' },
-  {
-    href: '/research/pinterest',
-    id: 'pinterest',
-    label: 'Pinterest',
-  },
-] as const;
+export type SocialsNavigationBasePath = '/research' | '/analytics/trends';
 
-export const PLATFORM_DROPDOWN_OPTIONS = SOCIALS_NAV_ITEMS.map((item) => ({
-  label: item.id === 'overview' ? 'All Platforms' : item.label,
-  value: item.id,
-}));
+interface SocialsNavigationItem {
+  href: string;
+  id: 'overview' | TrendPlatform;
+  label: string;
+  matchMode?: 'exact';
+}
+
+const PLATFORM_LABELS: Array<{
+  id: 'overview' | TrendPlatform;
+  label: string;
+  matchMode?: 'exact';
+}> = [
+  { id: 'overview', label: 'Overview', matchMode: 'exact' },
+  { id: 'twitter', label: 'X' },
+  { id: 'instagram', label: 'Instagram' },
+  { id: 'youtube', label: 'YouTube' },
+  { id: 'tiktok', label: 'TikTok' },
+  { id: 'linkedin', label: 'LinkedIn' },
+  { id: 'reddit', label: 'Reddit' },
+  { id: 'pinterest', label: 'Pinterest' },
+];
+
+function buildOverviewHref(basePath: SocialsNavigationBasePath): string {
+  return basePath === '/analytics/trends'
+    ? '/analytics/trends'
+    : '/research/socials';
+}
+
+function buildPlatformHref(
+  basePath: SocialsNavigationBasePath,
+  platform: TrendPlatform,
+): string {
+  return basePath === '/analytics/trends'
+    ? `/analytics/trends/platforms/${platform}`
+    : `/research/${platform}`;
+}
+
+function buildSocialsNavItems(
+  basePath: SocialsNavigationBasePath,
+): SocialsNavigationItem[] {
+  return PLATFORM_LABELS.map(({ id, label, matchMode }) => {
+    const item: SocialsNavigationItem = {
+      href:
+        id === 'overview'
+          ? buildOverviewHref(basePath)
+          : buildPlatformHref(basePath, id),
+      id,
+      label,
+    };
+    if (matchMode) {
+      item.matchMode = matchMode;
+    }
+    return item;
+  });
+}
+
+export const SOCIALS_NAV_ITEMS = buildSocialsNavItems('/research');
+
+export const PLATFORM_DROPDOWN_OPTIONS = PLATFORM_LABELS.map(
+  ({ id, label }) => ({
+    label: id === 'overview' ? 'All Platforms' : label,
+    value: id,
+  }),
+);
 
 export type SocialsNavigationValue = 'overview' | TrendPlatform;
 
 export function SocialsNavigation({
   active,
+  basePath = '/research',
 }: {
   active: SocialsNavigationValue;
+  basePath?: SocialsNavigationBasePath;
 }) {
+  const items = buildSocialsNavItems(basePath);
   return (
     <Tabs
-      items={
-        SOCIALS_NAV_ITEMS as unknown as Array<
-          (typeof SOCIALS_NAV_ITEMS)[number]
-        >
-      }
+      items={items}
       activeTab={active}
       fullWidth={false}
       variant="default"
