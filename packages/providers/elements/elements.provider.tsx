@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
+import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type {
   IElementBlacklist,
   IElementCamera,
@@ -16,14 +17,13 @@ import type {
   IFilters,
   IFiltersState,
 } from '@genfeedai/interfaces/utils/filters.interface';
-import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import type { LayoutProps } from '@props/layout/layout.props';
+import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
+import { logger } from '@genfeedai/services/core/logger.service';
+import { ElementsService } from '@genfeedai/services/elements/elements.service';
 import {
   ElementsFiltersProvider,
   useElementsFilters,
 } from '@providers/elements-filters/elements-filters.provider';
-import { logger } from '@services/core/logger.service';
-import { ElementsService } from '@services/elements/elements.service';
 import {
   createContext,
   type ReactNode,

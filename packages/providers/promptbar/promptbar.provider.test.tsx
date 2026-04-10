@@ -15,16 +15,16 @@ vi.mock('@clerk/nextjs', () => ({
   useAuth: () => useAuthMock(),
 }));
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => useBrandMock(),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => unknown) =>
     useAuthedServiceMock(factory),
 }));
 
-vi.mock('@services/core/logger.service', () => ({
+vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
     info: vi.fn(),
