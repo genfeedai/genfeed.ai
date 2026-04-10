@@ -100,7 +100,6 @@ import { VotesModule } from '@api/collections/votes/votes.module';
 import { WatchlistsModule } from '@api/collections/watchlists/watchlists.module';
 import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/workflow-executions.module';
 import { WorkflowsModule } from '@api/collections/workflows/workflows.module';
-import { WorkspaceTasksModule } from '@api/collections/workspace-tasks/workspace-tasks.module';
 import { LocalIdentityInterceptor } from '@api/common/interceptors/local-identity.interceptor';
 import { OrgPrefixMiddleware } from '@api/common/middleware/org-prefix.middleware';
 import { RequestContextMiddleware } from '@api/common/middleware/request-context.middleware';
@@ -443,7 +442,6 @@ import { SentryModule } from '@sentry/nestjs/setup';
     // Workflow & Tasks
     WorkflowExecutionsModule,
     AgentWorkflowsModule,
-    WorkspaceTasksModule,
     PreflightModule,
     WorkflowExecutorModule,
     WorkflowsModule,

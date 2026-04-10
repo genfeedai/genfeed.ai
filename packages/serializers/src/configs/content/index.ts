@@ -35,4 +35,3 @@ export * from '@serializers/configs/content/speech-transcription.config';
 export * from '@serializers/configs/content/template.config';
 export * from '@serializers/configs/content/transcript.config';
 export * from '@serializers/configs/content/video.config';
-export * from '@serializers/configs/content/workspace-task.config';
