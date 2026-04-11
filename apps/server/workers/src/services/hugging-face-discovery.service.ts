@@ -12,7 +12,20 @@ const API_TIMEOUT_MS = 30_000;
 const PAGE_SIZE = 100;
 
 /** Maximum pages to iterate to prevent runaway polling */
-const MAX_PAGES = 10;
+const MAX_PAGES = 5;
+
+/**
+ * Minimum download count for a model to be considered for discovery.
+ * Filters out the long tail of experimental / spam models.
+ * HuggingFace has 500k+ models; this keeps the queue to established ones only.
+ */
+const MIN_DOWNLOADS = 1_000;
+
+/**
+ * Minimum like count as a secondary quality signal.
+ * Requires at least some community validation beyond raw download numbers.
+ */
+const MIN_LIKES = 10;
 
 /**
  * Pipeline tags from the HuggingFace Hub API that map to content-creation categories.
@@ -195,9 +208,17 @@ export class HuggingFaceDiscoveryService {
 
       const data = (await response.json()) as HuggingFaceModel[];
 
+      let reachedThreshold = false;
       if (Array.isArray(data) && data.length > 0) {
         const filtered = data.filter((m) => this.isEligible(m));
         models.push(...filtered);
+
+        // Results are sorted by downloads desc — once the last model on this
+        // page falls below MIN_DOWNLOADS there is no point fetching more pages.
+        const lastModel = data.at(-1);
+        if (lastModel && (lastModel.downloads ?? 0) < MIN_DOWNLOADS) {
+          reachedThreshold = true;
+        }
       }
 
       // HuggingFace uses Link header for pagination cursor
@@ -209,7 +230,7 @@ export class HuggingFaceDiscoveryService {
         `${this.context} fetched page ${pageCount} for tag "${pipelineTag}" — ${data.length ?? 0} items (filtered: ${models.length} total so far)`,
       );
 
-      if (!Array.isArray(data) || data.length < PAGE_SIZE) {
+      if (!Array.isArray(data) || data.length < PAGE_SIZE || reachedThreshold) {
         break;
       }
     }
@@ -219,7 +240,7 @@ export class HuggingFaceDiscoveryService {
 
   /**
    * Determine if a HuggingFace model is eligible for auto-discovery.
-   * Excludes gated, private, and denied-tag models.
+   * Excludes gated, private, denied-tag, and low-popularity models.
    */
   private isEligible(model: HuggingFaceModel): boolean {
     if (model.private === true) {
@@ -232,6 +253,14 @@ export class HuggingFaceDiscoveryService {
 
     const tag = model.pipeline_tag ?? '';
     if (DENIED_PIPELINE_TAGS.has(tag)) {
+      return false;
+    }
+
+    if ((model.downloads ?? 0) < MIN_DOWNLOADS) {
+      return false;
+    }
+
+    if ((model.likes ?? 0) < MIN_LIKES) {
       return false;
     }
 
