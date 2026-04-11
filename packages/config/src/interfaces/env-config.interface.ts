@@ -74,6 +74,9 @@ export interface IEnvConfig {
   // === fal.ai ===
   FAL_API_KEY?: string;
 
+  // === HuggingFace ===
+  HUGGINGFACE_API_KEY?: string;
+
   // === Replicate ===
   REPLICATE_KEY?: string;
   REPLICATE_WEBHOOK_SIGNING_SECRET?: string;
@@ -101,6 +104,7 @@ export interface IEnvConfig {
 
   // === Hedra ===
   HEDRA_KEY?: string;
+  HEDRA_URL?: string;
 
   // === Higgsfield ===
   HIGGSFIELD_API_KEY?: string;

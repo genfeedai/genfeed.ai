@@ -2,7 +2,10 @@
   "dependencies": {
     "@aws-sdk/client-ec2": "3.1029.0",
     "@genfeedai/config": "workspace:*",
-    "@genfeedai/enums": "workspace:*"
+    "@genfeedai/enums": "workspace:*",
+    "@genfeedai/helpers": "workspace:*",
+    "@genfeedai/interfaces": "workspace:*",
+    "@genfeedai/workflows": "workspace:*"
   },
   "description": "Genfeed Workers Service (Cron Jobs)",
   "devDependencies": {

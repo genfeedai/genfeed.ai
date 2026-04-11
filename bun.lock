@@ -413,6 +413,7 @@
         "@genfeedai/types": "workspace:*",
         "@genfeedai/workflow-engine": "workspace:*",
         "@genfeedai/workflow-saas": "workspace:*",
+        "@genfeedai/workflows": "workspace:*",
         "@nestjs/event-emitter": "3.0.1",
         "effect": "3.21.0",
         "openai": "6.34.0",
@@ -473,6 +474,7 @@
       "version": "1.0.0",
       "dependencies": {
         "@genfeedai/config": "workspace:*",
+        "@genfeedai/enums": "workspace:*",
         "@slack/web-api": "7.15.0",
       },
     },
@@ -522,6 +524,9 @@
         "@aws-sdk/client-ec2": "3.1029.0",
         "@genfeedai/config": "workspace:*",
         "@genfeedai/enums": "workspace:*",
+        "@genfeedai/helpers": "workspace:*",
+        "@genfeedai/interfaces": "workspace:*",
+        "@genfeedai/workflows": "workspace:*",
       },
       "devDependencies": {
         "@nestjs/testing": "11.1.18",

@@ -9,6 +9,7 @@
     "@genfeedai/types": "workspace:*",
     "@genfeedai/workflow-engine": "workspace:*",
     "@genfeedai/workflow-saas": "workspace:*",
+    "@genfeedai/workflows": "workspace:*",
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/helpers": "workspace:*",

@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import path from 'node:path';
 import { ConfigService } from '@files/config/config.service';
 import { FFmpegService } from '@files/services/ffmpeg/services/ffmpeg.service';
-import { S3Service } from '@files/services/s3/s3.service';
+import type { StorageProvider } from '@genfeedai/storage';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
@@ -25,7 +25,7 @@ export class UploadService {
     @Inject(FFmpegService) private readonly ffmpegService: FFmpegService,
     @Inject(HttpService) private readonly httpService: HttpService,
     private readonly loggerService: LoggerService,
-    @Inject(S3Service) private readonly s3Service: S3Service,
+    @Inject('STORAGE_PROVIDER') private readonly storage: StorageProvider,
   ) {}
 
   private async getVideoDimensions(filePath: string): Promise<{
@@ -336,23 +336,21 @@ export class UploadService {
         });
       }
 
-      // Generate S3 key: ingredients/${type}/${key}
-      const s3Key = this.s3Service.generateS3Key(type, key);
+      // Generate storage path: ingredients/${type}/${key}
+      const storagePath = `ingredients/${type}/${key}`;
 
-      // Upload to S3 using buffer upload
+      // Upload using storage provider (returns public URL)
       const s3UploadStartTime = Date.now();
-      this.loggerService.log(`${url} starting S3 upload`, {
+      this.loggerService.log(`${url} starting storage upload`, {
         bufferSize: `${(body.length / (1024 * 1024)).toFixed(2)} MB`,
         contentType,
         key,
-        s3Key,
+        storagePath,
       });
 
-      await this.s3Service.uploadBuffer(s3Key, body, contentType);
+      const publicUrl = await this.storage.upload(body, storagePath);
 
       const s3UploadDuration = Date.now() - s3UploadStartTime;
-
-      const publicUrl = this.s3Service.getPublicUrl(s3Key);
       const totalDuration = Date.now() - uploadStartTime;
 
       this.loggerService.log(`${url} upload completed successfully`, {
@@ -361,7 +359,7 @@ export class UploadService {
         key,
         prepareDuration: `${prepareDuration}ms`,
         publicUrl,
-        s3Key,
+        storagePath,
         ...(imageProcessingDuration > 0 && {
           imageProcessingDuration: `${imageProcessingDuration}ms`,
         }),

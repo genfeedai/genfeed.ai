@@ -70,6 +70,7 @@ export const heygenSchema = {
  */
 export const hedraSchema = {
   HEDRA_KEY: Joi.string().optional().allow(''),
+  HEDRA_URL: Joi.string().uri().optional(),
 };
 
 /**
@@ -108,6 +109,13 @@ export const gpuFleetSchema = {
  */
 export const falSchema = {
   FAL_API_KEY: Joi.string().optional().allow(''),
+};
+
+/**
+ * HuggingFace Inference API
+ */
+export const huggingFaceSchema = {
+  HUGGINGFACE_API_KEY: Joi.string().optional().allow(''),
 };
 
 export const trainingPricingSchema = {
