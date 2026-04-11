@@ -1,5 +1,6 @@
 import {
   TASK_LINKED_ENTITY_MODELS,
+  TASK_OUTPUT_TYPES,
   TASK_PRIORITIES,
   TASK_STATUSES,
 } from '@api/collections/tasks/schemas/task.schema';
@@ -139,13 +140,13 @@ export class CreateTaskDto {
   request?: string;
 
   @IsOptional()
-  @IsEnum(['caption', 'image', 'ingredient', 'newsletter', 'post', 'video'])
+  @IsEnum(TASK_OUTPUT_TYPES)
   @ApiProperty({
     description: 'Output type for AI generation',
-    enum: ['caption', 'image', 'ingredient', 'newsletter', 'post', 'video'],
+    enum: TASK_OUTPUT_TYPES,
     required: false,
   })
-  outputType?: string;
+  outputType?: (typeof TASK_OUTPUT_TYPES)[number];
 
   @IsOptional()
   @IsArray()
@@ -156,4 +157,22 @@ export class CreateTaskDto {
     type: [String],
   })
   platforms?: string[];
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    description: 'HeyGen avatar ID for facecam tasks',
+    required: false,
+    type: String,
+  })
+  heygenAvatarId?: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiProperty({
+    description: 'HeyGen voice ID for facecam tasks',
+    required: false,
+    type: String,
+  })
+  heygenVoiceId?: string;
 }

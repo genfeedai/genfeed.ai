@@ -16,7 +16,10 @@ export class TavusAvatarProvider implements AvatarVideoProvider {
     throw new NotImplementedException('Tavus provider coming soon');
   }
 
-  async getStatus(_jobId: string): Promise<AvatarVideoJobResult> {
+  async getStatus(
+    _jobId: string,
+    _organizationId: string,
+  ): Promise<AvatarVideoJobResult> {
     throw new NotImplementedException('Tavus provider coming soon');
   }
 }

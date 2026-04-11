@@ -158,6 +158,14 @@ export class BrandAgentConfig {
   })
   defaultAvatarIngredientId?: Types.ObjectId;
 
+  // HeyGen facecam defaults (used by workspace composer to pre-select
+  // avatar + voice when the user picks the Facecam output type).
+  @Prop({ required: false, type: String })
+  heygenAvatarId?: string;
+
+  @Prop({ required: false, type: String })
+  heygenVoiceId?: string;
+
   @Prop({ required: false, type: String })
   persona?: string;
 

@@ -9,6 +9,7 @@
 import { CLIP_ANALYZE_QUEUE } from '@api/queues/clip-analyze/clip-analyze.constants';
 import { CLIP_FACTORY_QUEUE } from '@api/queues/clip-factory/clip-factory.constants';
 import { QueueService } from '@api/queues/core/queue.service';
+import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
 import { WorkflowQueueService } from '@api/queues/workflow/workflow-queue.service';
 import {
   CAMPAIGN_MEMORY_EXTRACTION_QUEUE,
@@ -27,7 +28,12 @@ import { ConfigModule } from '@workers/config/config.module';
 import { ConfigService } from '@workers/config/config.service';
 
 @Module({
-  exports: [QueueService, WorkflowQueueService, WorkspaceTaskQueueService],
+  exports: [
+    QueueService,
+    WorkflowQueueService,
+    WorkspaceTaskQueueService,
+    HeygenPollQueueService,
+  ],
   imports: [
     LoggerModule,
     BullModule.forRootAsync({
@@ -332,8 +338,22 @@ import { ConfigService } from '@workers/config/config.service';
         },
         name: 'batch-workflow',
       },
+      {
+        defaultJobOptions: {
+          attempts: 2,
+          backoff: { delay: 5000, type: 'exponential' },
+          removeOnComplete: 100,
+          removeOnFail: 50,
+        },
+        name: 'heygen-poll',
+      },
     ),
   ],
-  providers: [QueueService, WorkflowQueueService, WorkspaceTaskQueueService],
+  providers: [
+    QueueService,
+    WorkflowQueueService,
+    WorkspaceTaskQueueService,
+    HeygenPollQueueService,
+  ],
 })
 export class WorkersQueuesModule {}

@@ -30,6 +30,7 @@ export type TaskExecutionPath =
 
 export type TaskOutputType =
   | 'caption'
+  | 'facecam'
   | 'image'
   | 'ingredient'
   | 'newsletter'
@@ -91,6 +92,8 @@ export interface CreateTaskInput {
   brand?: string;
   description?: string;
   goalId?: string;
+  heygenAvatarId?: string;
+  heygenVoiceId?: string;
   linkedEntities?: TaskLinkedEntity[];
   outputType?: TaskOutputType;
   parentId?: string;

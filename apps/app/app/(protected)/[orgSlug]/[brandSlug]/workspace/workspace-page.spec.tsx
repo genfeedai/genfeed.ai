@@ -257,12 +257,90 @@ describe('WorkspacePageContent', () => {
     fireEvent.click(screen.getByRole('button', { name: /^create task$/i }));
 
     await waitFor(() => {
-      expect(createTaskMock).toHaveBeenCalledWith({
-        brand: 'brand-1',
-        outputType: 'ingredient',
-        request: 'Create a product launch brief',
-      });
+      expect(createTaskMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brand: 'brand-1',
+          outputType: 'ingredient',
+          request: 'Create a product launch brief',
+        }),
+      );
     });
+  });
+
+  it('includes heygenAvatarId/heygenVoiceId when the Facecam preset is selected', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation((url: RequestInfo | URL) => {
+        const href = typeof url === 'string' ? url : url.toString();
+        if (href.endsWith('/heygen/avatars')) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                data: {
+                  attributes: {
+                    avatars: [
+                      {
+                        avatarId: 'avatar-42',
+                        name: 'Default Avatar',
+                        preview: null,
+                      },
+                    ],
+                  },
+                },
+              }),
+              { status: 200 },
+            ),
+          );
+        }
+        if (href.endsWith('/heygen/voices')) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                data: {
+                  attributes: {
+                    voices: [{ voiceId: 'voice-99', name: 'Default Voice' }],
+                  },
+                },
+              }),
+              { status: 200 },
+            ),
+          );
+        }
+        return Promise.resolve(new Response('{}', { status: 200 }));
+      });
+
+    render(<WorkspacePageContent section="overview" />);
+
+    await waitFor(() => {
+      expect(listMock).toHaveBeenCalledWith({ limit: 24 });
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /^new task$/i }));
+    fireEvent.change(screen.getByLabelText(/task request/i), {
+      target: { value: 'Hello from Genfeed, this is a facecam test.' },
+    });
+
+    // Select Facecam preset (uppercase label inside the toolbar button)
+    fireEvent.click(screen.getByRole('button', { name: /^facecam$/i }));
+
+    // Wait for the picker fetch to populate
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalled();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /^create task$/i }));
+
+    await waitFor(() => {
+      expect(createTaskMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brand: 'brand-1',
+          outputType: 'facecam',
+          request: 'Hello from Genfeed, this is a facecam test.',
+        }),
+      );
+    });
+
+    fetchMock.mockRestore();
   });
 
   it('opens the canonical planning conversation from the task inspector', async () => {

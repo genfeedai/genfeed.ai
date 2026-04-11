@@ -70,6 +70,14 @@ _None remaining — all tracked features have been wired._
 - `packages/pages/agents/campaigns/OutreachCampaignsList.tsx` — PR 5 reclassification; **no code change**. Live via `apps/app/.../orchestration/outreach-campaigns/page.tsx` through the `@pages/agents` barrel.
 - `packages/pages/agents/campaigns/OutreachCampaignWizard.tsx` — PR 5 reclassification; **no code change**. Live via `apps/app/.../orchestration/outreach-campaigns/new/page.tsx` through the `@pages/agents` barrel.
 - `packages/pages/agents/campaigns/OutreachCampaignDetail.tsx` — PR 5 reclassification; **no code change**. Live via `apps/app/.../orchestration/outreach-campaigns/[id]/page.tsx` through the `@pages/agents` barrel.
+- `packages/pages/posts/[id]/ingredient-posts.tsx` — PR 7 verification; **no code change**. Live via `apps/website/app/(public)/posts/[id]/page.tsx:2`.
+- `packages/pages/posts/detail/components/PostDetailAnalytics.tsx` — PR 7 verification; **no code change**. Live as internal child of `packages/pages/posts/detail/post-detail.tsx`, which is routed at `apps/app/app/(protected)/[orgSlug]/[brandSlug]/posts/[id]/page.tsx`.
+- `packages/pages/posts/detail/components/PostDetailCard.tsx` — PR 7 verification; **no code change**. Live as internal child of `packages/pages/posts/detail/post-detail.tsx`.
+- `packages/pages/posts/detail/components/PostDetailContent.tsx` — PR 7 verification; **no code change**. Live as internal child of `packages/pages/posts/detail/post-detail.tsx`.
+- `packages/pages/posts/detail/components/PostDetailHeader.tsx` — PR 7 verification; **no code change**. Live as internal child of `packages/pages/posts/detail/post-detail.tsx`.
+- `packages/pages/posts/list/components/PostsGrid.tsx` — PR 7 verification; **no code change**. Live as internal child of the posts list page at `apps/app/.../posts/`.
+- `packages/pages/posts/list/components/PostsListToolbar.tsx` — PR 7 verification; **no code change**. Live as internal child of the posts list page.
+- `packages/pages/calendar/posts/posts-calendar-page.tsx` — PR 7 verification; **no code change**. Live via `PostDetailOverlay` and the content calendar.
 
 ### Studio subtree (reachable via StudioGenerateLayout, not orphaned)
 
@@ -114,23 +122,10 @@ These have zero live consumers and no existing feature ticket. Per user decision
 - `packages/pages/twitter-pipeline/components/opportunity-card.tsx` + `.test.tsx` — **Issue: #150** — only consumed internally by `twitter-pipeline-engage.tsx`
 - `packages/pages/twitter-pipeline/components/tweet-card.tsx` + `.test.tsx` — **Issue: #150** — only consumed internally by `twitter-pipeline-engage.tsx`
 
-### Posts subtree (needs per-file verification)
-
-Deferred from PR 1 because the original sweep is untrustworthy and each file needs an individual consumer grep before action.
-
-- `packages/pages/posts/[id]/ingredient-posts.tsx`
-- `packages/pages/posts/detail/components/PostDetailAnalytics.tsx`
-- `packages/pages/posts/detail/components/PostDetailCard.tsx`
-- `packages/pages/posts/detail/components/PostDetailContent.tsx`
-- `packages/pages/posts/detail/components/PostDetailHeader.tsx`
-- `packages/pages/posts/list/components/PostsGrid.tsx`
-- `packages/pages/posts/list/components/PostsListToolbar.tsx`
-- `packages/pages/calendar/posts/posts-calendar-page.tsx` + `.test.tsx` — current posts calendar route renders its local `content-calendar-page.tsx`, not this package module
-
 ## Notes
 
 - Canonical task tracking stays in GitHub, per repo policy.
 - Do not use this file as a backlog — it is a preservation ledger only.
-- **As of PR 5 (2026-04-10), every entry outside the Studio and Posts verification sections is either (a) wired into a live route, (b) genuinely-shared internal code with a documented consumer, or (c) tracked by an open GitHub issue.**
-- The Studio subtree and the Posts subtree sections are the remaining cleanup candidates — Studio is live internal code (should be removed from the ledger after a barrel audit) and Posts needs per-file verification in a follow-up micro-PR.
-- This file can be deleted entirely once the Studio and Posts sections are resolved.
+- **As of PR 7 (2026-04-10), every entry outside the Studio subtree section is either (a) wired into a live route, (b) genuinely-shared internal code with a documented consumer, or (c) tracked by an open GitHub issue.** The Posts subtree per-file verification is complete — all 8 entries are live.
+- The Studio subtree section is the sole remaining cleanup candidate — it is live internal code and should be removed from the ledger after a barrel audit.
+- This file can be deleted entirely once the Studio section is resolved.

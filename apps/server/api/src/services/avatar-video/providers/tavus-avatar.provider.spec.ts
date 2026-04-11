@@ -57,13 +57,13 @@ describe('TavusAvatarProvider', () => {
 
   describe('getStatus', () => {
     it('should throw NotImplementedException', async () => {
-      await expect(provider.getStatus('job-123')).rejects.toThrow(
+      await expect(provider.getStatus('job-123', 'org-1')).rejects.toThrow(
         NotImplementedException,
       );
     });
 
     it('should throw with "coming soon" message', async () => {
-      await expect(provider.getStatus('job-abc')).rejects.toThrow(
+      await expect(provider.getStatus('job-abc', 'org-1')).rejects.toThrow(
         'coming soon',
       );
     });
@@ -71,7 +71,7 @@ describe('TavusAvatarProvider', () => {
     it('should reject for any jobId value', async () => {
       const jobIds = ['job-1', '', 'some-uuid-1234', '   '];
       for (const jobId of jobIds) {
-        await expect(provider.getStatus(jobId)).rejects.toThrow(
+        await expect(provider.getStatus(jobId, 'org-1')).rejects.toThrow(
           NotImplementedException,
         );
       }

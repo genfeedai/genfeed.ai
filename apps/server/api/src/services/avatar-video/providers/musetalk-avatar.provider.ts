@@ -22,7 +22,10 @@ export class MusetalkAvatarProvider implements AvatarVideoProvider {
     throw new NotImplementedException('MuseTalk provider coming soon');
   }
 
-  async getStatus(_jobId: string): Promise<AvatarVideoJobResult> {
+  async getStatus(
+    _jobId: string,
+    _organizationId: string,
+  ): Promise<AvatarVideoJobResult> {
     throw new NotImplementedException('MuseTalk provider coming soon');
   }
 }

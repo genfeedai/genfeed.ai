@@ -20,12 +20,14 @@ import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props'
 import { AgentRunsService } from '@services/ai/agent-runs.service';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { PromptsService } from '@services/content/prompts.service';
+import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import {
   Task,
   type TaskEvent,
   TasksService,
 } from '@services/management/tasks.service';
+import { BrandsService } from '@services/social/brands.service';
 import type { Editor, JSONContent } from '@tiptap/core';
 import Mention, { type MentionNodeAttrs } from '@tiptap/extension-mention';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -39,6 +41,13 @@ import Container from '@ui/layout/container/Container';
 import { Modal } from '@ui/modals/compound/Modal';
 import { Button as BaseButton, Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import {
   Sheet,
   SheetContent,
@@ -182,6 +191,10 @@ const TASK_PRESETS = [
     outputType: 'video' as const,
   },
   {
+    label: 'Facecam',
+    outputType: 'facecam' as const,
+  },
+  {
     label: 'Caption',
     outputType: 'caption' as const,
   },
@@ -190,6 +203,12 @@ const TASK_PRESETS = [
     outputType: 'ingredient' as const,
   },
 ];
+
+interface HeygenOption {
+  id: string;
+  label: string;
+  preview?: string;
+}
 
 const INBOX_VIEW_OPTIONS: Array<{
   description: string;
@@ -1646,6 +1665,126 @@ export default function WorkspacePageContent({
   const [taskRequest, setTaskRequest] = useState('');
   const [taskOutputType, setTaskOutputType] =
     useState<(typeof TASK_PRESETS)[number]['outputType']>('ingredient');
+  const [facecamAvatars, setFacecamAvatars] = useState<HeygenOption[]>([]);
+  const [facecamVoices, setFacecamVoices] = useState<HeygenOption[]>([]);
+  const [facecamAvatarId, setFacecamAvatarId] = useState<string>('');
+  const [facecamVoiceId, setFacecamVoiceId] = useState<string>('');
+  const [facecamLoading, setFacecamLoading] = useState(false);
+  const [facecamError, setFacecamError] = useState<string | null>(null);
+  const [facecamSaveAsDefault, setFacecamSaveAsDefault] = useState(false);
+
+  // Seed facecam picker defaults from brand.agentConfig when available.
+  useEffect(() => {
+    const config = (
+      selectedBrand as { agentConfig?: Record<string, unknown> } | undefined
+    )?.agentConfig;
+    if (!config) return;
+    const storedAvatar = config.heygenAvatarId as string | undefined;
+    const storedVoice = config.heygenVoiceId as string | undefined;
+    if (storedAvatar && !facecamAvatarId) {
+      setFacecamAvatarId(storedAvatar);
+    }
+    if (storedVoice && !facecamVoiceId) {
+      setFacecamVoiceId(storedVoice);
+    }
+  }, [selectedBrand, facecamAvatarId, facecamVoiceId]);
+
+  // Fetch HeyGen avatars + voices on demand when the user switches to Facecam.
+  useEffect(() => {
+    if (
+      taskOutputType !== 'facecam' ||
+      (facecamAvatars.length > 0 && facecamVoices.length > 0)
+    ) {
+      return;
+    }
+
+    const controller = new AbortController();
+    setFacecamLoading(true);
+    setFacecamError(null);
+
+    const run = async () => {
+      try {
+        const token = await resolveClerkToken(getToken);
+        if (!token) {
+          setFacecamError('Authentication token unavailable.');
+          return;
+        }
+
+        const apiEndpoint = EnvironmentService.apiEndpoint;
+        const headers = { Authorization: `Bearer ${token}` };
+
+        const [avatarsResponse, voicesResponse] = await Promise.all([
+          fetch(`${apiEndpoint}/heygen/avatars`, {
+            headers,
+            signal: controller.signal,
+          }),
+          fetch(`${apiEndpoint}/heygen/voices`, {
+            headers,
+            signal: controller.signal,
+          }),
+        ]);
+
+        if (controller.signal.aborted) return;
+
+        if (!avatarsResponse.ok || !voicesResponse.ok) {
+          const detail =
+            !avatarsResponse.ok && avatarsResponse.status === 500
+              ? 'HeyGen API key missing or invalid. Add one in Settings → API Keys, or set HEYGEN_KEY for self-hosted.'
+              : `Avatars: ${avatarsResponse.status}, Voices: ${voicesResponse.status}`;
+          setFacecamError(detail);
+          return;
+        }
+
+        const avatarsJson = (await avatarsResponse.json()) as {
+          data?: {
+            attributes?: {
+              avatars?: Array<{
+                avatarId: string;
+                name: string;
+                preview?: string | null;
+              }>;
+            };
+          };
+        };
+        const voicesJson = (await voicesResponse.json()) as {
+          data?: {
+            attributes?: {
+              voices?: Array<{ voiceId: string; name: string }>;
+            };
+          };
+        };
+
+        const avatars = (avatarsJson.data?.attributes?.avatars ?? []).map(
+          (a): HeygenOption => ({
+            id: a.avatarId,
+            label: a.name,
+            preview: a.preview ?? undefined,
+          }),
+        );
+        const voices = (voicesJson.data?.attributes?.voices ?? []).map(
+          (v): HeygenOption => ({ id: v.voiceId, label: v.name }),
+        );
+
+        if (controller.signal.aborted) return;
+        setFacecamAvatars(avatars);
+        setFacecamVoices(voices);
+      } catch (error: unknown) {
+        if (controller.signal.aborted) return;
+        const message =
+          error instanceof Error
+            ? error.message
+            : 'Failed to load HeyGen avatars/voices.';
+        setFacecamError(message);
+      } finally {
+        if (!controller.signal.aborted) {
+          setFacecamLoading(false);
+        }
+      }
+    };
+
+    void run();
+    return () => controller.abort();
+  }, [taskOutputType, facecamAvatars.length, facecamVoices.length, getToken]);
   const [taskMode, setTaskMode] = useState<WorkspaceTaskMode>('standard');
   const [taskError, setTaskError] = useState<string | null>(null);
   const [taskEnhancementBusy, setTaskEnhancementBusy] = useState(false);
@@ -2110,14 +2249,26 @@ export default function WorkspacePageContent({
       };
     }
 
-    return {
+    const base = {
       brand: effectiveTaskBrandId,
       outputType: taskOutputType,
       request: normalizedRequest,
       title: normalizedRequest.slice(0, 80),
     };
+
+    if (taskOutputType === 'facecam') {
+      return {
+        ...base,
+        heygenAvatarId: facecamAvatarId || undefined,
+        heygenVoiceId: facecamVoiceId || undefined,
+      };
+    }
+
+    return base;
   }, [
     effectiveTaskBrandId,
+    facecamAvatarId,
+    facecamVoiceId,
     selectedTargetBrandLabel,
     taskMode,
     taskOutputType,
@@ -2142,7 +2293,26 @@ export default function WorkspacePageContent({
       }
 
       const service = TasksService.getInstance(token);
-      const createdTask = await service.createTask(buildTaskSubmission());
+      const submission = buildTaskSubmission();
+      const createdTask = await service.createTask(submission);
+
+      // Optional: persist HeyGen pickers as brand defaults.
+      if (
+        taskOutputType === 'facecam' &&
+        facecamSaveAsDefault &&
+        effectiveTaskBrandId &&
+        (facecamAvatarId || facecamVoiceId)
+      ) {
+        try {
+          const brandsService = BrandsService.getInstance(token);
+          await brandsService.updateAgentConfig(effectiveTaskBrandId, {
+            heygenAvatarId: facecamAvatarId || null,
+            heygenVoiceId: facecamVoiceId || null,
+          });
+        } catch (brandError) {
+          logger.error('Failed to persist HeyGen brand defaults', brandError);
+        }
+      }
 
       startTransition(() => {
         setWorkspaceTasks((current) => [createdTask, ...current]);
@@ -2527,6 +2697,86 @@ export default function WorkspacePageContent({
                     ?.description
                 }
               </p>
+            ) : null}
+
+            {taskOutputType === 'facecam' ? (
+              <div className="rounded-lg border border-white/10 bg-black/20 p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-foreground/55">
+                    Facecam settings
+                  </p>
+                  {facecamLoading ? (
+                    <span className="text-[11px] text-foreground/40">
+                      Loading HeyGen…
+                    </span>
+                  ) : null}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="facecam-avatar"
+                      className="text-[11px] text-foreground/55"
+                    >
+                      Avatar
+                    </label>
+                    <Select
+                      value={facecamAvatarId}
+                      onValueChange={(value) => setFacecamAvatarId(value)}
+                      disabled={facecamLoading || facecamAvatars.length === 0}
+                    >
+                      <SelectTrigger id="facecam-avatar">
+                        <SelectValue placeholder="Pick an avatar" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {facecamAvatars.map((avatar) => (
+                          <SelectItem key={avatar.id} value={avatar.id}>
+                            {avatar.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label
+                      htmlFor="facecam-voice"
+                      className="text-[11px] text-foreground/55"
+                    >
+                      Voice
+                    </label>
+                    <Select
+                      value={facecamVoiceId}
+                      onValueChange={(value) => setFacecamVoiceId(value)}
+                      disabled={facecamLoading || facecamVoices.length === 0}
+                    >
+                      <SelectTrigger id="facecam-voice">
+                        <SelectValue placeholder="Pick a voice" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {facecamVoices.map((voice) => (
+                          <SelectItem key={voice.id} value={voice.id}>
+                            {voice.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <Checkbox
+                  isChecked={facecamSaveAsDefault}
+                  label="Save as brand default"
+                  className="text-xs text-foreground/55"
+                  onCheckedChange={(checked) =>
+                    setFacecamSaveAsDefault(checked === true)
+                  }
+                />
+
+                {facecamError ? (
+                  <p className="text-[11px] text-rose-300">{facecamError}</p>
+                ) : null}
+              </div>
             ) : null}
 
             {taskError ? (

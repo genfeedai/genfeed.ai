@@ -92,6 +92,8 @@ export class TasksController extends BaseCRUDController<
       await this.taskCountersService.getNextNumber(organizationId);
     const identifier = `${org.prefix}-${taskNumber}`;
     const extended = createDto as CreateTaskDto & {
+      heygenAvatarId?: string;
+      heygenVoiceId?: string;
       outputType?: string;
       platforms?: string[];
       request?: string;
@@ -135,6 +137,8 @@ export class TasksController extends BaseCRUDController<
             brandId: (
               createDto.brand as Types.ObjectId | undefined
             )?.toString(),
+            heygenAvatarId: extended.heygenAvatarId,
+            heygenVoiceId: extended.heygenVoiceId,
             organizationId,
             outputType: extended.outputType,
             platforms: extended.platforms,

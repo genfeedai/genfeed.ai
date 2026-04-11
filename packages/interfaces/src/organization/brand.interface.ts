@@ -127,6 +127,8 @@ export interface IBrandAgentConfig {
   defaultVoiceProvider?: string | null;
   defaultAvatarPhotoUrl?: string | null;
   defaultAvatarIngredientId?: string | null;
+  heygenAvatarId?: string | null;
+  heygenVoiceId?: string | null;
   persona?: string;
   enabledSkills?: string[];
   voice?: IBrandAgentVoice;

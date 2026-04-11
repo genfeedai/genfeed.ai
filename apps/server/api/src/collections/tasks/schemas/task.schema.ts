@@ -23,6 +23,7 @@ export const TASK_LINKED_ENTITY_MODELS = [
 
 export const TASK_OUTPUT_TYPES = [
   'caption',
+  'facecam',
   'image',
   'ingredient',
   'newsletter',
@@ -170,6 +171,13 @@ export class Task {
 
   @Prop({ default: [], type: [String] })
   platforms!: string[];
+
+  // HeyGen facecam selection (persisted so retries reuse the picks)
+  @Prop({ required: false, type: String })
+  heygenAvatarId?: string;
+
+  @Prop({ required: false, type: String })
+  heygenVoiceId?: string;
 
   // ─── Review lifecycle ─────────────────────────────────────────────────────────
 
