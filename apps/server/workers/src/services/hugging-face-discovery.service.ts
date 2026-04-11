@@ -12,7 +12,7 @@ const API_TIMEOUT_MS = 30_000;
 const PAGE_SIZE = 100;
 
 /** Maximum pages to iterate to prevent runaway polling */
-const MAX_PAGES = 5;
+const MAX_PAGES = 1;
 
 /**
  * Minimum download count for a model to be considered for discovery.

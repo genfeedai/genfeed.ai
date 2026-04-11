@@ -37,7 +37,7 @@ const VERIFIED_OWNERS: ReadonlySet<string> = new Set([
 ]);
 
 /** Maximum number of API pages to iterate to prevent runaway polling */
-const MAX_PAGES = 20;
+const MAX_PAGES = 3;
 
 /** Timeout for individual Replicate API requests (30 seconds) */
 const API_TIMEOUT_MS = 30_000;
@@ -58,15 +58,15 @@ export class CronModelWatcherService {
   ) {}
 
   /**
-   * Daily model discovery cron.
+   * Weekly model discovery cron.
    * Polls Replicate API for new official models from verified creators,
    * compares against existing models in the database, and creates
    * draft entries for any newly discovered models.
    *
-   * Runs daily at 6 AM UTC. Disabled in development to prevent
-   * unnecessary API calls during local development.
+   * Runs weekly on Sunday at 6 AM UTC. Kept conservative until the
+   * discovery pipeline is fully validated in production.
    */
-  @Cron('0 6 * * *')
+  @Cron('0 6 * * 0')
   async discoverNewModels(): Promise<IModelDiscoveryRunSummary> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.logger.log(`${url} started`);
