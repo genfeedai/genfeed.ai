@@ -83,7 +83,6 @@ genfeed.ai/
 │   ├── types/               # Shared types
 │   ├── ui/                  # UI component library
 │   ├── utils/               # Utilities
-│   ├── workflow-cloud/      # Cloud workflow logic
 │   ├── workflow-engine/     # Workflow execution engine
 │   ├── workflow-saas/       # SaaS workflow (compiled)
 │   ├── workflow-ui/         # Workflow UI components

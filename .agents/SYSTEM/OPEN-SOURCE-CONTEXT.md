@@ -32,7 +32,6 @@ Key points:
 ## Package Scope
 
 - `packages/*` -- shared packages (`@genfeedai/*` scope), open source
-- `packages/workflow-cloud` / `@genfeedai/workflow-cloud` -- Genfeed Cloud integration (open source)
 - `ee/packages/*` -- enterprise packages, commercial license
 
 ## What Stays Open vs Enterprise

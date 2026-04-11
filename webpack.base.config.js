@@ -95,7 +95,6 @@ module.exports = function createWebpackConfig({
           /^@fanvue\//,
           /^@workflow-engine\//,
           /^@workflow-saas\//,
-          /^@workflow-cloud\//,
           /^@api-types\//,
           /^@cloud-types\//,
         ],
