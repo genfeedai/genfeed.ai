@@ -101,6 +101,7 @@ export interface IEnvConfig {
 
   // === Hedra ===
   HEDRA_KEY?: string;
+  HEDRA_URL?: string;
 
   // === Higgsfield ===
   HIGGSFIELD_API_KEY?: string;
