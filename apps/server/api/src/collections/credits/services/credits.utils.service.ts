@@ -16,6 +16,7 @@ import {
   ActivitySource,
   CreditTransactionCategory,
 } from '@genfeedai/enums';
+import type { ICreditsUtilsService } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
@@ -27,8 +28,15 @@ type ActivitiesServiceContract = {
   ) => ReturnType<ActivitiesServiceToken['create']>;
 };
 
+/**
+ * Enterprise credits utility service. The full implementation lives in OSS
+ * today and moves to `ee/packages/billing/` in Phase C Layer 2 (tracked in
+ * issue #87). The `implements ICreditsUtilsService` declaration locks the
+ * OSS-callable surface so consumers can depend on the contract rather than
+ * the concrete class.
+ */
 @Injectable()
-export class CreditsUtilsService {
+export class CreditsUtilsService implements ICreditsUtilsService {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(

@@ -34,6 +34,19 @@ type ClerkSyncSubscription = {
   status?: string;
 };
 
+/**
+ * Enterprise subscriptions service. Conforms structurally to the
+ * {@link import('@genfeedai/interfaces/billing').ISubscriptionsService}
+ * contract for `findOne()`, which is the only method called from OSS core
+ * (`apps/server/api/src/common/middleware/request-context.middleware.ts:121`).
+ *
+ * The rest of the methods on this class (Stripe sync, plan changes, Clerk
+ * metadata sync) are enterprise-only and move to `ee/packages/billing/` in
+ * Phase C Layer 2 (tracked in issue #87). A direct TypeScript `implements`
+ * declaration is omitted because `BaseService.findOne` returns a Mongoose
+ * document type, not the plain `ISubscription` interface; Layer 2 will write
+ * a proper OSS no-op implementation that satisfies the narrow contract.
+ */
 @Injectable()
 export class SubscriptionsService extends BaseService<
   SubscriptionDocument,
