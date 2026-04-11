@@ -1,4 +1,5 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { ConfigService } from '@api/config/config.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -7,8 +8,6 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
-
-const BEEHIIV_API_BASE = 'https://api.beehiiv.com/v2';
 
 interface BeehiivPublication {
   id: string;
@@ -63,12 +62,17 @@ interface BeehiivGetPostResponse {
 @Injectable()
 export class BeehiivService {
   private readonly constructorName: string = String(this.constructor.name);
+  private readonly apiBase: string;
 
   constructor(
+    private readonly configService: ConfigService,
     private readonly credentialsService: CredentialsService,
     private readonly loggerService: LoggerService,
     private readonly httpService: HttpService,
-  ) {}
+  ) {
+    this.apiBase =
+      this.configService.get('BEEHIIV_API_URL') ?? 'https://api.beehiiv.com/v2';
+  }
 
   /**
    * List all publications for the given API key
@@ -78,7 +82,7 @@ export class BeehiivService {
     try {
       const response = await firstValueFrom(
         this.httpService.get<BeehiivPublicationsResponse>(
-          `${BEEHIIV_API_BASE}/publications`,
+          `${this.apiBase}/publications`,
           {
             headers: { Authorization: `Bearer ${apiKey}` },
           },
@@ -120,7 +124,7 @@ export class BeehiivService {
 
       const response = await firstValueFrom(
         this.httpService.get<BeehiivSubscribersResponse>(
-          `${BEEHIIV_API_BASE}/publications/${publicationId}/subscriptions`,
+          `${this.apiBase}/publications/${publicationId}/subscriptions`,
           {
             headers: { Authorization: `Bearer ${apiKey}` },
             params,
@@ -162,7 +166,7 @@ export class BeehiivService {
 
       const response = await firstValueFrom(
         this.httpService.post<BeehiivCreateSubscriberResponse>(
-          `${BEEHIIV_API_BASE}/publications/${publicationId}/subscriptions`,
+          `${this.apiBase}/publications/${publicationId}/subscriptions`,
           body,
           {
             headers: {
@@ -205,7 +209,7 @@ export class BeehiivService {
     try {
       const response = await firstValueFrom(
         this.httpService.post<BeehiivCreatePostResponse>(
-          `${BEEHIIV_API_BASE}/publications/${publicationId}/posts`,
+          `${this.apiBase}/publications/${publicationId}/posts`,
           {
             content_html: contentHtml,
             status,
@@ -249,7 +253,7 @@ export class BeehiivService {
     try {
       const response = await firstValueFrom(
         this.httpService.get<BeehiivGetPostResponse>(
-          `${BEEHIIV_API_BASE}/publications/${publicationId}/posts/${postId}`,
+          `${this.apiBase}/publications/${publicationId}/posts/${postId}`,
           {
             headers: { Authorization: `Bearer ${apiKey}` },
           },

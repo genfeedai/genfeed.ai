@@ -11,14 +11,17 @@ import { firstValueFrom } from 'rxjs';
 @Injectable()
 export class HedraService {
   private readonly constructorName: string = String(this.constructor.name);
-  private readonly endpoint = 'https://api.hedra.com/v1';
+  private readonly endpoint: string;
 
   constructor(
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly httpService: HttpService,
     private readonly apiKeyHelperService: ApiKeyHelperService,
-  ) {}
+  ) {
+    this.endpoint =
+      this.configService.get('HEDRA_URL') ?? 'https://api.hedra.com/v1';
+  }
 
   private isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === 'object' && value !== null && !Array.isArray(value);
