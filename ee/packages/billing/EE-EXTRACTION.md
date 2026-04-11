@@ -6,13 +6,71 @@ Plan file: `.claude-genfeedai/plans/delegated-churning-sifakis.md` §5.1b
 
 ## Status
 
-**Layer 1 — COMPLETE** (this commit):
+**Layer 1 — COMPLETE** (this commit, with Codex review follow-up):
 
 - Service contracts defined in `@genfeedai/interfaces/billing`:
-  - `ICreditsUtilsService`
-  - `ISubscriptionsService` + `ISubscriptionFindOneFilter`
-- Existing `CreditsUtilsService` and `SubscriptionsService` declare `implements` the contracts to lock the OSS-callable surface.
-- This package scaffold is in place and type-checks.
+  - `ICreditsUtilsService` — **9 methods** (`checkOrganizationCreditsAvailable`, `getOrganizationCreditsBalance`, `deductCreditsFromOrganization`, `addOrganizationCreditsWithExpiration`, `refundOrganizationCredits`, `resetOrganizationCredits`, `removeAllOrganizationCredits`, `getOrganizationCreditsWithExpiration`, `getCycleRemainingMetrics`). Initial draft had 6 — Codex adversarial review caught the 3 omissions; expanded to cover every OSS call site verified via repo-wide grep.
+  - `ISubscriptionsService` — 3 methods (`findOne`, `findByOrganizationId`, `findAll`). Initial draft was narrower (`findOne` only) and Codex flagged two missing OSS callers; expanded.
+- **Both** `CreditsUtilsService` and `SubscriptionsService` now declare `implements` on the contracts — compiler-enforced, not doc-comment-enforced.
+
+## OSS vs EE classification of current consumers
+
+Verified via `grep -rn "creditsUtilsService\.\|subscriptionsService\." apps/server/api/src` as of commit d0052e7c. This list is what Layer 2 extraction must preserve.
+
+**CreditsUtilsService — OSS callers (stay on OSS-callable contract):**
+
+- `auth/services/auth-bootstrap.service.ts`
+- `collections/articles/controllers/articles.controller.ts`, `services/articles-analytics.service.ts`, `services/articles.service.ts`
+- `collections/clip-projects/clip-projects.controller.ts`
+- `collections/contexts/controllers/contexts.controller.ts`
+- `collections/evaluations/services/evaluations.service.ts`
+- `collections/images/controllers/operations/images-operations.controller.ts`
+- `collections/insights/controllers/insights.controller.ts`
+- `collections/musics/controllers/musics-operations.controller.ts`
+- `collections/optimizers/controllers/optimizers.controller.ts`
+- `collections/posts/services/posts.service.ts`
+- `collections/profiles/controllers/profiles.controller.ts`
+- `collections/prompts/controllers/prompts-operations.controller.ts`, `prompts.controller.ts`
+- `collections/schedules/controllers/schedules.controller.ts`
+- `collections/streaks/services/streaks.service.ts`
+- `collections/templates/controllers/templates.controller.ts`
+- `collections/trends/controllers/trends.controller.ts`
+- `collections/users/services/user-setup.service.ts`
+- `collections/videos/controllers/**` (videos, batch-interpolation, lip-sync, reframe, upscale)
+- `collections/videos/services/avatar-video-generation.service.ts`
+- `collections/workflows/services/workflows.service.ts`
+- `endpoints/admin/crm/proactive-onboarding.service.ts`
+- `endpoints/integrations/shopify/shopify.controller.ts`
+- `endpoints/onboarding/onboarding.service.ts`
+- `helpers/guards/credits/credits.guard.ts`
+- `queues/credit-deduction/credit-deduction.processor.ts`
+- `services/agent-orchestrator/agent-orchestrator.controller.ts`, `agent-orchestrator.service.ts`, `tools/agent-tool-executor.service.ts`
+- `services/bot-gateway/services/bot-generation.service.ts`
+- `services/knowledge-base/master-prompt-generator.service.ts`
+- `services/reply-bot/reply-generation.service.ts`
+- `services/workflow-executor/processors/trend-inspiration.processor.ts`
+
+**CreditsUtilsService — EE-only callers (move with Layer 2):**
+
+- `endpoints/webhooks/stripe/webhooks.stripe.service.ts`
+- `services/integrations/stripe/controllers/user-stripe.controller.ts`
+- `collections/subscriptions/controllers/subscriptions.controller.ts`
+- `collections/subscriptions/services/subscriptions.service.ts` (itself — moves with billing)
+
+**SubscriptionsService — OSS callers:**
+
+- `common/middleware/request-context.middleware.ts:121` — `findOne({organization, isDeleted})`
+- `collections/users/controllers/users.controller.ts:141` — `findOne({isDeleted, user})`
+- `collections/organizations/controllers/organizations-settings.controller.ts:206` — `findOne({organization: ObjectId})`
+- `collections/credits/services/credits.utils.service.ts:275,373,569,656` — `findByOrganizationId(orgId)`
+- `endpoints/analytics/analytics.controller.ts:164` — `findAll([{$count:'total'}], options)`
+
+**SubscriptionsService — EE-only callers (move with Layer 2):**
+
+- `endpoints/webhooks/stripe/webhooks.stripe.service.ts` (all methods)
+- `services/integrations/stripe/controllers/user-stripe.controller.ts`
+- `services/byok-billing/byok-billing.service.ts`
+- The collection's own controllers (move with the collection)
 
 **Layer 2 — TODO** (follow-up PR stack, tracked in #87):
 

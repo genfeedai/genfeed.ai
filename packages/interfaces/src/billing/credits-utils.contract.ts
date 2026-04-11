@@ -4,19 +4,45 @@
  * Layer 1 of the Phase C EE extraction split (see issue #87 and
  * `.claude-genfeedai/plans/delegated-churning-sifakis.md` §5.1b).
  *
- * This contract describes the methods OSS core-loop code calls on the credits
- * utility layer. It is consumed by:
- * - `apps/server/api/src/services/agent-orchestrator/agent-orchestrator.service.ts`
- * - `apps/server/api/src/collections/trends/controllers/trends.controller.ts`
- * - `apps/server/api/src/collections/templates/controllers/templates.controller.ts`
+ * This contract describes every method OSS code calls on the credits utility
+ * layer. A repo-wide grep of `creditsUtilsService\.` across `apps/server/api/
+ * src/` identifies 9 methods used by 40+ call sites spanning controllers,
+ * services, guards, queue processors, and the agent orchestrator. All 9 are
+ * included here so `implements ICreditsUtilsService` on the concrete class
+ * gives real compiler enforcement instead of silently allowing drift.
  *
  * The concrete implementation currently lives at
  * `apps/server/api/src/collections/credits/services/credits.utils.service.ts`
  * and will be moved to `ee/packages/billing/` in a follow-up PR (Phase C Layer 2).
  *
  * When `isEEEnabled() === false`, OSS ships a no-op implementation that treats
- * self-hosted deployments as having unlimited credits.
+ * self-hosted deployments as having unlimited credits. The no-op's signatures
+ * must match this contract exactly.
  */
+
+/**
+ * Structured snapshot of an organization's credit pool.
+ * Returned by {@link ICreditsUtilsService.getOrganizationCreditsWithExpiration}.
+ */
+export interface IOrganizationCreditsWithExpiration {
+  total: number;
+  credits: Array<{
+    balance: number;
+    expiresAt?: Date;
+    source?: string;
+    createdAt?: Date;
+  }>;
+}
+
+/**
+ * Billing-cycle derived metrics.
+ * Returned by {@link ICreditsUtilsService.getCycleRemainingMetrics}.
+ */
+export interface ICycleRemainingMetrics {
+  cycleTotal: number;
+  remainingPercent: number;
+}
+
 export interface ICreditsUtilsService {
   /**
    * Returns true if the organization has at least `requiredCredits` available.
@@ -81,4 +107,40 @@ export interface ICreditsUtilsService {
     source: string,
     description: string,
   ): Promise<void>;
+
+  /**
+   * Zero out all credits on an organization, typically on cancellation
+   * or admin reset. Records the reason.
+   * OSS no-op is a no-op.
+   */
+  removeAllOrganizationCredits(
+    organizationId: string,
+    source: string,
+    description: string,
+  ): Promise<void>;
+
+  /**
+   * Structured snapshot of current credits and ledger-level expiration data.
+   * Called from signup-gift / credits-breakdown flows and the agent tool
+   * executor (`apps/server/api/src/services/agent-orchestrator/tools/
+   * agent-tool-executor.service.ts`).
+   *
+   * OSS no-op returns an "unlimited" snapshot:
+   * `{ total: Number.POSITIVE_INFINITY, credits: [] }`.
+   */
+  getOrganizationCreditsWithExpiration(
+    organizationId: string,
+  ): Promise<IOrganizationCreditsWithExpiration>;
+
+  /**
+   * Billing-cycle metrics used by dashboards to show remaining credit vs.
+   * cycle total.
+   * OSS no-op returns `{ cycleTotal: 0, remainingPercent: 100 }`.
+   */
+  getCycleRemainingMetrics(
+    organizationId: string,
+    cycleStartAt: Date,
+    cycleEndAt: Date,
+    currentBalance: number,
+  ): Promise<ICycleRemainingMetrics>;
 }

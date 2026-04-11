@@ -16,6 +16,7 @@ import { StripeService } from '@api/services/integrations/stripe/services/stripe
 import { BaseService } from '@api/shared/services/base/base.service';
 import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
+import type { ISubscriptionsService } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
@@ -35,24 +36,29 @@ type ClerkSyncSubscription = {
 };
 
 /**
- * Enterprise subscriptions service. Conforms structurally to the
- * {@link import('@genfeedai/interfaces/billing').ISubscriptionsService}
- * contract for `findOne()`, which is the only method called from OSS core
- * (`apps/server/api/src/common/middleware/request-context.middleware.ts:121`).
+ * Enterprise subscriptions service. The OSS-callable surface (`findOne`,
+ * `findByOrganizationId`, `findAll`) is locked by
+ * {@link import('@genfeedai/interfaces/billing').ISubscriptionsService}.
  *
- * The rest of the methods on this class (Stripe sync, plan changes, Clerk
- * metadata sync) are enterprise-only and move to `ee/packages/billing/` in
- * Phase C Layer 2 (tracked in issue #87). A direct TypeScript `implements`
- * declaration is omitted because `BaseService.findOne` returns a Mongoose
- * document type, not the plain `ISubscription` interface; Layer 2 will write
- * a proper OSS no-op implementation that satisfies the narrow contract.
+ * The other methods on this class (Stripe sync, plan changes, Clerk metadata
+ * sync, preview subscription change) are enterprise-only and move to
+ * `ee/packages/billing/` in Phase C Layer 2 (tracked in issue #87).
+ *
+ * `findOne` here is inherited from `BaseService<SubscriptionDocument>`, which
+ * returns `Promise<SubscriptionDocument | null>`. Mongoose documents are
+ * structurally assignable to `ISubscription | null` because they expose the
+ * same public fields; the compiler validates the conformance via the
+ * `implements` clause below.
  */
 @Injectable()
-export class SubscriptionsService extends BaseService<
-  SubscriptionDocument,
-  CreateSubscriptionDto,
-  UpdateSubscriptionDto
-> {
+export class SubscriptionsService
+  extends BaseService<
+    SubscriptionDocument,
+    CreateSubscriptionDto,
+    UpdateSubscriptionDto
+  >
+  implements ISubscriptionsService
+{
   public readonly constructorName: string = String(this.constructor.name);
 
   constructor(
