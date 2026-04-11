@@ -111,6 +111,13 @@ export const falSchema = {
   FAL_API_KEY: Joi.string().optional().allow(''),
 };
 
+/**
+ * HuggingFace Inference API
+ */
+export const huggingFaceSchema = {
+  HUGGINGFACE_API_KEY: Joi.string().optional().allow(''),
+};
+
 export const trainingPricingSchema = {
   TRAINING_CUSTOM_MODEL_CREDITS_COST: Joi.number().default(5),
   TRAINING_TRAINING_CREDITS_COST: Joi.number().default(500),

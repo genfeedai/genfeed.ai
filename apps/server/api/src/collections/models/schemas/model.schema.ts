@@ -316,6 +316,38 @@ export class Model {
   @Prop({ required: false, type: Date })
   deprecatedAt?: Date;
 
+  // ============================================================================
+  // Provider Auto-Discovery Fields (v7 — issue #93)
+  // ============================================================================
+
+  /** Whether this model is visible in the community marketplace */
+  @Prop({ default: false, type: Boolean })
+  isPublic?: boolean;
+
+  /** Whether this model is legacy / superseded by a newer version */
+  @Prop({ default: false, type: Boolean })
+  isLegacy?: boolean;
+
+  /** True if the model was auto-discovered from a provider API (not manually seeded) */
+  @Prop({ default: false, type: Boolean })
+  isDiscovered?: boolean;
+
+  /** Timestamp when the model was first discovered via provider sync */
+  @Prop({ required: false, type: Date })
+  discoveredAt?: Date;
+
+  /** Timestamp of the most recent provider sync for this model */
+  @Prop({ required: false, type: Date })
+  lastSyncedAt?: Date;
+
+  /**
+   * Platform margin as a percentage (0–100).
+   * Used to calculate the sell price on top of provider cost.
+   * Default 70 — i.e. sell price = providerCostUsd / (1 - 0.70)
+   */
+  @Prop({ default: 70, type: Number })
+  margin?: number;
+
   // --- Dynamic Registry Fields (v6) ---
 
   @Prop({ type: Types.ObjectId, ref: 'Organization', default: null })
