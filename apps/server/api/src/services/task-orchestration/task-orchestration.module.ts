@@ -14,6 +14,7 @@ import { forwardRef, Module } from '@nestjs/common';
     TaskDecompositionService,
     TaskOrchestratorService,
     WorkspaceTaskQualityService,
+    VideoGenerationModule,
   ],
   imports: [
     LoggerModule,
