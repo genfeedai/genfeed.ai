@@ -8,6 +8,7 @@ export {
   generalAiSchema,
   hedraSchema,
   heygenSchema,
+  huggingFaceSchema,
   klingaiSchema,
   leonardoSchema,
   newsApiSchema,

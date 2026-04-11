@@ -14,6 +14,7 @@ import type {
   IReplicateModelsResponse,
 } from '@workers/interfaces/model-discovery.interface';
 import { FalDiscoveryService } from '@workers/services/fal-discovery.service';
+import { HuggingFaceDiscoveryService } from '@workers/services/hugging-face-discovery.service';
 import { ModelDiscoveryService } from '@workers/services/model-discovery.service';
 import { ModelPricingService } from '@workers/services/model-pricing.service';
 
@@ -52,6 +53,7 @@ export class CronModelWatcherService {
     private readonly modelPricingService: ModelPricingService,
     private readonly configService: ConfigService,
     private readonly falDiscoveryService: FalDiscoveryService,
+    private readonly huggingFaceDiscoveryService: HuggingFaceDiscoveryService,
     private readonly notificationsService: NotificationsService,
   ) {}
 
@@ -75,6 +77,9 @@ export class CronModelWatcherService {
       falDraftsCreated: 0,
       falNewFound: 0,
       falPolled: 0,
+      hfDraftsCreated: 0,
+      hfNewFound: 0,
+      hfPolled: 0,
       newModelsFound: 0,
       timestamp: new Date(),
       totalPolled: 0,
@@ -114,8 +119,7 @@ export class CronModelWatcherService {
       summary.newModelsFound = newModels.length;
 
       if (newModels.length === 0) {
-        this.logger.log(`${url} no new models discovered`);
-        return summary;
+        this.logger.log(`${url} no new Replicate models discovered`);
       }
 
       this.logger.log(
@@ -173,13 +177,25 @@ export class CronModelWatcherService {
       // Step 6: Poll fal.ai for new models
       await this.pollFalModels(summary, existingKeys);
 
-      // Step 7: Log summary
+      // Step 7: Poll HuggingFace for new models
+      await this.pollHuggingFaceModels(summary, existingKeys);
+
+      // Step 8: Touch lastSyncedAt for all previously discovered models seen in this run
+      const syncedKeys = [
+        ...officialModels.map((m) => `${m.owner}/${m.name}`),
+      ].filter((k) => existingKeys.has(k));
+      await this.modelDiscoveryService.touchLastSyncedAt(syncedKeys);
+
+      // Step 9: Log summary
       this.logger.log(`${url} completed`, {
         draftsCreated: summary.draftsCreated,
         errors: summary.errors,
         falDraftsCreated: summary.falDraftsCreated,
         falNewFound: summary.falNewFound,
         falPolled: summary.falPolled,
+        hfDraftsCreated: summary.hfDraftsCreated,
+        hfNewFound: summary.hfNewFound,
+        hfPolled: summary.hfPolled,
         newModelsFound: summary.newModelsFound,
         totalPolled: summary.totalPolled,
       });
@@ -417,5 +433,82 @@ export class CronModelWatcherService {
 
     // Fall back to description-only detection
     return this.modelDiscoveryService.detectCategory({}, model.description);
+  }
+
+  /**
+   * Poll HuggingFace Hub for new content-creation models and create drafts.
+   * Isolated from Replicate/Fal polling so errors don't affect each other.
+   */
+  private async pollHuggingFaceModels(
+    summary: IModelDiscoveryRunSummary,
+    existingKeys: Set<string>,
+  ): Promise<void> {
+    const context = `${this.constructorName} pollHuggingFaceModels`;
+
+    try {
+      const hfModels = await this.huggingFaceDiscoveryService.discoverModels();
+      summary.hfPolled = hfModels.length;
+
+      this.logger.log(
+        `${context} polled ${hfModels.length} models from HuggingFace`,
+      );
+
+      const newHfModels = hfModels.filter(
+        (m) => m.key && !existingKeys.has(m.key),
+      );
+      summary.hfNewFound = newHfModels.length;
+
+      if (newHfModels.length === 0) {
+        this.logger.log(`${context} no new HuggingFace models discovered`);
+        return;
+      }
+
+      this.logger.log(
+        `${context} found ${newHfModels.length} new HuggingFace models`,
+      );
+
+      for (const hfModel of newHfModels) {
+        try {
+          const modelKey = hfModel.key as string;
+          const parts = modelKey.split('/');
+          const owner = parts[0] ?? modelKey;
+          const name = parts.slice(1).join('/') || modelKey;
+          const category = hfModel.category ?? ModelCategory.IMAGE;
+
+          const discoveryInput: IModelDiscoveryInput = {
+            category,
+            description: hfModel.description || '',
+            name,
+            owner,
+            provider: ModelProvider.HUGGINGFACE,
+            providerCostUsd: 0,
+            replicateUrl: '',
+            versionId: null,
+          };
+
+          const draft =
+            await this.modelDiscoveryService.createDraftModel(discoveryInput);
+
+          if (draft) {
+            summary.hfDraftsCreated = (summary.hfDraftsCreated ?? 0) + 1;
+            await this.sendDiscoveryNotification(
+              modelKey,
+              category,
+              draft.cost ?? 0,
+              0,
+              'huggingface',
+            );
+          }
+        } catch (error: unknown) {
+          summary.errors++;
+          this.logger.error(
+            `${context} failed to process HuggingFace model ${hfModel.key}`,
+            { error },
+          );
+        }
+      }
+    } catch (error: unknown) {
+      this.logger.error(`${context} HuggingFace polling failed`, error);
+    }
   }
 }

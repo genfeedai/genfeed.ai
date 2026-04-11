@@ -55,4 +55,12 @@ export interface IModel extends IBaseEntity {
   // Lifecycle fields
   succeededBy?: string;
   predecessorOf?: string;
+
+  // Provider auto-discovery fields (issue #93)
+  isPublic?: boolean;
+  isLegacy?: boolean;
+  isDiscovered?: boolean;
+  discoveredAt?: Date;
+  lastSyncedAt?: Date;
+  margin?: number;
 }

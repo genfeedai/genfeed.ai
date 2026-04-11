@@ -133,9 +133,13 @@ export class ModelDiscoveryService {
 
       const draftModel = await this.modelsService.create(createData);
 
-      // Patch with dynamic pricing fields (not in CreateModelDto but supported by schema)
+      // Patch with dynamic fields not in CreateModelDto but supported by schema
+      const now = new Date();
       await this.modelsService.patch(draftModel._id, {
         costPerUnit: pricing.costPerUnit,
+        discoveredAt: now,
+        isDiscovered: true,
+        lastSyncedAt: now,
         minCost: pricing.minCost,
         pricingType: pricing.pricingType,
       });
@@ -156,6 +160,31 @@ export class ModelDiscoveryService {
         },
       );
       return null;
+    }
+  }
+
+  /**
+   * Update `lastSyncedAt` for all models discovered from a given provider.
+   * Called at the end of each sync run to track freshness.
+   */
+  async touchLastSyncedAt(keys: string[]): Promise<void> {
+    if (keys.length === 0) {
+      return;
+    }
+
+    const context = 'ModelDiscoveryService touchLastSyncedAt';
+
+    try {
+      await this.modelsService.updateMany(
+        { isDeleted: false, isDiscovered: true, key: { $in: keys } },
+        { $set: { lastSyncedAt: new Date() } },
+      );
+
+      this.logger.log(
+        `${context} updated lastSyncedAt for ${keys.length} models`,
+      );
+    } catch (error: unknown) {
+      this.logger.error(`${context} failed to update lastSyncedAt`, { error });
     }
   }
 

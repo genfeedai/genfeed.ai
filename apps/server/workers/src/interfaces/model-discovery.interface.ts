@@ -81,4 +81,7 @@ export interface IModelDiscoveryRunSummary {
   falPolled?: number;
   falNewFound?: number;
   falDraftsCreated?: number;
+  hfPolled?: number;
+  hfNewFound?: number;
+  hfDraftsCreated?: number;
 }
