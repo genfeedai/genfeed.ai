@@ -70,6 +70,11 @@ _None remaining — all tracked features have been wired._
 - `packages/pages/agents/campaigns/OutreachCampaignsList.tsx` — PR 5 reclassification; **no code change**. Live via `apps/app/.../orchestration/outreach-campaigns/page.tsx` through the `@pages/agents` barrel.
 - `packages/pages/agents/campaigns/OutreachCampaignWizard.tsx` — PR 5 reclassification; **no code change**. Live via `apps/app/.../orchestration/outreach-campaigns/new/page.tsx` through the `@pages/agents` barrel.
 - `packages/pages/agents/campaigns/OutreachCampaignDetail.tsx` — PR 5 reclassification; **no code change**. Live via `apps/app/.../orchestration/outreach-campaigns/[id]/page.tsx` through the `@pages/agents` barrel.
+- `packages/pages/articles/list/articles-list.tsx` — PR 6 reclassification (#147); **no code change**. Live via `apps/app/app/(protected)/[orgSlug]/[brandSlug]/lab/articles/page.tsx`.
+- `packages/pages/library/landing/library-landing-visual-preview.tsx` — PR 6 reclassification (#148); **no code change**. Live via `apps/app/app/(protected)/[orgSlug]/[brandSlug]/lab/library-preview/page.tsx`.
+- `packages/pages/agents/tasks/CronJobsList.tsx` — PR 6 reclassification (#149); **no code change**. Live via `apps/app/app/(protected)/[orgSlug]/[brandSlug]/lab/cron-jobs/page.tsx`.
+- `packages/pages/twitter-pipeline/twitter-pipeline-engage.tsx` + components — PR 6 reclassification (#150); **no code change**. Live via `apps/app/app/(protected)/[orgSlug]/[brandSlug]/lab/twitter-engage/page.tsx`.
+- `packages/pages/calendar/articles/articles-calendar-page.tsx` — PR 6 deleted (#147 partial); zero consumers confirmed across all apps and packages.
 
 ### Studio subtree (reachable via StudioGenerateLayout, not orphaned)
 
@@ -102,18 +107,6 @@ These files were misclassified by the sweep because the dependency chain from `a
 - `packages/pages/studio/queue/GenerationQueue.tsx`
 - `packages/pages/studio/selection/StudioSelectionActionsBar.tsx`
 
-### Parked behind open issues (untracked WIP, decision pending)
-
-These have zero live consumers and no existing feature ticket. Per user decision (opt for issue-tracking over deletion), each has a GitHub issue opened during PR 5 so ownership can be resolved without losing the code. Every remaining entry in this section has an `Issue:` reference.
-
-- `packages/pages/articles/list/articles-list.tsx` + `.test.tsx` — **Issue: #147** — divergent sibling exists at `apps/website/app/(content)/articles/articles-list.tsx` (101 lines vs 151); website consumes its own copy, package version has no consumer
-- `packages/pages/calendar/articles/articles-calendar-page.tsx` + `.test.tsx` — **Issue: #147** — zero consumers; bundled with the articles-list ticket because both are article-adjacent
-- `packages/pages/library/landing/library-landing-visual-preview.tsx` + `.test.tsx` — **Issue: #148** — zero consumers, no `/library/landing` route
-- `packages/pages/agents/tasks/CronJobsList.tsx` + `.test.tsx` — **Issue: #149** — zero consumers despite 8 commits of iteration; not re-exported from `packages/pages/agents/index.ts`, so no opaque barrel-path reference either
-- `packages/pages/twitter-pipeline/twitter-pipeline-engage.tsx` + `.test.tsx` — **Issue: #150** — zero external consumers (imports its own components only)
-- `packages/pages/twitter-pipeline/components/opportunity-card.tsx` + `.test.tsx` — **Issue: #150** — only consumed internally by `twitter-pipeline-engage.tsx`
-- `packages/pages/twitter-pipeline/components/tweet-card.tsx` + `.test.tsx` — **Issue: #150** — only consumed internally by `twitter-pipeline-engage.tsx`
-
 ### Posts subtree (needs per-file verification)
 
 Deferred from PR 1 because the original sweep is untrustworthy and each file needs an individual consumer grep before action.
@@ -131,6 +124,6 @@ Deferred from PR 1 because the original sweep is untrustworthy and each file nee
 
 - Canonical task tracking stays in GitHub, per repo policy.
 - Do not use this file as a backlog — it is a preservation ledger only.
-- **As of PR 5 (2026-04-10), every entry outside the Studio and Posts verification sections is either (a) wired into a live route, (b) genuinely-shared internal code with a documented consumer, or (c) tracked by an open GitHub issue.**
+- **As of PR 6 (2026-04-10), every entry outside the Studio and Posts verification sections is either (a) wired into a live route or (b) genuinely-shared internal code with a documented consumer.** The "Parked behind open issues" section was cleared: #147–150 entries were reclassified as live (lab routes) or deleted (articles-calendar-page.tsx).
 - The Studio subtree and the Posts subtree sections are the remaining cleanup candidates — Studio is live internal code (should be removed from the ledger after a barrel audit) and Posts needs per-file verification in a follow-up micro-PR.
 - This file can be deleted entirely once the Studio and Posts sections are resolved.

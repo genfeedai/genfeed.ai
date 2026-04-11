@@ -73,6 +73,9 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
 describe('ProtectedProviders', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Set a fake Clerk key so the LOCAL mode early-return in ProtectedAuthGate is not triggered,
+    // ensuring the gate logic under test remains reachable.
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test_fake';
     getPlaywrightAuthStateMock.mockReturnValue(null);
     hasPlaywrightJwtTokenMock.mockReturnValue(false);
     useAuthMock.mockReturnValue({
@@ -83,6 +86,10 @@ describe('ProtectedProviders', () => {
       sessionId: 'session-1',
       userId: 'user-1',
     });
+  });
+
+  afterEach(() => {
+    delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
   });
 
   it('renders children through the provider stack', async () => {

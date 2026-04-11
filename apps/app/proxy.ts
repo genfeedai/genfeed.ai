@@ -289,8 +289,25 @@ export default function proxy(req: NextRequest, event: NextFetchEvent) {
     return NextResponse.next();
   }
 
-  // Self-hosted core mode — no Clerk, pass through
+  // Self-hosted core mode — no Clerk.
+  // Redirect root + all Clerk-dependent routes to the seeded default workspace.
+  // SelfHostedSeedService always seeds org slug="default" and brand slug="default"
+  // (apps/server/api/src/seeds/self-hosted-seed.service.ts:87,103).
+  // /login, /sign-up, /logout, /oauth/* render Clerk components — redirect them too.
   if (!isCloudConnected) {
+    const { pathname } = req.nextUrl;
+    const redirectToWorkspace =
+      pathname === '/' ||
+      pathname.startsWith('/onboarding') ||
+      pathname.startsWith('/login') ||
+      pathname.startsWith('/sign-up') ||
+      pathname.startsWith('/logout') ||
+      pathname.startsWith('/oauth');
+    if (redirectToWorkspace) {
+      return NextResponse.redirect(
+        new URL('/default/default/workspace/overview', req.url),
+      );
+    }
     return NextResponse.next();
   }
 

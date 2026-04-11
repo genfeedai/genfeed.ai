@@ -172,5 +172,10 @@ export default function ProtectedProviders({
     content = <ApiStatusProvider>{content}</ApiStatusProvider>;
   }
 
+  // LOCAL mode: bypass Clerk auth gate — backend handles identity via LocalIdentityInterceptor.
+  if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+    return content;
+  }
+
   return <ProtectedAuthGate>{content}</ProtectedAuthGate>;
 }
