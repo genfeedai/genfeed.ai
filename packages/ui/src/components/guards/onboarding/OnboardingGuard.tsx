@@ -11,17 +11,14 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
 
 /**
- * OnboardingGuard
- *
- * Consolidated guard that checks onboarding completion and, in EE mode only,
- * keeps billing-era gating behavior.
+ * Clerk-dependent guard logic. Only rendered when Clerk keys are present.
  *
  * - If onboarding not completed → redirect to first incomplete step
  * - If onboarding completed but billing is required in EE mode and the org
  *   still lacks subscription state → redirect to the final onboarding step
  * - Otherwise → pass through
  */
-export default function OnboardingGuard({ children }: OnboardingGuardProps) {
+function OnboardingGuardInner({ children }: OnboardingGuardProps) {
   const { isLoaded: isAuthLoaded, isSignedIn } = useAuth();
   const playwrightAuth = getPlaywrightAuthState();
   const effectiveIsAuthLoaded =
@@ -143,4 +140,21 @@ export default function OnboardingGuard({ children }: OnboardingGuardProps) {
   }
 
   return <>{children}</>;
+}
+
+/**
+ * OnboardingGuard
+ *
+ * In LOCAL mode (no Clerk keys), SelfHostedSeedService sets isOnboardingCompleted=true on boot,
+ * so the guard is skipped entirely. Without this bypass, effectiveIsSignedIn=false in LOCAL mode
+ * causes an infinite redirect loop: /login → workspace → /login.
+ *
+ * In Clerk mode, delegates to OnboardingGuardInner which runs the full redirect logic.
+ */
+export default function OnboardingGuard({ children }: OnboardingGuardProps) {
+  if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+    return <>{children}</>;
+  }
+
+  return <OnboardingGuardInner>{children}</OnboardingGuardInner>;
 }
