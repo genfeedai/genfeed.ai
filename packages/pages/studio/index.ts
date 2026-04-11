@@ -1,13 +1,13 @@
-// Studio page modules - barrel export
+// Studio page modules — barrel export.
+//
+// Only `StudioGenerateLayout` is consumed externally today, from
+// `apps/app/app/(protected)/[orgSlug]/[brandSlug]/studio/[type]/StudioPageContent.tsx`.
+// `StudioSelectionActionsBar` stays because `StudioGenerateLayout` imports it.
+//
+// Nine dead re-exports (StudioCanvas, StudioEditTopbar, CanvasGallery,
+// MaskEditor, StudioPage, PromptBars{Image,Video}Merge, PromptSuggestions,
+// GenerationQueue) were removed along with their source + test files in the
+// 2026-04-11 Phase D cleanup. See `packages/pages/TO_REVIEW.md` history.
 
-export { default as StudioCanvas } from '@pages/studio/canvas/StudioCanvas';
-export { default as StudioEditTopbar } from '@pages/studio/edit-topbar/StudioEditTopbar';
-export { default as CanvasGallery } from '@pages/studio/gallery/CanvasGallery';
 export { StudioGenerateLayout } from '@pages/studio/generate';
-export { default as MaskEditor } from '@pages/studio/mask-editor/MaskEditor';
-export { default as StudioPage } from '@pages/studio/page/StudioPage';
-export { default as PromptBarsImageMerge } from '@pages/studio/prompt-bars/PromptBarsImageMerge';
-export { default as PromptBarsVideoMerge } from '@pages/studio/prompt-bars/PromptBarsVideoMerge';
-export { default as PromptSuggestions } from '@pages/studio/prompt-bars/PromptSuggestions';
-export { default as GenerationQueue } from '@pages/studio/queue/GenerationQueue';
 export { default as StudioSelectionActionsBar } from '@pages/studio/selection/StudioSelectionActionsBar';
