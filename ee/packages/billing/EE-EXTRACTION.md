@@ -6,12 +6,12 @@ Plan file: `.claude-genfeedai/plans/delegated-churning-sifakis.md` §5.1b
 
 ## Status
 
-**Layer 1 — COMPLETE** (this commit, with Codex review follow-up):
+**Layer 1 — COMPLETE** (after 2 rounds of Codex review):
 
 - Service contracts defined in `@genfeedai/interfaces/billing`:
-  - `ICreditsUtilsService` — **9 methods** (`checkOrganizationCreditsAvailable`, `getOrganizationCreditsBalance`, `deductCreditsFromOrganization`, `addOrganizationCreditsWithExpiration`, `refundOrganizationCredits`, `resetOrganizationCredits`, `removeAllOrganizationCredits`, `getOrganizationCreditsWithExpiration`, `getCycleRemainingMetrics`). Initial draft had 6 — Codex adversarial review caught the 3 omissions; expanded to cover every OSS call site verified via repo-wide grep.
-  - `ISubscriptionsService` — 3 methods (`findOne`, `findByOrganizationId`, `findAll`). Initial draft was narrower (`findOne` only) and Codex flagged two missing OSS callers; expanded.
-- **Both** `CreditsUtilsService` and `SubscriptionsService` now declare `implements` on the contracts — compiler-enforced, not doc-comment-enforced.
+  - `ICreditsUtilsService` — **9 methods** (`checkOrganizationCreditsAvailable`, `getOrganizationCreditsBalance`, `deductCreditsFromOrganization`, `addOrganizationCreditsWithExpiration`, `refundOrganizationCredits`, `resetOrganizationCredits`, `removeAllOrganizationCredits`, `getOrganizationCreditsWithExpiration`, `getCycleRemainingMetrics`). First draft had 6; Codex round 1 caught 3 omissions.
+  - `ISubscriptionsService` — 3 methods (`findOne`, `findByOrganizationId`, `findAll`) returning a minimal **`ISubscriptionOssReadModel`** type. First draft returned the full JSON:API `ISubscription` shape, which Codex round 2 correctly flagged as a type lie — `SubscriptionDocument` (the concrete Mongoose return) is not assignable to `ISubscription` because it lacks populated relations and uses raw `ObjectId` fields. The compiler was only accepting `implements ISubscriptionsService` via structural subtyping quirks around inherited generic methods.
+- Both `CreditsUtilsService` and `SubscriptionsService` now declare `implements` on the contracts. Non-cached `bunx turbo type-check --filter=@genfeedai/api --force` confirms 14/14 green (20.6s). A deliberate-violation test proves the contract emits `TS2416` when a class returns the wrong shape from `findOne`.
 
 ## OSS vs EE classification of current consumers
 
