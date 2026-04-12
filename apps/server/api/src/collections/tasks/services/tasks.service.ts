@@ -2,8 +2,10 @@ import { AgentMessagesService } from '@api/collections/agent-messages/services/a
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
+import { TaskCountersService } from '@api/collections/task-counters/services/task-counters.service';
 import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import { UpdateTaskDto } from '@api/collections/tasks/dto/update-task.dto';
 import {
@@ -120,6 +122,8 @@ export class TasksService extends BaseService<
     private readonly agentMessagesService: AgentMessagesService,
     private readonly agentRunsService: AgentRunsService,
     private readonly notificationsPublisher: NotificationsPublisherService,
+    private readonly taskCountersService: TaskCountersService,
+    private readonly organizationsService: OrganizationsService,
   ) {
     super(model, logger);
   }
@@ -596,19 +600,35 @@ export class TasksService extends BaseService<
       );
     }
 
+    const organizationId = task.organization?.toString();
+    const org = await this.organizationsService.findOne({
+      _id: new Types.ObjectId(organizationId),
+      isDeleted: false,
+    });
+
     return Promise.all(
-      followUpSteps.map((step) =>
-        this.create({
+      followUpSteps.map(async (step) => {
+        const taskNumber =
+          await this.taskCountersService.getNextNumber(organizationId);
+        const identifier = `${org?.prefix ?? 'TASK'}-${taskNumber}`;
+        return this.create({
           brand: task.brand?.toString(),
-          organization: task.organization?.toString(),
+          identifier,
+          organization: organizationId,
           outputType: step.outputType ?? task.outputType,
           platforms: task.platforms,
           priority: task.priority,
           request: step.request,
+          taskNumber,
           title: step.title,
           user: userId,
-        } as CreateTaskDto & { organization: string; user: string }),
-      ),
+        } as CreateTaskDto & {
+          identifier: string;
+          organization: string;
+          taskNumber: number;
+          user: string;
+        });
+      }),
     );
   }
 
@@ -727,7 +747,8 @@ export class TasksService extends BaseService<
     const executionPathUsed =
       taskIntent.outputType === 'image'
         ? 'image_generation'
-        : taskIntent.outputType === 'video'
+        : taskIntent.outputType === 'video' ||
+            taskIntent.outputType === 'facecam'
           ? 'video_generation'
           : taskIntent.outputType === 'caption' ||
               taskIntent.outputType === 'post' ||
@@ -784,6 +805,20 @@ export class TasksService extends BaseService<
           reviewTriggered: false,
           routingSummary:
             'Detected a short-form video request and routed it to the video generation path.',
+          skillsUsed: [],
+          skillVariantIds: [],
+          status: 'in_progress',
+        };
+      case 'facecam':
+        return {
+          chosenModel: 'auto',
+          chosenProvider: 'genfeed-router',
+          executionPathUsed: 'video_generation',
+          outputType: 'facecam',
+          reviewState: 'none',
+          reviewTriggered: false,
+          routingSummary:
+            'Detected a facecam video request and routed it to the video generation path.',
           skillsUsed: [],
           skillVariantIds: [],
           status: 'in_progress',
@@ -1243,6 +1278,7 @@ export class TasksService extends BaseService<
     if (!value) return null;
     return [
       'caption',
+      'facecam',
       'image',
       'ingredient',
       'newsletter',

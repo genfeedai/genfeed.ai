@@ -123,14 +123,25 @@ export class SyncService {
     let remoteResponse: { id: string };
     try {
       const { data } = await firstValueFrom(
-        this.httpService.post<{ id: string }>(importUrl, rewrittenFormat, {
-          headers: {
-            Authorization: `Bearer ${clerkToken}`,
-            'Content-Type': 'application/json',
+        this.httpService.post<{ data?: { id?: string } } | { id: string }>(
+          importUrl,
+          rewrittenFormat,
+          {
+            headers: {
+              Authorization: `Bearer ${clerkToken}`,
+              'Content-Type': 'application/json',
+            },
           },
-        }),
+        ),
       );
-      remoteResponse = data;
+      // /workflows/import returns JSON:API format: { data: { id, type, attributes } }
+      const remoteId =
+        (data as { data?: { id?: string } })?.data?.id ??
+        (data as { id?: string })?.id;
+      if (!remoteId) {
+        throw new Error('Import response missing workflow id');
+      }
+      remoteResponse = { id: remoteId };
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error('Failed to push workflow to cloud', {

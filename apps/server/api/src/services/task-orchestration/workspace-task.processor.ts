@@ -1,5 +1,6 @@
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
+import { ConfigService } from '@api/config/config.service';
 import { HeygenPollQueueService } from '@api/queues/heygen-poll/heygen-poll-queue.service';
 import { TaskOrchestratorService } from '@api/services/task-orchestration/task-orchestrator.service';
 import { WorkspaceTaskJobData } from '@api/services/task-orchestration/workspace-task-queue.service';
@@ -29,6 +30,7 @@ export class WorkspaceTaskProcessor extends WorkerHost {
     private readonly avatarVideoGenerationService: AvatarVideoGenerationService,
     @Inject(forwardRef(() => HeygenPollQueueService))
     private readonly heygenPollQueueService: HeygenPollQueueService,
+    private readonly configService: ConfigService,
   ) {
     super();
   }
@@ -210,10 +212,8 @@ export class WorkspaceTaskProcessor extends WorkerHost {
     // back to /v1/webhooks/heygen/callback. Localhost / self-hosted
     // deployments don't, so we schedule a poll fallback that hits
     // HeygenAvatarProvider.getStatus until terminal.
-    const webhookConfigured = Boolean(
-      process.env.GENFEEDAI_WEBHOOKS_URL &&
-        process.env.GENFEEDAI_WEBHOOKS_URL.length > 0,
-    );
+    const webhooksUrl = this.configService.get('GENFEEDAI_WEBHOOKS_URL');
+    const webhookConfigured = Boolean(webhooksUrl && webhooksUrl.length > 0);
 
     if (!webhookConfigured) {
       this.logger.log(
