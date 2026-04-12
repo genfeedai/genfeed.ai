@@ -4,6 +4,10 @@ export {
 } from '@ui/shell/AppHtmlDocument';
 export { default as AppShell } from '@ui/shell/AppShell';
 export {
+  AppSwitcher,
+  type AppSwitcherProps,
+} from '@ui/shell/app-switcher/AppSwitcher';
+export {
   type CreateAppMetadataOptions,
   createAppMetadata,
   createPwaMetadata,

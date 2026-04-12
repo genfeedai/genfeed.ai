@@ -61,6 +61,7 @@ export {
 export const semanticColorRoleList: readonly SemanticColorRole[] =
   semanticColorRoles;
 
+// Shared UI components (Paperclip design system)
 export { ActivityRow } from './dashboard/ActivityRow';
 export { MetricCard } from './dashboard/MetricCard';
 export { Identity } from './identity/Identity';
@@ -75,7 +76,6 @@ export type { ModalContentProps, ModalSize } from './modals/compound/Modal';
 export { Modal } from './modals/compound/Modal';
 // Primitives (Radix UI based)
 export * from './primitives';
-// Shared UI components (Paperclip design system)
 export { SidebarNavItem } from './sidebar/SidebarNavItem';
 export { SidebarSection } from './sidebar/SidebarSection';
 // Task Composer
