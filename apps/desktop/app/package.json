@@ -42,7 +42,7 @@
     "@genfeedai/desktop-shell": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@sentry/browser": "10.48.0",
-    "better-sqlite3": "12.8.0",
+    "better-sqlite3": "12.9.0",
     "next": "16.2.3",
     "react": "19.2.5",
     "react-dom": "19.2.5"

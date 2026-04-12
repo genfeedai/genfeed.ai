@@ -449,6 +449,7 @@
       "dependencies": {
         "@genfeedai/config": "workspace:*",
         "@genfeedai/enums": "workspace:*",
+        "@genfeedai/storage": "workspace:*",
       },
     },
     "apps/server/images": {
@@ -930,7 +931,7 @@
     },
     "packages/serializers": {
       "name": "@genfeedai/serializers",
-      "version": "2.2.2",
+      "version": "2.3.0",
       "dependencies": {
         "@genfeedai/constants": "workspace:*",
         "@genfeedai/enums": "workspace:*",
@@ -1086,7 +1087,7 @@
     },
     "packages/workflow-engine": {
       "name": "@genfeedai/workflow-engine",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "dependencies": {
         "@genfeedai/enums": "workspace:*",
         "@genfeedai/interfaces": "workspace:*",
@@ -1098,7 +1099,7 @@
     },
     "packages/workflow-saas": {
       "name": "@genfeedai/workflow-saas",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "dependencies": {
         "@genfeedai/enums": "workspace:*",
         "@genfeedai/interfaces": "workspace:*",
