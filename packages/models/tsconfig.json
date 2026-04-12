@@ -1,8 +1,15 @@
 {
   "compilerOptions": {
     "paths": {
+      "@genfeedai/client": ["../client/src/index.ts"],
       "@genfeedai/client/*": ["../client/src/*"],
+      "@genfeedai/constants": ["../constants/src/index.ts"],
+      "@genfeedai/constants/*": ["../constants/src/*"],
+      "@genfeedai/enums": ["../enums/src/index.ts"],
+      "@genfeedai/enums/*": ["../enums/src/*"],
+      "@genfeedai/helpers": ["../helpers/src/index.ts"],
       "@genfeedai/helpers/*": ["../helpers/src/*"],
+      "@genfeedai/interfaces": ["../interfaces/src/index.ts"],
       "@genfeedai/interfaces/*": ["../interfaces/src/*"],
       "@genfeedai/services/*": ["../services/*"],
       "@genfeedai/utils/*": ["../utils/*"],

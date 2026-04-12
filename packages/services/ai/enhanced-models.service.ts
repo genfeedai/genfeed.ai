@@ -44,7 +44,7 @@ export class EnhancedModelsService extends ModelsService {
     const { includeDynamic = true } = options;
 
     // Get existing models from base service
-    const existingModels = await super.getAll();
+    const existingModels = await super.findAll();
 
     if (!includeDynamic || !this.isInitialized) {
       return existingModels;
@@ -153,7 +153,7 @@ export class EnhancedModelsService extends ModelsService {
       return { errors: ['FAL API key not configured'], updated: 0 };
     }
 
-    const existingModels = await super.getAll();
+    const existingModels = await super.findAll();
     const falModels = existingModels.filter(
       (model) => model.provider === ModelProvider.FAL,
     );
@@ -165,15 +165,14 @@ export class EnhancedModelsService extends ModelsService {
       try {
         const newCost = await this.falProvider.getModelPricing(model.key);
         if (newCost > 0 && newCost !== model.cost) {
-          await super.update(model.id, {
+          await super.patch(model.id, {
             cost: newCost,
-            updatedAt: new Date(),
-          });
+          } as Partial<IModel>);
           updated++;
         }
       } catch (error) {
         errors.push(
-          `Failed to update pricing for ${model.key}: ${error.message}`,
+          `Failed to update pricing for ${model.key}: ${(error as Error).message}`,
         );
       }
     }
@@ -192,7 +191,7 @@ export class EnhancedModelsService extends ModelsService {
       return { added: 0, errors: ['FAL API key not configured'] };
     }
 
-    const existingModels = await super.getAll();
+    const existingModels = await super.findAll();
     const existingKeys = new Set(existingModels.map((m) => m.key));
 
     const falModels = await this.getFalModels();
@@ -212,10 +211,10 @@ export class EnhancedModelsService extends ModelsService {
           updatedAt: new Date(),
           ...model,
         };
-        await super.create(fullModel as Record<string, unknown>);
+        await super.post(fullModel as unknown as IModel);
         added++;
       } catch (error) {
-        errors.push(`Failed to add ${model.key}: ${error.message}`);
+        errors.push(`Failed to add ${model.key}: ${(error as Error).message}`);
       }
     }
 
@@ -230,6 +229,7 @@ export class EnhancedModelsService extends ModelsService {
     byProvider: Record<string, number>;
     byCategory: Record<string, number>;
     falConfigured: boolean;
+    huggingFaceConfigured: boolean;
     lastSync?: Date;
   }> {
     const allModels = await this.getAllModels();

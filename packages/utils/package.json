@@ -1,5 +1,9 @@
 {
   "dependencies": {
+    "@genfeedai/client": "workspace:*",
+    "@genfeedai/constants": "workspace:*",
+    "@genfeedai/enums": "workspace:*",
+    "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/props": "workspace:*",
     "@genfeedai/services": "workspace:*"
   },

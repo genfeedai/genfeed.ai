@@ -1,13 +1,22 @@
 {
   "compilerOptions": {
     "paths": {
+      "@genfeedai/client": ["../client/src/index.ts"],
       "@genfeedai/client/*": ["../client/src/*"],
+      "@genfeedai/constants": ["../constants/src/index.ts"],
+      "@genfeedai/constants/*": ["../constants/src/*"],
+      "@genfeedai/enums": ["../enums/src/index.ts"],
+      "@genfeedai/enums/*": ["../enums/src/*"],
       "@genfeedai/helpers/*": ["../helpers/src/*"],
+      "@genfeedai/interfaces": ["../interfaces/src/index.ts"],
       "@genfeedai/interfaces/*": ["../interfaces/src/*"],
+      "@genfeedai/serializers": ["../serializers/src/index.ts"],
+      "@genfeedai/serializers/*": ["../serializers/src/*"],
+      "@genfeedai/types": ["../types/src/index.ts"],
+      "@genfeedai/types/*": ["../types/src/*"],
       "@genfeedai/models/*": ["../models/*"],
       "@genfeedai/props/*": ["../props/*"],
       "@genfeedai/services/*": ["./*"],
-      "@genfeedai/types/*": ["../types/src/*"],
       "@genfeedai/utils/*": ["../utils/*"],
       "@api-types/*": ["../api-types/src/*"],
       "@genfeedai-types/*": ["../types/src/*"],

@@ -41,7 +41,7 @@ class ProfilesServiceClass {
       body: body ? JSON.stringify(body) : undefined,
       headers: {
         Authorization: `Bearer ${this.token}`,
-        ...(body && { 'Content-Type': 'application/json' }),
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
       },
       method,
     });

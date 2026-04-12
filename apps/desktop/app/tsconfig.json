@@ -13,15 +13,24 @@
       "@genfeedai/desktop-core": [
         "../../../packages/desktop-core/src/index.ts"
       ],
-      "@genfeedai/interfaces": ["../../../packages/interfaces/src/index.ts"],
-      "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
+      "@genfeedai/client": ["../../../packages/client/src/index.ts"],
+      "@genfeedai/client/*": ["../../../packages/client/src/*"],
+      "@genfeedai/constants": ["../../../packages/constants/src/index.ts"],
+      "@genfeedai/constants/*": ["../../../packages/constants/src/*"],
+      "@genfeedai/enums": ["../../../packages/enums/src/index.ts"],
+      "@genfeedai/enums/*": ["../../../packages/enums/src/*"],
+      "@genfeedai/helpers": ["../../../packages/helpers/src/index.ts"],
       "@genfeedai/helpers/*": ["../../../packages/helpers/src/*"],
       "@genfeedai/hooks/*": ["../../../packages/hooks/*"],
+      "@genfeedai/interfaces": ["../../../packages/interfaces/src/index.ts"],
+      "@genfeedai/interfaces/*": ["../../../packages/interfaces/src/*"],
       "@genfeedai/models/*": ["../../../packages/models/*"],
       "@genfeedai/props/*": ["../../../packages/props/*"],
       "@genfeedai/serializers": ["../../../packages/serializers/src/index.ts"],
       "@genfeedai/serializers/*": ["../../../packages/serializers/src/*"],
       "@genfeedai/services/*": ["../../../packages/services/*"],
+      "@genfeedai/types": ["../../../packages/types/src/index.ts"],
+      "@genfeedai/types/*": ["../../../packages/types/src/*"],
       "@genfeedai/ui/*": [
         "../../../packages/ui/src/*",
         "../../../packages/ui/src/components/*"

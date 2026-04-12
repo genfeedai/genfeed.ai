@@ -1,7 +1,23 @@
 import { MODEL_KEYS } from '@genfeedai/constants';
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import {
+  CostTier,
+  ModelCategory,
+  ModelProvider,
+  PricingType,
+  QualityTier,
+  SpeedTier,
+} from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import { logger } from '@services/core/logger.service';
+
+interface HFModel {
+  modelId?: string;
+  id?: string;
+  pipeline_tag?: string;
+  description?: string;
+  library_name?: string;
+  tags?: string[];
+}
 
 /**
  * HuggingFace Dynamic Provider Service
@@ -164,7 +180,7 @@ export class HuggingFaceProviderService {
     task?: string;
     limit?: number;
     search?: string;
-  }): Promise<unknown[]> {
+  }): Promise<HFModel[]> {
     const params = new URLSearchParams();
     if (options?.task) {
       params.set('pipeline_tag', options.task);
@@ -194,15 +210,15 @@ export class HuggingFaceProviderService {
       );
     }
 
-    const data = await response.json();
-    return Array.isArray(data) ? data : data.models || [];
+    const data = (await response.json()) as HFModel[] | { models?: HFModel[] };
+    return Array.isArray(data) ? data : (data.models ?? []);
   }
 
   /**
    * Map HuggingFace model to GenFeed.AI format
    */
-  private mapToGenFeedFormat(hfModel: unknown): Partial<IModel> {
-    const modelId = hfModel.modelId || hfModel.id;
+  private mapToGenFeedFormat(hfModel: HFModel): Partial<IModel> {
+    const modelId = hfModel.modelId || hfModel.id || '';
     const name = this.cleanModelName(modelId);
     const category = this.inferCategory(hfModel);
     const key = this.generateModelKey(modelId);
@@ -213,14 +229,14 @@ export class HuggingFaceProviderService {
       category,
       cost: this.calculateCloudPricing(pricing.costPerRequest),
       costPerUnit: pricing.costPerRequest,
-      costTier: pricing.tier === 'free' ? 'low' : 'medium',
+      costTier: pricing.tier === 'free' ? CostTier.LOW : CostTier.MEDIUM,
       description: hfModel.description || `${name} via HuggingFace`,
       isActive: true,
       isDefault: false,
       key: key as string,
       label: name,
       minCost: 0,
-      pricingType: 'per-request',
+      pricingType: PricingType.PER_REQUEST,
       provider: this.provider,
       qualityTier: this.getQualityTier(hfModel),
       speedTier: this.getSpeedTier(hfModel),
@@ -242,7 +258,7 @@ export class HuggingFaceProviderService {
   /**
    * Infer category from model metadata
    */
-  private inferCategory(model: unknown): ModelCategory {
+  private inferCategory(model: HFModel): ModelCategory {
     const tag = (model.pipeline_tag || '').toLowerCase();
     const id = (model.modelId || model.id || '').toLowerCase();
 
@@ -312,7 +328,7 @@ export class HuggingFaceProviderService {
   /**
    * Extract capabilities from model metadata
    */
-  private extractCapabilities(model: unknown): string[] {
+  private extractCapabilities(model: HFModel): string[] {
     const capabilities: string[] = [];
     const tag = model.pipeline_tag || '';
 
@@ -355,7 +371,7 @@ export class HuggingFaceProviderService {
   /**
    * Determine speed tier from model metadata
    */
-  private getSpeedTier(model: unknown): 'fast' | 'medium' | 'slow' {
+  private getSpeedTier(model: HFModel): SpeedTier {
     const id = (model.modelId || model.id || '').toLowerCase();
     if (
       id.includes('schnell') ||
@@ -363,31 +379,29 @@ export class HuggingFaceProviderService {
       id.includes('fast') ||
       id.includes('tiny')
     ) {
-      return 'fast';
+      return SpeedTier.FAST;
     }
     if (id.includes('xl') || id.includes('large') || id.includes('405b')) {
-      return 'slow';
+      return SpeedTier.SLOW;
     }
-    return 'medium';
+    return SpeedTier.MEDIUM;
   }
 
   /**
    * Determine quality tier from model metadata
    */
-  private getQualityTier(
-    model: unknown,
-  ): 'basic' | 'standard' | 'high' | 'ultra' {
+  private getQualityTier(model: HFModel): QualityTier {
     const id = (model.modelId || model.id || '').toLowerCase();
     if (id.includes('xl') || id.includes('large') || id.includes('pro')) {
-      return 'high';
+      return QualityTier.HIGH;
     }
     if (id.includes('tiny') || id.includes('small') || id.includes('mini')) {
-      return 'basic';
+      return QualityTier.BASIC;
     }
     if (id.includes('405b') || id.includes('ultra')) {
-      return 'ultra';
+      return QualityTier.ULTRA;
     }
-    return 'standard';
+    return QualityTier.STANDARD;
   }
 
   /**
@@ -402,7 +416,7 @@ export class HuggingFaceProviderService {
         category: ModelCategory.IMAGE,
         cost: 0,
         costPerUnit: 0,
-        costTier: 'low',
+        costTier: CostTier.LOW,
         description:
           'High-quality image generation with Stable Diffusion XL via HuggingFace',
         isActive: true,
@@ -410,17 +424,17 @@ export class HuggingFaceProviderService {
         key: MODEL_KEYS.HF_SDXL,
         label: 'Stable Diffusion XL',
         minCost: 0,
-        pricingType: 'per-request',
+        pricingType: PricingType.PER_REQUEST,
         provider: this.provider,
-        qualityTier: 'high',
-        speedTier: 'medium',
+        qualityTier: QualityTier.HIGH,
+        speedTier: SpeedTier.MEDIUM,
       },
       {
         capabilities: ['Text Prompt', 'Fast Generation', 'Diffusers'],
         category: ModelCategory.IMAGE,
         cost: 0,
         costPerUnit: 0,
-        costTier: 'low',
+        costTier: CostTier.LOW,
         description:
           'Fast image generation with FLUX.1 Schnell via HuggingFace',
         isActive: true,
@@ -428,10 +442,10 @@ export class HuggingFaceProviderService {
         key: MODEL_KEYS.HF_FLUX_SCHNELL,
         label: 'FLUX.1 Schnell',
         minCost: 0,
-        pricingType: 'per-request',
+        pricingType: PricingType.PER_REQUEST,
         provider: this.provider,
-        qualityTier: 'standard',
-        speedTier: 'fast',
+        qualityTier: QualityTier.STANDARD,
+        speedTier: SpeedTier.FAST,
       },
       // Text models
       {
@@ -439,7 +453,7 @@ export class HuggingFaceProviderService {
         category: ModelCategory.TEXT,
         cost: 0,
         costPerUnit: 0,
-        costTier: 'low',
+        costTier: CostTier.LOW,
         description:
           'Meta Llama 3.2 3B Instruct for text generation via HuggingFace',
         isActive: true,
@@ -447,27 +461,27 @@ export class HuggingFaceProviderService {
         key: MODEL_KEYS.HF_LLAMA_3_2_3B,
         label: 'Llama 3.2 3B Instruct',
         minCost: 0,
-        pricingType: 'per-request',
+        pricingType: PricingType.PER_REQUEST,
         provider: this.provider,
-        qualityTier: 'standard',
-        speedTier: 'fast',
+        qualityTier: QualityTier.STANDARD,
+        speedTier: SpeedTier.FAST,
       },
       {
         capabilities: ['Text Prompt', 'Transformers', 'Conversational'],
         category: ModelCategory.TEXT,
         cost: 0,
         costPerUnit: 0,
-        costTier: 'low',
+        costTier: CostTier.LOW,
         description: 'Mistral 7B Instruct for text generation via HuggingFace',
         isActive: true,
         isDefault: false,
         key: MODEL_KEYS.HF_MISTRAL_7B,
         label: 'Mistral 7B Instruct v0.3',
         minCost: 0,
-        pricingType: 'per-request',
+        pricingType: PricingType.PER_REQUEST,
         provider: this.provider,
-        qualityTier: 'standard',
-        speedTier: 'fast',
+        qualityTier: QualityTier.STANDARD,
+        speedTier: SpeedTier.FAST,
       },
       // Audio models
       {
@@ -475,7 +489,7 @@ export class HuggingFaceProviderService {
         category: ModelCategory.VOICE,
         cost: 0,
         costPerUnit: 0,
-        costTier: 'low',
+        costTier: CostTier.LOW,
         description:
           'OpenAI Whisper Large v3 for speech recognition via HuggingFace',
         isActive: true,
@@ -483,27 +497,27 @@ export class HuggingFaceProviderService {
         key: MODEL_KEYS.HF_WHISPER_LARGE_V3,
         label: 'Whisper Large v3',
         minCost: 0,
-        pricingType: 'per-request',
+        pricingType: PricingType.PER_REQUEST,
         provider: this.provider,
-        qualityTier: 'high',
-        speedTier: 'medium',
+        qualityTier: QualityTier.HIGH,
+        speedTier: SpeedTier.MEDIUM,
       },
       {
         capabilities: ['Text to Speech', 'Transformers'],
         category: ModelCategory.VOICE,
         cost: 0,
         costPerUnit: 0,
-        costTier: 'low',
+        costTier: CostTier.LOW,
         description: 'Facebook MMS Text-to-Speech for English via HuggingFace',
         isActive: true,
         isDefault: false,
         key: MODEL_KEYS.HF_MMS_TTS_ENG,
         label: 'MMS TTS English',
         minCost: 0,
-        pricingType: 'per-request',
+        pricingType: PricingType.PER_REQUEST,
         provider: this.provider,
-        qualityTier: 'standard',
-        speedTier: 'fast',
+        qualityTier: QualityTier.STANDARD,
+        speedTier: SpeedTier.FAST,
       },
       // Video models
       {
@@ -511,7 +525,7 @@ export class HuggingFaceProviderService {
         category: ModelCategory.VIDEO,
         cost: 0.001,
         costPerUnit: 0.001,
-        costTier: 'low',
+        costTier: CostTier.LOW,
         description:
           'Stable Video Diffusion for image-to-video generation via HuggingFace',
         isActive: true,
@@ -519,10 +533,10 @@ export class HuggingFaceProviderService {
         key: MODEL_KEYS.HF_STABLE_VIDEO_DIFFUSION,
         label: 'Stable Video Diffusion',
         minCost: 0,
-        pricingType: 'per-request',
+        pricingType: PricingType.PER_REQUEST,
         provider: this.provider,
-        qualityTier: 'high',
-        speedTier: 'slow',
+        qualityTier: QualityTier.HIGH,
+        speedTier: SpeedTier.SLOW,
       },
     ];
   }

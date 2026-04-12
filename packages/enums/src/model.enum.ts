@@ -40,5 +40,6 @@ export enum SpeedTier {
 export enum PricingType {
   FLAT = 'flat',
   PER_MEGAPIXEL = 'per-megapixel',
+  PER_REQUEST = 'per-request',
   PER_SECOND = 'per-second',
 }

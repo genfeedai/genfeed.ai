@@ -1,5 +1,12 @@
 import { MODEL_KEYS } from '@genfeedai/constants';
-import { ModelCategory, ModelProvider } from '@genfeedai/enums';
+import {
+  CostTier,
+  ModelCategory,
+  ModelProvider,
+  PricingType,
+  QualityTier,
+  SpeedTier,
+} from '@genfeedai/enums';
 import { applyMargin } from '@genfeedai/helpers';
 import type { IModel } from '@genfeedai/interfaces';
 import { logger } from '@services/core/logger.service';
@@ -175,7 +182,7 @@ export class FalProviderService {
       key: key as string,
       label: name,
       minCost: 2,
-      pricingType: 'per-request',
+      pricingType: PricingType.PER_REQUEST,
       provider: this.provider,
       qualityTier: this.getQualityTier(falModel),
       speedTier: this.getSpeedTier(falModel),
@@ -198,10 +205,11 @@ export class FalProviderService {
    * Infer category from model metadata
    */
   private inferCategory(model: unknown): ModelCategory {
-    const category = (model.category || '').toLowerCase();
-    const id = (model.id || '').toLowerCase();
-    const name = (model.title || '').toLowerCase();
-    const tags = model.tags || [];
+    const m = model as Record<string, unknown>;
+    const category = ((m.category as string) || '').toLowerCase();
+    const id = ((m.id as string) || '').toLowerCase();
+    const name = ((m.title as string) || '').toLowerCase();
+    const tags = (m.tags as string[]) || [];
 
     if (category === 'text-to-image' || category === 'image-generation') {
       return ModelCategory.IMAGE;
@@ -370,51 +378,51 @@ export class FalProviderService {
   /**
    * Determine cost tier based on pricing
    */
-  private getCostTier(cost: number): 'low' | 'medium' | 'high' {
+  private getCostTier(cost: number): CostTier {
     if (cost < 0.01) {
-      return 'low';
+      return CostTier.LOW;
     }
     if (cost < 0.1) {
-      return 'medium';
+      return CostTier.MEDIUM;
     }
-    return 'high';
+    return CostTier.HIGH;
   }
 
   /**
    * Determine speed tier from model metadata
    */
-  private getSpeedTier(model: unknown): 'fast' | 'medium' | 'slow' {
-    const name = (model.title || '').toLowerCase();
+  private getSpeedTier(model: unknown): SpeedTier {
+    const m = model as Record<string, unknown>;
+    const name = ((m.title as string) || '').toLowerCase();
     if (
       name.includes('turbo') ||
       name.includes('fast') ||
       name.includes('schnell')
     ) {
-      return 'fast';
+      return SpeedTier.FAST;
     }
     if (name.includes('slow') || name.includes('quality')) {
-      return 'slow';
+      return SpeedTier.SLOW;
     }
-    return 'medium';
+    return SpeedTier.MEDIUM;
   }
 
   /**
    * Determine quality tier from model metadata
    */
-  private getQualityTier(
-    model: unknown,
-  ): 'basic' | 'standard' | 'high' | 'ultra' {
-    const name = (model.title || '').toLowerCase();
+  private getQualityTier(model: unknown): QualityTier {
+    const m = model as Record<string, unknown>;
+    const name = ((m.title as string) || '').toLowerCase();
     if (name.includes('ultra') || name.includes('pro')) {
-      return 'ultra';
+      return QualityTier.ULTRA;
     }
     if (name.includes('high') || name.includes('quality')) {
-      return 'high';
+      return QualityTier.HIGH;
     }
     if (name.includes('basic') || name.includes('lite')) {
-      return 'basic';
+      return QualityTier.BASIC;
     }
-    return 'standard';
+    return QualityTier.STANDARD;
   }
 
   /**
@@ -428,68 +436,68 @@ export class FalProviderService {
         category: ModelCategory.IMAGE,
         cost: 0.002,
         costPerUnit: 0.002,
-        costTier: 'low',
+        costTier: CostTier.LOW,
         description: 'High-quality image generation with FLUX Dev model',
         isActive: true,
         isDefault: false,
         key: MODEL_KEYS.FAL_FLUX_DEV,
         label: 'FLUX Dev',
         minCost: 0.001,
-        pricingType: 'per-request',
+        pricingType: PricingType.PER_REQUEST,
         provider: this.provider,
-        qualityTier: 'high',
-        speedTier: 'medium',
+        qualityTier: QualityTier.HIGH,
+        speedTier: SpeedTier.MEDIUM,
       },
       {
         capabilities: ['Text Prompt', 'Fast Generation', 'Reproducible'],
         category: ModelCategory.IMAGE,
         cost: 0.001,
         costPerUnit: 0.001,
-        costTier: 'low',
+        costTier: CostTier.LOW,
         description: 'Fast image generation with FLUX Schnell model',
         isActive: true,
         isDefault: false,
         key: MODEL_KEYS.FAL_FLUX_SCHNELL,
         label: 'FLUX Schnell',
         minCost: 0.001,
-        pricingType: 'per-request',
+        pricingType: PricingType.PER_REQUEST,
         provider: this.provider,
-        qualityTier: 'standard',
-        speedTier: 'fast',
+        qualityTier: QualityTier.STANDARD,
+        speedTier: SpeedTier.FAST,
       },
       {
         capabilities: ['Text Prompt', 'Image Input', 'High Quality'],
         category: ModelCategory.IMAGE,
         cost: 0.005,
         costPerUnit: 0.005,
-        costTier: 'medium',
+        costTier: CostTier.MEDIUM,
         description: 'Professional image generation with FLUX Pro model',
         isActive: true,
         isDefault: false,
         key: MODEL_KEYS.FAL_FLUX_PRO,
         label: 'FLUX Pro',
         minCost: 0.001,
-        pricingType: 'per-request',
+        pricingType: PricingType.PER_REQUEST,
         provider: this.provider,
-        qualityTier: 'ultra',
-        speedTier: 'medium',
+        qualityTier: QualityTier.ULTRA,
+        speedTier: SpeedTier.MEDIUM,
       },
       {
         capabilities: ['Text Prompt', 'Image to Video', 'Duration Control'],
         category: ModelCategory.VIDEO,
         cost: 0.15,
         costPerUnit: 0.15,
-        costTier: 'high',
+        costTier: CostTier.HIGH,
         description: 'High-quality video generation with Kling model',
         isActive: true,
         isDefault: false,
         key: MODEL_KEYS.FAL_KLING_VIDEO,
         label: 'Kling Video',
         minCost: 0.001,
-        pricingType: 'per-request',
+        pricingType: PricingType.PER_REQUEST,
         provider: this.provider,
-        qualityTier: 'high',
-        speedTier: 'medium',
+        qualityTier: QualityTier.HIGH,
+        speedTier: SpeedTier.MEDIUM,
       },
       {
         capabilities: [
@@ -501,7 +509,7 @@ export class FalProviderService {
         category: ModelCategory.VIDEO,
         cost: 0.1,
         costPerUnit: 0.1,
-        costTier: 'high',
+        costTier: CostTier.HIGH,
         description:
           'Cinema-grade video generation with native audio by ByteDance',
         isActive: true,
@@ -509,10 +517,10 @@ export class FalProviderService {
         key: MODEL_KEYS.FAL_SEEDANCE_2_0,
         label: 'Seedance 2.0',
         minCost: 0.001,
-        pricingType: 'per-request',
+        pricingType: PricingType.PER_REQUEST,
         provider: this.provider,
-        qualityTier: 'ultra',
-        speedTier: 'medium',
+        qualityTier: QualityTier.ULTRA,
+        speedTier: SpeedTier.MEDIUM,
       },
     ];
   }

@@ -1,7 +1,13 @@
 {
   "dependencies": {
+    "@genfeedai/client": "workspace:*",
+    "@genfeedai/constants": "workspace:*",
+    "@genfeedai/enums": "workspace:*",
+    "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/models": "workspace:*",
-    "@genfeedai/services": "workspace:*"
+    "@genfeedai/serializers": "workspace:*",
+    "@genfeedai/services": "workspace:*",
+    "@genfeedai/types": "workspace:*"
   },
   "description": "Shared prop and view-model contracts for Genfeed UI surfaces",
   "devDependencies": {
