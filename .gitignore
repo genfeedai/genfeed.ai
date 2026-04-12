@@ -25,3 +25,10 @@ apps/desktop/app/release/
 .claude/worktrees/
 .worktrees/
 .agents/SESSIONS/
+
+# Claude Code skill runtime (should never be committed)
+.superpowers/
+# Agent scratch dirs at any depth (apps/<name>/.agents/, apps/<surface>/<name>/.agents/)
+# Covers apps/app/.agents, apps/mobile/app/.agents, apps/extensions/browser/app/.agents, etc.
+**/apps/**/.agents/
+
