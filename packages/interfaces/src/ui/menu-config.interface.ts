@@ -1,6 +1,14 @@
 import type { ComponentType, ReactNode } from 'react';
 import type { ILabeledItem } from '../index';
 
+export type AppContext =
+  | 'workspace'
+  | 'studio'
+  | 'workflows'
+  | 'editor'
+  | 'compose'
+  | 'analytics';
+
 export interface MenuItemConfig {
   href?: string;
   label: string;
