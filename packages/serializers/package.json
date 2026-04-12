@@ -26,8 +26,17 @@
     "src"
   ],
   "main": "./dist/index.js",
+  "license": "AGPL-3.0",
   "name": "@genfeedai/serializers",
-  "private": false,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "directory": "serializers",
+    "type": "git",
+    "url": "git+https://github.com/genfeedai/packages.git"
+  },
   "scripts": {
     "build": "tsc --build --force && if [ -d dist/src ]; then mv dist/src/* dist/ 2>/dev/null && rm -rf dist/src; fi",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
