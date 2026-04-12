@@ -305,7 +305,7 @@ describe('MenuShared', () => {
       'href',
       '/acme/moonrise-studio/workspace/overview?compose=1',
     );
-    expect(screen.getByText('⌘N')).toBeInTheDocument();
+    expect(screen.getByText('⌘⇧N')).toBeInTheDocument();
   });
 
   it('renders dashboard, tasks, and inbox as flat top-level rows while grouping the rest under a workspace heading', () => {
@@ -382,7 +382,7 @@ describe('MenuShared', () => {
 
     expect(screen.getByRole('link', { name: /New Chat/i })).toHaveAttribute(
       'href',
-      '/acme/moonrise-studio/chat/new',
+      '/acme/~/chat/new',
     );
   });
 
