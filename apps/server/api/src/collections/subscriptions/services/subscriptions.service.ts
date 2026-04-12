@@ -16,6 +16,7 @@ import { StripeService } from '@api/services/integrations/stripe/services/stripe
 import { BaseService } from '@api/shared/services/base/base.service';
 import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
+import type { ISubscriptionsService } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
@@ -34,12 +35,30 @@ type ClerkSyncSubscription = {
   status?: string;
 };
 
+/**
+ * Enterprise subscriptions service. The OSS-callable surface (`findOne`,
+ * `findByOrganizationId`, `findAll`) is locked by
+ * {@link import('@genfeedai/interfaces/billing').ISubscriptionsService}.
+ *
+ * The other methods on this class (Stripe sync, plan changes, Clerk metadata
+ * sync, preview subscription change) are enterprise-only and move to
+ * `ee/packages/billing/` in Phase C Layer 2 (tracked in issue #87).
+ *
+ * `findOne` here is inherited from `BaseService<SubscriptionDocument>`, which
+ * returns `Promise<SubscriptionDocument | null>`. Mongoose documents are
+ * structurally assignable to `ISubscription | null` because they expose the
+ * same public fields; the compiler validates the conformance via the
+ * `implements` clause below.
+ */
 @Injectable()
-export class SubscriptionsService extends BaseService<
-  SubscriptionDocument,
-  CreateSubscriptionDto,
-  UpdateSubscriptionDto
-> {
+export class SubscriptionsService
+  extends BaseService<
+    SubscriptionDocument,
+    CreateSubscriptionDto,
+    UpdateSubscriptionDto
+  >
+  implements ISubscriptionsService
+{
   public readonly constructorName: string = String(this.constructor.name);
 
   constructor(

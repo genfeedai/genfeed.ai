@@ -565,6 +565,17 @@
         "typescript": "6.0.2",
       },
     },
+    "ee/packages/billing": {
+      "name": "@genfeedai/ee-billing",
+      "version": "0.1.0",
+      "dependencies": {
+        "@genfeedai/interfaces": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/node": "25.6.0",
+        "typescript": "6.0.2",
+      },
+    },
     "packages/agent": {
       "name": "@genfeedai/agent",
       "version": "1.0.0",
@@ -1842,6 +1853,8 @@
     "@genfeedai/desktop-shell": ["@genfeedai/desktop-shell@workspace:packages/desktop-shell"],
 
     "@genfeedai/discord": ["@genfeedai/discord@workspace:apps/server/discord"],
+
+    "@genfeedai/ee-billing": ["@genfeedai/ee-billing@workspace:ee/packages/billing"],
 
     "@genfeedai/enums": ["@genfeedai/enums@workspace:packages/enums"],
 
