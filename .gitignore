@@ -28,5 +28,7 @@ apps/desktop/app/release/
 
 # Claude Code skill runtime (should never be committed)
 .superpowers/
-apps/*/.agents/
+# Agent scratch dirs at any depth (apps/<name>/.agents/, apps/<surface>/<name>/.agents/)
+# Covers apps/app/.agents, apps/mobile/app/.agents, apps/extensions/browser/app/.agents, etc.
+**/apps/**/.agents/
 
