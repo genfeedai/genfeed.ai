@@ -293,16 +293,20 @@ export default function proxy(req: NextRequest, event: NextFetchEvent) {
   // Redirect root + all Clerk-dependent routes to the seeded default workspace.
   // SelfHostedSeedService always seeds org slug="default" and brand slug="default"
   // (apps/server/api/src/seeds/self-hosted-seed.service.ts:87,103).
-  // /login, /sign-up, /logout, /oauth/* render Clerk components — redirect them too.
+  // /login, /sign-up, /logout render Clerk components — redirect them.
+  // /oauth (bare) redirects, but /oauth/[platform] and /oauth/cli are integration
+  // callback pages that must NOT be redirected.
   if (!isCloudConnected) {
     const { pathname } = req.nextUrl;
     const redirectToWorkspace =
       pathname === '/' ||
       pathname.startsWith('/onboarding') ||
       pathname.startsWith('/login') ||
+      pathname.startsWith('/sign-in') ||
       pathname.startsWith('/sign-up') ||
       pathname.startsWith('/logout') ||
-      pathname.startsWith('/oauth');
+      pathname === '/oauth' ||
+      pathname === '/oauth/';
     if (redirectToWorkspace) {
       return NextResponse.redirect(
         new URL('/default/default/workspace/overview', req.url),
