@@ -30,10 +30,9 @@ genfeed.ai/
 │   ├── website/             # Marketing site (Next.js)
 │   ├── desktop/             # Electron desktop app
 │   ├── mobile/              # React Native / Expo
-│   └── extensions/          # Browser & IDE extensions
+│   └── extensions/          # Browser & IDE extensions (v2 milestone)
 │       ├── browser/
-│       ├── ide/
-│       └── vscode/
+│       └── ide/
 ├── packages/                # ~45 shared packages (@genfeedai/*)
 │   ├── agent/               # Agent logic
 │   ├── api-types/           # Generated API types
@@ -89,15 +88,10 @@ genfeed.ai/
 │   └── workflows/           # Workflow definitions
 ├── ee/                      # Enterprise features (commercial license)
 │   └── packages/
-│       ├── admin-ee/        # Enterprise admin features
-│       ├── analytics/       # Advanced analytics
-│       ├── billing/         # Stripe billing & credits
-│       ├── branding/        # Brand management
-│       ├── collaboration/   # Team collaboration
-│       ├── multi-tenancy/   # Multi-tenant org isolation
-│       ├── scheduling/      # Advanced scheduling
-│       ├── sso/             # Single sign-on
-│       └── teams/           # Team management
+│       ├── analytics/       # Advanced analytics (v2)
+│       ├── billing/         # Stripe billing & credits (Phase C extraction target)
+│       ├── multi-tenancy/   # Multi-tenant org isolation (v2)
+│       └── teams/           # Team management (v2)
 ├── docker/                  # Docker configs
 ├── docs/                    # Documentation
 ├── e2e/                     # E2E test suites
