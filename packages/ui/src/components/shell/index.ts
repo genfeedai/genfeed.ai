@@ -1,4 +1,3 @@
-export type { AppSwitcherProps } from '@genfeedai/props/ui/app-switcher.props';
 export {
   type AppHtmlDocumentProps,
   default as AppHtmlDocument,

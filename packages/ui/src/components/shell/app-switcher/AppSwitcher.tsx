@@ -1,7 +1,8 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
-import type { AppContext } from '@genfeedai/interfaces';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import type { AppConfig } from '@genfeedai/interfaces';
 import type { AppSwitcherProps } from '@genfeedai/props/ui/app-switcher.props';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -11,13 +12,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '../../../primitives/popover';
-
-interface AppConfig {
-  id: AppContext;
-  icon: string;
-  label: string;
-  route: (orgSlug: string, brandSlug?: string) => string;
-}
 
 const APPS: AppConfig[] = [
   {
@@ -30,7 +24,8 @@ const APPS: AppConfig[] = [
     id: 'studio',
     icon: '🎨',
     label: 'Studio',
-    route: (org, brand) => `/${org}/${brand ?? 'default'}/studio/image`,
+    route: (org, brand) =>
+      brand ? `/${org}/${brand}/studio/image` : `/${org}/~/overview`,
   },
   {
     id: 'workflows',
@@ -94,12 +89,11 @@ export function AppSwitcher({
               <Button
                 key={app.id}
                 ariaLabel={app.label}
-                aria-pressed={isActive}
-                className={
-                  isActive
-                    ? 'flex flex-col gap-1 h-auto py-2 ring-2 ring-purple-500'
-                    : 'flex flex-col gap-1 h-auto py-2'
-                }
+                aria-current={isActive ? 'page' : undefined}
+                className={cn(
+                  'flex flex-col gap-1 h-auto py-2',
+                  isActive && 'ring-2 ring-[var(--gen-accent-primary)]',
+                )}
                 onClick={() => handleAppSelect(app)}
                 size={ButtonSize.SM}
                 variant={ButtonVariant.GHOST}
