@@ -1,3 +1,4 @@
+import { CustomerInstancesService } from '@api/collections/customer-instances/services/customer-instances.service';
 import { ConfigService } from '@api/config/config.service';
 import type {
   IFleetHealthResponse,
@@ -25,6 +26,7 @@ export class FleetService {
   constructor(
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
+    private readonly customerInstancesService: CustomerInstancesService,
   ) {
     this.instances = new Map<FleetRole, GpuInstance>([
       [
@@ -55,6 +57,27 @@ export class FleetService {
         },
       ],
     ]);
+  }
+
+  /**
+   * Resolve the API URL for a given org + fleet role.
+   * Returns the org's dedicated instance URL if one is running,
+   * otherwise falls back to the shared fleet URL from config.
+   */
+  async getInstanceUrlForOrg(
+    organizationId: string,
+    role: FleetRole,
+  ): Promise<string | null> {
+    const dedicated = await this.customerInstancesService.findRunningForOrg(
+      organizationId,
+      role,
+    );
+
+    if (dedicated) {
+      return dedicated.apiUrl;
+    }
+
+    return this.getInstanceUrl(role);
   }
 
   /**
