@@ -115,9 +115,15 @@ export interface ISubscriptionsService {
   /**
    * Aggregation pipeline query. OSS analytics endpoint reads `.total`.
    * OSS no-op returns `{ total: 0 }`.
+   *
+   * `options` is **required**, not optional. `BaseService.findAll` (inherited
+   * by the concrete `SubscriptionsService`) dereferences `options.pagination`
+   * unconditionally, so a Layer 2 no-op accepting a plain `findAll(pipeline)`
+   * would expose callers to a `TypeError` on the EE path. Greptile flagged
+   * this as a P1 mismatch in PR #163 review — contract now matches runtime.
    */
   findAll(
     pipeline: unknown[],
-    options?: ISubscriptionFindAllOptions,
+    options: ISubscriptionFindAllOptions,
   ): Promise<ISubscriptionFindAllResult>;
 }

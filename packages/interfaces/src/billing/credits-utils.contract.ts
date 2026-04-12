@@ -1,3 +1,5 @@
+import type { ActivitySource } from '@genfeedai/enums';
+
 /**
  * Contract for the credits utility service.
  *
@@ -21,17 +23,23 @@
  */
 
 /**
+ * Individual credit ledger entry returned by
+ * {@link ICreditsUtilsService.getOrganizationCreditsWithExpiration}.
+ */
+export interface IOrganizationCreditEntry {
+  balance: number;
+  expiresAt?: Date;
+  source?: string;
+  createdAt?: Date;
+}
+
+/**
  * Structured snapshot of an organization's credit pool.
  * Returned by {@link ICreditsUtilsService.getOrganizationCreditsWithExpiration}.
  */
 export interface IOrganizationCreditsWithExpiration {
   total: number;
-  credits: Array<{
-    balance: number;
-    expiresAt?: Date;
-    source?: string;
-    createdAt?: Date;
-  }>;
+  credits: IOrganizationCreditEntry[];
 }
 
 /**
@@ -41,6 +49,15 @@ export interface IOrganizationCreditsWithExpiration {
 export interface ICycleRemainingMetrics {
   cycleTotal: number;
   remainingPercent: number;
+}
+
+/**
+ * Options for `deductCreditsFromOrganization`. Extracted to a named interface
+ * so consumers can reuse it and so the contract stays aligned with the
+ * "never define inline interfaces" coding guideline.
+ */
+export interface IDeductCreditsOptions {
+  maxOverdraftCredits?: number;
 }
 
 export interface ICreditsUtilsService {
@@ -61,6 +78,14 @@ export interface ICreditsUtilsService {
 
   /**
    * Debit credits from an organization, recording an activity.
+   *
+   * `source` is typed as {@link ActivitySource} (from `@genfeedai/enums`) to
+   * match the concrete implementation, which forwards the value into activity
+   * writes validated against the enum. Typing it as a free `string` would
+   * compile at the interface boundary but fail at runtime when the activity
+   * layer validates. Layer 2 EE implementations MUST preserve this constraint;
+   * the OSS no-op simply ignores the value.
+   *
    * OSS no-op is a no-op (resolves successfully).
    */
   deductCreditsFromOrganization(
@@ -68,8 +93,8 @@ export interface ICreditsUtilsService {
     userId: string,
     creditsToDeduct: number,
     description: string,
-    source?: string,
-    options?: { maxOverdraftCredits?: number },
+    source?: ActivitySource,
+    options?: IDeductCreditsOptions,
   ): Promise<void>;
 
   /**
