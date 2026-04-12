@@ -1,7 +1,6 @@
 {
   "dependencies": {
     "@genfeedai/constants": "workspace:*",
-    "@genfeedai/deserializer": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
     "clsx": "2.1.1",

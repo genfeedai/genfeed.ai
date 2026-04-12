@@ -1,5 +1,6 @@
 'use client';
 
+import { useGalleryModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import {
   ButtonSize,
   ButtonVariant,
@@ -9,7 +10,6 @@ import {
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IImage } from '@genfeedai/interfaces';
 import type { FrameSequenceSelectorProps } from '@genfeedai/props/studio/frame-sequence.props';
-import { useGalleryModal } from '@genfeedai/providers/global-modals/global-modals.provider';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';

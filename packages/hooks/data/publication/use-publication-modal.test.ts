@@ -1,15 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
-  usePostModal: vi.fn(() => ({
-    close: vi.fn(),
-    isOpen: false,
-    open: vi.fn(),
-    publication: null,
-  })),
-}));
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  () => ({
+    usePostModal: vi.fn(() => ({
+      close: vi.fn(),
+      isOpen: false,
+      open: vi.fn(),
+      publication: null,
+    })),
+  }),
+);
 
-import { usePostModal } from '@genfeedai/providers/global-modals/global-modals.provider';
+import { usePostModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import { renderHook } from '@testing-library/react';
 
 describe('usePostModal', () => {

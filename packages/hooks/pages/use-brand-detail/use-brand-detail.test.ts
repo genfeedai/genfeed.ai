@@ -30,10 +30,13 @@ vi.mock('@hooks/data/elements/use-elements/use-elements', () => ({
   })),
 }));
 
-vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
-  useConfirmModal: vi.fn(() => ({ openConfirm: vi.fn() })),
-  useUploadModal: vi.fn(() => ({ openUpload: mockOpenUpload })),
-}));
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  () => ({
+    useConfirmModal: vi.fn(() => ({ openConfirm: vi.fn() })),
+    useUploadModal: vi.fn(() => ({ openUpload: mockOpenUpload })),
+  }),
+);
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(),

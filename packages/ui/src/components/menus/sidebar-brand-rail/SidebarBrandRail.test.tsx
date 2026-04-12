@@ -36,11 +36,14 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   }),
 }));
 
-vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
-  useBrandOverlay: () => ({
-    openBrandOverlay: mockOpenBrandOverlay,
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  () => ({
+    useBrandOverlay: () => ({
+      openBrandOverlay: mockOpenBrandOverlay,
+    }),
   }),
-}));
+);
 
 vi.mock('@genfeedai/services/core/logger.service', () => ({
   logger: {

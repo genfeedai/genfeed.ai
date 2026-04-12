@@ -1,3 +1,9 @@
+export {
+  getDeserializer,
+  isDeserializerRuntime,
+  type JsonApiDocument,
+  type JsonApiResource,
+} from '@genfeedai/helpers';
 export * from '@serializers/attributes';
 export * from '@serializers/builders';
 export * from '@serializers/configs';

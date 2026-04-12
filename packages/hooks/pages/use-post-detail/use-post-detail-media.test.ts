@@ -2,14 +2,17 @@ import { usePostDetailMedia } from '@hooks/pages/use-post-detail/use-post-detail
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
-  useGalleryModal: vi.fn(() => ({
-    openGallery: vi.fn(),
-  })),
-  useGenerateIllustrationModal: vi.fn(() => ({
-    openGenerateIllustration: vi.fn(),
-  })),
-}));
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  () => ({
+    useGalleryModal: vi.fn(() => ({
+      openGallery: vi.fn(),
+    })),
+    useGenerateIllustrationModal: vi.fn(() => ({
+      openGenerateIllustration: vi.fn(),
+    })),
+  }),
+);
 
 vi.mock('@genfeedai/services/content/posts.service', () => ({
   PostsService: {

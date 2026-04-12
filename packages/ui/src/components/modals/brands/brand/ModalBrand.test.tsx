@@ -190,15 +190,18 @@ vi.mock('@genfeedai/hooks/utils/use-socket-manager/use-socket-manager', () => ({
   }),
 }));
 
-vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
-  __esModule: true,
-  useConfirmModal: () => ({
-    openConfirm: vi.fn(),
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  () => ({
+    __esModule: true,
+    useConfirmModal: () => ({
+      openConfirm: vi.fn(),
+    }),
+    useUploadModal: () => ({
+      openUpload: vi.fn(),
+    }),
   }),
-  useUploadModal: () => ({
-    openUpload: vi.fn(),
-  }),
-}));
+);
 
 vi.mock('react-hook-form', () => ({
   useForm: () => ({

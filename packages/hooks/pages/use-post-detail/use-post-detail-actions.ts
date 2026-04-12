@@ -1,8 +1,8 @@
 'use client';
 
+import { useConfirmDeleteModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import { PostStatus } from '@genfeedai/enums';
 import type { IPost, PostQuickActionKey } from '@genfeedai/interfaces';
-import { useConfirmDeleteModal } from '@genfeedai/providers/global-modals/global-modals.provider';
 import type { PostsService } from '@genfeedai/services/content/posts.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { NotificationsService } from '@genfeedai/services/core/notifications.service';

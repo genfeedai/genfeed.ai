@@ -88,7 +88,7 @@ export default defineConfig({
       },
       {
         find: '@providers',
-        replacement: path.resolve(__dirname, '../providers'),
+        replacement: path.resolve(__dirname, './providers'),
       },
       {
         find: '@services',

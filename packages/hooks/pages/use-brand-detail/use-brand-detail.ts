@@ -1,6 +1,10 @@
 'use client';
 
 import {
+  useConfirmModal,
+  useUploadModal,
+} from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
+import {
   ArticleStatus,
   AssetCategory,
   AssetParent,
@@ -18,10 +22,6 @@ import type {
   IVideo,
 } from '@genfeedai/interfaces';
 import type { UseBrandDetailReturn } from '@genfeedai/props/pages/brand-detail.props';
-import {
-  useConfirmModal,
-  useUploadModal,
-} from '@genfeedai/providers/global-modals/global-modals.provider';
 import { AssetsService } from '@genfeedai/services/content/assets.service';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';

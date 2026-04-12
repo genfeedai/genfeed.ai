@@ -43,12 +43,15 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: vi.fn(() => vi.fn()),
 }));
 
-vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
-  useConfirmModal: vi.fn(() => ({ openConfirm: vi.fn() })),
-  useIngredientOverlay: vi.fn(() => ({ openIngredientOverlay: vi.fn() })),
-  usePostModal: vi.fn(() => ({ openPostBatchModal: vi.fn() })),
-  useUploadModal: vi.fn(() => ({ openUpload: vi.fn() })),
-}));
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  () => ({
+    useConfirmModal: vi.fn(() => ({ openConfirm: vi.fn() })),
+    useIngredientOverlay: vi.fn(() => ({ openIngredientOverlay: vi.fn() })),
+    usePostModal: vi.fn(() => ({ openPostBatchModal: vi.fn() })),
+    useUploadModal: vi.fn(() => ({ openUpload: vi.fn() })),
+  }),
+);
 
 vi.mock('@genfeedai/services/content/ingredients.service', () => ({
   IngredientsService: {

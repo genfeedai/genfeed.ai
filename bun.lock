@@ -635,7 +635,7 @@
         "gf": "dist/index.js",
       },
       "dependencies": {
-        "@genfeedai/deserializer": "workspace:*",
+        "@genfeedai/serializers": "workspace:*",
         "@genfeedai/tools": "workspace:*",
         "@inquirer/prompts": "8.4.1",
         "chalk": "5.6.2",
@@ -745,13 +745,6 @@
         "vitest": "4.1.4",
       },
     },
-    "packages/deserializer": {
-      "name": "@genfeedai/deserializer",
-      "version": "1.0.3",
-      "devDependencies": {
-        "typescript": "6.0.2",
-      },
-    },
     "packages/desktop-contracts": {
       "name": "@genfeedai/desktop-contracts",
       "version": "0.1.0",
@@ -795,7 +788,6 @@
       "version": "2.2.12",
       "dependencies": {
         "@genfeedai/constants": "workspace:*",
-        "@genfeedai/deserializer": "workspace:*",
         "@genfeedai/enums": "workspace:*",
         "@genfeedai/interfaces": "workspace:*",
         "clsx": "2.1.1",
@@ -825,7 +817,6 @@
         "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/models": "workspace:*",
         "@genfeedai/props": "workspace:*",
-        "@genfeedai/providers": "workspace:*",
         "@genfeedai/services": "workspace:*",
         "@genfeedai/utils": "workspace:*",
         "@growthbook/growthbook-react": "1.6.5",
@@ -937,26 +928,6 @@
         "vitest": "4.1.4",
       },
     },
-    "packages/providers": {
-      "name": "@genfeedai/providers",
-      "version": "0.1.0",
-      "dependencies": {
-        "@genfeedai/contexts": "workspace:*",
-        "@genfeedai/helpers": "workspace:*",
-        "@genfeedai/models": "workspace:*",
-        "@genfeedai/props": "workspace:*",
-        "@genfeedai/services": "workspace:*",
-      },
-      "devDependencies": {
-        "@testing-library/jest-dom": "6.9.1",
-        "@testing-library/react": "16.3.2",
-        "@vitejs/plugin-react": "6.0.1",
-        "jsdom": "29.0.2",
-        "react": "19.2.5",
-        "react-dom": "19.2.5",
-        "vitest": "4.1.4",
-      },
-    },
     "packages/serializers": {
       "name": "@genfeedai/serializers",
       "version": "2.2.2",
@@ -1029,7 +1000,6 @@
         "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/models": "workspace:*",
         "@genfeedai/props": "workspace:*",
-        "@genfeedai/providers": "workspace:*",
         "@genfeedai/services": "workspace:*",
         "@genfeedai/utils": "workspace:*",
         "@tiptap/extension-blockquote": "^3.22.3",
@@ -1858,8 +1828,6 @@
 
     "@genfeedai/create": ["@genfeedai/create@workspace:packages/create"],
 
-    "@genfeedai/deserializer": ["@genfeedai/deserializer@workspace:packages/deserializer"],
-
     "@genfeedai/desktop": ["@genfeedai/desktop@workspace:apps/desktop/app"],
 
     "@genfeedai/desktop-contracts": ["@genfeedai/desktop-contracts@workspace:packages/desktop-contracts"],
@@ -1907,8 +1875,6 @@
     "@genfeedai/prompts": ["@genfeedai/prompts@workspace:packages/prompts"],
 
     "@genfeedai/props": ["@genfeedai/props@workspace:packages/props"],
-
-    "@genfeedai/providers": ["@genfeedai/providers@workspace:packages/providers"],
 
     "@genfeedai/serializers": ["@genfeedai/serializers@workspace:packages/serializers"],
 

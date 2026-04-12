@@ -1,6 +1,10 @@
 'use client';
 
 import { useAuth } from '@clerk/nextjs';
+import {
+  useConfirmModal,
+  usePostModal,
+} from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AlertCategory,
@@ -21,10 +25,6 @@ import { useIngredientActions } from '@genfeedai/hooks/ui/ingredient/use-ingredi
 import { useModalAutoOpen } from '@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open';
 import type { IIngredient, IMetadata } from '@genfeedai/interfaces';
 import type { IngredientOverlayProps } from '@genfeedai/props/modals/modal.props';
-import {
-  useConfirmModal,
-  usePostModal,
-} from '@genfeedai/providers/global-modals/global-modals.provider';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';

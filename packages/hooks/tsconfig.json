@@ -4,11 +4,11 @@
       "@genfeedai/contexts/*": ["../contexts/*"],
       "@genfeedai/models/*": ["../models/*"],
       "@genfeedai/props/*": ["../props/*"],
-      "@genfeedai/providers/*": ["../providers/*"],
+      "@genfeedai/providers/*": ["../contexts/providers/*"],
       "@genfeedai/services/*": ["../services/*"],
       "@genfeedai/utils/*": ["../utils/*"],
       "@hooks/*": ["./*"],
-      "@providers/*": ["../providers/*"],
+      "@providers/*": ["../contexts/providers/*"],
       "@props/*": ["../props/*"],
       "@ui-constants/*": ["../ui/constants/*"]
     }

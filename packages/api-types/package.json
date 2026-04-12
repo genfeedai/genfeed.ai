@@ -25,7 +25,7 @@
   "license": "MIT",
   "main": "./dist/index.js",
   "name": "@genfeedai/api-types",
-  "private": true,
+  "private": false,
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"

@@ -24,11 +24,14 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
-vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
-  useBrandOverlay: () => ({
-    openBrandOverlay: openBrandOverlaySpy,
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  () => ({
+    useBrandOverlay: () => ({
+      openBrandOverlay: openBrandOverlaySpy,
+    }),
   }),
-}));
+);
 
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({

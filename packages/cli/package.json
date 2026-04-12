@@ -5,7 +5,7 @@
     "gf": "dist/index.js"
   },
   "dependencies": {
-    "@genfeedai/deserializer": "workspace:*",
+    "@genfeedai/serializers": "workspace:*",
     "@genfeedai/tools": "workspace:*",
     "@inquirer/prompts": "8.4.1",
     "chalk": "5.6.2",

@@ -2,11 +2,14 @@ import { usePostDetailActions } from '@hooks/pages/use-post-detail/use-post-deta
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
-  useConfirmDeleteModal: vi.fn(() => ({
-    openConfirmDelete: vi.fn(),
-  })),
-}));
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  () => ({
+    useConfirmDeleteModal: vi.fn(() => ({
+      openConfirmDelete: vi.fn(),
+    })),
+  }),
+);
 
 vi.mock('@genfeedai/services/content/posts.service', () => ({
   PostsService: {

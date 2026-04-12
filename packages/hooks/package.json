@@ -5,7 +5,6 @@
     "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/models": "workspace:*",
     "@genfeedai/props": "workspace:*",
-    "@genfeedai/providers": "workspace:*",
     "@genfeedai/services": "workspace:*",
     "@genfeedai/utils": "workspace:*",
     "@xyflow/react": "12.10.2",

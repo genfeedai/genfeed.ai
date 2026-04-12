@@ -13,7 +13,7 @@ const nextConfig: NextConfig = {
     '@genfeedai/desktop-contracts',
     '@genfeedai/hooks',
     '@genfeedai/interfaces',
-    '@genfeedai/providers',
+    '@genfeedai/contexts',
     '@genfeedai/ui',
   ],
   turbopack: {

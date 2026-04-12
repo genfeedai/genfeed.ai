@@ -1,5 +1,6 @@
 'use client';
 
+import { useUploadModal } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import {
   ButtonVariant,
   ComponentSize,
@@ -8,7 +9,6 @@ import {
 } from '@genfeedai/enums';
 import type { IAsset, IImage, IMusic, IVideo } from '@genfeedai/interfaces';
 import type { ModalGalleryContentProps } from '@genfeedai/props/modals/modal-gallery.props';
-import { useUploadModal } from '@genfeedai/providers/global-modals/global-modals.provider';
 import Masonry from '@ui/display/masonry/Masonry';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
 import Spinner from '@ui/feedback/spinner/Spinner';

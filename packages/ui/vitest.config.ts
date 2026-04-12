@@ -78,11 +78,11 @@ export default defineConfig({
       },
       {
         find: '@genfeedai/providers',
-        replacement: path.resolve(__dirname, '../providers'),
+        replacement: path.resolve(__dirname, '../contexts/providers'),
       },
       {
         find: /^@genfeedai\/providers\/(.*)$/,
-        replacement: path.resolve(__dirname, '../providers/$1'),
+        replacement: path.resolve(__dirname, '../contexts/providers/$1'),
       },
       {
         find: '@genfeedai/services',
@@ -170,7 +170,7 @@ export default defineConfig({
       },
       {
         find: '@providers',
-        replacement: path.resolve(__dirname, '../providers'),
+        replacement: path.resolve(__dirname, '../contexts/providers'),
       },
       {
         find: '@services',
