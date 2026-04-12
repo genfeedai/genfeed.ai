@@ -1,5 +1,4 @@
 export * from './admin/announcements.interface';
-export * from './admin/crm.interface';
 export * from './admin/darkroom.interface';
 export * from './ai/agent-campaign.interface';
 export * from './ai/agent-run.interface';
