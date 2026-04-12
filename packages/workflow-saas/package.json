@@ -1,8 +1,8 @@
 {
   "dependencies": {
-    "@genfeedai/types": "workspace:*",
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
+    "@genfeedai/types": "workspace:*",
     "@genfeedai/workflows": "workspace:*"
   },
   "devDependencies": {
@@ -10,39 +10,43 @@
   },
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "import": "./src/index.ts",
-      "require": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
     },
     "./nodes": {
-      "types": "./src/nodes/index.ts",
-      "import": "./src/nodes/index.ts",
-      "require": "./src/nodes/index.ts"
+      "types": "./dist/nodes/index.d.ts",
+      "import": "./dist/nodes/index.js",
+      "require": "./dist/nodes/index.js"
     },
     "./registry": {
-      "types": "./src/registry/index.ts",
-      "import": "./src/registry/index.ts",
-      "require": "./src/registry/index.ts"
+      "types": "./dist/registry/index.d.ts",
+      "import": "./dist/registry/index.js",
+      "require": "./dist/registry/index.js"
     },
     "./types": {
-      "types": "./src/types.ts",
-      "import": "./src/types.ts",
-      "require": "./src/types.ts"
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js",
+      "require": "./dist/types.js"
     }
   },
   "files": [
     "dist",
     "src"
   ],
-  "main": "./src/index.ts",
+  "main": "./dist/index.js",
   "name": "@genfeedai/workflow-saas",
-  "private": true,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "scripts": {
     "build": "tsc",
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "prepublishOnly": "bun run build"
   },
   "sideEffects": false,
-  "types": "./src/index.ts",
+  "types": "./dist/index.d.ts",
   "version": "0.1.0"
 }

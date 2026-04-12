@@ -55,11 +55,15 @@
   ],
   "main": "./dist/index.js",
   "name": "@genfeedai/workflow-engine",
-  "private": true,
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "scripts": {
     "build": "tsc",
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
     "dev": "tsc --watch",
+    "prepublishOnly": "bun run build",
     "test": "vitest run"
   },
   "sideEffects": false,
