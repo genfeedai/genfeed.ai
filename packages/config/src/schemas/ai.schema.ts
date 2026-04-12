@@ -70,7 +70,7 @@ export const heygenSchema = {
  */
 export const hedraSchema = {
   HEDRA_KEY: Joi.string().optional().allow(''),
-  HEDRA_URL: Joi.string().uri().optional(),
+  HEDRA_URL: Joi.string().uri().optional().allow(''),
 };
 
 /**
