@@ -9,7 +9,6 @@ import { ConfigModule } from '@api/config/config.module';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { CrmController } from '@api/endpoints/admin/crm/crm.controller';
 import { CrmService } from '@api/endpoints/admin/crm/crm.service';
-import { ProactiveOnboardingService } from '@api/endpoints/admin/crm/proactive-onboarding.service';
 import {
   AlignmentRule,
   AlignmentRuleSchema,
@@ -36,6 +35,7 @@ import {
   RevenueRecordSchema,
 } from '@api/endpoints/admin/crm/schemas/revenue-record.schema';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
+import { ProactiveOnboardingService } from '@api/endpoints/onboarding/proactive-onboarding.service';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.module';
 import { ClerkModule } from '@api/services/integrations/clerk/clerk.module';
@@ -47,10 +47,9 @@ import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
   controllers: [CrmController],
-  exports: [CrmService, ProactiveOnboardingService],
+  exports: [CrmService],
   imports: [
     ConfigModule,
-    // Register CRM schemas on the 'crm' secondary connection
     MongooseModule.forFeature(
       [
         { name: Lead.name, schema: LeadSchema },
@@ -63,7 +62,6 @@ import { MongooseModule } from '@nestjs/mongoose';
       ],
       DB_CONNECTIONS.CRM,
     ),
-    // Modules needed for proactive onboarding
     forwardRef(() => OrganizationsModule),
     forwardRef(() => BrandsModule),
     forwardRef(() => CreditsModule),

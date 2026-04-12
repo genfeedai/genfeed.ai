@@ -1,4 +1,4 @@
-import { ProactiveOnboardingService } from '@api/endpoints/admin/crm/proactive-onboarding.service';
+import { ProactiveOnboardingService } from '@api/endpoints/onboarding/proactive-onboarding.service';
 import { ProactiveOnboardingStatus } from '@genfeedai/enums';
 import {
   BadRequestException,

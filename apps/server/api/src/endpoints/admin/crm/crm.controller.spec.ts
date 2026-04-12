@@ -5,8 +5,8 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 
 import { CrmController } from '@api/endpoints/admin/crm/crm.controller';
 import { CrmService } from '@api/endpoints/admin/crm/crm.service';
-import { ProactiveOnboardingService } from '@api/endpoints/admin/crm/proactive-onboarding.service';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
+import { ProactiveOnboardingService } from '@api/endpoints/onboarding/proactive-onboarding.service';
 import type { User } from '@clerk/backend';
 import { LeadStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';

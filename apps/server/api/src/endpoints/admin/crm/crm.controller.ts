@@ -13,8 +13,8 @@ import {
   UpdateCrmTaskDto,
   UpdateLeadDto,
 } from '@api/endpoints/admin/crm/dto';
-import { ProactiveOnboardingService } from '@api/endpoints/admin/crm/proactive-onboarding.service';
 import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
+import { ProactiveOnboardingService } from '@api/endpoints/onboarding/proactive-onboarding.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
