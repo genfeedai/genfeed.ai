@@ -4,11 +4,14 @@ import FrameSequenceSelector from '@ui/studio/frame-sequence/FrameSequenceSelect
 import { describe, expect, it, vi } from 'vitest';
 
 // Mock the dependencies
-vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
-  useGalleryModal: () => ({
-    openGallery: vi.fn(),
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  () => ({
+    useGalleryModal: () => ({
+      openGallery: vi.fn(),
+    }),
   }),
-}));
+);
 
 vi.mock('next/image', () => ({
   default: ({

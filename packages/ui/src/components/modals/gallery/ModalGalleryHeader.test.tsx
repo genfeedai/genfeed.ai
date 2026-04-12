@@ -3,11 +3,14 @@ import ModalGalleryHeader from '@ui/modals/gallery/ModalGalleryHeader';
 import { describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
-vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
-  useUploadModal: () => ({
-    openUpload: vi.fn(),
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  () => ({
+    useUploadModal: () => ({
+      openUpload: vi.fn(),
+    }),
   }),
-}));
+);
 
 vi.mock('@genfeedai/helpers/data/data/data.helper', () => ({
   formatVideos: [

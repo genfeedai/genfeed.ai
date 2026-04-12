@@ -103,7 +103,6 @@
     "@genfeedai/interfaces": "workspace:*",
     "@genfeedai/models": "workspace:*",
     "@genfeedai/props": "workspace:*",
-    "@genfeedai/providers": "workspace:*",
     "@genfeedai/services": "workspace:*",
     "@genfeedai/utils": "workspace:*",
     "@tiptap/extension-blockquote": "^3.22.3",

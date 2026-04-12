@@ -25,9 +25,12 @@ vi.mock('@clerk/nextjs', () => ({
 }));
 
 const useAccessStateMock = vi.fn();
-vi.mock('@genfeedai/providers/access-state/access-state.provider', () => ({
-  useAccessState: () => useAccessStateMock(),
-}));
+vi.mock(
+  '@genfeedai/contexts/providers/access-state/access-state.provider',
+  () => ({
+    useAccessState: () => useAccessStateMock(),
+  }),
+);
 
 vi.mock('@genfeedai/helpers/auth/clerk.helper', () => ({
   getPlaywrightAuthState: () => null,

@@ -1,5 +1,6 @@
 'use client';
 
+import { useIngredientOverlay } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection-context';
 import { useBackgroundTaskContext } from '@genfeedai/contexts/ui/background-task-context';
 import {
@@ -24,7 +25,6 @@ import type {
 } from '@genfeedai/interfaces';
 import type { IGenerationItem } from '@genfeedai/interfaces/components/generation.interface';
 import type { UnifiedActivityItem } from '@genfeedai/interfaces/components/topbar-activities.interface';
-import { useIngredientOverlay } from '@genfeedai/providers/global-modals/global-modals.provider';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import Badge from '@ui/display/badge/Badge';

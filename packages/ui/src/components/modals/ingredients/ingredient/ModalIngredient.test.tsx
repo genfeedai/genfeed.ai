@@ -64,10 +64,13 @@ vi.mock('@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
   useModalAutoOpen: vi.fn(),
 }));
 
-vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
-  useConfirmModal: () => ({ openConfirm: vi.fn() }),
-  usePostModal: () => ({ openPostBatchModal: vi.fn() }),
-}));
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  () => ({
+    useConfirmModal: () => ({ openConfirm: vi.fn() }),
+    usePostModal: () => ({ openPostBatchModal: vi.fn() }),
+  }),
+);
 
 vi.mock('@genfeedai/services/core/clipboard.service', () => ({
   ClipboardService: { getInstance: () => ({ copyToClipboard: vi.fn() }) },

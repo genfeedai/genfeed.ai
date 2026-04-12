@@ -1,12 +1,12 @@
 'use client';
 
 import { useUser } from '@clerk/nextjs';
+import { useBrandOverlay } from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useThemeLogo } from '@genfeedai/hooks/ui/use-theme-logo/use-theme-logo';
-import { useBrandOverlay } from '@genfeedai/providers/global-modals/global-modals.provider';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { OrganizationsService } from '@genfeedai/services/organization/organizations.service';

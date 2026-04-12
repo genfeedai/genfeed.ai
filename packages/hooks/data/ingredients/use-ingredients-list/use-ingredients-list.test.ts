@@ -100,12 +100,15 @@ vi.mock(
   },
 );
 
-vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
-  useConfirmModal: vi.fn(() => ({ openConfirm: vi.fn() })),
-  useIngredientOverlay: vi.fn(() => ({ openIngredientOverlay: vi.fn() })),
-  usePostModal: vi.fn(() => ({ openPostBatchModal: vi.fn() })),
-  useUploadModal: vi.fn(() => ({ openUpload: vi.fn() })),
-}));
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  () => ({
+    useConfirmModal: vi.fn(() => ({ openConfirm: vi.fn() })),
+    useIngredientOverlay: vi.fn(() => ({ openIngredientOverlay: vi.fn() })),
+    usePostModal: vi.fn(() => ({ openPostBatchModal: vi.fn() })),
+    useUploadModal: vi.fn(() => ({ openUpload: vi.fn() })),
+  }),
+);
 
 vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {

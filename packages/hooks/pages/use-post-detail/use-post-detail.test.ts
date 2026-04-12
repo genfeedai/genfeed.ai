@@ -20,13 +20,16 @@ vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
   useSocketSubscriptions: vi.fn(),
 }));
 
-vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
-  useConfirmDeleteModal: vi.fn(() => ({ openConfirmDelete: vi.fn() })),
-  useGalleryModal: vi.fn(() => ({ openGallery: vi.fn() })),
-  useGenerateIllustrationModal: vi.fn(() => ({
-    openGenerateIllustration: vi.fn(),
-  })),
-}));
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  () => ({
+    useConfirmDeleteModal: vi.fn(() => ({ openConfirmDelete: vi.fn() })),
+    useGalleryModal: vi.fn(() => ({ openGallery: vi.fn() })),
+    useGenerateIllustrationModal: vi.fn(() => ({
+      openGenerateIllustration: vi.fn(),
+    })),
+  }),
+);
 
 vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: {

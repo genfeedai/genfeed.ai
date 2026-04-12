@@ -1,6 +1,10 @@
 'use client';
 
 import { MODEL_KEYS } from '@genfeedai/constants';
+import {
+  useConfirmModal,
+  useUploadModal,
+} from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AlertCategory,
@@ -36,10 +40,6 @@ import { Brand } from '@genfeedai/models/organization/brand.model';
 import type { Link } from '@genfeedai/models/social/link.model';
 import type { BrandOverlayProps } from '@genfeedai/props/modals/modal.props';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
-import {
-  useConfirmModal,
-  useUploadModal,
-} from '@genfeedai/providers/global-modals/global-modals.provider';
 import { AssetsService } from '@genfeedai/services/content/assets.service';
 import { PromptsService } from '@genfeedai/services/content/prompts.service';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';

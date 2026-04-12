@@ -2,10 +2,10 @@ import {
   getDeserializer,
   isDeserializerRuntime,
   type JsonApiDocument,
-} from '@genfeedai/deserializer';
+} from '@genfeedai/serializers';
 
 // Re-export types used by other files
-export type { JsonApiDocument } from '@genfeedai/deserializer';
+export type { JsonApiDocument } from '@genfeedai/serializers';
 
 // Backward-compatible type aliases (CLI commands reference these)
 export type JsonApiCollectionResponse = JsonApiDocument;

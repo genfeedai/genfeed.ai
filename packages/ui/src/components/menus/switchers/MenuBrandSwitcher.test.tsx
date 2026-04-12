@@ -20,11 +20,14 @@ vi.mock('@clerk/nextjs', () => ({
   }),
 }));
 
-vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
-  useBrandOverlay: () => ({
-    openBrandOverlay: vi.fn(),
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  () => ({
+    useBrandOverlay: () => ({
+      openBrandOverlay: vi.fn(),
+    }),
   }),
-}));
+);
 
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => vi.fn(),

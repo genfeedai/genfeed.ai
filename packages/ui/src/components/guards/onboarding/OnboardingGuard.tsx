@@ -2,11 +2,11 @@
 
 import { useAuth } from '@clerk/nextjs';
 import { getResumeStep, ONBOARDING_STEPS } from '@genfeedai/constants';
+import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
 import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/clerk.helper';
 import type { OnboardingGuardProps } from '@genfeedai/props/guards/onboarding-guard.props';
-import { useAccessState } from '@genfeedai/providers/access-state/access-state.provider';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
 

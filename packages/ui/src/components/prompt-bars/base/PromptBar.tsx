@@ -5,6 +5,10 @@ import {
   getModelDurations,
   getModelMaxOutputs,
 } from '@genfeedai/constants';
+import {
+  useGalleryModal,
+  useUploadModal,
+} from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import { useAssetSelection } from '@genfeedai/contexts/ui/asset-selection-context';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
@@ -37,10 +41,6 @@ import type {
   PromptBarAttachedAsset,
   PromptBarProps,
 } from '@genfeedai/props/studio/prompt-bar.props';
-import {
-  useGalleryModal,
-  useUploadModal,
-} from '@genfeedai/providers/global-modals/global-modals.provider';
 import { PromptsService } from '@genfeedai/services/content/prompts.service';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';

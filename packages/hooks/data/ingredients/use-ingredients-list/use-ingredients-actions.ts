@@ -1,5 +1,11 @@
 'use client';
 
+import {
+  useConfirmModal,
+  useIngredientOverlay,
+  usePostModal,
+  useUploadModal,
+} from '@genfeedai/contexts/providers/global-modals/global-modals.provider';
 import type { AssetScope } from '@genfeedai/enums';
 import {
   IngredientCategory,
@@ -13,12 +19,6 @@ import type {
   IIngredient,
   IMediaEventData,
 } from '@genfeedai/interfaces';
-import {
-  useConfirmModal,
-  useIngredientOverlay,
-  usePostModal,
-  useUploadModal,
-} from '@genfeedai/providers/global-modals/global-modals.provider';
 import { IngredientsService } from '@genfeedai/services/content/ingredients.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import type { NotificationsService } from '@genfeedai/services/core/notifications.service';

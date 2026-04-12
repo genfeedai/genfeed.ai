@@ -80,14 +80,17 @@ vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
 }));
 
 // Mock providers
-vi.mock('@genfeedai/providers/global-modals/global-modals.provider', () => ({
-  useGalleryModal: () => ({
-    openGallery: mockOpenGallery,
+vi.mock(
+  '@genfeedai/contexts/providers/global-modals/global-modals.provider',
+  () => ({
+    useGalleryModal: () => ({
+      openGallery: mockOpenGallery,
+    }),
+    useUploadModal: () => ({
+      openUpload: mockOpenUpload,
+    }),
   }),
-  useUploadModal: () => ({
-    openUpload: mockOpenUpload,
-  }),
-}));
+);
 
 // Mock hooks
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
