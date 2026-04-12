@@ -1,12 +1,5 @@
 export const API_ENDPOINTS = {
   ACTIVITIES: '/activities',
-  ADMIN_CRM_ANALYTICS: '/admin/crm/analytics',
-  ADMIN_CRM_COMPANIES: '/admin/crm/companies',
-  ADMIN_CRM_COSTS: '/admin/crm/costs',
-  ADMIN_CRM_LEADS: '/admin/crm/leads',
-  ADMIN_CRM_MARGINS: '/admin/crm/margins',
-  ADMIN_CRM_REVENUE: '/admin/crm/revenue',
-  ADMIN_CRM_TASKS: '/admin/crm/tasks',
   ADMIN_DARKROOM_ASSETS: '/admin/darkroom/assets',
   ADMIN_DARKROOM_CHARACTERS: '/admin/darkroom/characters',
   ADMIN_DARKROOM_GENERATE: '/admin/darkroom/generate',

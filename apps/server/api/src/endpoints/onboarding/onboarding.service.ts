@@ -7,7 +7,6 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
-import { ProactiveOnboardingService } from '@api/endpoints/admin/crm/proactive-onboarding.service';
 import type {
   BrandSetupDto,
   ConfirmBrandDataDto,
@@ -15,6 +14,7 @@ import type {
 } from '@api/endpoints/onboarding/dto/brand-setup.dto';
 import { GeneratePreviewDto } from '@api/endpoints/onboarding/dto/generate-preview.dto';
 import { ReferenceImageDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
+import { ProactiveOnboardingService } from '@api/endpoints/onboarding/proactive-onboarding.service';
 import { getPublicMetadata } from '@api/helpers/utils/clerk/clerk.util';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';

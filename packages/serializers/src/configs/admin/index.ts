@@ -1,19 +1,5 @@
-export * from '@serializers/configs/admin/alignment-rule.config';
 export * from '@serializers/configs/admin/announcement.config';
 export * from '@serializers/configs/admin/business-analytics.config';
-export * from '@serializers/configs/admin/company.config';
-export * from '@serializers/configs/admin/cost-record.config';
-export * from '@serializers/configs/admin/crm-alignment-summary.config';
-export * from '@serializers/configs/admin/crm-alignment-validation.config';
-export * from '@serializers/configs/admin/crm-analytics.config';
-export * from '@serializers/configs/admin/crm-generate-content-result.config';
-export * from '@serializers/configs/admin/crm-margin-summary.config';
-export * from '@serializers/configs/admin/crm-monthly-margin.config';
-export * from '@serializers/configs/admin/crm-preparation-status.config';
-export * from '@serializers/configs/admin/crm-prepare-brand-result.config';
-export * from '@serializers/configs/admin/crm-review-content.config';
-export * from '@serializers/configs/admin/crm-send-invitation-result.config';
-export * from '@serializers/configs/admin/crm-task.config';
 export * from '@serializers/configs/admin/darkroom-cloudfront-invalidation.config';
 export * from '@serializers/configs/admin/darkroom-ec2-action-result.config';
 export * from '@serializers/configs/admin/darkroom-ec2-bulk-action-result.config';
@@ -28,7 +14,3 @@ export * from '@serializers/configs/admin/darkroom-pipeline-stats.config';
 export * from '@serializers/configs/admin/darkroom-service-status.config';
 export * from '@serializers/configs/admin/darkroom-upload-dataset-result.config';
 export * from '@serializers/configs/admin/darkroom-voice.config';
-export * from '@serializers/configs/admin/lead.config';
-export * from '@serializers/configs/admin/lead-activity.config';
-
-export * from '@serializers/configs/admin/revenue-record.config';
