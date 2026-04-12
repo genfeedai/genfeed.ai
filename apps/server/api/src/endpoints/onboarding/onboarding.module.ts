@@ -9,10 +9,13 @@ import { PostsModule } from '@api/collections/posts/posts.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { CommonModule } from '@api/common/common.module';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
-import { Lead, LeadSchema } from '@api/endpoints/admin/crm/schemas/lead.schema';
 import { OnboardingController } from '@api/endpoints/onboarding/onboarding.controller';
 import { OnboardingService } from '@api/endpoints/onboarding/onboarding.service';
 import { ProactiveOnboardingService } from '@api/endpoints/onboarding/proactive-onboarding.service';
+import {
+  Lead,
+  LeadSchema,
+} from '@api/endpoints/onboarding/schemas/lead.schema';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { BrandScraperModule } from '@api/services/brand-scraper/brand-scraper.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';

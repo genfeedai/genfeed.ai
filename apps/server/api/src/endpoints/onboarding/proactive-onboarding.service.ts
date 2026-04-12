@@ -6,15 +6,15 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { ConfigService } from '@api/config/config.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
-import {
-  Lead,
-  type LeadDocument,
-} from '@api/endpoints/admin/crm/schemas/lead.schema';
 import type {
   CrmGenerateContentDto,
   PrepareBrandDto,
   SendInvitationDto,
 } from '@api/endpoints/onboarding/dto/proactive-onboarding.dto';
+import {
+  Lead,
+  type LeadDocument,
+} from '@api/endpoints/onboarding/schemas/lead.schema';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
