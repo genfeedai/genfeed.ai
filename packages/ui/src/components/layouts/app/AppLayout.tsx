@@ -123,6 +123,9 @@ export default function AppLayout({
   agentPanel,
   isAgentCollapsed = false,
   onAgentToggle,
+  currentApp,
+  orgSlug,
+  brandSlug,
 }: AppLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
@@ -252,16 +255,22 @@ export default function AppLayout({
     }
 
     return {
+      brandSlug,
+      currentApp,
       isAgentCollapsed,
       isMenuOpen: isSidebarOpen,
       onAgentToggle,
       onMenuToggle: handleToggleSidebar,
+      orgSlug,
     };
   }, [
+    brandSlug,
+    currentApp,
     handleToggleSidebar,
     isSidebarOpen,
     isAgentCollapsed,
     onAgentToggle,
+    orgSlug,
     topbarComponent,
   ]);
 

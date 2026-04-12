@@ -106,7 +106,6 @@ vi.mock('@ui/shell/menus/AppSidebar', () => ({
     renderAfterNavigation?: () => ReactNode;
     renderTopSlot?: () => ReactNode;
     shellMode?: 'default' | 'workspace';
-    showOrganizationSwitcher?: boolean;
     showPrimaryItems?: boolean;
     sidebarWidth?: number;
     backHref?: string;
@@ -418,7 +417,6 @@ describe('AppProtectedLayout', () => {
         ],
         shellChromeVariant: 'transparent',
         shellMode: 'workspace',
-        showOrganizationSwitcher: true,
         sidebarWidth: 304,
       }),
     );
@@ -491,7 +489,6 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({
         renderBody: expect.any(Function),
         shellMode: 'default',
-        showOrganizationSwitcher: false,
         showPrimaryItems: false,
       }),
     );

@@ -22,7 +22,7 @@ describe('APP_MENU_ITEMS', () => {
     expect(ungroupedLabels).toEqual(['Dashboard', 'Inbox', 'Tasks']);
   });
 
-  it('surfaces the new top-level workspace groups', () => {
+  it('surfaces the workspace groups: Library and Posts', () => {
     const groups = [
       ...new Set(
         APP_MENU_ITEMS.map((item) => item.group).filter(
@@ -31,13 +31,7 @@ describe('APP_MENU_ITEMS', () => {
       ),
     ];
 
-    expect(groups).toEqual([
-      AppMenuGroup.Library,
-      AppMenuGroup.Analytics,
-      AppMenuGroup.Posts,
-      AppMenuGroup.Operations,
-      AppMenuGroup.Create,
-    ]);
+    expect(groups).toEqual([AppMenuGroup.Library, AppMenuGroup.Posts]);
   });
 
   it('gives workspace first-class subroutes in the main sidebar', () => {
@@ -62,72 +56,14 @@ describe('APP_MENU_ITEMS', () => {
     ]);
   });
 
-  it('keeps analytics directly under overview', () => {
-    const analyticsLabels = APP_MENU_ITEMS.filter(
-      (item) => item.group === AppMenuGroup.Analytics,
-    ).map((item) => item.label);
+  it('does not include analytics group items pointing to /analytics/* routes', () => {
+    const analyticsGroupHrefs = APP_MENU_ITEMS.filter(
+      (item) =>
+        typeof item.href === 'string' && item.href.startsWith('/analytics/'),
+    ).map((item) => item.href);
 
-    expect(analyticsLabels).toEqual([
-      'Overview',
-      'Posts',
-      'Brands',
-      'Insights',
-      'Hooks',
-      'Performance Lab',
-      'Trend Turnover',
-      'Streaks',
-    ]);
-  });
-
-  it('treats analytics as a drill-down group instead of exposing every analytics page in the main rail', () => {
-    const analyticsItems = APP_MENU_ITEMS.filter(
-      (item) => item.group === AppMenuGroup.Analytics,
-    );
-
-    expect(analyticsItems[0]?.drillDown).toBe(true);
-    expect(
-      analyticsItems.slice(1).every((item) => item.drillDown !== true),
-    ).toBe(true);
-  });
-
-  it('exposes Compose under the Create group', () => {
-    const composeItem = APP_MENU_ITEMS.find((item) => item.label === 'Compose');
-
-    expect(composeItem).toEqual(
-      expect.objectContaining({
-        group: AppMenuGroup.Create,
-        href: '/compose/post',
-      }),
-    );
-  });
-
-  it('keeps chat out of the main sidebar and surfaces workflow tools under operations', () => {
-    const chatLabels = APP_MENU_ITEMS.filter(
-      (item) => item.group === 'Chat',
-    ).map((item) => item.label);
-    const workflowLabels = APP_MENU_ITEMS.filter(
-      (item) => item.group === AppMenuGroup.Operations,
-    ).map((item) => item.label);
-
-    expect(chatLabels).toEqual([]);
-    expect(workflowLabels).toEqual([
-      'Runs',
-      'Workflows',
-      'Skills',
-      'Autopilot',
-      'Configuration',
-    ]);
-  });
-
-  it('treats workflows as a drill-down group instead of flat main-nav links', () => {
-    const workflowItems = APP_MENU_ITEMS.filter(
-      (item) => item.group === AppMenuGroup.Operations,
-    );
-
-    expect(workflowItems[0]?.drillDown).toBe(true);
-    expect(
-      workflowItems.slice(1).every((item) => item.drillDown !== true),
-    ).toBe(true);
+    // Only /posts/analytics is allowed — no /analytics/* items
+    expect(analyticsGroupHrefs).toHaveLength(0);
   });
 
   it('keeps activity out of primary navigation and exposes it as a secondary destination', () => {
@@ -164,5 +100,16 @@ describe('APP_MENU_ITEMS', () => {
     expect(groups).not.toContain('Chat');
     expect(groups).not.toContain('Content');
     expect(groups).not.toContain('Trends');
+    expect(groups).not.toContain('Operations');
+    expect(groups).not.toContain('Create');
+  });
+
+  it('does not expose Operations or Create groups (workflows now live in their own sidebar)', () => {
+    const hrefs = APP_MENU_ITEMS.map((item) => item.href);
+
+    expect(hrefs).not.toContain('/workflows/executions');
+    expect(hrefs).not.toContain('/workflows/autopilot');
+    expect(hrefs).not.toContain('/workflows/configuration');
+    expect(hrefs).not.toContain('/compose/post');
   });
 });

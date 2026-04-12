@@ -1,18 +1,8 @@
-import type { ComponentType, ReactNode } from 'react';
+import type { AppContext } from './menu-config.interface';
 
-export interface IAppSwitcherItem {
-  id: string;
+export interface AppSwitcherItemConfig {
+  id: AppContext;
+  icon: string;
   label: string;
-  href: string;
-  icon?: ReactNode | ComponentType<{ className?: string }>;
-  description?: string;
-  isActive?: boolean;
-  isDisabled?: boolean;
-}
-
-export interface IAppSwitcherProps {
-  apps: IAppSwitcherItem[];
-  currentAppId?: string;
-  onAppSelect?: (appId: string) => void;
-  className?: string;
+  route: (orgSlug: string, brandSlug?: string) => string;
 }
