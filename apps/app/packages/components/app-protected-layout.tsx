@@ -35,6 +35,7 @@ import {
   useAgentChatStore,
   useAgentPageContext,
 } from '@genfeedai/agent';
+import type { AppContext } from '@genfeedai/interfaces';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import { Kbd } from '@genfeedai/ui';
 import { resolveClerkToken } from '@helpers/auth/clerk.helper';
@@ -235,6 +236,22 @@ function AppLayoutWithDynamicMenu({
     /^\/editor\/[^/]+$/.test(pathname) ||
     pathname === '/workflows/new' ||
     /^\/workflows\/[^/]+$/.test(pathname);
+  const isWorkflowsRoute = pathname.startsWith('/workflows');
+  const isEditorRoute = pathname.startsWith('/editor');
+  const isAnalyticsRoute = pathname.startsWith('/analytics');
+
+  const currentApp: AppContext = isStudioRoute
+    ? 'studio'
+    : isComposeRoute
+      ? 'compose'
+      : isWorkflowsRoute
+        ? 'workflows'
+        : isEditorRoute
+          ? 'editor'
+          : isAnalyticsRoute
+            ? 'analytics'
+            : 'workspace';
+
   const shouldMountAgentPanel = !isEditorCanvasRoute && !isChatRoute;
   const shouldInitAgentApiService = shouldMountAgentPanel || isChatRoute;
 
@@ -378,7 +395,7 @@ function AppLayoutWithDynamicMenu({
   // Sync route context into the agent store
   useAgentPageContext(role);
 
-  const { href: buildHref, orgHref } = useOrgUrl();
+  const { href: buildHref, orgHref, orgSlug, brandSlug } = useOrgUrl();
   const handleNavigateToBilling = useCallback(() => {
     router.push(
       orgHref(
@@ -626,7 +643,6 @@ function AppLayoutWithDynamicMenu({
         }
         shellMode={isChatRoute ? 'default' : 'workspace'}
         showPrimaryItems={!isChatRoute}
-        showOrganizationSwitcher={!isChatRoute}
         sidebarWidth={isChatRoute ? undefined : 304}
         shellChromeVariant={shellChromeVariant}
       />
@@ -715,6 +731,8 @@ function AppLayoutWithDynamicMenu({
         <CommandPaletteInitializer />
         <AppLayout
           bannerComponent={shellBanner}
+          brandSlug={brandSlug}
+          currentApp={currentApp}
           menuComponent={menuComponent}
           topbarComponent={topbarComponent}
           shellChromeVariant={shellChromeVariant}
@@ -724,6 +742,7 @@ function AppLayoutWithDynamicMenu({
           agentPanel={agentPanel}
           isAgentCollapsed={!isAgentOpen}
           onAgentToggle={toggleAgent}
+          orgSlug={orgSlug}
         >
           {children}
         </AppLayout>

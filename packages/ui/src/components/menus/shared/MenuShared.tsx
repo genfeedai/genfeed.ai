@@ -13,7 +13,6 @@ import { EnvironmentService } from '@genfeedai/services/core/environment.service
 import { Kbd } from '@genfeedai/ui';
 import ProgressSidebarCard from '@ui/cards/progress-sidebar-card/ProgressSidebarCard';
 import MenuItem from '@ui/menus/item/MenuItem';
-import OrganizationSwitcher from '@ui/menus/organization-switcher/OrganizationSwitcher';
 import SidebarBrandRail from '@ui/menus/sidebar-brand-rail/SidebarBrandRail';
 import SidebarNested from '@ui/menus/sidebar-nested/SidebarNested';
 import UserDropdown from '@ui/menus/user-dropdown/UserDropdown';
@@ -465,14 +464,9 @@ export default function MenuShared({
               : 'opacity-100',
           )}
         >
-          {config.showOrganizationSwitcher || renderTopSlot ? (
+          {renderTopSlot ? (
             <div className="px-3 pt-3 pb-1">
-              <div className="space-y-3">
-                {config.showOrganizationSwitcher ? (
-                  <OrganizationSwitcher />
-                ) : null}
-                {renderTopSlot ? renderTopSlot() : null}
-              </div>
+              <div className="space-y-3">{renderTopSlot()}</div>
             </div>
           ) : null}
 

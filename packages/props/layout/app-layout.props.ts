@@ -1,3 +1,4 @@
+import type { AppContext } from '@genfeedai/interfaces';
 import type { MenuItemConfig } from '@genfeedai/interfaces/ui/menu-config.interface';
 import type { TopbarProps } from '@props/navigation/topbar.props';
 import type { ComponentType, ReactNode } from 'react';
@@ -22,4 +23,10 @@ export interface AppLayoutProps {
   isAgentCollapsed?: boolean;
   /** Toggle agent panel visibility */
   onAgentToggle?: () => void;
+  /** Current app context for the AppSwitcher in the topbar */
+  currentApp?: AppContext;
+  /** Organization slug for the AppSwitcher in the topbar */
+  orgSlug?: string;
+  /** Brand slug for the AppSwitcher in the topbar */
+  brandSlug?: string;
 }
