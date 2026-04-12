@@ -37,6 +37,7 @@ const ALLOWED_PIPELINE_TAGS: ReadonlySet<string> = new Set([
   'image-to-video',
   'text-to-video',
   'text-to-audio',
+  'text-to-music',
   'text-to-speech',
   'automatic-speech-recognition',
   'text-generation',

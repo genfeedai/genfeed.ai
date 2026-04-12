@@ -23,6 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
     env:
       PACKAGE_RELEASE_OUTPUT: .package-release-output.json
     steps:
@@ -48,18 +49,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-
-      - name: Configure npm auth
-        env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          if [ -z "${NPM_TOKEN}" ]; then
-            echo "NPM_TOKEN is required"
-            exit 1
-          fi
-          cat <<EOF > ~/.npmrc
-          //registry.npmjs.org/:_authToken=${NPM_TOKEN}
-          EOF
 
       - name: Install dependencies
         run: bun install --frozen-lockfile

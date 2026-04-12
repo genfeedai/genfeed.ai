@@ -64,6 +64,12 @@ fi
 
 echo "=== Publishing $PKG_NAME ==="
 
+# Ensure clean working tree before publishing
+if ! git diff-index --quiet HEAD --; then
+  echo "Error: Working tree must be clean before publishing."
+  exit 1
+fi
+
 # Build first
 echo "Building $PKG_NAME..."
 cd "$PKG_DIR"
@@ -116,10 +122,10 @@ echo "Version: $VERSION"
 # Publish with bun (resolves workspace:* → real versions)
 if [ "$DRY_RUN" = true ]; then
   echo "Dry-run publishing $PKG_NAME@$VERSION..."
-  bun publish --access public --dry-run
+  bun publish --access public --provenance --dry-run
 else
   echo "Publishing $PKG_NAME@$VERSION..."
-  bun publish --access public
+  bun publish --access public --provenance
 fi
 
 echo ""
