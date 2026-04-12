@@ -239,11 +239,18 @@ function AppLayoutWithDynamicMenu({
   })();
   const isSettingsRoute = pathname.startsWith('/settings');
   const hasSecondaryTopbar = !isAdminRoute && pathname.startsWith('/studio');
+  const WORKFLOWS_NAMED_ROUTES = new Set([
+    'executions',
+    'autopilot',
+    'configuration',
+    'skills',
+  ]);
   const isEditorCanvasRoute =
     pathname === '/editor/new' ||
     /^\/editor\/[^/]+$/.test(pathname) ||
     pathname === '/workflows/new' ||
-    /^\/workflows\/[^/]+$/.test(pathname);
+    (/^\/workflows\/([^/]+)$/.test(pathname) &&
+      !WORKFLOWS_NAMED_ROUTES.has(pathname.split('/')[2] ?? ''));
   const isWorkflowsRoute = pathname.startsWith('/workflows');
   const isEditorRoute = pathname.startsWith('/editor');
   const isAnalyticsRoute = pathname.startsWith('/analytics');
@@ -894,11 +901,18 @@ export default function AppProtectedLayout({
     pathname === '/workspace' ||
     pathname === '/overview' ||
     pathname.startsWith('/workspace/');
+  const workflowsNamedRoutes = new Set([
+    'executions',
+    'autopilot',
+    'configuration',
+    'skills',
+  ]);
   const isEditorCanvasRoute =
     pathname === '/editor/new' ||
     /^\/editor\/[^/]+$/.test(pathname) ||
     pathname === '/workflows/new' ||
-    /^\/workflows\/[^/]+$/.test(pathname);
+    (/^\/workflows\/([^/]+)$/.test(pathname) &&
+      !workflowsNamedRoutes.has(pathname.split('/')[2] ?? ''));
 
   return (
     <ProtectedProviders

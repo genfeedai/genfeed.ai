@@ -57,4 +57,4 @@ export const WORKFLOWS_MENU_ITEMS: MenuItemConfig[] = [
   },
 ];
 
-export const WORKFLOWS_LOGO_HREF = '/workflows/executions';
+export const WORKFLOWS_LOGO_HREF = '/~/overview';
