@@ -7,7 +7,7 @@ vi.mock('./models.service', () => ({
   ModelsService: class MockModelsService {
     ModelClass = class {};
     constructor(public token: string) {}
-    async getAll() {
+    async findAll() {
       return [];
     }
     async update(_id: string, _data: any) {

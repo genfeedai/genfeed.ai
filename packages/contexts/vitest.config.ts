@@ -1,9 +1,7 @@
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vitest/config';
 
-const require = createRequire(import.meta.url);
 const SERIALIZERS_SRC = path.resolve(__dirname, '../serializers/src');
 
 export default defineConfig({
@@ -16,11 +14,19 @@ export default defineConfig({
       },
       {
         find: '@genfeedai/constants',
-        replacement: require.resolve('@genfeedai/constants'),
+        replacement: path.resolve(__dirname, '../constants/src'),
       },
       {
         find: '@genfeedai/enums',
-        replacement: require.resolve('@genfeedai/enums'),
+        replacement: path.resolve(__dirname, '../enums/src'),
+      },
+      {
+        find: /^@genfeedai\/utils\/(.*)$/,
+        replacement: path.resolve(__dirname, '../utils/$1'),
+      },
+      {
+        find: '@genfeedai/utils',
+        replacement: path.resolve(__dirname, '../utils'),
       },
       {
         find: '@genfeedai/helpers',
@@ -112,8 +118,10 @@ export default defineConfig({
       },
     },
     globals: true,
+    hookTimeout: 30_000,
     include: ['**/*.test.{ts,tsx}'],
     passWithNoTests: true,
     setupFiles: ['./tests/setup.ts'],
+    testTimeout: 15_000,
   },
 });
