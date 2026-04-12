@@ -229,7 +229,7 @@ describe('MenuShared', () => {
     ).toBeTruthy();
   });
 
-  it('renders the workspace shell rail and org chip when enabled', () => {
+  it('renders the workspace shell rail when enabled', () => {
     const workspaceConfig: MenuShellConfig = {
       brandRailMode: 'workspace',
       items: [
@@ -247,7 +247,10 @@ describe('MenuShared', () => {
     expect(
       screen.getByTestId('sidebar-brand-rail-content'),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('organization-switcher')).toBeInTheDocument();
+    // Org switcher is now in the topbar, not the sidebar
+    expect(
+      screen.queryByTestId('organization-switcher'),
+    ).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('sidebar-header-shell'),
     ).not.toBeInTheDocument();
