@@ -175,14 +175,19 @@ export class CronModelWatcherService {
       }
 
       // Step 6: Poll fal.ai for new models
-      await this.pollFalModels(summary, existingKeys);
+      const falSyncedKeys = await this.pollFalModels(summary, existingKeys);
 
       // Step 7: Poll HuggingFace for new models
-      await this.pollHuggingFaceModels(summary, existingKeys);
+      const hfSyncedKeys = await this.pollHuggingFaceModels(
+        summary,
+        existingKeys,
+      );
 
       // Step 8: Touch lastSyncedAt for all previously discovered models seen in this run
       const syncedKeys = [
         ...officialModels.map((m) => `${m.owner}/${m.name}`),
+        ...falSyncedKeys,
+        ...hfSyncedKeys,
       ].filter((k) => existingKeys.has(k));
       await this.modelDiscoveryService.touchLastSyncedAt(syncedKeys);
 
@@ -292,12 +297,12 @@ export class CronModelWatcherService {
   private async pollFalModels(
     summary: IModelDiscoveryRunSummary,
     existingKeys: Set<string>,
-  ): Promise<void> {
+  ): Promise<string[]> {
     const context = `${this.constructorName} pollFalModels`;
 
     if (!this.falDiscoveryService.isConfigured()) {
       this.logger.log(`${context} skipped — FAL_API_KEY not configured`);
-      return;
+      return [];
     }
 
     try {
@@ -308,6 +313,10 @@ export class CronModelWatcherService {
         `${context} polled ${falModels.length} models from fal.ai`,
       );
 
+      const syncedKeys = falModels
+        .filter((m) => m.key && existingKeys.has(m.key))
+        .map((m) => m.key as string);
+
       const newFalModels = falModels.filter(
         (m) => m.key && !existingKeys.has(m.key),
       );
@@ -315,7 +324,7 @@ export class CronModelWatcherService {
 
       if (newFalModels.length === 0) {
         this.logger.log(`${context} no new fal.ai models discovered`);
-        return;
+        return syncedKeys;
       }
 
       this.logger.log(
@@ -366,8 +375,11 @@ export class CronModelWatcherService {
           );
         }
       }
+
+      return syncedKeys;
     } catch (error: unknown) {
       this.logger.error(`${context} fal.ai polling failed`, error);
+      return [];
     }
   }
 
@@ -442,7 +454,7 @@ export class CronModelWatcherService {
   private async pollHuggingFaceModels(
     summary: IModelDiscoveryRunSummary,
     existingKeys: Set<string>,
-  ): Promise<void> {
+  ): Promise<string[]> {
     const context = `${this.constructorName} pollHuggingFaceModels`;
 
     try {
@@ -453,6 +465,10 @@ export class CronModelWatcherService {
         `${context} polled ${hfModels.length} models from HuggingFace`,
       );
 
+      const syncedKeys = hfModels
+        .filter((m) => m.key && existingKeys.has(m.key))
+        .map((m) => m.key as string);
+
       const newHfModels = hfModels.filter(
         (m) => m.key && !existingKeys.has(m.key),
       );
@@ -460,7 +476,7 @@ export class CronModelWatcherService {
 
       if (newHfModels.length === 0) {
         this.logger.log(`${context} no new HuggingFace models discovered`);
-        return;
+        return syncedKeys;
       }
 
       this.logger.log(
@@ -507,8 +523,11 @@ export class CronModelWatcherService {
           );
         }
       }
+
+      return syncedKeys;
     } catch (error: unknown) {
       this.logger.error(`${context} HuggingFace polling failed`, error);
+      return [];
     }
   }
 }

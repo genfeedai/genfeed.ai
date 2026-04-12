@@ -129,6 +129,9 @@ export class Task {
   goalId?: string;
 
   @Prop({ required: false, type: String })
+  linkedIssueId?: string;
+
+  @Prop({ required: false, type: String })
   assigneeUserId?: string;
 
   @Prop({ required: false, type: String })
