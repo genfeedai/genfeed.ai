@@ -2,7 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import type { AppConfig } from '@genfeedai/interfaces';
+import type { AppSwitcherItemConfig } from '@genfeedai/interfaces';
 import type { AppSwitcherProps } from '@genfeedai/props/ui/app-switcher.props';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -13,7 +13,7 @@ import {
   PopoverTrigger,
 } from '../../../primitives/popover';
 
-const APPS: AppConfig[] = [
+const APPS: AppSwitcherItemConfig[] = [
   {
     id: 'workspace',
     icon: '⌂',
@@ -63,7 +63,7 @@ export function AppSwitcher({
 
   const activeApp = APPS.find((app) => app.id === currentApp);
 
-  function handleAppSelect(app: AppConfig) {
+  function handleAppSelect(app: AppSwitcherItemConfig) {
     router.push(app.route(orgSlug, brandSlug));
     setIsOpen(false);
   }

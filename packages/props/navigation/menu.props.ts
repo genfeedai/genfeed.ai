@@ -33,7 +33,6 @@ export interface MenuShellConfig extends MenuConfig {
   brandRailMode?: 'hidden' | 'workspace';
   primaryAction?: MenuPrimaryActionConfig;
   secondaryItems?: MenuItemConfig[];
-  showOrganizationSwitcher?: boolean;
 }
 
 export interface SidebarSizingProps {

@@ -239,7 +239,6 @@ describe('MenuShared', () => {
         },
       ],
       logoHref: '/',
-      showOrganizationSwitcher: true,
     };
 
     render(<MenuShared config={workspaceConfig} />);

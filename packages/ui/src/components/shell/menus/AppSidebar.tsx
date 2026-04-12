@@ -26,7 +26,6 @@ export interface AppSidebarProps extends BaseMenuProps {
   isCollapsed?: MenuSharedProps['isCollapsed'];
   shellChromeVariant?: MenuSharedProps['shellChromeVariant'];
   onToggleCollapse?: MenuSharedProps['onToggleCollapse'];
-  showOrganizationSwitcher?: boolean;
   showPrimaryItems?: MenuSharedProps['showPrimaryItems'];
   sidebarWidth?: MenuSharedProps['sidebarWidth'];
   conversationActions?: MenuSharedProps['conversationActions'];
@@ -50,7 +49,6 @@ export default function AppSidebar({
   isCollapsed,
   shellChromeVariant,
   onToggleCollapse,
-  showOrganizationSwitcher = false,
   showPrimaryItems,
   sidebarWidth,
   conversationActions,
@@ -64,16 +62,8 @@ export default function AppSidebar({
       logoHref,
       primaryAction,
       secondaryItems,
-      showOrganizationSwitcher,
     }),
-    [
-      items,
-      logoHref,
-      primaryAction,
-      secondaryItems,
-      shellMode,
-      showOrganizationSwitcher,
-    ],
+    [items, logoHref, primaryAction, secondaryItems, shellMode],
   );
 
   return (

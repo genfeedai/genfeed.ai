@@ -1,6 +1,6 @@
 import type { AppContext } from './menu-config.interface';
 
-export interface AppConfig {
+export interface AppSwitcherItemConfig {
   id: AppContext;
   icon: string;
   label: string;
