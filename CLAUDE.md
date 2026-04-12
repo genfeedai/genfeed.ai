@@ -49,7 +49,7 @@ bun type-check                           # Type-check all packages
 bunx turbo lint                          # Lint all packages
 npx biome check --write .                # Format all files
 
-# Testing (single package only — never `bun test` with no filter locally)
+# Testing
 bun run test --filter=@genfeedai/[name]  # Run specific package tests
 ```
 
