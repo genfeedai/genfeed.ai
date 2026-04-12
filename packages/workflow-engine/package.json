@@ -54,6 +54,7 @@
     "src"
   ],
   "main": "./dist/index.js",
+  "license": "AGPL-3.0",
   "name": "@genfeedai/workflow-engine",
   "publishConfig": {
     "access": "public",
@@ -65,6 +66,11 @@
     "dev": "tsc --watch",
     "prepublishOnly": "bun run build",
     "test": "vitest run"
+  },
+  "repository": {
+    "directory": "workflow-engine",
+    "type": "git",
+    "url": "git+https://github.com/genfeedai/packages.git"
   },
   "sideEffects": false,
   "types": "./dist/index.d.ts",

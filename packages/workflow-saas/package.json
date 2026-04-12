@@ -35,6 +35,7 @@
     "src"
   ],
   "main": "./dist/index.js",
+  "license": "AGPL-3.0",
   "name": "@genfeedai/workflow-saas",
   "publishConfig": {
     "access": "public",
@@ -45,6 +46,11 @@
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
     "dev": "tsc --watch",
     "prepublishOnly": "bun run build"
+  },
+  "repository": {
+    "directory": "workflow-saas",
+    "type": "git",
+    "url": "git+https://github.com/genfeedai/packages.git"
   },
   "sideEffects": false,
   "types": "./dist/index.d.ts",
