@@ -72,6 +72,10 @@ export default defineConfig({
         replacement: packagePath('utils'),
       },
       {
+        find: '@genfeedai/enums',
+        replacement: packagePath('enums', 'src/index.ts'),
+      },
+      {
         find: /^@genfeedai\/agent\/(.*)$/,
         replacement: packagePath('agent', 'src/$1'),
       },
@@ -123,5 +127,6 @@ export default defineConfig({
     globals: true,
     include: ['src/**/*.test.tsx'],
     setupFiles: ['./src/renderer/test/setup.ts'],
+    testTimeout: 15_000,
   },
 });

@@ -881,6 +881,8 @@
       "version": "0.1.0",
       "dependencies": {
         "@genfeedai/client": "workspace:*",
+        "@genfeedai/constants": "workspace:*",
+        "@genfeedai/enums": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
         "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/services": "workspace:*",
@@ -922,8 +924,14 @@
       "name": "@genfeedai/props",
       "version": "0.1.0",
       "dependencies": {
+        "@genfeedai/client": "workspace:*",
+        "@genfeedai/constants": "workspace:*",
+        "@genfeedai/enums": "workspace:*",
+        "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/models": "workspace:*",
+        "@genfeedai/serializers": "workspace:*",
         "@genfeedai/services": "workspace:*",
+        "@genfeedai/types": "workspace:*",
       },
       "devDependencies": {
         "vitest": "4.1.4",
@@ -967,8 +975,12 @@
       "version": "0.1.0",
       "dependencies": {
         "@genfeedai/client": "workspace:*",
+        "@genfeedai/constants": "workspace:*",
+        "@genfeedai/enums": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
         "@genfeedai/interfaces": "workspace:*",
+        "@genfeedai/serializers": "workspace:*",
+        "@genfeedai/types": "workspace:*",
       },
       "devDependencies": {
         "vitest": "4.1.4",
@@ -1091,6 +1103,10 @@
       "name": "@genfeedai/utils",
       "version": "0.1.0",
       "dependencies": {
+        "@genfeedai/client": "workspace:*",
+        "@genfeedai/constants": "workspace:*",
+        "@genfeedai/enums": "workspace:*",
+        "@genfeedai/interfaces": "workspace:*",
         "@genfeedai/props": "workspace:*",
         "@genfeedai/services": "workspace:*",
       },
