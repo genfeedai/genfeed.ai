@@ -1,7 +1,8 @@
 {
   "dependencies": {
     "@genfeedai/config": "workspace:*",
-    "@genfeedai/enums": "workspace:*"
+    "@genfeedai/enums": "workspace:*",
+    "@genfeedai/storage": "workspace:*"
   },
   "description": "Genfeed Files Service",
   "devDependencies": {},
