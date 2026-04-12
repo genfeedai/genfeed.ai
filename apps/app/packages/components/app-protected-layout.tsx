@@ -6,6 +6,10 @@ import {
   ADMIN_MENU_ITEMS,
 } from '@app-config/admin-menu-items.config';
 import {
+  ANALYTICS_LOGO_HREF,
+  ANALYTICS_MENU_ITEMS,
+} from '@app-config/analytics-menu-items.config';
+import {
   COMPOSE_LOGO_HREF,
   COMPOSE_MENU_ITEMS,
 } from '@app-config/compose-menu-items.config';
@@ -27,6 +31,10 @@ import {
   STUDIO_LOGO_HREF,
   STUDIO_MENU_ITEMS,
 } from '@app-config/studio-menu-items.config';
+import {
+  WORKFLOWS_LOGO_HREF,
+  WORKFLOWS_MENU_ITEMS,
+} from '@app-config/workflows-menu-items.config';
 import { CommandPaletteProvider } from '@contexts/features/command-palette.context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
@@ -470,6 +478,28 @@ function AppLayoutWithDynamicMenu({
     [taskContextSearchParams],
   );
 
+  const workflowsMenuItems = useMemo(
+    () =>
+      WORKFLOWS_MENU_ITEMS.map(
+        (item): MenuItemConfig => ({
+          ...item,
+          href: withTaskContextHref(item.href, taskContextSearchParams),
+        }),
+      ),
+    [taskContextSearchParams],
+  );
+
+  const analyticsMenuItems = useMemo(
+    () =>
+      ANALYTICS_MENU_ITEMS.map(
+        (item): MenuItemConfig => ({
+          ...item,
+          href: withTaskContextHref(item.href, taskContextSearchParams),
+        }),
+      ),
+    [taskContextSearchParams],
+  );
+
   const orgMenuItems = useMemo(
     () =>
       ORG_MENU_ITEMS.map(
@@ -573,6 +603,63 @@ function AppLayoutWithDynamicMenu({
       );
     }
 
+    if (isWorkflowsRoute) {
+      return (
+        <AppSidebar
+          items={workflowsMenuItems}
+          logoHref={withTaskContextHref(
+            buildHref(WORKFLOWS_LOGO_HREF),
+            taskContextSearchParams,
+          )}
+          backHref={withTaskContextHref(
+            buildHref('/workspace/overview'),
+            taskContextSearchParams,
+          )}
+          backLabel="Workspace"
+          sectionLabel="Workflows"
+          shellChromeVariant={shellChromeVariant}
+        />
+      );
+    }
+
+    if (isEditorRoute) {
+      return (
+        <AppSidebar
+          items={[]}
+          logoHref={withTaskContextHref(
+            buildHref('/workspace/overview'),
+            taskContextSearchParams,
+          )}
+          backHref={withTaskContextHref(
+            buildHref('/workspace/overview'),
+            taskContextSearchParams,
+          )}
+          backLabel="Workspace"
+          sectionLabel="Editor"
+          shellChromeVariant={shellChromeVariant}
+        />
+      );
+    }
+
+    if (isAnalyticsRoute) {
+      return (
+        <AppSidebar
+          items={analyticsMenuItems}
+          logoHref={withTaskContextHref(
+            buildHref(ANALYTICS_LOGO_HREF),
+            taskContextSearchParams,
+          )}
+          backHref={withTaskContextHref(
+            buildHref('/workspace/overview'),
+            taskContextSearchParams,
+          )}
+          backLabel="Workspace"
+          sectionLabel="Analytics"
+          shellChromeVariant={shellChromeVariant}
+        />
+      );
+    }
+
     if (isOrgRoute) {
       return (
         <AppSidebar
@@ -650,16 +737,20 @@ function AppLayoutWithDynamicMenu({
   }, [
     buildHref,
     orgHref,
+    analyticsMenuItems,
     composeMenuItems,
     conversationActions,
     adminMenuItems,
     menuItems,
     isAdminRoute,
+    isAnalyticsRoute,
     isComposeRoute,
     isEditorCanvasRoute,
+    isEditorRoute,
     isOrgRoute,
     isSettingsRoute,
     isStudioRoute,
+    isWorkflowsRoute,
     renderConversations,
     isFocusedOnboardingRoute,
     isChatRoute,
@@ -669,6 +760,7 @@ function AppLayoutWithDynamicMenu({
     settingsMenuItems,
     studioMenuItems,
     taskContextSearchParams,
+    workflowsMenuItems,
   ]);
 
   const topbarComponent =
