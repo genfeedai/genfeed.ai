@@ -21,10 +21,7 @@ const EXCLUDE_GLOBS = [
 ];
 
 // Explicit allowlist for paths where native <button> is acceptable.
-const ALLOWLIST_PATH_SEGMENTS = [
-  '/packages/ui/primitives/',
-  '/packages/workflow-cloud/src/components/ui/',
-];
+const ALLOWLIST_PATH_SEGMENTS = ['/packages/ui/primitives/'];
 
 const ALLOWLIST_VIOLATION_FILES = new Set([
   'apps/app/app/(full-screen)/editor/page.tsx',

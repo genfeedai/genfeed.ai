@@ -79,9 +79,6 @@ for file in "$@"; do
   [[ "$file" == *.stories.* ]] && continue
   [[ "$file" == */__mocks__/* ]] && continue
 
-  # Skip workflow-cloud (being absorbed into apps/app by PR #119)
-  [[ "$file" == *packages/workflow-cloud/* ]] && continue
-
   # Skip local UI wrappers (e.g. src/components/ui/textarea.tsx)
   [[ "$file" == */src/components/ui/* ]] && continue
 
