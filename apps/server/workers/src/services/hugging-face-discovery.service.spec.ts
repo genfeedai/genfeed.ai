@@ -223,7 +223,6 @@ describe('HuggingFaceDiscoveryService', () => {
       // No crash, errors logged
       expect(logger.error).toHaveBeenCalledWith(
         expect.stringContaining('timed out'),
-        expect.anything(),
       );
       // Still returns whatever other tags produced
       expect(Array.isArray(models)).toBe(true);
