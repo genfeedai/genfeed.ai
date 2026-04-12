@@ -2,6 +2,7 @@
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import type { AppContext } from '@genfeedai/interfaces';
+import type { AppSwitcherProps } from '@genfeedai/props/ui/app-switcher.props';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '../../../primitives/button';
@@ -57,12 +58,6 @@ const APPS: AppConfig[] = [
   },
 ];
 
-export interface AppSwitcherProps {
-  brandSlug?: string;
-  currentApp: AppContext;
-  orgSlug: string;
-}
-
 export function AppSwitcher({
   brandSlug,
   currentApp,
@@ -82,7 +77,7 @@ export function AppSwitcher({
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
-          aria-label={`Current app: ${activeApp?.label ?? currentApp}. Click to switch apps.`}
+          ariaLabel={`Current app: ${activeApp?.label ?? currentApp}. Click to switch apps.`}
           size={ButtonSize.SM}
           variant={ButtonVariant.GHOST}
           withWrapper={false}
@@ -98,7 +93,7 @@ export function AppSwitcher({
             return (
               <Button
                 key={app.id}
-                aria-label={app.label}
+                ariaLabel={app.label}
                 aria-pressed={isActive}
                 className={
                   isActive
