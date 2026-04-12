@@ -34,3 +34,4 @@ export * from '@serializers/attributes/content/speech-transcription.attributes';
 export * from '@serializers/attributes/content/template.attributes';
 export * from '@serializers/attributes/content/template-metadata.attributes';
 export * from '@serializers/attributes/content/transcript.attributes';
+export * from '@serializers/attributes/content/workspace-task.attributes';
