@@ -95,9 +95,11 @@ async function main() {
     process.exit(code ?? 0);
   });
 
-  appServer.on('close', (code) => {
+  appServer.on('close', (code, signal) => {
     electronProcess.kill();
-    process.exit(code ?? 1);
+    process.exit(
+      code ?? (signal === 'SIGINT' || signal === 'SIGTERM' ? 0 : 1),
+    );
   });
 }
 

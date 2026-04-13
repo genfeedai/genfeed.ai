@@ -303,17 +303,24 @@ export default function proxy(req: NextRequest, event: NextFetchEvent) {
       pathname.startsWith('/onboarding');
 
     if (pathname === '/') {
-      return NextResponse.redirect(
-        new URL(hasDesktopToken ? '/workspace/overview' : '/login', req.url),
+      return redirectPreservingSearch(
+        req,
+        hasDesktopToken ? '/workspace/overview' : '/login',
       );
     }
 
-    if (isAuthRoute && hasDesktopToken) {
-      return NextResponse.redirect(new URL('/workspace/overview', req.url));
+    if (pathname === '/logout') {
+      return hasDesktopToken
+        ? NextResponse.next()
+        : redirectPreservingSearch(req, '/login');
     }
 
-    if (pathname === '/logout' && !hasDesktopToken) {
-      return NextResponse.redirect(new URL('/login', req.url));
+    if (isAuthRoute && hasDesktopToken) {
+      return redirectPreservingSearch(req, '/workspace/overview');
+    }
+
+    if (!hasDesktopToken && isBareProtectedPath(pathname)) {
+      return redirectPreservingSearch(req, '/login');
     }
 
     return NextResponse.next();

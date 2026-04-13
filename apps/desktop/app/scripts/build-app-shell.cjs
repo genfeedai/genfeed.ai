@@ -23,3 +23,8 @@ const child = spawn('bun', ['run', 'build'], {
 child.on('close', (code) => {
   process.exit(code ?? 1);
 });
+
+child.on('error', (error) => {
+  process.stderr.write(`Failed to start app-shell build: ${error.message}\n`);
+  process.exit(1);
+});

@@ -226,7 +226,6 @@ export class AnalyticsSyncService {
                   engagementRate: this.computeEngagementRate(metrics),
                   externalPostId: post?.externalId,
                   generationId: post?.generationId,
-                  hookUsed: undefined,
                   hookVersion: post?.hookVersion,
                   likes: metrics.likes,
                   measuredAt,

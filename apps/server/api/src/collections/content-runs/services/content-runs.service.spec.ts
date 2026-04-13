@@ -1,11 +1,9 @@
 import { ContentRun } from '@api/collections/content-runs/schemas/content-run.schema';
-import {
-  ContentRunsService,
-  type CreateContentRunInput,
-} from '@api/collections/content-runs/services/content-runs.service';
+import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ContentRunSource, ContentRunStatus } from '@genfeedai/enums';
+import type { CreateContentRunInput } from '@genfeedai/interfaces';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';

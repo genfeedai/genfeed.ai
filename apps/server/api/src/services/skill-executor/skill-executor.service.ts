@@ -1,8 +1,3 @@
-import type {
-  ContentRunBrief,
-  ContentRunPublishContext,
-  ContentRunVariant,
-} from '@api/collections/content-runs/schemas/content-run.schema';
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
@@ -18,6 +13,11 @@ import type {
   SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import { ContentRunSource, ContentRunStatus } from '@genfeedai/enums';
+import type {
+  ContentRunBrief,
+  ContentRunPublishContext,
+  ContentRunVariant,
+} from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -120,7 +120,7 @@ export class SkillExecutorService {
         {
           duration,
           output: draft,
-          variants: this.buildRunVariants(draft),
+          variants: this.buildRunVariants(draft, String(run._id)),
           source:
             source === 'byok' ? ContentRunSource.BYOK : ContentRunSource.HOSTED,
           status: ContentRunStatus.COMPLETED,
@@ -204,7 +204,7 @@ export class SkillExecutorService {
       await this.contentRunsService.patchRun(context.organizationId, runId, {
         output: draft,
         status: ContentRunStatus.COMPLETED,
-        variants: this.buildRunVariants(draft),
+        variants: this.buildRunVariants(draft, runId),
       });
 
       return {
@@ -254,21 +254,29 @@ export class SkillExecutorService {
   private buildRunPublishContext(
     params: Record<string, unknown>,
   ): ContentRunPublishContext | undefined {
-    const scheduledFor = this.getDate(params.scheduledFor);
-    const publishedAt = this.getDate(params.publishedAt);
-    const postIds = this.getStringArray(params.postIds);
+    const nestedPublish = this.getRecord(params.publish);
+    const scheduledFor = this.getDate(
+      params.scheduledFor ?? nestedPublish?.scheduledFor,
+    );
+    const publishedAt = this.getDate(
+      params.publishedAt ?? nestedPublish?.publishedAt,
+    );
+    const postIds = this.getStringArray(params.postIds ?? nestedPublish?.postIds);
     const metadata =
-      this.getRecord(params.publishMetadata) ?? this.getRecord(params.publish);
+      this.getRecord(params.publishMetadata) ??
+      this.getRecord(nestedPublish?.metadata);
 
     const publish: ContentRunPublishContext = {
-      channel: this.getString(params.channel),
-      experimentId: this.getString(params.experimentId),
+      channel: this.getString(params.channel ?? nestedPublish?.channel),
+      experimentId: this.getString(
+        params.experimentId ?? nestedPublish?.experimentId,
+      ),
       metadata: metadata ?? {},
-      platform: this.getString(params.platform),
+      platform: this.getString(params.platform ?? nestedPublish?.platform),
       postIds,
       publishedAt,
       scheduledFor,
-      variantId: this.getString(params.variantId),
+      variantId: this.getString(params.variantId ?? nestedPublish?.variantId),
     };
 
     return publish.channel ||
@@ -285,6 +293,7 @@ export class SkillExecutorService {
 
   private buildRunVariants(
     draft: SkillExecutionResult['draft'],
+    runId: string,
   ): ContentRunVariant[] {
     const platforms =
       draft.platforms.length > 0 ? draft.platforms : ['unspecified'];
@@ -293,7 +302,7 @@ export class SkillExecutorService {
     return platforms.map((platform, index) => ({
       assetIds,
       content: draft.content,
-      id: `${draft.skillSlug}-${index + 1}`,
+      id: `${runId}-${draft.skillSlug}-${index + 1}`,
       metadata: draft.metadata,
       platform,
       status: 'generated',
@@ -309,10 +318,10 @@ export class SkillExecutorService {
 
   private getStringArray(value: unknown): string[] | undefined {
     if (Array.isArray(value)) {
-      const items = value.filter(
-        (item): item is string =>
-          typeof item === 'string' && item.trim().length > 0,
-      );
+      const items = value
+        .filter((item): item is string => typeof item === 'string')
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0);
 
       return items.length > 0 ? items : undefined;
     }

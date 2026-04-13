@@ -249,6 +249,7 @@ export class AvatarVideoGenerationService {
                 : clonedVoice.provider,
           },
           params.text,
+          context.organizationId,
         );
 
         resolved.audioUrl = resolvedClonedVoice.audioUrl;
@@ -327,6 +328,7 @@ export class AvatarVideoGenerationService {
         const resolvedBrandVoice = await this.resolveVoiceDocument(
           brandVoice,
           params.text,
+          context.organizationId,
         );
         resolved.audioUrl = resolvedBrandVoice.audioUrl;
         resolved.elevenlabsVoiceId =
@@ -388,6 +390,7 @@ export class AvatarVideoGenerationService {
         const resolvedOrganizationVoice = await this.resolveVoiceDocument(
           organizationVoice,
           params.text,
+          context.organizationId,
         );
         resolved.audioUrl = resolvedOrganizationVoice.audioUrl;
         resolved.elevenlabsVoiceId =
@@ -419,7 +422,7 @@ export class AvatarVideoGenerationService {
         return {};
       }
 
-      return this.resolveVoiceDocument(clonedVoice, text);
+      return this.resolveVoiceDocument(clonedVoice, text, organizationId);
     }
 
     if (defaultVoiceRef.source !== 'catalog') {
@@ -593,6 +596,7 @@ export class AvatarVideoGenerationService {
       'externalVoiceId' | 'provider' | 'sampleAudioUrl'
     >,
     text: string,
+    organizationId: string,
   ): Promise<ResolvedIdentity> {
     if (
       voiceDoc.provider === VoiceProvider.ELEVENLABS &&

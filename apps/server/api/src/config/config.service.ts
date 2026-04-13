@@ -50,7 +50,12 @@ interface ApiEnvConfig extends IEnvConfig {
  */
 const apiSpecificSchema = {
   API_METRICS_LOGGING: Joi.string().valid('true', 'false').optional().allow(''),
-  CONTENT_HARNESS_PACKAGES: Joi.string().optional().allow(''),
+  CONTENT_HARNESS_PACKAGES: Joi.string()
+    .pattern(
+      /^(@[a-z0-9][\w-]*\/)?[a-z0-9][\w.-]*(\s*,\s*(@[a-z0-9][\w-]*\/)?[a-z0-9][\w.-]*)*$/i,
+    )
+    .optional()
+    .allow(''),
   FEATURE_FLAG_DEFAULTS: Joi.string().optional().allow(''),
   GF_DEV_ENABLE_OPTIONAL_INIT: Joi.string()
     .valid('true', 'false')

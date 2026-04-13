@@ -27,7 +27,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Install Apple signing certificate
-        if: ${{ secrets.APPLE_SIGNING_CERTIFICATE_BASE64 != '' }}
+        if: ${{ env.APPLE_SIGNING_CERTIFICATE_BASE64 != '' }}
         env:
           APPLE_SIGNING_CERTIFICATE_BASE64: ${{ secrets.APPLE_SIGNING_CERTIFICATE_BASE64 }}
           APPLE_SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_SIGNING_CERTIFICATE_PASSWORD }}
