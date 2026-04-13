@@ -50,6 +50,14 @@ export default defineConfig({
         replacement: path.resolve(appRoot, './packages/server/$1'),
       },
       {
+        find: /^@genfeedai\/agent$/,
+        replacement: path.resolve(repoRoot, './packages/agent/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/agent\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/agent/src/$1'),
+      },
+      {
         find: /^@genfeedai\/config$/,
         replacement: path.resolve(repoRoot, './packages/config/src/index.ts'),
       },
@@ -58,12 +66,45 @@ export default defineConfig({
         replacement: path.resolve(repoRoot, './packages/config/src/$1'),
       },
       {
+        find: /^@genfeedai\/constants$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/constants/src/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/constants\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/constants/src/$1'),
+      },
+      {
         find: /^@genfeedai\/contexts$/,
         replacement: path.resolve(repoRoot, './packages/contexts/index.ts'),
       },
       {
         find: /^@genfeedai\/contexts\/(.*)$/,
         replacement: path.resolve(repoRoot, './packages/contexts/$1'),
+      },
+      {
+        find: /^@genfeedai\/desktop-contracts$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/desktop-contracts/src/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/desktop-contracts\/(.*)$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/desktop-contracts/src/$1',
+        ),
+      },
+      {
+        find: /^@genfeedai\/enums$/,
+        replacement: path.resolve(repoRoot, './packages/enums/dist/index'),
+      },
+      {
+        find: /^@genfeedai\/enums\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/enums/dist/$1'),
       },
       {
         find: /^@genfeedai\/fonts$/,
@@ -82,6 +123,10 @@ export default defineConfig({
         replacement: path.resolve(repoRoot, './packages/helpers/src/$1'),
       },
       {
+        find: /^@genfeedai\/hooks\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/hooks/$1'),
+      },
+      {
         find: /^@genfeedai\/interfaces$/,
         replacement: path.resolve(
           repoRoot,
@@ -91,6 +136,25 @@ export default defineConfig({
       {
         find: /^@genfeedai\/interfaces\/(.*)$/,
         replacement: path.resolve(repoRoot, './packages/interfaces/src/$1'),
+      },
+      {
+        find: /^@genfeedai\/client$/,
+        replacement: path.resolve(repoRoot, './packages/client/dist/index'),
+      },
+      {
+        find: /^@genfeedai\/client\/schemas$/,
+        replacement: path.resolve(repoRoot, './packages/client/dist/schemas'),
+      },
+      {
+        find: /^@genfeedai\/client\/schemas\/(.*)$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/client/dist/schemas/$1',
+        ),
+      },
+      {
+        find: /^@genfeedai\/client\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/client/dist/$1'),
       },
       {
         find: /^@genfeedai\/models$/,
@@ -125,6 +189,17 @@ export default defineConfig({
         replacement: path.resolve(repoRoot, './packages/services/$1'),
       },
       {
+        find: /^@genfeedai\/serializers$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/serializers/src/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/serializers\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/serializers/src/$1'),
+      },
+      {
         find: /^@genfeedai\/types$/,
         replacement: path.resolve(repoRoot, './packages/types/src/index.ts'),
       },
@@ -133,12 +208,31 @@ export default defineConfig({
         replacement: path.resolve(repoRoot, './packages/types/src/$1'),
       },
       {
+        find: /^@genfeedai\/ui$/,
+        replacement: path.resolve(repoRoot, './packages/ui/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/ui\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/ui/src/$1'),
+      },
+      {
         find: /^@genfeedai\/utils$/,
         replacement: path.resolve(repoRoot, './packages/utils/index.ts'),
       },
       {
         find: /^@genfeedai\/utils\/(.*)$/,
         replacement: path.resolve(repoRoot, './packages/utils/$1'),
+      },
+      {
+        find: /^@genfeedai\/workflow-saas$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/workflow-saas/src/index.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/workflow-saas\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/workflow-saas/src/$1'),
       },
       {
         find: /^@contexts$/,
@@ -205,6 +299,14 @@ export default defineConfig({
         replacement: path.resolve(repoRoot, './packages/schemas/$1'),
       },
       {
+        find: /^@serializers$/,
+        replacement: path.resolve(repoRoot, './packages/serializers/src'),
+      },
+      {
+        find: /^@serializers\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/serializers/src/$1'),
+      },
+      {
         find: /^@services$/,
         replacement: path.resolve(repoRoot, './packages/services'),
       },
@@ -233,12 +335,46 @@ export default defineConfig({
         replacement: path.resolve(repoRoot, './packages/ui/src/index.ts'),
       },
       {
+        find: /^@ui\/primitives$/,
+        replacement: path.resolve(repoRoot, './packages/ui/src/primitives'),
+      },
+      {
         find: /^@ui\/primitives\/(.*)$/,
         replacement: path.resolve(repoRoot, './packages/ui/src/primitives/$1'),
       },
       {
+        find: /^@ui\/generators$/,
+        replacement: path.resolve(repoRoot, './packages/ui/src/generators'),
+      },
+      {
+        find: /^@ui\/generators\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/ui/src/generators/$1'),
+      },
+      {
         find: /^@ui\/core\/(.*)$/,
         replacement: path.resolve(repoRoot, './packages/ui/src/core/$1'),
+      },
+      {
+        find: /^@ui\/semantic$/,
+        replacement: path.resolve(repoRoot, './packages/ui/src/semantic'),
+      },
+      {
+        find: /^@ui\/semantic\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/ui/src/semantic/$1'),
+      },
+      {
+        find: /^@ui\/modals\/compound$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/ui/src/modals/compound',
+        ),
+      },
+      {
+        find: /^@ui\/modals\/compound\/(.*)$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/ui/src/modals/compound/$1',
+        ),
       },
       {
         find: /^@ui\/(.*)$/,

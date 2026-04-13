@@ -37,6 +37,22 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../contexts/$1'),
       },
       {
+        find: '@genfeedai/constants',
+        replacement: path.resolve(__dirname, '../constants/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/constants\/(.*)$/,
+        replacement: path.resolve(__dirname, '../constants/src/$1'),
+      },
+      {
+        find: '@genfeedai/enums',
+        replacement: path.resolve(__dirname, '../enums/dist/index'),
+      },
+      {
+        find: /^@genfeedai\/enums\/(.*)$/,
+        replacement: path.resolve(__dirname, '../enums/dist/$1'),
+      },
+      {
         find: '@genfeedai/models',
         replacement: path.resolve(__dirname, '../models'),
       },

@@ -25,6 +25,31 @@ vi.mock('@genfeedai/services/core/environment.service', () => ({
 
 // Mock Checkbox to avoid react-hook-form control issues
 vi.mock('@ui/primitives/checkbox', () => ({
+  Checkbox: ({
+    label,
+    name,
+    isChecked,
+    onChange,
+    isDisabled,
+  }: {
+    label: string;
+    name: string;
+    isChecked: boolean;
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    isDisabled: boolean;
+  }) => (
+    <label>
+      <input
+        type="checkbox"
+        name={name}
+        checked={isChecked}
+        onChange={onChange}
+        disabled={isDisabled}
+        aria-label={label}
+      />
+      {label}
+    </label>
+  ),
   default: ({
     label,
     name,

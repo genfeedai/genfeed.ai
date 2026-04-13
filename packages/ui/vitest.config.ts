@@ -105,36 +105,72 @@ export default defineConfig({
         replacement: SERIALIZERS_SRC,
       },
       {
+        find: /^@genfeedai\/serializers\/(.*)$/,
+        replacement: path.resolve(SERIALIZERS_SRC, '$1'),
+      },
+      {
         find: /^@serializers\/(.*)$/,
         replacement: path.resolve(SERIALIZERS_SRC, '$1'),
+      },
+      {
+        find: /^@ui\/primitives\/(.*)$/,
+        replacement: path.resolve(UI_PRIMITIVES_SRC, '$1'),
       },
       {
         find: '@ui/primitives',
         replacement: UI_PRIMITIVES_SRC,
       },
       {
+        find: /^@ui\/core\/(.*)$/,
+        replacement: path.resolve(UI_CORE_SRC, '$1'),
+      },
+      {
         find: '@ui/core',
         replacement: UI_CORE_SRC,
+      },
+      {
+        find: /^@ui\/generators\/(.*)$/,
+        replacement: path.resolve(UI_GENERATORS_SRC, '$1'),
       },
       {
         find: '@ui/generators',
         replacement: UI_GENERATORS_SRC,
       },
       {
+        find: /^@ui\/semantic\/(.*)$/,
+        replacement: path.resolve(UI_SEMANTIC_SRC, '$1'),
+      },
+      {
         find: '@ui/semantic',
         replacement: UI_SEMANTIC_SRC,
+      },
+      {
+        find: /^@ui\/task-composer\/(.*)$/,
+        replacement: path.resolve(UI_TASK_COMPOSER_SRC, '$1'),
       },
       {
         find: '@ui/task-composer',
         replacement: UI_TASK_COMPOSER_SRC,
       },
       {
+        find: /^@ui\/styles\/(.*)$/,
+        replacement: path.resolve(UI_COMPONENTS_SRC, './styles/$1'),
+      },
+      {
         find: '@ui/styles',
         replacement: path.resolve(UI_COMPONENTS_SRC, './styles'),
       },
       {
+        find: /^@ui\/tests\/(.*)$/,
+        replacement: path.resolve(UI_COMPONENTS_SRC, './tests/$1'),
+      },
+      {
         find: '@ui/tests',
         replacement: path.resolve(UI_COMPONENTS_SRC, './tests'),
+      },
+      {
+        find: /^@ui\/(.*)$/,
+        replacement: path.resolve(UI_COMPONENTS_SRC, '$1'),
       },
       {
         find: '@ui',
