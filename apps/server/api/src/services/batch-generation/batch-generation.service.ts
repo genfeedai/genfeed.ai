@@ -21,7 +21,7 @@ import {
   ContentFormat,
   PostStatus,
 } from '@genfeedai/enums';
-import type { IBatchSummary } from '@genfeedai/interfaces';
+import type { IBatchSummary, ManualReviewBatchItem } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -32,34 +32,6 @@ interface BatchItem {
   status: BatchItemStatus;
   platform?: string;
   scheduledDate?: Date;
-}
-
-interface ManualReviewBatchItem {
-  caption?: string;
-  contentRunId?: Types.ObjectId;
-  creativeVersion?: string;
-  format: ReviewBatchItemFormat;
-  gateOverallScore?: number;
-  gateReasons: string[];
-  hookVersion?: string;
-  mediaUrl?: string;
-  opportunitySourceType?: 'trend' | 'event' | 'evergreen';
-  opportunityTopic?: string;
-  platform?: string;
-  postId?: Types.ObjectId;
-  publishIntent?: string;
-  prompt?: string;
-  reviewEvents: Array<{
-    decision: 'approved' | 'rejected' | 'request_changes';
-    feedback?: string;
-    reviewedAt: Date;
-  }>;
-  scheduleSlot?: string;
-  sourceActionId?: string;
-  sourceWorkflowId?: string;
-  sourceWorkflowName?: string;
-  status: BatchItemStatus;
-  variantId?: string;
 }
 
 interface BatchProcessItemContext {

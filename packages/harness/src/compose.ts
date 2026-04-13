@@ -1,8 +1,9 @@
-import type { HarnessPackRegistry } from './registry';
+import type { HarnessPackRegistry } from '@genfeedai/interfaces';
 import type {
   ContentHarnessBrief,
   ContentHarnessContribution,
   ContentHarnessInput,
+  ContentHarnessPack,
 } from './types';
 
 function mergeUnique(
@@ -76,7 +77,7 @@ function mergeContribution(
 }
 
 export async function composeContentHarnessBrief(
-  registry: HarnessPackRegistry,
+  registry: HarnessPackRegistry<ContentHarnessPack>,
   input: ContentHarnessInput,
 ): Promise<ContentHarnessBrief> {
   let aggregate: ContentHarnessContribution = {

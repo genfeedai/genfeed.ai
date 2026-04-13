@@ -44,7 +44,11 @@ export class DesktopAppShellService {
     private readonly getSession: () => IDesktopSession | null,
     private readonly sessionDbPath: string,
   ) {
-    this.appUrl = new URL(environment.appEndpoint);
+    this.appUrl = new URL(
+      this.isExternalDevServer()
+        ? process.env.GENFEED_DESKTOP_APP_URL || environment.appEndpoint
+        : environment.appEndpoint,
+    );
   }
 
   private isExternalDevServer(): boolean {
@@ -218,6 +222,11 @@ export class DesktopAppShellService {
     this.started = false;
 
     await new Promise<void>((resolve) => {
+      if (activeProcess.exitCode !== null) {
+        resolve();
+        return;
+      }
+
       activeProcess.once('exit', () => resolve());
       activeProcess.kill();
     });

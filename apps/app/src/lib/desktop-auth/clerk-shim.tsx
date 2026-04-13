@@ -8,6 +8,7 @@ import { Button } from '@ui/primitives/button';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { getDesktopBridge, isDesktopShell } from '@/lib/desktop/runtime';
+import { getDesktopSessionId } from './session-id';
 
 type DesktopAuthSnapshot = {
   accessState: ProtectedAppBootstrapPayload['access'] | null;
@@ -54,6 +55,7 @@ const EMPTY_SNAPSHOT: DesktopAuthSnapshot = {
 
 let snapshot = EMPTY_SNAPSHOT;
 let initialized = false;
+let refreshGeneration = 0;
 const listeners = new Set<() => void>();
 
 function emit(nextSnapshot: DesktopAuthSnapshot): void {
@@ -138,15 +140,21 @@ async function fetchBootstrap(
 async function refreshSnapshot(
   nextSession?: DesktopAuthSnapshot['session'] | null,
 ): Promise<void> {
+  const generation = ++refreshGeneration;
+
   if (!isDesktopShell()) {
-    emit({ ...EMPTY_SNAPSHOT, isLoaded: true });
+    if (generation === refreshGeneration) {
+      emit({ ...EMPTY_SNAPSHOT, isLoaded: true });
+    }
     return;
   }
 
   const bridge = getDesktopBridge();
 
   if (!bridge) {
-    emit({ ...EMPTY_SNAPSHOT, isLoaded: true });
+    if (generation === refreshGeneration) {
+      emit({ ...EMPTY_SNAPSHOT, isLoaded: true });
+    }
     return;
   }
 
@@ -154,6 +162,24 @@ async function refreshSnapshot(
     nextSession === undefined ? await bridge.auth.getSession() : nextSession;
 
   if (!session) {
+    if (generation === refreshGeneration) {
+      emit({
+        accessState: null,
+        currentUser: null,
+        isLoaded: true,
+        session: null,
+      });
+    }
+    return;
+  }
+
+  const bootstrap = await fetchBootstrap(session.token);
+
+  if (generation !== refreshGeneration) {
+    return;
+  }
+
+  if (!bootstrap) {
     emit({
       accessState: null,
       currentUser: null,
@@ -163,11 +189,9 @@ async function refreshSnapshot(
     return;
   }
 
-  const bootstrap = await fetchBootstrap(session.token);
-
   emit({
-    accessState: bootstrap?.access ?? null,
-    currentUser: bootstrap?.currentUser ?? null,
+    accessState: bootstrap.access,
+    currentUser: bootstrap.currentUser,
     isLoaded: true,
     session,
   });
@@ -249,7 +273,7 @@ export function useAuth() {
       orgId: currentSnapshot.accessState?.organizationId ?? null,
       orgRole: null,
       orgSlug: null,
-      sessionId: currentSnapshot.session?.userId ?? null,
+      sessionId: getDesktopSessionId(currentSnapshot.session?.token ?? null),
       signOut: async () => signOutDesktop(),
       userId:
         currentSnapshot.accessState?.userId ??
@@ -297,7 +321,7 @@ export function useSession(): {
       isSignedIn: currentSnapshot.session !== null,
       session: currentSnapshot.session
         ? {
-            id: currentSnapshot.session.userId,
+            id: getDesktopSessionId(currentSnapshot.session.token) ?? '',
             touch: async () => {
               await refreshSnapshot();
             },

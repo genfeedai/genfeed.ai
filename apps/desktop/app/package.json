@@ -88,7 +88,7 @@
     "dev": "bun run electron:install-binary && bun run native:rebuild && node ./scripts/dev.cjs",
     "electron:install-binary": "node -e \"require('electron/install.js')\"",
     "icon:mac": "bash ./scripts/generate-macos-icon.sh",
-    "lint": "biome check src package.json",
+    "lint": "biome check src scripts package.json",
     "native:rebuild": "electron-builder install-app-deps",
     "pack:mac": "bun run electron:install-binary && bun run native:rebuild && bun run build:release && electron-builder --mac --dir --publish never",
     "prepare:release": "bun run icon:mac",

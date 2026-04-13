@@ -184,47 +184,51 @@ export class ContentGeneratorService {
       return undefined;
     }
 
-    const brand = await this.brandsService.findOne(
-      {
-        _id: new Types.ObjectId(dto.brandId),
+    try {
+      const brand = await this.brandsService.findOne(
+        {
+          _id: new Types.ObjectId(dto.brandId),
+          isDeleted: false,
+          organization: organizationId,
+        },
+        'none',
+      );
+
+      if (!brand) {
+        return undefined;
+      }
+
+      const persona = await this.personasService.findOne({
+        brand: new Types.ObjectId(dto.brandId),
         isDeleted: false,
         organization: organizationId,
-      },
-      'none',
-    );
+      });
 
-    if (!brand) {
+      const brief = await this.contentHarnessService.composeBrief(
+        buildHarnessInput({
+          additionalSources:
+            dto.additionalContext?.map((content, index) => ({
+              content,
+              id: `content-context-${index}`,
+              kind: 'audience_signal',
+            })) ?? [],
+          brand,
+          intent: {
+            contentType: 'post',
+            objective: 'engagement',
+            platform: dto.platform,
+            topic: dto.topic,
+          },
+          organizationId: organizationId.toString(),
+          persona,
+        }),
+      );
+
+      const formattedBrief = formatHarnessBrief(brief);
+      return formattedBrief || undefined;
+    } catch {
       return undefined;
     }
-
-    const persona = await this.personasService.findOne({
-      brand: new Types.ObjectId(dto.brandId),
-      isDeleted: false,
-      organization: organizationId,
-    });
-
-    const brief = await this.contentHarnessService.composeBrief(
-      buildHarnessInput({
-        additionalSources:
-          dto.additionalContext?.map((content, index) => ({
-            content,
-            id: `content-context-${index}`,
-            kind: 'audience_signal',
-          })) ?? [],
-        brand,
-        intent: {
-          contentType: 'post',
-          objective: 'engagement',
-          platform: dto.platform,
-          topic: dto.topic,
-        },
-        organizationId: organizationId.toString(),
-        persona,
-      }),
-    );
-
-    const formattedBrief = formatHarnessBrief(brief);
-    return formattedBrief || undefined;
   }
 
   private async generateFromPattern(

@@ -1,4 +1,5 @@
 import { headers } from 'next/headers';
+import { getDesktopSessionId } from './session-id';
 
 type DesktopServerAuth = {
   getToken: () => Promise<string | null>;
@@ -30,7 +31,7 @@ export async function auth(): Promise<DesktopServerAuth> {
 
   return {
     getToken: async () => token,
-    sessionId: token ? (userId ?? 'desktop-session') : null,
+    sessionId: getDesktopSessionId(token),
     userId,
   };
 }

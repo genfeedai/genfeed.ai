@@ -91,6 +91,25 @@ export class FleetService {
     return instance.apiUrl;
   }
 
+  private async resolveInstanceUrl(
+    role: FleetRole,
+    caller: string,
+    organizationId?: string,
+  ): Promise<string | null> {
+    try {
+      return organizationId
+        ? await this.getInstanceUrlForOrg(organizationId, role)
+        : this.getInstanceUrl(role);
+    } catch (error) {
+      this.loggerService.error(caller, {
+        error,
+        message: `Failed to resolve ${role} instance URL`,
+        organizationId,
+      });
+      return null;
+    }
+  }
+
   /**
    * Check if a fleet instance is available (configured + responds to health check).
    */
@@ -203,9 +222,11 @@ export class FleetService {
     seed?: number;
   }): Promise<{ jobId: string } | null> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const url = params.organizationId
-      ? await this.getInstanceUrlForOrg(params.organizationId, 'videos')
-      : this.getInstanceUrl('videos');
+    const url = await this.resolveInstanceUrl(
+      'videos',
+      caller,
+      params.organizationId,
+    );
 
     if (!url) {
       this.loggerService.warn(caller, {
@@ -255,9 +276,11 @@ export class FleetService {
     referenceTranscript?: string;
   }): Promise<{ jobId: string } | null> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const url = params.organizationId
-      ? await this.getInstanceUrlForOrg(params.organizationId, 'voices')
-      : this.getInstanceUrl('voices');
+    const url = await this.resolveInstanceUrl(
+      'voices',
+      caller,
+      params.organizationId,
+    );
 
     if (!url) {
       this.loggerService.warn(caller, {
@@ -297,9 +320,7 @@ export class FleetService {
     organizationId?: string,
   ): Promise<Record<string, unknown> | null> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const url = organizationId
-      ? await this.getInstanceUrlForOrg(organizationId, role)
-      : this.getInstanceUrl(role);
+    const url = await this.resolveInstanceUrl(role, caller, organizationId);
 
     if (!url) {
       return null;

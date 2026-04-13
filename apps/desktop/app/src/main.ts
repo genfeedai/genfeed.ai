@@ -441,11 +441,19 @@ const registerIpcHandlers = (): void => {
   );
 };
 
-app.on('before-quit', () => {
+app.on('before-quit', (event) => {
+  if (isQuitting) {
+    return;
+  }
+
+  event.preventDefault();
   isQuitting = true;
-  shortcutsService.unregister();
-  trayService.destroy();
-  void appShellService.stop();
+
+  void appShellService.stop().finally(() => {
+    shortcutsService.unregister();
+    trayService.destroy();
+    app.quit();
+  });
 });
 
 app.whenReady().then(async () => {

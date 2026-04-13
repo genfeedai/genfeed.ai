@@ -1,12 +1,9 @@
+import type { HarnessPackRegistry } from '@genfeedai/interfaces';
 import type { ContentHarnessPack } from './types';
 
-export interface HarnessPackRegistry {
-  registerPack(pack: ContentHarnessPack): void;
-  get(id: string): ContentHarnessPack | undefined;
-  list(): ContentHarnessPack[];
-}
-
-export class ContentHarnessRegistry implements HarnessPackRegistry {
+export class ContentHarnessRegistry
+  implements HarnessPackRegistry<ContentHarnessPack>
+{
   private readonly packs = new Map<string, ContentHarnessPack>();
 
   registerPack(pack: ContentHarnessPack): void {

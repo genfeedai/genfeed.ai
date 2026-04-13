@@ -1,47 +1,17 @@
 import {
   ContentRun,
-  type ContentRunAnalyticsSummary,
-  type ContentRunBrief,
   type ContentRunDocument,
-  type ContentRunPublishContext,
-  type ContentRunRecommendation,
-  type ContentRunVariant,
 } from '@api/collections/content-runs/schemas/content-run.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { ContentRunSource, ContentRunStatus } from '@genfeedai/enums';
+import { ContentRunStatus } from '@genfeedai/enums';
+import type {
+  CreateContentRunInput,
+  UpdateContentRunInput,
+} from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-
-export interface CreateContentRunInput {
-  brand: string;
-  brief?: ContentRunBrief;
-  creditsUsed: number;
-  input: Record<string, unknown>;
-  organization: string;
-  analyticsSummary?: ContentRunAnalyticsSummary;
-  publish?: ContentRunPublishContext;
-  recommendations?: ContentRunRecommendation[];
-  skillSlug: string;
-  source: ContentRunSource;
-  status: ContentRunStatus;
-  variants?: ContentRunVariant[];
-}
-
-export interface UpdateContentRunInput {
-  analyticsSummary?: ContentRunAnalyticsSummary;
-  brief?: ContentRunBrief;
-  creditsUsed?: number;
-  duration?: number;
-  error?: string;
-  output?: Record<string, unknown>;
-  publish?: ContentRunPublishContext;
-  recommendations?: ContentRunRecommendation[];
-  source?: ContentRunSource;
-  status?: ContentRunStatus;
-  variants?: ContentRunVariant[];
-}
 
 @Injectable()
 export class ContentRunsService {
