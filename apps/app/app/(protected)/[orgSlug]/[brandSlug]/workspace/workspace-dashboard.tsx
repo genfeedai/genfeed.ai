@@ -617,8 +617,8 @@ export function DashboardRecentActivity({
     <Card
       label="Recent Activity"
       headerAction={
-        <Button asChild variant={ButtonVariant.SECONDARY} size={ButtonSize.XS}>
-          <Link href="/workspace/activity">View All</Link>
+        <Button asChild variant={ButtonVariant.GHOST} size={ButtonSize.XS}>
+          <Link href="/workspace/inbox/unread">View All</Link>
         </Button>
       }
       bodyClassName="p-5 sm:p-6"
@@ -670,7 +670,7 @@ function TaskRow({ task }: { task: Task }) {
       </div>
       <Button asChild variant={ButtonVariant.GHOST} size={ButtonSize.XS}>
         <Link
-          href={`/workspace/activity?taskId=${task.id}`}
+          href={`/workspace/inbox/unread?taskId=${task.id}`}
           aria-label={`Open ${task.title}`}
         >
           <HiOutlineArrowRight className="h-3.5 w-3.5" />
@@ -701,7 +701,7 @@ export function DashboardRecentTasks({
     <Card
       label="Recent Tasks"
       headerAction={
-        <Button asChild variant={ButtonVariant.SECONDARY} size={ButtonSize.XS}>
+        <Button asChild variant={ButtonVariant.GHOST} size={ButtonSize.XS}>
           <Link href="/workspace/inbox/unread">View All</Link>
         </Button>
       }
@@ -734,7 +734,7 @@ export function WorkspaceDashboard({
   workspaceTasks,
 }: DashboardProps) {
   return (
-    <div className="space-y-8">
+    <div className="flex flex-col gap-6">
       <DashboardAgentCards activeRuns={activeRuns} runs={runs} />
 
       <DashboardStatsStrip

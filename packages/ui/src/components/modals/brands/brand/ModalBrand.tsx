@@ -1096,8 +1096,8 @@ export default function BrandOverlay({
         surface="flat"
         onClose={handleClose}
         onOpenDetail={
-          activeBrand?.id
-            ? () => router.push(orgHref(`/settings/brands/${activeBrand.id}`))
+          activeBrand?.slug
+            ? () => router.push(orgHref(`/settings/brands/${activeBrand.slug}`))
             : undefined
         }
         badges={

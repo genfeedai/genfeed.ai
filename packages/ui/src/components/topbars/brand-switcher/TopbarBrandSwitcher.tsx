@@ -32,7 +32,7 @@ export default function TopbarBrandSwitcher() {
   const handleOpenBrandSettings = useCallback(() => {
     router.push(
       selectedBrand
-        ? orgHref(`/settings/brands/${selectedBrand.id}`)
+        ? orgHref(`/settings/brands/${selectedBrand.slug}`)
         : orgHref('/settings/brands'),
     );
   }, [router, selectedBrand, orgHref]);

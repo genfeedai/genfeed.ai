@@ -6,48 +6,57 @@ import type { AppSwitcherItemConfig } from '@genfeedai/interfaces';
 import type { AppSwitcherProps } from '@genfeedai/props/ui/app-switcher.props';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import {
+  HiOutlineChartBarSquare,
+  HiOutlineCog6Tooth,
+  HiOutlinePencilSquare,
+  HiOutlineRectangleGroup,
+  HiOutlineSparkles,
+  HiOutlineSquares2X2,
+} from 'react-icons/hi2';
 import { Button } from '../../../primitives/button';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '../../../primitives/popover';
+import { SimpleTooltip } from '../../../primitives/tooltip';
 
 const APPS: AppSwitcherItemConfig[] = [
   {
+    icon: HiOutlineSquares2X2,
     id: 'workspace',
-    icon: '⌂',
     label: 'Workspace',
     route: (org) => `/${org}/~/overview`,
   },
   {
+    icon: HiOutlineSparkles,
     id: 'studio',
-    icon: '🎨',
     label: 'Studio',
     route: (org, brand) =>
       brand ? `/${org}/${brand}/studio/image` : `/${org}/~/overview`,
   },
   {
+    icon: HiOutlineCog6Tooth,
     id: 'workflows',
-    icon: '⚡',
     label: 'Workflows',
     route: (org) => `/${org}/~/workflows`,
   },
   {
+    icon: HiOutlinePencilSquare,
     id: 'editor',
-    icon: '✏️',
     label: 'Editor',
     route: (org) => `/${org}/~/editor`,
   },
   {
+    icon: HiOutlineRectangleGroup,
     id: 'compose',
-    icon: '📝',
     label: 'Compose',
     route: (org) => `/${org}/~/compose/post`,
   },
   {
+    icon: HiOutlineChartBarSquare,
     id: 'analytics',
-    icon: '📊',
     label: 'Analytics',
     route: (org) => `/${org}/~/analytics/overview`,
   },
@@ -70,43 +79,58 @@ export function AppSwitcher({
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          ariaLabel={`Current app: ${activeApp?.label ?? currentApp}. Click to switch apps.`}
-          size={ButtonSize.SM}
-          variant={ButtonVariant.GHOST}
-          withWrapper={false}
-        >
-          <span aria-hidden="true">{activeApp?.icon}</span>
-          <span>{activeApp?.label ?? currentApp}</span>
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-56 p-2" sideOffset={6}>
-        <div className="grid grid-cols-3 gap-1">
+      <SimpleTooltip
+        label={activeApp?.label ?? currentApp}
+        position="right"
+        isDisabled={isOpen}
+      >
+        <PopoverTrigger asChild>
+          <Button
+            ariaLabel={`Current app: ${activeApp?.label ?? currentApp}. Click to switch apps.`}
+            size={ButtonSize.ICON}
+            variant={ButtonVariant.GHOST}
+            withWrapper={false}
+          >
+            {activeApp && <activeApp.icon className="h-4 w-4" />}
+          </Button>
+        </PopoverTrigger>
+      </SimpleTooltip>
+      <PopoverContent
+        align="start"
+        className="w-48 p-1"
+        side="right"
+        sideOffset={8}
+      >
+        <nav className="flex flex-col gap-0.5">
           {APPS.map((app) => {
             const isActive = app.id === currentApp;
+            const Icon = app.icon;
             return (
               <Button
                 key={app.id}
-                ariaLabel={app.label}
+                variant={ButtonVariant.UNSTYLED}
+                withWrapper={false}
+                size={ButtonSize.SM}
                 aria-current={isActive ? 'page' : undefined}
                 className={cn(
-                  'flex flex-col gap-1 h-auto py-2',
-                  isActive && 'ring-2 ring-[var(--gen-accent-primary)]',
+                  'flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors',
+                  isActive
+                    ? 'bg-white/10 text-white'
+                    : 'text-white/50 hover:bg-white/5 hover:text-white/80',
                 )}
                 onClick={() => handleAppSelect(app)}
-                size={ButtonSize.SM}
-                variant={ButtonVariant.GHOST}
-                withWrapper={false}
               >
-                <span aria-hidden="true" className="text-lg leading-none">
-                  {app.icon}
-                </span>
-                <span className="text-xs leading-none">{app.label}</span>
+                <Icon
+                  className={cn(
+                    'h-4 w-4 shrink-0',
+                    isActive ? 'text-white' : 'text-white/40',
+                  )}
+                />
+                <span>{app.label}</span>
               </Button>
             );
           })}
-        </div>
+        </nav>
       </PopoverContent>
     </Popover>
   );

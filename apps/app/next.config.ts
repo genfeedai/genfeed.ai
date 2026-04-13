@@ -136,7 +136,7 @@ const config = createAppNextConfig({
     {
       destination: '/:orgSlug/~/chat/:path*',
       permanent: false,
-      source: '/:orgSlug/:brandSlug/chat/:path*',
+      source: '/:orgSlug/:brandSlug([^~/][^/]*)/chat/:path*',
     },
     {
       destination: '/studio/image',
@@ -159,6 +159,13 @@ config.experimental = {
     '@tiptap/react',
     '@tiptap/starter-kit',
     '@tiptap/suggestion',
+  ],
+};
+
+config.sassOptions = {
+  loadPaths: [
+    path.resolve(__dirname, '../../node_modules'),
+    path.resolve(__dirname, '../../packages/agent/node_modules'),
   ],
 };
 

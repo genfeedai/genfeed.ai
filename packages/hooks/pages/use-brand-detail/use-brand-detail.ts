@@ -105,16 +105,18 @@ export function useBrandDetail(): UseBrandDetailReturn {
     AssetsService.getInstance(token),
   );
 
-  const brandParam = params?.id;
-  const brandId = Array.isArray(brandParam)
+  const brandParam = params?.slug;
+  const brandSlug = Array.isArray(brandParam)
     ? brandParam[0]
     : (brandParam ?? '');
-  const hasBrandId = Boolean(brandId);
+  const hasBrandId = Boolean(brandSlug);
 
   const [state, dispatch] = useReducer(
     brandMediaReducer,
     initialBrandMediaState,
   );
+
+  const brandId = state.brand?.id ?? '';
 
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -199,16 +201,16 @@ export function useBrandDetail(): UseBrandDetailReturn {
 
   const findOneBrand = useCallback(
     async (isRefreshing = false) => {
-      if (!brandId) {
+      if (!brandSlug) {
         return;
       }
 
       setIsLoading(!isRefreshing);
-      const url = `GET /brands/${brandId}`;
+      const url = `GET /brands/slug?slug=${brandSlug}`;
 
       try {
         const service = await getBrandsService();
-        const brandResponse = await service.findOne(brandId);
+        const brandResponse = await service.findOneBySlug(brandSlug);
 
         logger.info(`${url} success`, brandResponse);
 
@@ -223,7 +225,7 @@ export function useBrandDetail(): UseBrandDetailReturn {
         setIsLoading(false);
       }
     },
-    [brandId, getBrandsService],
+    [brandSlug, getBrandsService],
   );
 
   const handleOpenUploadModal = useCallback(

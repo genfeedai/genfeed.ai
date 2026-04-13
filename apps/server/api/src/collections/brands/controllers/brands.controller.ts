@@ -227,6 +227,43 @@ export class BrandsController extends BaseCRUDController<
     return super.findAll(request, user, query);
   }
 
+  @Get('slug')
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async findOneBySlug(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Query('slug') slug: string,
+  ): Promise<JsonApiSingleResponse> {
+    if (!slug) {
+      throw new BadRequestException('slug query param is required');
+    }
+
+    const publicMetadata = getPublicMetadata(user);
+    const brand = await this.brandsService.findOneBySlug({
+      slug,
+      $or: [
+        { user: new Types.ObjectId(publicMetadata.user) },
+        { organization: new Types.ObjectId(publicMetadata.organization) },
+      ],
+      isDeleted: false,
+    });
+
+    if (!brand) {
+      if (!getIsSuperAdmin(user)) {
+        throw new HttpException(
+          { detail: 'Access denied to this brand', title: 'Forbidden' },
+          HttpStatus.FORBIDDEN,
+        );
+      }
+      throw new HttpException(
+        { detail: 'Brand not found', title: 'Not Found' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    return serializeSingle(request, BrandSerializer, brand);
+  }
+
   /**
    * Override findOne WITHOUT caching
    *

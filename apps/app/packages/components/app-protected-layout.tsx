@@ -74,9 +74,11 @@ import { CommandPaletteInitializer } from '@ui/command-palette/command-palette-i
 import OnboardingGuard from '@ui/guards/onboarding/OnboardingGuard';
 import AppLayout from '@ui/layouts/app/AppLayout';
 import SidebarBackRow from '@ui/menus/sidebar-back-row/SidebarBackRow';
+import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 import AdminSidebar from '@ui/shell/menus/AdminSidebar';
 import AppSidebar from '@ui/shell/menus/AppSidebar';
 import AdminTopbar from '@ui/shell/topbars/AdminTopbar';
+import TopbarOrganizationSwitcher from '@ui/topbars/organization-switcher/TopbarOrganizationSwitcher';
 import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -712,7 +714,7 @@ function AppLayoutWithDynamicMenu({
           buildHref(APP_LOGO_HREF),
           taskContextSearchParams,
         )}
-        sectionLabel={isChatRoute ? undefined : 'Workspace'}
+        sectionLabel={undefined}
         collapsedSidebarWidth={isChatRoute ? undefined : 64}
         mobileSidebarWidth={isChatRoute ? undefined : 304}
         primaryAction={
@@ -723,6 +725,20 @@ function AppLayoutWithDynamicMenu({
                 label: 'New Task',
                 onClick: dispatchOpenTaskComposer,
               }
+        }
+        renderTopSlot={
+          isChatRoute
+            ? undefined
+            : () => (
+                <div className="flex items-center gap-2">
+                  <AppSwitcher
+                    currentApp={currentApp}
+                    orgSlug={orgSlug}
+                    brandSlug={brandSlug}
+                  />
+                  <TopbarOrganizationSwitcher />
+                </div>
+              )
         }
         secondaryItems={isChatRoute ? undefined : secondaryMenuItems}
         renderBody={
@@ -768,6 +784,9 @@ function AppLayoutWithDynamicMenu({
     studioMenuItems,
     taskContextSearchParams,
     workflowsMenuItems,
+    currentApp,
+    orgSlug,
+    brandSlug,
   ]);
 
   const topbarComponent =

@@ -600,9 +600,9 @@ export class TasksService extends BaseService<
       );
     }
 
-    const organizationId = task.organization?.toString();
+    const taskOrgId = task.organization?.toString() ?? organizationId;
     const org = await this.organizationsService.findOne({
-      _id: new Types.ObjectId(organizationId),
+      _id: new Types.ObjectId(taskOrgId),
       isDeleted: false,
     });
 

@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation';
 
 export default function BrandSettingsLayout({ children }: LayoutProps) {
   const params = useParams();
-  const brandId = Array.isArray(params?.id) ? params.id[0] : params?.id;
+  const brandId = Array.isArray(params?.slug) ? params.slug[0] : params?.slug;
 
   if (!brandId) {
     return children;

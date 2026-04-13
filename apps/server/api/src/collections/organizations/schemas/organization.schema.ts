@@ -91,3 +91,4 @@ export class Organization {
 }
 
 export const OrganizationSchema = SchemaFactory.createForClass(Organization);
+OrganizationSchema.plugin(require('mongoose-aggregate-paginate-v2'));

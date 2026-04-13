@@ -4,10 +4,8 @@ import { ButtonVariant } from '@genfeedai/enums';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TopbarProps } from '@props/navigation/topbar.props';
 import { Button } from '@ui/primitives/button';
-import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarEnd from '@ui/topbars/end/TopbarEnd';
-import TopbarOrganizationSwitcher from '@ui/topbars/organization-switcher/TopbarOrganizationSwitcher';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { HiBars3, HiXMark } from 'react-icons/hi2';
@@ -16,9 +14,9 @@ import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
 export default function AppProtectedTopbar({
   isMenuOpen,
   onMenuToggle,
-  currentApp,
-  orgSlug,
-  brandSlug,
+  currentApp: _currentApp,
+  orgSlug: _orgSlug,
+  brandSlug: _brandSlug,
 }: TopbarProps = {}) {
   const searchParams = useSearchParams();
   const { href } = useOrgUrl();
@@ -52,16 +50,6 @@ export default function AppProtectedTopbar({
               <ToggleIcon className="h-5 w-5" />
             </Button>
           ) : null}
-
-          {currentApp && orgSlug ? (
-            <AppSwitcher
-              currentApp={currentApp}
-              orgSlug={orgSlug}
-              brandSlug={brandSlug}
-            />
-          ) : null}
-
-          <TopbarOrganizationSwitcher />
 
           <div className="hidden min-w-0 md:block">
             <TopbarBreadcrumbs />

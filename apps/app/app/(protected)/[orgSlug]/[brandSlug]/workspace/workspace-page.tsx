@@ -262,8 +262,8 @@ const SECTION_COPY: Record<
 > = {
   activity: {
     description:
-      'Chronological execution logs, routing detail, and task activity.',
-    title: 'Workspace Activity',
+      'App activity, execution logs, and task progress across your account.',
+    title: 'Activity',
   },
   inbox: {
     description: 'Unread work, recent movement, and the full queue.',
@@ -1298,7 +1298,9 @@ function WorkspaceTaskInspector({
                                 {formatWorkspaceEventLabel(event)}
                               </p>
                               <span className="text-xs text-foreground/40">
-                                {new Date(event.timestamp).toLocaleString()}
+                                {event.timestamp
+                                  ? new Date(event.timestamp).toLocaleString()
+                                  : ''}
                               </span>
                             </div>
                             {message ? (
@@ -1535,32 +1537,32 @@ function WorkspaceTaskInspector({
               </div>
             </div>
 
-            <div className="border-t border-white/[0.08] px-6 py-4">
-              <div className="flex flex-wrap gap-2">
-                {showReviewActions ? (
-                  <>
-                    <Button
-                      size={ButtonSize.SM}
-                      variant={ButtonVariant.DEFAULT}
-                      disabled={isBusy}
-                      onClick={() => void onApprove(task.id)}
-                    >
-                      Approve
-                    </Button>
-                    <Button
-                      size={ButtonSize.SM}
-                      variant={ButtonVariant.SECONDARY}
-                      disabled={isBusy}
-                      onClick={() => void onRequestChanges(task.id)}
-                    >
-                      Request Changes
-                    </Button>
-                  </>
-                ) : null}
+            <div className="border-t border-white/[0.08] px-6 py-4 space-y-3">
+              {showReviewActions ? (
+                <div className="flex gap-2">
+                  <Button
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.DEFAULT}
+                    disabled={isBusy}
+                    onClick={() => void onApprove(task.id)}
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    size={ButtonSize.SM}
+                    variant={ButtonVariant.SECONDARY}
+                    disabled={isBusy}
+                    onClick={() => void onRequestChanges(task.id)}
+                  >
+                    Request Changes
+                  </Button>
+                </div>
+              ) : null}
 
+              <div className="flex gap-2">
                 <Button
                   size={ButtonSize.SM}
-                  variant={ButtonVariant.SECONDARY}
+                  variant={ButtonVariant.GHOST}
                   disabled={isBusy}
                   onClick={() => void onDismiss(task.id)}
                 >
@@ -1574,11 +1576,13 @@ function WorkspaceTaskInspector({
                 >
                   Plan Next Steps
                 </Button>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
                 <Button
                   asChild
-                  variant={ButtonVariant.SECONDARY}
+                  variant={ButtonVariant.GHOST}
                   size={ButtonSize.SM}
-                  className="font-semibold"
                 >
                   <Link href={buildTaskLaunchHref(task, 'write')}>
                     Open in Write
@@ -1586,9 +1590,8 @@ function WorkspaceTaskInspector({
                 </Button>
                 <Button
                   asChild
-                  variant={ButtonVariant.SECONDARY}
+                  variant={ButtonVariant.GHOST}
                   size={ButtonSize.SM}
-                  className="font-semibold"
                 >
                   <Link href={buildTaskLaunchHref(task, 'generate')}>
                     Open in Generate
@@ -1596,9 +1599,8 @@ function WorkspaceTaskInspector({
                 </Button>
                 <Button
                   asChild
-                  variant={ButtonVariant.SECONDARY}
+                  variant={ButtonVariant.GHOST}
                   size={ButtonSize.SM}
-                  className="font-semibold"
                 >
                   <Link href={buildTaskLaunchHref(task, 'edit')}>
                     Open in Edit
@@ -1606,9 +1608,8 @@ function WorkspaceTaskInspector({
                 </Button>
                 <Button
                   asChild
-                  variant={ButtonVariant.SECONDARY}
+                  variant={ButtonVariant.GHOST}
                   size={ButtonSize.SM}
-                  className="font-semibold"
                 >
                   <Link href={buildTaskLaunchHref(task, 'automate')}>
                     Open in Automate
@@ -1617,18 +1618,16 @@ function WorkspaceTaskInspector({
                 {linkedIssueSummary.href ? (
                   <Button
                     asChild
-                    variant={ButtonVariant.SECONDARY}
+                    variant={ButtonVariant.GHOST}
                     size={ButtonSize.SM}
-                    className="font-semibold"
                   >
                     <Link href={linkedIssueSummary.href}>Open Issue</Link>
                   </Button>
                 ) : null}
                 <Button
                   asChild
-                  variant={ButtonVariant.SECONDARY}
+                  variant={ButtonVariant.GHOST}
                   size={ButtonSize.SM}
-                  className="font-semibold"
                 >
                   <Link href={taskToolHref}>{taskToolLabel}</Link>
                 </Button>
@@ -2049,28 +2048,27 @@ export default function WorkspacePageContent({
   const summaryItems = useMemo(
     () => [
       {
-        label: 'Inbox',
-        value: String(queueTasks.length),
+        label: 'Unread',
+        value: String(unreadInboxTasks.length),
       },
       {
         label: 'In Progress',
         value: String(inProgressTasks.length + initialActiveRuns.length),
       },
       {
-        label: 'Recent Outputs',
-        value: String(initialReviewInbox.recentItems.length),
-      },
-      {
         label: 'Completed Today',
         value: String(initialStats?.completedToday ?? 0),
+      },
+      {
+        label: 'Failed Today',
+        value: String(initialStats?.failedToday ?? 0),
       },
     ],
     [
       initialActiveRuns.length,
       initialStats,
       inProgressTasks.length,
-      queueTasks.length,
-      initialReviewInbox.recentItems.length,
+      unreadInboxTasks.length,
     ],
   );
 
@@ -2413,8 +2411,8 @@ export default function WorkspacePageContent({
   const sectionCopy = SECTION_COPY[section];
   const shouldShowComposer = false;
   const shouldShowInbox = section === 'overview' || section === 'inbox';
-  const shouldShowHistory = section === 'activity';
-  const shouldShowSectionSnapshot = section === 'activity';
+  const shouldShowHistory = false;
+  const shouldShowSectionSnapshot = section === 'inbox';
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -2487,7 +2485,6 @@ export default function WorkspacePageContent({
     <div className="flex flex-wrap gap-2">
       {shouldShowComposer ? (
         <Button
-          className="rounded-md"
           data-testid="workspace-new-task"
           size={ButtonSize.SM}
           variant={ButtonVariant.DEFAULT}
@@ -2497,20 +2494,9 @@ export default function WorkspacePageContent({
         </Button>
       ) : null}
       <ButtonRefresh
-        className="rounded-md"
         onClick={() => void refreshWorkspaceTasks()}
         isRefreshing={isWorkspaceRefreshing}
       />
-      {isInboxSection ? (
-        <Button
-          asChild
-          className="rounded-md"
-          variant={ButtonVariant.DEFAULT}
-          size={ButtonSize.SM}
-        >
-          <Link href="/workspace/activity">Open Activity</Link>
-        </Button>
-      ) : null}
     </div>
   );
 
@@ -2863,98 +2849,144 @@ export default function WorkspacePageContent({
             ) : null}
 
             {shouldShowInbox ? (
-              <section data-testid="workspace-inbox">
-                {section === 'inbox' ? (
-                  <Card
-                    bodyClassName="p-5 sm:p-6"
-                    data-testid="workspace-inbox-card"
-                  >
-                    {renderTaskRows(
-                      visibleInboxTasks,
-                      defaultInboxView === 'unread'
-                        ? 'No unread inbox items right now.'
-                        : 'No inbox items yet.',
-                    )}
-                  </Card>
-                ) : (
-                  <Card
-                    label="Inbox"
-                    description="Queue items that still need review or just finished moving."
-                    headerAction={
-                      <Button
-                        asChild
-                        variant={ButtonVariant.SECONDARY}
-                        size={ButtonSize.SM}
-                      >
-                        <Link href="/workspace/inbox/unread">Open Inbox</Link>
-                      </Button>
-                    }
-                    bodyClassName="space-y-4 p-5 sm:p-6"
-                  >
-                    <div className="flex flex-wrap gap-3 text-sm text-foreground/55">
-                      <span>{unreadInboxTasks.length} unread</span>
-                      <span>{recentInboxTasks.length} recent</span>
-                      <span>{queueTasks.length} total</span>
-                    </div>
-
-                    {renderTaskRows(
-                      reviewInboxTasks.slice(0, 5),
-                      'No inbox items yet.',
-                    )}
-                  </Card>
-                )}
+              <section data-testid="workspace-inbox" className="space-y-3">
+                <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/35">
+                  {section === 'inbox' ? defaultInboxView : 'Inbox'}
+                </h2>
+                <AppTable<Task>
+                  items={
+                    section === 'inbox'
+                      ? visibleInboxTasks
+                      : reviewInboxTasks.slice(0, 5)
+                  }
+                  emptyLabel={
+                    section === 'inbox' && defaultInboxView === 'unread'
+                      ? 'No unread inbox items right now.'
+                      : 'No inbox items yet.'
+                  }
+                  getRowKey={(task) => task.id}
+                  getItemId={(task) => task.id}
+                  onRowClick={(task) => {
+                    setSelectedTaskId(task.id);
+                    replaceTaskSearchParam(task.id);
+                  }}
+                  columns={[
+                    {
+                      key: 'title',
+                      header: 'Task',
+                      render: (task) => (
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span
+                            className={cn(
+                              'h-2 w-2 shrink-0 rounded-full',
+                              getTaskStateDotClass(task),
+                            )}
+                          />
+                          <span className="truncate font-medium text-foreground">
+                            {task.title}
+                          </span>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: 'status',
+                      header: 'Status',
+                      className: 'w-32',
+                      render: (task) => (
+                        <span className="text-xs text-foreground/60">
+                          {formatTaskStatus(task)}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: 'executionPathUsed',
+                      header: 'Path',
+                      className: 'w-36 hidden lg:table-cell',
+                      render: (task) => (
+                        <span className="text-xs text-foreground/45">
+                          {task.executionPathUsed?.replaceAll('_', ' ') ?? '—'}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: 'updatedAt',
+                      header: 'Updated',
+                      className: 'w-28 text-right',
+                      render: (task) => (
+                        <span className="text-xs text-foreground/40">
+                          {formatTaskTimestamp(task)}
+                        </span>
+                      ),
+                    },
+                  ]}
+                />
               </section>
             ) : null}
 
             {shouldShowHistory ? (
-              <section data-testid="workspace-activity">
-                <Card
-                  label="Activity"
-                  description="The execution log, ordered by the latest update."
-                  headerAction={
-                    <Button
-                      asChild
-                      variant={ButtonVariant.SECONDARY}
-                      size={ButtonSize.SM}
-                    >
-                      <Link href="/workspace/inbox/unread">Open Inbox</Link>
-                    </Button>
-                  }
-                  bodyClassName="space-y-4 p-5 sm:p-6"
-                >
-                  {renderTaskRows(
-                    activityItems,
-                    'Activity will appear here once tasks start running.',
-                  )}
-                </Card>
-              </section>
-            ) : null}
-
-            {section === 'activity' ? (
-              <section data-testid="workspace-advanced-tools">
-                <Card
-                  label="Operator tools"
-                  description="Manual and expert surfaces stay available without taking over the main workspace flow."
-                  bodyClassName="p-5 sm:p-6"
-                >
-                  <div className="divide-y divide-white/[0.06]">
-                    {ADVANCED_TOOLS.map((tool) => (
-                      <Link
-                        key={tool.href}
-                        href={tool.href}
-                        aria-label={tool.label}
-                        className="block py-4 first:pt-0 last:pb-0"
-                      >
-                        <p className="text-sm font-semibold text-foreground">
-                          {tool.label}
-                        </p>
-                        <p className="mt-1 text-sm text-foreground/55">
-                          {tool.description}
-                        </p>
-                      </Link>
-                    ))}
-                  </div>
-                </Card>
+              <section data-testid="workspace-activity" className="space-y-3">
+                <h2 className="text-[11px] font-bold uppercase tracking-[0.2em] text-foreground/35">
+                  Activity
+                </h2>
+                <AppTable<Task>
+                  items={activityItems}
+                  emptyLabel="Activity will appear here once tasks start running."
+                  getRowKey={(task) => task.id}
+                  getItemId={(task) => task.id}
+                  onRowClick={(task) => {
+                    setSelectedTaskId(task.id);
+                    replaceTaskSearchParam(task.id);
+                  }}
+                  columns={[
+                    {
+                      key: 'title',
+                      header: 'Task',
+                      render: (task) => (
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span
+                            className={cn(
+                              'h-2 w-2 shrink-0 rounded-full',
+                              getTaskStateDotClass(task),
+                            )}
+                          />
+                          <span className="truncate font-medium text-foreground">
+                            {task.title}
+                          </span>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: 'status',
+                      header: 'Status',
+                      className: 'w-32',
+                      render: (task) => (
+                        <span className="text-xs text-foreground/60">
+                          {formatTaskStatus(task)}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: 'executionPathUsed',
+                      header: 'Path',
+                      className: 'w-36 hidden lg:table-cell',
+                      render: (task) => (
+                        <span className="text-xs text-foreground/45">
+                          {task.executionPathUsed?.replaceAll('_', ' ') ?? '—'}
+                        </span>
+                      ),
+                    },
+                    {
+                      key: 'updatedAt',
+                      header: 'Updated',
+                      className: 'w-28 text-right',
+                      render: (task) => (
+                        <span className="text-xs text-foreground/40">
+                          {formatTaskTimestamp(task)}
+                        </span>
+                      ),
+                    },
+                  ]}
+                />
               </section>
             ) : null}
           </div>
@@ -3035,7 +3067,7 @@ export default function WorkspacePageContent({
                       variant={ButtonVariant.SECONDARY}
                       size={ButtonSize.SM}
                     >
-                      <Link href="/workspace/activity">Open Activity</Link>
+                      <Link href="/workspace/inbox/unread">Open Inbox</Link>
                     </Button>
                   }
                   bodyClassName="p-5 sm:p-6"

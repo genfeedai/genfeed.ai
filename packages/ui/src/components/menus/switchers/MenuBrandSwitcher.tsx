@@ -34,7 +34,7 @@ export default function MenuBrandSwitcher({
   const handleOpenBrandSettings = useCallback(() => {
     router.push(
       selectedBrand
-        ? `/settings/brands/${selectedBrand.id}`
+        ? `/settings/brands/${selectedBrand.slug}`
         : '/settings/brands',
     );
   }, [router, selectedBrand]);

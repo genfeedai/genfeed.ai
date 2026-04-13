@@ -359,3 +359,4 @@ export class Brand {
 }
 
 export const BrandSchema = SchemaFactory.createForClass(Brand);
+BrandSchema.plugin(require('mongoose-aggregate-paginate-v2'));

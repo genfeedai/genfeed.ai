@@ -205,7 +205,7 @@ const GROUP_META: Array<{
 export function computeBrandCompleteness(
   brand: BrandForCompleteness,
 ): BrandCompletenessResult {
-  const brandId = brand.id ?? '';
+  const brandId = brand.slug ?? brand.id ?? '';
   const fieldDefs = buildFieldDefs(brandId);
   const incompleteFields: BrandCompletenessField[] = [];
 
