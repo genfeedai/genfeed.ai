@@ -49,8 +49,10 @@ export interface IDesktopEnvironment {
   apiEndpoint: string;
   appEndpoint: string;
   appName: string;
+  appPort: number;
   authEndpoint: string;
   cdnUrl: string;
+  sessionDbPath?: string;
   sentryDsn?: string;
   sentryEnvironment?: string;
   sentryRelease?: string;

@@ -8,12 +8,14 @@ export class DesktopConfigService {
       apiEndpoint:
         process.env.GENFEED_DESKTOP_API_URL || 'https://api.genfeed.ai/v1',
       appEndpoint:
-        process.env.GENFEED_DESKTOP_APP_URL || 'https://app.genfeed.ai',
+        process.env.GENFEED_DESKTOP_APP_URL || 'http://127.0.0.1:3230',
       appName: 'desktop',
+      appPort: Number(process.env.GENFEED_DESKTOP_APP_PORT || '3230'),
       authEndpoint:
         process.env.GENFEED_DESKTOP_AUTH_URL ||
         'https://app.genfeed.ai/oauth/cli',
       cdnUrl: process.env.GENFEED_DESKTOP_CDN_URL || 'https://cdn.genfeed.ai',
+      sessionDbPath: process.env.GENFEED_DESKTOP_SESSION_DB_PATH || undefined,
       sentryDsn: process.env.GENFEED_DESKTOP_SENTRY_DSN || undefined,
       sentryEnvironment:
         process.env.GENFEED_DESKTOP_SENTRY_ENVIRONMENT ||

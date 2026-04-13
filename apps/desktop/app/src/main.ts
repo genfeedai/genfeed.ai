@@ -20,6 +20,7 @@ import {
   Notification,
   shell,
 } from 'electron';
+import { DesktopAppShellService } from './main/app-shell.service';
 import { DesktopCloudService } from './main/cloud.service';
 import { CloudDatabaseService } from './main/cloud-database.service';
 import { DesktopConfigService } from './main/config.service';
@@ -41,6 +42,11 @@ const filesService = new DesktopFilesService(workspaceService);
 const syncService = new DesktopSyncService(database);
 const cloudService = new DesktopCloudService(environment);
 const draftsService = new DesktopDraftsService(workspaceService);
+const appShellService = new DesktopAppShellService(
+  environment,
+  () => sessionService.getSession(),
+  database.getDatabasePath(),
+);
 
 const telemetryService = new ShellTelemetryService({
   appName: 'desktop',
@@ -96,7 +102,7 @@ if (!acquiredSingleInstanceLock) {
   app.quit();
 }
 
-const createWindow = (): void => {
+const createWindow = async (): Promise<void> => {
   mainWindow = new BrowserWindow({
     backgroundColor: '#08111f',
     height: 980,
@@ -154,7 +160,29 @@ const createWindow = (): void => {
     mainWindow = null;
   });
 
-  mainWindow.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+  appShellService.registerAuthHeaders(mainWindow);
+
+  try {
+    await appShellService.start();
+    await mainWindow.loadURL(
+      appShellService.buildInitialUrl(sessionService.getSession()),
+    );
+  } catch (error) {
+    telemetryService.captureException(error, {
+      surface: 'app-shell',
+    });
+
+    if (isSmokeTest) {
+      app.exit(1);
+      return;
+    }
+
+    await mainWindow.loadURL(
+      `data:text/html,${encodeURIComponent(
+        '<html><body style="background:#08111f;color:#fff;font-family:sans-serif;padding:32px"><h1>Genfeed Desktop</h1><p>Failed to start the embedded app shell.</p></body></html>',
+      )}`,
+    );
+  }
 
   buildShellMenu(mainWindow, {
     fileItems: [
@@ -417,9 +445,10 @@ app.on('before-quit', () => {
   isQuitting = true;
   shortcutsService.unregister();
   trayService.destroy();
+  void appShellService.stop();
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   telemetryService.init();
   telemetryService.setUser(
     sessionService.getSession()
@@ -438,7 +467,7 @@ app.whenReady().then(() => {
   });
   registerProtocolHandling();
   registerIpcHandlers();
-  createWindow();
+  await createWindow();
 
   if (mainWindow) {
     trayService.initialize(mainWindow, {
@@ -498,7 +527,7 @@ app.whenReady().then(() => {
       mainWindow.show();
       mainWindow.focus();
     } else {
-      createWindow();
+      void createWindow();
     }
   });
 });

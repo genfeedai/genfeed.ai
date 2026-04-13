@@ -9,6 +9,7 @@ const environment: IDesktopEnvironment = {
   apiEndpoint: 'https://api.genfeed.ai/v1',
   appEndpoint: 'https://app.genfeed.ai',
   appName: 'desktop',
+  appPort: 3230,
   authEndpoint: 'https://app.genfeed.ai/oauth/cli',
   cdnUrl: 'https://cdn.genfeed.ai',
   wsEndpoint: 'https://notifications.genfeed.ai',

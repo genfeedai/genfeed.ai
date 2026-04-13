@@ -12,12 +12,31 @@ export const getServerAuthToken = cache(async (): Promise<string> => {
   const isPlaywrightBypass =
     process.env.PLAYWRIGHT_TEST === 'true' ||
     cookieStore.get('__playwright_test')?.value === 'true';
+  const isDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
   const hasClerkKeys =
     Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) &&
     Boolean(process.env.CLERK_SECRET_KEY);
 
   if (isPlaywrightBypass) {
     return '';
+  }
+
+  if (isDesktopShell) {
+    try {
+      const { getToken, sessionId, userId } = await auth();
+
+      if (!userId || !sessionId) {
+        return '';
+      }
+
+      return (await getToken()) ?? '';
+    } catch (error) {
+      logger.warn('Desktop auth unavailable during protected bootstrap', {
+        error,
+        reportToSentry: false,
+      });
+      return '';
+    }
   }
 
   if (process.env.NODE_ENV !== 'production' && !hasClerkKeys) {

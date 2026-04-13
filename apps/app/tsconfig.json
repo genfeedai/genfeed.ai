@@ -47,6 +47,12 @@
       "@genfeedai/contexts/*": ["../../packages/contexts/*"],
       "@genfeedai/config": ["../../packages/config/src/index.ts"],
       "@genfeedai/config/*": ["../../packages/config/src/*"],
+      "@genfeedai/desktop-contracts": [
+        "../../packages/desktop-contracts/src/index.ts"
+      ],
+      "@genfeedai/desktop-contracts/*": [
+        "../../packages/desktop-contracts/src/*"
+      ],
       "@genfeedai/interfaces": ["../../packages/interfaces/src/index.ts"],
       "@genfeedai/interfaces/*": ["../../packages/interfaces/src/*"],
       "@genfeedai/models": ["../../packages/models/index.ts"],

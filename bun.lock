@@ -188,6 +188,7 @@
         "@genfeedai/client": "*",
         "@genfeedai/config": "*",
         "@genfeedai/constants": "*",
+        "@genfeedai/desktop-contracts": "*",
         "@genfeedai/enums": "*",
         "@genfeedai/helpers": "*",
         "@genfeedai/interfaces": "*",
@@ -580,6 +581,17 @@
         "typescript": "6.0.2",
       },
     },
+    "ee/packages/harness": {
+      "name": "@genfeedai/ee-harness",
+      "version": "0.1.0",
+      "dependencies": {
+        "@genfeedai/harness": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/node": "25.6.0",
+        "typescript": "6.0.2",
+      },
+    },
     "packages/agent": {
       "name": "@genfeedai/agent",
       "version": "1.0.0",
@@ -785,6 +797,18 @@
       "version": "1.0.0",
       "peerDependencies": {
         "next": ">=14.0.0",
+      },
+    },
+    "packages/harness": {
+      "name": "@genfeedai/harness",
+      "version": "0.1.0",
+      "dependencies": {
+        "@genfeedai/interfaces": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/node": "25.6.0",
+        "tsup": "8.5.1",
+        "typescript": "6.0.2",
       },
     },
     "packages/helpers": {
@@ -1844,6 +1868,8 @@
 
     "@genfeedai/ee-billing": ["@genfeedai/ee-billing@workspace:ee/packages/billing"],
 
+    "@genfeedai/ee-harness": ["@genfeedai/ee-harness@workspace:ee/packages/harness"],
+
     "@genfeedai/enums": ["@genfeedai/enums@workspace:packages/enums"],
 
     "@genfeedai/errors": ["@genfeedai/errors@workspace:packages/errors"],
@@ -1853,6 +1879,8 @@
     "@genfeedai/files": ["@genfeedai/files@workspace:apps/server/files"],
 
     "@genfeedai/fonts": ["@genfeedai/fonts@workspace:packages/fonts"],
+
+    "@genfeedai/harness": ["@genfeedai/harness@workspace:packages/harness"],
 
     "@genfeedai/helpers": ["@genfeedai/helpers@workspace:packages/helpers"],
 

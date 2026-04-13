@@ -5,6 +5,9 @@
     "appId": "ai.genfeed.desktop",
     "artifactName": "Genfeed-Desktop-${version}-${arch}.${ext}",
     "asar": true,
+    "asarUnpack": [
+      "dist/app-shell/**/*"
+    ],
     "directories": {
       "output": "release"
     },
@@ -72,18 +75,20 @@
   "private": true,
   "productName": "GenfeedDesktop",
   "scripts": {
-    "build": "bun run clean && bun run build:main && bun run build:preload && bun run build:renderer && bun run copy:assets",
+    "build": "bun run build:native && bun run build:app-shell && bun run copy:app-shell",
+    "build:app-shell": "node ./scripts/build-app-shell.cjs",
     "build:main": "bunx esbuild src/main.ts --bundle --platform=node --target=node20 --outfile=dist/main.js --external:electron --external:better-sqlite3 --tsconfig=tsconfig.json",
     "build:preload": "bunx esbuild src/preload.ts --bundle --platform=node --target=node20 --outfile=dist/preload.js --external:electron --tsconfig=tsconfig.json",
     "build:release": "bun run build && bun run prepare:release",
-    "build:renderer": "next build --webpack && mkdir -p dist/renderer && cp -R out/. dist/renderer/",
+    "build:native": "bun run clean && bun run build:main && bun run build:preload && bun run copy:assets",
     "clean": "rm -rf dist .next out",
     "copy:assets": "mkdir -p dist/assets && cp -r assets/* dist/assets/",
+    "copy:app-shell": "node ./scripts/copy-app-shell.cjs",
     "deps:update": "bunx npm-check-updates -u --reject typescript && bun install",
-    "dev": "bun run electron:install-binary && bun run native:rebuild && bun run build && electron dist/main.js",
+    "dev": "bun run electron:install-binary && bun run native:rebuild && node ./scripts/dev.cjs",
     "electron:install-binary": "node -e \"require('electron/install.js')\"",
     "icon:mac": "bash ./scripts/generate-macos-icon.sh",
-    "lint": "biome check pages src next.config.ts",
+    "lint": "biome check src package.json",
     "native:rebuild": "electron-builder install-app-deps",
     "pack:mac": "bun run electron:install-binary && bun run native:rebuild && bun run build:release && electron-builder --mac --dir --publish never",
     "prepare:release": "bun run icon:mac",
