@@ -1,6 +1,10 @@
 // @vitest-environment jsdom
 'use client';
 
+import {
+  BrandProvider,
+  useBrand,
+} from '@genfeedai/contexts/user/brand-context/brand-context';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -46,9 +50,6 @@ vi.mock('@genfeedai/services/core/interceptor.service', () => ({
 }));
 
 describe('BrandProvider', () => {
-  let BrandProvider: typeof import('@genfeedai/contexts/user/brand-context/brand-context').BrandProvider;
-  let useBrand: typeof import('@genfeedai/contexts/user/brand-context/brand-context').useBrand;
-
   const initialBootstrap = {
     accessState: null,
     brandId: 'brand_123',
@@ -87,7 +88,7 @@ describe('BrandProvider', () => {
     streak: null,
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
     useAuthMock.mockReturnValue({
       isLoaded: true,
@@ -110,12 +111,6 @@ describe('BrandProvider', () => {
         refresh: vi.fn().mockResolvedValue(undefined),
       }),
     );
-
-    const module = await import(
-      '@genfeedai/contexts/user/brand-context/brand-context'
-    );
-    BrandProvider = module.BrandProvider;
-    useBrand = module.useBrand;
   });
 
   it('hydrates brand, settings, and darkroom state from the bootstrap payload', () => {

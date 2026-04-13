@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react';
-import AppProviders from '@ui/providers/AppProviders';
 import type { ReactNode } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const clerkProviderSpy = vi.fn();
 
@@ -31,8 +30,17 @@ vi.mock('next-themes', () => ({
 }));
 
 describe('AppProviders', () => {
-  beforeEach(() => {
+  let AppProviders: typeof import('@ui/providers/AppProviders').default;
+
+  beforeEach(async () => {
     vi.clearAllMocks();
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test_fake';
+    const module = await import('@ui/providers/AppProviders');
+    AppProviders = module.default;
+  });
+
+  afterEach(() => {
+    delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
   });
 
   it('renders one ClerkProvider with theme-aware appearance at the app root', () => {

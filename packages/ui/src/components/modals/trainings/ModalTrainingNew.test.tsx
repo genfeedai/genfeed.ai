@@ -1,5 +1,4 @@
 import type { ModalProps } from '@genfeedai/props/modals/modal.props';
-import type { BaseButtonProps } from '@genfeedai/props/ui/forms/button.props';
 import { render, screen } from '@testing-library/react';
 import ModalTrainingNew from '@ui/modals/trainings/ModalTrainingNew';
 import type { PropsWithChildren } from 'react';
@@ -20,13 +19,22 @@ vi.mock('@ui/modals/actions/ModalActions', () => ({
   ),
 }));
 
-vi.mock('@ui/buttons/base/Button', () => ({
+vi.mock('@ui/primitives/button', () => ({
   __esModule: true,
-  default: ({ label, children, onClick, ...props }: BaseButtonProps) => (
+  Button: ({
+    label,
+    children,
+    onClick,
+    ...props
+  }: PropsWithChildren<{
+    label?: string;
+    onClick?: () => void;
+  }>) => (
     <button type="button" onClick={onClick} {...props}>
       {label || children}
     </button>
   ),
+  buttonVariants: () => '',
 }));
 
 vi.mock('@ui/primitives/field', () => ({
@@ -38,6 +46,7 @@ vi.mock('@ui/primitives/field', () => ({
 
 vi.mock('@ui/primitives/input', () => ({
   __esModule: true,
+  Input: () => <input data-testid="form-input" />,
   default: () => <input data-testid="form-input" />,
 }));
 

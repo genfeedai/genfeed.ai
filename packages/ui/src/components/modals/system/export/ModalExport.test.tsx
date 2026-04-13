@@ -31,6 +31,9 @@ vi.mock('@ui/buttons/base/Button', () => ({
 
 vi.mock('@ui/primitives/select', () => ({
   __esModule: true,
+  SelectField: ({ children }: PropsWithChildren) => (
+    <select data-testid="form-select">{children}</select>
+  ),
   default: ({ children }: PropsWithChildren) => (
     <select data-testid="form-select">{children}</select>
   ),
@@ -38,6 +41,7 @@ vi.mock('@ui/primitives/select', () => ({
 
 vi.mock('@ui/primitives/checkbox', () => ({
   __esModule: true,
+  Checkbox: () => <div data-testid="form-checkbox" />,
   default: () => <div data-testid="form-checkbox" />,
 }));
 

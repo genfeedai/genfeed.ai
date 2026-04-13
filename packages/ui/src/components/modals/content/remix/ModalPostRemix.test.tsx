@@ -1,7 +1,6 @@
 import { PostStatus } from '@genfeedai/enums';
 import type { IPost } from '@genfeedai/interfaces';
 import type { ModalProps } from '@genfeedai/props/modals/modal.props';
-import type { BaseButtonProps } from '@genfeedai/props/ui/forms/button.props';
 import { render, screen } from '@testing-library/react';
 import type { PropsWithChildren } from 'react';
 import { describe, expect, it, vi } from 'vitest';
@@ -25,16 +24,25 @@ vi.mock('@ui/modals/actions/ModalActions', () => ({
   ),
 }));
 
-vi.mock('@ui/buttons/base/Button', () => ({
+vi.mock('@ui/primitives/button', () => ({
   __esModule: true,
-  default: ({ label, children, onClick, ...props }: BaseButtonProps) => (
+  Button: ({
+    label,
+    children,
+    onClick,
+    ...props
+  }: PropsWithChildren<{
+    label?: string;
+    onClick?: () => void;
+  }>) => (
     <button type="button" onClick={onClick} {...props}>
       {label || children}
     </button>
   ),
+  buttonVariants: () => '',
 }));
 
-vi.mock('@ui/editors/RichTextEditor', () => ({
+vi.mock('@ui/editors/LazyRichTextEditor', () => ({
   __esModule: true,
   default: () => <div data-testid="rich-text-editor" />,
 }));
@@ -48,6 +56,7 @@ vi.mock('@ui/primitives/field', () => ({
 
 vi.mock('@ui/primitives/input', () => ({
   __esModule: true,
+  Input: () => <input data-testid="form-input" />,
   default: () => <input data-testid="form-input" />,
 }));
 

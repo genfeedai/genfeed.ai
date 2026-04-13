@@ -1,6 +1,5 @@
 import { Platform, PostStatus } from '@genfeedai/enums';
 import type { IPost } from '@genfeedai/interfaces';
-import type { BaseButtonProps } from '@genfeedai/props/ui/forms/button.props';
 import { render, screen } from '@testing-library/react';
 import ModalPostMetadata from '@ui/modals/content/post/ModalPostMetadata';
 import type { PropsWithChildren, ReactNode } from 'react';
@@ -22,19 +21,24 @@ vi.mock('@ui/overlays/entity/EntityOverlayShell', () => ({
   ),
 }));
 
-vi.mock('@ui/buttons/base/Button', () => ({
+vi.mock('@ui/primitives/button', () => ({
   __esModule: true,
-  default: ({
+  Button: ({
     label,
     children,
     onClick,
     isDisabled,
     ...props
-  }: BaseButtonProps) => (
+  }: PropsWithChildren<{
+    isDisabled?: boolean;
+    label?: string;
+    onClick?: () => void;
+  }>) => (
     <button type="button" onClick={onClick} disabled={isDisabled} {...props}>
       {label || children}
     </button>
   ),
+  buttonVariants: () => '',
 }));
 
 vi.mock('@ui/primitives/field', () => ({
@@ -46,11 +50,13 @@ vi.mock('@ui/primitives/field', () => ({
 
 vi.mock('@ui/primitives/input', () => ({
   __esModule: true,
+  Input: () => <input data-testid="form-input" />,
   default: () => <input data-testid="form-input" />,
 }));
 
 vi.mock('@ui/primitives/textarea', () => ({
   __esModule: true,
+  Textarea: () => <textarea data-testid="form-textarea" />,
   default: () => <textarea data-testid="form-textarea" />,
 }));
 
@@ -61,6 +67,9 @@ vi.mock('@ui/primitives/date-time-picker', () => ({
 
 vi.mock('@ui/primitives/select', () => ({
   __esModule: true,
+  SelectField: ({ children }: PropsWithChildren) => (
+    <select data-testid="form-select">{children}</select>
+  ),
   default: ({ children }: PropsWithChildren) => (
     <select data-testid="form-select">{children}</select>
   ),
