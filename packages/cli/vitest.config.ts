@@ -6,10 +6,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   resolve: {
-    alias: {
-      '@': './src',
-      '@serializers': path.resolve(__dirname, '../serializers/src'),
-    },
+    alias: [
+      {
+        find: /^@genfeedai\/serializers$/,
+        replacement: path.resolve(__dirname, '../serializers/src/index.ts'),
+      },
+      {
+        find: /^@serializers\/(.*)$/,
+        replacement: path.resolve(__dirname, '../serializers/src/$1'),
+      },
+      {
+        find: '@',
+        replacement: path.resolve(__dirname, './src'),
+      },
+    ],
   },
   test: {
     coverage: {

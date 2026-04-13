@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
@@ -7,8 +8,11 @@ import {
 } from '../configs/vitest-warning-filter';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const appRoot = path.resolve(__dirname, './app');
 const repoRoot = path.resolve(__dirname, '..');
+const appRoot = process.cwd();
+const localUiRoot = path.resolve(appRoot, './packages/ui');
+const hasLocalUiRoot = fs.existsSync(localUiRoot);
+const sharedUiRoot = path.resolve(__dirname, '../packages/ui/src/components');
 installVitestWarningFilter();
 const customLogger = createVitestWarningLogger();
 
@@ -267,12 +271,110 @@ export default defineConfig({
         replacement: path.resolve(repoRoot, './packages/models/$1'),
       },
       {
-        find: /^@pages$/,
-        replacement: path.resolve(repoRoot, './packages/pages'),
+        find: '@public',
+        replacement: path.resolve(appRoot, './app/(public)'),
+      },
+      {
+        find: /^@public\/(.*)$/,
+        replacement: path.resolve(appRoot, './app/(public)/$1'),
+      },
+      {
+        find: '@protected',
+        replacement: path.resolve(appRoot, './app/(protected)'),
+      },
+      {
+        find: /^@protected\/(.*)$/,
+        replacement: path.resolve(appRoot, './app/(protected)/$1'),
+      },
+      {
+        find: '@pages',
+        replacement: path.resolve(appRoot, './src/page-modules'),
       },
       {
         find: /^@pages\/(.*)$/,
-        replacement: path.resolve(repoRoot, './packages/pages/$1'),
+        replacement: path.resolve(appRoot, './src/page-modules/$1'),
+      },
+      {
+        find: '@website',
+        replacement: appRoot,
+      },
+      {
+        find: /^@website\/(.*)$/,
+        replacement: `${appRoot}/$1`,
+      },
+      {
+        find: '@web-components',
+        replacement: path.resolve(appRoot, './packages/components'),
+      },
+      {
+        find: /^@web-components\/(.*)$/,
+        replacement: path.resolve(appRoot, './packages/components/$1'),
+      },
+      {
+        find: '@styles',
+        replacement: path.resolve(__dirname, '../packages/styles'),
+      },
+      {
+        find: /^@styles\/(.*)$/,
+        replacement: path.resolve(__dirname, '../packages/styles/$1'),
+      },
+      {
+        find: '@shared',
+        replacement: path.resolve(__dirname, '../tests'),
+      },
+      {
+        find: /^@shared\/(.*)$/,
+        replacement: path.resolve(__dirname, '../tests/$1'),
+      },
+      ...(hasLocalUiRoot
+        ? [
+            {
+              find: '@ui/providers',
+              replacement: path.resolve(localUiRoot, './providers'),
+            },
+            {
+              find: /^@ui\/providers\/(.*)$/,
+              replacement: path.resolve(localUiRoot, './providers/$1'),
+            },
+            {
+              find: '@ui/marketing/PricingStrip',
+              replacement: path.resolve(
+                localUiRoot,
+                './marketing/PricingStrip.tsx',
+              ),
+            },
+            {
+              find: '@ui/workflow-builder',
+              replacement: path.resolve(localUiRoot, './workflow-builder'),
+            },
+            {
+              find: /^@ui\/workflow-builder\/(.*)$/,
+              replacement: path.resolve(localUiRoot, './workflow-builder/$1'),
+            },
+          ]
+        : []),
+      {
+        find: '@ui/primitives',
+        replacement: path.resolve(__dirname, '../packages/ui/src/primitives'),
+      },
+      {
+        find: /^@ui\/primitives\/(.*)$/,
+        replacement: path.resolve(
+          __dirname,
+          '../packages/ui/src/primitives/$1',
+        ),
+      },
+      {
+        find: /^@ui\/(.*)$/,
+        replacement: `${sharedUiRoot}/$1`,
+      },
+      {
+        find: '@ui',
+        replacement: sharedUiRoot,
+      },
+      {
+        find: /^@pages\/(.*)$/,
+        replacement: path.resolve(appRoot, './src/page-modules/$1'),
       },
       {
         find: /^@props$/,
@@ -407,8 +509,8 @@ export default defineConfig({
         replacement: path.resolve(__dirname, './app/tests/server-only.stub.ts'),
       },
       {
-        find: /^@\/(.*)$/,
-        replacement: path.resolve(appRoot, './src/$1'),
+        find: /^@\//,
+        replacement: `${appRoot}/src/`,
       },
     ],
   },
@@ -417,7 +519,7 @@ export default defineConfig({
     exclude: ['**/node_modules/**'],
     globals: true,
     include: ['**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'],
-    setupFiles: [path.resolve(__dirname, './app/tests/setup.ts')],
+    setupFiles: [path.resolve(appRoot, './vitest.setup.ts')],
     testTimeout: 15_000,
   },
 });
