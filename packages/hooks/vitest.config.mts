@@ -12,6 +12,9 @@ const customLogger = createVitestWarningLogger();
 
 const SERIALIZERS_SRC = path.resolve(__dirname, '../serializers/src');
 const HELPERS_SRC = path.resolve(__dirname, '../helpers/src');
+const ENUMS_SRC = path.resolve(__dirname, '../enums/src');
+const CONSTANTS_SRC = path.resolve(__dirname, '../constants/src');
+const INTERFACES_SRC = path.resolve(__dirname, '../interfaces/src');
 const CLIENT_SERIALIZERS_MOCK = path.resolve(
   __dirname,
   '../services/__mocks__/client-serializers.mock.ts',
@@ -40,6 +43,38 @@ export default defineConfig({
       {
         find: /^@serializers\/(.*)$/,
         replacement: path.join(SERIALIZERS_SRC, '$1'),
+      },
+      {
+        find: /^@genfeedai\/constants$/,
+        replacement: path.join(CONSTANTS_SRC, 'index.ts'),
+      },
+      {
+        find: /^@genfeedai\/constants\/(.*)$/,
+        replacement: path.join(CONSTANTS_SRC, '$1'),
+      },
+      {
+        find: /^@genfeedai\/enums$/,
+        replacement: path.join(ENUMS_SRC, 'index.ts'),
+      },
+      {
+        find: /^@genfeedai\/enums\/(.*)$/,
+        replacement: path.join(ENUMS_SRC, '$1'),
+      },
+      {
+        find: /^@genfeedai\/helpers$/,
+        replacement: path.join(HELPERS_SRC, 'index.ts'),
+      },
+      {
+        find: /^@genfeedai\/helpers\/(.*)$/,
+        replacement: path.join(HELPERS_SRC, '$1'),
+      },
+      {
+        find: /^@genfeedai\/interfaces$/,
+        replacement: path.join(INTERFACES_SRC, 'index.ts'),
+      },
+      {
+        find: /^@genfeedai\/interfaces\/(.*)$/,
+        replacement: path.join(INTERFACES_SRC, '$1'),
       },
       {
         find: '@xyflow/react',

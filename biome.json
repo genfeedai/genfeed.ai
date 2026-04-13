@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.10/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.4.11/schema.json",
   "files": {
     "includes": [
       "**",
@@ -18,6 +18,8 @@
       "!**/bun.lock",
       "!**/.env",
       "!**/.env.*",
+      "!**/.agents",
+      "!**/.agents/**",
       "!.agents",
       "!.worktrees",
       "!.shipcode"

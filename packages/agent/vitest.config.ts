@@ -13,7 +13,7 @@ export default defineConfig({
         replacement: path.resolve(__dirname, './tests/$1'),
       },
       {
-        find: '@genfeedai/agent',
+        find: /^@genfeedai\/agent$/,
         replacement: path.resolve(__dirname, './src'),
       },
       {
@@ -21,15 +21,23 @@ export default defineConfig({
         replacement: path.resolve(__dirname, './src/$1'),
       },
       {
-        find: '@genfeedai/helpers',
-        replacement: path.resolve(__dirname, '../helpers/src'),
+        find: /^@genfeedai\/enums$/,
+        replacement: path.resolve(__dirname, '../enums/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/enums\/(.*)$/,
+        replacement: path.resolve(__dirname, '../enums/src/$1'),
+      },
+      {
+        find: /^@genfeedai\/helpers$/,
+        replacement: path.resolve(__dirname, '../helpers/src/index.ts'),
       },
       {
         find: /^@genfeedai\/helpers\/(.*)$/,
         replacement: path.resolve(__dirname, '../helpers/src/$1'),
       },
       {
-        find: '@genfeedai/contexts',
+        find: /^@genfeedai\/contexts$/,
         replacement: path.resolve(__dirname, '../contexts'),
       },
       {
@@ -37,7 +45,7 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../contexts/$1'),
       },
       {
-        find: '@genfeedai/models',
+        find: /^@genfeedai\/models$/,
         replacement: path.resolve(__dirname, '../models'),
       },
       {
@@ -45,7 +53,7 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../models/$1'),
       },
       {
-        find: '@genfeedai/pages',
+        find: /^@genfeedai\/pages$/,
         replacement: path.resolve(__dirname, '../pages'),
       },
       {
@@ -53,7 +61,7 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../pages/$1'),
       },
       {
-        find: '@genfeedai/props',
+        find: /^@genfeedai\/props$/,
         replacement: path.resolve(__dirname, '../props'),
       },
       {
@@ -61,7 +69,7 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../props/$1'),
       },
       {
-        find: '@genfeedai/services',
+        find: /^@genfeedai\/services$/,
         replacement: path.resolve(__dirname, '../services'),
       },
       {
@@ -69,15 +77,15 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../services/$1'),
       },
       {
-        find: '@genfeedai/serializers',
-        replacement: path.resolve(__dirname, '../serializers/src'),
+        find: /^@genfeedai\/serializers$/,
+        replacement: path.resolve(__dirname, '../serializers/src/index.ts'),
       },
       {
         find: /^@serializers\/(.*)$/,
         replacement: path.resolve(__dirname, '../serializers/src/$1'),
       },
       {
-        find: '@genfeedai/utils',
+        find: /^@genfeedai\/utils$/,
         replacement: path.resolve(__dirname, '../utils'),
       },
       {

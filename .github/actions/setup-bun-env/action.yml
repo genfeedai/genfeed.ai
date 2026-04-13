@@ -1,0 +1,54 @@
+name: Setup Bun Environment
+description: Standardize Node, Bun, and cache setup for GitHub Actions jobs.
+
+inputs:
+  node-version:
+    description: Node.js version to install
+    required: false
+    default: '22.x'
+  bun-version:
+    description: Bun version to install
+    required: false
+    default: '1.3.11'
+  install-command:
+    description: Dependency install command to run after toolchain setup
+    required: false
+    default: 'bun install --frozen-lockfile'
+  cache-turbo:
+    description: Whether to cache the local Turbo directory
+    required: false
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v5
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: ${{ inputs.bun-version }}
+
+    - name: Cache bun modules
+      uses: actions/cache@v5
+      with:
+        path: ~/.bun/install/cache
+        key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-bun-
+
+    - name: Cache Turbo
+      if: ${{ inputs.cache-turbo == 'true' }}
+      uses: actions/cache@v5
+      with:
+        path: .turbo
+        key: ${{ runner.os }}-turbo-${{ hashFiles('turbo.json', '**/bun.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-turbo-
+
+    - name: Install dependencies
+      shell: bash
+      run: ${{ inputs.install-command }}
