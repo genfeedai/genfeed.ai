@@ -29,9 +29,9 @@
  *   low    → low
  *
  * Field notes:
- *   - identifier / taskNumber: set to "WT-<sourceId>" / 0 for migrated docs.
- *     These are legacy records; the live TaskCountersService assigns real values
- *     on new task creation. The identifier is unique per migrated doc.
+ *   - identifier: set to "WT-<sourceId>" for migrated docs.
+ *   - taskNumber: allocated per organization to avoid collisions with the
+ *     unique (organization, taskNumber) index.
  *   - eventStream.timestamp → eventStream.createdAt (field rename)
  *   - eventStream.id field dropped (not present in Task schema)
  *   - planningThreadId: WorkspaceTask stores as string; Task expects ObjectId.
@@ -102,6 +102,7 @@ async function migrate(): Promise<void> {
 
   const workspaceTasksColl = db.collection('workspace-tasks');
   const tasksColl = db.collection('tasks');
+  const nextTaskNumbers = new Map<string, number>();
 
   const total = await workspaceTasksColl.countDocuments({ isDeleted: false });
   console.log(`Found ${total} non-deleted workspace-tasks to process\n`);
@@ -113,6 +114,13 @@ async function migrate(): Promise<void> {
 
   for await (const doc of cursor as AsyncIterable<Record<string, unknown>>) {
     const sourceId = String(doc._id);
+    const organizationId = String(doc.organization ?? '');
+
+    if (!organizationId) {
+      console.error(`[ERR] ${sourceId} — missing organization`);
+      errors++;
+      continue;
+    }
 
     // Idempotency: skip if this workspace-task was already migrated
     const existing = await tasksColl.findOne({
@@ -127,6 +135,24 @@ async function migrate(): Promise<void> {
       continue;
     }
 
+    if (!nextTaskNumbers.has(organizationId)) {
+      const latestTask = await tasksColl
+        .find({
+          isDeleted: false,
+          organization: doc.organization,
+          taskNumber: { $type: 'number' },
+        })
+        .sort({ taskNumber: -1 })
+        .limit(1)
+        .next();
+
+      nextTaskNumbers.set(organizationId, Number(latestTask?.taskNumber ?? 0));
+    }
+
+    const taskNumber = (nextTaskNumbers.get(organizationId) ?? 0) + 1;
+    nextTaskNumbers.set(organizationId, taskNumber);
+    const isDismissed = String(doc.status ?? '') === 'dismissed';
+
     const taskDoc: Record<string, unknown> = {
       // Organization + brand scoping
       organization: doc.organization,
@@ -135,7 +161,7 @@ async function migrate(): Promise<void> {
       // Identifier: use a deterministic placeholder so these are unique
       // Real identifiers are assigned by TaskCountersService on live task creation
       identifier: `WT-${sourceId}`,
-      taskNumber: 0,
+      taskNumber,
 
       // Core content
       title: doc.title,
@@ -152,8 +178,9 @@ async function migrate(): Promise<void> {
       reviewState: doc.reviewState ?? 'none',
       reviewTriggered: doc.reviewTriggered ?? false,
       resultPreview: doc.resultPreview,
-      failureReason: doc.failureReason,
+      failureReason: isDismissed ? undefined : doc.failureReason,
       requestedChangesReason: doc.requestedChangesReason,
+      dismissedReason: isDismissed ? doc.failureReason : undefined,
 
       // Assignee: WorkspaceTask.user (ObjectId ref) → assigneeUserId (string)
       assigneeUserId: doc.user ? String(doc.user) : undefined,
@@ -232,7 +259,7 @@ async function migrate(): Promise<void> {
 
     if (DRY_RUN) {
       console.log(
-        `[DRY] Would migrate ${sourceId} — status: ${String(doc.status)} → ${taskDoc.status as string}, priority: ${String(doc.priority)} → ${taskDoc.priority as string}`,
+        `[DRY] Would migrate ${sourceId} — taskNumber: ${taskNumber}, status: ${String(doc.status)} → ${taskDoc.status as string}, priority: ${String(doc.priority)} → ${taskDoc.priority as string}`,
       );
       migrated++;
       continue;

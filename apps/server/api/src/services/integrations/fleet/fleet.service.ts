@@ -190,6 +190,7 @@ export class FleetService {
    * Proxy POST to videos instance to generate video from image.
    */
   async generateVideo(params: {
+    organizationId?: string;
     imageUrl: string;
     prompt: string;
     negativePrompt?: string;
@@ -202,7 +203,9 @@ export class FleetService {
     seed?: number;
   }): Promise<{ jobId: string } | null> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const url = this.getInstanceUrl('videos');
+    const url = params.organizationId
+      ? await this.getInstanceUrlForOrg(params.organizationId, 'videos')
+      : this.getInstanceUrl('videos');
 
     if (!url) {
       this.loggerService.warn(caller, {
@@ -245,13 +248,16 @@ export class FleetService {
    * Proxy POST to voices instance to generate speech from text.
    */
   async generateVoice(params: {
+    organizationId?: string;
     text: string;
     voicePreset?: string;
     referenceAudio?: string;
     referenceTranscript?: string;
   }): Promise<{ jobId: string } | null> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const url = this.getInstanceUrl('voices');
+    const url = params.organizationId
+      ? await this.getInstanceUrlForOrg(params.organizationId, 'voices')
+      : this.getInstanceUrl('voices');
 
     if (!url) {
       this.loggerService.warn(caller, {
@@ -288,9 +294,12 @@ export class FleetService {
   async pollJob(
     role: FleetRole,
     jobId: string,
+    organizationId?: string,
   ): Promise<Record<string, unknown> | null> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const url = this.getInstanceUrl(role);
+    const url = organizationId
+      ? await this.getInstanceUrlForOrg(organizationId, role)
+      : this.getInstanceUrl(role);
 
     if (!url) {
       return null;

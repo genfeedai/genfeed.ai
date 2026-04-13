@@ -40,7 +40,9 @@ export class CustomerInstancesService extends BaseService<
         organizationId,
         role: { $in: [role, 'full'] },
         status: 'running',
+        tier: 'dedicated',
       })
+      .sort({ lastStartedAt: -1, createdAt: -1 })
       .exec();
   }
 

@@ -62,10 +62,39 @@ const APPS: AppSwitcherItemConfig[] = [
   },
 ];
 
+function withPreservedSearch(path: string, preservedSearch?: string): string {
+  if (!preservedSearch) {
+    return path;
+  }
+
+  const normalizedSearch = preservedSearch.startsWith('?')
+    ? preservedSearch.slice(1)
+    : preservedSearch;
+
+  if (!normalizedSearch) {
+    return path;
+  }
+
+  const [pathname, existingSearch = ''] = path.split('?', 2);
+  const mergedSearchParams = new URLSearchParams(existingSearch);
+  const preservedSearchParams = new URLSearchParams(normalizedSearch);
+
+  // Keep operator-task context when switching apps so task-scoped flows do not
+  // lose their origin on navigation.
+  for (const [key, value] of preservedSearchParams.entries()) {
+    mergedSearchParams.set(key, value);
+  }
+
+  const nextSearch = mergedSearchParams.toString();
+
+  return nextSearch ? `${pathname}?${nextSearch}` : pathname;
+}
+
 export function AppSwitcher({
   brandSlug,
   currentApp,
   orgSlug,
+  preservedSearch,
 }: AppSwitcherProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
@@ -73,7 +102,9 @@ export function AppSwitcher({
   const activeApp = APPS.find((app) => app.id === currentApp);
 
   function handleAppSelect(app: AppSwitcherItemConfig) {
-    router.push(app.route(orgSlug, brandSlug));
+    router.push(
+      withPreservedSearch(app.route(orgSlug, brandSlug), preservedSearch),
+    );
     setIsOpen(false);
   }
 

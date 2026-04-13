@@ -120,7 +120,8 @@ export class TasksController extends BaseCRUDController<
         this.tasksService
           .recordTaskEvent(taskId, organizationId, publicMetadata.user, {
             payload: {
-              executionPathUsed: extended.outputType ?? 'ingredient',
+              executionPathUsed: doc.executionPathUsed,
+              outputType: doc.outputType,
               request: extended.request,
             },
             type: 'task_queued',

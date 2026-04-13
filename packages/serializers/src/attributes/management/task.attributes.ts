@@ -41,6 +41,7 @@ export const managementTaskAttributes = createEntityAttributes([
   'eventStream',
   'failureReason',
   'requestedChangesReason',
+  'dismissedReason',
   'completedAt',
   'dismissedAt',
   'decomposition',

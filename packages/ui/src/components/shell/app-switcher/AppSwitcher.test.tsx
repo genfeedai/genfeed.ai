@@ -9,8 +9,8 @@ vi.mock('next/navigation', () => ({
 }));
 
 // Mock Button — avoids deep @genfeedai/enums + CVA dependency chain
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({
+vi.mock('../../../primitives/button', () => ({
+  Button: ({
     children,
     onClick,
     ariaLabel,
@@ -37,14 +37,9 @@ vi.mock('@ui/buttons/base/Button', () => ({
 
 // Mock Popover — render children directly, no portal/floating logic
 vi.mock('@ui/primitives/popover', () => ({
-  Popover: ({
-    children,
-    onOpenChange,
-  }: {
-    children: React.ReactNode;
-    onOpenChange?: (open: boolean) => void;
-    open?: boolean;
-  }) => <>{children}</>,
+  Popover: ({ children }: { children: React.ReactNode; open?: boolean }) => (
+    <>{children}</>
+  ),
   PopoverTrigger: ({ children }: { children: React.ReactNode }) => (
     <>{children}</>
   ),
@@ -58,8 +53,12 @@ vi.mock('@ui/primitives/popover', () => ({
 }));
 
 vi.mock('@genfeedai/enums', () => ({
-  ButtonSize: { SM: 'sm', DEFAULT: 'default' },
+  ButtonSize: { ICON: 'icon', SM: 'sm', DEFAULT: 'default' },
   ButtonVariant: { GHOST: 'ghost', UNSTYLED: 'unstyled' },
+}));
+
+vi.mock('../../../primitives/tooltip', () => ({
+  SimpleTooltip: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 vi.mock('@genfeedai/helpers/formatting/cn/cn.util', () => ({
@@ -109,14 +108,14 @@ describe('AppSwitcher', () => {
   it('active app button carries ring design-token class', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="compose" />);
     const btn = screen.getByRole('button', { name: 'Compose' });
-    expect(btn.className).toContain('ring-2');
-    expect(btn.className).toContain('ring-[var(--gen-accent-primary)]');
+    expect(btn.className).toContain('bg-white/10');
+    expect(btn.className).toContain('text-white');
   });
 
-  it('inactive app button does not have the active ring design-token class', () => {
+  it('inactive app button does not have active-state classes', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="compose" />);
     const btn = screen.getByRole('button', { name: 'Editor' });
-    expect(btn.className).not.toContain('ring-[var(--gen-accent-primary)]');
+    expect(btn.className).not.toContain('bg-white/10');
   });
 
   describe('route generation', () => {
@@ -152,6 +151,23 @@ describe('AppSwitcher', () => {
       render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
       fireEvent.click(screen.getByRole('button', { name: 'Analytics' }));
       expect(pushSpy).toHaveBeenCalledWith('/acme/~/analytics/overview');
+    });
+
+    it('preserves task context search params when switching apps', () => {
+      pushSpy.mockClear();
+      render(
+        <AppSwitcher
+          orgSlug="acme"
+          currentApp="workspace"
+          preservedSearch="taskId=123&taskSource=workspace"
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Analytics' }));
+
+      expect(pushSpy).toHaveBeenCalledWith(
+        '/acme/~/analytics/overview?taskId=123&taskSource=workspace',
+      );
     });
   });
 });

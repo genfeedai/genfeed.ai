@@ -620,6 +620,7 @@ export class AvatarVideoGenerationService {
       voiceDoc.sampleAudioUrl
     ) {
       const fleetResult = await this.fleetService.generateVoice({
+        organizationId,
         referenceAudio: voiceDoc.sampleAudioUrl,
         text,
       });
@@ -637,6 +638,7 @@ export class AvatarVideoGenerationService {
       const pollResult = await this.fleetService.pollJob(
         'voices',
         fleetResult.jobId,
+        organizationId,
       );
 
       if (!pollResult?.audioUrl || typeof pollResult.audioUrl !== 'string') {

@@ -199,6 +199,9 @@ export class Task {
   @Prop({ required: false, type: String })
   requestedChangesReason?: string;
 
+  @Prop({ required: false, type: String })
+  dismissedReason?: string;
+
   // ─── Routing / execution ──────────────────────────────────────────────────────
 
   @Prop({ enum: TASK_EXECUTION_PATHS, required: false, type: String })
