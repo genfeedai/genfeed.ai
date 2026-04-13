@@ -48,13 +48,7 @@ const appShellService = new DesktopAppShellService(
   database.getDatabasePath(),
 );
 
-const telemetryService = new ShellTelemetryService({
-  appName: 'desktop',
-  appVersion: '0.1.0',
-  sentryDsn: environment.sentryDsn,
-  sentryEnvironment: environment.sentryEnvironment,
-  sentryRelease: environment.sentryRelease,
-});
+const telemetryService = new ShellTelemetryService();
 
 const trayService = new ShellTrayService();
 const shortcutsService = new ShellShortcutsService();

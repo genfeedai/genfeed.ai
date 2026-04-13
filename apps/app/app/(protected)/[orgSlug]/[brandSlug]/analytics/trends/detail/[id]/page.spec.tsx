@@ -2,6 +2,6 @@ import { runPageModuleTests } from '@shared/pages/pageTestUtils';
 import * as PageModule from './page';
 
 runPageModuleTests(
-  'apps/app/app/(protected)/analytics/trends/detail/[id]/page',
+  'app/(protected)/analytics/trends/detail/[id]/page',
   PageModule,
 );

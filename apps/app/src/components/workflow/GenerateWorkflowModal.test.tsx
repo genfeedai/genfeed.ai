@@ -203,15 +203,18 @@ describe('GenerateWorkflowModal', () => {
       if (generateButton) fireEvent.click(generateButton);
 
       await waitFor(() => {
-        expect(global.fetch).toHaveBeenCalledWith('/api/workflows/generate', {
-          body: JSON.stringify({
-            contentLevel: 'minimal',
-            description: 'Test description',
-            model: 'meta/meta-llama-3.1-70b-instruct',
-          }),
-          headers: { 'Content-Type': 'application/json' },
-          method: 'POST',
-        });
+        expect(global.fetch).toHaveBeenCalledWith(
+          '/v1/core/workflows/generate',
+          {
+            body: JSON.stringify({
+              contentLevel: 'minimal',
+              description: 'Test description',
+              model: 'meta/meta-llama-3.1-70b-instruct',
+            }),
+            headers: { 'Content-Type': 'application/json' },
+            method: 'POST',
+          },
+        );
       });
     });
 

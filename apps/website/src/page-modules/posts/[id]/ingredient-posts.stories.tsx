@@ -24,7 +24,6 @@ export const Default: Story = {
       totalPosts: 0,
       totalViews: 0,
     },
-    page: 1,
     posts: [],
   },
 };
@@ -39,7 +38,6 @@ export const Interactive: Story = {
       totalPosts: 2,
       totalViews: 123,
     },
-    page: 1,
     posts: [],
   },
 };

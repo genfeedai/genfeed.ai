@@ -1,4 +1,7 @@
 import { Platform, PostCategory, PostStatus } from '@genfeedai/enums';
+import type { IPost } from '@genfeedai/interfaces';
+import { Ingredient } from '@models/content/ingredient.model';
+import { Post } from '@models/content/post.model';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import PostCard from '@web-components/content/post-card/PostCard';
 
@@ -35,33 +38,63 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+const STORY_TIMESTAMP = '2024-01-15T00:00:00Z';
+
+function createIngredient({
+  id,
+  metadataDuration,
+  metadataLabel,
+  thumbnailUrl,
+}: {
+  id: string;
+  metadataDuration?: number;
+  metadataLabel: string;
+  thumbnailUrl?: string;
+}) {
+  return new Ingredient({
+    id,
+    metadataDuration,
+    metadataLabel,
+    thumbnailUrl,
+  });
+}
+
+function createPost(partial: Partial<IPost>): IPost {
+  return new Post({
+    category: PostCategory.VIDEO,
+    id: 'story-post',
+    ingredients: [],
+    platform: Platform.YOUTUBE,
+    publicationDate: STORY_TIMESTAMP,
+    status: PostStatus.DRAFT,
+    uploadedAt: STORY_TIMESTAMP,
+    ...partial,
+  }) as IPost;
+}
+
 /**
  * Default post card with YouTube platform
  */
 export const Default: Story = {
   args: {
     className: '',
-    post: {
-      category: PostCategory.VIDEO,
-      credential: {
-        externalId: 'abc123',
-        externalUrl: 'https://youtube.com',
-      } as any,
+    post: createPost({
       id: '1',
       ingredients: [
-        {
+        createIngredient({
           id: '1',
           metadataDuration: 360,
           metadataLabel: 'Getting Started with React',
           thumbnailUrl:
             'https://via.placeholder.com/400x225/000000/FFFFFF?text=Video+Thumbnail',
-        },
-      ] as any,
+        }),
+      ],
       platform: Platform.YOUTUBE,
       publicationDate: '2024-01-16T00:00:00Z',
       status: PostStatus.PUBLIC,
       uploadedAt: '2024-01-15T00:00:00Z',
-    } as any,
+      url: 'https://youtube.com/watch?v=abc123',
+    }),
   },
 };
 
@@ -71,23 +104,22 @@ export const Default: Story = {
 export const Scheduled: Story = {
   args: {
     className: '',
-    post: {
-      category: PostCategory.VIDEO,
+    post: createPost({
       id: '2',
       ingredients: [
-        {
+        createIngredient({
           id: '2',
           metadataDuration: 120,
           metadataLabel: 'Building Modern UIs',
           thumbnailUrl:
             'https://via.placeholder.com/400x225/FF00FF/FFFFFF?text=Instagram+Post',
-        },
-      ] as any,
+        }),
+      ],
       platform: Platform.INSTAGRAM,
       scheduledDate: '2024-01-20T00:00:00Z',
       status: PostStatus.SCHEDULED,
       uploadedAt: '2024-01-14T00:00:00Z',
-    } as any,
+    }),
   },
 };
 
@@ -97,22 +129,21 @@ export const Scheduled: Story = {
 export const Pending: Story = {
   args: {
     className: '',
-    post: {
-      category: PostCategory.VIDEO,
+    post: createPost({
       id: '3',
       ingredients: [
-        {
+        createIngredient({
           id: '3',
           metadataDuration: 60,
           metadataLabel: 'Quick Tips for Developers',
           thumbnailUrl:
             'https://via.placeholder.com/400x225/000000/FFFFFF?text=TikTok+Video',
-        },
-      ] as any,
+        }),
+      ],
       platform: Platform.TIKTOK,
       status: PostStatus.DRAFT,
       uploadedAt: '2024-01-13T00:00:00Z',
-    } as any,
+    }),
   },
 };
 
@@ -122,21 +153,20 @@ export const Pending: Story = {
 export const Failed: Story = {
   args: {
     className: '',
-    post: {
-      category: PostCategory.VIDEO,
+    post: createPost({
       id: '4',
       ingredients: [
-        {
+        createIngredient({
           id: '4',
           metadataLabel: 'Twitter Video Post',
           thumbnailUrl:
             'https://via.placeholder.com/400x225/1DA1F2/FFFFFF?text=Twitter+Post',
-        },
-      ] as any,
+        }),
+      ],
       platform: Platform.TWITTER,
       status: PostStatus.FAILED,
       uploadedAt: '2024-01-12T00:00:00Z',
-    } as any,
+    }),
   },
 };
 
@@ -146,20 +176,19 @@ export const Failed: Story = {
 export const Draft: Story = {
   args: {
     className: '',
-    post: {
-      category: PostCategory.VIDEO,
+    post: createPost({
       id: '5',
       ingredients: [
-        {
+        createIngredient({
           id: '5',
           metadataLabel: 'Professional Development Tips',
           thumbnailUrl:
             'https://via.placeholder.com/400x225/0077B5/FFFFFF?text=LinkedIn+Post',
-        },
-      ] as any,
+        }),
+      ],
       platform: Platform.LINKEDIN,
       status: PostStatus.DRAFT,
-    } as any,
+    }),
   },
 };
 
@@ -169,20 +198,19 @@ export const Draft: Story = {
 export const NoThumbnail: Story = {
   args: {
     className: '',
-    post: {
-      category: PostCategory.VIDEO,
+    post: createPost({
       id: '6',
       ingredients: [
-        {
+        createIngredient({
           id: '6',
           metadataLabel: 'Video Without Thumbnail',
-        },
-      ] as any,
+        }),
+      ],
       platform: Platform.FACEBOOK,
       publicationDate: '2024-01-11T00:00:00Z',
       status: PostStatus.PUBLIC,
       uploadedAt: '2024-01-11T00:00:00Z',
-    } as any,
+    }),
   },
 };
 
@@ -190,134 +218,113 @@ export const NoThumbnail: Story = {
  * Multiple platform examples
  */
 export const PlatformExamples: Story = {
-  args: {} as any,
+  args: {},
   parameters: {
     layout: 'fullscreen',
   },
   render: () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-8 w-full max-w-7xl">
       <PostCard
-        post={
-          {
-            category: PostCategory.VIDEO,
-            credential: {
-              externalId: 'yt123',
-              externalUrl: 'https://youtube.com',
-            } as any,
-            id: '1',
-            ingredients: [
-              {
-                id: '1',
-                metadataDuration: 600,
-                metadataLabel: 'YouTube Video',
-                thumbnailUrl:
-                  'https://via.placeholder.com/400x225/FF0000/FFFFFF?text=YouTube',
-              },
-            ] as any,
-            platform: Platform.YOUTUBE,
-            publicationDate: '2024-01-16T00:00:00Z',
-            status: PostStatus.PUBLIC,
-            uploadedAt: '2024-01-15T00:00:00Z',
-          } as any
-        }
+        post={createPost({
+          id: '1',
+          ingredients: [
+            createIngredient({
+              id: '1',
+              metadataDuration: 600,
+              metadataLabel: 'YouTube Video',
+              thumbnailUrl:
+                'https://via.placeholder.com/400x225/FF0000/FFFFFF?text=YouTube',
+            }),
+          ],
+          platform: Platform.YOUTUBE,
+          publicationDate: '2024-01-16T00:00:00Z',
+          status: PostStatus.PUBLIC,
+          uploadedAt: '2024-01-15T00:00:00Z',
+          url: 'https://youtube.com/watch?v=yt123',
+        })}
       />
       <PostCard
-        post={
-          {
-            category: PostCategory.VIDEO,
-            id: '2',
-            ingredients: [
-              {
-                id: '2',
-                metadataDuration: 30,
-                metadataLabel: 'Instagram Post',
-                thumbnailUrl:
-                  'https://via.placeholder.com/400x225/E4405F/FFFFFF?text=Instagram',
-              },
-            ] as any,
-            platform: Platform.INSTAGRAM,
-            scheduledDate: '2024-01-20T00:00:00Z',
-            status: PostStatus.SCHEDULED,
-          } as any
-        }
+        post={createPost({
+          id: '2',
+          ingredients: [
+            createIngredient({
+              id: '2',
+              metadataDuration: 30,
+              metadataLabel: 'Instagram Post',
+              thumbnailUrl:
+                'https://via.placeholder.com/400x225/E4405F/FFFFFF?text=Instagram',
+            }),
+          ],
+          platform: Platform.INSTAGRAM,
+          scheduledDate: '2024-01-20T00:00:00Z',
+          status: PostStatus.SCHEDULED,
+        })}
       />
       <PostCard
-        post={
-          {
-            category: PostCategory.VIDEO,
-            id: '3',
-            ingredients: [
-              {
-                id: '3',
-                metadataDuration: 45,
-                metadataLabel: 'TikTok Video',
-                thumbnailUrl:
-                  'https://via.placeholder.com/400x225/000000/FFFFFF?text=TikTok',
-              },
-            ] as any,
-            platform: Platform.TIKTOK,
-            publicationDate: '2024-01-14T00:00:00Z',
-            status: PostStatus.PUBLIC,
-          } as any
-        }
+        post={createPost({
+          id: '3',
+          ingredients: [
+            createIngredient({
+              id: '3',
+              metadataDuration: 45,
+              metadataLabel: 'TikTok Video',
+              thumbnailUrl:
+                'https://via.placeholder.com/400x225/000000/FFFFFF?text=TikTok',
+            }),
+          ],
+          platform: Platform.TIKTOK,
+          publicationDate: '2024-01-14T00:00:00Z',
+          status: PostStatus.PUBLIC,
+        })}
       />
       <PostCard
-        post={
-          {
-            category: PostCategory.VIDEO,
-            id: '4',
-            ingredients: [
-              {
-                id: '4',
-                metadataLabel: 'Twitter Post',
-                thumbnailUrl:
-                  'https://via.placeholder.com/400x225/1DA1F2/FFFFFF?text=Twitter',
-              },
-            ] as any,
-            platform: Platform.TWITTER,
-            status: PostStatus.DRAFT,
-          } as any
-        }
+        post={createPost({
+          id: '4',
+          ingredients: [
+            createIngredient({
+              id: '4',
+              metadataLabel: 'Twitter Post',
+              thumbnailUrl:
+                'https://via.placeholder.com/400x225/1DA1F2/FFFFFF?text=Twitter',
+            }),
+          ],
+          platform: Platform.TWITTER,
+          status: PostStatus.DRAFT,
+        })}
       />
       <PostCard
-        post={
-          {
-            category: PostCategory.VIDEO,
-            id: '5',
-            ingredients: [
-              {
-                id: '5',
-                metadataDuration: 180,
-                metadataLabel: 'Facebook Video',
-                thumbnailUrl:
-                  'https://via.placeholder.com/400x225/1877F2/FFFFFF?text=Facebook',
-              },
-            ] as any,
-            platform: Platform.FACEBOOK,
-            publicationDate: '2024-01-13T00:00:00Z',
-            status: PostStatus.PUBLIC,
-          } as any
-        }
+        post={createPost({
+          id: '5',
+          ingredients: [
+            createIngredient({
+              id: '5',
+              metadataDuration: 180,
+              metadataLabel: 'Facebook Video',
+              thumbnailUrl:
+                'https://via.placeholder.com/400x225/1877F2/FFFFFF?text=Facebook',
+            }),
+          ],
+          platform: Platform.FACEBOOK,
+          publicationDate: '2024-01-13T00:00:00Z',
+          status: PostStatus.PUBLIC,
+        })}
       />
       <PostCard
-        post={
-          {
-            category: PostCategory.VIDEO,
-            id: '6',
-            ingredients: [
-              {
-                id: '6',
-                metadataDuration: 240,
-                metadataLabel: 'LinkedIn Post',
-                thumbnailUrl:
-                  'https://via.placeholder.com/400x225/0077B5/FFFFFF?text=LinkedIn',
-              },
-            ] as any,
-            platform: Platform.LINKEDIN,
-            publicationDate: '2024-01-12T00:00:00Z',
-            status: PostStatus.PUBLIC,
-          } as any
-        }
+        post={createPost({
+          id: '6',
+          ingredients: [
+            createIngredient({
+              id: '6',
+              metadataDuration: 240,
+              metadataLabel: 'LinkedIn Post',
+              thumbnailUrl:
+                'https://via.placeholder.com/400x225/0077B5/FFFFFF?text=LinkedIn',
+            }),
+          ],
+          platform: Platform.LINKEDIN,
+          publicationDate: '2024-01-12T00:00:00Z',
+          status: PostStatus.PUBLIC,
+        })}
       />
     </div>
   ),

@@ -6,7 +6,7 @@ vi.mock('./library-voices-page', () => ({
   default: () => <div data-testid="library-voices-page" />,
 }));
 
-runPageModuleTests('apps/app/app/(protected)/library/voices/page', PageModule);
+runPageModuleTests('app/(protected)/library/voices/page', PageModule);
 
 describe('LibraryVoicesRoute', () => {
   it('renders the shared library voices page', () => {

@@ -140,7 +140,7 @@ export default function PostCard({ post, className = '' }: PostCardProps) {
             <div key={label} className="flex items-center gap-2 text-sm">
               <Icon className={`${iconColor} w-4 h-4`} />
               <span className="text-foreground/70">
-                {label}: {formatDate(date!)}
+                {label}: {date ? formatDate(date) : ''}
               </span>
             </div>
           ))}

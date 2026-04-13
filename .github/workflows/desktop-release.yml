@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - 'desktop-v*'
+      - "desktop-v*"
 
 jobs:
   desktop-macos:
@@ -61,7 +61,7 @@ jobs:
         run: bun run --filter=@genfeedai/desktop release:mac
 
       - name: Upload macOS artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: genfeed-desktop-macos
           path: apps/desktop/app/release/*

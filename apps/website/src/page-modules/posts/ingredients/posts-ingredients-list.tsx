@@ -17,10 +17,15 @@ import { HiDocumentText, HiEye, HiOutlinePhoto } from 'react-icons/hi2';
 
 // ingredients list with posts to load in the public gallery
 
+type IngredientWithMetrics = Ingredient & {
+  totalPosts?: number;
+  totalViews?: number;
+};
+
 export default function PostsIngredientsList() {
   const searchParams = useSearchParams();
   const page = parseInt(searchParams?.get('page') || '1', 10);
-  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [ingredients, setIngredients] = useState<IngredientWithMetrics[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const findAllIngredients = useCallback(
@@ -110,11 +115,11 @@ export default function PostsIngredientsList() {
                   <div className="flex items-center gap-4 text-sm text-foreground/60">
                     <div className="flex items-center gap-2">
                       <HiDocumentText className="text-base" />
-                      <span>{(ingredient as any).totalPosts || 0} posts</span>
+                      <span>{ingredient.totalPosts || 0} posts</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <HiEye className="text-base" />
-                      <span>{(ingredient as any).totalViews || 0} views</span>
+                      <span>{ingredient.totalViews || 0} views</span>
                     </div>
                   </div>
 

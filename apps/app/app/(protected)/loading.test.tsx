@@ -2,10 +2,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-describe('apps/app/app/(protected)/loading.tsx', () => {
+describe('app/(protected)/loading.tsx', () => {
   it('keeps an exported contract in place', () => {
     const source = readFileSync(
-      join(process.cwd(), 'apps/app/app/(protected)/loading.tsx'),
+      join(process.cwd(), 'app/(protected)/loading.tsx'),
       'utf8',
     );
     expect(source).toContain('export ');

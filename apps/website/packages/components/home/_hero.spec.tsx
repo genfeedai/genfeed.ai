@@ -5,7 +5,7 @@ import HomeHero from './_hero';
 
 vi.mock('next/image', () => ({
   default: (props: ImgHTMLAttributes<HTMLImageElement>) => (
-    // eslint-disable-next-line @next/next/no-img-element
+    // biome-ignore lint/performance/noImgElement: next/image is mocked to a basic DOM element in jsdom tests.
     <img {...props} alt={props.alt ?? ''} />
   ),
 }));

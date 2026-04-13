@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   # Removed push trigger — run manually or via weekly cron to save Actions minutes
   schedule:
-    - cron: '0 6 * * 1'  # Weekly Monday 6am UTC
+    - cron: "0 6 * * 1" # Weekly Monday 6am UTC
 
 concurrency:
   group: coverage-${{ github.ref }}
@@ -21,13 +21,13 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          node-version: '22.x'
+          node-version: "22.x"
 
       - name: Run coverage
         run: cd packages/helpers && npx vitest run --coverage
 
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: coverage-helpers
@@ -53,7 +53,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          node-version: '22.x'
+          node-version: "22.x"
 
       - name: Build dependent packages
         run: bunx turbo build --filter="@genfeedai/client" --filter="@genfeedai/serializers" --filter="@genfeedai/helpers"
@@ -62,7 +62,7 @@ jobs:
         run: cd packages/hooks && npx vitest run --coverage --config vitest.config.mts
 
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: coverage-hooks
@@ -88,7 +88,7 @@ jobs:
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
         with:
-          node-version: '22.x'
+          node-version: "22.x"
 
       - name: Run coverage
         run: cd apps/server/api && npx vitest run --coverage
@@ -97,7 +97,7 @@ jobs:
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY || 'test-mock-clerk-key' }}
 
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: coverage-api

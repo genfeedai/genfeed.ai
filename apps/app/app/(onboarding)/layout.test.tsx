@@ -1,3 +1,3 @@
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
 
-assertSourceHasExport('apps/app/app/(onboarding)/layout.tsx');
+assertSourceHasExport('app/(onboarding)/layout.tsx');

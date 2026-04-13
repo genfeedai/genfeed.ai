@@ -126,6 +126,42 @@ vi.mock('@ui/layout/container/Container', () => ({
   ),
 }));
 
+vi.mock('@ui/primitives/select', () => ({
+  SelectField: ({
+    children,
+    className,
+    name,
+    onChange,
+    value,
+  }: {
+    children: ReactNode;
+    className?: string;
+    name: string;
+    onChange: (event: {
+      target: { name: string; value: string };
+      currentTarget: { name: string; value: string };
+    }) => void;
+    value: string;
+  }) => (
+    <select
+      className={className}
+      name={name}
+      onChange={(event) =>
+        onChange({
+          currentTarget: {
+            name: event.currentTarget.name,
+            value: event.currentTarget.value,
+          },
+          target: { name: event.target.name, value: event.target.value },
+        })
+      }
+      value={value}
+    >
+      {children}
+    </select>
+  ),
+}));
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/orchestration/runs',
   useRouter: () => ({
@@ -236,14 +272,20 @@ describe('MissionControl', () => {
   });
 
   it('syncs model filter and range into URL and API query', () => {
-    render(<MissionControl />);
+    const { container } = render(<MissionControl />);
 
-    fireEvent.change(screen.getByDisplayValue('All models'), {
-      target: { value: 'anthropic/claude-sonnet-4-5' },
-    });
-    fireEvent.change(screen.getByDisplayValue('Window: 7d'), {
-      target: { value: '30d' },
-    });
+    fireEvent.change(
+      container.querySelector('select[name="model"]') as HTMLSelectElement,
+      {
+        target: { value: 'anthropic/claude-sonnet-4-5' },
+      },
+    );
+    fireEvent.change(
+      container.querySelector('select[name="timeRange"]') as HTMLSelectElement,
+      {
+        target: { value: '30d' },
+      },
+    );
 
     const latestCall = useAgentRunsMock.mock.calls.at(-1)?.[0];
     expect(latestCall).toMatchObject({
@@ -265,15 +307,18 @@ describe('MissionControl', () => {
   });
 
   it('syncs search and sort into URL and API query', () => {
-    render(<MissionControl />);
+    const { container } = render(<MissionControl />);
 
     fireEvent.change(
       screen.getByPlaceholderText('Search runs, objectives, or routing'),
       { target: { value: 'trend' } },
     );
-    fireEvent.change(screen.getByDisplayValue('Sort: Latest'), {
-      target: { value: 'credits' },
-    });
+    fireEvent.change(
+      container.querySelector('select[name="sortMode"]') as HTMLSelectElement,
+      {
+        target: { value: 'credits' },
+      },
+    );
 
     const latestCall = useAgentRunsMock.mock.calls.at(-1)?.[0];
     expect(latestCall).toMatchObject({

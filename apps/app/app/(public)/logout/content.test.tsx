@@ -3,31 +3,28 @@ import { describe, expect, it, vi } from 'vitest';
 import LogoutPage from './content';
 import '@testing-library/jest-dom';
 
-vi.mock('@clerk/nextjs', () => ({
-  SignOutButton: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="clerk-signout">{children}</div>
-  ),
-}));
+const signOut = vi.fn();
 
-vi.mock('@ui/layouts/auth/AuthFormLayout', () => ({
-  default: ({ children }: { children: React.ReactNode }) => (
-    <div data-testid="auth-form-layout">{children}</div>
-  ),
+vi.mock('@clerk/nextjs', () => ({
+  useClerk: () => ({
+    signOut,
+  }),
 }));
 
 describe('LogoutPage', () => {
+  it('requests sign-out and redirects back to login', () => {
+    render(<LogoutPage />);
+
+    expect(signOut).toHaveBeenCalledWith({ redirectUrl: '/login' });
+  });
+
   it('should render without crashing', () => {
     const { container } = render(<LogoutPage />);
     expect(container.firstChild).toBeInTheDocument();
   });
 
-  it('should render AuthFormLayout wrapper', () => {
+  it('renders the signing out message', () => {
     render(<LogoutPage />);
-    expect(screen.getByTestId('auth-form-layout')).toBeInTheDocument();
-  });
-
-  it('should render SignOutButton', () => {
-    render(<LogoutPage />);
-    expect(screen.getByTestId('clerk-signout')).toBeInTheDocument();
+    expect(screen.getByText('Signing out...')).toBeInTheDocument();
   });
 });
