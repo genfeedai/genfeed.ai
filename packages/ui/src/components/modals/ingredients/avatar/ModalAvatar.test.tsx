@@ -20,13 +20,14 @@ vi.mock('@ui/modals/actions/ModalActions', () => ({
   ),
 }));
 
-vi.mock('@ui/buttons/base/Button', () => ({
+vi.mock('@ui/primitives/button', () => ({
   __esModule: true,
-  default: ({ label, children, onClick, ...props }: BaseButtonProps) => (
+  Button: ({ label, children, onClick, ...props }: BaseButtonProps) => (
     <button type="button" onClick={onClick} {...props}>
       {label || children}
     </button>
   ),
+  buttonVariants: () => '',
 }));
 
 vi.mock('@ui/primitives/field', () => ({
@@ -38,7 +39,7 @@ vi.mock('@ui/primitives/field', () => ({
 
 vi.mock('@ui/primitives/textarea', () => ({
   __esModule: true,
-  default: () => <textarea data-testid="form-textarea" />,
+  Textarea: () => <textarea data-testid="form-textarea" />,
 }));
 
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({

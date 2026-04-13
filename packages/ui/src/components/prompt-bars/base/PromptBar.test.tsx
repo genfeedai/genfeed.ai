@@ -52,6 +52,10 @@ let speechHandlers: { onTranscription?: (result: any) => void } = {};
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
   usePathname: () => '/studio/image',
+  useParams: () => ({
+    brandSlug: 'test-brand',
+    orgSlug: 'test-org',
+  }),
   useRouter: () => ({
     push: mockPush,
   }),
@@ -768,7 +772,9 @@ describe('PromptBar', () => {
         props.onFormatChange?.(IngredientFormat.LANDSCAPE);
       });
 
-      expect(mockPush).toHaveBeenCalledWith('/studio/image?format=landscape');
+      expect(mockPush).toHaveBeenCalledWith(
+        '/test-org/test-brand/studio/image?format=landscape',
+      );
     });
 
     it('routes image variations from references', () => {
@@ -784,7 +790,7 @@ describe('PromptBar', () => {
       });
 
       expect(mockPush).toHaveBeenCalledWith(
-        '/studio/image?referenceImageId=ref-123&format=portrait',
+        '/test-org/test-brand/studio/image?referenceImageId=ref-123&format=portrait',
       );
     });
 
@@ -805,7 +811,9 @@ describe('PromptBar', () => {
         props.onFormatChange?.(IngredientFormat.SQUARE);
       });
 
-      expect(mockPush).toHaveBeenCalledWith('/studio/video?aspectRatio=1:1');
+      expect(mockPush).toHaveBeenCalledWith(
+        '/test-org/test-brand/studio/video?aspectRatio=1:1',
+      );
     });
 
     it('updates outputs through the collapsed view handler', () => {

@@ -21,6 +21,37 @@ vi.mock('@genfeedai/hooks/ui/use-crud-modal', () => ({
   }),
 }));
 
+vi.mock('@ui/primitives/button', () => ({
+  Button: ({
+    children,
+    onClick,
+  }: {
+    children?: React.ReactNode;
+    onClick?: () => void;
+  }) => (
+    <button type="button" onClick={onClick}>
+      {children}
+    </button>
+  ),
+  buttonVariants: () => '',
+}));
+
+vi.mock('@ui/primitives/field', () => ({
+  default: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+}));
+
+vi.mock('@ui/primitives/input', () => ({
+  Input: (props: { name?: string }) => (
+    <input data-testid={`input-${props.name ?? 'unknown'}`} />
+  ),
+}));
+
+vi.mock('@ui/primitives/select', () => ({
+  SelectField: (props: { name?: string }) => (
+    <select data-testid={`select-${props.name ?? 'unknown'}`} />
+  ),
+}));
+
 describe('ModalTag', () => {
   const defaultProps = {
     item: null,

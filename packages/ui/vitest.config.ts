@@ -8,8 +8,14 @@ const UI_COMPONENTS_SRC = path.resolve(UI_SRC, './components');
 const UI_PRIMITIVES_SRC = path.resolve(UI_SRC, './primitives');
 const UI_CORE_SRC = path.resolve(UI_SRC, './core');
 const UI_GENERATORS_SRC = path.resolve(UI_SRC, './generators');
+const UI_MODALS_SRC = path.resolve(UI_SRC, './modals');
 const UI_SEMANTIC_SRC = path.resolve(UI_SRC, './semantic');
 const UI_TASK_COMPOSER_SRC = path.resolve(UI_SRC, './task-composer');
+const SERWIST_NEXT_WORKER_MOCK = path.resolve(
+  __dirname,
+  './tests/__mocks__/serwist-next-worker.ts',
+);
+const SERWIST_MOCK = path.resolve(__dirname, './tests/__mocks__/serwist.ts');
 const XYFLOW_REACT_MOCK = path.resolve(
   __dirname,
   './tests/__mocks__/xyflow-react.tsx',
@@ -30,11 +36,26 @@ export default defineConfig({
       },
       {
         find: '@genfeedai/constants',
-        replacement: require.resolve('@genfeedai/constants'),
+        replacement: path.resolve(__dirname, '../constants/src/index.ts'),
+      },
+      {
+        find: '@genfeedai/constants/model-brands.constant',
+        replacement: path.resolve(
+          __dirname,
+          '../constants/src/model-brands.constant.ts',
+        ),
+      },
+      {
+        find: /^@genfeedai\/constants\/(.*)$/,
+        replacement: path.resolve(__dirname, '../constants/src/$1'),
       },
       {
         find: '@genfeedai/enums',
         replacement: require.resolve('@genfeedai/enums'),
+      },
+      {
+        find: /^@genfeedai\/enums\/(.*)$/,
+        replacement: path.resolve(__dirname, '../enums/src/$1'),
       },
       {
         find: '@genfeedai/helpers',
@@ -133,6 +154,14 @@ export default defineConfig({
         replacement: path.resolve(UI_GENERATORS_SRC, '$1'),
       },
       {
+        find: /^@ui\/modals\/compound\/(.*)$/,
+        replacement: path.resolve(UI_MODALS_SRC, './compound/$1'),
+      },
+      {
+        find: '@ui/modals/compound',
+        replacement: path.resolve(UI_MODALS_SRC, './compound'),
+      },
+      {
         find: '@ui/generators',
         replacement: UI_GENERATORS_SRC,
       },
@@ -157,6 +186,13 @@ export default defineConfig({
         replacement: path.resolve(UI_COMPONENTS_SRC, './styles/$1'),
       },
       {
+        find: '@ui/dropdowns/base/DropdownBase',
+        replacement: path.resolve(
+          UI_COMPONENTS_SRC,
+          './dropdowns/base/DropdownBase.tsx',
+        ),
+      },
+      {
         find: '@ui/styles',
         replacement: path.resolve(UI_COMPONENTS_SRC, './styles'),
       },
@@ -169,6 +205,14 @@ export default defineConfig({
         replacement: path.resolve(UI_COMPONENTS_SRC, './tests'),
       },
       {
+        find: /^@ui-constants\/(.*)$/,
+        replacement: path.resolve(UI_COMPONENTS_SRC, './constants/$1'),
+      },
+      {
+        find: '@ui-constants',
+        replacement: path.resolve(UI_COMPONENTS_SRC, './constants'),
+      },
+      {
         find: /^@ui\/(.*)$/,
         replacement: path.resolve(UI_COMPONENTS_SRC, '$1'),
       },
@@ -179,6 +223,14 @@ export default defineConfig({
       {
         find: '@xyflow/react/dist/style.css',
         replacement: EMPTY_STYLE_MOCK,
+      },
+      {
+        find: '@serwist/next/worker',
+        replacement: SERWIST_NEXT_WORKER_MOCK,
+      },
+      {
+        find: 'serwist',
+        replacement: SERWIST_MOCK,
       },
       {
         find: '@xyflow/react',

@@ -18,9 +18,15 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'brand-1',
     brands: [
-      { id: 'brand-1', isDarkroomEnabled: false, label: 'Acme Brand' },
-      { id: 'brand-2', isDarkroomEnabled: true, label: 'Side Brand' },
+      { id: 'brand-1', isDarkroomEnabled: false, label: 'Acme Brand', slug: 'acme-brand' },
+      { id: 'brand-2', isDarkroomEnabled: true, label: 'Side Brand', slug: 'side-brand' },
     ],
+    selectedBrand: {
+      id: 'brand-1',
+      label: 'Acme Brand',
+      organization: { slug: 'acme-org' },
+      slug: 'acme-brand',
+    },
   }),
 }));
 
@@ -51,6 +57,10 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/library/ingredients',
+  useParams: () => ({
+    brandSlug: 'acme-brand',
+    orgSlug: 'acme-org',
+  }),
   useRouter: () => ({
     push: mockPush,
     refresh: vi.fn(),
@@ -89,9 +99,6 @@ describe('TopbarBrandSwitcher', () => {
     render(<TopbarBrandSwitcher />);
 
     expect(screen.getByTestId('brand-switcher-trigger')).toHaveTextContent(
-      'Brand',
-    );
-    expect(screen.getByTestId('brand-switcher-trigger')).toHaveTextContent(
       'Acme Brand',
     );
   });
@@ -105,7 +112,7 @@ describe('TopbarBrandSwitcher', () => {
     ]);
 
     capturedFooterActions[0]?.onAction();
-    expect(mockPush).toHaveBeenCalledWith('/settings/brands/brand-1');
+    expect(mockPush).toHaveBeenCalledWith('/acme-org/~/settings/brands/acme-brand');
 
     capturedFooterActions[1]?.onAction();
     expect(openBrandOverlaySpy).toHaveBeenCalledWith(null);

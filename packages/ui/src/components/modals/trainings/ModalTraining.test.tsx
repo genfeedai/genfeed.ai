@@ -20,13 +20,14 @@ vi.mock('@ui/modals/actions/ModalActions', () => ({
   ),
 }));
 
-vi.mock('@ui/buttons/base/Button', () => ({
+vi.mock('@ui/primitives/button', () => ({
   __esModule: true,
-  default: ({ label, children, onClick, ...props }: BaseButtonProps) => (
+  Button: ({ label, children, onClick, ...props }: BaseButtonProps) => (
     <button type="button" onClick={onClick} {...props}>
       {label || children}
     </button>
   ),
+  buttonVariants: () => '',
 }));
 
 vi.mock('@ui/primitives/field', () => ({
@@ -38,12 +39,12 @@ vi.mock('@ui/primitives/field', () => ({
 
 vi.mock('@ui/primitives/input', () => ({
   __esModule: true,
-  default: () => <input data-testid="form-input" />,
+  Input: () => <input data-testid="form-input" />,
 }));
 
 vi.mock('@ui/primitives/select', () => ({
   __esModule: true,
-  default: ({ children }: PropsWithChildren) => (
+  SelectField: ({ children }: PropsWithChildren) => (
     <select data-testid="form-select">{children}</select>
   ),
 }));
