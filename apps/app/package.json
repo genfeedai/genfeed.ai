@@ -22,7 +22,7 @@
     "@radix-ui/react-collapsible": "^1.1.12",
     "@remotion/player": "4.0.448",
     "@stripe/react-stripe-js": "6.1.0",
-    "@stripe/stripe-js": "9.1.0",
+    "@stripe/stripe-js": "9.2.0",
     "@tiptap/core": "3.22.3",
     "@tiptap/extension-blockquote": "3.22.3",
     "@tiptap/extension-bold": "3.22.3",

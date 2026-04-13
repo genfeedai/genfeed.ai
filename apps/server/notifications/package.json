@@ -2,7 +2,7 @@
   "dependencies": {
     "@genfeedai/config": "workspace:*",
     "@genfeedai/enums": "workspace:*",
-    "@slack/web-api": "7.15.0"
+    "@slack/web-api": "7.15.1"
   },
   "description": "Genfeed Notifications Service",
   "devDependencies": {},

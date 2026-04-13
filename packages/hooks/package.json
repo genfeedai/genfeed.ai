@@ -9,7 +9,7 @@
     "@genfeedai/utils": "workspace:*",
     "@xyflow/react": "12.10.2",
     "@growthbook/growthbook-react": "1.6.5",
-    "gsap": "3.14.2"
+    "gsap": "3.15.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "6.9.1",

@@ -1,8 +1,8 @@
 {
   "dependencies": {
     "@anthropic-ai/sdk": "0.88.0",
-    "@aws-sdk/client-cloudfront": "3.1029.0",
-    "@aws-sdk/client-ec2": "3.1029.0",
+    "@aws-sdk/client-cloudfront": "3.1030.0",
+    "@aws-sdk/client-ec2": "3.1030.0",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/integrations": "workspace:*",
     "@genfeedai/serializers": "workspace:*",
@@ -22,7 +22,7 @@
   },
   "description": "Genfeed API Service",
   "devDependencies": {
-    "@nestjs/testing": "11.1.18",
+    "@nestjs/testing": "11.1.19",
     "@types/rss": "0.0.32",
     "mongodb": "7.1.1",
     "unplugin-swc": "1.5.9",
