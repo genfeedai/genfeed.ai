@@ -66,7 +66,7 @@ describe('app root layout', () => {
       } as never),
     );
 
-    expect(screen.getByText('App child')).toBeInTheDocument();
+    expect(screen.getByText('App child')).toBeTruthy();
     expect(appProvidersSpy).toHaveBeenCalledTimes(1);
     expect(appProvidersSpy).toHaveBeenCalledWith(
       expect.objectContaining({

@@ -1,10 +1,22 @@
+import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   resolve: {
-    alias: {
-      '@': './src',
-    },
+    alias: [
+      {
+        find: /^@genfeedai\/serializers$/,
+        replacement: path.resolve(__dirname, '../serializers/src/index.ts'),
+      },
+      {
+        find: /^@serializers\/(.*)$/,
+        replacement: path.resolve(__dirname, '../serializers/src/$1'),
+      },
+      {
+        find: '@',
+        replacement: path.resolve(__dirname, './src'),
+      },
+    ],
   },
   test: {
     coverage: {
