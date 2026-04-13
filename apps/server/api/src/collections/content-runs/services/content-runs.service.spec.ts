@@ -1,11 +1,9 @@
 import { ContentRun } from '@api/collections/content-runs/schemas/content-run.schema';
-import {
-  ContentRunsService,
-  type CreateContentRunInput,
-} from '@api/collections/content-runs/services/content-runs.service';
+import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ContentRunSource, ContentRunStatus } from '@genfeedai/enums';
+import type { CreateContentRunInput } from '@genfeedai/interfaces';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
@@ -44,12 +42,41 @@ describe('ContentRunsService', () => {
   describe('createRun', () => {
     const input: CreateContentRunInput = {
       brand: brandId,
+      brief: {
+        angle: 'Founder-led breakdown',
+        audience: 'Indie founders',
+        evidence: ['high comment velocity', 'repeat founder pain'],
+        hypothesis: 'Specific founder pain will outperform generic AI hype',
+      },
       creditsUsed: 10,
       input: { prompt: 'Write a post about AI' },
       organization: orgId,
+      publish: {
+        experimentId: 'exp-founder-loop',
+        metadata: { slot: 'morning' },
+        platform: 'twitter',
+        scheduledFor: new Date('2026-04-14T09:00:00.000Z'),
+      },
+      recommendations: [
+        {
+          action: 'Turn the winner into a thread',
+          confidence: 0.81,
+          metadata: { source: 'analytics' },
+          rationale: 'Long-form follow-up matches the winning hook',
+          type: 'extend-winner',
+        },
+      ],
       skillSlug: 'content-writing',
       source: ContentRunSource.HOSTED,
       status: ContentRunStatus.PENDING,
+      variants: [
+        {
+          id: 'variant-a',
+          metadata: { hook: 'pain-first' },
+          platform: 'twitter',
+          type: 'post',
+        },
+      ],
     };
 
     it('creates a run with ObjectId-converted brand and org', async () => {
@@ -60,10 +87,14 @@ describe('ContentRunsService', () => {
       expect(mockModel.create).toHaveBeenCalledWith(
         expect.objectContaining({
           brand: expect.any(Types.ObjectId),
+          brief: input.brief,
           creditsUsed: 10,
           isDeleted: false,
           organization: expect.any(Types.ObjectId),
+          publish: input.publish,
+          recommendations: input.recommendations,
           skillSlug: 'content-writing',
+          variants: input.variants,
         }),
       );
     });
@@ -75,6 +106,10 @@ describe('ContentRunsService', () => {
 
       expect(result.skillSlug).toBe('content-writing');
       expect(result.creditsUsed).toBe(10);
+      expect(result.brief?.hypothesis).toBe(
+        'Specific founder pain will outperform generic AI hype',
+      );
+      expect(result.variants?.[0]?.id).toBe('variant-a');
     });
   });
 
@@ -100,6 +135,57 @@ describe('ContentRunsService', () => {
         { new: true },
       );
       expect(result.status).toBe(ContentRunStatus.COMPLETED);
+    });
+
+    it('patches lifecycle fields without introducing a parallel run contract', async () => {
+      const analyticsSummary = {
+        engagementRate: 0.17,
+        impressions: 4200,
+        metadata: { window: '7d' },
+        summary: 'Founder-led hook outperformed baseline',
+        topSignals: ['saves', 'qualified replies'],
+        winningVariantId: 'variant-b',
+      };
+      const recommendations = [
+        {
+          action: 'Repurpose into LinkedIn carousel',
+          confidence: 0.76,
+          metadata: { priority: 'next' },
+          rationale: 'Winning variant maps to a longer-form visual format',
+          type: 'repurpose',
+        },
+      ];
+
+      mockModel.findOneAndUpdate.mockResolvedValue({
+        _id: runId,
+        analyticsSummary,
+        recommendations,
+        status: ContentRunStatus.COMPLETED,
+      });
+
+      const result = await service.patchRun(orgId, runId, {
+        analyticsSummary,
+        recommendations,
+        status: ContentRunStatus.COMPLETED,
+      });
+
+      expect(mockModel.findOneAndUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          _id: expect.any(Types.ObjectId),
+          isDeleted: false,
+          organization: expect.any(Types.ObjectId),
+        }),
+        {
+          $set: {
+            analyticsSummary,
+            recommendations,
+            status: ContentRunStatus.COMPLETED,
+          },
+        },
+        { new: true },
+      );
+      expect(result.analyticsSummary).toEqual(analyticsSummary);
+      expect(result.recommendations).toEqual(recommendations);
     });
 
     it('throws NotFoundException when run not found', async () => {

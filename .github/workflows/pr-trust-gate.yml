@@ -1,6 +1,6 @@
-# Trust gate for external contributor PRs (cal.com pattern)
-# External PRs require the `run-ci` label before CI runs.
-# Internal contributors (OWNER, MEMBER, COLLABORATOR) bypass this gate.
+# Trust gate for external contributor PRs.
+# External fork PRs require the `run-ci` label before CI runs.
+# Same-repo PRs and internal contributors bypass this gate.
 
 name: PR Trust Gate
 
@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Check contributor trust
         id: check
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const { data: pr } = await github.rest.pulls.get({
@@ -29,11 +29,16 @@ jobs:
 
             const association = pr.author_association;
             const trustedRoles = ['OWNER', 'MEMBER', 'COLLABORATOR'];
-            const isTrusted = trustedRoles.includes(association);
+            const isSameRepository =
+              pr.head.repo?.full_name === `${context.repo.owner}/${context.repo.repo}`;
+            const isTrusted = isSameRepository || trustedRoles.includes(association);
             const hasLabel = pr.labels.some(l => l.name === 'run-ci');
 
             if (isTrusted) {
-              core.info(`Trusted contributor (${association}) — CI allowed`);
+              const trustReason = isSameRepository
+                ? 'same-repo PR'
+                : `trusted contributor (${association})`;
+              core.info(`${trustReason} — CI allowed`);
               core.setOutput('trusted', 'true');
             } else if (hasLabel) {
               core.info(`External contributor with run-ci label — CI allowed`);

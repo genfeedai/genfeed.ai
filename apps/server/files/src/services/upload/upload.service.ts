@@ -339,7 +339,7 @@ export class UploadService {
       // Generate storage path: ingredients/${type}/${key}
       const storagePath = `ingredients/${type}/${key}`;
 
-      // Upload using storage provider (returns public URL)
+      // Upload using storage provider (returns a storage path/key)
       const s3UploadStartTime = Date.now();
       this.loggerService.log(`${url} starting storage upload`, {
         bufferSize: `${(body.length / (1024 * 1024)).toFixed(2)} MB`,
@@ -348,7 +348,8 @@ export class UploadService {
         storagePath,
       });
 
-      const publicUrl = await this.storage.upload(body, storagePath);
+      const storedPath = await this.storage.upload(body, storagePath);
+      const publicUrl = this.storage.getUrl(storedPath);
 
       const s3UploadDuration = Date.now() - s3UploadStartTime;
       const totalDuration = Date.now() - uploadStartTime;
@@ -359,7 +360,7 @@ export class UploadService {
         key,
         prepareDuration: `${prepareDuration}ms`,
         publicUrl,
-        storagePath,
+        storagePath: storedPath,
         ...(imageProcessingDuration > 0 && {
           imageProcessingDuration: `${imageProcessingDuration}ms`,
         }),

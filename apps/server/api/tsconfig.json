@@ -12,6 +12,9 @@
       "@genfeedai/agent": ["../../../packages/agent/src/index.ts"],
       "@genfeedai/agent/*": ["../../../packages/agent/src/*"],
       "@genfeedai/config": ["../../../packages/config/src/index.ts"],
+      "@genfeedai/harness": ["../../../packages/harness/src/index.ts"],
+      "@genfeedai/harness/*": ["../../../packages/harness/src/*"],
+      "@genfeedai/ee-harness": ["../../../ee/packages/harness/src/index.ts"],
       "@genfeedai/integrations": [
         "../../../packages/integrations/src/index.ts"
       ],

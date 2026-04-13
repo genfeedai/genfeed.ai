@@ -22,7 +22,15 @@ import mongooseAggregatePaginateV2 from 'mongoose-aggregate-paginate-v2';
             schema.plugin(mongooseAggregatePaginateV2);
 
             schema.index(
-              { isDeleted: 1, organizationId: 1, role: 1, status: 1 },
+              {
+                isDeleted: 1,
+                organizationId: 1,
+                role: 1,
+                status: 1,
+                tier: 1,
+                lastStartedAt: -1,
+                createdAt: -1,
+              },
               {
                 partialFilterExpression: {
                   isDeleted: false,

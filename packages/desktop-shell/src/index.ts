@@ -62,14 +62,19 @@ const ensureDataDirectory = (appName: string): string => {
   return appDir;
 };
 
+export function buildShellDatabasePath(appName: string): string {
+  return path.join(ensureDataDirectory(appName), `${appName}.sqlite`);
+}
+
 type SqliteDatabase = InstanceType<typeof Database>;
 
 export class ShellDatabaseService {
   private readonly db: SqliteDatabase;
+  private readonly dbPath: string;
 
   constructor(appName: string, migrations = '') {
-    const appDir = ensureDataDirectory(appName);
-    this.db = new Database(path.join(appDir, `${appName}.sqlite`));
+    this.dbPath = buildShellDatabasePath(appName);
+    this.db = new Database(this.dbPath);
     this.db.pragma('journal_mode = WAL');
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS kv_store (
@@ -110,11 +115,13 @@ export class ShellDatabaseService {
   deleteValue(key: string): void {
     this.db.prepare('DELETE FROM kv_store WHERE key = ?').run(key);
   }
+
+  getDatabasePath(): string {
+    return this.dbPath;
+  }
 }
 
 export class ShellTelemetryService {
-  constructor(private readonly _config: ShellTelemetryConfig) {}
-
   init(): void {}
 
   setUser(_user: ShellTelemetryUser | null): void {}

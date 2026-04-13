@@ -21,7 +21,7 @@ import {
   ContentFormat,
   PostStatus,
 } from '@genfeedai/enums';
-import type { IBatchSummary } from '@genfeedai/interfaces';
+import type { IBatchSummary, ManualReviewBatchItem } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -32,28 +32,6 @@ interface BatchItem {
   status: BatchItemStatus;
   platform?: string;
   scheduledDate?: Date;
-}
-
-interface ManualReviewBatchItem {
-  caption?: string;
-  format: ReviewBatchItemFormat;
-  gateOverallScore?: number;
-  gateReasons: string[];
-  mediaUrl?: string;
-  opportunitySourceType?: 'trend' | 'event' | 'evergreen';
-  opportunityTopic?: string;
-  platform?: string;
-  postId?: Types.ObjectId;
-  prompt?: string;
-  reviewEvents: Array<{
-    decision: 'approved' | 'rejected' | 'request_changes';
-    feedback?: string;
-    reviewedAt: Date;
-  }>;
-  sourceActionId?: string;
-  sourceWorkflowId?: string;
-  sourceWorkflowName?: string;
-  status: BatchItemStatus;
 }
 
 interface BatchProcessItemContext {
@@ -215,40 +193,55 @@ export class BatchGenerationService {
       const ingredientIds = reviewItem.ingredientId
         ? [new Types.ObjectId(reviewItem.ingredientId)]
         : [];
+      const contentRunId = reviewItem.contentRunId
+        ? new Types.ObjectId(reviewItem.contentRunId)
+        : undefined;
       const post = await this.postsService.create({
         brand: brandObjectId,
+        contentRunId,
+        creativeVersion: reviewItem.creativeVersion,
         description:
           reviewItem.caption ??
           reviewItem.prompt ??
           'Review this asset before publishing',
+        hookVersion: reviewItem.hookVersion,
         ingredients: ingredientIds,
         label: reviewItem.label ?? `Review ${reviewItem.format} draft`,
         organization: orgObjectId,
         platform: reviewItem.platform as never,
+        publishIntent: reviewItem.publishIntent,
         promptUsed: reviewItem.prompt,
+        scheduleSlot: reviewItem.scheduleSlot,
         sourceActionId: reviewItem.sourceActionId,
         sourceWorkflowId: reviewItem.sourceWorkflowId,
         sourceWorkflowName: reviewItem.sourceWorkflowName,
         status: PostStatus.DRAFT,
         user: userObjectId,
+        variantId: reviewItem.variantId,
       } as never);
 
       items.push({
         caption: reviewItem.caption,
+        contentRunId,
+        creativeVersion: reviewItem.creativeVersion,
         format: reviewItem.format,
         gateOverallScore: reviewItem.gateOverallScore,
         gateReasons: reviewItem.gateReasons ?? [],
+        hookVersion: reviewItem.hookVersion,
         mediaUrl: reviewItem.mediaUrl,
         opportunitySourceType: reviewItem.opportunitySourceType,
         opportunityTopic: reviewItem.opportunityTopic,
         platform: reviewItem.platform,
         postId: post._id as Types.ObjectId,
+        publishIntent: reviewItem.publishIntent,
         prompt: reviewItem.prompt,
         reviewEvents: [],
+        scheduleSlot: reviewItem.scheduleSlot,
         sourceActionId: reviewItem.sourceActionId,
         sourceWorkflowId: reviewItem.sourceWorkflowId,
         sourceWorkflowName: reviewItem.sourceWorkflowName,
         status: BatchItemStatus.COMPLETED,
+        variantId: reviewItem.variantId,
       });
     }
 
@@ -545,6 +538,7 @@ export class BatchGenerationService {
           batch.organization,
           {
             additionalContext: batch.style ? [batch.style] : undefined,
+            brandId: batch.brand,
             platform: item.platform as never,
             topic,
             variationsCount: 1,

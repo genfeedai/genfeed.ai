@@ -1690,13 +1690,17 @@ export class DarkroomService {
     );
 
     const fleetResult = await this.fleetService.generateVoice({
+      organizationId,
       referenceAudio,
       text: data.text,
       voicePreset: data.voiceId,
     });
 
     if (fleetResult?.jobId) {
-      const audioUrl = await this.pollFleetVoiceAudioUrl(fleetResult.jobId);
+      const audioUrl = await this.pollFleetVoiceAudioUrl(
+        fleetResult.jobId,
+        organizationId,
+      );
       if (audioUrl) {
         return { audioUrl };
       }
@@ -1970,9 +1974,14 @@ export class DarkroomService {
 
   private async pollFleetVoiceAudioUrl(
     jobId: string,
+    organizationId?: string,
   ): Promise<string | undefined> {
     for (let attempt = 0; attempt < 10; attempt++) {
-      const result = await this.fleetService.pollJob('voices', jobId);
+      const result = await this.fleetService.pollJob(
+        'voices',
+        jobId,
+        organizationId,
+      );
       const audioUrl = result?.audioUrl;
       if (typeof audioUrl === 'string' && audioUrl !== '') {
         return audioUrl;

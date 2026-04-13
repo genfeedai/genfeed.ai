@@ -37,11 +37,12 @@
  */
 
 /**
- * Opaque reference — accepts `string` or Mongoose `Types.ObjectId`. OSS either
- * passes this straight into another Mongoose query or stringifies it; it
- * never relies on a specific runtime shape.
+ * ID-like reference — accepts `string` or any object with a stable
+ * `toString()` representation (for example Mongoose `Types.ObjectId`).
+ * OSS either passes this straight into another Mongoose query or stringifies
+ * it; it never relies on a more specific runtime shape.
  */
-export type SubscriptionRefId = unknown;
+export type SubscriptionRefId = string | { toString(): string };
 
 /**
  * Minimal OSS-facing shape of a subscription record. Every field is optional
@@ -80,6 +81,7 @@ export interface ISubscriptionFindOneFilter {
 export interface ISubscriptionFindAllOptions {
   page?: number;
   limit?: number;
+  pagination?: boolean;
   [key: string]: unknown;
 }
 
@@ -89,7 +91,7 @@ export interface ISubscriptionFindAllOptions {
  * signature keeps the type open.
  */
 export interface ISubscriptionFindAllResult {
-  total?: number;
+  total: number;
   [key: string]: unknown;
 }
 

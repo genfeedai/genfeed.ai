@@ -35,6 +35,7 @@ type OrganizationMineResponseItem = {
 const hasClerkKeys =
   Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) &&
   Boolean(process.env.CLERK_SECRET_KEY);
+const isDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
 
 /**
  * In self-hosted core mode Clerk keys are absent.
@@ -286,6 +287,42 @@ const clerkProxy = isCloudConnected
 
 export default function proxy(req: NextRequest, event: NextFetchEvent) {
   if (req.nextUrl.pathname === '/playwright-ready') {
+    return NextResponse.next();
+  }
+
+  if (isDesktopShell && !isCloudConnected) {
+    const { pathname } = req.nextUrl;
+    const hasDesktopToken = Boolean(
+      req.headers.get('x-genfeed-desktop-token')?.trim(),
+    );
+    const isAuthRoute =
+      pathname.startsWith('/login') ||
+      pathname.startsWith('/sign-in') ||
+      pathname.startsWith('/sign-up') ||
+      pathname.startsWith('/logout') ||
+      pathname.startsWith('/onboarding');
+
+    if (pathname === '/') {
+      return redirectPreservingSearch(
+        req,
+        hasDesktopToken ? '/workspace/overview' : '/login',
+      );
+    }
+
+    if (pathname === '/logout') {
+      return hasDesktopToken
+        ? NextResponse.next()
+        : redirectPreservingSearch(req, '/login');
+    }
+
+    if (isAuthRoute && hasDesktopToken) {
+      return redirectPreservingSearch(req, '/workspace/overview');
+    }
+
+    if (!hasDesktopToken && isBareProtectedPath(pathname)) {
+      return redirectPreservingSearch(req, '/login');
+    }
+
     return NextResponse.next();
   }
 

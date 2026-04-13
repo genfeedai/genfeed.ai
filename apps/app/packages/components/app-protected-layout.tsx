@@ -139,6 +139,13 @@ const LazyAgentThreadList = dynamic<AgentThreadListProps>(
   },
 );
 
+const WORKFLOWS_NAMED_ROUTES = new Set([
+  'executions',
+  'autopilot',
+  'configuration',
+  'skills',
+]);
+
 function AgentThreadCommandsBridge({
   threads,
   enabled,
@@ -241,19 +248,14 @@ function AppLayoutWithDynamicMenu({
   })();
   const isSettingsRoute = pathname.startsWith('/settings');
   const hasSecondaryTopbar = !isAdminRoute && pathname.startsWith('/studio');
-  const WORKFLOWS_NAMED_ROUTES = new Set([
-    'executions',
-    'autopilot',
-    'configuration',
-    'skills',
-  ]);
   const isEditorCanvasRoute =
     pathname === '/editor/new' ||
     /^\/editor\/[^/]+$/.test(pathname) ||
     pathname === '/workflows/new' ||
     (/^\/workflows\/([^/]+)$/.test(pathname) &&
       !WORKFLOWS_NAMED_ROUTES.has(pathname.split('/')[2] ?? ''));
-  const isWorkflowsRoute = pathname.startsWith('/workflows');
+  const isWorkflowsRoute =
+    pathname.startsWith('/workflows') || pathname.startsWith('/orchestration');
   const isEditorRoute = pathname.startsWith('/editor');
   const isAnalyticsRoute = pathname.startsWith('/analytics');
 
@@ -617,7 +619,7 @@ function AppLayoutWithDynamicMenu({
         <AppSidebar
           items={workflowsMenuItems}
           logoHref={withTaskContextHref(
-            buildHref(WORKFLOWS_LOGO_HREF),
+            orgHref(WORKFLOWS_LOGO_HREF),
             taskContextSearchParams,
           )}
           backHref={withTaskContextHref(
@@ -735,6 +737,7 @@ function AppLayoutWithDynamicMenu({
                     currentApp={currentApp}
                     orgSlug={orgSlug}
                     brandSlug={brandSlug}
+                    preservedSearch={taskContextSearchParams.toString()}
                   />
                   <TopbarOrganizationSwitcher />
                 </div>
@@ -879,59 +882,20 @@ export default function AppProtectedLayout({
   initialBootstrap,
 }: AppProtectedLayoutProps) {
   const rawPathname = usePathname();
-  // Strip org/brand prefix for route detection
-  const pathname = useMemo(() => {
-    const parts = rawPathname.split('/').filter(Boolean);
-    if (parts.length >= 3) {
-      const knownPrefixes = [
-        'workspace',
-        'studio',
-        'settings',
-        'agents',
-        'posts',
-        'analytics',
-        'workflows',
-        'library',
-        'chat',
-        'compose',
-        'editor',
-        'research',
-        'tasks',
-        'overview',
-        'ingredients',
-        'videos',
-        'edit',
-        'orchestration',
-        'elements',
-        'bots',
-        'admin',
-      ];
-      if (
-        parts[1] === '~' ||
-        knownPrefixes.some((prefix) => prefix === parts[2])
-      ) {
-        const rest = parts[1] === '~' ? parts.slice(2) : parts.slice(2);
-        return `/${rest.join('/')}`;
-      }
-    }
-    return rawPathname;
-  }, [rawPathname]);
+  const pathname = useMemo(
+    () => normalizeProtectedPathname(rawPathname),
+    [rawPathname],
+  );
   const isWorkspaceRoute =
     pathname === '/workspace' ||
     pathname === '/overview' ||
     pathname.startsWith('/workspace/');
-  const workflowsNamedRoutes = new Set([
-    'executions',
-    'autopilot',
-    'configuration',
-    'skills',
-  ]);
   const isEditorCanvasRoute =
     pathname === '/editor/new' ||
     /^\/editor\/[^/]+$/.test(pathname) ||
     pathname === '/workflows/new' ||
     (/^\/workflows\/([^/]+)$/.test(pathname) &&
-      !workflowsNamedRoutes.has(pathname.split('/')[2] ?? ''));
+      !WORKFLOWS_NAMED_ROUTES.has(pathname.split('/')[2] ?? ''));
 
   return (
     <ProtectedProviders

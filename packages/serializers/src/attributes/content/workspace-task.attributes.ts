@@ -1,9 +1,6 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const workspaceTaskAttributes = createEntityAttributes([
-  'organization',
-  'brand',
-  'user',
   'title',
   'request',
   'outputType',
@@ -21,11 +18,17 @@ export const workspaceTaskAttributes = createEntityAttributes([
   'linkedIssueId',
   'linkedRunIds',
   'linkedOutputIds',
+  'approvedOutputIds',
   'linkedApprovalIds',
   'planningThreadId',
   'resultPreview',
+  'qualityAssessment',
+  'progress',
+  'eventStream',
   'failureReason',
   'requestedChangesReason',
+  'dismissedReason',
   'completedAt',
   'dismissedAt',
+  'decomposition',
 ]);

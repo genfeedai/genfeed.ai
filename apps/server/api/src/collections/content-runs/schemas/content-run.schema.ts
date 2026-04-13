@@ -1,4 +1,11 @@
 import { ContentRunSource, ContentRunStatus } from '@genfeedai/enums';
+import type {
+  ContentRunAnalyticsSummary,
+  ContentRunBrief,
+  ContentRunPublishContext,
+  ContentRunRecommendation,
+  ContentRunVariant,
+} from '@genfeedai/interfaces';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { type Document, Types } from 'mongoose';
 
@@ -49,6 +56,21 @@ export class ContentRun {
 
   @Prop({ required: false, type: Object })
   output?: ContentDraftSnapshot;
+
+  @Prop({ required: false, type: Object })
+  brief?: ContentRunBrief;
+
+  @Prop({ default: [], type: [Object] })
+  variants!: ContentRunVariant[];
+
+  @Prop({ required: false, type: Object })
+  publish?: ContentRunPublishContext;
+
+  @Prop({ required: false, type: Object })
+  analyticsSummary?: ContentRunAnalyticsSummary;
+
+  @Prop({ default: [], type: [Object] })
+  recommendations!: ContentRunRecommendation[];
 
   @Prop({ required: false, type: String })
   error?: string;

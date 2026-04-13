@@ -212,5 +212,90 @@ describe('BusinessAnalyticsService', () => {
       expect(result.revenue.today).toBe(5000);
       expect(result.revenue.last7d).toBe(25000);
     });
+
+    it('should map aggregate inputs into a dashboard-visible analytics response', async () => {
+      const dailyRevenueSeries = Array.from({ length: 14 }, (_, index) => ({
+        amount: index + 1,
+        date: `2026-04-${String(index + 1).padStart(2, '0')}`,
+      }));
+      const dailySoldSeries = Array.from({ length: 14 }, (_, index) => ({
+        amount: (index + 1) * 10,
+        date: `2026-04-${String(index + 1).padStart(2, '0')}`,
+      }));
+      const dailyConsumedSeries = Array.from({ length: 14 }, (_, index) => ({
+        amount: (index + 1) * 5,
+        date: `2026-04-${String(index + 1).padStart(2, '0')}`,
+      }));
+      const dailyIngredientSeries = Array.from({ length: 14 }, (_, index) => ({
+        count: index + 2,
+        date: `2026-04-${String(index + 1).padStart(2, '0')}`,
+      }));
+
+      mockAggregateExec
+        .mockResolvedValueOnce([{ total: 100 }]) // revenue today
+        .mockResolvedValueOnce([{ total: 300 }]) // revenue 7d
+        .mockResolvedValueOnce([{ total: 900 }]) // revenue 30d
+        .mockResolvedValueOnce([{ total: 700 }]) // revenue mtd
+        .mockResolvedValueOnce(dailyRevenueSeries) // revenue daily series
+        .mockResolvedValueOnce([{ total: 300 }]) // revenue this week
+        .mockResolvedValueOnce([{ total: 150 }]) // revenue last week
+        .mockResolvedValueOnce([{ total: 1200 }]) // credits sold
+        .mockResolvedValueOnce([{ total: 800 }]) // credits consumed
+        .mockResolvedValueOnce(dailySoldSeries) // daily sold series
+        .mockResolvedValueOnce(dailyConsumedSeries) // daily consumed series
+        .mockResolvedValueOnce([{ total: 200 }]) // consumed this week
+        .mockResolvedValueOnce([{ total: 100 }]) // consumed last week
+        .mockResolvedValueOnce([{ total: 2 }]) // ingredients today
+        .mockResolvedValueOnce([{ total: 7 }]) // ingredients 7d
+        .mockResolvedValueOnce([{ total: 20 }]) // ingredients 30d
+        .mockResolvedValueOnce(dailyIngredientSeries) // ingredient daily series
+        .mockResolvedValueOnce([{ category: 'image', count: 12 }]) // category breakdown
+        .mockResolvedValueOnce([{ total: 10 }]) // ingredients this week
+        .mockResolvedValueOnce([{ total: 5 }]) // ingredients last week
+        .mockResolvedValueOnce([
+          { amount: 500, organizationId: 'org-1', organizationName: 'Acme' },
+        ]) // leaders by revenue
+        .mockResolvedValueOnce([
+          { amount: 250, organizationId: 'org-1', organizationName: 'Acme' },
+        ]) // leaders by credits
+        .mockResolvedValueOnce([]); // leaders by ingredients
+
+      mockCountDocuments.mockResolvedValue(0);
+      mockFindLean.mockResolvedValue([]);
+
+      const result = await service.getBusinessAnalytics();
+
+      expect(result.revenue).toMatchObject({
+        last7d: 300,
+        last30d: 900,
+        mtd: 700,
+        today: 100,
+      });
+      expect(result.credits).toMatchObject({
+        consumed: 800,
+        sold: 1200,
+      });
+      expect(result.ingredients).toMatchObject({
+        last7d: 7,
+        last30d: 20,
+        today: 2,
+      });
+      expect(result.leaders.byRevenue[0]).toMatchObject({
+        amount: 500,
+        organizationId: 'org-1',
+        organizationName: 'Acme',
+      });
+      expect(result.comparisons).toMatchObject({
+        cashInVsUsageValue: {
+          cashIn: 1200,
+          usageValue: 800,
+        },
+        outstandingPrepaid: 400,
+        soldVsConsumed: {
+          consumed: 800,
+          sold: 1200,
+        },
+      });
+    });
   });
 });

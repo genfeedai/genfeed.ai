@@ -21,6 +21,7 @@ const emptyBootstrap: IDesktopBootstrap = {
     apiEndpoint: '',
     appEndpoint: '',
     appName: 'desktop',
+    appPort: 3230,
     authEndpoint: '',
     cdnUrl: '',
     wsEndpoint: '',

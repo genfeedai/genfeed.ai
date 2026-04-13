@@ -108,6 +108,7 @@ export interface CreateTaskInput {
 export interface ListTasksParams {
   assigneeAgentId?: string;
   assigneeUserId?: string;
+  limit?: number;
   page?: number;
   parentId?: string;
   priority?: TaskPriority;
@@ -165,6 +166,7 @@ export class Task {
   eventStream?: TaskEvent[];
   failureReason?: string;
   requestedChangesReason?: string;
+  dismissedReason?: string;
   decomposition?: Record<string, unknown>;
   completedAt?: string;
   dismissedAt?: string;

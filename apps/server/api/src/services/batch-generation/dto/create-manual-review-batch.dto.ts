@@ -96,6 +96,55 @@ class ManualReviewBatchItemDto {
   sourceWorkflowName?: string;
 
   @ApiProperty({
+    description: 'Originating content run identifier for publish attribution',
+    required: false,
+  })
+  @IsOptional()
+  @IsMongoId()
+  contentRunId?: string;
+
+  @ApiProperty({
+    description: 'Originating variant identifier inside the content run',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  variantId?: string;
+
+  @ApiProperty({
+    description: 'Hook version label used for the publish experiment',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  hookVersion?: string;
+
+  @ApiProperty({
+    description: 'Creative version label used for the publish experiment',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  creativeVersion?: string;
+
+  @ApiProperty({
+    description: 'Named schedule slot used for attribution',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  scheduleSlot?: string;
+
+  @ApiProperty({
+    description:
+      'High-level publish intent such as test, campaign, or evergreen',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  publishIntent?: string;
+
+  @ApiProperty({
     description: 'Opportunity topic that produced the review item',
     required: false,
   })

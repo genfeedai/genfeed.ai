@@ -317,6 +317,7 @@ describe('BatchGenerationService', () => {
       const ingredientId = new Types.ObjectId().toString();
       const postId = new Types.ObjectId();
       const batchId = new Types.ObjectId();
+      const contentRunId = new Types.ObjectId().toString();
 
       brandsService.findOne.mockResolvedValue(mockBrand as never);
       postsService.create.mockResolvedValue({ _id: postId } as never);
@@ -336,11 +337,17 @@ describe('BatchGenerationService', () => {
             {
               _id: new Types.ObjectId().toString(),
               caption: 'Review this launch clip',
+              contentRunId: new Types.ObjectId(contentRunId),
+              creativeVersion: 'creative-a',
               format: ContentFormat.VIDEO,
+              hookVersion: 'hook-a',
               platform: 'instagram',
               postId,
+              publishIntent: 'campaign-test',
               prompt: 'Review this launch clip',
+              scheduleSlot: 'morning',
               status: BatchItemStatus.COMPLETED,
+              variantId: 'variant-a',
             },
           ],
           platforms: ['instagram'],
@@ -355,17 +362,23 @@ describe('BatchGenerationService', () => {
           items: [
             {
               caption: 'Review this launch clip',
+              contentRunId,
+              creativeVersion: 'creative-a',
               format: ContentFormat.VIDEO,
               gateOverallScore: 87,
               gateReasons: ['Draft cleared the autopilot quality gate.'],
+              hookVersion: 'hook-a',
               ingredientId,
               label: 'Launch clip',
               opportunitySourceType: 'event',
               opportunityTopic: 'Launch clip topic',
               platform: 'instagram',
+              publishIntent: 'campaign-test',
               prompt: 'Review this launch clip',
+              scheduleSlot: 'morning',
               sourceActionId: 'opp-1',
               sourceWorkflowId: 'strategy-1',
+              variantId: 'variant-a',
             },
           ],
         },
@@ -376,13 +389,19 @@ describe('BatchGenerationService', () => {
       expect(postsService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           brand: new Types.ObjectId(brandId),
+          contentRunId: new Types.ObjectId(contentRunId),
+          creativeVersion: 'creative-a',
           description: 'Review this launch clip',
+          hookVersion: 'hook-a',
           ingredients: [new Types.ObjectId(ingredientId)],
           label: 'Launch clip',
           organization: new Types.ObjectId(orgId),
           platform: 'instagram',
+          publishIntent: 'campaign-test',
+          scheduleSlot: 'morning',
           status: PostStatus.DRAFT,
           user: new Types.ObjectId(userId),
+          variantId: 'variant-a',
         }),
       );
       expect(batchModel.create).toHaveBeenCalledWith(
@@ -391,12 +410,18 @@ describe('BatchGenerationService', () => {
           completedCount: 1,
           items: [
             expect.objectContaining({
+              contentRunId: new Types.ObjectId(contentRunId),
+              creativeVersion: 'creative-a',
               gateOverallScore: 87,
               gateReasons: ['Draft cleared the autopilot quality gate.'],
+              hookVersion: 'hook-a',
               opportunitySourceType: 'event',
               opportunityTopic: 'Launch clip topic',
+              publishIntent: 'campaign-test',
+              scheduleSlot: 'morning',
               sourceActionId: 'opp-1',
               sourceWorkflowId: 'strategy-1',
+              variantId: 'variant-a',
             }),
           ],
           platforms: ['instagram'],

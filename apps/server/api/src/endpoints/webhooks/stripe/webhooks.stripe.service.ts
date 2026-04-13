@@ -395,6 +395,17 @@ export class StripeWebhookService {
         return;
       }
 
+      if (session.metadata?.type) {
+        this.loggerService.warn(
+          `${url} ignoring unsupported checkout session type`,
+          {
+            sessionId: session.id,
+            type: session.metadata.type,
+          },
+        );
+        return;
+      }
+
       // Organization-level payment handling below
       if (session.mode === 'subscription') {
         // Subscription checkout - the subscription.created event will handle the creation

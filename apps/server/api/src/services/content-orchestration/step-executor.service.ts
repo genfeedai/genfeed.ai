@@ -132,12 +132,13 @@ export class StepExecutorService {
       case VideoTaskModel.COMFYUI: {
         const result = await this.fleetService.generateVideo({
           imageUrl,
+          organizationId: context.organizationId,
           prompt,
         });
         if (!result) {
           throw new Error('Fleet videos instance not available');
         }
-        return this.pollComfyUIJob(result.jobId);
+        return this.pollComfyUIJob(result.jobId, context.organizationId);
       }
 
       default:
@@ -222,13 +223,20 @@ export class StepExecutorService {
 
   // ── Helpers ─────────────────────────────────────────────────────────
 
-  private async pollComfyUIJob(jobId: string): Promise<StepResult> {
+  private async pollComfyUIJob(
+    jobId: string,
+    organizationId?: string,
+  ): Promise<StepResult> {
     const pollInterval = 10000;
     const timeout = 600000;
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeout) {
-      const status = await this.fleetService.pollJob('videos', jobId);
+      const status = await this.fleetService.pollJob(
+        'videos',
+        jobId,
+        organizationId,
+      );
 
       if (
         status &&

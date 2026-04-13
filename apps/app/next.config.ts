@@ -12,6 +12,12 @@ const withBundleAnalyzer = bundleAnalyzer({
 const workflowUiRoot = path.resolve(__dirname, '../../packages/workflow-ui');
 const helpersRoot = path.resolve(__dirname, '../../packages/helpers');
 const serializersRoot = path.resolve(__dirname, '../../packages/serializers');
+const desktopAuthRoot = path.resolve(__dirname, './src/lib/desktop-auth');
+const isDesktopShellBuild = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
+const hasClerkKeys =
+  Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) &&
+  Boolean(process.env.CLERK_SECRET_KEY);
+const useDesktopAuthShim = isDesktopShellBuild && !hasClerkKeys;
 
 const workflowUiAliases = {
   '@genfeedai/helpers': path.join(helpersRoot, 'src/index.ts'),
@@ -55,6 +61,9 @@ const workflowUiAliases = {
 const IS_LOCAL_APP_SHELL = !process.env.NEXT_PUBLIC_GENFEED_CLOUD;
 const DEFAULT_ORG = 'default';
 const DEFAULT_BRAND = 'default';
+const resolvedApiBaseUrl = (
+  process.env.API_URL || 'http://localhost:3010'
+).replace(/\/v1\/?$/, '');
 
 const selfHostedRewrites = IS_LOCAL_APP_SHELL
   ? [
@@ -83,10 +92,11 @@ const selfHostedOrgRewrites = IS_LOCAL_APP_SHELL
 
 const config = createAppNextConfig({
   appName: 'app',
+  output: process.env.GENFEED_DESKTOP_BUNDLE === '1' ? 'standalone' : undefined,
   pwa: { enabled: true },
   rewrites: async () => [
     {
-      destination: `${process.env.API_URL || 'http://localhost:3010'}/v1/:path*`,
+      destination: `${resolvedApiBaseUrl}/v1/:path*`,
       source: '/v1/:path*',
     },
     ...selfHostedRewrites,
@@ -179,6 +189,12 @@ config.turbopack = {
   ...(config.turbopack ?? {}),
   resolveAlias: {
     ...(config.turbopack?.resolveAlias ?? {}),
+    ...(useDesktopAuthShim
+      ? {
+          '@clerk/nextjs': './src/lib/desktop-auth/clerk-shim.tsx',
+          '@clerk/nextjs/server': './src/lib/desktop-auth/clerk-server-shim.ts',
+        }
+      : {}),
     '@components/buttons/refresh/button-refresh/ButtonRefresh':
       '../../packages/ui/src/components/buttons/refresh/button-refresh/ButtonRefresh.tsx',
     '@components/cards/KpiCard':
@@ -224,6 +240,7 @@ config.transpilePackages = [
   '@tiptap/suggestion',
   '@genfeedai/agent',
   '@genfeedai/client',
+  '@genfeedai/desktop-contracts',
   '@genfeedai/serializers',
   '@genfeedai/constants',
   '@genfeedai/enums',
@@ -246,6 +263,15 @@ config.webpack = ((webpackConfig, options) => {
 
   nextConfig.resolve.alias = {
     ...nextConfig.resolve.alias,
+    ...(useDesktopAuthShim
+      ? {
+          '@clerk/nextjs': path.join(desktopAuthRoot, 'clerk-shim.tsx'),
+          '@clerk/nextjs/server': path.join(
+            desktopAuthRoot,
+            'clerk-server-shim.ts',
+          ),
+        }
+      : {}),
     '@genfeedai/serializers': path.join(serializersRoot, 'src/index.ts'),
     ...workflowUiAliases,
     // Tsconfig path aliases → webpack aliases

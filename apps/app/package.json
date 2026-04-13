@@ -10,6 +10,7 @@
     "@genfeedai/client": "*",
     "@genfeedai/config": "*",
     "@genfeedai/constants": "*",
+    "@genfeedai/desktop-contracts": "*",
     "@genfeedai/enums": "*",
     "@genfeedai/helpers": "*",
     "@genfeedai/interfaces": "*",

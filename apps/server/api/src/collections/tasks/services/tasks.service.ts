@@ -306,7 +306,11 @@ export class TasksService extends BaseService<
           reviewState: 'approved',
           status: 'done',
         },
-        $unset: { failureReason: '', requestedChangesReason: '' },
+        $unset: {
+          dismissedReason: '',
+          failureReason: '',
+          requestedChangesReason: '',
+        },
       },
       { new: true },
     )) as TaskDocument | null;
@@ -337,6 +341,7 @@ export class TasksService extends BaseService<
           reviewState: 'changes_requested',
           status: 'in_review',
         },
+        $unset: { dismissedReason: '' },
       },
       { new: true },
     )) as TaskDocument | null;
@@ -364,10 +369,11 @@ export class TasksService extends BaseService<
       {
         $set: {
           dismissedAt: new Date(),
-          failureReason: reason,
+          dismissedReason: reason,
           reviewState: 'dismissed',
           status: 'cancelled',
         },
+        $unset: { failureReason: '', requestedChangesReason: '' },
       },
       { new: true },
     )) as TaskDocument | null;
@@ -609,12 +615,12 @@ export class TasksService extends BaseService<
     return Promise.all(
       followUpSteps.map(async (step) => {
         const taskNumber =
-          await this.taskCountersService.getNextNumber(organizationId);
+          await this.taskCountersService.getNextNumber(taskOrgId);
         const identifier = `${org?.prefix ?? 'TASK'}-${taskNumber}`;
         return this.create({
           brand: task.brand?.toString(),
           identifier,
-          organization: organizationId,
+          organization: taskOrgId,
           outputType: step.outputType ?? task.outputType,
           platforms: task.platforms,
           priority: task.priority,
@@ -970,6 +976,7 @@ export class TasksService extends BaseService<
       createdAt: task.createdAt?.toISOString(),
       decomposition: task.decomposition,
       dismissedAt: task.dismissedAt?.toISOString(),
+      dismissedReason: task.dismissedReason,
       eventStream: eventStream.map((event) => ({
         createdAt:
           event.createdAt instanceof Date
@@ -1107,6 +1114,7 @@ export class TasksService extends BaseService<
     const linkedRuns = await this.buildLinkedRunSummaries(task, organizationId);
     const bundle = {
       decomposition: task.decomposition ?? null,
+      dismissedReason: task.dismissedReason ?? null,
       failureReason: task.failureReason ?? null,
       linkedApprovalIds: (task.linkedApprovalIds ?? []).map((id) =>
         id.toString(),

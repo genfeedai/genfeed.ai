@@ -1,0 +1,45 @@
+{
+  "dependencies": {
+    "@genfeedai/interfaces": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "25.6.0",
+    "tsup": "8.5.1",
+    "typescript": "6.0.2"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    },
+    "./contracts": {
+      "types": "./dist/contracts/index.d.ts",
+      "import": "./dist/contracts/index.mjs",
+      "require": "./dist/contracts/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "license": "AGPL-3.0",
+  "main": "./dist/index.js",
+  "name": "@genfeedai/harness",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "directory": "harness",
+    "type": "git",
+    "url": "git+https://github.com/genfeedai/packages.git"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts src/contracts/index.ts --format esm,cjs --dts --clean --sourcemap",
+    "dev": "tsup src/index.ts src/contracts/index.ts --format esm,cjs --dts --watch --sourcemap",
+    "prepublishOnly": "bun run build"
+  },
+  "sideEffects": false,
+  "types": "./dist/index.d.ts",
+  "version": "0.1.0"
+}

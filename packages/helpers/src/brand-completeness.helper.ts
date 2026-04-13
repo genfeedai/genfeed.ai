@@ -26,6 +26,7 @@ export interface BrandCompletenessResult {
 
 interface BrandForCompleteness {
   id?: string;
+  slug?: string;
   label?: string;
   description?: string;
   text?: string;

@@ -16,6 +16,7 @@ export default {
     type: 'separator',
   },
   features: 'Features',
+  'core-loop': 'Core Loop',
   'getting-started': 'Getting Started',
   guides: 'Guides & Tutorials',
   models: 'AI Models',

@@ -9,8 +9,8 @@ describe('WORKFLOWS_MENU_ITEMS', () => {
     expect(WORKFLOWS_MENU_ITEMS.length).toBeGreaterThan(0);
   });
 
-  it('has a logo href pointing back to the workspace overview', () => {
-    expect(WORKFLOWS_LOGO_HREF).toBe('/~/overview');
+  it('has a logo href pointing back to the org overview', () => {
+    expect(WORKFLOWS_LOGO_HREF).toBe('/overview');
   });
 
   it('has no duplicate hrefs', () => {

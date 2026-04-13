@@ -143,9 +143,15 @@ describe('AnalyticsSyncService', () => {
           _id: postId,
           brand: new Types.ObjectId(brandId),
           category: 'image',
+          contentRunId: new Types.ObjectId(),
+          creativeVersion: 'creative-a',
           externalId: 'ext-123',
           generationId: 'wf-123-node-1',
+          hookVersion: 'hook-a',
+          publishIntent: 'campaign-test',
           promptUsed: 'test prompt',
+          scheduleSlot: 'morning',
+          variantId: 'variant-a',
         },
       ];
 
@@ -194,10 +200,16 @@ describe('AnalyticsSyncService', () => {
         expect.objectContaining({
           $set: expect.objectContaining({
             comments: 5,
+            contentRunId: postData[0]?.contentRunId,
+            creativeVersion: 'creative-a',
             generationId: 'wf-123-node-1',
+            hookVersion: 'hook-a',
             likes: 100,
+            publishIntent: 'campaign-test',
             saves: 10,
+            scheduleSlot: 'morning',
             shares: 20,
+            variantId: 'variant-a',
             views: 1000,
           }),
         }),

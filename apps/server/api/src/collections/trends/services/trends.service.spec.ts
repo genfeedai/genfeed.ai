@@ -815,5 +815,48 @@ describe('TrendsService', () => {
         organization: null,
       });
     });
+
+    it('should invoke the live fetch path when neither tenant nor global cache has trends', async () => {
+      model.find
+        .mockReturnValueOnce({
+          sort: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue({
+              lean: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        })
+        .mockReturnValueOnce({
+          sort: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue({
+              lean: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        });
+
+      const fetchedTrend = new TrendEntity({
+        ...mockTrend,
+        platform: 'twitter',
+        topic: 'Fresh live trend',
+      } as never);
+
+      const fetchAndCacheTrendsSpy = vi
+        .spyOn(service, 'fetchAndCacheTrends')
+        .mockResolvedValue([fetchedTrend]);
+
+      const result = await service.getTrends(
+        mockOrganizationId.toString(),
+        mockBrandId.toString(),
+      );
+
+      expect(fetchAndCacheTrendsSpy).toHaveBeenCalledWith(
+        mockOrganizationId.toString(),
+        mockBrandId.toString(),
+      );
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        platform: 'twitter',
+        topic: 'Fresh live trend',
+      });
+    });
   });
 });

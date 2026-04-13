@@ -2,8 +2,8 @@ import { ModelProvider } from '@genfeedai/enums';
 import { EnhancedModelsService } from '@services/ai/enhanced-models.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock the base ModelsService
-vi.mock('./models.service', () => ({
+// Mock the base ModelsService using the same path the SUT imports.
+vi.mock('@services/ai/models.service', () => ({
   ModelsService: class MockModelsService {
     ModelClass = class {};
     constructor(public token: string) {}
@@ -78,6 +78,36 @@ describe('EnhancedModelsService', () => {
       await service.initialize();
       const models = await service.getAllModels({ includeDynamic: false });
       expect(Array.isArray(models)).toBe(true);
+    });
+
+    it('should merge provider-discovered models into the stable catalog shape', async () => {
+      await service.initialize();
+
+      vi.spyOn(service, 'getFalModels').mockResolvedValue([
+        {
+          category: 'image',
+          isActive: true,
+          key: 'fal-ai/smoke-model',
+          label: 'Smoke Model',
+          provider: ModelProvider.FAL,
+        } as never,
+      ]);
+      vi.spyOn(service, 'getHuggingFaceModels').mockResolvedValue([]);
+
+      const models = await service.getAllModels({ includeDynamic: true });
+      const smokeModel = models.find(
+        (model) => model.key === 'fal-ai/smoke-model',
+      );
+
+      expect(smokeModel).toMatchObject({
+        category: 'image',
+        isActive: true,
+        key: 'fal-ai/smoke-model',
+        label: 'Smoke Model',
+        provider: ModelProvider.FAL,
+      });
+      expect(smokeModel?.createdAt).toBeInstanceOf(Date);
+      expect(smokeModel?.updatedAt).toBeInstanceOf(Date);
     });
   });
 

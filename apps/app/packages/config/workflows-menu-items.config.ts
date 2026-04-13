@@ -3,9 +3,11 @@ import {
   HiCog6Tooth,
   HiOutlineCog6Tooth,
   HiOutlinePlayCircle,
+  HiOutlineRocketLaunch,
   HiOutlineSparkles,
   HiOutlineWrenchScrewdriver,
   HiPlayCircle,
+  HiRocketLaunch,
   HiSparkles,
   HiWrenchScrewdriver,
 } from 'react-icons/hi2';
@@ -44,8 +46,8 @@ export const WORKFLOWS_MENU_ITEMS: MenuItemConfig[] = [
       '/orchestration/autopilot',
       '/orchestration/strategies',
     ],
-    outline: HiOutlineSparkles,
-    solid: HiSparkles,
+    outline: HiOutlineRocketLaunch,
+    solid: HiRocketLaunch,
   },
   {
     group: '',
@@ -57,4 +59,4 @@ export const WORKFLOWS_MENU_ITEMS: MenuItemConfig[] = [
   },
 ];
 
-export const WORKFLOWS_LOGO_HREF = '/~/overview';
+export const WORKFLOWS_LOGO_HREF = '/overview';

@@ -19,8 +19,10 @@ import {
 import { UpdateArticleDto } from '@api/collections/articles/dto/update-article.dto';
 import { ArticleDocument } from '@api/collections/articles/schemas/article.schema';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
@@ -29,8 +31,15 @@ import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { getMinimumTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
+import { ContentHarnessService } from '@api/services/harness/harness.service';
+import {
+  appendHarnessBriefToPrompt,
+  buildHarnessInput,
+  buildPromptBuilderBrandContext,
+} from '@api/services/harness/harness-brief.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import {
   ArticleCategory,
@@ -42,6 +51,7 @@ import {
   PromptTemplateKey,
   SystemPromptKey,
 } from '@genfeedai/enums';
+import type { ContentHarnessBrief } from '@genfeedai/harness';
 import type {
   ArticleCreatePayload,
   ArticleGenerationResponse,
@@ -77,6 +87,14 @@ export interface TextGenerationCharge {
   outputTokens: number;
 }
 
+interface ArticleHarnessContext {
+  brief?: ContentHarnessBrief;
+  promptBuilder: Pick<
+    PromptBuilderParams,
+    'brand' | 'branding' | 'brandingMode' | 'isBrandingEnabled'
+  >;
+}
+
 @Injectable()
 export class ArticlesContentService {
   private readonly constructorName = this.constructor.name;
@@ -95,6 +113,9 @@ export class ArticlesContentService {
     @Optional() private readonly templatesService?: TemplatesService,
     @Optional()
     private readonly websocketService?: NotificationsPublisherService,
+    @Optional() private readonly brandsService?: BrandsService,
+    @Optional() private readonly personasService?: PersonasService,
+    @Optional() private readonly contentHarnessService?: ContentHarnessService,
   ) {}
 
   /**
@@ -155,6 +176,23 @@ export class ArticlesContentService {
         prompt: generateDto.prompt.substring(0, 50),
       });
 
+      const harnessContext = await this.buildArticleHarnessContext({
+        brandId,
+        contentType: 'article',
+        objective: 'authority',
+        organizationId,
+        sourceLines: [
+          ...(generateDto.keywords?.map((keyword) => `keyword: ${keyword}`) ??
+            []),
+          ...(generateDto.tone ? [`tone: ${generateDto.tone}`] : []),
+        ],
+        topic: generateDto.prompt,
+      });
+      const promptWithHarness = appendHarnessBriefToPrompt(
+        prompt,
+        harnessContext.brief,
+      );
+
       // Build prompt with PromptBuilderService then call Replicate
       const generationModel = modelConfig.generationModel || DEFAULT_TEXT_MODEL;
       const { input } = (await this.promptBuilderService?.buildPrompt(
@@ -162,10 +200,11 @@ export class ArticlesContentService {
         {
           maxTokens: this.configService.get('MAX_TOKENS'),
           modelCategory: ModelCategory.TEXT,
-          prompt: prompt,
+          prompt: promptWithHarness,
           promptTemplate: PromptTemplateKey.TEXT_ARTICLE,
           systemPromptTemplate: SystemPromptKey.ARTICLE,
           temperature: 0.8,
+          ...harnessContext.promptBuilder,
         },
         organizationId,
       )) || { input: {} };
@@ -226,6 +265,7 @@ export class ArticlesContentService {
         };
         const cycle = await this.runReviewUpdateCycle({
           draft,
+          harnessContext,
           modelConfig,
           onBilling,
           organizationId,
@@ -330,6 +370,24 @@ export class ArticlesContentService {
         targetWordCount: generateDto.targetWordCount || 5000,
       });
 
+      const harnessContext = await this.buildArticleHarnessContext({
+        brandId,
+        contentType: 'article',
+        objective: 'authority',
+        organizationId,
+        sourceLines: [
+          ...(generateDto.keywords?.map((keyword) => `keyword: ${keyword}`) ??
+            []),
+          ...(generateDto.tone ? [`tone: ${generateDto.tone}`] : []),
+          `targetWordCount: ${generateDto.targetWordCount || 5000}`,
+        ],
+        topic: generateDto.prompt,
+      });
+      const promptWithHarness = appendHarnessBriefToPrompt(
+        prompt,
+        harnessContext.brief,
+      );
+
       // Build prompt with PromptBuilderService then call Replicate
       const generationModel = modelConfig.generationModel || DEFAULT_TEXT_MODEL;
       const { input } = (await this.promptBuilderService?.buildPrompt(
@@ -337,10 +395,11 @@ export class ArticlesContentService {
         {
           maxTokens: this.configService.get('MAX_TOKENS'),
           modelCategory: ModelCategory.TEXT,
-          prompt: prompt,
+          prompt: promptWithHarness,
           promptTemplate: PromptTemplateKey.X_ARTICLE_GENERATE,
           systemPromptTemplate: SystemPromptKey.X_ARTICLE,
           temperature: 0.8,
+          ...harnessContext.promptBuilder,
         },
         organizationId,
       )) || { input: {} };
@@ -423,6 +482,7 @@ export class ArticlesContentService {
           label: response.title,
           summary: response.summary || '',
         },
+        harnessContext,
         modelConfig,
         onBilling,
         organizationId,
@@ -522,6 +582,19 @@ export class ArticlesContentService {
         prompt: editDto.prompt.substring(0, 50),
       });
 
+      const harnessContext = await this.buildArticleHarnessContext({
+        brandId,
+        contentType: 'article',
+        objective: 'authority',
+        organizationId,
+        sourceLines: [`enhancement-request: ${editDto.prompt}`],
+        topic: article.label,
+      });
+      const promptWithHarness = appendHarnessBriefToPrompt(
+        prompt,
+        harnessContext.brief,
+      );
+
       // Build prompt with PromptBuilderService then call Replicate
       const { input: enhanceInput } =
         (await this.promptBuilderService?.buildPrompt(
@@ -529,10 +602,11 @@ export class ArticlesContentService {
           {
             maxTokens: TEXT_GENERATION_LIMITS.articleEnhancement,
             modelCategory: ModelCategory.TEXT,
-            prompt: prompt,
+            prompt: promptWithHarness,
             systemPromptTemplate: SystemPromptKey.ARTICLE,
             temperature: 0.8,
             useTemplate: false,
+            ...harnessContext.promptBuilder,
           },
           organizationId,
         )) || { input: {} };
@@ -716,6 +790,68 @@ export class ArticlesContentService {
     }
   }
 
+  private async buildArticleHarnessContext(params: {
+    brandId?: string;
+    contentType: 'article';
+    objective: 'authority';
+    organizationId: string;
+    sourceLines?: string[];
+    topic: string;
+  }): Promise<ArticleHarnessContext> {
+    if (
+      !params.brandId ||
+      !this.brandsService ||
+      !this.contentHarnessService ||
+      !this.personasService
+    ) {
+      return { promptBuilder: {} };
+    }
+
+    const organizationObjectId = new Types.ObjectId(params.organizationId);
+    const brand = await this.brandsService.findOne(
+      {
+        _id: new Types.ObjectId(params.brandId),
+        isDeleted: false,
+        organization: organizationObjectId,
+      },
+      'none',
+    );
+
+    if (!brand) {
+      return { promptBuilder: {} };
+    }
+
+    const persona = await this.personasService.findOne({
+      brand: new Types.ObjectId(params.brandId),
+      isDeleted: false,
+      organization: organizationObjectId,
+    });
+
+    const brief = await this.contentHarnessService.composeBrief(
+      buildHarnessInput({
+        additionalSources:
+          params.sourceLines?.map((content, index) => ({
+            content,
+            id: `article-context-${index}`,
+            kind: 'audience_signal',
+          })) ?? [],
+        brand,
+        intent: {
+          contentType: params.contentType,
+          objective: params.objective,
+          topic: params.topic,
+        },
+        organizationId: params.organizationId,
+        persona,
+      }),
+    );
+
+    return {
+      brief,
+      promptBuilder: buildPromptBuilderBrandContext({ brand, persona }),
+    };
+  }
+
   async reviewExistingArticle(
     article: ArticleDocument,
     organizationId: string,
@@ -723,10 +859,19 @@ export class ArticlesContentService {
     focus?: string,
     onBilling?: (charge: TextGenerationCharge) => void,
   ): Promise<ArticleReviewRubric> {
+    const harnessContext = await this.buildArticleHarnessContext({
+      brandId: article.brand?.toString?.(),
+      contentType: 'article',
+      objective: 'authority',
+      organizationId,
+      sourceLines: focus ? [`review-focus: ${focus}`] : [],
+      topic: article.label,
+    });
     const reviewModel = modelConfig.reviewModel || DEFAULT_MINI_TEXT_MODEL;
     const reviewPrompt = this.buildReviewPrompt({
       content: article.content,
       focus,
+      harnessBrief: harnessContext.brief,
       label: article.label,
       summary: article.summary || '',
       type:
@@ -739,6 +884,7 @@ export class ArticlesContentService {
       reviewModel,
       reviewPrompt,
       organizationId,
+      harnessContext.promptBuilder,
     );
     onBilling?.(charge);
 
@@ -747,6 +893,7 @@ export class ArticlesContentService {
 
   private async runReviewUpdateCycle(params: {
     draft: { label: string; summary: string; content: string };
+    harnessContext?: ArticleHarnessContext;
     prompt: string;
     organizationId: string;
     modelConfig: ArticleCycleModelConfig;
@@ -766,11 +913,13 @@ export class ArticlesContentService {
         reviewModel,
         this.buildReviewPrompt({
           content: params.draft.content,
+          harnessBrief: params.harnessContext?.brief,
           label: params.draft.label,
           summary: params.draft.summary,
           type: params.type,
         }),
         params.organizationId,
+        params.harnessContext?.promptBuilder,
       );
     params.onBilling?.(reviewCharge);
     const review = this.parseReviewRubric(reviewRaw);
@@ -783,8 +932,10 @@ export class ArticlesContentService {
           params.prompt,
           review,
           params.type,
+          params.harnessContext?.brief,
         ),
         params.organizationId,
+        params.harnessContext?.promptBuilder,
       );
     params.onBilling?.(revisionCharge);
     const updated = this.parseUpdatedArticle(revisionRaw, params.draft);
@@ -796,6 +947,10 @@ export class ArticlesContentService {
     model: string,
     prompt: string,
     organizationId: string,
+    promptBuilderContext?: Pick<
+      PromptBuilderParams,
+      'brand' | 'branding' | 'brandingMode' | 'isBrandingEnabled'
+    >,
   ): Promise<{ output: string; charge: TextGenerationCharge }> {
     const { input } = (await this.promptBuilderService?.buildPrompt(
       model as string,
@@ -806,6 +961,7 @@ export class ArticlesContentService {
         systemPromptTemplate: SystemPromptKey.ARTICLE,
         temperature: 0.7,
         useTemplate: false,
+        ...promptBuilderContext,
       },
       organizationId,
     )) || { input: {} };
@@ -904,6 +1060,7 @@ export class ArticlesContentService {
     content: string;
     type: ArticleGenerationType;
     focus?: string;
+    harnessBrief?: ContentHarnessBrief;
   }): string {
     const typeLabel =
       input.type === ArticleGenerationType.X_ARTICLE
@@ -911,7 +1068,8 @@ export class ArticlesContentService {
         : 'standard article';
     const focusLine = input.focus ? `Focus area: ${input.focus}` : '';
 
-    return `You are an expert content reviewer. Review this ${typeLabel} and return strict JSON only.
+    return appendHarnessBriefToPrompt(
+      `You are an expert content reviewer. Review this ${typeLabel} and return strict JSON only.
 
 ${focusLine}
 
@@ -938,7 +1096,9 @@ Return this exact JSON shape:
     }
   ],
   "revisionInstructions": "Concrete instructions to improve the draft in one pass"
-}`;
+}`,
+      input.harnessBrief,
+    );
   }
 
   private buildRevisionPrompt(
@@ -946,12 +1106,14 @@ Return this exact JSON shape:
     originalPrompt: string,
     review: ArticleReviewRubric,
     type: ArticleGenerationType,
+    harnessBrief?: ContentHarnessBrief,
   ): string {
     const typeLine =
       type === ArticleGenerationType.X_ARTICLE
         ? 'Keep X article style and section depth.'
         : 'Keep standard article/blog style.';
-    return `You are an expert content editor. Improve the draft using the review feedback.
+    return appendHarnessBriefToPrompt(
+      `You are an expert content editor. Improve the draft using the review feedback.
 
 Original request:
 ${originalPrompt}
@@ -983,7 +1145,9 @@ Return strict JSON only:
   "label": "Improved title",
   "summary": "Improved summary",
   "content": "Improved content (HTML allowed)"
-}`;
+}`,
+      harnessBrief,
+    );
   }
 
   private parseReviewRubric(raw: string): ArticleReviewRubric {

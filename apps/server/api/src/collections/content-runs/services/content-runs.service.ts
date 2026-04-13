@@ -4,29 +4,14 @@ import {
 } from '@api/collections/content-runs/schemas/content-run.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { ContentRunSource, ContentRunStatus } from '@genfeedai/enums';
+import { ContentRunStatus } from '@genfeedai/enums';
+import type {
+  CreateContentRunInput,
+  UpdateContentRunInput,
+} from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
-
-export interface CreateContentRunInput {
-  brand: string;
-  creditsUsed: number;
-  input: Record<string, unknown>;
-  organization: string;
-  skillSlug: string;
-  source: ContentRunSource;
-  status: ContentRunStatus;
-}
-
-export interface UpdateContentRunInput {
-  creditsUsed?: number;
-  duration?: number;
-  error?: string;
-  output?: Record<string, unknown>;
-  source?: ContentRunSource;
-  status?: ContentRunStatus;
-}
 
 @Injectable()
 export class ContentRunsService {

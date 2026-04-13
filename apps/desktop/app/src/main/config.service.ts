@@ -4,16 +4,21 @@ export class DesktopConfigService {
   private readonly environment: IDesktopEnvironment;
 
   constructor() {
+    const appPort = Number(process.env.GENFEED_DESKTOP_APP_PORT || '3230');
+
     this.environment = {
       apiEndpoint:
         process.env.GENFEED_DESKTOP_API_URL || 'https://api.genfeed.ai/v1',
       appEndpoint:
-        process.env.GENFEED_DESKTOP_APP_URL || 'https://app.genfeed.ai',
+        process.env.GENFEED_DESKTOP_APP_URL ||
+        `http://127.0.0.1:${appPort}`,
       appName: 'desktop',
+      appPort,
       authEndpoint:
         process.env.GENFEED_DESKTOP_AUTH_URL ||
         'https://app.genfeed.ai/oauth/cli',
       cdnUrl: process.env.GENFEED_DESKTOP_CDN_URL || 'https://cdn.genfeed.ai',
+      sessionDbPath: process.env.GENFEED_DESKTOP_SESSION_DB_PATH || undefined,
       sentryDsn: process.env.GENFEED_DESKTOP_SENTRY_DSN || undefined,
       sentryEnvironment:
         process.env.GENFEED_DESKTOP_SENTRY_ENVIRONMENT ||
