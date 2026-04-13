@@ -22,6 +22,7 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
+import { PersonasModule } from '@api/collections/personas/personas.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { UsersModule } from '@api/collections/users/users.module';
@@ -30,6 +31,7 @@ import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokModule } from '@api/services/byok/byok.module';
+import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
@@ -57,12 +59,14 @@ import mongooseAggregatePaginateV2 from 'mongoose-aggregate-paginate-v2';
     forwardRef(() => NotificationsModule),
     forwardRef(() => OrganizationSettingsModule),
     forwardRef(() => OrganizationsModule),
+    forwardRef(() => PersonasModule),
     forwardRef(() => PromptBuilderModule),
     forwardRef(() => PromptsModule),
     forwardRef(() => ReplicateModule),
     forwardRef(() => RouterModule),
     forwardRef(() => TemplatesModule),
     forwardRef(() => UsersModule),
+    ContentHarnessModule,
 
     // Article schema on default (cloud) connection
     MongooseModule.forFeatureAsync(

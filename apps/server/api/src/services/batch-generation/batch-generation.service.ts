@@ -545,6 +545,7 @@ export class BatchGenerationService {
           batch.organization,
           {
             additionalContext: batch.style ? [batch.style] : undefined,
+            brandId: batch.brand,
             platform: item.platform as never,
             topic,
             variationsCount: 1,

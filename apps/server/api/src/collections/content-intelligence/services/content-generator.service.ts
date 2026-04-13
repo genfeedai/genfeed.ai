@@ -1,13 +1,20 @@
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { GenerateContentDto } from '@api/collections/content-intelligence/dto/generate-content.dto';
 import { ContentPatternDocument } from '@api/collections/content-intelligence/schemas/content-pattern.schema';
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { PlaybookBuilderService } from '@api/collections/content-intelligence/services/playbook-builder.service';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { ConfigService } from '@api/config/config.service';
 import { SecurityUtil } from '@api/helpers/utils/security/security.util';
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
+import { ContentHarnessService } from '@api/services/harness/harness.service';
+import {
+  buildHarnessInput,
+  formatHarnessBrief,
+} from '@api/services/harness/harness-brief.util';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { Types } from 'mongoose';
 
 export interface GeneratedContent {
@@ -42,6 +49,9 @@ export class ContentGeneratorService {
     private readonly openRouterService: OpenRouterService,
     private readonly patternStoreService: PatternStoreService,
     private readonly playbookBuilderService: PlaybookBuilderService,
+    @Optional() private readonly brandsService?: BrandsService,
+    @Optional() private readonly personasService?: PersonasService,
+    @Optional() private readonly contentHarnessService?: ContentHarnessService,
   ) {
     this.defaultModel =
       this.configService.get('XAI_MODEL') || 'x-ai/grok-4-fast';
@@ -56,6 +66,7 @@ export class ContentGeneratorService {
 
     // Assemble brand context (all 6 layers) for LLM system prompt
     const brandContext = await this.contextAssemblyService.assembleContext({
+      brandId: dto.brandId?.toString?.(),
       layers: {
         brandGuidance: true,
         brandIdentity: true,
@@ -68,9 +79,16 @@ export class ContentGeneratorService {
       query: dto.topic,
     });
 
-    const systemPrompt = brandContext
+    const baseSystemPrompt = brandContext
       ? this.contextAssemblyService.buildSystemPrompt('', brandContext)
       : undefined;
+    const harnessSystemPrompt = await this.buildHarnessSystemPrompt(
+      organizationId,
+      dto,
+    );
+    const systemPrompt =
+      [baseSystemPrompt, harnessSystemPrompt].filter(Boolean).join('\n\n') ||
+      undefined;
 
     // Get patterns to use
     const patterns = await this.selectPatterns(organizationId, dto);
@@ -151,6 +169,62 @@ export class ContentGeneratorService {
       platform: dto.platform,
       templateCategory: dto.templateCategory,
     });
+  }
+
+  private async buildHarnessSystemPrompt(
+    organizationId: Types.ObjectId,
+    dto: GenerateContentDto,
+  ): Promise<string | undefined> {
+    if (
+      !dto.brandId ||
+      !this.brandsService ||
+      !this.personasService ||
+      !this.contentHarnessService
+    ) {
+      return undefined;
+    }
+
+    const brand = await this.brandsService.findOne(
+      {
+        _id: new Types.ObjectId(dto.brandId),
+        isDeleted: false,
+        organization: organizationId,
+      },
+      'none',
+    );
+
+    if (!brand) {
+      return undefined;
+    }
+
+    const persona = await this.personasService.findOne({
+      brand: new Types.ObjectId(dto.brandId),
+      isDeleted: false,
+      organization: organizationId,
+    });
+
+    const brief = await this.contentHarnessService.composeBrief(
+      buildHarnessInput({
+        additionalSources:
+          dto.additionalContext?.map((content, index) => ({
+            content,
+            id: `content-context-${index}`,
+            kind: 'audience_signal',
+          })) ?? [],
+        brand,
+        intent: {
+          contentType: 'post',
+          objective: 'engagement',
+          platform: dto.platform,
+          topic: dto.topic,
+        },
+        organizationId: organizationId.toString(),
+        persona,
+      }),
+    );
+
+    const formattedBrief = formatHarnessBrief(brief);
+    return formattedBrief || undefined;
   }
 
   private async generateFromPattern(
