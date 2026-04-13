@@ -254,6 +254,29 @@ export class Post {
   })
   persona?: Types.ObjectId;
 
+  @Prop({
+    index: true,
+    ref: 'ContentRun',
+    required: false,
+    type: Types.ObjectId,
+  })
+  contentRunId?: Types.ObjectId;
+
+  @Prop({ index: true, required: false, type: String })
+  variantId?: string;
+
+  @Prop({ required: false, type: String })
+  hookVersion?: string;
+
+  @Prop({ required: false, type: String })
+  creativeVersion?: string;
+
+  @Prop({ required: false, type: String })
+  scheduleSlot?: string;
+
+  @Prop({ required: false, type: String })
+  publishIntent?: string;
+
   // Closed-loop: links post back to the generation workflow
   @Prop({ index: true, required: false, type: String })
   generationId?: string;

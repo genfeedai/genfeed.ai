@@ -51,6 +51,29 @@ export class ContentPerformance {
   post?: Types.ObjectId;
 
   @Prop({
+    index: true,
+    ref: 'ContentRun',
+    required: false,
+    type: Types.ObjectId,
+  })
+  contentRunId?: Types.ObjectId;
+
+  @Prop({ index: true, required: false, type: String })
+  variantId?: string;
+
+  @Prop({ required: false, type: String })
+  hookVersion?: string;
+
+  @Prop({ required: false, type: String })
+  creativeVersion?: string;
+
+  @Prop({ required: false, type: String })
+  scheduleSlot?: string;
+
+  @Prop({ required: false, type: String })
+  publishIntent?: string;
+
+  @Prop({
     enum: Object.values(CredentialPlatform),
     index: true,
     required: true,

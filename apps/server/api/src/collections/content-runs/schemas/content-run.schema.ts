@@ -12,6 +12,54 @@ export interface ContentDraftSnapshot {
   type: string;
 }
 
+export interface ContentRunBrief {
+  angle?: string;
+  audience?: string;
+  callToAction?: string;
+  evidence?: string[];
+  hypothesis?: string;
+  notes?: string;
+}
+
+export interface ContentRunVariant {
+  assetIds?: string[];
+  content?: string;
+  id: string;
+  metadata: Record<string, unknown>;
+  platform: string;
+  status?: string;
+  type: string;
+}
+
+export interface ContentRunPublishContext {
+  channel?: string;
+  experimentId?: string;
+  metadata: Record<string, unknown>;
+  platform?: string;
+  postIds?: string[];
+  publishedAt?: Date;
+  scheduledFor?: Date;
+  variantId?: string;
+}
+
+export interface ContentRunAnalyticsSummary {
+  engagementRate?: number;
+  engagements?: number;
+  impressions?: number;
+  metadata: Record<string, unknown>;
+  summary?: string;
+  topSignals?: string[];
+  winningVariantId?: string;
+}
+
+export interface ContentRunRecommendation {
+  action?: string;
+  confidence?: number;
+  metadata: Record<string, unknown>;
+  rationale?: string;
+  type: string;
+}
+
 export type ContentRunDocument = ContentRun & Document;
 
 @Schema({
@@ -49,6 +97,21 @@ export class ContentRun {
 
   @Prop({ required: false, type: Object })
   output?: ContentDraftSnapshot;
+
+  @Prop({ required: false, type: Object })
+  brief?: ContentRunBrief;
+
+  @Prop({ default: [], type: [Object] })
+  variants!: ContentRunVariant[];
+
+  @Prop({ required: false, type: Object })
+  publish?: ContentRunPublishContext;
+
+  @Prop({ required: false, type: Object })
+  analyticsSummary?: ContentRunAnalyticsSummary;
+
+  @Prop({ default: [], type: [Object] })
+  recommendations!: ContentRunRecommendation[];
 
   @Prop({ required: false, type: String })
   error?: string;

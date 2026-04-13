@@ -106,6 +106,24 @@ export class BatchItem {
   @Prop({ required: false, type: String })
   sourceWorkflowName?: string;
 
+  @Prop({ ref: 'ContentRun', required: false, type: Types.ObjectId })
+  contentRunId?: Types.ObjectId;
+
+  @Prop({ required: false, type: String })
+  variantId?: string;
+
+  @Prop({ required: false, type: String })
+  hookVersion?: string;
+
+  @Prop({ required: false, type: String })
+  creativeVersion?: string;
+
+  @Prop({ required: false, type: String })
+  scheduleSlot?: string;
+
+  @Prop({ required: false, type: String })
+  publishIntent?: string;
+
   @Prop({ required: false, type: String })
   opportunityTopic?: string;
 

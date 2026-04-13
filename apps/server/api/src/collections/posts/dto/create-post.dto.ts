@@ -244,4 +244,53 @@ export class CreatePostDto {
   @IsOptional()
   @IsBoolean()
   readonly isAnalyticsEnabled?: boolean;
+
+  @ApiProperty({
+    description: 'Originating content run ID for closed-loop attribution',
+    required: false,
+  })
+  @IsOptional()
+  @IsMongoId()
+  readonly contentRunId?: Types.ObjectId;
+
+  @ApiProperty({
+    description: 'Originating variant ID inside the content run',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  readonly variantId?: string;
+
+  @ApiProperty({
+    description: 'Hook revision or experiment version label',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  readonly hookVersion?: string;
+
+  @ApiProperty({
+    description: 'Creative revision or experiment version label',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  readonly creativeVersion?: string;
+
+  @ApiProperty({
+    description: 'Named schedule slot used for publish attribution',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  readonly scheduleSlot?: string;
+
+  @ApiProperty({
+    description:
+      'High-level publish intent such as test, campaign, or evergreen',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  readonly publishIntent?: string;
 }

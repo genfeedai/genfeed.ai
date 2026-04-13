@@ -1,3 +1,8 @@
+import type {
+  ContentRunBrief,
+  ContentRunPublishContext,
+  ContentRunVariant,
+} from '@api/collections/content-runs/schemas/content-run.schema';
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
@@ -58,9 +63,11 @@ export class SkillExecutorService {
 
     const run = await this.contentRunsService.createRun({
       brand: context.brandId,
+      brief: this.buildRunBrief(params),
       creditsUsed: 0,
       input: params,
       organization: context.organizationId,
+      publish: this.buildRunPublishContext(params),
       skillSlug,
       source: ContentRunSource.HOSTED,
       status: ContentRunStatus.PENDING,
@@ -113,6 +120,7 @@ export class SkillExecutorService {
         {
           duration,
           output: draft,
+          variants: this.buildRunVariants(draft),
           source:
             source === 'byok' ? ContentRunSource.BYOK : ContentRunSource.HOSTED,
           status: ContentRunStatus.COMPLETED,
@@ -162,9 +170,11 @@ export class SkillExecutorService {
 
     const run = await this.contentRunsService.createRun({
       brand: context.brandId,
+      brief: this.buildRunBrief(params ?? {}),
       creditsUsed: 0,
       input: params ?? {},
       organization: context.organizationId,
+      publish: this.buildRunPublishContext(params ?? {}),
       skillSlug,
       source: ContentRunSource.HOSTED,
       status: ContentRunStatus.PENDING,
@@ -194,6 +204,7 @@ export class SkillExecutorService {
       await this.contentRunsService.patchRun(context.organizationId, runId, {
         output: draft,
         status: ContentRunStatus.COMPLETED,
+        variants: this.buildRunVariants(draft),
       });
 
       return {
@@ -219,5 +230,116 @@ export class SkillExecutorService {
 
       throw error;
     }
+  }
+
+  private buildRunBrief(
+    params: Record<string, unknown>,
+  ): ContentRunBrief | undefined {
+    const brief: ContentRunBrief = {
+      angle: this.getString(params.angle),
+      audience: this.getString(params.audience),
+      callToAction: this.getString(params.callToAction),
+      evidence: this.getStringArray(params.evidence),
+      hypothesis: this.getString(params.hypothesis),
+      notes: this.getString(params.notes),
+    };
+
+    return Object.values(brief).some((value) =>
+      Array.isArray(value) ? value.length > 0 : Boolean(value),
+    )
+      ? brief
+      : undefined;
+  }
+
+  private buildRunPublishContext(
+    params: Record<string, unknown>,
+  ): ContentRunPublishContext | undefined {
+    const scheduledFor = this.getDate(params.scheduledFor);
+    const publishedAt = this.getDate(params.publishedAt);
+    const postIds = this.getStringArray(params.postIds);
+    const metadata =
+      this.getRecord(params.publishMetadata) ?? this.getRecord(params.publish);
+
+    const publish: ContentRunPublishContext = {
+      channel: this.getString(params.channel),
+      experimentId: this.getString(params.experimentId),
+      metadata: metadata ?? {},
+      platform: this.getString(params.platform),
+      postIds,
+      publishedAt,
+      scheduledFor,
+      variantId: this.getString(params.variantId),
+    };
+
+    return publish.channel ||
+      publish.experimentId ||
+      publish.platform ||
+      publish.variantId ||
+      publish.postIds?.length ||
+      publish.publishedAt ||
+      publish.scheduledFor ||
+      Object.keys(publish.metadata).length > 0
+      ? publish
+      : undefined;
+  }
+
+  private buildRunVariants(
+    draft: SkillExecutionResult['draft'],
+  ): ContentRunVariant[] {
+    const platforms =
+      draft.platforms.length > 0 ? draft.platforms : ['unspecified'];
+    const assetIds = this.getStringArray(draft.metadata.assetIds);
+
+    return platforms.map((platform, index) => ({
+      assetIds,
+      content: draft.content,
+      id: `${draft.skillSlug}-${index + 1}`,
+      metadata: draft.metadata,
+      platform,
+      status: 'generated',
+      type: draft.type,
+    }));
+  }
+
+  private getString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.trim().length > 0
+      ? value.trim()
+      : undefined;
+  }
+
+  private getStringArray(value: unknown): string[] | undefined {
+    if (Array.isArray(value)) {
+      const items = value.filter(
+        (item): item is string =>
+          typeof item === 'string' && item.trim().length > 0,
+      );
+
+      return items.length > 0 ? items : undefined;
+    }
+
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return [value.trim()];
+    }
+
+    return undefined;
+  }
+
+  private getRecord(value: unknown): Record<string, unknown> | undefined {
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : undefined;
+  }
+
+  private getDate(value: unknown): Date | undefined {
+    if (value instanceof Date && !Number.isNaN(value.getTime())) {
+      return value;
+    }
+
+    if (typeof value === 'string' || typeof value === 'number') {
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+    }
+
+    return undefined;
   }
 }

@@ -87,12 +87,26 @@ describe('SkillExecutorService', () => {
     });
 
     const result = await service.execute('content-writing', baseContext, {
+      audience: 'founders',
+      hypothesis: 'founder pain wins',
       topic: 'AI strategy',
     });
 
     expect(result.draft.skillSlug).toBe('content-writing');
     expect(result.source).toBe('hosted');
-    expect(mockContentRunsService.createRun).toHaveBeenCalled();
+    expect(mockContentRunsService.createRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brief: expect.objectContaining({
+          audience: 'founders',
+          hypothesis: 'founder pain wins',
+        }),
+        input: expect.objectContaining({
+          audience: 'founders',
+          hypothesis: 'founder pain wins',
+          topic: 'AI strategy',
+        }),
+      }),
+    );
     expect(mockContentRunsService.patchRun).toHaveBeenCalledWith(
       orgId,
       runId,
@@ -101,7 +115,18 @@ describe('SkillExecutorService', () => {
     expect(mockContentRunsService.patchRun).toHaveBeenCalledWith(
       orgId,
       runId,
-      expect.objectContaining({ status: ContentRunStatus.COMPLETED }),
+      expect.objectContaining({
+        status: ContentRunStatus.COMPLETED,
+        variants: [
+          expect.objectContaining({
+            content: 'Generated content',
+            id: 'content-writing-1',
+            platform: 'instagram',
+            status: 'generated',
+            type: 'text',
+          }),
+        ],
+      }),
     );
   });
 
@@ -221,6 +246,90 @@ describe('SkillExecutorService', () => {
       orgId,
       runId,
       expect.objectContaining({ duration: expect.any(Number) }),
+    );
+  });
+
+  it('captures publish context when scheduling metadata is present', async () => {
+    mockSkillsService.getSkillBySlug.mockResolvedValue({
+      isEnabled: true,
+      requiredProviders: [],
+      slug: 'content-writing',
+    });
+    mockHandler.execute.mockResolvedValue({
+      content: 'Scheduled content',
+      metadata: {},
+      platforms: ['instagram'],
+      skillSlug: 'content-writing',
+      type: 'text',
+    });
+
+    await service.execute('content-writing', baseContext, {
+      channel: 'organic-social',
+      experimentId: 'exp-123',
+      platform: 'instagram',
+      scheduledFor: '2026-04-14T09:00:00.000Z',
+      topic: 'Scheduling test',
+      variantId: 'variant-a',
+    });
+
+    expect(mockContentRunsService.createRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        publish: expect.objectContaining({
+          channel: 'organic-social',
+          experimentId: 'exp-123',
+          platform: 'instagram',
+          scheduledFor: new Date('2026-04-14T09:00:00.000Z'),
+          variantId: 'variant-a',
+        }),
+      }),
+    );
+  });
+
+  it('tracks variants for gateway execution runs', async () => {
+    mockHandler.execute.mockResolvedValue({
+      confidence: 0.91,
+      content: 'Gateway content',
+      metadata: { assetIds: ['asset-1'] },
+      platforms: ['linkedin'],
+      skillSlug: 'content-writing',
+      type: 'text',
+    });
+
+    const result = await service.executeSkill(
+      {
+        brandId,
+        organizationId: orgId,
+        signalType: 'manual',
+      },
+      'content-writing',
+      {
+        audience: 'operators',
+        topic: 'Gateway test',
+      },
+    );
+
+    expect(result.runId).toBe(runId);
+    expect(mockContentRunsService.createRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brief: expect.objectContaining({
+          audience: 'operators',
+        }),
+      }),
+    );
+    expect(mockContentRunsService.patchRun).toHaveBeenCalledWith(
+      orgId,
+      runId,
+      expect.objectContaining({
+        status: ContentRunStatus.COMPLETED,
+        variants: [
+          expect.objectContaining({
+            assetIds: ['asset-1'],
+            content: 'Gateway content',
+            id: 'content-writing-1',
+            platform: 'linkedin',
+          }),
+        ],
+      }),
     );
   });
 });
