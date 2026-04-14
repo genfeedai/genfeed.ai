@@ -37,7 +37,9 @@ vi.mock('@ui/primitives/button', () => ({
 }));
 
 vi.mock('@ui/primitives/field', () => ({
-  default: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+  default: ({ children }: { children?: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
 }));
 
 vi.mock('@ui/primitives/input', () => ({

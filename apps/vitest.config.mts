@@ -12,7 +12,10 @@ const repoRoot = path.resolve(__dirname, '..');
 const appRoot = process.cwd();
 const localUiRoot = path.resolve(appRoot, './packages/ui');
 const hasLocalUiRoot = fs.existsSync(localUiRoot);
-const sharedUiRoot = path.resolve(__dirname, '../packages/ui/src/components');
+const isAppShell = appRoot === path.resolve(repoRoot, './apps/app');
+const pagesRoot = isAppShell
+  ? path.resolve(repoRoot, './packages/pages')
+  : path.resolve(appRoot, './src/page-modules');
 installVitestWarningFilter();
 const customLogger = createVitestWarningLogger();
 
@@ -24,6 +27,10 @@ export default defineConfig({
       {
         find: /^@app$/,
         replacement: path.resolve(appRoot, './app'),
+      },
+      {
+        find: /^@\/(.*)$/,
+        replacement: path.resolve(appRoot, './src/$1'),
       },
       {
         find: /^@app\/(.*)$/,
@@ -239,6 +246,17 @@ export default defineConfig({
         replacement: path.resolve(repoRoot, './packages/workflow-saas/src/$1'),
       },
       {
+        find: /^@workflow-saas$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/workflow-saas/src/index.ts',
+        ),
+      },
+      {
+        find: /^@workflow-saas\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/workflow-saas/src/$1'),
+      },
+      {
         find: /^@contexts$/,
         replacement: path.resolve(repoRoot, './packages/contexts'),
       },
@@ -271,7 +289,7 @@ export default defineConfig({
         replacement: path.resolve(repoRoot, './packages/models/$1'),
       },
       {
-        find: '@public',
+        find: /^@public$/,
         replacement: path.resolve(appRoot, './app/(public)'),
       },
       {
@@ -279,7 +297,7 @@ export default defineConfig({
         replacement: path.resolve(appRoot, './app/(public)/$1'),
       },
       {
-        find: '@protected',
+        find: /^@protected$/,
         replacement: path.resolve(appRoot, './app/(protected)'),
       },
       {
@@ -287,15 +305,22 @@ export default defineConfig({
         replacement: path.resolve(appRoot, './app/(protected)/$1'),
       },
       {
-        find: '@pages',
-        replacement: path.resolve(appRoot, './src/page-modules'),
+        find: /^@pages$/,
+        replacement: pagesRoot,
+      },
+      {
+        find: /^@pages\/not-found\/not-found-page$/,
+        replacement: path.resolve(
+          repoRoot,
+          './packages/pages/not-found/not-found-page.tsx',
+        ),
       },
       {
         find: /^@pages\/(.*)$/,
-        replacement: path.resolve(appRoot, './src/page-modules/$1'),
+        replacement: `${pagesRoot}/$1`,
       },
       {
-        find: '@website',
+        find: /^@website$/,
         replacement: appRoot,
       },
       {
@@ -303,15 +328,31 @@ export default defineConfig({
         replacement: `${appRoot}/$1`,
       },
       {
-        find: '@web-components',
+        find: /^@u$/,
+        replacement: path.resolve(appRoot, './app/u'),
+      },
+      {
+        find: /^@u\/(.*)$/,
+        replacement: path.resolve(appRoot, './app/u/$1'),
+      },
+      {
+        find: /^@web-components$/,
         replacement: path.resolve(appRoot, './packages/components'),
+      },
+      {
+        find: /^@data$/,
+        replacement: path.resolve(appRoot, './packages/data'),
+      },
+      {
+        find: /^@data\/(.*)$/,
+        replacement: path.resolve(appRoot, './packages/data/$1'),
       },
       {
         find: /^@web-components\/(.*)$/,
         replacement: path.resolve(appRoot, './packages/components/$1'),
       },
       {
-        find: '@styles',
+        find: /^@styles$/,
         replacement: path.resolve(__dirname, '../packages/styles'),
       },
       {
@@ -319,7 +360,7 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../packages/styles/$1'),
       },
       {
-        find: '@shared',
+        find: /^@shared$/,
         replacement: path.resolve(__dirname, '../tests'),
       },
       {
@@ -329,7 +370,7 @@ export default defineConfig({
       ...(hasLocalUiRoot
         ? [
             {
-              find: '@ui/providers',
+              find: /^@ui\/providers$/,
               replacement: path.resolve(localUiRoot, './providers'),
             },
             {
@@ -337,14 +378,14 @@ export default defineConfig({
               replacement: path.resolve(localUiRoot, './providers/$1'),
             },
             {
-              find: '@ui/marketing/PricingStrip',
+              find: /^@ui\/marketing\/PricingStrip$/,
               replacement: path.resolve(
                 localUiRoot,
                 './marketing/PricingStrip.tsx',
               ),
             },
             {
-              find: '@ui/workflow-builder',
+              find: /^@ui\/workflow-builder$/,
               replacement: path.resolve(localUiRoot, './workflow-builder'),
             },
             {
@@ -354,7 +395,7 @@ export default defineConfig({
           ]
         : []),
       {
-        find: '@ui/primitives',
+        find: /^@ui\/primitives$/,
         replacement: path.resolve(__dirname, '../packages/ui/src/primitives'),
       },
       {
@@ -363,18 +404,6 @@ export default defineConfig({
           __dirname,
           '../packages/ui/src/primitives/$1',
         ),
-      },
-      {
-        find: /^@ui\/(.*)$/,
-        replacement: `${sharedUiRoot}/$1`,
-      },
-      {
-        find: '@ui',
-        replacement: sharedUiRoot,
-      },
-      {
-        find: /^@pages\/(.*)$/,
-        replacement: path.resolve(appRoot, './src/page-modules/$1'),
       },
       {
         find: /^@props$/,
@@ -451,6 +480,10 @@ export default defineConfig({
       {
         find: /^@ui\/generators\/(.*)$/,
         replacement: path.resolve(repoRoot, './packages/ui/src/generators/$1'),
+      },
+      {
+        find: /^@ui\/dashboard\/(.*)$/,
+        replacement: path.resolve(repoRoot, './packages/ui/src/dashboard/$1'),
       },
       {
         find: /^@ui\/core\/(.*)$/,

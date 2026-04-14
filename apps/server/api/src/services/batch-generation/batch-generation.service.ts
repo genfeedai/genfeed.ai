@@ -21,7 +21,10 @@ import {
   ContentFormat,
   PostStatus,
 } from '@genfeedai/enums';
-import type { IBatchSummary, ManualReviewBatchItem } from '@genfeedai/interfaces';
+import type {
+  IBatchSummary,
+  ManualReviewBatchItem,
+} from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';

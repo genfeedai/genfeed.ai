@@ -57,7 +57,10 @@ vi.mock('@ui/primitives/select', () => ({
 
 vi.mock('@ui/primitives/checkbox', () => ({
   Checkbox: (props: { name?: string }) => (
-    <input type="checkbox" data-testid={`checkbox-${props.name ?? 'unknown'}`} />
+    <input
+      type="checkbox"
+      data-testid={`checkbox-${props.name ?? 'unknown'}`}
+    />
   ),
 }));
 

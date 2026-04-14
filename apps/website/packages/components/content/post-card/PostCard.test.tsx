@@ -1,9 +1,7 @@
 import type { IPost } from '@genfeedai/interfaces';
 import { render, screen } from '@testing-library/react';
-import { Ingredient } from '@website/models/content/ingredient.model';
-import { Post } from '@website/models/content/post.model';
-import PostCard from '@website/packages/components/content/post-card/PostCard';
 import type { ComponentProps } from 'react';
+import PostCard from '@website/packages/components/content/post-card/PostCard';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next/image', () => ({
@@ -21,16 +19,16 @@ vi.mock('next/link', () => ({
   ),
 }));
 
-const mockPost = new Post({
+const mockPost = {
   category: 'video',
   id: 'post-1',
   ingredients: [
-    new Ingredient({
+    {
       id: 'ingredient-1',
       metadataDuration: 120,
       metadataLabel: 'Test Ingredient',
       thumbnailUrl: 'https://example.com/thumb.jpg',
-    }),
+    },
   ],
   label: 'Test Post',
   platform: 'youtube',
@@ -39,7 +37,7 @@ const mockPost = new Post({
   status: 'published',
   uploadedAt: '2024-01-01T00:00:00.000Z',
   url: 'https://example.com/post',
-}) as IPost;
+} as IPost;
 
 describe('PostCard', () => {
   it('should render without crashing', () => {

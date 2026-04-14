@@ -88,6 +88,7 @@ function SidebarButton({
 }) {
   return (
     <Button
+      ariaLabel={tooltip}
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       onClick={onClick}

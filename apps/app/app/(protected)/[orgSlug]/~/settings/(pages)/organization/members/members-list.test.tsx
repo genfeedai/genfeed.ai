@@ -31,6 +31,11 @@ vi.mock('@providers/global-modals/global-modals.provider', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  useRouter: vi.fn(() => ({
+    push: vi.fn(),
+    refresh: vi.fn(),
+    replace: vi.fn(),
+  })),
   useSearchParams: vi.fn(() => ({
     get: vi.fn(() => null),
     toString: vi.fn(() => ''),

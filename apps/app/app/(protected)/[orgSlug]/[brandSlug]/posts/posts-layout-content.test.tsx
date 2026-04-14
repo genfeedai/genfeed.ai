@@ -40,15 +40,15 @@ describe('PostsLayoutContent', () => {
     expect(screen.getByText('child content')).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /drafts/i })).toHaveAttribute(
       'href',
-      '/posts?platform=youtube',
+      '/content/posts?platform=youtube',
     );
     expect(screen.getByRole('tab', { name: /scheduled/i })).toHaveAttribute(
       'href',
-      '/posts?status=scheduled&platform=youtube',
+      '/content/posts?status=scheduled&platform=youtube',
     );
     expect(screen.getByRole('tab', { name: /published/i })).toHaveAttribute(
       'href',
-      '/posts?status=public&platform=youtube',
+      '/content/posts?status=public&platform=youtube',
     );
     expect(screen.getByRole('tab', { name: /scheduled/i })).toHaveAttribute(
       'data-state',

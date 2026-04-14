@@ -261,7 +261,9 @@ export class SkillExecutorService {
     const publishedAt = this.getDate(
       params.publishedAt ?? nestedPublish?.publishedAt,
     );
-    const postIds = this.getStringArray(params.postIds ?? nestedPublish?.postIds);
+    const postIds = this.getStringArray(
+      params.postIds ?? nestedPublish?.postIds,
+    );
     const metadata =
       this.getRecord(params.publishMetadata) ??
       this.getRecord(nestedPublish?.metadata);

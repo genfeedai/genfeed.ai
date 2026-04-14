@@ -57,7 +57,12 @@ vi.mock('@ui/menus/switcher-dropdown/SwitcherDropdown', () => ({
 describe('MenuBrandSwitcher', () => {
   const brands = [{ id: 'brand_1', label: 'Test Brand', thumbnailUrl: '' }];
   const brandsWithSlug = [
-    { id: 'brand_1', label: 'Test Brand', slug: 'test-brand', thumbnailUrl: '' },
+    {
+      id: 'brand_1',
+      label: 'Test Brand',
+      slug: 'test-brand',
+      thumbnailUrl: '',
+    },
   ];
 
   beforeEach(() => {

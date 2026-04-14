@@ -18,8 +18,18 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'brand-1',
     brands: [
-      { id: 'brand-1', isDarkroomEnabled: false, label: 'Acme Brand', slug: 'acme-brand' },
-      { id: 'brand-2', isDarkroomEnabled: true, label: 'Side Brand', slug: 'side-brand' },
+      {
+        id: 'brand-1',
+        isDarkroomEnabled: false,
+        label: 'Acme Brand',
+        slug: 'acme-brand',
+      },
+      {
+        id: 'brand-2',
+        isDarkroomEnabled: true,
+        label: 'Side Brand',
+        slug: 'side-brand',
+      },
     ],
     selectedBrand: {
       id: 'brand-1',
@@ -112,7 +122,9 @@ describe('TopbarBrandSwitcher', () => {
     ]);
 
     capturedFooterActions[0]?.onAction();
-    expect(mockPush).toHaveBeenCalledWith('/acme-org/~/settings/brands/acme-brand');
+    expect(mockPush).toHaveBeenCalledWith(
+      '/acme-org/~/settings/brands/acme-brand',
+    );
 
     capturedFooterActions[1]?.onAction();
     expect(openBrandOverlaySpy).toHaveBeenCalledWith(null);

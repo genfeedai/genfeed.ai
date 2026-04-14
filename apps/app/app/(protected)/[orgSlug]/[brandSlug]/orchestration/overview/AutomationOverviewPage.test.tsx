@@ -14,6 +14,10 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  useParams: vi.fn(() => ({
+    brandSlug: 'acme-creator',
+    orgSlug: 'acme-org',
+  })),
   useRouter: vi.fn(() => ({
     push: vi.fn(),
   })),
@@ -76,7 +80,10 @@ describe('AutomationOverviewPage', () => {
 
     expect(workflowLinks.length).toBeGreaterThan(0);
     for (const workflowLink of workflowLinks) {
-      expect(workflowLink).toHaveAttribute('href', '/workflows');
+      expect(workflowLink).toHaveAttribute(
+        'href',
+        '/acme-org/acme-creator/workflows',
+      );
     }
     expect(screen.getByText('Workflows')).toBeInTheDocument();
   });

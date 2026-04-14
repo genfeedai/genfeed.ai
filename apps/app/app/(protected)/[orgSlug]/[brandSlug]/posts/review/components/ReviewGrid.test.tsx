@@ -190,7 +190,9 @@ describe('ReviewGrid', () => {
       '/posts/post-1',
     );
     expect(
-      screen.getByRole('link', { name: 'Open published URL' }),
-    ).toHaveAttribute('href', 'https://example.com/post-1');
+      screen
+        .getAllByRole('link', { name: 'Open published URL' })
+        .every((link) => link.getAttribute('href') === 'https://example.com/post-1'),
+    ).toBe(true);
   });
 });

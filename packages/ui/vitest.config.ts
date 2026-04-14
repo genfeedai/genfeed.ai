@@ -22,6 +22,8 @@ const XYFLOW_REACT_MOCK = path.resolve(
 );
 const EMPTY_STYLE_MOCK = path.resolve(__dirname, './tests/__mocks__/style.ts');
 const SERIALIZERS_SRC = path.resolve(__dirname, '../serializers/src');
+const AGENT_SRC = path.resolve(__dirname, '../agent/src');
+const PAGES_SRC = path.resolve(__dirname, '../pages');
 
 export default defineConfig({
   resolve: {
@@ -29,6 +31,59 @@ export default defineConfig({
       {
         find: '@genfeedai/client',
         replacement: path.resolve(__dirname, '../client/src'),
+      },
+      {
+        find: /^@genfeedai\/agent$/,
+        replacement: path.resolve(AGENT_SRC, 'index.ts'),
+      },
+      {
+        find: '@genfeedai/agent/components',
+        replacement: path.resolve(AGENT_SRC, 'components'),
+      },
+      {
+        find: '@genfeedai/agent/components/AgentChatContainer',
+        replacement: path.resolve(
+          AGENT_SRC,
+          'components/AgentChatContainer.tsx',
+        ),
+      },
+      {
+        find: '@genfeedai/agent/components/AgentOutputsPanel',
+        replacement: path.resolve(
+          AGENT_SRC,
+          'components/AgentOutputsPanel.tsx',
+        ),
+      },
+      {
+        find: '@genfeedai/agent/components/AgentPanel',
+        replacement: path.resolve(AGENT_SRC, 'components/AgentPanel.tsx'),
+      },
+      {
+        find: '@genfeedai/agent/services',
+        replacement: path.resolve(AGENT_SRC, 'services'),
+      },
+      {
+        find: '@genfeedai/agent/services/agent-api.service',
+        replacement: path.resolve(AGENT_SRC, 'services/agent-api.service.ts'),
+      },
+      {
+        find: '@genfeedai/agent/services/agent-base-api.service',
+        replacement: path.resolve(
+          AGENT_SRC,
+          'services/agent-base-api.service.ts',
+        ),
+      },
+      {
+        find: '@genfeedai/agent/stores',
+        replacement: path.resolve(AGENT_SRC, 'stores'),
+      },
+      {
+        find: '@genfeedai/agent/stores/agent-chat.store',
+        replacement: path.resolve(AGENT_SRC, 'stores/agent-chat.store.ts'),
+      },
+      {
+        find: /^@genfeedai\/agent\/(.*)$/,
+        replacement: `${AGENT_SRC}/$1`,
       },
       {
         find: /^@genfeedai\/client\/(.*)$/,
@@ -243,6 +298,14 @@ export default defineConfig({
       {
         find: '@helpers',
         replacement: path.resolve(__dirname, '../helpers/src'),
+      },
+      {
+        find: '@pages',
+        replacement: PAGES_SRC,
+      },
+      {
+        find: /^@pages\/(.*)$/,
+        replacement: `${PAGES_SRC}/$1`,
       },
       {
         find: '@hooks',
