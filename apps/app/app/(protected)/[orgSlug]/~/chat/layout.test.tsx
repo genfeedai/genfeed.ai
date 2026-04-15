@@ -1,3 +1,3 @@
 import { assertSourceHasExport } from '@shared/pages/sourceContractTestUtils';
 
-assertSourceHasExport('app/(protected)/[orgSlug]/[brandSlug]/chat/layout.tsx');
+assertSourceHasExport('app/(protected)/[orgSlug]/~/chat/layout.tsx');
