@@ -31,7 +31,7 @@ import { runPageModuleTests } from '@shared/pages/pageTestUtils';
 import { render } from '@testing-library/react';
 import ChatOnboardingPage, * as PageModule from './page';
 
-runPageModuleTests('apps/app/app/(protected)/chat/onboarding/page', PageModule);
+runPageModuleTests('app/(protected)/chat/onboarding/page', PageModule);
 
 describe('ChatOnboardingPage', () => {
   it('renders only the workspace shell container and no inline page content', () => {

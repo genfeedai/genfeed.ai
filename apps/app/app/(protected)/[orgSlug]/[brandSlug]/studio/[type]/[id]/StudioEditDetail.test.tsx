@@ -3,10 +3,38 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StudioEditDetail from './StudioEditDetail';
 import '@testing-library/jest-dom';
 
-vi.mock('next/navigation', () => ({
-  useParams: vi.fn(() => ({
-    id: 'item-123',
+vi.mock('@contexts/ui/asset-selection-context', () => ({
+  useAssetSelection: vi.fn(() => ({
+    setSelectedAsset: vi.fn(),
   })),
+}));
+
+vi.mock('@contexts/user/brand-context/brand-context', () => ({
+  useBrand: vi.fn(() => ({
+    brandId: undefined,
+  })),
+}));
+
+vi.mock('@hooks/data/elements/use-elements/use-elements', () => ({
+  useElements: vi.fn(() => ({
+    imageEditModels: [],
+    videoEditModels: [],
+  })),
+}));
+
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: vi.fn(() => ({
+    href: vi.fn((path: string) => path),
+  })),
+}));
+
+vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
+  useSocketManager: vi.fn(() => ({
+    subscribe: vi.fn(() => vi.fn()),
+  })),
+}));
+
+vi.mock('next/navigation', () => ({
   useRouter: vi.fn(() => ({
     push: vi.fn(),
   })),
@@ -39,7 +67,7 @@ describe('StudioEditDetail', () => {
   });
 
   it('should render without crashing', () => {
-    const { container } = render(<StudioEditDetail />);
+    const { container } = render(<StudioEditDetail ingredientId="item-123" />);
     expect(container.firstChild).toBeInTheDocument();
   });
 });

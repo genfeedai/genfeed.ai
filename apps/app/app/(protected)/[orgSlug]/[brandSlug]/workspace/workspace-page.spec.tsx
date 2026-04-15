@@ -42,6 +42,7 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
 }));
 
 vi.mock('@helpers/auth/clerk.helper', () => ({
+  getPlaywrightAuthState: vi.fn(() => null),
   resolveClerkToken: vi.fn(),
 }));
 
@@ -211,7 +212,7 @@ describe('WorkspacePageContent', () => {
     render(<WorkspacePageContent section="overview" />);
 
     await waitFor(() => {
-      expect(listMock).toHaveBeenCalledWith({ limit: 24 });
+      expect(listMock).toHaveBeenCalledWith({});
     });
 
     expect(screen.getByText('Workspace Dashboard')).toBeInTheDocument();
@@ -219,42 +220,54 @@ describe('WorkspacePageContent', () => {
     expect(screen.queryByTestId('workspace-nav')).not.toBeInTheDocument();
   });
 
-  it('opens the task composer modal from the dashboard header action', async () => {
+  it('does not expose a direct header task composer action on the dashboard', async () => {
     render(<WorkspacePageContent section="overview" />);
 
     await waitFor(() => {
-      expect(listMock).toHaveBeenCalledWith({ limit: 24 });
+      expect(listMock).toHaveBeenCalledWith({});
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /^new task$/i }));
-
-    expect(screen.getByText('New Task')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /^new task$/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('opens the task composer modal when the sidebar requests a new task', async () => {
     render(<WorkspacePageContent section="overview" />);
 
     await waitFor(() => {
-      expect(listMock).toHaveBeenCalledWith({ limit: 24 });
+      expect(listMock).toHaveBeenCalledWith({});
     });
 
-    window.dispatchEvent(new Event(OPEN_TASK_COMPOSER_EVENT));
+    fireEvent(window, new Event(OPEN_TASK_COMPOSER_EVENT));
 
-    expect(screen.getByText('New Task')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText('New Task')).toBeInTheDocument();
+    });
   });
 
   it('creates a task from the modal composer', async () => {
     render(<WorkspacePageContent section="overview" />);
 
     await waitFor(() => {
-      expect(listMock).toHaveBeenCalledWith({ limit: 24 });
+      expect(listMock).toHaveBeenCalledWith({});
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /^new task$/i }));
-    fireEvent.change(screen.getByLabelText(/task request/i), {
-      target: { value: 'Create a product launch brief' },
+    fireEvent(window, new Event(OPEN_TASK_COMPOSER_EVENT));
+
+    await waitFor(() => {
+      expect(screen.getByText('New Task')).toBeInTheDocument();
     });
-    fireEvent.click(screen.getByRole('button', { name: /^create task$/i }));
+
+    fireEvent.change(
+      screen.getByPlaceholderText(
+        /create three thumbnail directions for our next launch/i,
+      ),
+      {
+        target: { value: 'Create a product launch brief' },
+      },
+    );
+    fireEvent.click(screen.getByRole('button', { name: /create task/i }));
 
     await waitFor(() => {
       expect(createTaskMock).toHaveBeenCalledWith(
@@ -312,13 +325,23 @@ describe('WorkspacePageContent', () => {
     render(<WorkspacePageContent section="overview" />);
 
     await waitFor(() => {
-      expect(listMock).toHaveBeenCalledWith({ limit: 24 });
+      expect(listMock).toHaveBeenCalledWith({});
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /^new task$/i }));
-    fireEvent.change(screen.getByLabelText(/task request/i), {
-      target: { value: 'Hello from Genfeed, this is a facecam test.' },
+    fireEvent(window, new Event(OPEN_TASK_COMPOSER_EVENT));
+
+    await waitFor(() => {
+      expect(screen.getByText('New Task')).toBeInTheDocument();
     });
+
+    fireEvent.change(
+      screen.getByPlaceholderText(
+        /create three thumbnail directions for our next launch/i,
+      ),
+      {
+        target: { value: 'Hello from Genfeed, this is a facecam test.' },
+      },
+    );
 
     // Select Facecam preset (uppercase label inside the toolbar button)
     fireEvent.click(screen.getByRole('button', { name: /^facecam$/i }));
@@ -328,7 +351,7 @@ describe('WorkspacePageContent', () => {
       expect(fetchMock).toHaveBeenCalled();
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /^create task$/i }));
+    fireEvent.click(screen.getByRole('button', { name: /create task/i }));
 
     await waitFor(() => {
       expect(createTaskMock).toHaveBeenCalledWith(
@@ -348,19 +371,30 @@ describe('WorkspacePageContent', () => {
       buildTask({
         id: 'task-plan-1',
         planningThreadId: undefined,
+        reviewState: 'pending_approval',
+        status: 'needs_review',
         title: 'Launch planning task',
       }),
     ]);
 
-    render(<WorkspacePageContent section="activity" />);
+    render(<WorkspacePageContent section="inbox" defaultInboxView="all" />);
 
     await waitFor(() => {
-      expect(listMock).toHaveBeenCalledWith({ limit: 24 });
+      expect(listMock).toHaveBeenCalledWith({});
     });
 
-    fireEvent.click(
-      screen.getByLabelText('Open details for Launch planning task'),
+    const [launchPlanningTaskButton] = screen.getAllByText(
+      'Launch planning task',
     );
+
+    expect(launchPlanningTaskButton).toBeDefined();
+    fireEvent.click(launchPlanningTaskButton);
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('workspace-task-inspector'),
+      ).toBeInTheDocument();
+    });
 
     fireEvent.click(
       within(screen.getByTestId('workspace-task-inspector')).getByRole(
@@ -399,39 +433,32 @@ describe('WorkspacePageContent', () => {
     );
 
     await waitFor(() => {
-      expect(listMock).toHaveBeenCalledWith({ limit: 24 });
+      expect(listMock).toHaveBeenCalledWith({});
     });
 
-    expect(screen.queryByTestId('workspace-snapshot')).not.toBeInTheDocument();
+    expect(screen.getByTestId('workspace-snapshot')).toBeInTheDocument();
     expect(
       screen.queryByTestId('workspace-advanced-tools'),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole('tablist')).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /unread/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /unread/i })).toHaveAttribute(
       'href',
       '/workspace/inbox/unread',
     );
-    expect(screen.getByRole('tab', { name: /recent/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /recent/i })).toHaveAttribute(
       'href',
       '/workspace/inbox/recent',
     );
-    expect(screen.getByRole('tab', { name: /all/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /all/i })).toHaveAttribute(
       'href',
       '/workspace/inbox/all',
     );
 
-    expect(
-      screen.getByLabelText('Open details for Review launch draft'),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByLabelText('Open details for Published recap'),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText('Review launch draft')).toBeInTheDocument();
+    expect(screen.queryByText('Published recap')).not.toBeInTheDocument();
 
     rerender(<WorkspacePageContent section="inbox" defaultInboxView="all" />);
 
-    expect(
-      screen.getByLabelText('Open details for Published recap'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Published recap')).toBeInTheDocument();
   });
 
   it('opens the inspector sheet for inbox and activity items', async () => {
@@ -444,19 +471,20 @@ describe('WorkspacePageContent', () => {
       }),
     ]);
 
-    render(<WorkspacePageContent section="activity" />);
+    render(<WorkspacePageContent section="inbox" defaultInboxView="all" />);
 
     await waitFor(() => {
-      expect(listMock).toHaveBeenCalledWith({ limit: 24 });
+      expect(listMock).toHaveBeenCalledWith({});
     });
 
-    fireEvent.click(
-      screen.getByLabelText(
-        'Open details for Investigate launch comment thread',
-      ),
-    );
+    fireEvent.click(screen.getByText('Investigate launch comment thread'));
 
-    expect(screen.getByTestId('workspace-task-inspector')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('workspace-task-inspector'),
+      ).toBeInTheDocument();
+    });
+
     expect(
       within(screen.getByTestId('workspace-task-inspector')).getByText(
         'Investigate launch comment thread',
@@ -475,15 +503,19 @@ describe('WorkspacePageContent', () => {
       }),
     ]);
 
-    render(<WorkspacePageContent section="activity" />);
+    render(<WorkspacePageContent section="inbox" defaultInboxView="all" />);
 
     await waitFor(() => {
-      expect(listMock).toHaveBeenCalledWith({ limit: 24 });
+      expect(listMock).toHaveBeenCalledWith({});
     });
 
-    fireEvent.click(
-      screen.getByLabelText('Open details for TikTok trend report'),
-    );
+    fireEvent.click(screen.getByText('TikTok trend report'));
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('workspace-task-inspector'),
+      ).toBeInTheDocument();
+    });
 
     await waitFor(() => {
       expect(getRunByIdMock).toHaveBeenCalledWith('run-1');
@@ -524,15 +556,19 @@ describe('WorkspacePageContent', () => {
       }),
     ]);
 
-    render(<WorkspacePageContent section="activity" />);
+    render(<WorkspacePageContent section="inbox" defaultInboxView="all" />);
 
     await waitFor(() => {
-      expect(listMock).toHaveBeenCalledWith({ limit: 24 });
+      expect(listMock).toHaveBeenCalledWith({});
     });
 
-    fireEvent.click(
-      screen.getByLabelText('Open details for Launch ingredient output'),
-    );
+    fireEvent.click(screen.getByText('Launch ingredient output'));
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('workspace-task-inspector'),
+      ).toBeInTheDocument();
+    });
 
     await waitFor(() => {
       expect(findIngredientMock).toHaveBeenCalledWith('ingredient-1');
@@ -541,18 +577,18 @@ describe('WorkspacePageContent', () => {
     const inspector = screen.getByTestId('workspace-task-inspector');
 
     expect(
-      within(inspector).getByText(
-        'Linked ingredient outputs created for this task.',
-      ),
+      within(inspector).getByText('Generated outputs'),
     ).toBeInTheDocument();
+    const linkedOutputs = within(inspector).getByTestId(
+      'workspace-task-linked-outputs',
+    );
+
+    expect(linkedOutputs).toBeInTheDocument();
     expect(
-      within(inspector).getByTestId('workspace-task-linked-outputs'),
-    ).toBeInTheDocument();
+      within(linkedOutputs).getAllByText('Campaign Hook Pack').length,
+    ).toBeGreaterThan(0);
     expect(
-      within(inspector).getByText('Campaign Hook Pack'),
-    ).toBeInTheDocument();
-    expect(
-      within(inspector).getByText('Hook variants for the campaign brief.'),
+      within(linkedOutputs).getByText('Hook variants for the campaign brief.'),
     ).toBeInTheDocument();
     expect(
       within(inspector).getByRole('link', { name: 'Open library' }),
@@ -573,12 +609,16 @@ describe('WorkspacePageContent', () => {
     render(<WorkspacePageContent section="inbox" defaultInboxView="unread" />);
 
     await waitFor(() => {
-      expect(listMock).toHaveBeenCalledWith({ limit: 24 });
+      expect(listMock).toHaveBeenCalledWith({});
     });
 
-    fireEvent.click(
-      screen.getByLabelText('Open details for Review linked issue'),
-    );
+    fireEvent.click(screen.getByText('Review linked issue'));
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId('workspace-task-inspector'),
+      ).toBeInTheDocument();
+    });
 
     await waitFor(() => {
       expect(findIssueMock).toHaveBeenCalledWith('issue-1');
@@ -588,7 +628,7 @@ describe('WorkspacePageContent', () => {
 
     expect(
       within(inspector).getByRole('link', { name: 'Open Issue' }),
-    ).toHaveAttribute('href', '/issues/GEN-42');
+    ).toHaveAttribute('href', '/tasks/GEN-42');
     expect(within(inspector).getByText('Issue: GEN-42')).toBeInTheDocument();
   });
 });

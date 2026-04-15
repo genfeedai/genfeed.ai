@@ -3,7 +3,7 @@ name: E2E Tests
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 6 * * 1'  # Weekly Monday 6am UTC
+    - cron: "0 6 * * 1" # Weekly Monday 6am UTC
 
 concurrency:
   group: e2e-${{ github.ref }}
@@ -144,7 +144,7 @@ jobs:
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || 'pk_test_ZW5nYWdlZC1wYW50aGVyLTcxLmNsZXJrLmFjY291bnRzLmRldiQ' }}
 
       - name: Upload Playwright report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: playwright-report
@@ -152,7 +152,7 @@ jobs:
           retention-days: 7
 
       - name: Upload test results (on failure)
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: playwright-traces
@@ -160,7 +160,7 @@ jobs:
           retention-days: 7
 
       - name: Upload screenshot diffs (on failure)
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: screenshot-diffs

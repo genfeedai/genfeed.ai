@@ -124,7 +124,7 @@ describe('BatchContentQueueService', () => {
 
       expect(notifications.publishBackgroundTaskUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
-          room: 'user-user-1',
+          room: 'user:user-1',
           status: 'pending',
           userId: 'user-1',
         }),
@@ -396,7 +396,7 @@ describe('BatchContentQueueService', () => {
         expect.objectContaining({
           label: expect.stringContaining('1/2'),
           progress: 50,
-          room: 'user-user-42',
+          room: 'user:user-42',
           status: 'completed',
         }),
       );

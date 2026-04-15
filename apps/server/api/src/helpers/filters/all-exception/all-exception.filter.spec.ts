@@ -134,13 +134,10 @@ describe('AllExceptionFilter', () => {
     devFilter.catch(exception, mockArgumentsHost);
 
     expect(mockLoggerService.error).toHaveBeenCalledWith(
-      'Unhandled exception caught',
-      exception,
+      'GET /test 500 — Test error',
       expect.objectContaining({
-        method: 'GET',
         operation: 'catch',
         service: 'AllExceptionFilter',
-        url: '/test',
       }),
     );
     expect(Sentry.captureException).not.toHaveBeenCalled();

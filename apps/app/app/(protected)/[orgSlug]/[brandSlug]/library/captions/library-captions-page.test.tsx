@@ -13,9 +13,7 @@ describe('LibraryCaptionsPage', () => {
 
     expect(screen.getByText('Captions')).toBeInTheDocument();
     expect(
-      screen.getByText(
-        'Browse generated captions, subtitle files, and transcript text for your library content.',
-      ),
+      screen.getByText('Captions, subtitles, and transcripts.'),
     ).toBeInTheDocument();
     expect(screen.getByText('Captions content')).toBeInTheDocument();
   });

@@ -13,7 +13,7 @@ vi.mock('@pages/ingredients/list/ingredients-list', () => ({
   default: () => <div data-testid="ingredients-list" />,
 }));
 
-runPageModuleTests('apps/app/app/(protected)/library/music/page', PageModule);
+runPageModuleTests('app/(protected)/library/music/page', PageModule);
 
 describe('LibraryMusicRoute', () => {
   it('renders the shared music library content', () => {

@@ -1,5 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+vi.mock('@genfeedai/config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/config')>();
+
+  return {
+    ...actual,
+    IS_SELF_HOSTED: false,
+  };
+});
+
 vi.mock('@libs/redis/redis.service', () => ({
   RedisService: vi.fn(),
 }));

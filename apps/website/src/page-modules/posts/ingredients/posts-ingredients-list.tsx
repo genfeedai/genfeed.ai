@@ -17,10 +17,15 @@ import { HiDocumentText, HiEye, HiOutlinePhoto } from 'react-icons/hi2';
 
 // ingredients list with posts to load in the public gallery
 
+type IngredientWithMetrics = Ingredient & {
+  totalPosts?: number;
+  totalViews?: number;
+};
+
 export default function PostsIngredientsList() {
   const searchParams = useSearchParams();
   const page = parseInt(searchParams?.get('page') || '1', 10);
-  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [ingredients, setIngredients] = useState<IngredientWithMetrics[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const findAllIngredients = useCallback(

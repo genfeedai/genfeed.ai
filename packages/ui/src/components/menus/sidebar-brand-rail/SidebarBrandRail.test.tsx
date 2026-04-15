@@ -3,13 +3,19 @@ import SidebarBrandRail from '@ui/menus/sidebar-brand-rail/SidebarBrandRail';
 import type { ImgHTMLAttributes, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
-const { mockOpenBrandOverlay, mockPatchMeBrand, mockRefresh, mockUserReload } =
-  vi.hoisted(() => ({
-    mockOpenBrandOverlay: vi.fn(),
-    mockPatchMeBrand: vi.fn().mockResolvedValue(undefined),
-    mockRefresh: vi.fn(),
-    mockUserReload: vi.fn().mockResolvedValue(undefined),
-  }));
+const {
+  mockOpenBrandOverlay,
+  mockPatchMeBrand,
+  mockPush,
+  mockRefresh,
+  mockUserReload,
+} = vi.hoisted(() => ({
+  mockOpenBrandOverlay: vi.fn(),
+  mockPatchMeBrand: vi.fn().mockResolvedValue(undefined),
+  mockPush: vi.fn(),
+  mockRefresh: vi.fn(),
+  mockUserReload: vi.fn().mockResolvedValue(undefined),
+}));
 
 vi.mock('@clerk/nextjs', () => ({
   useUser: () => ({
@@ -23,10 +29,10 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'brand-1',
     brands: [
-      { id: 'brand-1', label: 'Acme', logoUrl: '' },
-      { id: 'brand-2', label: 'Beta', logoUrl: '' },
+      { id: 'brand-1', label: 'Acme', logoUrl: '', slug: 'acme' },
+      { id: 'brand-2', label: 'Beta', logoUrl: '', slug: 'beta' },
     ],
-    selectedBrand: { id: 'brand-1', label: 'Acme', logoUrl: '' },
+    selectedBrand: { id: 'brand-1', label: 'Acme', logoUrl: '', slug: 'acme' },
   }),
 }));
 
@@ -54,7 +60,12 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/workspace/overview',
+  useParams: () => ({
+    brandSlug: 'acme',
+    orgSlug: 'acme-org',
+  }),
   useRouter: () => ({
+    push: mockPush,
     refresh: mockRefresh,
   }),
 }));
@@ -95,7 +106,7 @@ describe('SidebarBrandRail', () => {
       });
     });
     expect(mockUserReload).toHaveBeenCalled();
-    expect(mockRefresh).toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith('/acme-org/beta/workspace/overview');
   });
 
   it('opens the create brand flow from the dedicated affordance', () => {

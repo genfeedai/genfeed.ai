@@ -12,6 +12,9 @@ let capturedFooterActions: SwitcherDropdownFooterAction[] = [];
 let capturedItems: SwitcherDropdownItem[] = [];
 
 vi.mock('next/navigation', () => ({
+  useParams: () => ({
+    orgSlug: 'acme-org',
+  }),
   useRouter: () => ({
     push: mockPush,
   }),
@@ -76,6 +79,6 @@ describe('OrganizationSwitcher', () => {
 
     capturedFooterActions[0]?.onAction();
 
-    expect(mockPush).toHaveBeenCalledWith('/settings/organization');
+    expect(mockPush).toHaveBeenCalledWith('/acme-org/~/settings/organization');
   });
 });

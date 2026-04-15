@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - 'extension-browser-v*'
+      - "extension-browser-v*"
     paths:
-      - 'apps/extensions/browser/**'
+      - "apps/extensions/browser/**"
 
 concurrency:
   group: browser-extension-submit-${{ github.ref }}
@@ -85,7 +85,7 @@ jobs:
         run: bun run package
 
       - name: Upload build artifact
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: browser-extension-build
           path: apps/extensions/browser/app/build/chrome-mv3-prod.zip

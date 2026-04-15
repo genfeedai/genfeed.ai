@@ -7,10 +7,7 @@ vi.mock('./library-landing-page', () => ({
   default: () => <div data-testid="library-landing-page" />,
 }));
 
-runPageModuleTests(
-  'apps/app/app/(protected)/library/ingredients/page',
-  PageModule,
-);
+runPageModuleTests('app/(protected)/library/ingredients/page', PageModule);
 
 describe('LibraryIngredientsPage', () => {
   afterEach(() => {

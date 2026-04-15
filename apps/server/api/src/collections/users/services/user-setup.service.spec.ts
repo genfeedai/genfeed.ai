@@ -33,6 +33,7 @@ describe('UserSetupService', () => {
   const mockOrganizationsService = {
     create: vi.fn(),
     findOne: vi.fn(),
+    generateUniqueSlug: vi.fn(),
   };
 
   const mockOrganizationSettingsService = {
@@ -102,6 +103,9 @@ describe('UserSetupService', () => {
     beforeEach(() => {
       // Default "happy path" mocks — no existing resources
       mockOrganizationsService.findOne.mockResolvedValue(null);
+      mockOrganizationsService.generateUniqueSlug.mockResolvedValue(
+        'default-organization',
+      );
       mockOrganizationsService.create.mockResolvedValue(mockOrg);
 
       mockOrganizationSettingsService.findOne.mockResolvedValue(null);

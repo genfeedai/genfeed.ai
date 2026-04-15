@@ -2,7 +2,8 @@
 'use client';
 
 import { render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import OnboardingGuard from '@ui/guards/onboarding/OnboardingGuard';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const replaceMock = vi.fn();
 const pathnameMock = vi.fn();
@@ -37,18 +38,20 @@ vi.mock('@genfeedai/helpers/auth/clerk.helper', () => ({
 }));
 
 describe('OnboardingGuard', () => {
-  let OnboardingGuard: typeof import('@ui/guards/onboarding/OnboardingGuard').default;
-
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test_fake';
+    delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
     pathnameMock.mockReturnValue('/dashboard');
     useAuthMock.mockReturnValue({
       isLoaded: true,
       isSignedIn: true,
     });
-    return import('@ui/guards/onboarding/OnboardingGuard').then((module) => {
-      OnboardingGuard = module.default;
-    });
+  });
+
+  afterEach(() => {
+    delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+    delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
   });
 
   it('should redirect incomplete users to the first onboarding step', async () => {

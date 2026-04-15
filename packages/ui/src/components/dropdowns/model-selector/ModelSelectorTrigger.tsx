@@ -1,9 +1,6 @@
 'use client';
 
-import {
-  extractBrandFromKey,
-  getBrandConfig,
-} from '@genfeedai/constants/model-brands.constant';
+import { extractBrandFromKey, getBrandConfig } from '@genfeedai/constants';
 import { ButtonSize, ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ModelSelectorTriggerProps } from '@genfeedai/props/ui/model-selector/model-selector.props';

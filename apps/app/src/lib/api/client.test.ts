@@ -1,47 +1,50 @@
-import { HttpResponse, http } from 'msw';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { server } from '@/test/mocks/server';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError, apiClient } from './client';
 
-const API_BASE_URL = 'http://local.genfeed.ai:3010/api';
+const API_BASE_URL = '/v1';
+const fetchMock = vi.fn<typeof fetch>();
+
+function createJsonResponse(body: unknown, init?: ResponseInit): Response {
+  return new Response(JSON.stringify(body), {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    status: 200,
+    ...init,
+  });
+}
 
 describe('apiClient', () => {
-  const mockResponse = { data: 'test' };
-
   beforeEach(() => {
-    // Reset any runtime handlers added in tests
+    vi.stubGlobal('fetch', fetchMock);
+    fetchMock.mockReset();
   });
 
   afterEach(() => {
-    server.resetHandlers();
+    vi.unstubAllGlobals();
   });
 
   describe('get', () => {
     it('should make GET request and return parsed JSON', async () => {
-      server.use(
-        http.get(`${API_BASE_URL}/test-endpoint`, () => {
-          return HttpResponse.json(mockResponse);
-        }),
-      );
+      const mockResponse = { data: 'test' };
+      fetchMock.mockResolvedValueOnce(createJsonResponse(mockResponse));
 
       const result = await apiClient.get<typeof mockResponse>('/test-endpoint');
 
+      expect(fetchMock).toHaveBeenCalledWith(`${API_BASE_URL}/test-endpoint`, {
+        headers: { 'Content-Type': 'application/json' },
+        method: 'GET',
+      });
       expect(result).toEqual(mockResponse);
     });
 
     it('should handle abort signal', async () => {
       const controller = new AbortController();
-
-      server.use(
-        http.get(`${API_BASE_URL}/test`, async () => {
-          // Simulate slow response
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          return HttpResponse.json(mockResponse);
-        }),
-      );
-
-      // Abort immediately
       controller.abort();
+
+      fetchMock.mockRejectedValueOnce(
+        new DOMException('Aborted', 'AbortError'),
+      );
 
       await expect(
         apiClient.get('/test', { signal: controller.signal }),
@@ -51,103 +54,92 @@ describe('apiClient', () => {
 
   describe('post', () => {
     it('should make POST request with JSON body', async () => {
+      const mockResponse = { data: 'test' };
       const data = { name: 'test' };
-      let receivedBody: unknown;
-
-      server.use(
-        http.post(`${API_BASE_URL}/test`, async ({ request }) => {
-          receivedBody = await request.json();
-          return HttpResponse.json(mockResponse);
-        }),
-      );
+      fetchMock.mockResolvedValueOnce(createJsonResponse(mockResponse));
 
       await apiClient.post('/test', data);
 
-      expect(receivedBody).toEqual(data);
+      expect(fetchMock).toHaveBeenCalledWith(`${API_BASE_URL}/test`, {
+        body: JSON.stringify(data),
+        headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+      });
     });
 
     it('should handle undefined body', async () => {
-      server.use(
-        http.post(`${API_BASE_URL}/test`, () => {
-          return HttpResponse.json(mockResponse);
-        }),
-      );
+      const mockResponse = { data: 'test' };
+      fetchMock.mockResolvedValueOnce(createJsonResponse(mockResponse));
 
       const result = await apiClient.post('/test', undefined);
 
+      expect(fetchMock).toHaveBeenCalledWith(`${API_BASE_URL}/test`, {
+        body: undefined,
+        headers: { 'Content-Type': 'application/json' },
+        method: 'POST',
+      });
       expect(result).toEqual(mockResponse);
     });
   });
 
   describe('put', () => {
     it('should make PUT request with JSON body', async () => {
+      const mockResponse = { data: 'test' };
       const data = { name: 'updated' };
-      let receivedBody: unknown;
-
-      server.use(
-        http.put(`${API_BASE_URL}/test/123`, async ({ request }) => {
-          receivedBody = await request.json();
-          return HttpResponse.json(mockResponse);
-        }),
-      );
+      fetchMock.mockResolvedValueOnce(createJsonResponse(mockResponse));
 
       await apiClient.put('/test/123', data);
 
-      expect(receivedBody).toEqual(data);
+      expect(fetchMock).toHaveBeenCalledWith(`${API_BASE_URL}/test/123`, {
+        body: JSON.stringify(data),
+        headers: { 'Content-Type': 'application/json' },
+        method: 'PUT',
+      });
     });
   });
 
   describe('patch', () => {
     it('should make PATCH request with JSON body', async () => {
+      const mockResponse = { data: 'test' };
       const data = { status: 'active' };
-      let receivedBody: unknown;
-
-      server.use(
-        http.patch(`${API_BASE_URL}/test/123`, async ({ request }) => {
-          receivedBody = await request.json();
-          return HttpResponse.json(mockResponse);
-        }),
-      );
+      fetchMock.mockResolvedValueOnce(createJsonResponse(mockResponse));
 
       await apiClient.patch('/test/123', data);
 
-      expect(receivedBody).toEqual(data);
+      expect(fetchMock).toHaveBeenCalledWith(`${API_BASE_URL}/test/123`, {
+        body: JSON.stringify(data),
+        headers: { 'Content-Type': 'application/json' },
+        method: 'PATCH',
+      });
     });
   });
 
   describe('delete', () => {
     it('should make DELETE request', async () => {
-      server.use(
-        http.delete(`${API_BASE_URL}/test/123`, () => {
-          return HttpResponse.json({});
-        }),
-      );
+      fetchMock.mockResolvedValueOnce(createJsonResponse({}));
 
       const result = await apiClient.delete('/test/123');
 
+      expect(fetchMock).toHaveBeenCalledWith(`${API_BASE_URL}/test/123`, {
+        headers: { 'Content-Type': 'application/json' },
+        method: 'DELETE',
+      });
       expect(result).toEqual({});
     });
   });
 
   describe('error handling', () => {
     it('should throw ApiError on non-ok response', async () => {
-      server.use(
-        http.get(`${API_BASE_URL}/not-found`, () => {
-          return HttpResponse.json({ message: 'Not found' }, { status: 404 });
-        }),
+      fetchMock.mockResolvedValueOnce(
+        createJsonResponse({ message: 'Not found' }, { status: 404 }),
       );
 
       await expect(apiClient.get('/not-found')).rejects.toThrow(ApiError);
     });
 
     it('should include status code in ApiError', async () => {
-      server.use(
-        http.get(`${API_BASE_URL}/error`, () => {
-          return HttpResponse.json(
-            { message: 'Server error' },
-            { status: 500 },
-          );
-        }),
+      fetchMock.mockResolvedValueOnce(
+        createJsonResponse({ message: 'Server error' }, { status: 500 }),
       );
 
       try {
@@ -160,17 +152,15 @@ describe('apiClient', () => {
     });
 
     it('should include error data in ApiError', async () => {
-      server.use(
-        http.post(`${API_BASE_URL}/test`, () => {
-          return HttpResponse.json(
-            {
-              code: 'VALIDATION_ERROR',
-              details: ['field required'],
-              message: 'Validation failed',
-            },
-            { status: 400 },
-          );
-        }),
+      fetchMock.mockResolvedValueOnce(
+        createJsonResponse(
+          {
+            code: 'VALIDATION_ERROR',
+            details: ['field required'],
+            message: 'Validation failed',
+          },
+          { status: 400 },
+        ),
       );
 
       try {

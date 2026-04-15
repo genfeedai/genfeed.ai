@@ -40,6 +40,10 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: mockPush,
   }),
+  useParams: () => ({
+    orgSlug: 'acme-org',
+    brandSlug: 'brand-one',
+  }),
 }));
 
 vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
@@ -52,9 +56,22 @@ vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   }),
 }));
 
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({
+    selectedBrand: {
+      organization: { slug: 'acme-org' },
+      slug: 'brand-one',
+    },
+  }),
+}));
+
 vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
   useAgentChatStore: (selector: (state: typeof storeState) => unknown) =>
     selector(storeState),
+}));
+
+vi.mock('@genfeedai/agent/services/agent-base-api.service', () => ({
+  runAgentApiEffect: (effect: Promise<unknown>) => effect,
 }));
 
 vi.mock('@genfeedai/agent/components/AgentChatContainer', () => ({
@@ -68,7 +85,7 @@ vi.mock('@genfeedai/agent/components/AgentOutputsPanel', () => ({
 describe('AgentPanel', () => {
   it('fetches credits on mount and renders chat container', async () => {
     const apiService = {
-      getCreditsInfo: vi.fn().mockResolvedValue({
+      getCreditsInfoEffect: vi.fn().mockResolvedValue({
         balance: 123,
         modelCosts: {},
       }),
@@ -77,7 +94,7 @@ describe('AgentPanel', () => {
     render(<AgentPanel apiService={apiService} />);
 
     await waitFor(() => {
-      expect(apiService.getCreditsInfo).toHaveBeenCalledTimes(1);
+      expect(apiService.getCreditsInfoEffect).toHaveBeenCalledTimes(1);
     });
 
     expect(mockSetCreditsRemaining).toHaveBeenCalledWith(123);
@@ -89,7 +106,7 @@ describe('AgentPanel', () => {
 
   it('renders toggle button that calls toggleOpen from store', async () => {
     const apiService = {
-      getCreditsInfo: vi.fn().mockResolvedValue({
+      getCreditsInfoEffect: vi.fn().mockResolvedValue({
         balance: 123,
         modelCosts: {},
       }),
@@ -98,7 +115,7 @@ describe('AgentPanel', () => {
     render(<AgentPanel apiService={apiService} />);
 
     await waitFor(() => {
-      expect(apiService.getCreditsInfo).toHaveBeenCalledTimes(1);
+      expect(apiService.getCreditsInfoEffect).toHaveBeenCalledTimes(1);
     });
 
     fireEvent.click(screen.getByLabelText('Collapse quick ask panel'));

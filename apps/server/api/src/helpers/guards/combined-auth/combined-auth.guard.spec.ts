@@ -96,7 +96,7 @@ describe('CombinedAuthGuard', () => {
       expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
     });
 
-    it('should use Clerk authentication when no authorization header is present', async () => {
+    it('should allow requests without an authorization header', async () => {
       const mockRequest = {
         headers: {},
       };
@@ -109,7 +109,7 @@ describe('CombinedAuthGuard', () => {
       const result = await guard.canActivate(mockExecutionContext);
 
       expect(result).toBe(true);
-      expect(clerkGuard.canActivate).toHaveBeenCalledWith(mockExecutionContext);
+      expect(clerkGuard.canActivate).not.toHaveBeenCalled();
       expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
     });
 
@@ -184,7 +184,7 @@ describe('CombinedAuthGuard', () => {
       expect(result).toBe(false);
     });
 
-    it('should handle authorization header with no token', async () => {
+    it('should allow authorization headers with no token', async () => {
       const mockRequest = {
         headers: {
           authorization: 'Bearer ',
@@ -199,11 +199,11 @@ describe('CombinedAuthGuard', () => {
       const result = await guard.canActivate(mockExecutionContext);
 
       expect(result).toBe(true);
-      expect(clerkGuard.canActivate).toHaveBeenCalled();
+      expect(clerkGuard.canActivate).not.toHaveBeenCalled();
       expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
     });
 
-    it('should handle authorization header without Bearer prefix', async () => {
+    it('should allow authorization headers without a Bearer token', async () => {
       const mockRequest = {
         headers: {
           authorization: 'gf_1234567890',
@@ -218,8 +218,8 @@ describe('CombinedAuthGuard', () => {
       const result = await guard.canActivate(mockExecutionContext);
 
       expect(result).toBe(true);
-      // Should fall through to Clerk guard since there's no proper Bearer token
-      expect(clerkGuard.canActivate).toHaveBeenCalled();
+      expect(clerkGuard.canActivate).not.toHaveBeenCalled();
+      expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
     });
 
     it('should handle mixed case authorization header', async () => {

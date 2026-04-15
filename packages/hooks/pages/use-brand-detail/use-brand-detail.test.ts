@@ -13,7 +13,7 @@ const mockFindPublicImages = vi.fn();
 const mockFindPublicVideos = vi.fn();
 
 vi.mock('next/navigation', () => ({
-  useParams: vi.fn(() => ({ id: 'brand-1' })),
+  useParams: vi.fn(() => ({ slug: 'brand-1' })),
   usePathname: vi.fn(() => '/settings/brands/brand-1'),
   useRouter: vi.fn(() => ({ push: vi.fn(), replace: vi.fn() })),
 }));
@@ -91,7 +91,7 @@ describe('useBrandDetail', () => {
     } as IBrand);
     mockGetService.mockResolvedValue({
       delete: vi.fn(),
-      findOne: mockFindOne,
+      findOneBySlug: mockFindOne,
       patch: vi.fn(),
     });
     (useAuthedService as ReturnType<typeof vi.fn>).mockReturnValue(

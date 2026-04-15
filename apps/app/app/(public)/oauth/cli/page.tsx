@@ -8,7 +8,6 @@ import { EnvironmentService } from '@services/core/environment.service';
 import Spinner from '@ui/feedback/spinner/Spinner';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
-import { Card, CardContent } from '@ui/primitives/card';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -18,6 +17,7 @@ import {
   HiCommandLine,
   HiXCircle,
 } from 'react-icons/hi2';
+import { Card, CardContent } from '@/components/ui/card';
 
 const MIN_PORT = 1024;
 const MAX_PORT = 65535;

@@ -137,6 +137,13 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+vi.mock('next/navigation', () => ({
+  useParams: () => ({
+    brandSlug: 'moonrise-studio',
+    orgSlug: 'moonrise-org',
+  }),
+}));
+
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => useBrandMock(),
 }));

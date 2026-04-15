@@ -1,6 +1,6 @@
 'use client';
 
-import { MODEL_BRANDS } from '@genfeedai/constants/model-brands.constant';
+import { MODEL_BRANDS } from '@genfeedai/constants';
 import { ButtonVariant } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ModelSelectorProviderSidebarProps } from '@genfeedai/props/ui/model-selector/model-selector.props';
@@ -88,6 +88,7 @@ function SidebarButton({
 }) {
   return (
     <Button
+      ariaLabel={tooltip}
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       onClick={onClick}

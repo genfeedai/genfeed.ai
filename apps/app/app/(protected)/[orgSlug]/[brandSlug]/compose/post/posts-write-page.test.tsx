@@ -13,6 +13,7 @@ const generateThreadMock = vi.fn();
 const trackMock = vi.fn();
 const useBrandMock = vi.fn();
 const copyToClipboardMock = vi.fn();
+const workingTitlePlaceholder = 'Optional internal title for the draft';
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => useBrandMock(),
@@ -35,6 +36,7 @@ vi.mock('@services/core/clipboard.service', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  useParams: () => ({ brandSlug: 'moonrise-studio', orgSlug: 'moonrise-org' }),
   useRouter: () => ({
     push: pushMock,
     replace: replaceMock,
@@ -83,7 +85,7 @@ describe('PostsWritePage', () => {
 
     render(<PostsWritePage />);
 
-    fireEvent.change(screen.getByLabelText('Working title'), {
+    fireEvent.change(screen.getByPlaceholderText(workingTitlePlaceholder), {
       target: { value: 'Launch note' },
     });
     fireEvent.click(
@@ -100,7 +102,9 @@ describe('PostsWritePage', () => {
       });
     });
 
-    expect(pushMock).toHaveBeenCalledWith('/posts/post-1');
+    expect(pushMock).toHaveBeenCalledWith(
+      '/moonrise-org/moonrise-studio/posts/post-1',
+    );
     expect(trackMock).toHaveBeenCalledWith(
       'content_write_blank_draft_started',
       expect.objectContaining({ hasPrefilledIngredient: false }),
@@ -130,7 +134,9 @@ describe('PostsWritePage', () => {
     expect(
       screen.getByText(/generated asset is preselected for supervised review/i),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('Working title')).toHaveValue('Launch clip');
+    expect(screen.getByPlaceholderText(workingTitlePlaceholder)).toHaveValue(
+      'Launch clip',
+    );
     expect(screen.getByLabelText('Draft content')).toHaveValue(
       'Review this generated clip before publishing',
     );
@@ -149,7 +155,9 @@ describe('PostsWritePage', () => {
       });
     });
 
-    expect(pushMock).toHaveBeenCalledWith('/posts/post-2');
+    expect(pushMock).toHaveBeenCalledWith(
+      '/moonrise-org/moonrise-studio/posts/post-2',
+    );
   });
 
   it('generates a single post from the prompt and redirects to the draft', async () => {
@@ -182,7 +190,9 @@ describe('PostsWritePage', () => {
       });
     });
 
-    expect(pushMock).toHaveBeenCalledWith('/posts/generated-1');
+    expect(pushMock).toHaveBeenCalledWith(
+      '/moonrise-org/moonrise-studio/posts/generated-1',
+    );
     expect(trackMock).toHaveBeenCalledWith(
       'content_write_prompt_generated',
       expect.objectContaining({ mode: 'post' }),
@@ -219,7 +229,9 @@ describe('PostsWritePage', () => {
       });
     });
 
-    expect(pushMock).toHaveBeenCalledWith('/posts/thread-root');
+    expect(pushMock).toHaveBeenCalledWith(
+      '/moonrise-org/moonrise-studio/posts/thread-root',
+    );
     expect(trackMock).toHaveBeenCalledWith(
       'content_write_prompt_generated',
       expect.objectContaining({ mode: 'thread' }),
@@ -261,7 +273,7 @@ describe('PostsWritePage', () => {
   it('copies title and content when both are present', async () => {
     render(<PostsWritePage />);
 
-    fireEvent.change(screen.getByLabelText('Working title'), {
+    fireEvent.change(screen.getByPlaceholderText(workingTitlePlaceholder), {
       target: { value: 'Launch memo' },
     });
     fireEvent.change(screen.getByLabelText('Draft content'), {

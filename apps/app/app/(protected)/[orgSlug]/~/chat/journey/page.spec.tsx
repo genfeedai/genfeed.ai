@@ -1,8 +1,6 @@
 import {
   ONBOARDING_JOURNEY_MISSIONS,
   ONBOARDING_JOURNEY_TOTAL_CREDITS,
-  ONBOARDING_SIGNUP_GIFT_CREDITS,
-  ONBOARDING_TOTAL_VISIBLE_CREDITS,
 } from '@genfeedai/types';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
@@ -62,14 +60,14 @@ describe('ChatJourneyPage', () => {
     expect(screen.getByText('Activation Journey')).toBeInTheDocument();
     expect(
       screen.getByText(
-        `Start with ${ONBOARDING_SIGNUP_GIFT_CREDITS} welcome credits and unlock ${ONBOARDING_JOURNEY_TOTAL_CREDITS} more`,
+        'Complete guided missions and unlock more credits as you go',
       ),
     ).toBeInTheDocument();
+    expect(screen.getByText('Available to unlock')).toBeInTheDocument();
+    expect(screen.getByText('Journey unlocked')).toBeInTheDocument();
+    expect(screen.getByText('Journey total')).toBeInTheDocument();
     expect(
-      screen.getByText(String(ONBOARDING_TOTAL_VISIBLE_CREDITS)),
-    ).toBeInTheDocument();
-    expect(
-      screen.getAllByText(`${ONBOARDING_SIGNUP_GIFT_CREDITS}`).length,
+      screen.getAllByText(String(ONBOARDING_JOURNEY_TOTAL_CREDITS)).length,
     ).toBeGreaterThan(0);
 
     const firstMission = ONBOARDING_JOURNEY_MISSIONS[0];

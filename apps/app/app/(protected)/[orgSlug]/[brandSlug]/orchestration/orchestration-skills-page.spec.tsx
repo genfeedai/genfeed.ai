@@ -11,6 +11,18 @@ const resolveClerkTokenMock = vi.fn();
 const listSkillsMock = vi.fn();
 const customizeSkillMock = vi.fn();
 const updateSkillMock = vi.fn();
+const selectedBrandMock = {
+  agentConfig: {
+    enabledSkills: [],
+  },
+  id: 'brand-1',
+  label: 'Acme Brand',
+};
+const brandContextMock = {
+  brandId: 'brand-1',
+  isReady: true,
+  selectedBrand: selectedBrandMock,
+};
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
@@ -25,14 +37,11 @@ vi.mock('@clerk/nextjs', () => ({
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({
-    brandId: 'brand-1',
-    isReady: true,
-    selectedBrand: {
-      id: 'brand-1',
-      label: 'Acme Brand',
-    },
-  }),
+  useBrand: () => brandContextMock,
+}));
+
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => brandContextMock,
 }));
 
 vi.mock('@helpers/auth/clerk.helper', () => ({

@@ -1,6 +1,10 @@
 // @vitest-environment jsdom
 'use client';
 
+import {
+  AccessStateProvider,
+  useAccessState,
+} from '@providers/access-state/access-state.provider';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -26,9 +30,6 @@ vi.mock('@genfeedai/hooks/data/resource/use-resource/use-resource', () => ({
 }));
 
 describe('AccessStateProvider', () => {
-  let AccessStateProvider: typeof import('@providers/access-state/access-state.provider').AccessStateProvider;
-  let useAccessState: typeof import('@providers/access-state/access-state.provider').useAccessState;
-
   const refreshMock = vi.fn().mockResolvedValue(undefined);
   const initialAccessState = {
     brandId: 'brand_123',
@@ -42,7 +43,7 @@ describe('AccessStateProvider', () => {
     userId: 'user_123',
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
     useAuthMock.mockReturnValue({
       isLoaded: true,
@@ -60,12 +61,6 @@ describe('AccessStateProvider', () => {
         refresh: refreshMock,
       }),
     );
-
-    const module = await import(
-      '@providers/access-state/access-state.provider'
-    );
-    AccessStateProvider = module.AccessStateProvider;
-    useAccessState = module.useAccessState;
   });
 
   it('derives access flags from bootstrap state', () => {

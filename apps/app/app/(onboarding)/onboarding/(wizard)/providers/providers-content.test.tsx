@@ -2,12 +2,12 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-describe('apps/app/app/(onboarding)/onboarding/(wizard)/providers/providers-content.tsx', () => {
+describe('app/(onboarding)/onboarding/(wizard)/providers/providers-content.tsx', () => {
   it('renders local CLI guidance alongside hosted providers', () => {
     const source = readFileSync(
       join(
         process.cwd(),
-        'apps/app/app/(onboarding)/onboarding/(wizard)/providers/providers-content.tsx',
+        'app/(onboarding)/onboarding/(wizard)/providers/providers-content.tsx',
       ),
       'utf8',
     );

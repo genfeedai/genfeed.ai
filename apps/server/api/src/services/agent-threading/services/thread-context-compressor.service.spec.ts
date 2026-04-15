@@ -258,7 +258,6 @@ describe('ThreadContextCompressorService', () => {
       expect(model.findOneAndUpdate).not.toHaveBeenCalled();
       expect(loggerService.warn).toHaveBeenCalledWith(
         expect.stringContaining('no valid sections'),
-        undefined,
       );
     });
 
