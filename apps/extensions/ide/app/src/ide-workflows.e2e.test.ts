@@ -1,4 +1,4 @@
-import { beforeAll, beforeEach, describe, expect, it, mock } from 'bun:test';
+import { beforeEach, describe, expect, it, mock } from 'bun:test';
 import type { PromptTemplate, RunRecord } from '@/types';
 
 type CommandHandler = (...args: unknown[]) => unknown;
@@ -541,15 +541,11 @@ let RunQueueViewProvider: new () => {
   resolveWebviewView(webviewView: never, context: never, token: never): void;
 };
 
-describe('IDE extension workflows', () => {
-  beforeAll(async () => {
-    ({ registerCommands } = await import('./commands'));
-    ({ triggerCommitToPost } = await import('./commands/commit-to-post'));
-    ({ RunQueueViewProvider } = await import(
-      './views/run-queue-view.provider'
-    ));
-  });
+({ registerCommands } = await import('./commands'));
+({ triggerCommitToPost } = await import('./commands/commit-to-post'));
+({ RunQueueViewProvider } = await import('./views/run-queue-view.provider'));
 
+describe('IDE extension workflows', () => {
   beforeEach(() => {
     resetState();
   });
