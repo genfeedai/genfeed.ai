@@ -175,10 +175,15 @@ export function ReplyPage({
     }
   }
 
-  function handleCopy(text: string, index: number): void {
-    navigator.clipboard.writeText(text).catch(() => {});
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
+  async function handleCopy(text: string, index: number): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch (error) {
+      logger.error('Failed to copy reply text', error);
+      setError('Failed to copy reply text');
+    }
   }
 
   if (step === 'loading') {
@@ -224,7 +229,9 @@ export function ReplyPage({
               <Button
                 type="button"
                 variant={ButtonVariant.GHOST}
-                onClick={() => handleCopy(reply.text, i)}
+                onClick={() => {
+                  void handleCopy(reply.text, i);
+                }}
                 className="w-full rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20"
               >
                 {copiedIndex === i ? '✓ Copied' : 'Copy reply'}

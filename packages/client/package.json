@@ -2,9 +2,7 @@
   "dependencies": {
     "@genfeedai/constants": "workspace:*",
     "@genfeedai/enums": "workspace:*",
-    "@genfeedai/helpers": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
-    "ts-jsonapi": "2.1.3",
     "zod": "4.3.6"
   },
   "description": "Genfeed.ai shared client models and schemas",

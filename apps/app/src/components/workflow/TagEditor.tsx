@@ -6,6 +6,7 @@ import { Input } from '@ui/primitives/input';
 import { Plus, Tag, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { workflowsApi } from '@/lib/api';
+import { logger } from '@/lib/logger';
 
 interface TagEditorProps {
   tags: string[];
@@ -23,7 +24,9 @@ export function TagEditor({ tags, onChange }: TagEditorProps) {
     workflowsApi
       .getAllTags()
       .then(setAllTags)
-      .catch(() => {});
+      .catch((error) => {
+        logger.error('Failed to load workflow tags', error);
+      });
   }, []);
 
   useEffect(() => {

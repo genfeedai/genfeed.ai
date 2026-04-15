@@ -1,8 +1,8 @@
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
-const require = createRequire(import.meta.url);
+const CONSTANTS_SRC = path.resolve(__dirname, '../constants/src');
+const ENUMS_SRC = path.resolve(__dirname, '../enums/src');
 
 export default defineConfig({
   resolve: {
@@ -21,11 +21,11 @@ export default defineConfig({
       },
       {
         find: '@genfeedai/constants',
-        replacement: require.resolve('@genfeedai/constants'),
+        replacement: CONSTANTS_SRC,
       },
       {
         find: '@genfeedai/enums',
-        replacement: require.resolve('@genfeedai/enums'),
+        replacement: ENUMS_SRC,
       },
       {
         find: '@genfeedai/helpers',

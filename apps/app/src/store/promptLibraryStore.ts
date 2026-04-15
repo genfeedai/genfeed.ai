@@ -8,10 +8,6 @@ import { create } from 'zustand';
 import { promptsApi } from '@/lib/api';
 import { logger } from '@/lib/logger';
 
-// No-op: app's store uses promptsApi directly, no runtime configuration needed.
-// Exported for compatibility with WorkflowUIProvider which calls this on mount.
-export function configurePromptLibrary(_api: unknown): void {}
-
 interface PromptLibraryStore {
   // State
   items: IPrompt[];

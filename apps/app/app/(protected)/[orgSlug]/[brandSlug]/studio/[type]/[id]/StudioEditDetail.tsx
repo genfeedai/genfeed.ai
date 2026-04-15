@@ -243,19 +243,37 @@ export default function StudioEditDetail({
             ? videoService
             : imageService;
 
-        const [children, siblings] = await Promise.all([
-          service.findAll(query).catch(() => []),
+        const [childrenResult, siblingsResult] = await Promise.allSettled([
+          service.findAll(query),
           ingredient.parent && typeof ingredient.parent === 'string'
-            ? service
-                .findAll({
-                  brand: brandId,
-                  limit: ITEMS_PER_PAGE * 5,
-                  parent: ingredient.parent,
-                  sort: 'createdAt: -1',
-                })
-                .catch(() => [])
+            ? service.findAll({
+                brand: brandId,
+                limit: ITEMS_PER_PAGE * 5,
+                parent: ingredient.parent,
+                sort: 'createdAt: -1',
+              })
             : Promise.resolve([]),
         ]);
+
+        if (childrenResult.status === 'rejected') {
+          logger.error('Failed to load child ingredient versions', {
+            error: childrenResult.reason,
+            ingredientId: ingredient.id,
+          });
+        }
+
+        if (siblingsResult.status === 'rejected') {
+          logger.error('Failed to load sibling ingredient versions', {
+            error: siblingsResult.reason,
+            ingredientId: ingredient.id,
+            parentId: ingredient.parent,
+          });
+        }
+
+        const children =
+          childrenResult.status === 'fulfilled' ? childrenResult.value : [];
+        const siblings =
+          siblingsResult.status === 'fulfilled' ? siblingsResult.value : [];
 
         const allVersions = [...children, ...siblings].filter(
           (item: IIngredient) => item?.id && item.id !== ingredient.id,

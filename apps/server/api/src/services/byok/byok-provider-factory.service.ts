@@ -25,9 +25,7 @@ export class ByokProviderFactoryService {
     if (byokKey?.apiKey) {
       if (trackUsage) {
         // Fire-and-forget usage tracking — errors handled inside incrementUsage
-        this.byokService
-          .incrementUsage(organizationId, provider)
-          .catch(() => {});
+        void this.byokService.incrementUsage(organizationId, provider);
       }
 
       return {

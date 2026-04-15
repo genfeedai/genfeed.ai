@@ -153,10 +153,15 @@ export function RemixPage({
     }
   }
 
-  function handleCopy(text: string, index: number): void {
-    navigator.clipboard.writeText(text).catch(() => {});
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
+  async function handleCopy(text: string, index: number): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 2000);
+    } catch (error) {
+      logger.error('Failed to copy remix text', error);
+      setError('Failed to copy remix text');
+    }
   }
 
   async function handleSaveDraft(text: string): Promise<void> {
@@ -231,7 +236,9 @@ export function RemixPage({
                   <Button
                     type="button"
                     variant={ButtonVariant.GHOST}
-                    onClick={() => handleCopy(item, i)}
+                    onClick={() => {
+                      void handleCopy(item, i);
+                    }}
                     className="flex-1 rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20"
                   >
                     {copiedIndex === i ? '✓ Copied' : 'Copy'}

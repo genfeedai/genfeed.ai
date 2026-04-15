@@ -1,8 +1,6 @@
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
-const require = createRequire(import.meta.url);
 const UI_SRC = path.resolve(__dirname, './src');
 const UI_COMPONENTS_SRC = path.resolve(UI_SRC, './components');
 const UI_PRIMITIVES_SRC = path.resolve(UI_SRC, './primitives');
@@ -15,6 +13,8 @@ const XYFLOW_REACT_MOCK = path.resolve(
   './tests/__mocks__/xyflow-react.tsx',
 );
 const EMPTY_STYLE_MOCK = path.resolve(__dirname, './tests/__mocks__/style.ts');
+const CONSTANTS_SRC = path.resolve(__dirname, '../constants/src');
+const ENUMS_SRC = path.resolve(__dirname, '../enums/src');
 const SERIALIZERS_SRC = path.resolve(__dirname, '../serializers/src');
 
 export default defineConfig({
@@ -30,11 +30,11 @@ export default defineConfig({
       },
       {
         find: '@genfeedai/constants',
-        replacement: require.resolve('@genfeedai/constants'),
+        replacement: CONSTANTS_SRC,
       },
       {
         find: '@genfeedai/enums',
-        replacement: require.resolve('@genfeedai/enums'),
+        replacement: ENUMS_SRC,
       },
       {
         find: '@genfeedai/helpers',

@@ -1,35 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import {
-  flattenCollection,
-  flattenResource,
-  flattenSingle,
-  isJsonApiResponse,
-} from '../../src/api/json-api.js';
+import { flattenCollection, flattenSingle } from '../../src/api/json-api.js';
 
 describe('json-api', () => {
-  describe('flattenResource', () => {
-    it('merges id with attributes', () => {
-      const result = flattenResource<{ id: string; label: string }>({
-        attributes: { label: 'Test' },
-        id: '123',
-        type: 'brand',
-      });
-
-      expect(result.id).toBe('123');
-      expect(result.label).toBe('Test');
-    });
-
-    it('handles empty attributes', () => {
-      const result = flattenResource<{ id: string }>({
-        attributes: {},
-        id: '123',
-        type: 'brand',
-      });
-
-      expect(result.id).toBe('123');
-    });
-  });
-
   describe('flattenCollection', () => {
     it('flattens array of resources', () => {
       const result = flattenCollection<{ id: string; label: string }>({
@@ -68,36 +40,6 @@ describe('json-api', () => {
       });
 
       expect(result).toEqual({ id: 'brand-1', label: 'My Brand', status: 'active' });
-    });
-  });
-
-  describe('isJsonApiResponse', () => {
-    it('detects JSON:API collection', () => {
-      expect(
-        isJsonApiResponse({
-          data: [{ attributes: { label: 'A' }, id: '1', type: 'brand' }],
-        })
-      ).toBe(true);
-    });
-
-    it('detects JSON:API single resource', () => {
-      expect(
-        isJsonApiResponse({
-          data: { attributes: { label: 'A' }, id: '1', type: 'brand' },
-        })
-      ).toBe(true);
-    });
-
-    it('detects empty collection as JSON:API', () => {
-      expect(isJsonApiResponse({ data: [] })).toBe(true);
-    });
-
-    it('rejects plain object response', () => {
-      expect(isJsonApiResponse({ data: { id: '1', name: 'test' } })).toBe(false);
-    });
-
-    it('rejects response without data', () => {
-      expect(isJsonApiResponse({})).toBe(false);
     });
   });
 });

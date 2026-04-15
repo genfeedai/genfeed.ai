@@ -1,8 +1,7 @@
 {
   "dependencies": {
     "@genfeedai/enums": "workspace:*",
-    "@genfeedai/interfaces": "workspace:*",
-    "@genfeedai/workflows": "workspace:*"
+    "@genfeedai/interfaces": "workspace:*"
   },
   "devDependencies": {
     "typescript": "6.0.2"

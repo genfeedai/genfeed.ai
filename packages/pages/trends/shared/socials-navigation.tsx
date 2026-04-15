@@ -61,13 +61,6 @@ function buildSocialsNavItems(
   });
 }
 
-export const PLATFORM_DROPDOWN_OPTIONS = PLATFORM_LABELS.map(
-  ({ id, label }) => ({
-    label: id === 'overview' ? 'All Platforms' : label,
-    value: id,
-  }),
-);
-
 export type SocialsNavigationValue = 'overview' | TrendPlatform;
 
 export function SocialsNavigation({
