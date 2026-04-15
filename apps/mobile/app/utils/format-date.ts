@@ -34,17 +34,17 @@ interface TimeDiff {
 }
 
 function getTimeDiff(dateString: string): TimeDiff | null {
-  try {
-    const date = new Date(dateString);
-    const diffMs = Date.now() - date.getTime();
-    return {
-      days: Math.floor(diffMs / 86400000),
-      hours: Math.floor(diffMs / 3600000),
-      minutes: Math.floor(diffMs / 60000),
-    };
-  } catch {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) {
     return null;
   }
+
+  const diffMs = Date.now() - date.getTime();
+  return {
+    days: Math.floor(diffMs / 86400000),
+    hours: Math.floor(diffMs / 3600000),
+    minutes: Math.floor(diffMs / 60000),
+  };
 }
 
 function formatRelativeTime(
@@ -105,34 +105,34 @@ export function formatRelativeDateVerbose(dateString: string): string {
  * Format a date string to a full localized date with time
  */
 export function formatFullDate(dateString: string): string {
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      month: 'long',
-      year: 'numeric',
-    });
-  } catch {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) {
     return dateString;
   }
+
+  return date.toLocaleDateString('en-US', {
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
 }
 
 /**
  * Format a date string to a short date with time
  */
 export function formatShortDate(dateString: string): string {
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      month: 'short',
-      weekday: 'short',
-    });
-  } catch {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) {
     return dateString;
   }
+
+  return date.toLocaleDateString('en-US', {
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    month: 'short',
+    weekday: 'short',
+  });
 }

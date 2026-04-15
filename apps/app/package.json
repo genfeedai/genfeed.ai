@@ -16,7 +16,6 @@
     "@genfeedai/interfaces": "*",
     "@genfeedai/next-config": "*",
     "@genfeedai/types": "*",
-    "@genfeedai/workflow-engine": "*",
     "@genfeedai/workflow-saas": "*",
     "@genfeedai/workflow-ui": "*",
     "@radix-ui/react-collapsible": "^1.1.12",

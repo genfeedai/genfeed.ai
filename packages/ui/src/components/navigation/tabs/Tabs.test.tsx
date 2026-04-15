@@ -42,7 +42,7 @@ describe('Tabs', () => {
       />,
     );
 
-    expect(screen.getByRole('tab', { name: /scheduled/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /scheduled/i })).toHaveAttribute(
       'data-state',
       'active',
     );
@@ -233,9 +233,30 @@ describe('Tabs', () => {
       />,
     );
 
-    // Navigation tabs use TabsTrigger asChild wrapping a Link, rendered as role="tab"
-    const settingsTab = screen.getByRole('tab', { name: /settings/i });
+    const settingsTab = screen.getByRole('link', { name: /settings/i });
     expect(settingsTab).toHaveAttribute('href', '/settings');
+  });
+
+  it('marks the active navigation tab with aria-current instead of tab semantics', () => {
+    mockPathname = '/dashboard';
+    mockSearch = '';
+
+    render(
+      <Tabs
+        items={[
+          { href: '/dashboard', id: 'dashboard', label: 'Dashboard' },
+          { href: '/settings', id: 'settings', label: 'Settings' },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: /dashboard/i })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(
+      screen.queryByRole('tab', { name: /dashboard/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('capitalizes non-navigation tab labels', () => {
@@ -271,13 +292,13 @@ describe('Tabs', () => {
       />,
     );
 
-    expect(screen.getByRole('tab', { name: /scheduled/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /scheduled/i })).toHaveAttribute(
       'data-state',
       'active',
     );
-    expect(screen.getByRole('tab', { name: /scheduled/i })).toHaveAttribute(
-      'aria-selected',
-      'true',
+    expect(screen.getByRole('link', { name: /scheduled/i })).toHaveAttribute(
+      'aria-current',
+      'page',
     );
   });
 
@@ -300,7 +321,7 @@ describe('Tabs', () => {
       />,
     );
 
-    expect(screen.getByRole('tab', { name: /overview/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /overview/i })).toHaveAttribute(
       'data-state',
       'active',
     );

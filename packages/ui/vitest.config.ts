@@ -1,8 +1,6 @@
-import { createRequire } from 'node:module';
 import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 
-const require = createRequire(import.meta.url);
 const UI_SRC = path.resolve(__dirname, './src');
 const UI_COMPONENTS_SRC = path.resolve(UI_SRC, './components');
 const UI_PRIMITIVES_SRC = path.resolve(UI_SRC, './primitives');
@@ -21,6 +19,8 @@ const XYFLOW_REACT_MOCK = path.resolve(
   './tests/__mocks__/xyflow-react.tsx',
 );
 const EMPTY_STYLE_MOCK = path.resolve(__dirname, './tests/__mocks__/style.ts');
+const CONSTANTS_SRC = path.resolve(__dirname, '../constants/src');
+const ENUMS_SRC = path.resolve(__dirname, '../enums/src');
 const SERIALIZERS_SRC = path.resolve(__dirname, '../serializers/src');
 const AGENT_SRC = path.resolve(__dirname, '../agent/src');
 const PAGES_SRC = path.resolve(__dirname, '../pages');
@@ -91,22 +91,19 @@ export default defineConfig({
       },
       {
         find: '@genfeedai/constants',
-        replacement: path.resolve(__dirname, '../constants/src/index.ts'),
+        replacement: CONSTANTS_SRC,
       },
       {
         find: '@genfeedai/constants/model-brands.constant',
-        replacement: path.resolve(
-          __dirname,
-          '../constants/src/model-brands.constant.ts',
-        ),
+        replacement: path.resolve(CONSTANTS_SRC, 'model-brands.constant.ts'),
       },
       {
         find: /^@genfeedai\/constants\/(.*)$/,
-        replacement: path.resolve(__dirname, '../constants/src/$1'),
+        replacement: path.resolve(CONSTANTS_SRC, '$1'),
       },
       {
         find: '@genfeedai/enums',
-        replacement: require.resolve('@genfeedai/enums'),
+        replacement: ENUMS_SRC,
       },
       {
         find: /^@genfeedai\/enums\/(.*)$/,

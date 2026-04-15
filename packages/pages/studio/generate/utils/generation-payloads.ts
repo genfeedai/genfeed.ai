@@ -14,7 +14,7 @@ import type {
   VideoGenerationPayload,
 } from '@genfeedai/interfaces/content/generation-payload.interface';
 
-export const PRESET_TO_TEMPLATE_MAP: Record<string, ContentTemplateKey> = {
+const PRESET_TO_TEMPLATE_MAP: Record<string, ContentTemplateKey> = {
   'article-banner': ContentTemplateKey.IMAGE_BANNER,
   'cinematic-video': ContentTemplateKey.VIDEO_CINEMATIC,
   'influencer-photo': ContentTemplateKey.IMAGE_SUPER_MODEL,

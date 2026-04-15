@@ -187,7 +187,13 @@ export function GenerationActionCard({
     setModelsLoading(true);
     runAgentApiEffect(apiService.getModelsEffect(controller.signal))
       .then((data) => setModels(data))
-      .catch(() => {})
+      .catch((loadError) => {
+        const message =
+          loadError instanceof Error
+            ? loadError.message
+            : 'Failed to load generation models';
+        setError(message);
+      })
       .finally(() => setModelsLoading(false));
     return () => controller.abort();
   }, [apiService]);

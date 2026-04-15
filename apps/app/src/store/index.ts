@@ -11,10 +11,7 @@ export { useCommandPaletteStore } from './commandPaletteStore';
 export { useContextMenuStore } from './contextMenuStore';
 // Re-export shared stores from workflow-ui
 export { type ExecutionStore, type Job, useExecutionStore } from './execution';
-export {
-  configurePromptLibrary,
-  usePromptLibraryStore,
-} from './promptLibraryStore';
+export { usePromptLibraryStore } from './promptLibraryStore';
 export { useSettingsStore } from './settingsStore';
 export {
   useWorkflowStore,

@@ -279,9 +279,16 @@ export default function IngredientDetailImage({
           {tab === 'tags' && (
             <IngredientTabsTags
               ingredient={currentImage}
-              onTagsUpdate={(tags: ITag[]) => {
+              onTagsUpdate={async (tags: ITag[]) => {
                 logger.info('Tags updated', { tags });
-                updateMetadataHook('label', metadataLabel).catch(() => {});
+                try {
+                  await updateMetadataHook('label', metadataLabel);
+                } catch (error) {
+                  logger.error('Failed to persist ingredient tag metadata', {
+                    error,
+                    ingredientId: currentImage.id,
+                  });
+                }
               }}
             />
           )}

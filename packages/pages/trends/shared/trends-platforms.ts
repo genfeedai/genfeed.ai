@@ -19,7 +19,7 @@ export const ALL_TREND_PLATFORMS = [
 export type TrendPlatform = (typeof ALL_TREND_PLATFORMS)[number];
 export type RealtimeTrendPlatform = (typeof REALTIME_TREND_PLATFORMS)[number];
 
-export const TREND_PLATFORM_LABELS: Record<TrendPlatform, string> = {
+const TREND_PLATFORM_LABELS: Record<TrendPlatform, string> = {
   instagram: 'Instagram',
   linkedin: 'LinkedIn',
   pinterest: 'Pinterest',

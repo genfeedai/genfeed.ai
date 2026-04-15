@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export interface IUseIntersectionObserverOptions {
   threshold?: number | number[];
@@ -57,52 +57,4 @@ export function useIntersectionObserver<T extends HTMLElement = HTMLDivElement>(
   }, [threshold, root, rootMargin, triggerOnce]);
 
   return { entry, isIntersecting, ref };
-}
-
-/**
- * Hook for infinite scrolling
- */
-export function useInfiniteScroll(
-  callback: () => void,
-  options: {
-    threshold?: number;
-    rootMargin?: string;
-    enabled?: boolean;
-  } = {},
-) {
-  const { threshold = 0, rootMargin = '100px', enabled = true } = options;
-  const observerRef = useRef<IntersectionObserver | null>(null);
-  const loadMoreRef = useCallback(
-    (node: HTMLElement | null) => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-
-      if (!enabled || !node) {
-        return;
-      }
-
-      observerRef.current = new IntersectionObserver(
-        (entries) => {
-          if (entries[0].isIntersecting) {
-            callback();
-          }
-        },
-        { rootMargin, threshold },
-      );
-
-      observerRef.current.observe(node);
-    },
-    [callback, threshold, rootMargin, enabled],
-  );
-
-  useEffect(() => {
-    return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
-      }
-    };
-  }, []);
-
-  return loadMoreRef;
 }

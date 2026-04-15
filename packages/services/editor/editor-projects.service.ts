@@ -7,6 +7,7 @@ import {
 import type {
   ICreateEditorProjectDto,
   IEditorProject,
+  IEditorProjectSettings,
   IUpdateEditorProjectDto,
 } from '@genfeedai/interfaces';
 import { getErrorStatus } from '@genfeedai/utils/error/error-handler.util';
@@ -39,48 +40,44 @@ export class EditorProjectsService extends HTTPBaseService {
     return instance;
   }
 
+  private normalizeSettings(
+    settings?: Partial<IEditorProjectSettings>,
+  ): IEditorProjectSettings {
+    return {
+      backgroundColor: settings?.backgroundColor || '#000000',
+      format: settings?.format || IngredientFormat.LANDSCAPE,
+      fps: settings?.fps || DEFAULT_FPS,
+      height: settings?.height || 1080,
+      width: settings?.width || 1920,
+    };
+  }
+
   private mapOne(response: JsonApiResponseDocument): IEditorProject {
-    const data = deserializeResource<Record<string, unknown>>(response);
+    const data = deserializeResource<Partial<IEditorProject>>(response);
     return this.normalizeProject(data);
   }
 
   private mapMany(response: JsonApiResponseDocument): IEditorProject[] {
-    const items = deserializeCollection<Record<string, unknown>>(response);
+    const items = deserializeCollection<Partial<IEditorProject>>(response);
     return items.map((item) => this.normalizeProject(item));
   }
 
-  private normalizeProject(data: Record<string, unknown>): IEditorProject {
+  private normalizeProject(data: Partial<IEditorProject>): IEditorProject {
     return {
-      brand: (data.brand as string) || undefined,
-      createdAt: (data.createdAt as string) || new Date().toISOString(),
-      id: (data.id as string) || (data._id as string) || '',
-      isDeleted: (data.isDeleted as boolean) || false,
-      name: (data.name as string) || 'Untitled Project',
-      organization: (data.organization as string) || '',
-      renderedVideo: (data.renderedVideo as string) || undefined,
-      settings: {
-        backgroundColor:
-          ((data.settings as Record<string, unknown>)
-            ?.backgroundColor as string) || '#000000',
-        format:
-          ((data.settings as Record<string, unknown>)
-            ?.format as IngredientFormat) || IngredientFormat.LANDSCAPE,
-        fps:
-          ((data.settings as Record<string, unknown>)?.fps as number) ||
-          DEFAULT_FPS,
-        height:
-          ((data.settings as Record<string, unknown>)?.height as number) ||
-          1080,
-        width:
-          ((data.settings as Record<string, unknown>)?.width as number) || 1920,
-      },
-      status: (data.status as EditorProjectStatus) || EditorProjectStatus.DRAFT,
-      thumbnailUrl: (data.thumbnailUrl as string) || undefined,
-      totalDurationFrames:
-        (data.totalDurationFrames as number) || DEFAULT_FPS * 10,
-      tracks: (data.tracks as IEditorProject['tracks']) || [],
-      updatedAt: (data.updatedAt as string) || new Date().toISOString(),
-      user: (data.user as string) || '',
+      brand: data.brand || undefined,
+      createdAt: data.createdAt || new Date().toISOString(),
+      id: data.id || '',
+      isDeleted: data.isDeleted || false,
+      name: data.name || 'Untitled Project',
+      organization: data.organization || '',
+      renderedVideo: data.renderedVideo || undefined,
+      settings: this.normalizeSettings(data.settings),
+      status: data.status || EditorProjectStatus.DRAFT,
+      thumbnailUrl: data.thumbnailUrl || undefined,
+      totalDurationFrames: data.totalDurationFrames || DEFAULT_FPS * 10,
+      tracks: data.tracks || [],
+      updatedAt: data.updatedAt || new Date().toISOString(),
+      user: data.user || '',
     };
   }
 
