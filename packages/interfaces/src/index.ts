@@ -144,6 +144,7 @@ export * from './onboarding/onboarding-wizard.interface';
 export * from './organization/brand.interface';
 export * from './organization/byok-key-entry.interface';
 export * from './organization/byok-provider-status.interface';
+export * from './organization/byok-resolution-result.interface';
 export * from './organization/conversation.interface';
 export * from './organization/credential.interface';
 export * from './organization/member.interface';

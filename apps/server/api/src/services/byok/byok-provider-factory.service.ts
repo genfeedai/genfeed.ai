@@ -1,12 +1,7 @@
 import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProvider } from '@genfeedai/enums';
+import type { ByokResolutionResult } from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';
-
-export interface ByokResolutionResult {
-  apiKey?: string;
-  apiSecret?: string;
-  source: 'byok' | 'hosted';
-}
 
 @Injectable()
 export class ByokProviderFactoryService {

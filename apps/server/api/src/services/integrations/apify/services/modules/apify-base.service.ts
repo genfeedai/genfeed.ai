@@ -1,10 +1,8 @@
 import { ConfigService } from '@api/config/config.service';
-import {
-  ByokProviderFactoryService,
-  ByokResolutionResult,
-} from '@api/services/byok/byok-provider-factory.service';
+import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { ApifyActorRunResponse } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ByokProvider } from '@genfeedai/enums';
+import type { ByokResolutionResult } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Optional } from '@nestjs/common';

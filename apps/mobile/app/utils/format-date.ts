@@ -74,7 +74,7 @@ function formatRelativeTime(
     return verbose ? `${days} day${days > 1 ? 's' : ''} ago` : `${days}d ago`;
   }
 
-  return fallbackDate.toLocaleDateString();
+  return fallbackDate.toLocaleDateString('en-US');
 }
 
 /**

@@ -285,16 +285,15 @@ const clerkProxy = isCloudConnected
     )
   : null;
 
-export default function proxy(req: NextRequest, event: NextFetchEvent) {
+export default async function proxy(req: NextRequest, event: NextFetchEvent) {
   if (req.nextUrl.pathname === '/playwright-ready') {
     return NextResponse.next();
   }
 
   if (isDesktopShell && !isCloudConnected) {
     const { pathname } = req.nextUrl;
-    const hasDesktopToken = Boolean(
-      req.headers.get('x-genfeed-desktop-token')?.trim(),
-    );
+    const desktopToken = req.headers.get('x-genfeed-desktop-token')?.trim();
+    const hasDesktopToken = Boolean(desktopToken);
     const isAuthRoute =
       pathname.startsWith('/login') ||
       pathname.startsWith('/sign-in') ||
@@ -321,6 +320,17 @@ export default function proxy(req: NextRequest, event: NextFetchEvent) {
 
     if (!hasDesktopToken && isBareProtectedPath(pathname)) {
       return redirectPreservingSearch(req, '/login');
+    }
+
+    if (hasDesktopToken && isBareProtectedPath(pathname) && desktopToken) {
+      const resolvedPath = await resolveCanonicalProtectedPath(
+        pathname,
+        desktopToken,
+      );
+
+      if (resolvedPath) {
+        return redirectPreservingSearch(req, resolvedPath);
+      }
     }
 
     return NextResponse.next();

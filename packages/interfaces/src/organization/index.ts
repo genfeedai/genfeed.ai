@@ -1,6 +1,7 @@
 export * from './brand.interface';
 export * from './byok-key-entry.interface';
 export * from './byok-provider-status.interface';
+export * from './byok-resolution-result.interface';
 export * from './conversation.interface';
 export * from './credential.interface';
 export * from './member.interface';

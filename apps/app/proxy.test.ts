@@ -251,4 +251,37 @@ describe('proxy', () => {
 
     expect(response.status).toBe(200);
   });
+
+  it('canonicalizes bare protected routes in desktop shell mode when a desktop token is present', async () => {
+    delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+    delete process.env.CLERK_SECRET_KEY;
+    process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
+
+    const { default: proxy } = await import(
+      `./proxy?desktop-shell=${Date.now()}`
+    );
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        headers: {
+          get: vi.fn((name: string) => {
+            return name === 'x-genfeed-desktop-token' ? 'token_1' : null;
+          }),
+        },
+        nextUrl: { pathname: '/workspace/overview', search: '' },
+        url: 'http://localhost:3000/workspace/overview',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/acme/moonrise-studio/workspace/overview',
+    );
+
+    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test';
+    process.env.CLERK_SECRET_KEY = 'sk_test';
+  });
 });
