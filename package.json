@@ -50,7 +50,7 @@
     "check:package-api-surface": "bun run scripts/check-package-api-surface.ts",
     "check:serializer-drift": "bun run scripts/check-serializer-drift.ts",
     "clean": "bunx turbo clean && rm -rf node_modules",
-    "dead-code": "knip --reporter compact",
+    "dead-code": "bunx knip --reporter compact",
     "deploy:api": "gh workflow run deploy-production.yml -f force_api=true",
     "deploy:bots": "gh workflow run deploy-production.yml -f force_bots=true",
     "deploy:check": "gh workflow run deploy-production.yml",

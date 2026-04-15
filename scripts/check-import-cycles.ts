@@ -1,7 +1,12 @@
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import path from 'node:path';
-import { globSync } from 'glob';
 
 const ROOT_DIR = process.cwd();
 const ROOT_TSCONFIG = path.join(ROOT_DIR, 'tsconfig.json');
@@ -84,22 +89,34 @@ function hasCodeTree(workspaceRoot: string): boolean {
   }
 
   return (
-    globSync('*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}', {
-      absolute: false,
-      cwd: workspaceRoot,
-      nodir: true,
-    }).length > 0
+    Array.from(
+      new Bun.Glob('*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}').scanSync({
+        cwd: workspaceRoot,
+        absolute: false,
+      }),
+    ).length > 0
   );
 }
 
+function expandWorkspacePattern(pattern: string): string[] {
+  const [baseDir] = pattern.split('/*');
+  if (!baseDir || !existsSync(path.join(ROOT_DIR, baseDir))) {
+    return [];
+  }
+
+  return readdirSync(path.join(ROOT_DIR, baseDir))
+    .map((entry) => path.join(ROOT_DIR, baseDir, entry))
+    .filter((candidatePath) => {
+      try {
+        return statSync(candidatePath).isDirectory();
+      } catch {
+        return false;
+      }
+    });
+}
+
 function discoverWorkspaceRoots(): string[] {
-  return WORKSPACE_GLOBS.flatMap((pattern) =>
-    globSync(pattern, {
-      absolute: true,
-      cwd: ROOT_DIR,
-      onlyDirectories: true,
-    }),
-  )
+  return WORKSPACE_GLOBS.flatMap((pattern) => expandWorkspacePattern(pattern))
     .filter((workspaceRoot) => hasCodeTree(workspaceRoot))
     .sort((left, right) => left.localeCompare(right));
 }

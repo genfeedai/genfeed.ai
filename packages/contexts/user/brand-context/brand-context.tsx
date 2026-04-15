@@ -339,18 +339,3 @@ export function useBrand(): BrandContextType {
 export function useBrandId(): string {
   return useBrand().brandId;
 }
-
-/** Use when you only need stable action functions */
-export function useBrandActions() {
-  const { refreshBrands, refreshSettings, setBrandId, setOrganizationId } =
-    useBrand();
-  return useMemo(
-    () => ({ refreshBrands, refreshSettings, setBrandId, setOrganizationId }),
-    [refreshBrands, refreshSettings, setBrandId, setOrganizationId],
-  );
-}
-
-/** Use when you only need the selected brand */
-export function useSelectedBrand(): Brand | undefined {
-  return useBrand().selectedBrand;
-}

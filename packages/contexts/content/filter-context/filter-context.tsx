@@ -6,14 +6,7 @@ import type {
   IFilters,
   IFiltersState,
 } from '@genfeedai/interfaces/utils/filters.interface';
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { createContext, useCallback, useMemo, useRef, useState } from 'react';
 
 const FilterContext = createContext<IFilterContextType | undefined>(undefined);
 export function FilterProvider({ children, value }: IFilterProviderProps) {
@@ -52,12 +45,4 @@ export function FilterProvider({ children, value }: IFilterProviderProps) {
       {children}
     </FilterContext.Provider>
   );
-}
-
-export function useFilterContext() {
-  const context = useContext(FilterContext);
-  if (!context) {
-    throw new Error('useFilterContext must be used within FilterProvider');
-  }
-  return context;
 }

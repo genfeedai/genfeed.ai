@@ -1,12 +1,10 @@
 import type {
   IMediaEventData,
-  IOrganizationEventData,
   IPromptEventData,
   ISocketError,
   ISocketErrorHandler,
   ISocketEventHandler,
   ISocketManagerConfig,
-  IStepsEventData,
 } from '@genfeedai/interfaces';
 import type { SocketListener } from '@genfeedai/interfaces/services/socket-listener.interface';
 import { logger } from '@services/core/logger.service';
@@ -360,23 +358,5 @@ export function createMediaHandler<T = unknown>(
           status: mediaData.status,
         });
     }
-  };
-}
-
-export function createOrganizationHandler<T = unknown>(
-  onUpdate: (data: T) => void,
-): ISocketEventHandler {
-  return (data: unknown) => {
-    const orgData = data as IOrganizationEventData;
-    onUpdate(orgData as T);
-  };
-}
-
-export function createStepsHandler<T = unknown>(
-  onStepUpdate: (step: T) => void,
-): ISocketEventHandler {
-  return (data: unknown) => {
-    const stepData = data as IStepsEventData;
-    onStepUpdate(stepData as T);
   };
 }
