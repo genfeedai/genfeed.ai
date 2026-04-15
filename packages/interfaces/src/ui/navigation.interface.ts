@@ -35,7 +35,7 @@ export interface AppLink {
 
 export interface NavigationTab {
   href: string;
-  label: string | ((data: unknown) => string);
+  label: string;
   icon?: ComponentType<{ className?: string }>;
   isDisabled?: boolean;
   badge?: ReactNode;
