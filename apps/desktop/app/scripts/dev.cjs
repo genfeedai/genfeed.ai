@@ -97,13 +97,13 @@ async function main() {
 
   appServer.on('close', (code, signal) => {
     electronProcess.kill();
-    process.exit(
-      code ?? (signal === 'SIGINT' || signal === 'SIGTERM' ? 0 : 1),
-    );
+    process.exit(code ?? (signal === 'SIGINT' || signal === 'SIGTERM' ? 0 : 1));
   });
 }
 
 main().catch((error) => {
-  process.stderr.write(`${error instanceof Error ? error.stack : String(error)}\n`);
+  process.stderr.write(
+    `${error instanceof Error ? error.stack : String(error)}\n`,
+  );
   process.exit(1);
 });

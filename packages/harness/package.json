@@ -35,8 +35,8 @@
     "url": "git+https://github.com/genfeedai/packages.git"
   },
   "scripts": {
-    "build": "tsup src/index.ts src/contracts/index.ts --format esm,cjs --dts --clean --sourcemap",
-    "dev": "tsup src/index.ts src/contracts/index.ts --format esm,cjs --dts --watch --sourcemap",
+    "build": "tsup",
+    "dev": "tsup --watch",
     "prepublishOnly": "bun run build"
   },
   "sideEffects": false,

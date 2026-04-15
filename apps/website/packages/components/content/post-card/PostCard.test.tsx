@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next/image', () => ({
   default: ({ src, alt, ...props }: ComponentProps<'img'>) => (
+    // biome-ignore lint/performance/noImgElement: next/image test double
     <img src={src} alt={alt} {...props} />
   ),
 }));

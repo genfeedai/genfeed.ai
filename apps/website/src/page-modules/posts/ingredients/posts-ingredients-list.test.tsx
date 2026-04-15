@@ -27,6 +27,7 @@ vi.mock('@services/external/public.service', () => ({
 
 vi.mock('next/image', () => ({
   default: (props: ImgHTMLAttributes<HTMLImageElement>) => (
+    // biome-ignore lint/performance/noImgElement: next/image test double
     <img alt={props.alt} src={props.src} />
   ),
 }));

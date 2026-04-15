@@ -62,5 +62,8 @@ if (fs.existsSync(staticRoot)) {
 }
 
 if (fs.existsSync(publicRoot)) {
-  copyDirectory(publicRoot, path.join(outputRoot, relativeServerDirectory, 'public'));
+  copyDirectory(
+    publicRoot,
+    path.join(outputRoot, relativeServerDirectory, 'public'),
+  );
 }
