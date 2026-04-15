@@ -541,9 +541,21 @@ let RunQueueViewProvider: new () => {
   resolveWebviewView(webviewView: never, context: never, token: never): void;
 };
 
-({ registerCommands } = await import('./commands'));
-({ triggerCommitToPost } = await import('./commands/commit-to-post'));
-({ RunQueueViewProvider } = await import('./views/run-queue-view.provider'));
+let workflowSubjectsPromise: Promise<void> | undefined;
+
+async function ensureWorkflowSubjectsLoaded(): Promise<void> {
+  if (!workflowSubjectsPromise) {
+    workflowSubjectsPromise = (async () => {
+      ({ registerCommands } = await import('./commands'));
+      ({ triggerCommitToPost } = await import('./commands/commit-to-post'));
+      ({ RunQueueViewProvider } = await import(
+        './views/run-queue-view.provider'
+      ));
+    })();
+  }
+
+  await workflowSubjectsPromise;
+}
 
 describe('IDE extension workflows', () => {
   beforeEach(() => {
@@ -551,6 +563,8 @@ describe('IDE extension workflows', () => {
   });
 
   it('opens the Genfeed sidebar and focuses the run queue', async () => {
+    await ensureWorkflowSubjectsLoaded();
+
     const context = createExtensionContext();
     const providers = createProviders();
 
@@ -567,6 +581,8 @@ describe('IDE extension workflows', () => {
   });
 
   it('runs the generate content workflow with campaign context and refreshes views', async () => {
+    await ensureWorkflowSubjectsLoaded();
+
     const context = createExtensionContext();
     const providers = createProviders();
 
@@ -618,6 +634,8 @@ describe('IDE extension workflows', () => {
   });
 
   it('routes run queue webview authentication through the command bus', async () => {
+    await ensureWorkflowSubjectsLoaded();
+
     authState.authenticated = false;
 
     const provider = new RunQueueViewProvider();
@@ -650,6 +668,8 @@ describe('IDE extension workflows', () => {
   });
 
   it('turns a commit message into a post draft', async () => {
+    await ensureWorkflowSubjectsLoaded();
+
     const context = createExtensionContext();
 
     informationResponses.push('Yes', 'Save to Drafts');

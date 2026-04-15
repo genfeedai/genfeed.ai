@@ -114,6 +114,14 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../helpers/src'),
       },
       {
+        find: /^@genfeedai\/ui$/,
+        replacement: path.resolve(UI_SRC, 'index.ts'),
+      },
+      {
+        find: /^@genfeedai\/ui\/(.*)$/,
+        replacement: path.resolve(UI_SRC, '$1'),
+      },
+      {
         find: /^@genfeedai\/helpers\/(.*)$/,
         replacement: path.resolve(__dirname, '../helpers/src/$1'),
       },
