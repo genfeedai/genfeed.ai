@@ -1,9 +1,58 @@
 import { Platform, PostCategory, PostStatus } from '@genfeedai/enums';
-import type { IPost } from '@genfeedai/interfaces';
-import { Ingredient } from '@models/content/ingredient.model';
-import { Post } from '@models/content/post.model';
+import type { ICredential, IIngredient, IPost } from '@genfeedai/interfaces';
 import type { Meta, StoryObj } from '@storybook/nextjs';
 import PostCard from '@web-components/content/post-card/PostCard';
+
+function createCredential(
+  externalId: string,
+  externalUrl: string,
+): ICredential {
+  return {
+    externalId,
+    externalUrl,
+  } as ICredential;
+}
+
+function createIngredient(
+  id: string,
+  metadataLabel: string,
+  options?: {
+    metadataDuration?: number;
+    thumbnailUrl?: string;
+  },
+): IIngredient {
+  return {
+    id,
+    metadataDuration: options?.metadataDuration,
+    metadataLabel,
+    thumbnailUrl: options?.thumbnailUrl,
+  } as IIngredient;
+}
+
+function createPost(
+  id: string,
+  options: {
+    credential?: ICredential;
+    ingredients: IIngredient[];
+    platform: Platform;
+    publicationDate?: string;
+    scheduledDate?: string;
+    status: PostStatus;
+    uploadedAt?: string;
+  },
+): IPost {
+  return {
+    category: PostCategory.VIDEO,
+    credential: options.credential ?? ({} as ICredential),
+    id,
+    ingredients: options.ingredients,
+    platform: options.platform,
+    publicationDate: options.publicationDate ?? '2024-01-10T00:00:00Z',
+    scheduledDate: options.scheduledDate,
+    status: options.status,
+    uploadedAt: options.uploadedAt ?? '2024-01-10T00:00:00Z',
+  } as IPost;
+}
 
 /**
  * PostCard component displays a publication/post with platform information,
@@ -38,53 +87,17 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const STORY_TIMESTAMP = '2024-01-15T00:00:00Z';
-
-function createIngredient({
-  id,
-  metadataDuration,
-  metadataLabel,
-  thumbnailUrl,
-}: {
-  id: string;
-  metadataDuration?: number;
-  metadataLabel: string;
-  thumbnailUrl?: string;
-}) {
-  return new Ingredient({
-    id,
-    metadataDuration,
-    metadataLabel,
-    thumbnailUrl,
-  });
-}
-
-function createPost(partial: Partial<IPost>): IPost {
-  return new Post({
-    category: PostCategory.VIDEO,
-    id: 'story-post',
-    ingredients: [],
-    platform: Platform.YOUTUBE,
-    publicationDate: STORY_TIMESTAMP,
-    status: PostStatus.DRAFT,
-    uploadedAt: STORY_TIMESTAMP,
-    ...partial,
-  }) as IPost;
-}
-
 /**
  * Default post card with YouTube platform
  */
 export const Default: Story = {
   args: {
     className: '',
-    post: createPost({
-      id: '1',
+    post: createPost('1', {
+      credential: createCredential('abc123', 'https://youtube.com'),
       ingredients: [
-        createIngredient({
-          id: '1',
+        createIngredient('1', 'Getting Started with React', {
           metadataDuration: 360,
-          metadataLabel: 'Getting Started with React',
           thumbnailUrl:
             'https://via.placeholder.com/400x225/000000/FFFFFF?text=Video+Thumbnail',
         }),
@@ -93,7 +106,6 @@ export const Default: Story = {
       publicationDate: '2024-01-16T00:00:00Z',
       status: PostStatus.PUBLIC,
       uploadedAt: '2024-01-15T00:00:00Z',
-      url: 'https://youtube.com/watch?v=abc123',
     }),
   },
 };
@@ -104,13 +116,10 @@ export const Default: Story = {
 export const Scheduled: Story = {
   args: {
     className: '',
-    post: createPost({
-      id: '2',
+    post: createPost('2', {
       ingredients: [
-        createIngredient({
-          id: '2',
+        createIngredient('2', 'Building Modern UIs', {
           metadataDuration: 120,
-          metadataLabel: 'Building Modern UIs',
           thumbnailUrl:
             'https://via.placeholder.com/400x225/FF00FF/FFFFFF?text=Instagram+Post',
         }),
@@ -129,13 +138,10 @@ export const Scheduled: Story = {
 export const Pending: Story = {
   args: {
     className: '',
-    post: createPost({
-      id: '3',
+    post: createPost('3', {
       ingredients: [
-        createIngredient({
-          id: '3',
+        createIngredient('3', 'Quick Tips for Developers', {
           metadataDuration: 60,
-          metadataLabel: 'Quick Tips for Developers',
           thumbnailUrl:
             'https://via.placeholder.com/400x225/000000/FFFFFF?text=TikTok+Video',
         }),
@@ -153,12 +159,9 @@ export const Pending: Story = {
 export const Failed: Story = {
   args: {
     className: '',
-    post: createPost({
-      id: '4',
+    post: createPost('4', {
       ingredients: [
-        createIngredient({
-          id: '4',
-          metadataLabel: 'Twitter Video Post',
+        createIngredient('4', 'Twitter Video Post', {
           thumbnailUrl:
             'https://via.placeholder.com/400x225/1DA1F2/FFFFFF?text=Twitter+Post',
         }),
@@ -176,12 +179,9 @@ export const Failed: Story = {
 export const Draft: Story = {
   args: {
     className: '',
-    post: createPost({
-      id: '5',
+    post: createPost('5', {
       ingredients: [
-        createIngredient({
-          id: '5',
-          metadataLabel: 'Professional Development Tips',
+        createIngredient('5', 'Professional Development Tips', {
           thumbnailUrl:
             'https://via.placeholder.com/400x225/0077B5/FFFFFF?text=LinkedIn+Post',
         }),
@@ -198,14 +198,8 @@ export const Draft: Story = {
 export const NoThumbnail: Story = {
   args: {
     className: '',
-    post: createPost({
-      id: '6',
-      ingredients: [
-        createIngredient({
-          id: '6',
-          metadataLabel: 'Video Without Thumbnail',
-        }),
-      ],
+    post: createPost('6', {
+      ingredients: [createIngredient('6', 'Video Without Thumbnail')],
       platform: Platform.FACEBOOK,
       publicationDate: '2024-01-11T00:00:00Z',
       status: PostStatus.PUBLIC,
@@ -218,20 +212,17 @@ export const NoThumbnail: Story = {
  * Multiple platform examples
  */
 export const PlatformExamples: Story = {
-  args: {},
   parameters: {
     layout: 'fullscreen',
   },
   render: () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-8 w-full max-w-7xl">
       <PostCard
-        post={createPost({
-          id: '1',
+        post={createPost('1', {
+          credential: createCredential('yt123', 'https://youtube.com'),
           ingredients: [
-            createIngredient({
-              id: '1',
+            createIngredient('1', 'YouTube Video', {
               metadataDuration: 600,
-              metadataLabel: 'YouTube Video',
               thumbnailUrl:
                 'https://via.placeholder.com/400x225/FF0000/FFFFFF?text=YouTube',
             }),
@@ -240,17 +231,13 @@ export const PlatformExamples: Story = {
           publicationDate: '2024-01-16T00:00:00Z',
           status: PostStatus.PUBLIC,
           uploadedAt: '2024-01-15T00:00:00Z',
-          url: 'https://youtube.com/watch?v=yt123',
         })}
       />
       <PostCard
-        post={createPost({
-          id: '2',
+        post={createPost('2', {
           ingredients: [
-            createIngredient({
-              id: '2',
+            createIngredient('2', 'Instagram Post', {
               metadataDuration: 30,
-              metadataLabel: 'Instagram Post',
               thumbnailUrl:
                 'https://via.placeholder.com/400x225/E4405F/FFFFFF?text=Instagram',
             }),
@@ -261,13 +248,10 @@ export const PlatformExamples: Story = {
         })}
       />
       <PostCard
-        post={createPost({
-          id: '3',
+        post={createPost('3', {
           ingredients: [
-            createIngredient({
-              id: '3',
+            createIngredient('3', 'TikTok Video', {
               metadataDuration: 45,
-              metadataLabel: 'TikTok Video',
               thumbnailUrl:
                 'https://via.placeholder.com/400x225/000000/FFFFFF?text=TikTok',
             }),
@@ -278,12 +262,9 @@ export const PlatformExamples: Story = {
         })}
       />
       <PostCard
-        post={createPost({
-          id: '4',
+        post={createPost('4', {
           ingredients: [
-            createIngredient({
-              id: '4',
-              metadataLabel: 'Twitter Post',
+            createIngredient('4', 'Twitter Post', {
               thumbnailUrl:
                 'https://via.placeholder.com/400x225/1DA1F2/FFFFFF?text=Twitter',
             }),
@@ -293,13 +274,10 @@ export const PlatformExamples: Story = {
         })}
       />
       <PostCard
-        post={createPost({
-          id: '5',
+        post={createPost('5', {
           ingredients: [
-            createIngredient({
-              id: '5',
+            createIngredient('5', 'Facebook Video', {
               metadataDuration: 180,
-              metadataLabel: 'Facebook Video',
               thumbnailUrl:
                 'https://via.placeholder.com/400x225/1877F2/FFFFFF?text=Facebook',
             }),
@@ -310,13 +288,10 @@ export const PlatformExamples: Story = {
         })}
       />
       <PostCard
-        post={createPost({
-          id: '6',
+        post={createPost('6', {
           ingredients: [
-            createIngredient({
-              id: '6',
+            createIngredient('6', 'LinkedIn Post', {
               metadataDuration: 240,
-              metadataLabel: 'LinkedIn Post',
               thumbnailUrl:
                 'https://via.placeholder.com/400x225/0077B5/FFFFFF?text=LinkedIn',
             }),

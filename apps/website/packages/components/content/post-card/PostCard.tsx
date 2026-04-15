@@ -135,12 +135,18 @@ export default function PostCard({ post, className = '' }: PostCardProps) {
             label: 'Published',
           },
         ]
-          .filter((item) => item.date)
+          .filter(
+            (
+              item,
+            ): item is typeof item & {
+              date: string;
+            } => Boolean(item.date),
+          )
           .map(({ date, icon: Icon, iconColor, label }) => (
             <div key={label} className="flex items-center gap-2 text-sm">
               <Icon className={`${iconColor} w-4 h-4`} />
               <span className="text-foreground/70">
-                {label}: {date ? formatDate(date) : ''}
+                {label}: {formatDate(date)}
               </span>
             </div>
           ))}

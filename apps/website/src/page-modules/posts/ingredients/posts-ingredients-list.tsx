@@ -81,60 +81,67 @@ export default function PostsIngredientsList() {
         <CardEmpty label="No ingredients available" />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {ingredients.map((ingredient) => (
-            <Link
-              key={ingredient.id}
-              href={`/posts/${ingredient.id}`}
-              className="block"
-            >
-              <Card className="p-0 hover:shadow-lg transition-shadow duration-300 overflow-hidden group">
-                {/* Thumbnail */}
-                <div className="relative w-full aspect-square bg-background overflow-hidden">
-                  {ingredient.thumbnailUrl ? (
-                    <Image
-                      src={ingredient.thumbnailUrl}
-                      alt={ingredient.metadataLabel || 'Ingredient thumbnail'}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <HiOutlinePhoto className="text-6xl text-foreground/20" />
-                    </div>
-                  )}
-                </div>
+          {ingredients.map((ingredient) => {
+            const ingredientMetrics = ingredient as Ingredient & {
+              totalPosts?: number;
+              totalViews?: number;
+            };
 
-                {/* Content */}
-                <div className="p-4">
-                  <h3 className="font-semibold truncate text-base mb-2">
-                    {ingredient.metadataLabel || 'Untitled'}
-                  </h3>
-
-                  {/* Metrics */}
-                  <div className="flex items-center gap-4 text-sm text-foreground/60">
-                    <div className="flex items-center gap-2">
-                      <HiDocumentText className="text-base" />
-                      <span>{ingredient.totalPosts || 0} posts</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <HiEye className="text-base" />
-                      <span>{ingredient.totalViews || 0} views</span>
-                    </div>
+            return (
+              <Link
+                key={ingredient.id}
+                href={`/posts/${ingredient.id}`}
+                className="block"
+              >
+                <Card className="p-0 hover:shadow-lg transition-shadow duration-300 overflow-hidden group">
+                  {/* Thumbnail */}
+                  <div className="relative w-full aspect-square bg-background overflow-hidden">
+                    {ingredient.thumbnailUrl ? (
+                      <Image
+                        src={ingredient.thumbnailUrl}
+                        alt={ingredient.metadataLabel || 'Ingredient thumbnail'}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                        sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <HiOutlinePhoto className="text-6xl text-foreground/20" />
+                      </div>
+                    )}
                   </div>
 
-                  {/* Category badge */}
-                  {ingredient.category && (
-                    <div className="mt-3">
-                      <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary capitalize">
-                        {ingredient.category}
-                      </span>
+                  {/* Content */}
+                  <div className="p-4">
+                    <h3 className="font-semibold truncate text-base mb-2">
+                      {ingredient.metadataLabel || 'Untitled'}
+                    </h3>
+
+                    {/* Metrics */}
+                    <div className="flex items-center gap-4 text-sm text-foreground/60">
+                      <div className="flex items-center gap-2">
+                        <HiDocumentText className="text-base" />
+                        <span>{ingredientMetrics.totalPosts || 0} posts</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <HiEye className="text-base" />
+                        <span>{ingredientMetrics.totalViews || 0} views</span>
+                      </div>
                     </div>
-                  )}
-                </div>
-              </Card>
-            </Link>
-          ))}
+
+                    {/* Category badge */}
+                    {ingredient.category && (
+                      <div className="mt-3">
+                        <span className="inline-block px-2 py-1 text-xs font-medium rounded-full bg-primary/10 text-primary capitalize">
+                          {ingredient.category}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
       )}
 

@@ -38,19 +38,19 @@ describe('PostsLayoutContent', () => {
     );
 
     expect(screen.getByText('child content')).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /drafts/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /drafts/i })).toHaveAttribute(
       'href',
       '/content/posts?platform=youtube',
     );
-    expect(screen.getByRole('tab', { name: /scheduled/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /scheduled/i })).toHaveAttribute(
       'href',
       '/content/posts?status=scheduled&platform=youtube',
     );
-    expect(screen.getByRole('tab', { name: /published/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /published/i })).toHaveAttribute(
       'href',
       '/content/posts?status=public&platform=youtube',
     );
-    expect(screen.getByRole('tab', { name: /scheduled/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /scheduled/i })).toHaveAttribute(
       'data-state',
       'active',
     );
@@ -67,6 +67,8 @@ describe('PostsLayoutContent', () => {
     );
 
     expect(screen.getByText('detail content')).toBeInTheDocument();
-    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /drafts/i }),
+    ).not.toBeInTheDocument();
   });
 });

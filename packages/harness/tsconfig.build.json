@@ -10,8 +10,12 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "./dist",
+    "paths": {
+      "@genfeedai/interfaces/ai/harness-pack-registry.interface": [
+        "../interfaces/src/ai/harness-pack-registry.interface.ts"
+      ]
+    },
     "resolveJsonModule": true,
-    "rootDir": "./src",
     "skipLibCheck": true,
     "strict": true,
     "target": "es2022",

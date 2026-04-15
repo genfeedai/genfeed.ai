@@ -9,7 +9,6 @@ import { DESKTOP_IPC_CHANNELS } from '@genfeedai/desktop-contracts';
 import {
   buildShellMenu,
   ShellShortcutsService,
-  ShellTelemetryService,
   ShellTrayService,
 } from '@genfeedai/desktop-shell';
 import {
@@ -28,6 +27,7 @@ import { DesktopDraftsService } from './main/drafts.service';
 import { DesktopFilesService } from './main/files.service';
 import { DesktopSessionService } from './main/session.service';
 import { DesktopSyncService } from './main/sync.service';
+import { DesktopTelemetryService } from './main/telemetry.service';
 import { DesktopWorkspaceService } from './main/workspace.service';
 
 const configService = new DesktopConfigService();
@@ -48,7 +48,7 @@ const appShellService = new DesktopAppShellService(
   database.getDatabasePath(),
 );
 
-const telemetryService = new ShellTelemetryService();
+const telemetryService = new DesktopTelemetryService(environment);
 
 const trayService = new ShellTrayService();
 const shortcutsService = new ShellShortcutsService();
@@ -64,11 +64,7 @@ const emitQuickGenerate = (): void => {
 
 const emitSession = (): void => {
   const session = sessionService.getSession();
-  telemetryService.setUser(
-    session
-      ? { email: session.userEmail, id: session.userId, name: session.userName }
-      : null,
-  );
+  telemetryService.setUser(session);
   mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.authChanged, session);
 };
 
@@ -452,15 +448,7 @@ app.on('before-quit', (event) => {
 
 app.whenReady().then(async () => {
   telemetryService.init();
-  telemetryService.setUser(
-    sessionService.getSession()
-      ? {
-          email: sessionService.getSession()?.userEmail,
-          id: sessionService.getSession()?.userId ?? '',
-          name: sessionService.getSession()?.userName,
-        }
-      : null,
-  );
+  telemetryService.setUser(sessionService.getSession());
   process.on('uncaughtException', (error) => {
     telemetryService.captureException(error, { source: 'uncaughtException' });
   });

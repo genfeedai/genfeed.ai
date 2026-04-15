@@ -1,4 +1,4 @@
-import type { HarnessPackRegistry } from '@genfeedai/interfaces';
+import type { HarnessPackRegistry } from '@genfeedai/interfaces/ai/harness-pack-registry.interface';
 import type { ContentHarnessPack } from './types';
 
 export class ContentHarnessRegistry

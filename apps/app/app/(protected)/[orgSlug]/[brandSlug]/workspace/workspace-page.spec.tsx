@@ -440,16 +440,15 @@ describe('WorkspacePageContent', () => {
     expect(
       screen.queryByTestId('workspace-advanced-tools'),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole('tablist')).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /unread/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /unread/i })).toHaveAttribute(
       'href',
       '/workspace/inbox/unread',
     );
-    expect(screen.getByRole('tab', { name: /recent/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /recent/i })).toHaveAttribute(
       'href',
       '/workspace/inbox/recent',
     );
-    expect(screen.getByRole('tab', { name: /all/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /all/i })).toHaveAttribute(
       'href',
       '/workspace/inbox/all',
     );
