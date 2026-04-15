@@ -42,7 +42,9 @@ describe('apiClient', () => {
       const controller = new AbortController();
       controller.abort();
 
-      fetchMock.mockRejectedValueOnce(new DOMException('Aborted', 'AbortError'));
+      fetchMock.mockRejectedValueOnce(
+        new DOMException('Aborted', 'AbortError'),
+      );
 
       await expect(
         apiClient.get('/test', { signal: controller.signal }),

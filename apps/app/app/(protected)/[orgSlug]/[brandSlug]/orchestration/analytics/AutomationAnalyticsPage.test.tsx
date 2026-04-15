@@ -3,8 +3,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AutomationAnalyticsPage from './AutomationAnalyticsPage';
 import '@testing-library/jest-dom';
 
+vi.mock('@clerk/nextjs', () => ({
+  useAuth: vi.fn(() => ({
+    isSignedIn: true,
+  })),
+}));
+
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
+    brandId: 'brand-123',
     organizationId: 'org-123',
   })),
 }));
@@ -18,6 +25,12 @@ vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
     data: null,
     isLoading: false,
     refresh: vi.fn(),
+  })),
+}));
+
+vi.mock('@providers/global-modals/global-modals.provider', () => ({
+  useExportModal: vi.fn(() => ({
+    openExport: vi.fn(),
   })),
 }));
 

@@ -19,6 +19,7 @@ import type { IngredientDocument } from '@api/collections/ingredients/schemas/in
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
@@ -281,6 +282,12 @@ describe('VideosController', () => {
           },
         },
         {
+          provide: ModelRegistrationService,
+          useValue: {
+            registerGeneratedOutput: vi.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
           provide: ModelsService,
           useValue: {
             findOne: vi.fn().mockResolvedValue(mockModelData),
@@ -407,6 +414,7 @@ describe('VideosController', () => {
       testingModule.get(KlingAIService),
       testingModule.get(LoggerService),
       testingModule.get(MetadataService),
+      testingModule.get(ModelRegistrationService),
       testingModule.get(ModelsService),
       testingModule.get(OrganizationSettingsService),
       testingModule.get(PromptsService),
@@ -1326,6 +1334,10 @@ beforeAll(async () => {
       {
         provide: MetadataService,
         useValue: { patch: vi.fn(), remove: vi.fn() },
+      },
+      {
+        provide: ModelRegistrationService,
+        useValue: { registerGeneratedOutput: vi.fn() },
       },
       { provide: ModelsService, useValue: { findOne: vi.fn() } },
       {

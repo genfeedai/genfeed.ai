@@ -7,6 +7,7 @@ vi.mock('axios', () => ({
 
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
+import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { ConfigService } from '@api/config/config.service';
 import { DarkroomTrainingService } from '@api/endpoints/admin/darkroom/services/darkroom-training.service';
 import { LoraStatus, TrainingStage, TrainingStatus } from '@genfeedai/enums';
@@ -21,6 +22,7 @@ describe('DarkroomTrainingService', () => {
   let personasService: Record<string, ReturnType<typeof vi.fn>>;
   let configService: Record<string, ReturnType<typeof vi.fn>>;
   let loggerService: Record<string, ReturnType<typeof vi.fn>>;
+  let modelRegistrationService: Record<string, ReturnType<typeof vi.fn>>;
 
   beforeEach(async () => {
     trainingsService = {
@@ -48,6 +50,10 @@ describe('DarkroomTrainingService', () => {
       warn: vi.fn(),
     };
 
+    modelRegistrationService = {
+      createFromTraining: vi.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DarkroomTrainingService,
@@ -66,6 +72,10 @@ describe('DarkroomTrainingService', () => {
         {
           provide: LoggerService,
           useValue: loggerService,
+        },
+        {
+          provide: ModelRegistrationService,
+          useValue: modelRegistrationService,
         },
       ],
     }).compile();

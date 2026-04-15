@@ -383,7 +383,12 @@ describe('WorkspacePageContent', () => {
       expect(listMock).toHaveBeenCalledWith({});
     });
 
-    fireEvent.click(screen.getAllByText('Launch planning task')[0]!);
+    const [launchPlanningTaskButton] = screen.getAllByText(
+      'Launch planning task',
+    );
+
+    expect(launchPlanningTaskButton).toBeDefined();
+    fireEvent.click(launchPlanningTaskButton);
 
     await waitFor(() => {
       expect(
@@ -449,12 +454,8 @@ describe('WorkspacePageContent', () => {
       '/workspace/inbox/all',
     );
 
-    expect(
-      screen.getByText('Review launch draft'),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText('Published recap'),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText('Review launch draft')).toBeInTheDocument();
+    expect(screen.queryByText('Published recap')).not.toBeInTheDocument();
 
     rerender(<WorkspacePageContent section="inbox" defaultInboxView="all" />);
 
@@ -576,7 +577,9 @@ describe('WorkspacePageContent', () => {
 
     const inspector = screen.getByTestId('workspace-task-inspector');
 
-    expect(within(inspector).getByText('Generated outputs')).toBeInTheDocument();
+    expect(
+      within(inspector).getByText('Generated outputs'),
+    ).toBeInTheDocument();
     const linkedOutputs = within(inspector).getByTestId(
       'workspace-task-linked-outputs',
     );

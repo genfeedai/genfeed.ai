@@ -116,6 +116,38 @@ global.ResizeObserver = class ResizeObserver {
 } as unknown as typeof globalThis.ResizeObserver;
 window.ResizeObserver = global.ResizeObserver;
 
+if (typeof globalThis.CSS === 'undefined') {
+  Object.defineProperty(globalThis, 'CSS', {
+    configurable: true,
+    value: {},
+    writable: true,
+  });
+}
+
+if (typeof globalThis.CSS.registerProperty !== 'function') {
+  Object.defineProperty(globalThis.CSS, 'registerProperty', {
+    configurable: true,
+    value: () => {},
+    writable: true,
+  });
+}
+
+if (typeof window.CSS === 'undefined') {
+  Object.defineProperty(window, 'CSS', {
+    configurable: true,
+    value: globalThis.CSS,
+    writable: true,
+  });
+}
+
+if (typeof window.CSS.registerProperty !== 'function') {
+  Object.defineProperty(window.CSS, 'registerProperty', {
+    configurable: true,
+    value: () => {},
+    writable: true,
+  });
+}
+
 // Mock IntersectionObserver — must be a class for the same reason
 global.IntersectionObserver = class IntersectionObserver {
   readonly root = null;

@@ -31,6 +31,7 @@ vi.mock('@providers/global-modals/global-modals.provider', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  usePathname: vi.fn(() => '/org-123/settings/organization/members'),
   useRouter: vi.fn(() => ({
     push: vi.fn(),
     refresh: vi.fn(),

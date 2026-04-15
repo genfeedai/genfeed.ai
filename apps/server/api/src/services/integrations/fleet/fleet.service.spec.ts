@@ -1,3 +1,4 @@
+import { CustomerInstancesService } from '@api/collections/customer-instances/services/customer-instances.service';
 import { ConfigService } from '@api/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -42,6 +43,12 @@ describe('FleetService', () => {
             error: vi.fn(),
             log: vi.fn(),
             warn: vi.fn(),
+          },
+        },
+        {
+          provide: CustomerInstancesService,
+          useValue: {
+            findRunningForOrg: vi.fn().mockResolvedValue(null),
           },
         },
       ],

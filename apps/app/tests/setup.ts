@@ -57,3 +57,21 @@ if (typeof globalThis.CSS.registerProperty !== 'function') {
     writable: true,
   });
 }
+
+if (typeof window !== 'undefined') {
+  if (typeof window.CSS === 'undefined') {
+    Object.defineProperty(window, 'CSS', {
+      configurable: true,
+      value: globalThis.CSS,
+      writable: true,
+    });
+  }
+
+  if (typeof window.CSS.registerProperty !== 'function') {
+    Object.defineProperty(window.CSS, 'registerProperty', {
+      configurable: true,
+      value: () => {},
+      writable: true,
+    });
+  }
+}

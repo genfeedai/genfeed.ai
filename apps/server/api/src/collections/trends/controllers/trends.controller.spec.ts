@@ -404,6 +404,9 @@ describe('TrendsController', () => {
         mockUser.publicMetadata.organization,
         mockUser.publicMetadata.brand,
         query.platform,
+        {
+          allowFetchIfMissing: false,
+        },
       );
       expect(trendsService.generateContentIdeas).toHaveBeenCalledWith(
         [mockTrend],

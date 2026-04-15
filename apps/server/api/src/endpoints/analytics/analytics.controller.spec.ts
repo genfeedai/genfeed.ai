@@ -10,6 +10,7 @@ import { SubscriptionsService } from '@api/collections/subscriptions/services/su
 import { UsersService } from '@api/collections/users/services/users.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AnalyticsController } from '@api/endpoints/analytics/analytics.controller';
+import { BusinessAnalyticsService } from '@api/endpoints/analytics/business-analytics.service';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import {
   AdminBrandsQueryDto,
@@ -49,6 +50,7 @@ describe('AnalyticsController', () => {
 
   let controller: AnalyticsController;
   let analyticsService: vi.Mocked<AnalyticsService>;
+  let businessAnalyticsService: vi.Mocked<BusinessAnalyticsService>;
   let brandsService: vi.Mocked<BrandsService>;
   let ingredientsService: vi.Mocked<IngredientsService>;
   let postsService: vi.Mocked<PostsService>;
@@ -96,6 +98,9 @@ describe('AnalyticsController', () => {
       getTopContent: vi.fn(),
       getViralHooks: vi.fn(),
     } as unknown as vi.Mocked<AnalyticsService>;
+    businessAnalyticsService = {
+      getBusinessAnalytics: vi.fn(),
+    } as unknown as vi.Mocked<BusinessAnalyticsService>;
 
     brandsService = {
       findAll: vi.fn(),
@@ -183,6 +188,10 @@ describe('AnalyticsController', () => {
           useValue: { getAccountAnalytics: vi.fn().mockResolvedValue({}) },
         },
         { provide: AnalyticsService, useValue: analyticsService },
+        {
+          provide: BusinessAnalyticsService,
+          useValue: businessAnalyticsService,
+        },
         { provide: BrandsService, useValue: brandsService },
         { provide: IngredientsService, useValue: ingredientsService },
         { provide: PostsService, useValue: postsService },

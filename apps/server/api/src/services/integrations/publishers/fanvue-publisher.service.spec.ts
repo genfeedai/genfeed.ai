@@ -146,7 +146,7 @@ describe('FanvuePublisherService', () => {
       );
     });
 
-    it('should upload multiple media for multi-ingredient posts', async () => {
+    it('should reject multi-ingredient image posts because carousel is unsupported', async () => {
       const ingredientIds = [new Types.ObjectId(), new Types.ObjectId()];
       const context = makeContext({
         post: {
@@ -158,15 +158,12 @@ describe('FanvuePublisherService', () => {
         } as never,
       });
 
-      await service.publish(context);
+      const result = await service.publish(context);
 
-      expect(fanvueService.uploadMedia).toHaveBeenCalledTimes(2);
-      expect(fanvueService.createPost).toHaveBeenCalledWith(
-        orgId,
-        brandId,
-        expect.any(String),
-        ['media-uuid-1', 'media-uuid-1'],
-      );
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('carousel');
+      expect(fanvueService.uploadMedia).not.toHaveBeenCalled();
+      expect(fanvueService.createPost).not.toHaveBeenCalled();
     });
 
     it('should return failed result when Fanvue returns no uuid', async () => {

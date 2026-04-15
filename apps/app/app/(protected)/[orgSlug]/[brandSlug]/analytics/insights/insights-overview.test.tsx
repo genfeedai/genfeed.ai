@@ -5,19 +5,30 @@ import '@testing-library/jest-dom';
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
-    organizationId: 'org-123',
+    selectedBrand: {
+      id: 'brand-123',
+    },
   })),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: vi.fn(() => vi.fn()),
+vi.mock('@hooks/data/analytics/use-insights/use-insights', () => ({
+  useInsights: vi.fn(() => ({
+    alerts: [],
+    anomalies: [],
+    audiences: [],
+    dismissAlert: vi.fn(),
+    isLoading: false,
+    isRefreshing: false,
+    markAlertRead: vi.fn(),
+    refresh: vi.fn(),
+    suggestions: [],
+    trends: [],
+  })),
 }));
 
-vi.mock('@hooks/data/resource/use-resource/use-resource', () => ({
-  useResource: vi.fn(() => ({
-    data: null,
-    isLoading: false,
-    refresh: vi.fn(),
+vi.mock('next/navigation', () => ({
+  useRouter: vi.fn(() => ({
+    push: vi.fn(),
   })),
 }));
 

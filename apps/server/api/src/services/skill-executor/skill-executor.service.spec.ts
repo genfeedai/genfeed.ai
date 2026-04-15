@@ -120,7 +120,7 @@ describe('SkillExecutorService', () => {
         variants: [
           expect.objectContaining({
             content: 'Generated content',
-            id: 'content-writing-1',
+            id: `${runId}-content-writing-1`,
             platform: 'instagram',
             status: 'generated',
             type: 'text',
@@ -325,8 +325,13 @@ describe('SkillExecutorService', () => {
           expect.objectContaining({
             assetIds: ['asset-1'],
             content: 'Gateway content',
-            id: 'content-writing-1',
+            id: `${runId}-content-writing-1`,
+            metadata: {
+              assetIds: ['asset-1'],
+            },
             platform: 'linkedin',
+            status: 'generated',
+            type: 'text',
           }),
         ],
       }),

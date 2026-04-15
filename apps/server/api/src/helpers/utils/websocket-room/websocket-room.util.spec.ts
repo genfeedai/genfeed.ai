@@ -10,11 +10,11 @@ import { IngredientCategory } from '@genfeedai/enums';
 describe('WebSocketRoomUtil', () => {
   describe('getUserRoom', () => {
     it('should return clerk-based room when clerkUserId is provided', () => {
-      expect(getUserRoom('clerk_abc', 'db_123')).toBe('user-clerk_abc');
+      expect(getUserRoom('clerk_abc', 'db_123')).toBe('user:clerk_abc');
     });
 
     it('should return db-based room when only dbUserId is provided', () => {
-      expect(getUserRoom(undefined, 'db_123')).toBe('user-db_123');
+      expect(getUserRoom(undefined, 'db_123')).toBe('user:db_123');
     });
 
     it('should return undefined when no IDs are provided', () => {
@@ -22,7 +22,7 @@ describe('WebSocketRoomUtil', () => {
     });
 
     it('should prefer clerkUserId over dbUserId', () => {
-      expect(getUserRoom('clerk_abc', 'db_123')).toBe('user-clerk_abc');
+      expect(getUserRoom('clerk_abc', 'db_123')).toBe('user:clerk_abc');
     });
   });
 
@@ -89,11 +89,13 @@ describe('WebSocketRoomUtil', () => {
 
   describe('resolveRoom', () => {
     it('should return userRoom when available', () => {
-      expect(resolveRoom('user-clerk_abc', 'clerk_abc')).toBe('user-clerk_abc');
+      expect(resolveRoom('user:clerk_abc', 'clerk_abc')).toBe(
+        'user:clerk_abc',
+      );
     });
 
     it('should fall back to userId-based room', () => {
-      expect(resolveRoom(undefined, 'clerk_abc')).toBe('user-clerk_abc');
+      expect(resolveRoom(undefined, 'clerk_abc')).toBe('user:clerk_abc');
     });
 
     it('should return undefined when nothing is available', () => {

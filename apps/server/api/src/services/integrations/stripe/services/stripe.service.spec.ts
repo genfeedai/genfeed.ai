@@ -1,3 +1,12 @@
+vi.mock('@genfeedai/config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/config')>();
+
+  return {
+    ...actual,
+    IS_SELF_HOSTED: false,
+  };
+});
+
 import { ConfigService } from '@api/config/config.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LoggerService } from '@libs/logger/logger.service';

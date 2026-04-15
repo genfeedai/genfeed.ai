@@ -3,9 +3,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import GenerationFeatureGuard from './GenerationFeatureGuard';
 import '@testing-library/jest-dom';
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: vi.fn(() => ({
-    hasFeature: vi.fn(() => true),
+vi.mock(
+  '@hooks/data/organization/use-enabled-categories/use-enabled-categories',
+  () => ({
+    useEnabledCategories: vi.fn(() => ({
+      isEnabled: vi.fn(() => true),
+      isLoading: false,
+    })),
+  }),
+);
+
+vi.mock('next/navigation', () => ({
+  useRouter: vi.fn(() => ({
+    replace: vi.fn(),
   })),
 }));
 
@@ -16,7 +26,7 @@ describe('GenerationFeatureGuard', () => {
 
   it('should render children when feature is enabled', () => {
     render(
-      <GenerationFeatureGuard feature="image-generation">
+      <GenerationFeatureGuard category="image">
         <div>Content</div>
       </GenerationFeatureGuard>,
     );

@@ -1,3 +1,12 @@
+vi.mock('@genfeedai/config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/config')>();
+
+  return {
+    ...actual,
+    IS_CLOUD: false,
+  };
+});
+
 import { ConfigService } from '@api/config/config.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -74,8 +83,6 @@ describe('ReplicateService', () => {
         expect.objectContaining({
           destination,
           input,
-          webhook: 'https://webhook.test/v1/webhooks/replicate/callback',
-          webhook_events_filter: ['completed'],
         }),
       );
     });

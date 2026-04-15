@@ -1,3 +1,11 @@
+vi.mock('@genfeedai/config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/config')>();
+  return {
+    ...actual,
+    IS_SELF_HOSTED: false,
+  };
+});
+
 import { ConfigService } from '@api/config/config.service';
 import { StripeWebhookController } from '@api/endpoints/webhooks/stripe/webhooks.stripe.controller';
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
