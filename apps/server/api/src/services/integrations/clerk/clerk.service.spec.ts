@@ -219,6 +219,20 @@ describe('ClerkService', () => {
     });
   });
 
+  describe('createUser', () => {
+    it('creates a Clerk user successfully', async () => {
+      const params = {
+        emailAddress: [mockEmail],
+        firstName: 'Vincent',
+      };
+
+      const result = await service.createUser(params);
+
+      expect(result).toEqual(mockUser);
+      expect(mockClerkClient.users.createUser).toHaveBeenCalledWith(params);
+    });
+  });
+
   describe('updateUserPrivateMetadata', () => {
     it('should update private metadata successfully', async () => {
       const metadata = {

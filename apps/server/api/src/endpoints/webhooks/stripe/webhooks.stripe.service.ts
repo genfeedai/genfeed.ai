@@ -1,4 +1,6 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -6,6 +8,7 @@ import { SubscriptionAttributionsService } from '@api/collections/subscription-a
 import { SubscriptionEntity } from '@api/collections/subscriptions/entities/subscription.entity';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import { UserSubscriptionsService } from '@api/collections/user-subscriptions/services/user-subscriptions.service';
+import { UserEntity } from '@api/collections/users/entities/user.entity';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
@@ -13,7 +16,16 @@ import { ConfigService } from '@api/config/config.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
+import {
+  type ManagedCheckoutResult,
+  ManagedStripeCheckoutService,
+} from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import {
+  MANAGED_API_KEY_LABEL,
+  MANAGED_API_KEY_SCOPES,
+} from '@api/services/integrations/stripe/stripe.constants';
+import { generateLabel } from '@api/shared/utils/label/label.util';
 import {
   SkillReceipt,
   type SkillReceiptDocument,
@@ -21,6 +33,7 @@ import {
 import {
   ActivityKey,
   ActivitySource,
+  ApiKeyCategory,
   ByokBillingStatus,
   OrganizationCategory,
   SubscriptionPlan,
@@ -42,12 +55,15 @@ export class StripeWebhookService {
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
 
+    private readonly apiKeysService: ApiKeysService,
+    private readonly brandsService: BrandsService,
     private readonly subscriptionsService: SubscriptionsService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly activitiesService: ActivitiesService,
     private readonly usersService: UsersService,
     private readonly clerkService: ClerkService,
     private readonly stripeService: StripeService,
+    private readonly managedStripeCheckoutService: ManagedStripeCheckoutService,
     private readonly organizationsService: OrganizationsService,
     private readonly subscriptionAttributionsService: SubscriptionAttributionsService,
     private readonly userSubscriptionsService: UserSubscriptionsService,
@@ -379,6 +395,11 @@ export class StripeWebhookService {
     url: string,
   ) {
     try {
+      if (session.metadata?.type === 'managed_inference') {
+        await this.handleManagedInferenceCheckoutCompleted(session, url);
+        return;
+      }
+
       // Check if this is a user-level payment (getshareable.app consumer)
       const isUserLevelPayment = session.metadata?.type === 'user';
 
@@ -534,6 +555,290 @@ export class StripeWebhookService {
         error,
       );
     }
+  }
+
+  private async handleManagedInferenceCheckoutCompleted(
+    session: Stripe.Checkout.Session,
+    url: string,
+  ) {
+    const sessionId = session.id;
+    const email =
+      session.customer_details?.email || session.metadata?.email || '';
+
+    if (!email) {
+      this.loggerService.warn(
+        `${url} managed checkout missing email in session`,
+        {
+          sessionId,
+        },
+      );
+      return;
+    }
+
+    const provisioned =
+      await this.managedStripeCheckoutService.withProvisioningLock(
+        sessionId,
+        async () => {
+          if (
+            await this.managedStripeCheckoutService.isSessionProvisioned(
+              sessionId,
+            )
+          ) {
+            return await this.managedStripeCheckoutService.getCheckoutResult(
+              sessionId,
+            );
+          }
+
+          const result = await this.provisionManagedCheckoutAccount(
+            session,
+            email,
+            url,
+          );
+
+          const didCache =
+            await this.managedStripeCheckoutService.cacheCheckoutResult(
+              sessionId,
+              result,
+            );
+
+          if (!didCache) {
+            throw new Error(
+              `Failed to cache managed checkout result for session ${sessionId}`,
+            );
+          }
+
+          const didMarkProvisioned =
+            await this.managedStripeCheckoutService.markSessionProvisioned(
+              sessionId,
+            );
+
+          if (!didMarkProvisioned) {
+            throw new Error(
+              `Failed to mark managed checkout session ${sessionId} as provisioned`,
+            );
+          }
+
+          return result;
+        },
+      );
+
+    if (provisioned === null) {
+      this.managedStripeCheckoutService.logProvisioningContention(sessionId);
+      return;
+    }
+
+    this.loggerService.log(`${url} managed checkout provisioned`, {
+      email,
+      organizationId: provisioned.organizationId,
+      sessionId,
+      userId: provisioned.userId,
+    });
+  }
+
+  private async provisionManagedCheckoutAccount(
+    session: Stripe.Checkout.Session,
+    email: string,
+    url: string,
+  ): Promise<ManagedCheckoutResult> {
+    const firstName = session.metadata?.firstName?.trim() || undefined;
+    const lastName = session.metadata?.lastName?.trim() || undefined;
+
+    let clerkUser = await this.clerkService.getUserByEmail(email);
+
+    if (!clerkUser) {
+      clerkUser = await this.clerkService.createUser({
+        emailAddress: [email],
+        firstName,
+        lastName,
+        skipLegalChecks: true,
+        skipPasswordRequirement: true,
+      });
+    }
+
+    let dbUser = await this.usersService.findOne({
+      clerkId: clerkUser.id,
+      isDeleted: false,
+    });
+
+    if (!dbUser) {
+      const existingUserByEmail = await this.usersService.findOne({
+        email,
+        isDeleted: false,
+      });
+
+      if (existingUserByEmail) {
+        dbUser = await this.usersService.patch(
+          String(existingUserByEmail._id),
+          {
+            clerkId: clerkUser.id,
+            email,
+            firstName: firstName || existingUserByEmail.firstName,
+            lastName: lastName || existingUserByEmail.lastName,
+          },
+        );
+      }
+    }
+
+    if (!dbUser) {
+      dbUser = await this.usersService.create(
+        new UserEntity({
+          clerkId: clerkUser.id,
+          email,
+          firstName,
+          handle: generateLabel('user'),
+          lastName,
+        }),
+      );
+    }
+
+    const organization = await this.organizationsService.findOne({
+      isDeleted: false,
+      user: new Types.ObjectId(String(dbUser._id)),
+    });
+
+    if (!organization) {
+      throw new Error(
+        `Organization not found for managed checkout user ${dbUser._id}`,
+      );
+    }
+
+    const brand = await this.brandsService.findOne(
+      {
+        isDeleted: false,
+        organization: new Types.ObjectId(String(organization._id)),
+      },
+      'minimal',
+    );
+
+    if (!brand) {
+      throw new Error(
+        `Brand not found for managed checkout organization ${organization._id}`,
+      );
+    }
+
+    const creditsToAdd = Number(
+      session.metadata?.credits ||
+        this.configService.get('STRIPE_PAYG_CREDITS') ||
+        0,
+    );
+
+    if (creditsToAdd <= 0) {
+      throw new Error(
+        `Managed checkout credits missing or invalid for session ${session.id}`,
+      );
+    }
+
+    await this.creditsUtilsService.addOrganizationCreditsWithExpiration(
+      String(organization._id),
+      creditsToAdd,
+      'managed-inference',
+      `Managed credit pack purchase (${creditsToAdd} credits)`,
+      new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+    );
+
+    const balance =
+      await this.creditsUtilsService.getOrganizationCreditsBalance(
+        String(organization._id),
+      );
+
+    const existingApiKey = await this.apiKeysService.findOne(
+      {
+        category: ApiKeyCategory.GENFEEDAI,
+        isRevoked: false,
+        label: MANAGED_API_KEY_LABEL,
+        organization: new Types.ObjectId(String(organization._id)),
+        user: new Types.ObjectId(String(dbUser._id)),
+      },
+      [],
+    );
+
+    let plainKey: string | null = null;
+
+    if (!existingApiKey) {
+      const createdApiKey = await this.apiKeysService.createWithKey({
+        category: ApiKeyCategory.GENFEEDAI,
+        description: 'Default Genfeed-hosted access key',
+        label: MANAGED_API_KEY_LABEL,
+        metadata: {
+          source: 'managed_inference',
+          stripeSessionId: session.id,
+        },
+        organization: new Types.ObjectId(String(organization._id)),
+        rateLimit: 100,
+        scopes: MANAGED_API_KEY_SCOPES,
+        user: new Types.ObjectId(String(dbUser._id)),
+      });
+
+      plainKey = createdApiKey.plainKey;
+    }
+
+    const userPatch: Record<string, unknown> = {
+      isOnboardingCompleted: true,
+      onboardingCompletedAt: dbUser.isOnboardingCompleted
+        ? dbUser.onboardingCompletedAt
+        : new Date(),
+      onboardingStepsCompleted:
+        dbUser.onboardingStepsCompleted?.length > 0
+          ? dbUser.onboardingStepsCompleted
+          : ['brand', 'plan'],
+    };
+
+    if (typeof session.customer === 'string') {
+      userPatch.stripeCustomerId = session.customer;
+    }
+
+    await this.usersService.patch(String(dbUser._id), userPatch);
+
+    const orgSetting = await this.organizationSettingsService.findOne({
+      isDeleted: false,
+      organization: new Types.ObjectId(String(organization._id)),
+    });
+
+    if (orgSetting) {
+      await this.organizationSettingsService.patch(String(orgSetting._id), {
+        hasEverHadCredits: true,
+      });
+    }
+
+    await this.clerkService.updateUserPublicMetadata(clerkUser.id, {
+      balance,
+      brand: String(brand._id),
+      clerkId: clerkUser.id,
+      hasEverHadCredits: true,
+      isOnboardingCompleted: true,
+      organization: String(organization._id),
+      stripeCustomerId:
+        typeof session.customer === 'string' ? session.customer : undefined,
+      user: String(dbUser._id),
+    });
+
+    await this.accessBootstrapCacheService.invalidateForUser(clerkUser.id);
+
+    await this.activitiesService.create({
+      brand: new Types.ObjectId(String(brand._id)),
+      key: ActivityKey.CREDITS_ADD,
+      organization: new Types.ObjectId(String(organization._id)),
+      source: ActivitySource.PAY_AS_YOU_GO,
+      user: new Types.ObjectId(String(dbUser._id)),
+      value: String(creditsToAdd),
+    });
+
+    this.loggerService.log(`${url} managed checkout credits added`, {
+      creditsAdded: creditsToAdd,
+      email,
+      organizationId: organization._id,
+      sessionId: session.id,
+      userId: dbUser._id,
+    });
+
+    return {
+      apiKey: plainKey,
+      apiKeyAlreadyExists: plainKey === null,
+      brandId: String(brand._id),
+      email,
+      organizationId: String(organization._id),
+      userId: String(dbUser._id),
+    };
   }
 
   /**

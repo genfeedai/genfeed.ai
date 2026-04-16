@@ -189,6 +189,90 @@ export class StripeService {
     }
   }
 
+  public async createManagedPaymentSession(params: {
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    stripePriceId: string;
+    quantity?: number;
+    successUrl?: string;
+    cancelUrl?: string;
+  }): Promise<Stripe.Checkout.Session> {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    try {
+      const {
+        email,
+        firstName,
+        lastName,
+        stripePriceId,
+        quantity = 1,
+        successUrl,
+        cancelUrl,
+      } = params;
+
+      const isPayg =
+        stripePriceId === this.configService.get('STRIPE_PRICE_PAYG');
+
+      const metadata: Stripe.MetadataParam = {
+        email,
+        type: 'managed_inference',
+      };
+
+      if (firstName?.trim()) {
+        metadata.firstName = firstName.trim();
+      }
+
+      if (lastName?.trim()) {
+        metadata.lastName = lastName.trim();
+      }
+
+      if (isPayg) {
+        const pack = PAYG_CREDIT_PACKS.find((p) => p.credits === quantity);
+        const totalCredits = pack ? creditPackTotalCredits(pack) : quantity;
+        metadata.credits = String(totalCredits);
+        metadata.plan_type = 'payg';
+      }
+
+      const session = await this.stripe.checkout.sessions.create({
+        allow_promotion_codes: true,
+        automatic_tax: {
+          enabled: true,
+        },
+        cancel_url:
+          cancelUrl || `${this.configService.get('GENFEEDAI_APP_URL')}/credits`,
+        customer_creation: 'always',
+        customer_email: email,
+        line_items: [
+          {
+            price: stripePriceId,
+            quantity,
+          },
+        ],
+        metadata,
+        mode: 'payment',
+        payment_method_types: ['card'],
+        success_url:
+          successUrl ||
+          `${this.configService.get('GENFEEDAI_APP_URL')}/credits/success?session_id={CHECKOUT_SESSION_ID}`,
+        tax_id_collection: {
+          enabled: true,
+        },
+      });
+
+      this.loggerService.log(`${url} success`, {
+        email,
+        sessionId: session.id,
+        stripePriceId,
+      });
+
+      return session;
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      throw error;
+    }
+  }
+
   /**
    * Get billing portal URL for user-level customers
    */

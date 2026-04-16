@@ -1,6 +1,6 @@
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { IClerkPublicMetadata } from '@api/shared/interfaces/clerk/clerk.interface';
-import type { ClerkClient, User } from '@clerk/backend';
+import type { ClerkClient, CreateUserParams, User } from '@clerk/backend';
 import { Inject, Injectable } from '@nestjs/common';
 
 const CLERK_USER_CACHE_NAMESPACE = 'clerk-user';
@@ -64,6 +64,10 @@ export class ClerkService {
       emailAddress: [email],
     });
     return users.data[0] || null;
+  }
+
+  public async createUser(params: CreateUserParams): Promise<User> {
+    return await this.clerkClient.users.createUser(params);
   }
 
   public async updateUser(

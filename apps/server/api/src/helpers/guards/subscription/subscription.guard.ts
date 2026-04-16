@@ -39,6 +39,10 @@ export class SubscriptionGuard implements CanActivate {
       );
     }
 
+    if (publicMetadata.isApiKey === true) {
+      return true;
+    }
+
     // Super admins bypass subscription check
     if (getIsSuperAdmin(user, request)) {
       return true;

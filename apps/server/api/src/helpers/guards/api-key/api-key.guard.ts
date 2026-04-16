@@ -73,6 +73,7 @@ export class ApiKeyAuthGuard implements CanActivate {
 
     // Attach user info to request for downstream use
     request.user = {
+      id: apiKey.user.toString(),
       publicMetadata: {
         apiKeyId,
         brand: apiKey.organization.toString(), // Default to org

@@ -4,8 +4,10 @@ export interface IClerkPublicMetadata {
   user: string;
   organization: string;
   brand: string;
+  apiKeyId?: string;
   balance?: number;
   role?: MemberRole;
+  scopes?: string[];
 
   stripeCustomerId?: string;
   stripeSubscriptionId?: string;
@@ -13,6 +15,7 @@ export interface IClerkPublicMetadata {
   stripePriceId?: string;
   subscriptionTier?: string;
 
+  isApiKey?: boolean;
   isSuperAdmin: boolean;
 
   /**

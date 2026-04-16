@@ -1,4 +1,6 @@
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
+import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
+import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -12,6 +14,7 @@ import { ConfigService } from '@api/config/config.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
+import { ManagedStripeCheckoutService } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { SkillReceipt } from '@api/skills-pro/schemas/skill-receipt.schema';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -22,6 +25,12 @@ import Stripe from 'stripe';
 
 describe('StripeWebhookService', () => {
   let service: StripeWebhookService;
+  let apiKeysService: vi.Mocked<ApiKeysService>;
+  let brandsService: vi.Mocked<BrandsService>;
+  let clerkService: vi.Mocked<ClerkService>;
+  let creditsUtilsService: vi.Mocked<CreditsUtilsService>;
+  let managedStripeCheckoutService: vi.Mocked<ManagedStripeCheckoutService>;
+  let organizationsService: vi.Mocked<OrganizationsService>;
   let subscriptionsService: vi.Mocked<SubscriptionsService>;
   let subscriptionAttributionsService: vi.Mocked<SubscriptionAttributionsService>;
   let stripeService: vi.Mocked<StripeService>;
@@ -66,6 +75,22 @@ describe('StripeWebhookService', () => {
     subscription: 'sub_123',
   } as unknown as Stripe.Checkout.Session;
 
+  const mockManagedCheckoutSession = {
+    customer: 'cus_managed',
+    customer_details: {
+      email: 'managed@example.com',
+    },
+    id: 'cs_managed',
+    metadata: {
+      credits: '109900',
+      email: 'managed@example.com',
+      firstName: 'Vincent',
+      type: 'managed_inference',
+    },
+    mode: 'payment',
+    payment_status: 'paid',
+  } as unknown as Stripe.Checkout.Session;
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -92,6 +117,19 @@ describe('StripeWebhookService', () => {
           },
         },
         {
+          provide: ApiKeysService,
+          useValue: {
+            createWithKey: vi.fn(),
+            findOne: vi.fn(),
+          },
+        },
+        {
+          provide: BrandsService,
+          useValue: {
+            findOne: vi.fn(),
+          },
+        },
+        {
           provide: CreditsUtilsService,
           useValue: {
             addOrganizationCreditsWithExpiration: vi.fn(),
@@ -105,13 +143,33 @@ describe('StripeWebhookService', () => {
         {
           provide: UsersService,
           useValue: {
+            create: vi.fn(),
             findOne: vi.fn(),
+            patch: vi.fn(),
           },
         },
         {
           provide: ClerkService,
           useValue: {
+            createUser: vi.fn(),
+            getUserByEmail: vi.fn(),
             updateUserPublicMetadata: vi.fn(),
+          },
+        },
+        {
+          provide: ManagedStripeCheckoutService,
+          useValue: {
+            cacheCheckoutResult: vi.fn().mockResolvedValue(true),
+            getCheckoutResult: vi.fn().mockResolvedValue(null),
+            isSessionProvisioned: vi.fn().mockResolvedValue(false),
+            logProvisioningContention: vi.fn(),
+            markSessionProvisioned: vi.fn().mockResolvedValue(true),
+            withProvisioningLock: vi
+              .fn()
+              .mockImplementation(
+                async (_sessionId: string, fn: () => Promise<unknown>) =>
+                  await fn(),
+              ),
           },
         },
         {
@@ -186,6 +244,12 @@ describe('StripeWebhookService', () => {
     }).compile();
 
     service = module.get(StripeWebhookService);
+    apiKeysService = module.get(ApiKeysService);
+    brandsService = module.get(BrandsService);
+    clerkService = module.get(ClerkService);
+    creditsUtilsService = module.get(CreditsUtilsService);
+    managedStripeCheckoutService = module.get(ManagedStripeCheckoutService);
+    organizationsService = module.get(OrganizationsService);
     subscriptionsService = module.get(SubscriptionsService);
     subscriptionAttributionsService = module.get(
       SubscriptionAttributionsService,
@@ -221,6 +285,71 @@ describe('StripeWebhookService', () => {
         stripeSubscriptionId: 'sub_123',
       }),
       organizationId.toString(),
+    );
+  });
+
+  it('provisions a managed checkout account and caches the plain API key', async () => {
+    vi.mocked(clerkService.getUserByEmail).mockResolvedValue(null);
+    vi.mocked(clerkService.createUser).mockResolvedValue({
+      id: 'user_clerk_1',
+    } as never);
+
+    usersService.findOne
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
+    usersService.create.mockResolvedValue({
+      _id: userId,
+      clerkId: 'user_clerk_1',
+      isOnboardingCompleted: false,
+      onboardingStepsCompleted: [],
+    } as never);
+    usersService.patch.mockResolvedValue({
+      _id: userId,
+      clerkId: 'user_clerk_1',
+      isOnboardingCompleted: true,
+      onboardingCompletedAt: new Date(),
+      onboardingStepsCompleted: ['brand', 'plan'],
+    } as never);
+
+    vi.mocked(subscriptionsService.findByStripeCustomerId).mockResolvedValue(
+      null as never,
+    );
+    vi.mocked(
+      creditsUtilsService.addOrganizationCreditsWithExpiration,
+    ).mockResolvedValue(undefined);
+    vi.mocked(
+      creditsUtilsService.getOrganizationCreditsBalance,
+    ).mockResolvedValue(109900);
+    vi.mocked(apiKeysService.findOne).mockResolvedValue(null);
+    vi.mocked(apiKeysService.createWithKey).mockResolvedValue({
+      apiKey: { _id: new Types.ObjectId() } as never,
+      plainKey: 'gf_test_managed',
+    });
+
+    vi.mocked(organizationsService.findOne).mockResolvedValue({
+      _id: organizationId,
+    } as never);
+
+    vi.mocked(brandsService.findOne).mockResolvedValue({
+      _id: new Types.ObjectId(),
+    } as never);
+
+    await service.handleCheckoutCompleted(
+      mockManagedCheckoutSession,
+      '/webhook',
+    );
+
+    expect(clerkService.createUser).toHaveBeenCalled();
+    expect(apiKeysService.createWithKey).toHaveBeenCalled();
+    expect(
+      managedStripeCheckoutService.cacheCheckoutResult,
+    ).toHaveBeenCalledWith(
+      'cs_managed',
+      expect.objectContaining({
+        apiKey: 'gf_test_managed',
+        apiKeyAlreadyExists: false,
+        email: 'managed@example.com',
+      }),
     );
   });
 

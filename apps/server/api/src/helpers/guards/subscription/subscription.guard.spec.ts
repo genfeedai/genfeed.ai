@@ -96,6 +96,11 @@ describe('SubscriptionGuard', () => {
     expect(guard.canActivate(ctx)).toBe(true);
   });
 
+  it('allows API key users without subscription metadata', () => {
+    const ctx = buildContext(buildUser({ isApiKey: true }));
+    expect(guard.canActivate(ctx)).toBe(true);
+  });
+
   it('allows users with ACTIVE subscription', () => {
     vi.mocked(clerkUtil.getStripeSubscriptionStatus).mockReturnValue(
       SubscriptionStatus.ACTIVE,

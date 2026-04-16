@@ -167,4 +167,38 @@ describe('StripeService', () => {
       expect(callArg).not.toHaveProperty('discounts');
     });
   });
+
+  describe('createManagedPaymentSession', () => {
+    it('creates a public managed checkout with customer_email and managed metadata', async () => {
+      const createSpy = vi
+        .spyOn(service.stripe.checkout.sessions, 'create')
+        .mockResolvedValue({
+          id: 'sess_managed',
+          url: 'https://checkout.stripe.com/pay/managed',
+        } as unknown as Stripe.Checkout.Session);
+
+      await service.createManagedPaymentSession({
+        email: 'managed@example.com',
+        firstName: 'Vincent',
+        quantity: 99_900,
+        stripePriceId: 'payg_id',
+      });
+
+      expect(createSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          customer_creation: 'always',
+          customer_email: 'managed@example.com',
+          line_items: [expect.objectContaining({ quantity: 99_900 })],
+          metadata: expect.objectContaining({
+            credits: '109900',
+            email: 'managed@example.com',
+            firstName: 'Vincent',
+            plan_type: 'payg',
+            type: 'managed_inference',
+          }),
+          mode: 'payment',
+        }),
+      );
+    });
+  });
 });
