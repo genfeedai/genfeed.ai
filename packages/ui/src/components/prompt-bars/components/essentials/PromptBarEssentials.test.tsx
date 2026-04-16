@@ -50,6 +50,7 @@ vi.mock('@ui/buttons/base/Button', () => ({
 }));
 
 vi.mock('@ui/primitives/textarea', () => ({
+  Textarea: () => <textarea aria-label="prompt textarea" />,
   default: () => <textarea aria-label="prompt textarea" />,
 }));
 
@@ -204,13 +205,13 @@ describe('PromptBarEssentials', () => {
     const outputsButton = screen.getByTestId('outputs-button');
     const generateButton = screen.getByTestId('generate-button');
 
-    const submitCluster = generateButton.parentElement;
+    const submitCluster = generateButton.parentElement?.parentElement;
 
-    expect(submitCluster).toContainElement(outputsButton);
+    expect(submitCluster).toContainElement(outputsButton.parentElement);
 
     const orderedChildren = Array.from(submitCluster?.children ?? []);
-    const outputsIndex = orderedChildren.indexOf(outputsButton);
-    const generateIndex = orderedChildren.indexOf(generateButton);
+    const outputsIndex = orderedChildren.indexOf(outputsButton.parentElement);
+    const generateIndex = orderedChildren.indexOf(generateButton.parentElement);
 
     expect(outputsIndex).toBeGreaterThanOrEqual(0);
     expect(generateIndex).toBeGreaterThan(outputsIndex);

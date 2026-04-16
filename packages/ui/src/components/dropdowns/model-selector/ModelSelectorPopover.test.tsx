@@ -331,7 +331,7 @@ describe('ModelSelectorPopover', () => {
     );
 
     await user.click(screen.getByRole('button', { name: /select models/i }));
-    await user.click(screen.getByTitle('Favorites'));
+    await user.click(screen.getByRole('button', { name: 'Favorites' }));
 
     expect(screen.getByText('Veo')).toBeInTheDocument();
     expect(screen.queryByText('Nano Banana')).not.toBeInTheDocument();

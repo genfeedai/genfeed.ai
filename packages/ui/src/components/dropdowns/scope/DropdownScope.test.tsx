@@ -11,6 +11,18 @@ import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@ui/dropdowns/base/DropdownBase', () => ({
+  Dropdown: ({
+    trigger,
+    children,
+  }: {
+    trigger: ReactNode;
+    children: ReactNode;
+  }) => (
+    <div>
+      <div data-testid="dropdown-trigger">{trigger}</div>
+      <div data-testid="dropdown-content">{children}</div>
+    </div>
+  ),
   default: ({
     trigger,
     children,
@@ -25,8 +37,8 @@ vi.mock('@ui/dropdowns/base/DropdownBase', () => ({
   ),
 }));
 
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({
+vi.mock('@ui/primitives/button', () => ({
+  Button: ({
     children,
     onClick,
   }: {
@@ -37,6 +49,7 @@ vi.mock('@ui/buttons/base/Button', () => ({
       {children}
     </button>
   ),
+  buttonVariants: () => '',
 }));
 
 describe('DropdownScope', () => {
@@ -58,10 +71,8 @@ describe('DropdownScope', () => {
   });
 
   it('should handle user interactions correctly', () => {
-    render(<DropdownScope {...baseProps} />);
-    expect(
-      document.querySelector('[data-testid="dropdown-trigger"]'),
-    ).toBeInTheDocument();
+    const { container } = render(<DropdownScope {...baseProps} />);
+    expect(container.querySelector('button')).toBeInTheDocument();
   });
 
   it('should apply correct styles and classes', () => {

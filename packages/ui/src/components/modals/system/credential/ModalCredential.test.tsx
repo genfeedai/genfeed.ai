@@ -11,10 +11,11 @@ vi.mock('@ui/modals/actions/ModalActions', () => ({
   default: ({ children }: any) => <div>{children}</div>,
 }));
 
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({ label, onClick }: any) => (
+vi.mock('@ui/primitives/button', () => ({
+  Button: ({ label, onClick }: any) => (
     <button onClick={onClick}>{label}</button>
   ),
+  buttonVariants: () => '',
 }));
 
 vi.mock('@genfeedai/hooks/ui/use-crud-modal/use-crud-modal', () => ({
@@ -42,10 +43,12 @@ vi.mock('@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
 }));
 
 vi.mock('@ui/primitives/input', () => ({
+  Input: (props: any) => <input data-testid={`input-${props.name}`} />,
   default: (props: any) => <input data-testid={`input-${props.name}`} />,
 }));
 
 vi.mock('@ui/primitives/textarea', () => ({
+  Textarea: (props: any) => <textarea data-testid={`textarea-${props.name}`} />,
   default: (props: any) => <textarea data-testid={`textarea-${props.name}`} />,
 }));
 

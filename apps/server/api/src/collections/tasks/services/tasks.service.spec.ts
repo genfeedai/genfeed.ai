@@ -2,7 +2,9 @@ import { AgentMessagesService } from '@api/collections/agent-messages/services/a
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
+import { TaskCountersService } from '@api/collections/task-counters/services/task-counters.service';
 import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import {
   TASK_STATUSES,
@@ -102,6 +104,18 @@ describe('TasksService', () => {
         {
           provide: NotificationsPublisherService,
           useValue: mockNotificationsPublisher,
+        },
+        {
+          provide: TaskCountersService,
+          useValue: {
+            syncForOrganization: vi.fn(),
+          },
+        },
+        {
+          provide: OrganizationsService,
+          useValue: {
+            findOne: vi.fn(),
+          },
         },
       ],
     }).compile();

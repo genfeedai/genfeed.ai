@@ -37,6 +37,7 @@ describe('AgentRunProcessor', () => {
   };
   let taskOrchestratorService: {
     handleRunCompletion: ReturnType<typeof vi.fn>;
+    handleRunStarted: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(() => {
@@ -75,6 +76,7 @@ describe('AgentRunProcessor', () => {
 
     taskOrchestratorService = {
       handleRunCompletion: vi.fn().mockResolvedValue(undefined),
+      handleRunStarted: vi.fn().mockResolvedValue(undefined),
     };
 
     processor = new AgentRunProcessor(

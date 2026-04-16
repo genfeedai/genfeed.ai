@@ -45,14 +45,12 @@ describe('IngredientsMediaGrid', () => {
       {
         category: IngredientCategory.IMAGE,
         id: 'image-1',
-        ingredientUrl: '/image-1.png',
         metadata: { height: 1200, width: 900 },
         status: IngredientStatus.GENERATED,
       },
       {
         category: IngredientCategory.VIDEO,
         id: 'video-1',
-        ingredientUrl: '/video-1.mp4',
         metadata: { height: 1920, width: 1080 },
         status: IngredientStatus.GENERATED,
       },

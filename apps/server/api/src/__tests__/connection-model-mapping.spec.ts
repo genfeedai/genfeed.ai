@@ -49,9 +49,6 @@ describe('Connection-Model Mapping', () => {
       { connection: 'CLOUD', model: 'Brand' },
       { connection: 'CLOUD', model: 'Workflow' },
 
-      // Marketplace database
-      { connection: 'MARKETPLACE', model: 'Seller' },
-
       // CRM database
       { connection: 'CRM', model: 'Lead' },
 

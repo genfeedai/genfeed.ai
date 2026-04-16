@@ -36,7 +36,7 @@ import { render } from '@testing-library/react';
 import ChatOnboardingThreadPage, * as PageModule from './page';
 
 runPageModuleTests(
-  'apps/app/app/(protected)/chat/onboarding/[threadId]/page',
+  'app/(protected)/chat/onboarding/[threadId]/page',
   PageModule,
 );
 

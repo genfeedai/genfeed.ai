@@ -2,7 +2,7 @@ import {
   COST_TIER_DISPLAY,
   extractBrandFromKey,
   getBrandConfig,
-} from '@genfeedai/constants/model-brands.constant';
+} from '@genfeedai/constants';
 import type { CostTier } from '@genfeedai/enums';
 import type { IModel } from '@genfeedai/interfaces';
 import type { ModelSelectorOption } from '@genfeedai/props/ui/model-selector/model-selector.props';

@@ -117,8 +117,8 @@ describe('ConfigService', () => {
       expect(ingredientsEndpoint).toBe('http://localhost:3002/ingredients');
     });
 
-    it('should default DB_MODE to development', () => {
-      expect(configService.get('DB_MODE')).toBe('development');
+    it('should leave DB_MODE undefined when it is not configured', () => {
+      expect(configService.get('DB_MODE')).toBeUndefined();
     });
 
     it('should return the configured DB_MODE', () => {

@@ -1,8 +1,45 @@
 import { render } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import '@testing-library/jest-dom';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import FontFamiliesList from './font-families-list';
 
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: vi.fn(() => vi.fn()),
+}));
+
+vi.mock('@providers/global-modals/global-modals.provider', () => ({
+  useConfirmModal: vi.fn(() => ({
+    openConfirm: vi.fn(),
+  })),
+}));
+
+vi.mock('@services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: vi.fn(() => ({
+      error: vi.fn(),
+      success: vi.fn(),
+    })),
+  },
+}));
+
+vi.mock('next/navigation', () => ({
+  usePathname: vi.fn(() => '/admin/configuration/font-families'),
+  useRouter: vi.fn(() => ({
+    push: vi.fn(),
+    refresh: vi.fn(),
+    replace: vi.fn(),
+  })),
+  useSearchParams: vi.fn(() => ({
+    get: vi.fn(() => '1'),
+    toString: vi.fn(() => 'page=1'),
+  })),
+}));
+
 describe('FontFamiliesList', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('should render without crashing', () => {
     const { container } = render(<FontFamiliesList />);
     expect(container.firstChild).toBeInTheDocument();

@@ -21,7 +21,7 @@ vi.mock('@ui/display/error-boundary/ErrorBoundary', () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 
-runPageModuleTests('apps/app/app/(protected)/studio/[type]/page', PageModule);
+runPageModuleTests('app/(protected)/studio/[type]/page', PageModule);
 
 afterEach(() => {
   redirectMock.mockClear();

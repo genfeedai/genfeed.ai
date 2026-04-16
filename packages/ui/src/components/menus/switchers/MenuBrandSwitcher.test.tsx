@@ -56,6 +56,14 @@ vi.mock('@ui/menus/switcher-dropdown/SwitcherDropdown', () => ({
 
 describe('MenuBrandSwitcher', () => {
   const brands = [{ id: 'brand_1', label: 'Test Brand', thumbnailUrl: '' }];
+  const brandsWithSlug = [
+    {
+      id: 'brand_1',
+      label: 'Test Brand',
+      slug: 'test-brand',
+      thumbnailUrl: '',
+    },
+  ];
 
   beforeEach(() => {
     capturedFooterActions = [];
@@ -65,7 +73,7 @@ describe('MenuBrandSwitcher', () => {
   it('should render without crashing', () => {
     const { container } = render(
       <MenuBrandSwitcher
-        brands={brands}
+        brands={brandsWithSlug}
         brandId="brand_1"
         onBrandChange={vi.fn()}
       />,
@@ -83,7 +91,7 @@ describe('MenuBrandSwitcher', () => {
   it('should expose brand settings and creation actions', () => {
     render(
       <MenuBrandSwitcher
-        brands={brands}
+        brands={brandsWithSlug}
         brandId="brand_1"
         onBrandChange={vi.fn()}
       />,
@@ -96,6 +104,6 @@ describe('MenuBrandSwitcher', () => {
 
     capturedFooterActions[0]?.onAction();
 
-    expect(mockPush).toHaveBeenCalledWith('/settings/brands/brand_1');
+    expect(mockPush).toHaveBeenCalledWith('/settings/brands/test-brand');
   });
 });

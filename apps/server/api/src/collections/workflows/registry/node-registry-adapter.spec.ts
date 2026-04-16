@@ -13,7 +13,7 @@ describe('node-registry-adapter', () => {
 
   it('allows image input to connect into canonical imageGen', () => {
     expect(
-      validateConnection('input-image', 'image', 'imageGen', 'image'),
+      validateConnection('input-image', 'image', 'imageGen', 'images'),
     ).toBe(true);
   });
 
@@ -36,7 +36,7 @@ describe('node-registry-adapter', () => {
 
     expect(definition?.label).toBe('Workflow Input');
     expect(definition?.outputs).toMatchObject({
-      value: { label: 'Input Value', type: 'any' },
+      value: { label: 'Value', type: 'image' },
     });
   });
 });

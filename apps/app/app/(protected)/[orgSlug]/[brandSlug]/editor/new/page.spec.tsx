@@ -1,4 +1,4 @@
 import { runPageModuleTests } from '@shared/pages/pageTestUtils';
 import * as PageModule from './page';
 
-runPageModuleTests('apps/app/app/(protected)/editor/new/page', PageModule);
+runPageModuleTests('app/(protected)/editor/new/page', PageModule);

@@ -156,7 +156,7 @@ describe('VideosEffectsController', () => {
     expect(mockServices.fileQueueService.processVideo).toHaveBeenCalledWith(
       expect.objectContaining({
         clerkUserId: 'user_123',
-        room: 'user-user_123',
+        room: 'user:user_123',
         userId: '507f1f77bcf86cd799439012',
       }),
     );

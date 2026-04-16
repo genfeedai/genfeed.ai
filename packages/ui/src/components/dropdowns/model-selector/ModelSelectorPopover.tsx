@@ -1,6 +1,6 @@
 'use client';
 
-import { getBrandConfig } from '@genfeedai/constants/model-brands.constant';
+import { getBrandConfig } from '@genfeedai/constants';
 import { ButtonVariant, RouterPriority } from '@genfeedai/enums';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { IModel } from '@genfeedai/interfaces';

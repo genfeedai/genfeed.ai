@@ -27,7 +27,7 @@ vi.mock('@services/external/public.service', () => ({
 
 vi.mock('next/image', () => ({
   default: (props: ImgHTMLAttributes<HTMLImageElement>) => (
-    // biome-ignore lint/performance/noImgElement: next/image test double
+    // biome-ignore lint/performance/noImgElement: next/image is mocked to a basic DOM element in jsdom tests.
     <img alt={props.alt} src={props.src} />
   ),
 }));

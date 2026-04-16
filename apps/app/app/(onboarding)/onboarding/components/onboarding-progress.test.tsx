@@ -2,12 +2,12 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-describe('apps/app/app/(onboarding)/onboarding/components/onboarding-progress.tsx', () => {
+describe('app/(onboarding)/onboarding/components/onboarding-progress.tsx', () => {
   it('keeps an exported contract in place', () => {
     const source = readFileSync(
       join(
         process.cwd(),
-        'apps/app/app/(onboarding)/onboarding/components/onboarding-progress.tsx',
+        'app/(onboarding)/onboarding/components/onboarding-progress.tsx',
       ),
       'utf8',
     );

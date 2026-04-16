@@ -361,6 +361,7 @@ describe('StepExecutorService', () => {
       expect(mockFleetService.pollJob).toHaveBeenCalledWith(
         'videos',
         'job-123',
+        'org-123',
       );
 
       setTimeoutSpy.mockRestore();

@@ -4,6 +4,7 @@ import {
   HiChartBar,
   HiClipboardDocumentCheck,
   HiClipboardDocumentList,
+  HiClock,
   HiCog6Tooth,
   HiDocumentText,
   HiFolder,
@@ -14,6 +15,7 @@ import {
   HiOutlineChartBar,
   HiOutlineClipboardDocumentCheck,
   HiOutlineClipboardDocumentList,
+  HiOutlineClock,
   HiOutlineCog6Tooth,
   HiOutlineDocumentText,
   HiOutlineFolder,
@@ -167,7 +169,16 @@ export const APP_MENU_ITEMS: MenuItemConfig[] = [
   },
 ];
 
-export const APP_SECONDARY_MENU_ITEMS: MenuItemConfig[] = [];
+export const APP_SECONDARY_MENU_ITEMS: MenuItemConfig[] = [
+  {
+    group: AppMenuGroup.Root,
+    href: '/workspace/activity',
+    label: 'Activity',
+    matchPaths: ['/workspace/activity'],
+    outline: HiOutlineClock,
+    solid: HiClock,
+  },
+];
 
 export function getAppSecondaryMenuItems(
   brandId?: string | null,

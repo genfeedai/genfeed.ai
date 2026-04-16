@@ -31,7 +31,7 @@ describe('UserExtractionUtil', () => {
       expect(result.dbUserId).toBe(oid.toHexString());
       expect(result.clerkUserId).toBe('clerk_abc123');
       expect(result.userId).toBe('clerk_abc123');
-      expect(result.userRoom).toBe('user-clerk_abc123');
+      expect(result.userRoom).toBe('user:clerk_abc123');
     });
 
     it('extracts string _id from a populated user document', () => {

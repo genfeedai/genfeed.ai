@@ -41,6 +41,22 @@ export default defineConfig({
         replacement: CLIENT_MODELS_MOCK,
       },
       {
+        find: /^@genfeedai\/client$/,
+        replacement: path.resolve(__dirname, '../client/dist/index'),
+      },
+      {
+        find: /^@genfeedai\/client\/schemas$/,
+        replacement: path.resolve(__dirname, '../client/dist/schemas'),
+      },
+      {
+        find: /^@genfeedai\/client\/schemas\/(.*)$/,
+        replacement: path.resolve(__dirname, '../client/dist/schemas/$1'),
+      },
+      {
+        find: /^@genfeedai\/client\/(.*)$/,
+        replacement: path.resolve(__dirname, '../client/dist/$1'),
+      },
+      {
         find: /^@serializers\/(.*)$/,
         replacement: path.join(SERIALIZERS_SRC, '$1'),
       },
@@ -91,6 +107,22 @@ export default defineConfig({
       {
         find: /^@genfeedai\/contexts\/(.*)$/,
         replacement: path.resolve(__dirname, '../contexts/$1'),
+      },
+      {
+        find: '@genfeedai/enums',
+        replacement: path.resolve(__dirname, '../enums/dist/index'),
+      },
+      {
+        find: /^@genfeedai\/enums\/(.*)$/,
+        replacement: path.resolve(__dirname, '../enums/dist/$1'),
+      },
+      {
+        find: '@genfeedai/helpers',
+        replacement: HELPERS_SRC,
+      },
+      {
+        find: /^@genfeedai\/helpers\/(.*)$/,
+        replacement: path.join(HELPERS_SRC, '$1'),
       },
       {
         find: '@genfeedai/models',

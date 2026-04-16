@@ -1,4 +1,5 @@
 import { AssetsService } from '@api/collections/assets/services/assets.service';
+import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
 import { ConfigService } from '@api/config/config.service';
@@ -90,6 +91,12 @@ describe('ReplicateWebhookController', () => {
           useValue: {
             publishAssetStatus: vi.fn(),
             publishTrainingStatus: vi.fn(),
+          },
+        },
+        {
+          provide: ModelRegistrationService,
+          useValue: {
+            createFromTraining: vi.fn(),
           },
         },
       ],

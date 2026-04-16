@@ -6,7 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next/image', () => ({
   default: ({ src, alt, ...props }: ComponentProps<'img'>) => (
-    // biome-ignore lint/performance/noImgElement: next/image test double
+    // biome-ignore lint/performance/noImgElement: next/image is mocked to a basic DOM element in jsdom tests.
     <img src={src} alt={alt} {...props} />
   ),
 }));
@@ -19,7 +19,7 @@ vi.mock('next/link', () => ({
   ),
 }));
 
-const mockPost: Partial<IPost> = {
+const mockPost = {
   category: 'video',
   id: 'post-1',
   ingredients: [
@@ -32,12 +32,12 @@ const mockPost: Partial<IPost> = {
   ],
   label: 'Test Post',
   platform: 'youtube',
-  publicationDate: new Date('2024-01-03'),
-  scheduledDate: new Date('2024-01-02'),
+  publicationDate: '2024-01-03T00:00:00.000Z',
+  scheduledDate: '2024-01-02T00:00:00.000Z',
   status: 'published',
-  uploadedAt: new Date('2024-01-01'),
+  uploadedAt: '2024-01-01T00:00:00.000Z',
   url: 'https://example.com/post',
-};
+} as IPost;
 
 describe('PostCard', () => {
   it('should render without crashing', () => {

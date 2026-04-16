@@ -39,6 +39,9 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({
     push: pushMock,
   }),
+  useParams: () => ({
+    orgSlug: 'acme-org',
+  }),
 }));
 
 vi.mock('@ui/buttons/base/Button', () => ({
@@ -73,11 +76,13 @@ vi.mock('@ui/primitives/field', () => ({
 
 vi.mock('@ui/primitives/input', () => ({
   __esModule: true,
+  Input: () => <input data-testid="form-input" />,
   default: () => <input data-testid="form-input" />,
 }));
 
 vi.mock('@ui/primitives/textarea', () => ({
   __esModule: true,
+  Textarea: () => <textarea data-testid="form-textarea" />,
   default: () => <textarea data-testid="form-textarea" />,
 }));
 
@@ -90,6 +95,9 @@ vi.mock('@ui/primitives/color-picker', () => ({
 
 vi.mock('@ui/primitives/select', () => ({
   __esModule: true,
+  SelectField: ({ children }: PropsWithChildren) => (
+    <select data-testid="form-select">{children}</select>
+  ),
   default: ({ children }: PropsWithChildren) => (
     <select data-testid="form-select">{children}</select>
   ),
@@ -236,6 +244,7 @@ describe('ModalBrand', () => {
           id: 'brand-1',
           label: 'Brand One',
           scope: 'brand',
+          slug: 'brand-one',
         }}
         initialView="overview"
       />,
@@ -243,6 +252,8 @@ describe('ModalBrand', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Open page' }));
 
-    expect(pushMock).toHaveBeenCalledWith('/settings/brands/brand-1');
+    expect(pushMock).toHaveBeenCalledWith(
+      '/acme-org/~/settings/brands/brand-one',
+    );
   });
 });

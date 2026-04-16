@@ -94,7 +94,7 @@ describe('DropdownBase', () => {
     );
 
     const portal = await screen.findByText('Reposition target');
-    const dropdown = portal.parentElement as HTMLElement;
+    const dropdown = portal.closest('[data-dropdown="true"]') as HTMLElement;
 
     await waitFor(() => {
       expect(dropdown.style.left).toBe('16px');

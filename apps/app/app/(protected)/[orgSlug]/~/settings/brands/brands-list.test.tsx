@@ -6,10 +6,10 @@ import '@testing-library/jest-dom';
 const mockBrands = [
   {
     createdAt: '2024-01-01',
-    handle: 'testbrand',
     id: '1',
     label: 'Test Brand',
     logoUrl: 'https://example.com/logo.png',
+    slug: 'testbrand',
     totalCredentials: 3,
   },
 ];
@@ -65,9 +65,7 @@ describe('BrandsList', () => {
   it('should display the page title and description', () => {
     render(<BrandsList />);
     expect(screen.getByText('Brands')).toBeInTheDocument();
-    expect(
-      screen.getByText('Manage your brands and their settings'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Manage brands and settings.')).toBeInTheDocument();
   });
 
   it('should render add brand button', () => {

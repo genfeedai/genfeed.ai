@@ -44,6 +44,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { MembersService } from '@api/collections/members/services/members.service';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
@@ -337,6 +338,12 @@ describe('ImagesOperationsController', () => {
         },
         { provide: MembersService, useValue: mockMembersService },
         {
+          provide: ModelRegistrationService,
+          useValue: {
+            validateModelForOrg: vi.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
           provide: ModelsService,
           useValue: {
             findOne: vi.fn().mockResolvedValue({ cost: 5, key: 'leonardoai' }),
@@ -450,6 +457,7 @@ describe('ImagesOperationsController', () => {
       module.get(LeonardoAIService),
       module.get(LoggerService),
       module.get(MetadataService),
+      module.get(ModelRegistrationService),
       module.get(ModelsService),
       module.get(NotificationsService),
       module.get(PromptBuilderService),

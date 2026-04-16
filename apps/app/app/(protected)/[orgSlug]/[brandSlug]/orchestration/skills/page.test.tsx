@@ -2,12 +2,15 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-describe('apps/app/app/(protected)/[orgSlug]/[brandSlug]/orchestration/skills/page.tsx', () => {
+describe('app/(protected)/[orgSlug]/[brandSlug]/orchestration/skills/page.tsx', () => {
   it('keeps an exported contract in place', () => {
-    const pagePath = process.cwd().endsWith('/apps/app')
-      ? 'app/(protected)/orchestration/skills/page.tsx'
-      : 'apps/app/app/(protected)/[orgSlug]/[brandSlug]/orchestration/skills/page.tsx';
-    const source = readFileSync(join(process.cwd(), pagePath), 'utf8');
+    const source = readFileSync(
+      join(
+        process.cwd(),
+        'app/(protected)/[orgSlug]/[brandSlug]/orchestration/skills/page.tsx',
+      ),
+      'utf8',
+    );
     expect(source).toContain('export ');
   });
 });

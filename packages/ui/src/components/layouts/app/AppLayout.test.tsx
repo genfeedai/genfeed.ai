@@ -106,8 +106,8 @@ describe('AppLayout', () => {
     const rail = screen.getByTestId('desktop-sidebar-rail');
 
     expect(rail).toHaveClass('bg-transparent', 'shadow-none');
+    expect(rail).toHaveClass('border-r');
     expect(rail).not.toHaveClass('bg-background/95');
-    expect(rail).not.toHaveClass('border-r');
   });
 
   it('renders agent rail and fixed-width shell when agent panel is provided', () => {

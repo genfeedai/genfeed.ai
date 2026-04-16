@@ -2,12 +2,12 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-describe('apps/app/app/(protected)/[orgSlug]/[brandSlug]/overview/overview-page.tsx', () => {
+describe('app/(protected)/[orgSlug]/[brandSlug]/overview/overview-page.tsx', () => {
   it('keeps an exported contract in place', () => {
     const source = readFileSync(
       join(
         process.cwd(),
-        'apps/app/app/(protected)/[orgSlug]/[brandSlug]/overview/overview-page.tsx',
+        'app/(protected)/[orgSlug]/[brandSlug]/overview/overview-page.tsx',
       ),
       'utf8',
     );

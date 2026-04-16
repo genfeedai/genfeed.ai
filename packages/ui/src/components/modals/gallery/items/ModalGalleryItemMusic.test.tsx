@@ -1,15 +1,25 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ModalGalleryItemMusic from '@ui/modals/gallery/items/ModalGalleryItemMusic';
+import type { MouseEvent, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 // Mock dependencies
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({ label, onClick, className }: any) => (
+vi.mock('@ui/primitives/button', () => ({
+  Button: ({
+    label,
+    onClick,
+    className,
+  }: {
+    className?: string;
+    label?: ReactNode;
+    onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
+  }) => (
     <button onClick={onClick} className={className} data-testid="play-button">
       {typeof label === 'object' ? 'icon' : label}
     </button>
   ),
+  buttonVariants: () => '',
 }));
 
 vi.mock('@genfeedai/services/core/environment.service', () => ({

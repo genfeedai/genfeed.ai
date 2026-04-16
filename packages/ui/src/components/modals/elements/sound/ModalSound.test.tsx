@@ -44,16 +44,23 @@ vi.mock('@ui/modals/actions/ModalActions', () => ({
 }));
 
 vi.mock('@ui/primitives/input', () => ({
-  default: (props: any) => <input data-testid={`input-${props.name}`} />,
+  Input: (props: { name?: string }) => (
+    <input data-testid={`input-${props.name ?? 'unknown'}`} />
+  ),
 }));
 
 vi.mock('@ui/primitives/select', () => ({
-  default: (props: any) => <select data-testid={`select-${props.name}`} />,
+  SelectField: (props: { name?: string }) => (
+    <select data-testid={`select-${props.name ?? 'unknown'}`} />
+  ),
 }));
 
 vi.mock('@ui/primitives/checkbox', () => ({
-  default: (props: any) => (
-    <input type="checkbox" data-testid={`checkbox-${props.name}`} />
+  Checkbox: (props: { name?: string }) => (
+    <input
+      type="checkbox"
+      data-testid={`checkbox-${props.name ?? 'unknown'}`}
+    />
   ),
 }));
 
@@ -61,10 +68,11 @@ vi.mock('@ui/primitives/field', () => ({
   default: ({ children }: any) => <div>{children}</div>,
 }));
 
-vi.mock('@ui/buttons/base/Button', () => ({
-  default: ({ label, onClick }: any) => (
+vi.mock('@ui/primitives/button', () => ({
+  Button: ({ label, onClick }: { label?: string; onClick?: () => void }) => (
     <button onClick={onClick}>{label}</button>
   ),
+  buttonVariants: () => '',
 }));
 
 describe('ModalSound', () => {

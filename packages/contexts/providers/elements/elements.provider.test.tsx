@@ -1,6 +1,9 @@
 // @vitest-environment jsdom
 'use client';
 
+import ElementsProvider, {
+  useElementsContext,
+} from '@providers/elements/elements.provider';
 import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -37,10 +40,7 @@ vi.mock('@providers/elements-filters/elements-filters.provider', () => ({
 }));
 
 describe('ElementsProvider', () => {
-  let ElementsProvider: typeof import('@providers/elements/elements.provider').default;
-  let useElementsContext: typeof import('@providers/elements/elements.provider').useElementsContext;
-
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
     useAuthMock.mockReturnValue({
       isLoaded: true,
@@ -63,10 +63,6 @@ describe('ElementsProvider', () => {
         styles: [],
       }),
     );
-
-    const module = await import('@providers/elements/elements.provider');
-    ElementsProvider = module.default;
-    useElementsContext = module.useElementsContext;
   });
 
   it('renders children and provides context', async () => {

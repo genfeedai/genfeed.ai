@@ -13,6 +13,13 @@ export interface UseBrandEnabledSkillsReturn {
   toggleSkill: (slug: string) => Promise<void>;
 }
 
+function areStringArraysEqual(left: string[], right: string[]): boolean {
+  return (
+    left.length === right.length &&
+    left.every((value, index) => value === right[index])
+  );
+}
+
 export function useBrandEnabledSkills(): UseBrandEnabledSkillsReturn {
   const { getToken } = useAuth();
   const { isReady, selectedBrand } = useBrand();
@@ -28,20 +35,28 @@ export function useBrandEnabledSkills(): UseBrandEnabledSkillsReturn {
         id?: string;
       }
     | undefined;
+  const selectedBrandId =
+    selectedBrandRecord?.id ?? selectedBrandRecord?._id ?? null;
+  const persistedEnabledSlugs =
+    selectedBrandRecord?.agentConfig?.enabledSkills ?? [];
+  const persistedEnabledSlugsKey = persistedEnabledSlugs.join('\0');
 
   useEffect(() => {
-    if (!isReady || !selectedBrand) return;
+    if (!isReady || !selectedBrandId) {
+      setEnabledSlugs((current) => (current.length === 0 ? current : []));
+      return;
+    }
 
-    const config = selectedBrandRecord?.agentConfig;
-    setEnabledSlugs(config?.enabledSkills ?? []);
-  }, [isReady, selectedBrand, selectedBrandRecord]);
+    setEnabledSlugs((current) =>
+      areStringArraysEqual(current, persistedEnabledSlugs)
+        ? current
+        : [...persistedEnabledSlugs],
+    );
+  }, [isReady, persistedEnabledSlugsKey, selectedBrandId]);
 
   const toggleSkill = useCallback(
     async (slug: string) => {
-      if (!selectedBrand) return;
-
-      const brandId = selectedBrandRecord?.id ?? selectedBrandRecord?._id;
-      if (!brandId) return;
+      if (!selectedBrandId) return;
 
       // Capture pre-toggle state for rollback, then optimistically update.
       const previousSlugs = enabledSlugs;
@@ -55,7 +70,7 @@ export function useBrandEnabledSkills(): UseBrandEnabledSkillsReturn {
         if (!token) throw new Error('No auth token');
 
         const response = await fetch(
-          `${API_BASE}/brands/${brandId}/agent-config/enabled-skills`,
+          `${API_BASE}/brands/${selectedBrandId}/agent-config/enabled-skills`,
           {
             body: JSON.stringify({ enabledSkills: nextSlugs }),
             headers: {
@@ -76,7 +91,7 @@ export function useBrandEnabledSkills(): UseBrandEnabledSkillsReturn {
         setEnabledSlugs(previousSlugs);
       }
     },
-    [enabledSlugs, getToken, selectedBrand, selectedBrandRecord],
+    [enabledSlugs, getToken, selectedBrandId],
   );
 
   return { enabledSlugs, isLoading, toggleSkill };

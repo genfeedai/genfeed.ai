@@ -14,7 +14,12 @@ vi.mock('@ui/buttons/base/Button', () => ({
 }));
 
 vi.mock('@ui/primitives/input', () => ({
-  default: ({ placeholder }: any) => <input placeholder={placeholder} />,
+  Input: ({ placeholder }: { placeholder?: string }) => (
+    <input placeholder={placeholder} />
+  ),
+  default: ({ placeholder }: { placeholder?: string }) => (
+    <input placeholder={placeholder} />
+  ),
 }));
 
 vi.mock('@ui/prompt-bars/components/divider/PromptBarDivider', () => ({

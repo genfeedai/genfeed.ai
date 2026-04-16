@@ -2,12 +2,12 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-describe('apps/app/app/(onboarding)/onboarding/(wizard)/summary/summary-content.tsx', () => {
+describe('app/(onboarding)/onboarding/(wizard)/summary/summary-content.tsx', () => {
   it('renders install summary content with a secondary cloud note', () => {
     const source = readFileSync(
       join(
         process.cwd(),
-        'apps/app/app/(onboarding)/onboarding/(wizard)/summary/summary-content.tsx',
+        'app/(onboarding)/onboarding/(wizard)/summary/summary-content.tsx',
       ),
       'utf8',
     );

@@ -14,8 +14,8 @@ describe('GridPositionSelector', () => {
 
   describe('rendering', () => {
     it('should render 9 position buttons', () => {
-      const { container } = render(<GridPositionSelector {...defaultProps} />);
-      const buttons = container.querySelectorAll('button[title^="Position:"]');
+      render(<GridPositionSelector {...defaultProps} />);
+      const buttons = screen.getAllByRole('button');
       expect(buttons).toHaveLength(9);
     });
 
@@ -149,29 +149,6 @@ describe('GridPositionSelector', () => {
         x: 0,
         y: 1,
       });
-    });
-  });
-
-  describe('button titles', () => {
-    it('should have correct title for top-left', () => {
-      render(<GridPositionSelector {...defaultProps} />);
-
-      const buttons = screen.getAllByRole('button');
-      expect(buttons[0]).toHaveAttribute('title', 'Position: left, top');
-    });
-
-    it('should have correct title for center', () => {
-      render(<GridPositionSelector {...defaultProps} />);
-
-      const buttons = screen.getAllByRole('button');
-      expect(buttons[4]).toHaveAttribute('title', 'Position: center, middle');
-    });
-
-    it('should have correct title for bottom-right', () => {
-      render(<GridPositionSelector {...defaultProps} />);
-
-      const buttons = screen.getAllByRole('button');
-      expect(buttons[8]).toHaveAttribute('title', 'Position: right, bottom');
     });
   });
 

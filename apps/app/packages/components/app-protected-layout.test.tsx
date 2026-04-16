@@ -43,6 +43,11 @@ const mockBrandState = vi.hoisted(() => ({
   brandId: 'brand-123',
 }));
 
+const mockRouteParams = vi.hoisted(() => ({
+  brandSlug: 'brand-123',
+  orgSlug: 'org-123',
+}));
+
 const enabledCategoriesState = vi.hoisted(() => ({
   enabledCategories: ['image', 'video', 'avatar'],
   isLoading: false,
@@ -320,6 +325,10 @@ vi.mock('@providers/protected-providers/protected-providers', () => ({
   },
 }));
 
+vi.mock('@/lib/config/edition', () => ({
+  isEEEnabled: () => true,
+}));
+
 vi.mock('@services/core/environment.service', () => ({
   EnvironmentService: {
     apps: {
@@ -343,6 +352,7 @@ vi.mock('@ui/guards/onboarding/OnboardingGuard', () => ({
 }));
 
 vi.mock('next/navigation', () => ({
+  useParams: () => mockRouteParams,
   usePathname: () => mockPathname.value,
   useRouter: () => ({
     push: vi.fn(),
@@ -366,6 +376,8 @@ describe('AppProtectedLayout', () => {
   beforeEach(() => {
     mockPathname.value = '/workspace';
     mockBrandState.brandId = 'brand-123';
+    mockRouteParams.brandSlug = 'brand-123';
+    mockRouteParams.orgSlug = 'org-123';
     enabledCategoriesState.enabledCategories = ['image', 'video', 'avatar'];
     enabledCategoriesState.isLoading = false;
     appLayoutSpy.mockClear();
@@ -543,7 +555,7 @@ describe('AppProtectedLayout', () => {
     ).not.toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Back to Workspace' }),
-    ).toHaveAttribute('href', '/workspace/overview');
+    ).toHaveAttribute('href', '/org-123/brand-123/workspace/overview');
     expect(screen.getByText('Conversations')).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Workspace' }),
@@ -655,7 +667,7 @@ describe('AppProtectedLayout', () => {
 
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        backHref: '/library/ingredients',
+        backHref: '/org-123/brand-123/library/ingredients',
         backLabel: 'Library',
         sectionLabel: 'Studio',
         shellChromeVariant: 'transparent',

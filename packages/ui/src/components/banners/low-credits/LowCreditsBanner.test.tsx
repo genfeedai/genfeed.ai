@@ -18,6 +18,13 @@ vi.mock('next/link', () => ({
   ),
 }));
 
+vi.mock('next/navigation', () => ({
+  useParams: () => ({
+    brandSlug: 'brand-1',
+    orgSlug: 'test-org',
+  }),
+}));
+
 describe('LowCreditsBanner', () => {
   const storage = new Map<string, string>();
   const originalLicenseKey = process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;

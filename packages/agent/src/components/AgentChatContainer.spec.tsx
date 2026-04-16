@@ -895,7 +895,11 @@ describe('AgentChatContainer', () => {
       expect(onCreateFollowUpTasks).toHaveBeenCalledWith('workspace-task-42');
     });
 
-    expect(screen.getByText('Created 2 follow-up tasks.')).toBeInTheDocument();
+    expect(
+      await screen.findByText((_, element) => {
+        return element?.textContent === 'Created 2 follow-up tasks.';
+      }),
+    ).toBeInTheDocument();
   });
 
   it('does not fall back to the empty state when a restored thread only has a proposed plan', () => {
