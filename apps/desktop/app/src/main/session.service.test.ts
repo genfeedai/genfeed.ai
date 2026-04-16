@@ -106,6 +106,69 @@ describe('DesktopSessionService', () => {
     expect(database.getValue('desktop.session')).toContain('gf_desktop_key');
   });
 
+  it('validates and refreshes an existing desktop session on startup', async () => {
+    const service = new DesktopSessionService(database, {
+      apiEndpoint: 'https://api.genfeed.ai/v1',
+      appEndpoint: 'https://app.genfeed.ai',
+      appName: 'desktop',
+      appPort: 3230,
+      authEndpoint: 'https://app.genfeed.ai/oauth/cli',
+      cdnUrl: 'https://cdn.genfeed.ai',
+      wsEndpoint: 'https://notifications.genfeed.ai',
+    });
+
+    service.setSession({
+      issuedAt: '2026-04-01T09:00:00.000Z',
+      token: 'persisted_desktop_key',
+      userEmail: 'old@example.com',
+      userId: 'user-123',
+      userName: 'Old Name',
+    });
+
+    globalThis.fetch = (async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => {
+      expect(String(input)).toBe('https://api.genfeed.ai/v1/auth/whoami');
+      expect(init?.headers).toMatchObject({
+        Authorization: 'Bearer persisted_desktop_key',
+      });
+
+      return new Response(
+        JSON.stringify({
+          data: {
+            user: {
+              email: 'desktop@example.com',
+              id: 'user-123',
+              name: 'Desktop User',
+            },
+          },
+        }),
+        {
+          headers: {
+            'content-type': 'application/json',
+          },
+          status: 200,
+        },
+      );
+    }) as typeof fetch;
+
+    await expect(service.validateStoredSession()).resolves.toEqual({
+      issuedAt: '2026-04-01T09:00:00.000Z',
+      token: 'persisted_desktop_key',
+      userEmail: 'desktop@example.com',
+      userId: 'user-123',
+      userName: 'Desktop User',
+    });
+    expect(service.getSession()).toEqual({
+      issuedAt: '2026-04-01T09:00:00.000Z',
+      token: 'persisted_desktop_key',
+      userEmail: 'desktop@example.com',
+      userId: 'user-123',
+      userName: 'Desktop User',
+    });
+  });
+
   it('rejects callbacks without a key', async () => {
     const service = new DesktopSessionService(database, {
       apiEndpoint: 'https://api.genfeed.ai/v1',
@@ -148,6 +211,33 @@ describe('DesktopSessionService', () => {
     await expect(
       service.handleCallback('genfeedai-desktop://auth?key=rejected_key'),
     ).resolves.toBeNull();
+    expect(service.getSession()).toBeNull();
+  });
+
+  it('clears a stale stored desktop session during startup validation', async () => {
+    const service = new DesktopSessionService(database, {
+      apiEndpoint: 'https://api.genfeed.ai/v1',
+      appEndpoint: 'https://app.genfeed.ai',
+      appName: 'desktop',
+      appPort: 3230,
+      authEndpoint: 'https://app.genfeed.ai/oauth/cli',
+      cdnUrl: 'https://cdn.genfeed.ai',
+      wsEndpoint: 'https://notifications.genfeed.ai',
+    });
+
+    service.setSession({
+      issuedAt: '2026-04-01T09:00:00.000Z',
+      token: 'stale_desktop_key',
+      userEmail: 'desktop@example.com',
+      userId: 'user-123',
+      userName: 'Desktop User',
+    });
+
+    globalThis.fetch = (async () => {
+      return new Response('unauthorized', { status: 401 });
+    }) as typeof fetch;
+
+    await expect(service.validateStoredSession()).resolves.toBeNull();
     expect(service.getSession()).toBeNull();
   });
 });

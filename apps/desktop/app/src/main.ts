@@ -203,6 +203,20 @@ const handleAuthCallback = async (rawUrl: string): Promise<void> => {
   const session = await sessionService.handleCallback(rawUrl);
 
   if (!session) {
+    telemetryService.captureException(
+      new Error('Desktop auth callback failed'),
+      {
+        surface: 'auth-callback',
+      },
+    );
+    emitSession();
+    emitBootstrap();
+    if (Notification.isSupported()) {
+      void new Notification({
+        body: 'The browser returned an invalid or expired desktop sign-in key. Start sign-in again from the desktop app.',
+        title: 'Desktop authentication failed',
+      }).show();
+    }
     return;
   }
 
@@ -448,6 +462,7 @@ app.on('before-quit', (event) => {
 
 app.whenReady().then(async () => {
   telemetryService.init();
+  await sessionService.validateStoredSession();
   telemetryService.setUser(sessionService.getSession());
   process.on('uncaughtException', (error) => {
     telemetryService.captureException(error, { source: 'uncaughtException' });

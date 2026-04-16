@@ -81,15 +81,16 @@ export class DesktopSessionService {
     return url.toString();
   }
 
-  private async resolveSessionFromKey(
-    key: string,
+  private async resolveSessionFromToken(
+    token: string,
+    issuedAt = new Date().toISOString(),
   ): Promise<IDesktopSession | null> {
     try {
       const response = await fetch(
         `${this.environment.apiEndpoint}/auth/whoami`,
         {
           headers: {
-            Authorization: `Bearer ${key}`,
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         },
@@ -103,8 +104,8 @@ export class DesktopSessionService {
       const user = payload.data?.user;
 
       return this.setSession({
-        issuedAt: new Date().toISOString(),
-        token: key,
+        issuedAt,
+        token,
         userEmail: user?.email || undefined,
         userId: user?.id || randomUUID(),
         userName: user?.name || undefined,
@@ -112,6 +113,25 @@ export class DesktopSessionService {
     } catch {
       return null;
     }
+  }
+
+  async validateStoredSession(): Promise<IDesktopSession | null> {
+    const session = this.getSession();
+
+    if (!session) {
+      return null;
+    }
+
+    const validatedSession = await this.resolveSessionFromToken(
+      session.token,
+      session.issuedAt,
+    );
+
+    if (!validatedSession) {
+      this.clearSession();
+    }
+
+    return validatedSession;
   }
 
   async handleCallback(rawUrl: string): Promise<IDesktopSession | null> {
@@ -123,7 +143,7 @@ export class DesktopSessionService {
         return null;
       }
 
-      const session = await this.resolveSessionFromKey(key);
+      const session = await this.resolveSessionFromToken(key);
 
       if (!session) {
         this.clearSession();

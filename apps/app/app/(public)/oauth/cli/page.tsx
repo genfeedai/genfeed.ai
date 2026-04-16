@@ -18,10 +18,13 @@ import {
   HiXCircle,
 } from 'react-icons/hi2';
 import { Card, CardContent } from '@/components/ui/card';
+import { redirectToCallback } from './callback-redirect';
 
 const MIN_PORT = 1024;
 const MAX_PORT = 65535;
 const DESKTOP_CALLBACK_TARGET = 'genfeedai-desktop://auth';
+const DESKTOP_CALLBACK_PROTOCOL = 'genfeedai-desktop:';
+const DESKTOP_CALLBACK_TIMEOUT_MS = 1500;
 
 type FlowStep =
   | 'validating'
@@ -136,6 +139,21 @@ function getDesktopCallbackUrl(
   return url.toString();
 }
 
+function isDesktopCallbackTargetValid(value: string | null): boolean {
+  if (!value) {
+    return true;
+  }
+
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === DESKTOP_CALLBACK_PROTOCOL && url.hostname === 'auth'
+    );
+  } catch {
+    return false;
+  }
+}
+
 export default function CliAuthPage() {
   const searchParams = useSearchParams();
   const { isSignedIn, isLoaded, getToken } = useAuth();
@@ -150,6 +168,9 @@ export default function CliAuthPage() {
   const portParam = searchParams.get('port');
   const isDesktopMode = searchParams.get('desktop') === '1';
   const desktopReturnTo = searchParams.get('return_to');
+  const hasValidDesktopReturnTarget = isDesktopCallbackTargetValid(
+    desktopReturnTo,
+  );
   const port = validatePort(portParam);
 
   const requestTokenAndRedirect = useCallback(
@@ -221,7 +242,78 @@ export default function CliAuthPage() {
           return;
         }
 
-        window.location.href = callbackUrl;
+        if (isDesktopMode) {
+          let fallbackTimer: number | null = null;
+          let handoffCompleted = false;
+
+          const cleanup = () => {
+            document.removeEventListener(
+              'visibilitychange',
+              handleVisibilityChange,
+            );
+            window.removeEventListener('pagehide', handlePageHide);
+
+            if (fallbackTimer !== null) {
+              window.clearTimeout(fallbackTimer);
+            }
+          };
+
+          const completeHandoff = () => {
+            if (signal.aborted || handoffCompleted) {
+              return;
+            }
+
+            handoffCompleted = true;
+            cleanup();
+            setFlowState({ apiKey: key, error: null, step: 'success' });
+          };
+
+          const handlePageHide = () => {
+            completeHandoff();
+          };
+
+          const handleVisibilityChange = () => {
+            if (document.visibilityState === 'hidden') {
+              completeHandoff();
+            }
+          };
+
+          document.addEventListener('visibilitychange', handleVisibilityChange);
+          window.addEventListener('pagehide', handlePageHide);
+
+          try {
+            redirectToCallback(callbackUrl);
+          } catch (error) {
+            cleanup();
+            setFlowState({
+              apiKey: key,
+              error:
+                error instanceof Error
+                  ? error.message
+                  : 'Failed to open the desktop app. Try again or copy the key below.',
+              step: 'error',
+            });
+            return;
+          }
+
+          fallbackTimer = window.setTimeout(() => {
+            if (signal.aborted || handoffCompleted) {
+              return;
+            }
+
+            cleanup();
+            setFlowState({
+              apiKey: key,
+              error:
+                'Genfeed Desktop did not open automatically. Make sure the app is installed, then try again or copy the key below.',
+              step: 'error',
+            });
+          }, DESKTOP_CALLBACK_TIMEOUT_MS);
+
+          return;
+        }
+
+        redirectToCallback(callbackUrl);
 
         setTimeout(() => {
           if (!signal.aborted) {
@@ -243,6 +335,15 @@ export default function CliAuthPage() {
 
   useEffect(() => {
     if (!isLoaded) {
+      return;
+    }
+
+    if (isDesktopMode && !hasValidDesktopReturnTarget) {
+      setFlowState({
+        error:
+          'Invalid desktop callback target. Restart sign-in from the Genfeed Desktop app.',
+        step: 'error',
+      });
       return;
     }
 
@@ -271,6 +372,7 @@ export default function CliAuthPage() {
       };
     }
   }, [
+    hasValidDesktopReturnTarget,
     isDesktopMode,
     isLoaded,
     isSignedIn,
@@ -384,6 +486,7 @@ export default function CliAuthPage() {
                   <CopyKeyFallback
                     apiKey={flowState.apiKey}
                     copied={copied}
+                    isDesktopMode={isDesktopMode}
                     onCopy={handleCopyKey}
                   />
                 )}
@@ -405,6 +508,7 @@ export default function CliAuthPage() {
                   <CopyKeyFallback
                     apiKey={flowState.apiKey}
                     copied={copied}
+                    isDesktopMode={isDesktopMode}
                     onCopy={handleCopyKey}
                   />
                 )}
@@ -418,7 +522,15 @@ export default function CliAuthPage() {
                   title="Authentication failed"
                   description={flowState.error || 'An unknown error occurred.'}
                 />
-                {port !== null && (
+                {flowState.apiKey && (
+                  <CopyKeyFallback
+                    apiKey={flowState.apiKey}
+                    copied={copied}
+                    isDesktopMode={isDesktopMode}
+                    onCopy={handleCopyKey}
+                  />
+                )}
+                {(isDesktopMode || port !== null) && (
                   <div className="flex justify-center">
                     <Button
                       variant={ButtonVariant.DEFAULT}
@@ -453,17 +565,19 @@ export default function CliAuthPage() {
 function CopyKeyFallback({
   apiKey,
   copied,
+  isDesktopMode,
   onCopy,
 }: {
   apiKey: string;
   copied: boolean;
+  isDesktopMode: boolean;
   onCopy: () => void;
 }) {
   return (
     <div className="border-t border-white/[0.08] pt-5 mt-2">
       <p className="text-xs text-muted-foreground text-center mb-3">
-        If the CLI doesn&apos;t receive it automatically, copy and paste the
-        key:
+        If the {isDesktopMode ? 'desktop app' : 'CLI'} doesn&apos;t receive it
+        automatically, copy and paste the key:
       </p>
       <div className="flex items-center gap-2">
         <Code
