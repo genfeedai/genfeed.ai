@@ -2,7 +2,7 @@ import {
   ENTITY_OVERLAY_CLOSED_EVENT,
   ENTITY_OVERLAY_OPENED_EVENT,
 } from '@services/core/agent-overlay-coordination.service';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { type ReactNode, useEffect } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AppProtectedLayout from './app-protected-layout';
@@ -12,6 +12,8 @@ const {
   appSidebarSpy,
   agentPanelSpy,
   beginOverlaySessionSpy,
+  commandPaletteOpenSpy,
+  dispatchOpenTaskComposerSpy,
   endOverlaySessionSpy,
   onboardingGuardSpy,
   lowCreditsBannerSpy,
@@ -23,6 +25,8 @@ const {
   appLayoutSpy: vi.fn(),
   appSidebarSpy: vi.fn(),
   beginOverlaySessionSpy: vi.fn(),
+  commandPaletteOpenSpy: vi.fn(),
+  dispatchOpenTaskComposerSpy: vi.fn(),
   endOverlaySessionSpy: vi.fn(),
   lowCreditsBannerSpy: vi.fn(),
   onboardingGuardSpy: vi.fn(),
@@ -140,9 +144,18 @@ vi.mock('@ui/menus/sidebar-search-trigger/SidebarSearchTrigger', () => ({
     <button
       type="button"
       data-testid="sidebar-search-trigger"
+      aria-label="New Search"
       onClick={onClick}
     >
-      sidebar-search-trigger
+      New Search
+    </button>
+  ),
+}));
+
+vi.mock('@ui/menus/sidebar-action-trigger/SidebarActionTrigger', () => ({
+  default: ({ label, onClick }: { label: string; onClick?: () => void }) => (
+    <button type="button" onClick={onClick}>
+      {label}
     </button>
   ),
 }));
@@ -191,6 +204,18 @@ vi.mock('@services/core/logger.service', () => ({
   logger: {
     error: vi.fn(),
     info: vi.fn(),
+  },
+}));
+
+vi.mock('@/lib/workspace/task-composer-events', () => ({
+  dispatchOpenTaskComposer: dispatchOpenTaskComposerSpy,
+}));
+
+vi.mock('@/store/commandPaletteStore', () => ({
+  useCommandPaletteStore: {
+    getState: () => ({
+      open: commandPaletteOpenSpy,
+    }),
   },
 }));
 
@@ -348,6 +373,8 @@ describe('AppProtectedLayout', () => {
     beginOverlaySessionSpy.mockClear();
     endOverlaySessionSpy.mockClear();
     agentPanelSpy.mockClear();
+    commandPaletteOpenSpy.mockClear();
+    dispatchOpenTaskComposerSpy.mockClear();
     onboardingGuardSpy.mockClear();
     lowCreditsBannerSpy.mockClear();
     protectedProvidersSpy.mockClear();
@@ -404,10 +431,8 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({
         collapsedSidebarWidth: 64,
         mobileSidebarWidth: 304,
-        primaryAction: expect.objectContaining({
-          label: 'New Task',
-          onClick: expect.any(Function),
-        }),
+        primaryAction: undefined,
+        renderTopSlot: expect.any(Function),
         secondaryItems: [
           { href: '/workspace/activity', label: 'Activity' },
           {
@@ -424,6 +449,44 @@ describe('AppProtectedLayout', () => {
     expect(screen.queryByTestId('agent-thread-list')).not.toBeInTheDocument();
     expect(screen.getByTestId('agent-panel-rail')).toBeInTheDocument();
     expect(screen.getByTestId('agent-panel')).toBeInTheDocument();
+  });
+
+  it('renders Codex-style search and task actions first in the workspace sidebar', () => {
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    const newSearchButton = screen.getByRole('button', { name: 'New Search' });
+    const newTaskButton = screen.getByRole('button', { name: 'New Task' });
+
+    expect(newSearchButton).toBeInTheDocument();
+    expect(newTaskButton).toBeInTheDocument();
+  });
+
+  it('opens the command palette from the workspace sidebar action', () => {
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'New Search' }));
+
+    expect(commandPaletteOpenSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens the task composer from the workspace sidebar action', () => {
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'New Task' }));
+
+    expect(dispatchOpenTaskComposerSpy).toHaveBeenCalledTimes(1);
   });
 
   it('enables topbar chrome for Studio routes', () => {

@@ -73,7 +73,9 @@ import { CommandPalette } from '@ui/command-palette/command-palette/CommandPalet
 import { CommandPaletteInitializer } from '@ui/command-palette/command-palette-initializer/CommandPaletteInitializer';
 import OnboardingGuard from '@ui/guards/onboarding/OnboardingGuard';
 import AppLayout from '@ui/layouts/app/AppLayout';
+import SidebarActionTrigger from '@ui/menus/sidebar-action-trigger/SidebarActionTrigger';
 import SidebarBackRow from '@ui/menus/sidebar-back-row/SidebarBackRow';
+import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearchTrigger';
 import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 import AdminSidebar from '@ui/shell/menus/AdminSidebar';
 import AppSidebar from '@ui/shell/menus/AppSidebar';
@@ -101,6 +103,7 @@ import {
   withTaskContextHref,
 } from '@/lib/navigation/operator-shell';
 import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
+import { useCommandPaletteStore } from '@/store/commandPaletteStore';
 
 type AgentPanelProps = {
   apiService: AgentApiService;
@@ -431,6 +434,9 @@ function AppLayoutWithDynamicMenu({
     },
     [router],
   );
+  const handleOpenCommandPalette = useCallback(() => {
+    useCommandPaletteStore.getState().open();
+  }, []);
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent): void => {
       if (
@@ -719,27 +725,30 @@ function AppLayoutWithDynamicMenu({
         sectionLabel={undefined}
         collapsedSidebarWidth={isChatRoute ? undefined : 64}
         mobileSidebarWidth={isChatRoute ? undefined : 304}
-        primaryAction={
-          isChatRoute
-            ? undefined
-            : {
-                icon: <HiPlus className="h-4 w-4" />,
-                label: 'New Task',
-                onClick: dispatchOpenTaskComposer,
-              }
-        }
         renderTopSlot={
           isChatRoute
             ? undefined
             : () => (
-                <div className="flex items-center gap-2">
-                  <AppSwitcher
-                    currentApp={currentApp}
-                    orgSlug={orgSlug}
-                    brandSlug={brandSlug}
-                    preservedSearch={taskContextSearchParams.toString()}
-                  />
-                  <TopbarOrganizationSwitcher />
+                <div className="space-y-2">
+                  <div className="space-y-0.5">
+                    <SidebarSearchTrigger onClick={handleOpenCommandPalette} />
+                    <SidebarActionTrigger
+                      ariaLabel="Open new task modal"
+                      icon={<HiPlus className="h-4 w-4 flex-shrink-0" />}
+                      label="New Task"
+                      onClick={dispatchOpenTaskComposer}
+                      shortcut="⌘⇧N"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <AppSwitcher
+                      currentApp={currentApp}
+                      orgSlug={orgSlug}
+                      brandSlug={brandSlug}
+                      preservedSearch={taskContextSearchParams.toString()}
+                    />
+                    <TopbarOrganizationSwitcher />
+                  </div>
                 </div>
               )
         }
@@ -788,6 +797,7 @@ function AppLayoutWithDynamicMenu({
     taskContextSearchParams,
     workflowsMenuItems,
     currentApp,
+    handleOpenCommandPalette,
     orgSlug,
     brandSlug,
   ]);
