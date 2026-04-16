@@ -121,4 +121,33 @@ describe('DesktopSessionService', () => {
       service.handleCallback('genfeedai-desktop://auth?token=missing'),
     ).resolves.toBeNull();
   });
+
+  it('clears a stale desktop session when a callback key is rejected', async () => {
+    const service = new DesktopSessionService(database, {
+      apiEndpoint: 'https://api.genfeed.ai/v1',
+      appEndpoint: 'https://app.genfeed.ai',
+      appName: 'desktop',
+      appPort: 3230,
+      authEndpoint: 'https://app.genfeed.ai/oauth/cli',
+      cdnUrl: 'https://cdn.genfeed.ai',
+      wsEndpoint: 'https://notifications.genfeed.ai',
+    });
+
+    service.setSession({
+      issuedAt: '2026-04-01T09:00:00.000Z',
+      token: 'stale_desktop_key',
+      userEmail: 'desktop@example.com',
+      userId: 'user-123',
+      userName: 'Desktop User',
+    });
+
+    globalThis.fetch = (async () => {
+      return new Response('unauthorized', { status: 401 });
+    }) as typeof fetch;
+
+    await expect(
+      service.handleCallback('genfeedai-desktop://auth?key=rejected_key'),
+    ).resolves.toBeNull();
+    expect(service.getSession()).toBeNull();
+  });
 });

@@ -300,12 +300,24 @@ export default async function proxy(req: NextRequest, event: NextFetchEvent) {
       pathname.startsWith('/sign-up') ||
       pathname.startsWith('/logout') ||
       pathname.startsWith('/onboarding');
+    const resolveDesktopWorkspacePath = async (): Promise<string | null> => {
+      if (!desktopToken) {
+        return null;
+      }
+
+      return await resolveCanonicalProtectedPath(
+        '/workspace/overview',
+        desktopToken,
+      );
+    };
 
     if (pathname === '/') {
-      return redirectPreservingSearch(
-        req,
-        hasDesktopToken ? '/workspace/overview' : '/login',
-      );
+      if (!hasDesktopToken) {
+        return redirectPreservingSearch(req, '/login');
+      }
+
+      const resolvedPath = await resolveDesktopWorkspacePath();
+      return redirectPreservingSearch(req, resolvedPath ?? '/login');
     }
 
     if (pathname === '/logout') {
@@ -315,7 +327,13 @@ export default async function proxy(req: NextRequest, event: NextFetchEvent) {
     }
 
     if (isAuthRoute && hasDesktopToken) {
-      return redirectPreservingSearch(req, '/workspace/overview');
+      const resolvedPath = await resolveDesktopWorkspacePath();
+
+      if (resolvedPath) {
+        return redirectPreservingSearch(req, resolvedPath);
+      }
+
+      return NextResponse.next();
     }
 
     if (!hasDesktopToken && isBareProtectedPath(pathname)) {
@@ -331,6 +349,8 @@ export default async function proxy(req: NextRequest, event: NextFetchEvent) {
       if (resolvedPath) {
         return redirectPreservingSearch(req, resolvedPath);
       }
+
+      return redirectPreservingSearch(req, '/login');
     }
 
     return NextResponse.next();

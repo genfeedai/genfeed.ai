@@ -284,4 +284,73 @@ describe('proxy', () => {
     process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test';
     process.env.CLERK_SECRET_KEY = 'sk_test';
   });
+
+  it('redirects desktop shell root to login when the injected desktop token is stale', async () => {
+    delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+    delete process.env.CLERK_SECRET_KEY;
+    process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
+    fetchMock.mockImplementation(
+      async () => new Response('error', { status: 500 }),
+    );
+
+    const { default: proxy } = await import(
+      `./proxy?desktop-shell-stale-root=${Date.now()}`
+    );
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        headers: {
+          get: vi.fn((name: string) => {
+            return name === 'x-genfeed-desktop-token' ? 'stale_token' : null;
+          }),
+        },
+        nextUrl: { pathname: '/', search: '' },
+        url: 'http://localhost:3000/',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get('location')).toBe(
+      'http://localhost:3000/login',
+    );
+
+    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test';
+    process.env.CLERK_SECRET_KEY = 'sk_test';
+  });
+
+  it('lets desktop shell login render when the injected desktop token is stale', async () => {
+    delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+    delete process.env.CLERK_SECRET_KEY;
+    process.env.NEXT_PUBLIC_DESKTOP_SHELL = '1';
+    fetchMock.mockImplementation(
+      async () => new Response('error', { status: 500 }),
+    );
+
+    const { default: proxy } = await import(
+      `./proxy?desktop-shell-stale-login=${Date.now()}`
+    );
+
+    const response = await proxy(
+      {
+        cookies: { get: vi.fn() },
+        headers: {
+          get: vi.fn((name: string) => {
+            return name === 'x-genfeed-desktop-token' ? 'stale_token' : null;
+          }),
+        },
+        nextUrl: { pathname: '/login', search: '' },
+        url: 'http://localhost:3000/login',
+      } as never,
+      {} as never,
+    );
+
+    expect(response.status).toBe(200);
+
+    delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test';
+    process.env.CLERK_SECRET_KEY = 'sk_test';
+  });
 });

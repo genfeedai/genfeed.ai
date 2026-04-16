@@ -2532,7 +2532,7 @@ export default function WorkspacePageContent({
                 };
               }),
               size: 'sm' as const,
-              variant: 'pills' as const,
+              variant: 'underline' as const,
             },
           }
         : {})}

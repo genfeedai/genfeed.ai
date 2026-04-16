@@ -123,7 +123,13 @@ export class DesktopSessionService {
         return null;
       }
 
-      return await this.resolveSessionFromKey(key);
+      const session = await this.resolveSessionFromKey(key);
+
+      if (!session) {
+        this.clearSession();
+      }
+
+      return session;
     } catch {
       return null;
     }

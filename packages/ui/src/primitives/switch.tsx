@@ -48,7 +48,7 @@ const Switch = forwardRef<
     const switchElement = (
       <SwitchPrimitive.Root
         className={cn(
-          'peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent shadow-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary data-[state=checked]:shadow-primary/30 data-[state=unchecked]:bg-white/20',
+          'peer inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border border-white/15 bg-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:shadow-[0_0_0_1px_rgba(249,115,22,0.18),0_4px_14px_rgba(249,115,22,0.24)] data-[state=unchecked]:hover:border-white/25 data-[state=unchecked]:hover:bg-white/[0.12]',
           switchClassName,
           className,
         )}
@@ -65,7 +65,7 @@ const Switch = forwardRef<
       >
         <SwitchPrimitive.Thumb
           className={cn(
-            'pointer-events-none block h-4 w-4 rounded-full bg-white shadow-lg ring-0 transition-transform duration-200 data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0 data-[state=unchecked]:bg-white/60',
+            'pointer-events-none block h-4 w-4 rounded-full bg-white shadow-[0_1px_3px_rgba(0,0,0,0.55)] ring-0 transition-transform duration-200 data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0 data-[state=unchecked]:bg-white',
           )}
         />
       </SwitchPrimitive.Root>
