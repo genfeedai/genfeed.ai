@@ -76,11 +76,10 @@ import AppLayout from '@ui/layouts/app/AppLayout';
 import SidebarActionTrigger from '@ui/menus/sidebar-action-trigger/SidebarActionTrigger';
 import SidebarBackRow from '@ui/menus/sidebar-back-row/SidebarBackRow';
 import SidebarSearchTrigger from '@ui/menus/sidebar-search-trigger/SidebarSearchTrigger';
-import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 import AdminSidebar from '@ui/shell/menus/AdminSidebar';
 import AppSidebar from '@ui/shell/menus/AppSidebar';
 import AdminTopbar from '@ui/shell/topbars/AdminTopbar';
-import TopbarOrganizationSwitcher from '@ui/topbars/organization-switcher/TopbarOrganizationSwitcher';
+import TopbarWorkspaceSwitcher from '@ui/topbars/workspace-switcher/TopbarWorkspaceSwitcher';
 import { COMPOSE_ROUTES } from '@ui-constants/compose.constant';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -232,11 +231,13 @@ function AppLayoutWithDynamicMenu({
   const isFocusedOnboardingRoute = pathname.startsWith('/chat/onboarding');
   const isComposeRoute = pathname.startsWith(COMPOSE_ROUTES.ROOT);
   const isLibraryLandingRoute = pathname === '/library/ingredients';
+  const isLibraryRoute = pathname.startsWith('/library');
   const isStudioPromptBarRoute =
     pathname === '/studio' ||
     /^\/studio\/(avatar|image|music|video)(?:\/|$)/.test(pathname);
   const isStudioRoute = pathname.startsWith('/studio');
   const isPostsPromptBarRoute = pathname === '/posts';
+  const isPostsRoute = pathname.startsWith('/posts');
   const isMissionControlPromptBarRoute =
     pathname === '/workflows/executions' || pathname === '/orchestration/runs';
   const isPromptBarRoute =
@@ -264,15 +265,19 @@ function AppLayoutWithDynamicMenu({
 
   const currentApp: AppContext = isStudioRoute
     ? 'studio'
-    : isComposeRoute
-      ? 'compose'
-      : isWorkflowsRoute
-        ? 'workflows'
-        : isEditorRoute
-          ? 'editor'
-          : isAnalyticsRoute
-            ? 'analytics'
-            : 'workspace';
+    : isLibraryRoute
+      ? 'library'
+      : isPostsRoute
+        ? 'posts'
+        : isComposeRoute
+          ? 'compose'
+          : isWorkflowsRoute
+            ? 'workflows'
+            : isEditorRoute
+              ? 'editor'
+              : isAnalyticsRoute
+                ? 'analytics'
+                : 'workspace';
 
   const shouldMountAgentPanel = !isEditorCanvasRoute && !isChatRoute;
   const shouldInitAgentApiService = shouldMountAgentPanel || isChatRoute;
@@ -730,6 +735,7 @@ function AppLayoutWithDynamicMenu({
             ? undefined
             : () => (
                 <div className="space-y-2">
+                  <TopbarWorkspaceSwitcher />
                   <div className="space-y-0.5">
                     <SidebarSearchTrigger onClick={handleOpenCommandPalette} />
                     <SidebarActionTrigger
@@ -739,15 +745,6 @@ function AppLayoutWithDynamicMenu({
                       onClick={dispatchOpenTaskComposer}
                       shortcut="⌘⇧N"
                     />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <AppSwitcher
-                      currentApp={currentApp}
-                      orgSlug={orgSlug}
-                      brandSlug={brandSlug}
-                      preservedSearch={taskContextSearchParams.toString()}
-                    />
-                    <TopbarOrganizationSwitcher />
                   </div>
                 </div>
               )
@@ -796,10 +793,7 @@ function AppLayoutWithDynamicMenu({
     studioMenuItems,
     taskContextSearchParams,
     workflowsMenuItems,
-    currentApp,
     handleOpenCommandPalette,
-    orgSlug,
-    brandSlug,
   ]);
 
   const topbarComponent =

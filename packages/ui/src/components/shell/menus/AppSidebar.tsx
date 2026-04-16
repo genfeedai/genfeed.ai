@@ -45,7 +45,7 @@ export default function AppSidebar({
   primaryAction,
   secondaryItems,
   sectionLabel,
-  shellMode = 'default',
+  shellMode: _shellMode = 'default',
   isCollapsed,
   shellChromeVariant,
   onToggleCollapse,
@@ -57,13 +57,13 @@ export default function AppSidebar({
 }: AppSidebarProps) {
   const config = useMemo<MenuShellConfig>(
     () => ({
-      brandRailMode: shellMode === 'workspace' ? 'workspace' : 'hidden',
+      brandRailMode: 'hidden',
       items,
       logoHref,
       primaryAction,
       secondaryItems,
     }),
-    [items, logoHref, primaryAction, secondaryItems, shellMode],
+    [items, logoHref, primaryAction, secondaryItems],
   );
 
   return (

@@ -2,56 +2,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import Database from 'better-sqlite3';
 
-interface ShellWindowLike {
-  focus(): void;
-  isVisible(): boolean;
-  show(): void;
-}
-
-interface ShellShortcut {
-  accelerator: string;
-  callback: (window: ShellWindowLike) => void;
-}
-
-interface ShellTelemetryConfig {
-  appName: string;
-  appVersion: string;
-  sentryDsn?: string;
-  sentryEnvironment?: string;
-  sentryRelease?: string;
-}
-
-interface ShellTelemetryUser {
-  email?: string;
-  id: string;
-  name?: string;
-}
-
-interface ShellTrayMenuItem {
-  click?: () => void;
-  enabled?: boolean;
-  label: string;
-  type?: 'separator';
-}
-
-interface ShellTrayOptions {
-  appName: string;
-  contextMenuItems: ShellTrayMenuItem[];
-  iconPath: string;
-  tooltip: string;
-}
-
-interface ShellMenuItem {
-  accelerator?: string;
-  click: () => void;
-  label: string;
-}
-
-interface ShellMenuOptions {
-  fileItems?: ShellMenuItem[];
-  viewItems?: ShellMenuItem[];
-}
-
 const ensureDataDirectory = (appName: string): string => {
   const baseDir = process.env.GENFEED_DESKTOP_DATA_DIR
     ? path.resolve(process.env.GENFEED_DESKTOP_DATA_DIR)
@@ -120,28 +70,3 @@ export class ShellDatabaseService {
     return this.dbPath;
   }
 }
-
-export class ShellTelemetryService {
-  init(): void {}
-
-  setUser(_user: ShellTelemetryUser | null): void {}
-
-  captureException(_error: unknown, _context?: Record<string, unknown>): void {}
-}
-
-export class ShellTrayService {
-  initialize(_window: ShellWindowLike, _options: ShellTrayOptions): void {}
-
-  destroy(): void {}
-}
-
-export class ShellShortcutsService {
-  register(_window: ShellWindowLike, _shortcuts: ShellShortcut[]): void {}
-
-  unregister(): void {}
-}
-
-export const buildShellMenu = (
-  _window: ShellWindowLike,
-  _options: ShellMenuOptions,
-): void => {};

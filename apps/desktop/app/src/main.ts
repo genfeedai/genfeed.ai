@@ -7,11 +7,6 @@ import type {
 } from '@genfeedai/desktop-contracts';
 import { DESKTOP_IPC_CHANNELS } from '@genfeedai/desktop-contracts';
 import {
-  buildShellMenu,
-  ShellShortcutsService,
-  ShellTrayService,
-} from '@genfeedai/desktop-shell';
-import {
   app,
   BrowserWindow,
   dialog,
@@ -25,9 +20,12 @@ import { CloudDatabaseService } from './main/cloud-database.service';
 import { DesktopConfigService } from './main/config.service';
 import { DesktopDraftsService } from './main/drafts.service';
 import { DesktopFilesService } from './main/files.service';
+import { buildDesktopMenu } from './main/menu.service';
 import { DesktopSessionService } from './main/session.service';
+import { DesktopShortcutsService } from './main/shortcuts.service';
 import { DesktopSyncService } from './main/sync.service';
 import { DesktopTelemetryService } from './main/telemetry.service';
+import { DesktopTrayService } from './main/tray.service';
 import { DesktopWorkspaceService } from './main/workspace.service';
 
 const configService = new DesktopConfigService();
@@ -50,8 +48,8 @@ const appShellService = new DesktopAppShellService(
 
 const telemetryService = new DesktopTelemetryService(environment);
 
-const trayService = new ShellTrayService();
-const shortcutsService = new ShellShortcutsService();
+const trayService = new DesktopTrayService();
+const shortcutsService = new DesktopShortcutsService();
 
 let isQuitting = false;
 const isSmokeTest =
@@ -114,6 +112,33 @@ const createWindow = async (): Promise<void> => {
     mainWindow?.show();
   });
 
+  const isDev = !app.isPackaged;
+
+  if (isDev && !isSmokeTest) {
+    mainWindow.webContents.once('did-finish-load', () => {
+      mainWindow?.webContents.openDevTools({ mode: 'detach' });
+    });
+  }
+
+  mainWindow.webContents.on('before-input-event', (_event, input) => {
+    if (input.type !== 'keyDown') {
+      return;
+    }
+
+    const key = input.key?.toLowerCase();
+    const isMacToggle =
+      process.platform === 'darwin' && input.meta && input.alt && key === 'i';
+    const isWinToggle =
+      process.platform !== 'darwin' &&
+      input.control &&
+      input.shift &&
+      key === 'i';
+
+    if (isMacToggle || isWinToggle) {
+      mainWindow?.webContents.toggleDevTools();
+    }
+  });
+
   mainWindow.webContents.on('did-finish-load', () => {
     if (isSmokeTest) {
       setTimeout(() => app.exit(0), 250);
@@ -174,28 +199,11 @@ const createWindow = async (): Promise<void> => {
     );
   }
 
-  buildShellMenu(mainWindow, {
-    fileItems: [
-      {
-        accelerator: 'CmdOrCtrl+O',
-        click: () => {
-          void workspaceService.openWorkspace().then(() => {
-            emitBootstrap();
-            mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.toggleSidebar);
-          });
-        },
-        label: 'Open Workspace',
-      },
-    ],
-    viewItems: [
-      {
-        accelerator: 'CmdOrCtrl+\\',
-        click: () => {
-          mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.toggleSidebar);
-        },
-        label: 'Toggle Workspace Sidebar',
-      },
-    ],
+  buildDesktopMenu(mainWindow, () => {
+    void workspaceService.openWorkspace().then(() => {
+      emitBootstrap();
+      mainWindow?.webContents.send(DESKTOP_IPC_CHANNELS.toggleSidebar);
+    });
   });
 };
 
@@ -475,48 +483,8 @@ app.whenReady().then(async () => {
   await createWindow();
 
   if (mainWindow) {
-    trayService.initialize(mainWindow, {
-      appName: 'Genfeed Desktop',
-      contextMenuItems: [
-        {
-          click: () => {
-            mainWindow?.show();
-            mainWindow?.focus();
-            emitQuickGenerate();
-          },
-          label: 'Quick Generate',
-        },
-        { label: '', type: 'separator' },
-        {
-          enabled: false,
-          label: 'Sync Status: Idle',
-        },
-      ],
-      iconPath: path.join(__dirname, 'assets', 'tray-icon.png'),
-      tooltip: 'Genfeed Desktop',
-    });
-
-    shortcutsService.register(mainWindow, [
-      {
-        accelerator: 'CommandOrControl+Shift+G',
-        callback: (win) => {
-          if (win.isVisible()) {
-            win.focus();
-          } else {
-            win.show();
-            win.focus();
-          }
-        },
-      },
-      {
-        accelerator: 'CommandOrControl+Shift+N',
-        callback: (win) => {
-          win.show();
-          win.focus();
-          emitQuickGenerate();
-        },
-      },
-    ]);
+    trayService.initialize(mainWindow, emitQuickGenerate);
+    shortcutsService.register(mainWindow, emitQuickGenerate);
   }
 
   const deepLinkArgument = process.argv.find((value: string) =>

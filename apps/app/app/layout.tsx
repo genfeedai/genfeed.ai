@@ -10,6 +10,7 @@ import AppProviders from '@ui/providers/AppProviders';
 import AppHtmlDocument from '@ui/shell/AppHtmlDocument';
 import { createAppMetadata, createPwaMetadata } from '@ui/shell/metadata';
 import type { Metadata, Viewport } from 'next';
+import DesktopDragStrip from '@/components/desktop/DesktopDragStrip';
 import { EditionBadge } from '@/components/edition-badge/EditionBadge';
 
 const { name, description } = metadataHelper;
@@ -26,12 +27,14 @@ export const viewport: Viewport = pwaConfig.viewport;
 
 export default async function RootLayout({ children }: LayoutProps) {
   const initialTheme = await resolveRequestTheme();
+  const isDesktopShell = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
+  const bodyClassName = isDesktopShell ? 'gf-app gf-desktop-shell' : 'gf-app';
 
   return (
     <AppHtmlDocument
       initialTheme={initialTheme}
       fontVariables={fontVariables}
-      bodyClassName="gf-app"
+      bodyClassName={bodyClassName}
     >
       <AppProviders
         initialTheme={initialTheme}
@@ -44,6 +47,7 @@ export default async function RootLayout({ children }: LayoutProps) {
         }}
         googleAnalyticsId={EnvironmentService.GA_ID}
       >
+        <DesktopDragStrip />
         {children}
         <EditionBadge />
       </AppProviders>

@@ -187,3 +187,38 @@ a {
     scroll-behavior: auto !important;
   }
 }
+
+/* Electron desktop shell: allow window drag on top chrome, keep inputs clickable */
+.gf-desktop-shell {
+  header,
+  [data-desktop-drag='true'] {
+    -webkit-app-region: drag;
+    app-region: drag;
+  }
+
+  a,
+  button,
+  input,
+  textarea,
+  select,
+  summary,
+  label,
+  [role='button'],
+  [role='link'],
+  [role='menu'],
+  [role='menuitem'],
+  [role='tab'],
+  [role='switch'],
+  [role='slider'],
+  [role='checkbox'],
+  [role='radio'],
+  [role='combobox'],
+  [role='listbox'],
+  [role='option'],
+  [role='textbox'],
+  [contenteditable='true'],
+  [data-desktop-drag='false'] {
+    -webkit-app-region: no-drag;
+    app-region: no-drag;
+  }
+}

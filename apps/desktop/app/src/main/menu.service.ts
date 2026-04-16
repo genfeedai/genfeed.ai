@@ -1,44 +1,59 @@
 import { DESKTOP_IPC_CHANNELS } from '@genfeedai/desktop-contracts';
-import { type BrowserWindow, Menu } from 'electron';
+import {
+  type BrowserWindow,
+  Menu,
+  type MenuItemConstructorOptions,
+} from 'electron';
+
+const isMac = process.platform === 'darwin';
 
 export const buildDesktopMenu = (
   window: BrowserWindow,
   onOpenWorkspace: () => void,
 ): void => {
-  const menu = Menu.buildFromTemplate([
-    {
-      label: 'File',
-      submenu: [
-        {
-          accelerator: 'CmdOrCtrl+O',
-          click: onOpenWorkspace,
-          label: 'Open Workspace',
-        },
-        { role: 'close' },
-      ],
-    },
-    {
-      label: 'View',
-      submenu: [
-        {
-          accelerator: 'CmdOrCtrl+\\',
-          click: () => {
-            window.webContents.send(DESKTOP_IPC_CHANNELS.toggleSidebar);
-          },
-          label: 'Toggle Workspace Sidebar',
-        },
-        { role: 'reload' },
-        { role: 'forceReload' },
-        { role: 'toggleDevTools' },
-        { type: 'separator' },
-        { role: 'togglefullscreen' },
-      ],
-    },
-    {
-      label: 'Window',
-      submenu: [{ role: 'minimize' }, { role: 'zoom' }],
-    },
-  ]);
+  const fileMenu: MenuItemConstructorOptions = {
+    label: 'File',
+    submenu: [
+      {
+        accelerator: 'CmdOrCtrl+O',
+        click: onOpenWorkspace,
+        label: 'Open Workspace',
+      },
+      { type: 'separator' },
+      isMac ? { role: 'close' } : { role: 'quit' },
+    ],
+  };
 
-  Menu.setApplicationMenu(menu);
+  const viewMenu: MenuItemConstructorOptions = {
+    label: 'View',
+    submenu: [
+      {
+        accelerator: 'CmdOrCtrl+\\',
+        click: () => {
+          window.webContents.send(DESKTOP_IPC_CHANNELS.toggleSidebar);
+        },
+        label: 'Toggle Workspace Sidebar',
+      },
+      { type: 'separator' },
+      { role: 'reload' },
+      { role: 'forceReload' },
+      { role: 'toggleDevTools' },
+      { type: 'separator' },
+      { role: 'resetZoom' },
+      { role: 'zoomIn' },
+      { role: 'zoomOut' },
+      { type: 'separator' },
+      { role: 'togglefullscreen' },
+    ],
+  };
+
+  const template: MenuItemConstructorOptions[] = [
+    ...(isMac ? [{ role: 'appMenu' } as MenuItemConstructorOptions] : []),
+    fileMenu,
+    { role: 'editMenu' },
+    viewMenu,
+    { role: 'windowMenu' },
+  ];
+
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 };
