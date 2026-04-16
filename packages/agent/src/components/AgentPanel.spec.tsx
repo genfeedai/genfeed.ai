@@ -87,10 +87,52 @@ function createCreditsInfoApiService() {
     modelCosts: {},
   });
 
+  const getInstallReadiness = vi.fn().mockResolvedValue({
+    authMode: 'none',
+    billingMode: 'oss_local',
+    localTools: {
+      anyDetected: true,
+      claude: true,
+      codex: true,
+      detected: ['claude', 'codex'],
+    },
+    providers: {
+      anyConfigured: true,
+      configured: ['openai', 'replicate'],
+      fal: false,
+      imageGenerationReady: true,
+      openai: true,
+      replicate: true,
+      textGenerationReady: true,
+    },
+    ui: {
+      showBilling: false,
+      showCloudUpgradeCta: false,
+      showCredits: true,
+      showPricing: false,
+    },
+    workspace: {
+      brandId: null,
+      hasBrand: false,
+      hasOrganization: true,
+      organizationId: 'org-1',
+    },
+  });
+
   return {
     getCreditsInfo,
     getCreditsInfoEffect: vi.fn((...args: Parameters<typeof getCreditsInfo>) =>
       Effect.promise(() => getCreditsInfo(...args)),
+    ),
+    getInstallReadiness,
+    getInstallReadinessEffect: vi.fn(
+      (...args: Parameters<typeof getInstallReadiness>) =>
+        Effect.promise(() => getInstallReadiness(...args)),
+    ),
+    updateThreadEffect: vi.fn(() =>
+      Effect.succeed({
+        id: 'thread-123',
+      }),
     ),
   };
 }
@@ -103,16 +145,26 @@ describe('AgentPanel', () => {
       'data-prompt-layout-mode',
       'surface-fixed',
     );
-    expect(screen.getByText('Agent Rail')).toBeInTheDocument();
+    expect(screen.getByText('Genfeed Terminal')).toBeInTheDocument();
     expect(
       screen.getByLabelText('Open full chat workspace'),
     ).toBeInTheDocument();
   });
 
+  it('shows the terminal runtime picker in local mode', async () => {
+    render(<AgentPanel apiService={createCreditsInfoApiService() as never} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Runtime')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('local')).toBeInTheDocument();
+  });
+
   it('renders outputs as a second rail tab', () => {
     render(<AgentPanel apiService={createCreditsInfoApiService() as never} />);
 
-    expect(screen.getByRole('button', { name: 'Chat' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Terminal' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Outputs' })).toBeInTheDocument();
     expect(screen.getByTestId('agent-outputs-panel')).toBeInTheDocument();
   });

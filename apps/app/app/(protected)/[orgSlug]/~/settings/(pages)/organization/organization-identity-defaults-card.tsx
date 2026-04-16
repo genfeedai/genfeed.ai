@@ -36,7 +36,7 @@ function getVoiceName(voice: Voice): string {
 
 export default function OrganizationIdentityDefaultsCard() {
   const router = useRouter();
-  const { href } = useOrgUrl();
+  const { brandSlug, href, orgHref } = useOrgUrl();
   const notifications = NotificationsService.getInstance();
   const { organizationId } = useBrand();
   const { refresh, settings } = useOrganization();
@@ -57,6 +57,12 @@ export default function OrganizationIdentityDefaultsCard() {
   const [selectedVoiceId, setSelectedVoiceId] = useState('');
   const [selectedAvatarId, setSelectedAvatarId] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const avatarLibraryHref = brandSlug
+    ? href('/library/avatars')
+    : orgHref('/settings/brands');
+  const voiceLibraryHref = brandSlug
+    ? href('/library/voices')
+    : orgHref('/settings/brands');
 
   useEffect(() => {
     setSelectedAvatarId(settings?.defaultAvatarIngredientId ?? '');
@@ -290,20 +296,20 @@ export default function OrganizationIdentityDefaultsCard() {
           </Button>
           <Button
             data-testid="browse-avatar-library"
-            onClick={() => router.push(href('/library/avatars'))}
+            onClick={() => router.push(avatarLibraryHref)}
             type="button"
             variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >
-            Browse Avatar Library
+            {brandSlug ? 'Browse Avatar Library' : 'Select a Brand to Browse Avatars'}
           </Button>
           <Button
-            onClick={() => router.push(href('/library/voices'))}
+            onClick={() => router.push(voiceLibraryHref)}
             type="button"
             variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >
-            Browse Voice Library
+            {brandSlug ? 'Browse Voice Library' : 'Select a Brand to Browse Voices'}
           </Button>
         </div>
       </div>

@@ -50,7 +50,7 @@ describe('AgentPanelShell', () => {
 
   it('renders default title when no title prop', () => {
     render(<AgentPanelShell {...defaultProps} />);
-    expect(screen.getByText('Agent Rail')).toBeInTheDocument();
+    expect(screen.getByText('Genfeed Terminal')).toBeInTheDocument();
   });
 
   it('renders custom title and subtitle', () => {
@@ -110,7 +110,7 @@ describe('AgentPanelShell', () => {
       <AgentPanelShell {...defaultProps} outputsContent={outputsContent} />,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Outputs' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Chat' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Terminal' }));
     expect(screen.getByTestId('chat-content').parentElement).not.toHaveClass(
       'hidden',
     );

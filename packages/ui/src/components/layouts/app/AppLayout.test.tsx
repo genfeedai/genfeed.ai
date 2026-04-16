@@ -28,7 +28,7 @@ describe('AppLayout', () => {
     );
     expect(contentShell).toHaveClass(
       'md:pl-[var(--desktop-sidebar-width)]',
-      'lg:pr-[var(--desktop-agent-width)]',
+      'lg:pb-[var(--desktop-agent-height)]',
     );
     expect(mainContent).not.toHaveClass('overflow-y-auto');
     expect(screen.getByText('Content')).toBeInTheDocument();
@@ -76,7 +76,7 @@ describe('AppLayout', () => {
       'flex',
       'flex-col',
     );
-    expect(agentRail).toHaveClass('fixed', 'inset-y-0', 'right-0');
+    expect(agentRail).toHaveClass('fixed', 'bottom-0', 'left-0', 'right-0');
   });
 
   it('renders a distinct left rail when a menu component is provided', () => {
@@ -110,7 +110,7 @@ describe('AppLayout', () => {
     expect(rail).not.toHaveClass('bg-background/95');
   });
 
-  it('renders agent rail and fixed-width shell when agent panel is provided', () => {
+  it('renders agent dock and fixed-height shell when agent panel is provided', () => {
     render(
       <AppLayout agentPanel={<div>Agent panel</div>} isAgentCollapsed={false}>
         <div>Content</div>
@@ -120,13 +120,14 @@ describe('AppLayout', () => {
     const rail = screen.getByTestId('agent-panel-rail');
     const shell = screen.getByTestId('agent-panel-shell');
 
-    expect(rail).toHaveStyle({ minWidth: '380px', width: '380px' });
-    expect(shell).toHaveStyle({ minWidth: '380px', width: '380px' });
-    expect(shell).toHaveClass('absolute', 'right-0');
-    expect(rail).toHaveClass('fixed', 'inset-y-0', 'right-0');
+    expect(rail).toHaveStyle({ minHeight: '380px', height: '380px' });
+    expect(shell).toHaveStyle({ minHeight: '380px', height: '380px' });
+    expect(shell).toHaveClass('absolute', 'bottom-0', 'inset-x-0');
+    expect(rail).toHaveClass('fixed', 'bottom-0', 'left-0', 'right-0');
+    expect(screen.getByTestId('agent-panel-resize-handle')).toBeInTheDocument();
   });
 
-  it('keeps fixed shell width while collapsed and clips via rail', () => {
+  it('keeps fixed shell height while collapsed and clips via dock rail', () => {
     render(
       <AppLayout agentPanel={<div>Agent panel</div>} isAgentCollapsed>
         <div>Content</div>
@@ -136,11 +137,11 @@ describe('AppLayout', () => {
     const rail = screen.getByTestId('agent-panel-rail');
     const shell = screen.getByTestId('agent-panel-shell');
 
-    expect(rail).toHaveStyle({ minWidth: '48px', width: '48px' });
-    expect(shell).toHaveStyle({ minWidth: '380px', width: '380px' });
-    expect(shell).toHaveClass('absolute', 'right-0');
+    expect(rail).toHaveStyle({ minHeight: '48px', height: '48px' });
+    expect(shell).toHaveStyle({ minHeight: '380px', height: '380px' });
+    expect(shell).toHaveClass('absolute', 'bottom-0', 'inset-x-0');
     expect(rail).toHaveClass('bg-background');
-    expect(rail).toHaveClass('border-l');
+    expect(rail).toHaveClass('border-t');
     expect(rail).not.toHaveClass('bg-background/95');
   });
 
@@ -158,10 +159,10 @@ describe('AppLayout', () => {
     const rail = screen.getByTestId('agent-panel-rail');
 
     expect(rail).toHaveClass('shadow-none');
-    expect(rail).not.toHaveClass('border-l');
+    expect(rail).not.toHaveClass('border-t');
   });
 
-  it('shows the agent rail border in transparent shell mode when expanded', () => {
+  it('shows the agent dock border in transparent shell mode when expanded', () => {
     render(
       <AppLayout
         agentPanel={<div>Agent panel</div>}
@@ -173,7 +174,7 @@ describe('AppLayout', () => {
 
     const rail = screen.getByTestId('agent-panel-rail');
 
-    expect(rail).toHaveClass('bg-transparent', 'shadow-none', 'border-l');
+    expect(rail).toHaveClass('bg-transparent', 'shadow-none', 'border-t');
   });
 
   it('passes agent toggle to topbar when agent rail is mounted', () => {
@@ -216,7 +217,7 @@ describe('AppLayout', () => {
     );
   });
 
-  it('keeps the topbar offset for the collapsed agent rail so the toggle stays visible', () => {
+  it('does not offset the topbar for the collapsed bottom dock', () => {
     const TopbarMock = () => <div data-testid="topbar-mock" />;
 
     render(
@@ -229,11 +230,11 @@ describe('AppLayout', () => {
       </AppLayout>,
     );
 
-    expect(screen.getByTestId('app-topbar-shell')).toHaveClass(
+    expect(screen.getByTestId('app-topbar-shell')).not.toHaveClass(
       'lg:right-[var(--desktop-agent-width)]',
     );
     expect(screen.getByTestId('app-content-shell').parentElement).toHaveStyle({
-      '--desktop-agent-width': '48px',
+      '--desktop-agent-height': '48px',
     });
   });
 

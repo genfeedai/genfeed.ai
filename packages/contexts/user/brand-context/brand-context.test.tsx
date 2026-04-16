@@ -5,11 +5,12 @@ import {
   BrandProvider,
   useBrand,
 } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const useAuthMock = vi.fn();
+const useParamsMock = vi.fn();
 const useUserMock = vi.fn();
 const useAuthedServiceMock = vi.fn();
 const useResourceMock = vi.fn(() => ({
@@ -23,6 +24,10 @@ const useResourceMock = vi.fn(() => ({
 vi.mock('@clerk/nextjs', () => ({
   useAuth: () => useAuthMock(),
   useUser: () => useUserMock(),
+}));
+
+vi.mock('next/navigation', () => ({
+  useParams: () => useParamsMock(),
 }));
 
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
@@ -90,6 +95,7 @@ describe('BrandProvider', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    useParamsMock.mockReturnValue({});
     useAuthMock.mockReturnValue({
       isLoaded: true,
       isSignedIn: true,
@@ -233,5 +239,110 @@ describe('BrandProvider', () => {
         enabled: false,
       }),
     );
+  });
+
+  it('prefers the route organization over stale bootstrap context on org-scoped pages', async () => {
+    useParamsMock.mockReturnValue({
+      orgSlug: 'route-org',
+    });
+
+    const crossOrgBootstrap = {
+      ...initialBootstrap,
+      brandId: 'brand_old',
+      brands: [
+        {
+          id: 'brand_old',
+          label: 'Old Brand',
+          organization: {
+            id: 'org_old',
+            slug: 'old-org',
+          },
+          slug: 'old-brand',
+        },
+        {
+          id: 'brand_route',
+          label: 'Route Brand',
+          organization: {
+            id: 'org_route',
+            slug: 'route-org',
+          },
+          slug: 'route-brand',
+        },
+      ],
+      organizationId: 'org_old',
+    };
+
+    function Consumer() {
+      const { brandId, organizationId } = useBrand();
+
+      return (
+        <div>
+          <span data-testid="brand-id">{brandId}</span>
+          <span data-testid="organization-id">{organizationId}</span>
+        </div>
+      );
+    }
+
+    render(
+      <BrandProvider initialBootstrap={crossOrgBootstrap as never}>
+        <Consumer />
+      </BrandProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('brand-id')).toHaveTextContent('');
+      expect(screen.getByTestId('organization-id')).toHaveTextContent(
+        'org_route',
+      );
+    });
+  });
+
+  it('keeps org-scoped pages in no-brand mode instead of auto-selecting the first brand', async () => {
+    useParamsMock.mockReturnValue({
+      orgSlug: 'route-org',
+    });
+
+    const orgScopedBootstrap = {
+      ...initialBootstrap,
+      brandId: '',
+      brands: [
+        {
+          id: 'brand_route',
+          label: 'Route Brand',
+          organization: {
+            id: 'org_route',
+            slug: 'route-org',
+          },
+          slug: 'route-brand',
+        },
+      ],
+      organizationId: 'org_route',
+    };
+
+    function Consumer() {
+      const { brandId, isReady, organizationId } = useBrand();
+
+      return (
+        <div>
+          <span data-testid="brand-id">{brandId}</span>
+          <span data-testid="organization-id">{organizationId}</span>
+          <span data-testid="is-ready">{String(isReady)}</span>
+        </div>
+      );
+    }
+
+    render(
+      <BrandProvider initialBootstrap={orgScopedBootstrap as never}>
+        <Consumer />
+      </BrandProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('brand-id')).toHaveTextContent('');
+      expect(screen.getByTestId('organization-id')).toHaveTextContent(
+        'org_route',
+      );
+      expect(screen.getByTestId('is-ready')).toHaveTextContent('true');
+    });
   });
 });

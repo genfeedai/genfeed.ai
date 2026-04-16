@@ -412,6 +412,43 @@ describe('AuthBootstrapService', () => {
     );
   });
 
+  it('preserves an intentionally cleared brand selection', async () => {
+    const userId = new Types.ObjectId().toString();
+    const organizationId = new Types.ObjectId().toString();
+    const brandId = new Types.ObjectId().toString();
+
+    brandsService.findForOrganization.mockResolvedValue([
+      {
+        _id: brandId,
+        id: brandId,
+        isDarkroomEnabled: true,
+        label: 'Primary Brand',
+      },
+    ]);
+
+    const result = await service.getBootstrap({
+      context: {
+        brandId: '',
+        isSuperAdmin: false,
+        organizationId,
+        stripeSubscriptionStatus: '',
+        subscriptionTier: '',
+        userId,
+      },
+      user: {
+        id: 'clerk_4',
+        publicMetadata: {
+          brand: '',
+          organization: organizationId,
+          user: userId,
+        },
+      },
+    } as never);
+
+    expect(result.access.brandId).toBe('');
+    expect(result.darkroomCapabilities).toBeNull();
+  });
+
   it('aggregates overview data through the single overview bootstrap path', async () => {
     const organizationId = new Types.ObjectId().toString();
     const brandId = new Types.ObjectId().toString();

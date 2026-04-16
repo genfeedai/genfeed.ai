@@ -57,10 +57,6 @@ vi.mock('@genfeedai/enums', () => ({
   ButtonVariant: { GHOST: 'ghost', UNSTYLED: 'unstyled' },
 }));
 
-vi.mock('../../../primitives/tooltip', () => ({
-  SimpleTooltip: ({ children }: { children: React.ReactNode }) => children,
-}));
-
 vi.mock('@genfeedai/helpers/formatting/cn/cn.util', () => ({
   cn: (...classes: (string | false | undefined | null)[]) =>
     classes.filter(Boolean).join(' '),
@@ -76,9 +72,11 @@ describe('AppSwitcher', () => {
     expect(screen.getAllByText('Workspace').length).toBeGreaterThanOrEqual(1);
   });
 
-  it('renders all 6 app buttons in the grid', () => {
+  it('renders content apps first and platform apps after the divider', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
     for (const label of [
+      'Library',
+      'Posts',
       'Workspace',
       'Studio',
       'Workflows',
@@ -92,10 +90,11 @@ describe('AppSwitcher', () => {
 
   it('marks the active app with aria-current="page"', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="workflows" />);
-    expect(screen.getByRole('button', { name: 'Workflows' })).toHaveAttribute(
-      'aria-current',
-      'page',
-    );
+    const activeButton = screen
+      .getAllByRole('button', { name: 'Workflows' })
+      .find((button) => button.getAttribute('aria-current') === 'page');
+
+    expect(activeButton).toBeDefined();
   });
 
   it('does not set aria-current on inactive app buttons', () => {
@@ -107,9 +106,12 @@ describe('AppSwitcher', () => {
 
   it('active app button carries ring design-token class', () => {
     render(<AppSwitcher orgSlug="acme" currentApp="compose" />);
-    const btn = screen.getByRole('button', { name: 'Compose' });
-    expect(btn.className).toContain('bg-white/10');
-    expect(btn.className).toContain('text-white');
+    const btn = screen
+      .getAllByRole('button', { name: 'Compose' })
+      .find((button) => button.getAttribute('aria-current') === 'page');
+    expect(btn).toBeDefined();
+    expect(btn?.className).toContain('bg-white/10');
+    expect(btn?.className).toContain('text-white');
   });
 
   it('inactive app button does not have active-state classes', () => {
@@ -151,6 +153,34 @@ describe('AppSwitcher', () => {
       render(<AppSwitcher orgSlug="acme" currentApp="workspace" />);
       fireEvent.click(screen.getByRole('button', { name: 'Analytics' }));
       expect(pushSpy).toHaveBeenCalledWith('/acme/~/analytics/overview');
+    });
+
+    it('navigates to brand-scoped library pages when a brand is selected', () => {
+      pushSpy.mockClear();
+      render(
+        <AppSwitcher
+          orgSlug="acme"
+          currentApp="workspace"
+          brandSlug="my-brand"
+        />,
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Library' }));
+      expect(pushSpy).toHaveBeenCalledWith(
+        '/acme/my-brand/library/ingredients',
+      );
+    });
+
+    it('navigates to brand-scoped posts pages when a brand is selected', () => {
+      pushSpy.mockClear();
+      render(
+        <AppSwitcher
+          orgSlug="acme"
+          currentApp="workspace"
+          brandSlug="my-brand"
+        />,
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Posts' }));
+      expect(pushSpy).toHaveBeenCalledWith('/acme/my-brand/posts');
     });
 
     it('preserves task context search params when switching apps', () => {

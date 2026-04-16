@@ -316,6 +316,8 @@ export interface AgentThread {
   id: string;
   isPinned?: boolean;
   planModeEnabled?: boolean;
+  requestedModel?: string;
+  runtimeKey?: string;
   title?: string;
   systemPrompt?: string;
   platform?: string;

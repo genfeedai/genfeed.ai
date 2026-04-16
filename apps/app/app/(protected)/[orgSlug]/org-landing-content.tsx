@@ -64,18 +64,19 @@ function BrandCard({ brand, orgSlug }: { brand: Brand; orgSlug: string }) {
 
 export default function OrgLandingContent() {
   const { brands, isReady } = useBrand();
-  const { orgSlug, href } = useOrgUrl();
+  const { orgSlug, orgHref } = useOrgUrl();
   const router = useRouter();
+  const primaryBrandSlug = brands[0]?.slug ?? '';
 
   useEffect(() => {
     if (!isReady) {
       return;
     }
 
-    if (brands.length <= 1 && brands[0]?.slug) {
-      router.replace(href('/workspace/overview'));
+    if (brands.length <= 1 && primaryBrandSlug) {
+      router.replace(`/${orgSlug}/${primaryBrandSlug}/workspace/overview`);
     }
-  }, [brands, href, isReady, router]);
+  }, [brands.length, isReady, orgSlug, primaryBrandSlug, router]);
 
   if (!isReady || brands.length <= 1) {
     return (
@@ -99,7 +100,7 @@ export default function OrgLandingContent() {
           </p>
         </div>
         <Link
-          href={href('/settings/brands')}
+          href={orgHref('/settings/brands')}
           className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3.5 py-2 text-sm font-medium text-white/70 transition hover:border-white/15 hover:bg-white/[0.06] hover:text-white"
         >
           <HiPlus className="h-4 w-4" />

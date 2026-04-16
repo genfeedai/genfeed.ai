@@ -10,6 +10,7 @@ import { Button } from '@ui/primitives/button';
 import {
   type CSSProperties,
   cloneElement,
+  type MouseEvent as ReactMouseEvent,
   type ReactElement,
   type ReactNode,
   useCallback,
@@ -20,11 +21,14 @@ import {
 
 const SIDEBAR_WIDTH = 240;
 const SIDEBAR_COLLAPSED_WIDTH = 48;
-const AGENT_PANEL_WIDTH = 380;
-const AGENT_COLLAPSED_WIDTH = 48;
+const AGENT_PANEL_HEIGHT = 380;
+const AGENT_COLLAPSED_HEIGHT = 48;
 const SIDEBAR_TRANSITION_DURATION_MS = 300;
 const SIDEBAR_TRANSITION_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)';
 const SIDEBAR_COLLAPSED_STORAGE_PREFIX = 'genfeed:sidebar:collapsed';
+const AGENT_PANEL_HEIGHT_STORAGE_KEY = 'genfeed:agent-panel:height';
+const AGENT_PANEL_MIN_HEIGHT = 240;
+const AGENT_PANEL_MAX_HEIGHT = 720;
 
 function getSidebarCollapsedStorageKey(): string {
   if (typeof window === 'undefined') {
@@ -67,6 +71,57 @@ function persistSidebarCollapsed(nextValue: boolean): void {
     );
   } catch {
     // Ignore storage write failures (private mode, quota, etc.)
+  }
+}
+
+function readPersistedAgentPanelHeight(): number | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const stored = window.localStorage.getItem(AGENT_PANEL_HEIGHT_STORAGE_KEY);
+    if (!stored) {
+      return null;
+    }
+
+    const parsed = Number.parseInt(stored, 10);
+    if (Number.isNaN(parsed)) {
+      return null;
+    }
+
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function clampAgentPanelHeight(nextHeight: number): number {
+  if (typeof window === 'undefined') {
+    return Math.min(
+      AGENT_PANEL_MAX_HEIGHT,
+      Math.max(AGENT_PANEL_MIN_HEIGHT, nextHeight),
+    );
+  }
+
+  return Math.min(
+    Math.min(AGENT_PANEL_MAX_HEIGHT, Math.floor(window.innerHeight * 0.7)),
+    Math.max(AGENT_PANEL_MIN_HEIGHT, nextHeight),
+  );
+}
+
+function persistAgentPanelHeight(nextHeight: number): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(
+      AGENT_PANEL_HEIGHT_STORAGE_KEY,
+      String(nextHeight),
+    );
+  } catch {
+    // Ignore storage write failures.
   }
 }
 
@@ -131,6 +186,8 @@ export default function AppLayout({
   const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
   const [isSidebarPreferenceLoaded, setIsSidebarPreferenceLoaded] =
     useState(false);
+  const [agentPanelHeight, setAgentPanelHeight] =
+    useState<number>(AGENT_PANEL_HEIGHT);
 
   const handleCloseSidebar = useCallback(() => {
     setIsSidebarOpen(false);
@@ -159,6 +216,15 @@ export default function AppLayout({
 
     persistSidebarCollapsed(isDesktopCollapsed);
   }, [isDesktopCollapsed, isSidebarPreferenceLoaded]);
+
+  useEffect(() => {
+    const persistedHeight = readPersistedAgentPanelHeight();
+    if (persistedHeight === null) {
+      return;
+    }
+
+    setAgentPanelHeight(clampAgentPanelHeight(persistedHeight));
+  }, []);
 
   // Cmd+B toggles sidebar
   useEffect(() => {
@@ -300,15 +366,46 @@ export default function AppLayout({
       ? desktopSidebarCollapsedWidth
       : desktopSidebarExpandedWidth
     : 0;
-  const desktopAgentWidth = agentPanel
+  const desktopAgentHeight = agentPanel
     ? isAgentCollapsed
-      ? AGENT_COLLAPSED_WIDTH
-      : AGENT_PANEL_WIDTH
+      ? AGENT_COLLAPSED_HEIGHT
+      : agentPanelHeight
     : 0;
   const layoutStyle = {
-    '--desktop-agent-width': `${desktopAgentWidth}px`,
+    '--desktop-agent-height': `${desktopAgentHeight}px`,
     '--desktop-sidebar-width': `${desktopSidebarWidth}px`,
   } as CSSProperties;
+
+  const handleAgentPanelResizeStart = useCallback(
+    (event: ReactMouseEvent<HTMLDivElement>) => {
+      if (isAgentCollapsed) {
+        return;
+      }
+
+      event.preventDefault();
+
+      const startY = event.clientY;
+      const startHeight = agentPanelHeight;
+      let nextHeight = startHeight;
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        const delta = startY - moveEvent.clientY;
+        nextHeight = clampAgentPanelHeight(startHeight + delta);
+        setAgentPanelHeight(nextHeight);
+      };
+
+      const handleMouseUp = () => {
+        setAgentPanelHeight(nextHeight);
+        persistAgentPanelHeight(nextHeight);
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    },
+    [agentPanelHeight, isAgentCollapsed],
+  );
 
   const layoutContent = (
     <SidebarNavigationProvider items={menuItems}>
@@ -363,13 +460,13 @@ export default function AppLayout({
 
         <section
           data-testid="app-content-shell"
-          className="relative min-h-screen bg-background md:pl-[var(--desktop-sidebar-width)] lg:pr-[var(--desktop-agent-width)]"
+          className="relative min-h-screen bg-background md:pl-[var(--desktop-sidebar-width)] lg:pb-[var(--desktop-agent-height)]"
         >
           {topbarContent ? (
             <div
               data-testid="app-topbar-shell"
               className={cn(
-                'fixed top-0 right-0 left-0 z-50 h-16 md:left-[var(--desktop-sidebar-width)] lg:right-[var(--desktop-agent-width)]',
+                'fixed top-0 right-0 left-0 z-50 h-16 md:left-[var(--desktop-sidebar-width)]',
                 shouldRenderTopbarChrome &&
                   'border-b border-white/[0.08] bg-background/80 backdrop-blur-xl',
               )}
@@ -392,38 +489,46 @@ export default function AppLayout({
           </main>
         </section>
 
-        {/* Agent panel (right side) — animated via topbar toggle or Cmd+L */}
+        {/* Agent panel bottom dock — animated via topbar toggle or Cmd+L */}
         {agentPanel && (
           <aside
             data-testid="agent-panel-rail"
             className={cn(
-              'fixed inset-y-0 right-0 z-20 hidden flex-col overflow-hidden lg:flex',
+              'fixed right-0 bottom-0 left-0 z-20 hidden overflow-hidden lg:flex',
               shellChromeVariant === 'transparent'
                 ? !isAgentCollapsed &&
-                    'border-l border-white/[0.08] bg-transparent shadow-none'
-                : 'border-l border-white/[0.08]',
+                    'border-t border-white/[0.08] bg-transparent shadow-none'
+                : 'border-t border-white/[0.08]',
               shellChromeVariant === 'transparent'
                 ? 'shadow-none'
                 : isAgentCollapsed
                   ? 'bg-background'
                   : 'bg-background/95',
+              menuComponent && 'md:left-[var(--desktop-sidebar-width)]',
             )}
             style={{
-              minWidth: isAgentCollapsed
-                ? AGENT_COLLAPSED_WIDTH
-                : AGENT_PANEL_WIDTH,
-              transition: `width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-width ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
-              width: isAgentCollapsed
-                ? AGENT_COLLAPSED_WIDTH
-                : AGENT_PANEL_WIDTH,
+              height: isAgentCollapsed
+                ? AGENT_COLLAPSED_HEIGHT
+                : agentPanelHeight,
+              minHeight: isAgentCollapsed
+                ? AGENT_COLLAPSED_HEIGHT
+                : agentPanelHeight,
+              transition: `height ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}, min-height ${SIDEBAR_TRANSITION_DURATION_MS}ms ${SIDEBAR_TRANSITION_EASING}`,
             }}
           >
+            {!isAgentCollapsed ? (
+              <div
+                data-testid="agent-panel-resize-handle"
+                className="absolute top-0 left-0 right-0 z-10 h-2 cursor-row-resize border-t border-white/[0.08] bg-white/[0.02]"
+                onMouseDown={handleAgentPanelResizeStart}
+              />
+            ) : null}
             <div
               data-testid="agent-panel-shell"
-              className="absolute inset-y-0 right-0 flex flex-col"
+              className="absolute inset-x-0 bottom-0 flex flex-col"
               style={{
-                minWidth: AGENT_PANEL_WIDTH,
-                width: AGENT_PANEL_WIDTH,
+                height: agentPanelHeight,
+                minHeight: agentPanelHeight,
               }}
             >
               {agentPanel}

@@ -509,4 +509,25 @@ Respond ONLY with the JSON object, no markdown fences or extra text.`;
 
     return updatedBrand;
   }
+
+  async clearBrandSelectionForUser(
+    userId: string,
+    organizationId: string,
+  ): Promise<void> {
+    this.logger.debug('Clearing selected brand for user', {
+      operation: 'clearBrandSelectionForUser',
+      organizationId,
+      service: this.constructorName,
+      userId,
+    });
+
+    await this.model.updateMany(
+      {
+        isDeleted: false,
+        organization: organizationId,
+        user: userId,
+      } as Record<string, unknown>,
+      { $set: { isSelected: false } },
+    );
+  }
 }

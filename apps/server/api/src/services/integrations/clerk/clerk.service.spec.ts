@@ -365,6 +365,17 @@ describe('ClerkService', () => {
       );
     });
 
+    it('removes public metadata fields when they are explicitly unset', async () => {
+      await service.updateUserPublicMetadata(mockUserId, { brand: undefined });
+
+      expect(mockClerkClient.users.updateUserMetadata).toHaveBeenCalledWith(
+        mockUserId,
+        {
+          publicMetadata: expect.not.objectContaining({ brand: expect.anything() }),
+        },
+      );
+    });
+
     it('should handle metadata update errors', async () => {
       mockClerkClient.users.updateUserMetadata.mockRejectedValue(
         testErrors.unauthorized,

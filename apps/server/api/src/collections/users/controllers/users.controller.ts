@@ -50,7 +50,10 @@ import { LoggerService } from '@libs/logger/logger.service';
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -420,6 +423,27 @@ export class UsersController {
     );
 
     return serializeSingle(request, BrandSerializer, data);
+  }
+
+  @Delete('me/brand-selection')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @LogMethod({ logEnd: false, logError: true, logStart: true })
+  async clearBrandSelection(@CurrentUser() user: User): Promise<void> {
+    const publicMetadata = getPublicMetadata(user);
+
+    await this.brandsService.clearBrandSelectionForUser(
+      publicMetadata.user,
+      publicMetadata.organization,
+    );
+
+    await this.clerkService.updateUserPublicMetadata(user.id, {
+      brand: undefined,
+    });
+
+    await Promise.all([
+      this.requestContextCacheService.invalidateForUser(user.id),
+      this.accessBootstrapCacheService.invalidateForUser(user.id),
+    ]);
   }
 
   @Post('me/avatar')

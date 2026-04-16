@@ -49,17 +49,19 @@ export function useOrgUrl(): OrgUrlContext {
 
   const orgSlug =
     params.orgSlug ?? getBrandOrganizationSlug(selectedBrand) ?? '';
-  // On org-level pages (/:orgSlug/~/...) brandSlug is absent from params.
-  // Fall back to the active brand slug from context so href() still works.
   const brandSlug = params.brandSlug ?? selectedBrand?.slug ?? '';
 
   const normalizePath = (path: string) =>
     path.startsWith('/') ? path : `/${path}`;
+  const orgHref = (path: string) => `/${orgSlug}/~${normalizePath(path)}`;
 
   return {
     brandSlug,
-    href: (path: string) => `/${orgSlug}/${brandSlug}${normalizePath(path)}`,
-    orgHref: (path: string) => `/${orgSlug}/~${normalizePath(path)}`,
+    href: (path: string) =>
+      brandSlug
+        ? `/${orgSlug}/${brandSlug}${normalizePath(path)}`
+        : orgHref(path),
+    orgHref,
     orgSlug,
   };
 }

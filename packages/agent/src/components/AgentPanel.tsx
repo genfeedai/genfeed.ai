@@ -1,8 +1,17 @@
 import { AgentChatContainer } from '@genfeedai/agent/components/AgentChatContainer';
 import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
-import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
+import { AgentTerminalHeader } from '@genfeedai/agent/components/AgentTerminalHeader';
+import type { AgentRuntimeOption } from '@genfeedai/agent/models/agent-runtime.model';
+import type {
+  AgentApiService,
+  AgentInstallReadiness,
+} from '@genfeedai/agent/services/agent-api.service';
 import { runAgentApiEffect } from '@genfeedai/agent/services/agent-base-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import {
+  buildAgentRuntimeCatalog,
+  resolveThreadRuntimeOption,
+} from '@genfeedai/agent/utils/agent-runtime-options.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { AgentPanelShell } from '@ui/agent-panel';
 import { useRouter } from 'next/navigation';
@@ -61,11 +70,46 @@ export function AgentPanel({
   const isOpen = useAgentChatStore((s) => s.isOpen);
   const toggleOpen = useAgentChatStore((s) => s.toggleOpen);
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
+  const threads = useAgentChatStore((s) => s.threads);
+  const updateThread = useAgentChatStore((s) => s.updateThread);
 
   const setCreditsRemaining = useAgentChatStore((s) => s.setCreditsRemaining);
   const setModelCosts = useAgentChatStore((s) => s.setModelCosts);
   const messages = useAgentChatStore((s) => s.messages);
   const pageContext = useAgentChatStore((s) => s.pageContext);
+  const [hostname, setHostname] = useState<string | null>(null);
+  const [installReadiness, setInstallReadiness] =
+    useState<AgentInstallReadiness | null>(null);
+  const [draftRuntime, setDraftRuntime] = useState<AgentRuntimeOption | null>(
+    null,
+  );
+
+  const activeThread = useMemo(
+    () => threads.find((thread) => thread.id === activeThreadId) ?? null,
+    [activeThreadId, threads],
+  );
+
+  const runtimeCatalog = useMemo(
+    () =>
+      buildAgentRuntimeCatalog({
+        hostname,
+        readiness: installReadiness,
+      }),
+    [hostname, installReadiness],
+  );
+
+  const selectedRuntime = useMemo(() => {
+    if (!activeThreadId && draftRuntime) {
+      return draftRuntime;
+    }
+
+    return resolveThreadRuntimeOption({
+      catalog: runtimeCatalog,
+      thread: activeThread,
+    });
+  }, [activeThread, activeThreadId, draftRuntime, runtimeCatalog]);
+
+  const threadLabel = activeThread?.title || activeThreadId || 'new-session';
 
   // Fetch credits info on mount
   useEffect(() => {
@@ -91,6 +135,72 @@ export function AgentPanel({
     return () => controller.abort();
   }, [apiService, isActive, setCreditsRemaining, setModelCosts]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    setHostname(window.location.hostname);
+  }, []);
+
+  useEffect(() => {
+    if (!hostname || !isActive) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    runAgentApiEffect(apiService.getInstallReadinessEffect(controller.signal))
+      .then((readiness) => {
+        setInstallReadiness(readiness);
+      })
+      .catch(() => {
+        setInstallReadiness(null);
+      });
+
+    return () => controller.abort();
+  }, [apiService, hostname, isActive]);
+
+  useEffect(() => {
+    if (!activeThreadId || !draftRuntime) {
+      return;
+    }
+
+    const currentThread = threads.find(
+      (thread) => thread.id === activeThreadId,
+    );
+    if (
+      currentThread?.runtimeKey === draftRuntime.key &&
+      (currentThread?.requestedModel || '') === draftRuntime.requestedModel
+    ) {
+      setDraftRuntime(null);
+      return;
+    }
+
+    updateThread(activeThreadId, {
+      requestedModel: draftRuntime.requestedModel || undefined,
+      runtimeKey: draftRuntime.key || undefined,
+    });
+
+    const controller = new AbortController();
+    runAgentApiEffect(
+      apiService.updateThreadEffect(
+        activeThreadId,
+        {
+          requestedModel: draftRuntime.requestedModel || undefined,
+          runtimeKey: draftRuntime.key || undefined,
+        },
+        controller.signal,
+      ),
+    )
+      .then(() => {
+        setDraftRuntime(null);
+      })
+      .catch(() => undefined);
+
+    return () => controller.abort();
+  }, [activeThreadId, apiService, draftRuntime, threads, updateThread]);
+
   const handleExpand = useCallback(() => {
     router.push(href(activeThreadId ? `/chat/${activeThreadId}` : '/chat/new'));
   }, [activeThreadId, router, href]);
@@ -107,6 +217,33 @@ export function AgentPanel({
       }
     }
   }, []);
+
+  const handleRuntimeChange = useCallback(
+    (runtime: AgentRuntimeOption) => {
+      if (!activeThreadId) {
+        setDraftRuntime(runtime);
+        return;
+      }
+
+      updateThread(activeThreadId, {
+        requestedModel: runtime.requestedModel || undefined,
+        runtimeKey: runtime.key || undefined,
+      });
+
+      const controller = new AbortController();
+      void runAgentApiEffect(
+        apiService.updateThreadEffect(
+          activeThreadId,
+          {
+            requestedModel: runtime.requestedModel || undefined,
+            runtimeKey: runtime.key || undefined,
+          },
+          controller.signal,
+        ),
+      ).catch(() => undefined);
+    },
+    [activeThreadId, apiService, updateThread],
+  );
 
   // Resolve suggested actions from page context or use defaults
   const suggestedActions = useMemo(() => {
@@ -139,6 +276,7 @@ export function AgentPanel({
     <AgentChatContainer
       apiService={apiService}
       isStreaming
+      model={selectedRuntime.requestedModel}
       emptyStateTitle="Quick ask"
       emptyStateDescription="Ask for help with the page you are on, then open the full chat workspace when you need the complete thread."
       placeholder={placeholder}
@@ -166,6 +304,15 @@ export function AgentPanel({
       onExpand={handleExpand}
       onTabChange={handleTabChange}
       defaultTab={defaultTab}
+      headerContent={
+        <AgentTerminalHeader
+          catalog={runtimeCatalog}
+          selectedRuntime={selectedRuntime}
+          threadLabel={threadLabel}
+          onRuntimeChange={handleRuntimeChange}
+        />
+      }
+      subtitle="Sidebar terminal with local CLI and hosted runtime routing"
       chatContent={chatContent}
       outputsContent={outputsContent}
     />

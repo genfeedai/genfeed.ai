@@ -1,22 +1,30 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/enums';
+import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TopbarProps } from '@props/navigation/topbar.props';
 import { Button } from '@ui/primitives/button';
+import { AppSwitcher } from '@ui/shell/app-switcher/AppSwitcher';
 import TopbarBreadcrumbs from '@ui/topbars/breadcrumbs/TopbarBreadcrumbs';
 import TopbarEnd from '@ui/topbars/end/TopbarEnd';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { HiBars3, HiXMark } from 'react-icons/hi2';
+import {
+  HiBars3,
+  HiOutlineCommandLine,
+  HiXMark,
+} from 'react-icons/hi2';
 import { appendSearchParamsToHref } from '@/lib/navigation/operator-shell';
 
 export default function AppProtectedTopbar({
   isMenuOpen,
   onMenuToggle,
-  currentApp: _currentApp,
-  orgSlug: _orgSlug,
-  brandSlug: _brandSlug,
+  currentApp,
+  orgSlug,
+  brandSlug,
+  isAgentCollapsed,
+  onAgentToggle,
 }: TopbarProps = {}) {
   const searchParams = useSearchParams();
   const { href } = useOrgUrl();
@@ -76,6 +84,32 @@ export default function AppProtectedTopbar({
                 </Link>
               ) : null}
             </div>
+          ) : null}
+
+          {currentApp && orgSlug ? (
+            <AppSwitcher
+              currentApp={currentApp}
+              orgSlug={orgSlug}
+              brandSlug={brandSlug}
+              preservedSearch={searchParams?.toString()}
+            />
+          ) : null}
+
+          {onAgentToggle ? (
+            <Button
+              type="button"
+              variant={ButtonVariant.UNSTYLED}
+              className={cn(
+                'inline-flex h-9 w-9 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.03] transition-colors hover:bg-white/[0.06]',
+                isAgentCollapsed ? 'text-white/70' : 'bg-white/[0.08] text-white',
+              )}
+              ariaLabel={
+                isAgentCollapsed ? 'Open terminal dock' : 'Close terminal dock'
+              }
+              onClick={onAgentToggle}
+            >
+              <HiOutlineCommandLine className="h-4 w-4" />
+            </Button>
           ) : null}
 
           <TopbarEnd />

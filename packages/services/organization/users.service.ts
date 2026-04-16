@@ -58,6 +58,10 @@ export class UsersService extends BaseService<User> {
       .then((res) => new Brand(this.extractResource<Partial<IBrand>>(res)));
   }
 
+  public async deleteMeBrandSelection(): Promise<void> {
+    await this.instance.delete('me/brand-selection');
+  }
+
   public async patchSettings(
     id: string,
     settings: Partial<ISetting>,

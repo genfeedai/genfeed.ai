@@ -23,7 +23,7 @@ function getBrandOrganizationSlug(
 }
 
 export default function ProtectedRootResolver() {
-  const { brandId, organizationId, selectedBrand } = useBrand();
+  const { brandId, brands, organizationId, selectedBrand } = useBrand();
   const { accessState, isLoading: isAccessStateLoading } = useAccessState();
   const hasStartedRef = useRef(false);
   const [statusMessage, setStatusMessage] = useState(
@@ -37,17 +37,15 @@ export default function ProtectedRootResolver() {
 
     hasStartedRef.current = true;
 
-    const hasExistingWorkspace =
-      (typeof organizationId === 'string' &&
-        organizationId.length > 0 &&
-        typeof brandId === 'string' &&
-        brandId.length > 0) ||
+    const hasOrganization =
+      (typeof organizationId === 'string' && organizationId.length > 0) ||
       (typeof accessState?.organizationId === 'string' &&
-        accessState.organizationId.length > 0 &&
-        typeof accessState?.brandId === 'string' &&
-        accessState.brandId.length > 0);
+        accessState.organizationId.length > 0);
+    const hasSelectedBrand =
+      (typeof brandId === 'string' && brandId.length > 0) ||
+      (typeof accessState?.brandId === 'string' && accessState.brandId.length > 0);
 
-    if (hasExistingWorkspace) {
+    if (hasOrganization && hasSelectedBrand) {
       const orgSlug = getBrandOrganizationSlug(selectedBrand);
       const brandSlug = selectedBrand?.slug;
 
@@ -58,15 +56,17 @@ export default function ProtectedRootResolver() {
       }
     }
 
+    const fallbackOrgSlug = getBrandOrganizationSlug(brands[0]);
+
+    if (hasOrganization && fallbackOrgSlug) {
+      setStatusMessage('Opening organization...');
+      window.location.replace(`/${fallbackOrgSlug}/~`);
+      return;
+    }
+
     setStatusMessage('Opening onboarding...');
     window.location.replace('/onboarding');
-  }, [
-    accessState,
-    brandId,
-    isAccessStateLoading,
-    organizationId,
-    selectedBrand,
-  ]);
+  }, [accessState, brandId, brands, isAccessStateLoading, organizationId, selectedBrand]);
 
   return <PageLoadingState className="bg-black" message={statusMessage} />;
 }

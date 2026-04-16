@@ -7,8 +7,11 @@ import type { AppSwitcherProps } from '@genfeedai/props/ui/app-switcher.props';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import {
+  HiChevronDown,
   HiOutlineChartBarSquare,
   HiOutlineCog6Tooth,
+  HiOutlineDocumentText,
+  HiOutlineFolder,
   HiOutlinePencilSquare,
   HiOutlineRectangleGroup,
   HiOutlineSparkles,
@@ -20,9 +23,25 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '../../../primitives/popover';
-import { SimpleTooltip } from '../../../primitives/tooltip';
 
-const APPS: AppSwitcherItemConfig[] = [
+const CONTENT_APPS: AppSwitcherItemConfig[] = [
+  {
+    icon: HiOutlineFolder,
+    id: 'library',
+    label: 'Library',
+    route: (org, brand) =>
+      brand ? `/${org}/${brand}/library/ingredients` : `/${org}/~/overview`,
+  },
+  {
+    icon: HiOutlineDocumentText,
+    id: 'posts',
+    label: 'Posts',
+    route: (org, brand) =>
+      brand ? `/${org}/${brand}/posts` : `/${org}/~/overview`,
+  },
+];
+
+const PLATFORM_APPS: AppSwitcherItemConfig[] = [
   {
     icon: HiOutlineSquares2X2,
     id: 'workspace',
@@ -62,6 +81,13 @@ const APPS: AppSwitcherItemConfig[] = [
   },
 ];
 
+const APP_SECTIONS = [
+  { items: CONTENT_APPS, key: 'content' },
+  { items: PLATFORM_APPS, key: 'platform' },
+] as const;
+
+const ALL_APPS = [...CONTENT_APPS, ...PLATFORM_APPS];
+
 function withPreservedSearch(path: string, preservedSearch?: string): string {
   if (!preservedSearch) {
     return path;
@@ -79,8 +105,6 @@ function withPreservedSearch(path: string, preservedSearch?: string): string {
   const mergedSearchParams = new URLSearchParams(existingSearch);
   const preservedSearchParams = new URLSearchParams(normalizedSearch);
 
-  // Keep operator-task context when switching apps so task-scoped flows do not
-  // lose their origin on navigation.
   for (const [key, value] of preservedSearchParams.entries()) {
     mergedSearchParams.set(key, value);
   }
@@ -99,7 +123,7 @@ export function AppSwitcher({
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
 
-  const activeApp = APPS.find((app) => app.id === currentApp);
+  const activeApp = ALL_APPS.find((app) => app.id === currentApp);
 
   function handleAppSelect(app: AppSwitcherItemConfig) {
     router.push(
@@ -110,57 +134,71 @@ export function AppSwitcher({
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <SimpleTooltip
-        label={activeApp?.label ?? currentApp}
-        position="right"
-        isDisabled={isOpen}
-      >
-        <PopoverTrigger asChild>
-          <Button
-            ariaLabel={`Current app: ${activeApp?.label ?? currentApp}. Click to switch apps.`}
-            size={ButtonSize.ICON}
-            variant={ButtonVariant.GHOST}
-            withWrapper={false}
-          >
-            {activeApp && <activeApp.icon className="h-4 w-4" />}
-          </Button>
-        </PopoverTrigger>
-      </SimpleTooltip>
+      <PopoverTrigger asChild>
+        <Button
+          ariaLabel={`Current app: ${activeApp?.label ?? currentApp}. Click to switch apps.`}
+          size={ButtonSize.SM}
+          variant={ButtonVariant.GHOST}
+          withWrapper={false}
+          className="inline-flex h-9 items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.03] px-3 text-sm font-medium text-white/85 hover:bg-white/[0.06]"
+        >
+          {activeApp ? (
+            <activeApp.icon className="h-4 w-4 text-white/55" />
+          ) : null}
+          <span>{activeApp?.label ?? currentApp}</span>
+          <HiChevronDown
+            className={cn(
+              'h-3.5 w-3.5 text-white/40 transition-transform duration-200',
+              isOpen && 'rotate-180',
+            )}
+          />
+        </Button>
+      </PopoverTrigger>
       <PopoverContent
         align="start"
-        className="w-48 p-1"
-        side="right"
+        className="w-56 p-1.5"
+        side="bottom"
         sideOffset={8}
       >
-        <nav className="flex flex-col gap-0.5">
-          {APPS.map((app) => {
-            const isActive = app.id === currentApp;
-            const Icon = app.icon;
-            return (
-              <Button
-                key={app.id}
-                variant={ButtonVariant.UNSTYLED}
-                withWrapper={false}
-                size={ButtonSize.SM}
-                aria-current={isActive ? 'page' : undefined}
-                className={cn(
-                  'flex items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors',
-                  isActive
-                    ? 'bg-white/10 text-white'
-                    : 'text-white/50 hover:bg-white/5 hover:text-white/80',
-                )}
-                onClick={() => handleAppSelect(app)}
-              >
-                <Icon
-                  className={cn(
-                    'h-4 w-4 shrink-0',
-                    isActive ? 'text-white' : 'text-white/40',
-                  )}
-                />
-                <span>{app.label}</span>
-              </Button>
-            );
-          })}
+        <nav className="flex flex-col gap-1">
+          {APP_SECTIONS.map((section, sectionIndex) => (
+            <div
+              key={section.key}
+              className={cn(
+                sectionIndex > 0 && 'border-t border-white/[0.08] pt-1.5',
+              )}
+            >
+              {section.items.map((app) => {
+                const isActive = app.id === currentApp;
+                const Icon = app.icon;
+
+                return (
+                  <Button
+                    key={app.id}
+                    variant={ButtonVariant.UNSTYLED}
+                    withWrapper={false}
+                    size={ButtonSize.SM}
+                    aria-current={isActive ? 'page' : undefined}
+                    className={cn(
+                      'flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors',
+                      isActive
+                        ? 'bg-white/10 text-white'
+                        : 'text-white/60 hover:bg-white/[0.05] hover:text-white/85',
+                    )}
+                    onClick={() => handleAppSelect(app)}
+                  >
+                    <Icon
+                      className={cn(
+                        'h-4 w-4 shrink-0',
+                        isActive ? 'text-white' : 'text-white/40',
+                      )}
+                    />
+                    <span>{app.label}</span>
+                  </Button>
+                );
+              })}
+            </div>
+          ))}
         </nav>
       </PopoverContent>
     </Popover>

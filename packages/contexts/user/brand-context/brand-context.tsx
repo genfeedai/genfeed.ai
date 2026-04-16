@@ -17,6 +17,7 @@ import {
   getClerkPublicData,
   getPlaywrightAuthState,
 } from '@helpers/auth/clerk.helper';
+import { useParams } from 'next/navigation';
 import {
   createContext,
   type PropsWithChildren,
@@ -61,10 +62,41 @@ interface BrandProviderProps extends PropsWithChildren<LayoutProps> {
   initialBootstrap?: ProtectedBootstrapData | null;
 }
 
+function getBrandOrganizationId(brand: IBrand | null | undefined): string {
+  const organization = brand?.organization;
+
+  if (
+    organization &&
+    typeof organization === 'object' &&
+    'id' in organization &&
+    typeof organization.id === 'string'
+  ) {
+    return organization.id;
+  }
+
+  return '';
+}
+
+function getBrandOrganizationSlug(brand: IBrand | null | undefined): string {
+  const organization = brand?.organization;
+
+  if (
+    organization &&
+    typeof organization === 'object' &&
+    'slug' in organization &&
+    typeof organization.slug === 'string'
+  ) {
+    return organization.slug;
+  }
+
+  return '';
+}
+
 export function BrandProvider({
   children,
   initialBootstrap = null,
 }: BrandProviderProps) {
+  const params = useParams<{ brandSlug?: string; orgSlug?: string }>();
   const { isLoaded: isAuthLoaded, isSignedIn, userId, orgId } = useAuth();
   const { user } = useUser();
   const playwrightAuth = getPlaywrightAuthState();
@@ -223,6 +255,11 @@ export function BrandProvider({
     );
 
   const brands = useMemo(() => brandsData ?? [], [brandsData]);
+  const routeOrgSlug =
+    typeof params?.orgSlug === 'string' ? params.orgSlug : '';
+  const routeBrandSlug =
+    typeof params?.brandSlug === 'string' ? params.brandSlug : '';
+  const isOrgRoute = routeOrgSlug.length > 0 && routeBrandSlug.length === 0;
 
   useEffect(() => {
     if (effectiveIsAuthLoaded && !effectiveIsSignedIn) {
@@ -236,18 +273,104 @@ export function BrandProvider({
   }, [effectiveIsAuthLoaded, effectiveIsSignedIn]);
 
   useEffect(() => {
-    if (!brandId && brands.length > 0 && brandsData) {
+    if (!brandId && brands.length > 0 && brandsData && !isOrgRoute) {
       const firstBrand = brands[0];
       startTransition(() => {
         setBrandId(firstBrand.id);
       });
     }
-  }, [brandsData, brandId, brands.length, brands[0]]);
+  }, [brandsData, brandId, brands.length, brands[0], isOrgRoute]);
 
   const selectedBrand = useMemo(
     () => brands.find((brand: Brand) => brand.id === brandId),
     [brands, brandId],
   );
+
+  useEffect(() => {
+    if (!routeOrgSlug || brands.length === 0) {
+      return;
+    }
+
+    if (!routeBrandSlug) {
+      const routeOrganizationBrand =
+        (selectedBrand &&
+        getBrandOrganizationSlug(selectedBrand) === routeOrgSlug
+          ? selectedBrand
+          : undefined) ??
+        brands.find(
+          (brand) => getBrandOrganizationSlug(brand) === routeOrgSlug,
+        );
+
+      if (!routeOrganizationBrand) {
+        return;
+      }
+
+      const routeOrganizationId = getBrandOrganizationId(routeOrganizationBrand);
+      const shouldClearBrand = brandId.length > 0;
+      const shouldUpdateOrganization =
+        routeOrganizationId.length > 0 && routeOrganizationId !== organizationId;
+
+      if (!shouldClearBrand && !shouldUpdateOrganization) {
+        return;
+      }
+
+      startTransition(() => {
+        if (shouldClearBrand) {
+          setBrandId('');
+        }
+
+        if (shouldUpdateOrganization) {
+          setOrganizationId(routeOrganizationId);
+        }
+      });
+
+      return;
+    }
+
+    const routeBrand =
+      (selectedBrand &&
+      getBrandOrganizationSlug(selectedBrand) === routeOrgSlug &&
+      (!routeBrandSlug || selectedBrand.slug === routeBrandSlug)
+        ? selectedBrand
+        : undefined) ??
+      brands.find((brand) => {
+        if (getBrandOrganizationSlug(brand) !== routeOrgSlug) {
+          return false;
+        }
+
+        return routeBrandSlug ? brand.slug === routeBrandSlug : true;
+      });
+
+    if (!routeBrand) {
+      return;
+    }
+
+    const routeOrganizationId = getBrandOrganizationId(routeBrand);
+    const shouldUpdateBrand = routeBrand.id !== brandId;
+    const shouldUpdateOrganization =
+      routeOrganizationId.length > 0 && routeOrganizationId !== organizationId;
+
+    if (!shouldUpdateBrand && !shouldUpdateOrganization) {
+      return;
+    }
+
+    startTransition(() => {
+      if (shouldUpdateBrand) {
+        setBrandId(routeBrand.id);
+      }
+
+      if (shouldUpdateOrganization) {
+        setOrganizationId(routeOrganizationId);
+      }
+    });
+  }, [
+    brandId,
+    brands,
+    organizationId,
+    routeBrandSlug,
+    routeOrgSlug,
+    selectedBrand,
+  ]);
 
   const credentials = useMemo<ICredential[]>(
     () =>
@@ -261,9 +384,15 @@ export function BrandProvider({
     () =>
       effectiveIsAuthLoaded &&
       effectiveIsSignedIn &&
-      !!brandId &&
-      !!organizationId,
-    [effectiveIsAuthLoaded, effectiveIsSignedIn, brandId, organizationId],
+      !!organizationId &&
+      (isOrgRoute || !!brandId),
+    [
+      effectiveIsAuthLoaded,
+      effectiveIsSignedIn,
+      brandId,
+      isOrgRoute,
+      organizationId,
+    ],
   );
 
   const contextValue = useMemo<BrandContextType>(

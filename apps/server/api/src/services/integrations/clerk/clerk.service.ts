@@ -102,14 +102,21 @@ export class ClerkService {
     // First get the current user to preserve existing metadata
     const currentUser = await this.fetchUser(clerkUserId);
     const existingMetadata = currentUser.publicMetadata || {};
+    const nextMetadata = {
+      ...existingMetadata,
+      ...attrs,
+    } as Record<string, unknown>;
+
+    for (const [key, value] of Object.entries(attrs)) {
+      if (value === undefined) {
+        delete nextMetadata[key];
+      }
+    }
 
     const updatedUser = await this.clerkClient.users.updateUserMetadata(
       clerkUserId,
       {
-        publicMetadata: {
-          ...existingMetadata,
-          ...attrs,
-        },
+        publicMetadata: nextMetadata,
       },
     );
 

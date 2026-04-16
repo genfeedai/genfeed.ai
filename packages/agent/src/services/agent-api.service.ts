@@ -35,6 +35,38 @@ export interface CredentialMentionItem {
   avatar: string | null;
 }
 
+export interface AgentInstallReadiness {
+  authMode: 'clerk' | 'none';
+  billingMode: 'cloud_billing' | 'oss_local';
+  localTools: {
+    anyDetected: boolean;
+    claude: boolean;
+    codex: boolean;
+    detected: string[];
+  };
+  providers: {
+    anyConfigured: boolean;
+    configured: string[];
+    fal: boolean;
+    imageGenerationReady: boolean;
+    openai: boolean;
+    replicate: boolean;
+    textGenerationReady: boolean;
+  };
+  ui: {
+    showBilling: boolean;
+    showCloudUpgradeCta: boolean;
+    showCredits: boolean;
+    showPricing: boolean;
+  };
+  workspace: {
+    brandId: string | null;
+    hasBrand: boolean;
+    hasOrganization: boolean;
+    organizationId: string | null;
+  };
+}
+
 export type GenerationModel = IModel;
 
 export interface GenerateIngredientResult {
@@ -238,6 +270,8 @@ export class AgentApiService extends AgentBaseApiService {
     payload: {
       isPinned?: boolean;
       planModeEnabled?: boolean;
+      requestedModel?: string;
+      runtimeKey?: string;
       title?: string;
       systemPrompt?: string;
       memoryEntryIds?: string[];
@@ -250,6 +284,16 @@ export class AgentApiService extends AgentBaseApiService {
       { body: JSON.stringify(payload), method: 'PATCH', signal },
       'Failed to update thread',
       'Failed to deserialize thread',
+    );
+  }
+
+  getInstallReadinessEffect(
+    signal?: AbortSignal,
+  ): Effect.Effect<AgentInstallReadiness, AgentApiError> {
+    return this.fetchJsonEffect<AgentInstallReadiness>(
+      `${this.config.baseUrl}/onboarding/install-readiness`,
+      { signal },
+      'Failed to fetch local install readiness',
     );
   }
 

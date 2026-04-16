@@ -57,6 +57,7 @@ describe('UsersController', () => {
     };
     settingsService = { patch: vi.fn() };
     brandsService = {
+      clearBrandSelectionForUser: vi.fn(),
       findAll: vi.fn(),
       findOne: vi.fn(),
       selectBrandForUser: vi.fn(),
@@ -314,6 +315,27 @@ describe('UsersController', () => {
       );
       expect(membersService.setLastUsedBrand).toHaveBeenCalled();
       expect(result).toBeDefined();
+    });
+  });
+
+  describe('clearBrandSelection', () => {
+    it('should clear brand selection and remove brand metadata', async () => {
+      await controller.clearBrandSelection(mockUser);
+
+      expect(brandsService.clearBrandSelectionForUser).toHaveBeenCalledWith(
+        userId,
+        orgId,
+      );
+      expect(clerkService.updateUserPublicMetadata).toHaveBeenCalledWith(
+        'clerk_user_123',
+        { brand: undefined },
+      );
+      expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
+        'clerk_user_123',
+      );
+      expect(accessBootstrapCacheService.invalidateForUser).toHaveBeenCalledWith(
+        'clerk_user_123',
+      );
     });
   });
 

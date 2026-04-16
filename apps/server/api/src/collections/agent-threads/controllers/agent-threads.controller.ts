@@ -194,6 +194,8 @@ export class AgentThreadsController {
     @Body() body: {
       isPinned?: boolean;
       planModeEnabled?: boolean;
+      requestedModel?: string;
+      runtimeKey?: string;
       title?: string;
       systemPrompt?: string;
       memoryEntryIds?: string[];

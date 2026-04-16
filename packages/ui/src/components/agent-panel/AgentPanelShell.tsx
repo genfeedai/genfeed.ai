@@ -20,6 +20,7 @@ export interface AgentPanelShellProps {
   onToggle: () => void;
   chatContent: ReactNode;
   outputsContent?: ReactNode;
+  headerContent?: ReactNode;
   onExpand?: () => void;
   onTabChange?: (tab: 'chat' | 'outputs') => void;
   defaultTab?: 'chat' | 'outputs';
@@ -34,11 +35,12 @@ function AgentPanelShell({
   onToggle,
   chatContent,
   outputsContent,
+  headerContent,
   onExpand,
   onTabChange,
   defaultTab = 'chat',
-  title = 'Agent Rail',
-  subtitle = 'Chat on this page or jump to outputs without leaving context.',
+  title = 'Genfeed Terminal',
+  subtitle = 'Conversation-scoped terminal runtime',
 }: AgentPanelShellProps): ReactElement {
   const [activeTab, setActiveTab] = useState<AgentRailTab>(defaultTab);
 
@@ -51,28 +53,30 @@ function AgentPanelShell({
   );
 
   return (
-    <div className="flex h-full flex-col overflow-hidden">
+    <div className="flex h-full flex-col overflow-hidden bg-[#07111f] text-white">
       {/* Header */}
-      <div className="flex h-16 shrink-0 items-center justify-between border-b border-white/[0.08] px-3">
+      <div className="flex h-[4.5rem] shrink-0 items-center justify-between border-b border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01))] px-3">
         <div
           className={cn(
-            'flex min-w-0 items-center gap-2 transition-all duration-200',
+            'flex min-w-0 flex-1 items-center gap-3 transition-all duration-200',
             !isOpen && 'w-0 overflow-hidden opacity-0 pointer-events-none',
           )}
         >
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-foreground/90">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-white/90">
               {title}
             </p>
-            <p className="truncate text-xs text-foreground/45">{subtitle}</p>
+            <p className="truncate text-xs text-white/45">{subtitle}</p>
           </div>
+
+          {headerContent}
 
           {onExpand && (
             <Button
               variant={ButtonVariant.GHOST}
               size={ButtonSize.ICON}
               onClick={onExpand}
-              className="h-7 w-7 shrink-0 text-foreground/40 hover:text-foreground"
+              className="h-7 w-7 shrink-0 text-white/40 hover:text-white"
               ariaLabel="Open full chat workspace"
             >
               <HiArrowsPointingOut className="h-3.5 w-3.5" />
@@ -88,7 +92,7 @@ function AgentPanelShell({
             className={cn(
               'h-8 w-8 bg-transparent',
               isOpen
-                ? 'text-foreground hover:bg-white/[0.06]'
+                ? 'text-white hover:bg-white/[0.06]'
                 : 'text-primary hover:bg-primary/10',
             )}
             ariaLabel={
@@ -113,7 +117,7 @@ function AgentPanelShell({
         )}
       >
         <div className="shrink-0 border-b border-white/[0.08] px-3 py-2">
-          <div className="grid grid-cols-2 gap-2 rounded-xl bg-white/[0.03] p-1">
+          <div className="grid grid-cols-2 gap-2 rounded-xl bg-black/20 p-1">
             <Button
               variant={ButtonVariant.GHOST}
               size={ButtonSize.SM}
@@ -122,11 +126,11 @@ function AgentPanelShell({
               className={cn(
                 'w-full rounded-lg px-3 py-2 text-sm font-medium',
                 activeTab === 'chat'
-                  ? 'bg-white/[0.08] text-foreground'
-                  : 'text-foreground/50 hover:text-foreground',
+                  ? 'bg-white/[0.08] text-white'
+                  : 'text-white/50 hover:text-white',
               )}
             >
-              Chat
+              Terminal
             </Button>
             <Button
               variant={ButtonVariant.GHOST}
@@ -136,8 +140,8 @@ function AgentPanelShell({
               className={cn(
                 'w-full rounded-lg px-3 py-2 text-sm font-medium',
                 activeTab === 'outputs'
-                  ? 'bg-white/[0.08] text-foreground'
-                  : 'text-foreground/50 hover:text-foreground',
+                  ? 'bg-white/[0.08] text-white'
+                  : 'text-white/50 hover:text-white',
               )}
             >
               Outputs

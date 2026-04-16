@@ -130,6 +130,8 @@ export class AgentThreadsService extends BaseService<AgentRoomDocument> {
     payload: Partial<{
       isPinned: boolean;
       planModeEnabled: boolean;
+      requestedModel: string;
+      runtimeKey: string;
       title: string;
       systemPrompt: string;
       memoryEntryIds: string[];

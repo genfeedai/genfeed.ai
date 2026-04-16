@@ -201,8 +201,9 @@ export class AuthBootstrapService {
     const matchedBrand = brands.find(
       (candidate) => String(candidate._id) === brandId,
     );
-    const resolvedBrandId =
-      matchedBrand?._id?.toString() ?? brands[0]?._id?.toString() ?? brandId;
+    const resolvedBrandId = brandId
+      ? matchedBrand?._id?.toString() ?? brands[0]?._id?.toString() ?? brandId
+      : '';
 
     return {
       access: {

@@ -17,7 +17,7 @@ export interface AppLayoutProps {
   hasSecondaryTopbar?: boolean;
   /** Menu items for SidebarNavigationProvider (breadcrumbs, nested nav) */
   menuItems?: MenuItemConfig[];
-  /** Agent panel rendered as a persistent right column */
+  /** Agent panel rendered as a persistent bottom terminal dock */
   agentPanel?: ReactNode | null;
   /** Whether the agent panel is collapsed */
   isAgentCollapsed?: boolean;

@@ -1,10 +1,12 @@
 import { renderHook } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { mockSelectedBrand, mockUseParams } = vi.hoisted(() => ({
-  mockSelectedBrand: {
-    organization: { slug: 'fallback-org' },
-    slug: 'fallback-brand',
+const { mockBrandState, mockUseParams } = vi.hoisted(() => ({
+  mockBrandState: {
+    selectedBrand: {
+      organization: { slug: 'fallback-org' },
+      slug: 'fallback-brand',
+    } as { organization: { slug: string }; slug: string } | null,
   },
   mockUseParams: vi.fn(() => ({
     brandSlug: 'my-brand',
@@ -18,13 +20,24 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
-    selectedBrand: mockSelectedBrand,
+    selectedBrand: mockBrandState.selectedBrand,
   }),
 }));
 
 import { useOrgUrl } from '@hooks/navigation/use-org-url/use-org-url';
 
 describe('useOrgUrl', () => {
+  beforeEach(() => {
+    mockBrandState.selectedBrand = {
+      organization: { slug: 'fallback-org' },
+      slug: 'fallback-brand',
+    };
+    mockUseParams.mockReturnValue({
+      brandSlug: 'my-brand',
+      orgSlug: 'genfeed-ai',
+    });
+  });
+
   it('should return orgSlug and brandSlug from params', () => {
     const { result } = renderHook(() => useOrgUrl());
     expect(result.current.orgSlug).toBe('genfeed-ai');
@@ -62,6 +75,18 @@ describe('useOrgUrl', () => {
     );
     expect(result.current.orgHref('/settings')).toBe(
       '/fallback-org/~/settings',
+    );
+  });
+
+  it('falls back to org-scoped href when no active brand is available', () => {
+    mockUseParams.mockReturnValue({ orgSlug: 'genfeed-ai' });
+    mockBrandState.selectedBrand = null;
+
+    const { result } = renderHook(() => useOrgUrl());
+
+    expect(result.current.brandSlug).toBe('');
+    expect(result.current.href('/workspace/overview')).toBe(
+      '/genfeed-ai/~/workspace/overview',
     );
   });
 });

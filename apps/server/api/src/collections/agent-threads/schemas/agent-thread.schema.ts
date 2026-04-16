@@ -55,6 +55,12 @@ export class AgentRoom {
   @Prop({ required: false, type: String })
   systemPrompt?: string;
 
+  @Prop({ required: false, type: String })
+  requestedModel?: string;
+
+  @Prop({ required: false, type: String })
+  runtimeKey?: string;
+
   @Prop({ default: false, type: Boolean })
   planModeEnabled!: boolean;
 

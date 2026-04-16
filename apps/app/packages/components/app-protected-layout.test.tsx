@@ -165,6 +165,12 @@ vi.mock('@ui/menus/sidebar-action-trigger/SidebarActionTrigger', () => ({
   ),
 }));
 
+vi.mock('@ui/topbars/workspace-switcher/TopbarWorkspaceSwitcher', () => ({
+  default: () => (
+    <div data-testid="workspace-switcher">Workspace Switcher</div>
+  ),
+}));
+
 vi.mock('@app-config/menu-items.config', () => ({
   APP_LOGO_HREF: '/workspace/overview',
   APP_MENU_ITEMS: [{ href: '/workspace', label: 'Workspace' }],
@@ -443,7 +449,6 @@ describe('AppProtectedLayout', () => {
       expect.objectContaining({
         collapsedSidebarWidth: 64,
         mobileSidebarWidth: 304,
-        primaryAction: undefined,
         renderTopSlot: expect.any(Function),
         secondaryItems: [
           { href: '/workspace/activity', label: 'Activity' },
@@ -463,18 +468,28 @@ describe('AppProtectedLayout', () => {
     expect(screen.getByTestId('agent-panel')).toBeInTheDocument();
   });
 
-  it('renders Codex-style search and task actions first in the workspace sidebar', () => {
+  it('renders the workspace switcher before the workspace quick actions', () => {
     render(
       <AppProtectedLayout>
         <div>Protected content</div>
       </AppProtectedLayout>,
     );
 
+    const workspaceSwitcher = screen.getByTestId('workspace-switcher');
     const newSearchButton = screen.getByRole('button', { name: 'New Search' });
     const newTaskButton = screen.getByRole('button', { name: 'New Task' });
 
+    expect(workspaceSwitcher).toBeInTheDocument();
     expect(newSearchButton).toBeInTheDocument();
     expect(newTaskButton).toBeInTheDocument();
+    expect(
+      workspaceSwitcher.compareDocumentPosition(newSearchButton) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      newSearchButton.compareDocumentPosition(newTaskButton) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
   });
 
   it('opens the command palette from the workspace sidebar action', () => {
