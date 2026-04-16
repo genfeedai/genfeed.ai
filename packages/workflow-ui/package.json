@@ -12,7 +12,7 @@
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "lucide-react": "1.8.0",
-    "nanoid": "5.1.7",
+    "nanoid": "5.1.9",
     "tailwind-merge": "3.5.0"
   },
   "description": "Shared UI components for Genfeed workflow editor",

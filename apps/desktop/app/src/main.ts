@@ -94,7 +94,7 @@ if (!acquiredSingleInstanceLock) {
 
 const createWindow = async (): Promise<void> => {
   mainWindow = new BrowserWindow({
-    backgroundColor: '#08111f',
+    backgroundColor: '#05070b',
     height: 980,
     minHeight: 780,
     minWidth: 1280,
@@ -169,7 +169,7 @@ const createWindow = async (): Promise<void> => {
 
     await mainWindow.loadURL(
       `data:text/html,${encodeURIComponent(
-        '<html><body style="background:#08111f;color:#fff;font-family:sans-serif;padding:32px"><h1>Genfeed Desktop</h1><p>Failed to start the embedded app shell.</p></body></html>',
+        '<html><body style="background:#05070b;color:#f5f7fa;font-family:Inter,system-ui,sans-serif;padding:32px"><h1>Genfeed Desktop</h1><p>Failed to start the embedded app shell.</p></body></html>',
       )}`,
     );
   }

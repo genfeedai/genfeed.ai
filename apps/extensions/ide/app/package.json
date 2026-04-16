@@ -300,16 +300,16 @@
     }
   },
   "dependencies": {
-    "@clerk/clerk-js": "6.7.0",
+    "@clerk/clerk-js": "6.7.2",
     "@genfeedai/ui": "workspace:*",
     "@sentry/node": "10.48.0"
   },
   "description": "Content copilot for Genfeed.ai campaigns in VS Code/Cursor",
   "devDependencies": {
-    "@biomejs/biome": "2.4.11",
+    "@biomejs/biome": "2.4.12",
     "@types/node": "25.6.0",
-    "@types/vscode": "1.115.0",
-    "@vscode/vsce": "3.7.1",
+    "@types/vscode": "1.116.0",
+    "@vscode/vsce": "3.9.0",
     "bun-types": "latest",
     "esbuild": "0.28.0",
     "typescript": "6.0.2"

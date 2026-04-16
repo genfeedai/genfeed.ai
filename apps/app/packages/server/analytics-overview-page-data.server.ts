@@ -1,6 +1,9 @@
 import 'server-only';
 
-import { getServerAuthToken } from '@app-server/protected-bootstrap.server';
+import {
+  getServerAuthToken,
+  hasUsableServerAuthToken,
+} from '@app-server/protected-bootstrap.server';
 import { AnalyticsMetric, PageScope } from '@genfeedai/enums';
 import type {
   IAnalytics,
@@ -62,7 +65,7 @@ export const loadAnalyticsOverviewPageData = cache(
   async (scope: PageScope): Promise<AnalyticsOverviewPageData> => {
     const token = await getServerAuthToken();
 
-    if (!token) {
+    if (!hasUsableServerAuthToken(token)) {
       return {
         analytics: DEFAULT_ANALYTICS,
         brandsLeaderboard: [],

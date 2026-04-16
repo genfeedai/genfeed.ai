@@ -17,7 +17,7 @@ const isDesktopShellBuild = process.env.NEXT_PUBLIC_DESKTOP_SHELL === '1';
 const hasClerkKeys =
   Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) &&
   Boolean(process.env.CLERK_SECRET_KEY);
-const useDesktopAuthShim = isDesktopShellBuild && !hasClerkKeys;
+const useClerkAuthShim = isDesktopShellBuild || !hasClerkKeys;
 
 const workflowUiAliases = {
   '@genfeedai/helpers': path.join(helpersRoot, 'src/index.ts'),
@@ -189,7 +189,7 @@ config.turbopack = {
   ...(config.turbopack ?? {}),
   resolveAlias: {
     ...(config.turbopack?.resolveAlias ?? {}),
-    ...(useDesktopAuthShim
+    ...(useClerkAuthShim
       ? {
           '@clerk/nextjs': './src/lib/desktop-auth/clerk-shim.tsx',
           '@clerk/nextjs/server': './src/lib/desktop-auth/clerk-server-shim.ts',
@@ -263,7 +263,7 @@ config.webpack = ((webpackConfig, options) => {
 
   nextConfig.resolve.alias = {
     ...nextConfig.resolve.alias,
-    ...(useDesktopAuthShim
+    ...(useClerkAuthShim
       ? {
           '@clerk/nextjs': path.join(desktopAuthRoot, 'clerk-shim.tsx'),
           '@clerk/nextjs/server': path.join(

@@ -156,4 +156,22 @@ describe('loadProtectedBootstrap', () => {
     await expect(loadProtectedBootstrap()).resolves.toBeNull();
     expect(getInstanceMock).not.toHaveBeenCalled();
   });
+
+  it('still loads bootstrap without Clerk keys in self-hosted mode', async () => {
+    delete process.env.CLERK_SECRET_KEY;
+    delete process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
+
+    const { getServerAuthToken, loadProtectedBootstrap } = await import(
+      '@app-server/protected-bootstrap.server'
+    );
+
+    await expect(getServerAuthToken()).resolves.toBe('');
+    await expect(loadProtectedBootstrap()).resolves.toEqual(
+      expect.objectContaining({
+        brandId: 'brand_123',
+        organizationId: 'org_123',
+      }),
+    );
+    expect(getInstanceMock).toHaveBeenCalledWith('');
+  });
 });

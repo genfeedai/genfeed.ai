@@ -1,16 +1,16 @@
 {
   "dependencies": {
-    "next": "16.2.3",
+    "next": "16.2.4",
     "nextra": "4.6.1",
     "nextra-theme-docs": "4.6.1",
     "react": "19.2.5",
     "react-dom": "19.2.5",
-    "swagger-ui-react": "5.32.2"
+    "swagger-ui-react": "5.32.4"
   },
   "devDependencies": {
     "@types/node": "25.6.0",
     "@types/react": "19.2.14",
-    "prettier": "3.8.2",
+    "prettier": "3.8.3",
     "typescript": "6.0.2"
   },
   "name": "@genfeedai/docs",

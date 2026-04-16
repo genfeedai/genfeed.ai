@@ -29,6 +29,8 @@ type DesktopUser = UserResource & {
   publicMetadata: IClerkPublicData;
 };
 
+const LOCAL_SESSION_TOKEN = 'genfeed-local-session';
+
 const EMPTY_PUBLIC_DATA: IClerkPublicData = {
   accountType: undefined,
   balance: undefined,
@@ -122,9 +124,7 @@ async function fetchBootstrap(
 ): Promise<ProtectedAppBootstrapPayload | null> {
   try {
     const response = await fetch('/v1/auth/bootstrap', {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     });
 
     if (!response.ok) {
@@ -143,8 +143,29 @@ async function refreshSnapshot(
   const generation = ++refreshGeneration;
 
   if (!isDesktopShell()) {
+    const bootstrap = await fetchBootstrap('');
+
     if (generation === refreshGeneration) {
-      emit({ ...EMPTY_SNAPSHOT, isLoaded: true });
+      emit(
+        bootstrap
+          ? {
+              accessState: bootstrap.access,
+              currentUser: bootstrap.currentUser,
+              isLoaded: true,
+              session: {
+                issuedAt: new Date().toISOString(),
+                token: LOCAL_SESSION_TOKEN,
+                userEmail: bootstrap.currentUser?.email ?? undefined,
+                userId: bootstrap.access.userId,
+                userName:
+                  bootstrap.currentUser?.fullName ??
+                  bootstrap.currentUser?.handle ??
+                  bootstrap.currentUser?.email ??
+                  undefined,
+              },
+            }
+          : { ...EMPTY_SNAPSHOT, isLoaded: true },
+      );
     }
     return;
   }
@@ -198,12 +219,16 @@ async function refreshSnapshot(
 }
 
 function ensureInitialized(): void {
-  if (initialized || !isDesktopShell() || typeof window === 'undefined') {
+  if (initialized || typeof window === 'undefined') {
     return;
   }
 
   initialized = true;
   void refreshSnapshot();
+
+  if (!isDesktopShell()) {
+    return;
+  }
 
   const bridge = getDesktopBridge();
   if (!bridge) {
@@ -240,6 +265,20 @@ function useDesktopSnapshot(): DesktopAuthSnapshot {
 }
 
 async function signOutDesktop(redirectUrl?: string): Promise<void> {
+  if (!isDesktopShell()) {
+    emit({
+      accessState: null,
+      currentUser: null,
+      isLoaded: true,
+      session: null,
+    });
+
+    if (redirectUrl) {
+      window.location.assign(redirectUrl);
+    }
+    return;
+  }
+
   const bridge = getDesktopBridge();
   if (!bridge) {
     return;
@@ -255,8 +294,10 @@ async function signOutDesktop(redirectUrl?: string): Promise<void> {
 
 export function ClerkProvider({
   children,
+  ..._props
 }: {
   children: ReactNode;
+  [key: string]: unknown;
 }): ReactNode {
   ensureInitialized();
   return children;
@@ -264,12 +305,14 @@ export function ClerkProvider({
 
 export function useAuth() {
   const currentSnapshot = useDesktopSnapshot();
+  const isSignedIn =
+    currentSnapshot.session !== null || currentSnapshot.accessState !== null;
 
   return useMemo(
     () => ({
-      getToken: async () => currentSnapshot.session?.token ?? null,
+      getToken: async () => currentSnapshot.session?.token ?? '',
       isLoaded: currentSnapshot.isLoaded,
-      isSignedIn: currentSnapshot.session !== null,
+      isSignedIn,
       orgId: currentSnapshot.accessState?.organizationId ?? null,
       orgRole: null,
       orgSlug: null,
@@ -280,7 +323,7 @@ export function useAuth() {
         currentSnapshot.session?.userId ??
         null,
     }),
-    [currentSnapshot],
+    [currentSnapshot, isSignedIn],
   );
 }
 
@@ -302,7 +345,9 @@ export function useUser(): {
 
     return {
       isLoaded: currentSnapshot.isLoaded,
-      isSignedIn: currentSnapshot.session !== null,
+      isSignedIn:
+        currentSnapshot.session !== null ||
+        currentSnapshot.accessState !== null,
       user,
     };
   }, [currentSnapshot]);
@@ -318,7 +363,9 @@ export function useSession(): {
   return useMemo(
     () => ({
       isLoaded: currentSnapshot.isLoaded,
-      isSignedIn: currentSnapshot.session !== null,
+      isSignedIn:
+        currentSnapshot.session !== null ||
+        currentSnapshot.accessState !== null,
       session: currentSnapshot.session
         ? {
             id: getDesktopSessionId(currentSnapshot.session.token) ?? '',
@@ -353,6 +400,10 @@ function DesktopAuthAction({
   const { isSignedIn } = useAuth();
 
   const handleClick = async () => {
+    if (!isDesktopShell()) {
+      return;
+    }
+
     const bridge = getDesktopBridge();
     if (!bridge) {
       return;
@@ -372,23 +423,31 @@ function DesktopAuthAction({
       <div className="space-y-2">
         <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
         <p className="text-sm text-muted-foreground">
-          Continue in your browser to attach this desktop app to Genfeed Cloud.
+          {isDesktopShell()
+            ? 'Continue in your browser to attach this desktop app to Genfeed Cloud.'
+            : 'Authentication is optional in this self-hosted build.'}
         </p>
       </div>
 
       <Button
         className="min-w-44"
-        disabled={isLaunching}
+        disabled={isLaunching || !isDesktopShell()}
         onClick={() => {
           void handleClick();
         }}
       >
-        {isLaunching ? 'Opening Browser...' : actionLabel}
+        {isDesktopShell()
+          ? isLaunching
+            ? 'Opening Browser...'
+            : actionLabel
+          : 'No Login Required'}
       </Button>
 
       {isSignedIn ? (
         <p className="text-xs text-muted-foreground">
-          Desktop session attached. Redirecting to your workspace.
+          {isDesktopShell()
+            ? 'Desktop session attached. Redirecting to your workspace.'
+            : 'Local workspace ready.'}
         </p>
       ) : null}
     </div>

@@ -1,6 +1,9 @@
 import 'server-only';
 
-import { getServerAuthToken } from '@app-server/protected-bootstrap.server';
+import {
+  getServerAuthToken,
+  hasUsableServerAuthToken,
+} from '@app-server/protected-bootstrap.server';
 import type { PlatformTimeSeriesDataPoint } from '@props/analytics/charts.props';
 import { AuthService } from '@services/auth/auth.service';
 import { logger } from '@services/core/logger.service';
@@ -25,7 +28,7 @@ export const loadOverviewPageData = cache(
   async (): Promise<OverviewPageData> => {
     const token = await getServerAuthToken();
 
-    if (!token) {
+    if (!hasUsableServerAuthToken(token)) {
       return {
         activeRuns: [],
         analytics: {},

@@ -1,4 +1,11 @@
 #!/usr/bin/env sh
 
 # Run lint-staged (Biome check + format on staged files only)
-bunx lint-staged
+export PATH="$HOME/.bun/bin:$PATH"
+
+if ! command -v bun >/dev/null 2>&1; then
+  echo "Bun is required for pre-commit hooks. Install Bun or add it to PATH." >&2
+  exit 127
+fi
+
+bun x lint-staged

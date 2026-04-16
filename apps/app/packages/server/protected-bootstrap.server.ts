@@ -60,11 +60,19 @@ export const getServerAuthToken = cache(async (): Promise<string> => {
   }
 });
 
+export function hasUsableServerAuthToken(token: string): boolean {
+  const hasClerkKeys =
+    Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) &&
+    Boolean(process.env.CLERK_SECRET_KEY);
+
+  return Boolean(token) || !hasClerkKeys;
+}
+
 export const loadProtectedBootstrap = cache(
   async (): Promise<ProtectedBootstrapData | null> => {
     const token = await getServerAuthToken();
 
-    if (!token) {
+    if (!hasUsableServerAuthToken(token)) {
       return null;
     }
 

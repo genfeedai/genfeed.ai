@@ -2,6 +2,7 @@ import 'server-only';
 
 import {
   getServerAuthToken,
+  hasUsableServerAuthToken,
   loadProtectedBootstrap,
 } from '@app-server/protected-bootstrap.server';
 import { ITEMS_PER_PAGE } from '@genfeedai/constants';
@@ -41,7 +42,7 @@ export const loadPostsPageData = cache(
       getServerAuthToken(),
     ]);
 
-    if (!bootstrap || !token) {
+    if (!bootstrap || !hasUsableServerAuthToken(token)) {
       return {
         postPresets: [],
         posts: [],
