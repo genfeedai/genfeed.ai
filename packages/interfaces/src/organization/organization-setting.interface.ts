@@ -1,6 +1,6 @@
-import type { IOnboardingJourneyMissionState } from '@genfeedai/constants';
 import type { AgentAutonomyMode } from '@genfeedai/enums';
 import type { IBaseEntity } from '../index';
+import type { IOnboardingJourneyMissionState } from '../onboarding/onboarding-journey.interface';
 
 export type AgentPolicyQualityTier = 'budget' | 'balanced' | 'high_quality';
 
