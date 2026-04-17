@@ -1,7 +1,7 @@
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
-import { OrgIntegration } from '@api/endpoints/integrations/schemas/org-integration.schema';
 import { AdminApiKeyGuard } from '@api/helpers/guards/admin-api-key/admin-api-key.guard';
 import { IntegrationPlatform } from '@genfeedai/enums';
+import type { OrgIntegration } from '@genfeedai/prisma';
 import { Public } from '@libs/decorators/public.decorator';
 import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { ApiParam } from '@nestjs/swagger';

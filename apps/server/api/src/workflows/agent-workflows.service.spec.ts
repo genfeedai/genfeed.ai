@@ -1,7 +1,5 @@
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AgentWorkflowsService } from '@api/workflows/agent-workflows.service';
-import { AgentWorkflow } from '@api/workflows/schemas/agent-workflow.schema';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';

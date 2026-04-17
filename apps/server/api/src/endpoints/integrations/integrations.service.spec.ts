@@ -1,9 +1,8 @@
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { IntegrationsService } from '@api/endpoints/integrations/integrations.service';
-import { OrgIntegration } from '@api/endpoints/integrations/schemas/org-integration.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IntegrationPlatform } from '@genfeedai/enums';
 import { REDIS_EVENTS } from '@genfeedai/integrations';
+import type { OrgIntegration } from '@genfeedai/prisma';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';

@@ -1,8 +1,6 @@
 import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { SkillReceipt } from '@api/skills-pro/schemas/skill-receipt.schema';
 import { SkillDownloadService } from '@api/skills-pro/services/skill-download.service';
 import { SkillRegistryService } from '@api/skills-pro/services/skill-registry.service';
 import { LoggerService } from '@libs/logger/logger.service';
