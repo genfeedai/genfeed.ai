@@ -1,10 +1,7 @@
 import { CreatePersonaDto } from '@api/collections/personas/dto/create-persona.dto';
 import { PersonasQueryDto } from '@api/collections/personas/dto/personas-query.dto';
 import { UpdatePersonaDto } from '@api/collections/personas/dto/update-persona.dto';
-import {
-  type PersonaDocument,
-  Persona as PersonaModel,
-} from '@api/collections/personas/schemas/persona.schema';
+import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -40,13 +37,10 @@ export class PersonasController extends BaseCRUDController<
     public readonly personasService: PersonasService,
     public readonly loggerService: LoggerService,
   ) {
-    super(
-      loggerService,
-      personasService,
-      PersonaSerializer,
-      PersonaModel.name,
-      ['user', 'brand'],
-    );
+    super(loggerService, personasService, PersonaSerializer, 'Persona', [
+      'user',
+      'brand',
+    ]);
   }
 
   @Post(':id/assign')

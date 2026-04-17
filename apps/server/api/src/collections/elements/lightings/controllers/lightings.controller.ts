@@ -52,7 +52,7 @@ export class ElementsLightingsController extends BaseCRUDController<
       loggerService,
       lightingsService,
       LightingSerializer,
-      ElementLighting.name,
+      'ElementLighting',
     );
   }
 

@@ -64,7 +64,7 @@ export class TasksController extends BaseCRUDController<
     @Optional()
     private readonly workspaceTaskQueueService?: WorkspaceTaskQueueService,
   ) {
-    super(loggerService, tasksService, TaskSerializer, Task.name);
+    super(loggerService, tasksService, TaskSerializer, 'Task');
   }
 
   @Post()

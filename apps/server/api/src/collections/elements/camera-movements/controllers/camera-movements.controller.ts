@@ -52,7 +52,7 @@ export class ElementsCameraMovementsController extends BaseCRUDController<
       loggerService,
       cameraMovementsService,
       CameraMovementSerializer,
-      ElementCameraMovement.name,
+      'ElementCameraMovement',
     );
   }
 

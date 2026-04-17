@@ -1,1 +1,4 @@
-export type { Persona as PersonaDocument } from '@genfeedai/prisma';
+export type {
+  Persona,
+  Persona as PersonaDocument,
+} from '@genfeedai/prisma';

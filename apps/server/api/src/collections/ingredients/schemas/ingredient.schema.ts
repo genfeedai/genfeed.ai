@@ -1,1 +1,4 @@
-export type { Ingredient as IngredientDocument } from '@genfeedai/prisma';
+export type {
+  Ingredient,
+  Ingredient as IngredientDocument,
+} from '@genfeedai/prisma';

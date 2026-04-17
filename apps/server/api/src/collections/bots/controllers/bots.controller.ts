@@ -50,7 +50,7 @@ export class BotsController extends BaseCRUDController<
     private readonly botsLivestreamService: BotsLivestreamService,
     public readonly loggerService: LoggerService,
   ) {
-    super(loggerService, botsService, BotSerializer, Bot.name, [
+    super(loggerService, botsService, BotSerializer, 'Bot', [
       'organization',
       'brand',
       'user',

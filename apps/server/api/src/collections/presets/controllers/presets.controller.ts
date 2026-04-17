@@ -57,7 +57,7 @@ export class PresetsController extends BaseCRUDController<
     public readonly presetsService: PresetsService,
     public readonly loggerService: LoggerService,
   ) {
-    super(loggerService, presetsService, PresetSerializer, Preset.name);
+    super(loggerService, presetsService, PresetSerializer, 'Preset');
   }
 
   /**

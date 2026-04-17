@@ -1,1 +1,4 @@
-export type { Evaluation as EvaluationDocument } from '@genfeedai/prisma';
+export type {
+  Evaluation,
+  Evaluation as EvaluationDocument,
+} from '@genfeedai/prisma';

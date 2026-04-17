@@ -28,7 +28,7 @@ export class TagsController extends BaseCRUDController<
     public readonly tagsService: TagsService,
     public readonly loggerService: LoggerService,
   ) {
-    super(loggerService, tagsService, TagSerializer, Tag.name, [
+    super(loggerService, tagsService, TagSerializer, 'Tag', [
       'organization',
       'brand',
       'user',

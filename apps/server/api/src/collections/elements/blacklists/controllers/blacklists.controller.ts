@@ -64,7 +64,7 @@ export class ElementsBlacklistsController extends BaseCRUDController<
       loggerService,
       blacklistsService,
       BlacklistSerializer,
-      ElementBlacklist.name,
+      'ElementBlacklist',
     );
   }
 

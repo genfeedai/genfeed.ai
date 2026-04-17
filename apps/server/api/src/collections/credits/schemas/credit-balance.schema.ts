@@ -1,1 +1,4 @@
-export type { CreditBalance as CreditBalanceDocument } from '@genfeedai/prisma';
+export type {
+  CreditBalance,
+  CreditBalance as CreditBalanceDocument,
+} from '@genfeedai/prisma';

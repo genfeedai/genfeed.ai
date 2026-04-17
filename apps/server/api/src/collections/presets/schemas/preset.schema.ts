@@ -1,1 +1,4 @@
-export type { Preset as PresetDocument } from '@genfeedai/prisma';
+export type {
+  Preset,
+  Preset as PresetDocument,
+} from '@genfeedai/prisma';

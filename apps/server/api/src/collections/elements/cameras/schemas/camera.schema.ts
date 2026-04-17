@@ -1,1 +1,4 @@
-export type { ElementCamera as ElementCameraDocument } from '@genfeedai/prisma';
+export type {
+  ElementCamera,
+  ElementCamera as ElementCameraDocument,
+} from '@genfeedai/prisma';

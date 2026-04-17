@@ -33,7 +33,7 @@ export class GoalsController extends BaseCRUDController<
     public readonly loggerService: LoggerService,
     private readonly goalsService: GoalsService,
   ) {
-    super(loggerService, goalsService, GoalSerializer, Goal.name);
+    super(loggerService, goalsService, GoalSerializer, 'Goal');
   }
 
   @Post()

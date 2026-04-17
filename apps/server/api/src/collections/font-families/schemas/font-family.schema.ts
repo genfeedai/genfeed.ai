@@ -1,1 +1,4 @@
-export type { FontFamilyRecord as FontFamilyDocument } from '@genfeedai/prisma';
+export type {
+  FontFamilyRecord as FontFamily,
+  FontFamilyRecord as FontFamilyDocument,
+} from '@genfeedai/prisma';

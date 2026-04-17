@@ -48,7 +48,7 @@ export class ElementsStylesController extends BaseCRUDController<
     public readonly stylesService: ElementsStylesService,
     public readonly loggerService: LoggerService,
   ) {
-    super(loggerService, stylesService, StyleSerializer, ElementStyle.name);
+    super(loggerService, stylesService, StyleSerializer, 'ElementStyle');
   }
 
   @Get(':styleId')

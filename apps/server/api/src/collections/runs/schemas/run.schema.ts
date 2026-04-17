@@ -1,1 +1,4 @@
-export type { Run as RunDocument } from '@genfeedai/prisma';
+export type {
+  Run,
+  Run as RunDocument,
+} from '@genfeedai/prisma';

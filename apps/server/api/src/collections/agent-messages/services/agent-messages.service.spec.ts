@@ -1,4 +1,3 @@
-import { AgentMessageDoc } from '@api/collections/agent-messages/schemas/agent-message.schema';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';

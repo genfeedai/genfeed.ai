@@ -49,7 +49,7 @@ export class ElementsCamerasController extends BaseCRUDController<
     public readonly camerasService: ElementsCamerasService,
     public readonly loggerService: LoggerService,
   ) {
-    super(loggerService, camerasService, CameraSerializer, ElementCamera.name);
+    super(loggerService, camerasService, CameraSerializer, 'ElementCamera');
   }
 
   @Get(':cameraId')

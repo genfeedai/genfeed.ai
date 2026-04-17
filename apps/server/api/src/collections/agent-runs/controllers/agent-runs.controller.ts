@@ -55,7 +55,7 @@ export class AgentRunsController extends BaseCRUDController<
     @Optional()
     private readonly agentThreadEngineService?: AgentThreadEngineService,
   ) {
-    super(loggerService, agentRunsService, AgentRunSerializer, AgentRun.name, [
+    super(loggerService, agentRunsService, AgentRunSerializer, 'AgentRun', [
       'organization',
       'user',
     ]);

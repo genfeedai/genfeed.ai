@@ -1,1 +1,4 @@
-export type { Training as TrainingDocument } from '@genfeedai/prisma';
+export type {
+  Training,
+  Training as TrainingDocument,
+} from '@genfeedai/prisma';

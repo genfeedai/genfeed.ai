@@ -1,1 +1,4 @@
-export type { Post as PostDocument } from '@genfeedai/prisma';
+export type {
+  Post,
+  Post as PostDocument,
+} from '@genfeedai/prisma';

@@ -1,1 +1,4 @@
-export type { Brand as BrandDocument } from '@genfeedai/prisma';
+export type {
+  Brand,
+  Brand as BrandDocument,
+} from '@genfeedai/prisma';

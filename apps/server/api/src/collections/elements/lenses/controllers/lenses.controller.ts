@@ -48,7 +48,7 @@ export class ElementsLensesController extends BaseCRUDController<
     public readonly lensesService: ElementsLensesService,
     public readonly loggerService: LoggerService,
   ) {
-    super(loggerService, lensesService, LensSerializer, ElementLens.name);
+    super(loggerService, lensesService, LensSerializer, 'ElementLens');
   }
 
   @Get(':lensId')

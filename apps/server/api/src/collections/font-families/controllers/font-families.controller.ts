@@ -51,7 +51,7 @@ export class FontFamiliesController extends BaseCRUDController<
       loggerService,
       fontFamiliesService,
       FontFamilySerializer,
-      FontFamily.name,
+      'FontFamily',
     );
   }
 

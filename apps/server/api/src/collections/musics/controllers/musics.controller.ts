@@ -39,7 +39,7 @@ export class MusicsController extends BaseCRUDController<
     readonly loggerService: LoggerService,
     private readonly musicsService: MusicsService,
   ) {
-    super(loggerService, musicsService, MusicSerializer, Music.name, [
+    super(loggerService, musicsService, MusicSerializer, 'Music', [
       'metadata',
       'brand',
     ]);

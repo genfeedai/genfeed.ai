@@ -1,1 +1,4 @@
-export type { LivestreamBotSession as LivestreamBotSessionDocument } from '@genfeedai/prisma';
+export type {
+  LivestreamBotSession,
+  LivestreamBotSession as LivestreamBotSessionDocument,
+} from '@genfeedai/prisma';

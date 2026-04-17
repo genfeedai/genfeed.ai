@@ -1,1 +1,4 @@
-export type { AgentCampaign as AgentCampaignDocument } from '@genfeedai/prisma';
+export type {
+  AgentCampaign,
+  AgentCampaign as AgentCampaignDocument,
+} from '@genfeedai/prisma';

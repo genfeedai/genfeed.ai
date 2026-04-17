@@ -1,1 +1,4 @@
-export type { AdCreativeMapping as AdCreativeMappingDocument } from '@genfeedai/prisma';
+export type {
+  AdCreativeMapping,
+  AdCreativeMapping as AdCreativeMappingDocument,
+} from '@genfeedai/prisma';

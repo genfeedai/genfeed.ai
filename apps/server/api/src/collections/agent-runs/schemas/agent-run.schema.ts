@@ -1,1 +1,4 @@
-export type { AgentRun as AgentRunDocument } from '@genfeedai/prisma';
+export type {
+  AgentRun,
+  AgentRun as AgentRunDocument,
+} from '@genfeedai/prisma';

@@ -1,4 +1,7 @@
-export type { MonitoredAccount as MonitoredAccountDocument } from '@genfeedai/prisma';
+export type {
+  MonitoredAccount,
+  MonitoredAccount as MonitoredAccountDocument,
+} from '@genfeedai/prisma';
 
 export type MonitoredAccountFilters = {
   keywords?: {

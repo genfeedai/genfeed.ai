@@ -1,1 +1,4 @@
-export type { Subscription as SubscriptionDocument } from '@genfeedai/prisma';
+export type {
+  Subscription,
+  Subscription as SubscriptionDocument,
+} from '@genfeedai/prisma';

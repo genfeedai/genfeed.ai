@@ -1,1 +1,4 @@
-export type { Customer as CustomerDocument } from '@genfeedai/prisma';
+export type {
+  Customer,
+  Customer as CustomerDocument,
+} from '@genfeedai/prisma';

@@ -1,1 +1,4 @@
-export type { ReplyBotConfig as ReplyBotConfigDocument } from '@genfeedai/prisma';
+export type {
+  ReplyBotConfig,
+  ReplyBotConfig as ReplyBotConfigDocument,
+} from '@genfeedai/prisma';

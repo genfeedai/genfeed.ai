@@ -1,1 +1,4 @@
-export type { ElementBlacklist as ElementBlacklistDocument } from '@genfeedai/prisma';
+export type {
+  ElementBlacklist,
+  ElementBlacklist as ElementBlacklistDocument,
+} from '@genfeedai/prisma';

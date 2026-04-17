@@ -10,7 +10,6 @@ import {
   TASK_STATUSES,
   Task,
   type TaskDocument,
-  TaskSchema,
   type TaskStatus,
 } from '@api/collections/tasks/schemas/task.schema';
 import { TasksService } from '@api/collections/tasks/services/tasks.service';
@@ -382,28 +381,6 @@ describe('TasksService', () => {
   describe('schema constants', () => {
     it('TASK_STATUSES includes failed', () => {
       expect(TASK_STATUSES).toContain('failed');
-    });
-
-    it('Task schema has AI execution fields in Mongoose schema paths', () => {
-      const paths = Object.keys(TaskSchema.paths);
-      const aiFields = [
-        'request',
-        'outputType',
-        'platforms',
-        'reviewState',
-        'reviewTriggered',
-        'resultPreview',
-        'executionPathUsed',
-        'skillsUsed',
-        'progress',
-        'eventStream',
-        'linkedRunIds',
-        'linkedOutputIds',
-        'approvedOutputIds',
-      ];
-      for (const field of aiFields) {
-        expect(paths).toContain(field);
-      }
     });
   });
 

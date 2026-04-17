@@ -33,7 +33,7 @@ export class ProjectsController extends BaseCRUDController<
     public readonly loggerService: LoggerService,
     private readonly projectsService: ProjectsService,
   ) {
-    super(loggerService, projectsService, ProjectSerializer, Project.name);
+    super(loggerService, projectsService, ProjectSerializer, 'Project');
   }
 
   @Post()

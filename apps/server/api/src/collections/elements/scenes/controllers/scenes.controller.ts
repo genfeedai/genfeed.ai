@@ -49,7 +49,7 @@ export class ElementsScenesController extends BaseCRUDController<
     public readonly scenesService: ElementsScenesService,
     public readonly loggerService: LoggerService,
   ) {
-    super(loggerService, scenesService, SceneSerializer, ElementScene.name);
+    super(loggerService, scenesService, SceneSerializer, 'ElementScene');
   }
 
   @Get(':sceneId')

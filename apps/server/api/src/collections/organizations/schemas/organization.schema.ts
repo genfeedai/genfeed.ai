@@ -1,1 +1,4 @@
-export type { Organization as OrganizationDocument } from '@genfeedai/prisma';
+export type {
+  Organization,
+  Organization as OrganizationDocument,
+} from '@genfeedai/prisma';

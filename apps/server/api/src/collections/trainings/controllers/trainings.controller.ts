@@ -81,7 +81,7 @@ export class TrainingsController extends BaseCRUDController<
     private readonly modelsService: ModelsService,
     private readonly websocketService: NotificationsPublisherService,
   ) {
-    super(loggerService, trainingsService, TrainingSerializer, Training.name);
+    super(loggerService, trainingsService, TrainingSerializer, 'Training');
   }
 
   /**

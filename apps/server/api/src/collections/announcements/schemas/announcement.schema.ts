@@ -1,1 +1,4 @@
-export type { Announcement as AnnouncementDocument } from '@genfeedai/prisma';
+export type {
+  Announcement,
+  Announcement as AnnouncementDocument,
+} from '@genfeedai/prisma';

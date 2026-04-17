@@ -1,1 +1,4 @@
-export type { CreatorAnalysis as CreatorAnalysisDocument } from '@genfeedai/prisma';
+export type {
+  CreatorAnalysis,
+  CreatorAnalysis as CreatorAnalysisDocument,
+} from '@genfeedai/prisma';

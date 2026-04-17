@@ -1,1 +1,4 @@
-export type { ApiKey as ApiKeyDocument } from '@genfeedai/prisma';
+export type {
+  ApiKey,
+  ApiKey as ApiKeyDocument,
+} from '@genfeedai/prisma';

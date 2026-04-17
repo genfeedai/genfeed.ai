@@ -53,7 +53,7 @@ export class ModelsController extends BaseCRUDController<
     public readonly loggerService: LoggerService,
     private readonly moduleRef: ModuleRef,
   ) {
-    super(loggerService, modelsService, ModelSerializer, Model.name);
+    super(loggerService, modelsService, ModelSerializer, 'Model');
   }
 
   private getOrganizationSettingsService(): OrganizationSettingsService {

@@ -1,1 +1,4 @@
-export type { Article as ArticleDocument } from '@genfeedai/prisma';
+export type {
+  Article,
+  Article as ArticleDocument,
+} from '@genfeedai/prisma';

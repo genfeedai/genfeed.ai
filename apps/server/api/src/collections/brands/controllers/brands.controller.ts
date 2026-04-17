@@ -90,7 +90,7 @@ export class BrandsController extends BaseCRUDController<
     public readonly analyticsAggregationService: AnalyticsAggregationService,
     public readonly loggerService: LoggerService,
   ) {
-    super(loggerService, brandsService as unknown, BrandSerializer, Brand.name);
+    super(loggerService, brandsService as unknown, BrandSerializer, 'Brand');
   }
 
   /**

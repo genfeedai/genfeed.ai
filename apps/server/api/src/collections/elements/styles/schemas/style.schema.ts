@@ -1,1 +1,4 @@
-export type { ElementStyle as ElementStyleDocument } from '@genfeedai/prisma';
+export type {
+  ElementStyle,
+  ElementStyle as ElementStyleDocument,
+} from '@genfeedai/prisma';

@@ -1,1 +1,4 @@
-export type { ElementLighting as ElementLightingDocument } from '@genfeedai/prisma';
+export type {
+  ElementLighting,
+  ElementLighting as ElementLightingDocument,
+} from '@genfeedai/prisma';

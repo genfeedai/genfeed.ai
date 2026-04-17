@@ -99,7 +99,7 @@ export class ArticlesController extends BaseCRUDController<
     public readonly routerService: RouterService,
   ) {
     // ArticleSerializer would need to be created, using null for now
-    super(loggerService, articlesService, ArticleSerializer, Article.name, [
+    super(loggerService, articlesService, ArticleSerializer, 'Article', [
       'user',
       'organization',
       'brand',

@@ -49,7 +49,7 @@ export class ElementsMoodsController extends BaseCRUDController<
     public readonly moodsService: ElementsMoodsService,
     public readonly loggerService: LoggerService,
   ) {
-    super(loggerService, moodsService, MoodSerializer, ElementMood.name);
+    super(loggerService, moodsService, MoodSerializer, 'ElementMood');
   }
 
   @Get(':moodId')

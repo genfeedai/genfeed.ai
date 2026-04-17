@@ -16,7 +16,7 @@ import { type PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { CreateMergedVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
-import { Video } from '@api/collections/videos/schemas/video.schema';
+import type { Video } from '@api/collections/videos/schemas/video.schema';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { ConfigService } from '@api/config/config.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';

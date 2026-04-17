@@ -1,1 +1,4 @@
-export type { BrandMemory as BrandMemoryDocument } from '@genfeedai/prisma';
+export type {
+  BrandMemory,
+  BrandMemory as BrandMemoryDocument,
+} from '@genfeedai/prisma';

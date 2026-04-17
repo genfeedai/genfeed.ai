@@ -1,1 +1,4 @@
-export type { Prompt as PromptDocument } from '@genfeedai/prisma';
+export type {
+  Prompt,
+  Prompt as PromptDocument,
+} from '@genfeedai/prisma';

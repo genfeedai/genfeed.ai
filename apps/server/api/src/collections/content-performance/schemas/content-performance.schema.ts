@@ -1,4 +1,7 @@
-export type { ContentPerformance as ContentPerformanceDocument } from '@genfeedai/prisma';
+export type {
+  ContentPerformance,
+  ContentPerformance as ContentPerformanceDocument,
+} from '@genfeedai/prisma';
 
 export enum PerformanceSource {
   API = 'api',

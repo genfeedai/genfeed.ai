@@ -85,7 +85,7 @@ export class PostsController extends BaseCRUDController<
     public readonly postsService: PostsService,
     public readonly loggerService: LoggerService,
   ) {
-    super(loggerService, postsService, PostSerializer, PostModel.name, [
+    super(loggerService, postsService, PostSerializer, 'Post', [
       'ingredients',
       'credential',
     ]);

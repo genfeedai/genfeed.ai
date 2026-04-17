@@ -44,7 +44,7 @@ export class LinksController extends BaseCRUDController<
     public readonly loggerService: LoggerService,
     @Optional() private readonly cacheService?: CacheService,
   ) {
-    super(loggerService, linksService, LinkSerializer, Link.name);
+    super(loggerService, linksService, LinkSerializer, 'Link');
   }
 
   /**

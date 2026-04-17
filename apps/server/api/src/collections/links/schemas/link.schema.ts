@@ -1,1 +1,4 @@
-export type { Link as LinkDocument } from '@genfeedai/prisma';
+export type {
+  Link,
+  Link as LinkDocument,
+} from '@genfeedai/prisma';

@@ -42,7 +42,7 @@ export class FoldersController extends BaseCRUDController<
     public readonly foldersService: FoldersService,
     public readonly loggerService: LoggerService,
   ) {
-    super(loggerService, foldersService, FolderSerializer, Folder.name);
+    super(loggerService, foldersService, FolderSerializer, 'Folder');
   }
 
   @Patch(':folderId')
