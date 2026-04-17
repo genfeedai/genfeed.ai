@@ -1,14 +1,9 @@
-import {
-  Setting,
-  type SettingDocument,
-} from '@api/collections/settings/schemas/setting.schema';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ParseMode } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronTrendSummaryNotificationsService } from '@workers/crons/trends/cron.trend-summary-notifications.service';
 
@@ -36,8 +31,10 @@ describe('CronTrendSummaryNotificationsService', () => {
     sendNotification: ReturnType<typeof vi.fn>;
     sendTelegramMessage: ReturnType<typeof vi.fn>;
   };
-  let settingModel: {
-    find: ReturnType<typeof vi.fn>;
+  let prismaService: {
+    setting: {
+      findMany: ReturnType<typeof vi.fn>;
+    };
   };
   let loggerService: {
     debug: ReturnType<typeof vi.fn>;
@@ -74,27 +71,25 @@ describe('CronTrendSummaryNotificationsService', () => {
     },
   ];
 
-  const mockSettings: Partial<SettingDocument>[] = [
+  const mockSettings = [
     {
       isDeleted: false,
       isTrendNotificationsEmail: true,
       isTrendNotificationsInApp: false,
       isTrendNotificationsTelegram: true,
       trendNotificationsEmailAddress: 'user@example.com',
-      trendNotificationsFrequency: 'hourly',
+      trendNotificationsFrequency: 'HOURLY',
       trendNotificationsMinViralScore: 70,
       trendNotificationsTelegramChatId: '123456789',
-      user: 'user-1' as unknown as SettingDocument['user'],
+      userId: 'user-1',
     },
   ];
 
   beforeEach(async () => {
-    settingModel = {
-      find: vi.fn().mockReturnValue({
-        exec: vi.fn().mockResolvedValue(mockSettings),
-        lean: vi.fn().mockReturnThis(),
-        populate: vi.fn().mockReturnThis(),
-      }),
+    prismaService = {
+      setting: {
+        findMany: vi.fn().mockResolvedValue(mockSettings),
+      },
     };
 
     trendsService = {
@@ -129,8 +124,8 @@ describe('CronTrendSummaryNotificationsService', () => {
       providers: [
         CronTrendSummaryNotificationsService,
         {
-          provide: getModelToken(Setting.name, DB_CONNECTIONS.AUTH),
-          useValue: settingModel,
+          provide: PrismaService,
+          useValue: prismaService,
         },
         { provide: TrendsService, useValue: trendsService },
         { provide: CacheService, useValue: cacheService },
@@ -156,8 +151,12 @@ describe('CronTrendSummaryNotificationsService', () => {
     it('should call sendTrendSummariesByFrequency with hourly frequency', async () => {
       await service.sendHourlyTrendSummaries();
 
-      expect(settingModel.find).toHaveBeenCalledWith(
-        expect.objectContaining({ trendNotificationsFrequency: 'hourly' }),
+      expect(prismaService.setting.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            trendNotificationsFrequency: 'HOURLY',
+          }),
+        }),
       );
     });
 
@@ -176,8 +175,12 @@ describe('CronTrendSummaryNotificationsService', () => {
     it('should call sendTrendSummariesByFrequency with daily frequency', async () => {
       await service.sendDailyTrendSummaries();
 
-      expect(settingModel.find).toHaveBeenCalledWith(
-        expect.objectContaining({ trendNotificationsFrequency: 'daily' }),
+      expect(prismaService.setting.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            trendNotificationsFrequency: 'DAILY',
+          }),
+        }),
       );
     });
   });
@@ -186,8 +189,12 @@ describe('CronTrendSummaryNotificationsService', () => {
     it('should call sendTrendSummariesByFrequency with weekly frequency', async () => {
       await service.sendWeeklyTrendSummaries();
 
-      expect(settingModel.find).toHaveBeenCalledWith(
-        expect.objectContaining({ trendNotificationsFrequency: 'weekly' }),
+      expect(prismaService.setting.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            trendNotificationsFrequency: 'WEEKLY',
+          }),
+        }),
       );
     });
   });
@@ -214,17 +221,13 @@ describe('CronTrendSummaryNotificationsService', () => {
     });
 
     it('should not send email if email notifications are disabled', async () => {
-      settingModel.find.mockReturnValue({
-        exec: vi.fn().mockResolvedValue([
-          {
-            ...mockSettings[0],
-            isTrendNotificationsEmail: false,
-            trendNotificationsEmailAddress: undefined,
-          },
-        ]),
-        lean: vi.fn().mockReturnThis(),
-        populate: vi.fn().mockReturnThis(),
-      });
+      prismaService.setting.findMany.mockResolvedValue([
+        {
+          ...mockSettings[0],
+          isTrendNotificationsEmail: false,
+          trendNotificationsEmailAddress: undefined,
+        },
+      ]);
 
       await service.sendHourlyTrendSummaries();
 
@@ -232,15 +235,9 @@ describe('CronTrendSummaryNotificationsService', () => {
     });
 
     it('should send in-app notification when in-app notifications are enabled', async () => {
-      settingModel.find.mockReturnValue({
-        exec: vi
-          .fn()
-          .mockResolvedValue([
-            { ...mockSettings[0], isTrendNotificationsInApp: true },
-          ]),
-        lean: vi.fn().mockReturnThis(),
-        populate: vi.fn().mockReturnThis(),
-      });
+      prismaService.setting.findMany.mockResolvedValue([
+        { ...mockSettings[0], isTrendNotificationsInApp: true },
+      ]);
 
       await service.sendHourlyTrendSummaries();
 
@@ -268,20 +265,17 @@ describe('CronTrendSummaryNotificationsService', () => {
 
   describe('error handling', () => {
     it('should continue processing other users when one user fails', async () => {
-      const secondSetting: Partial<SettingDocument> = {
-        isDeleted: false,
-        isTrendNotificationsEmail: true,
-        trendNotificationsEmailAddress: 'second@example.com',
-        trendNotificationsFrequency: 'hourly',
-        trendNotificationsMinViralScore: 70,
-        user: 'user-2' as unknown as SettingDocument['user'],
-      };
-
-      settingModel.find.mockReturnValue({
-        exec: vi.fn().mockResolvedValue([mockSettings[0], secondSetting]),
-        lean: vi.fn().mockReturnThis(),
-        populate: vi.fn().mockReturnThis(),
-      });
+      prismaService.setting.findMany.mockResolvedValue([
+        mockSettings[0],
+        {
+          isDeleted: false,
+          isTrendNotificationsEmail: true,
+          trendNotificationsEmailAddress: 'second@example.com',
+          trendNotificationsFrequency: 'HOURLY',
+          trendNotificationsMinViralScore: 70,
+          userId: 'user-2',
+        },
+      ]);
 
       notificationsService.sendEmail
         .mockRejectedValueOnce(new Error('First user failed'))
@@ -292,12 +286,8 @@ describe('CronTrendSummaryNotificationsService', () => {
       expect(loggerService.error).toHaveBeenCalledTimes(1);
     });
 
-    it('should return success: false when settingModel query throws', async () => {
-      settingModel.find.mockReturnValue({
-        exec: vi.fn().mockRejectedValue(new Error('DB error')),
-        lean: vi.fn().mockReturnThis(),
-        populate: vi.fn().mockReturnThis(),
-      });
+    it('should return success: false when prisma query throws', async () => {
+      prismaService.setting.findMany.mockRejectedValue(new Error('DB error'));
 
       // Should not throw (error handled internally)
       await expect(service.sendHourlyTrendSummaries()).resolves.not.toThrow();

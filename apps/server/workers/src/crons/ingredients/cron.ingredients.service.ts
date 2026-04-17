@@ -13,17 +13,16 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@workers/config/config.service';
-import { Types } from 'mongoose';
 
 /**
  * Type for aggregation result with metadataDoc lookup
  */
 interface IngredientWithMetadataDoc {
-  _id: Types.ObjectId;
+  _id: string;
   category: IngredientCategory;
-  metadata: Types.ObjectId;
+  metadata: string;
   metadataDoc: {
-    _id: Types.ObjectId;
+    _id: string;
   };
 }
 
@@ -186,9 +185,9 @@ export class CronIngredientsService {
       for (const ingredient of stuckIngredients.docs) {
         try {
           const ing = ingredient as unknown as {
-            _id: Types.ObjectId;
+            _id: string;
             category: IngredientCategory;
-            user: Types.ObjectId;
+            user: string;
           };
           const ingredientId = ing._id.toString();
           const keys =
@@ -230,7 +229,7 @@ export class CronIngredientsService {
           activitiesUpdated++;
         } catch (error: unknown) {
           this.logger.error(
-            `Failed to update activity for ingredient ${(ingredient as { _id: Types.ObjectId })._id}`,
+            `Failed to update activity for ingredient ${(ingredient as { _id: string })._id}`,
             error,
             context,
           );

@@ -1,8 +1,15 @@
 {
-  "extends": "@genfeedai/tsconfig/base.json",
   "compilerOptions": {
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "outDir": "dist",
-    "rootDir": "src"
+    "resolveJsonModule": true,
+    "rootDir": "src",
+    "skipLibCheck": true,
+    "strict": true,
+    "strictPropertyInitialization": false,
+    "target": "es2022"
   },
   "include": ["src"]
 }

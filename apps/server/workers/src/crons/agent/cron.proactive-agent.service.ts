@@ -10,10 +10,10 @@ import {
   AgentExecutionTrigger,
   AgentRunFrequency,
 } from '@genfeedai/enums';
+import type { AgentStrategy } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import type { AgentStrategy } from '@prisma/client';
 
 const MAX_CONSECUTIVE_FAILURES = 5;
 const MAX_STRATEGIES_PER_CYCLE = 20;

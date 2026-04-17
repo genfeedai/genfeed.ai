@@ -4,10 +4,10 @@ import { OrchestratorQueueService } from '@api/services/agent-campaign/orchestra
 import { TriggerEvaluatorQueueService } from '@api/services/agent-campaign/trigger-evaluator-queue.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { AgentCampaign } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import type { AgentCampaign } from '@prisma/client';
 
 const MAX_CAMPAIGNS_PER_CYCLE = 20;
 

@@ -5,10 +5,10 @@ import type { TriggerEvent } from '@api/collections/workflows/services/workflow-
 import { ConfigService } from '@api/config/config.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowStatus } from '@genfeedai/enums';
+import type { Workflow } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import type { Workflow } from '@prisma/client';
 
 /**
  * Social trigger node types that require polling.

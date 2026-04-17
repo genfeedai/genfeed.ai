@@ -5,6 +5,7 @@
     "@genfeedai/enums": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/interfaces": "workspace:*",
+    "@genfeedai/prisma": "workspace:*",
     "@genfeedai/workflows": "workspace:*"
   },
   "description": "Genfeed Workers Service (Cron Jobs)",

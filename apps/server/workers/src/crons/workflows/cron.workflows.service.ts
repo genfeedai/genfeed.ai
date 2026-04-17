@@ -7,10 +7,10 @@ import {
   WorkflowStepCategory,
   WorkflowTrigger,
 } from '@genfeedai/enums';
+import type { Workflow } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import type { Workflow } from '@prisma/client';
 import { GenerateArticleTask } from '@workers/crons/workflows/task-types/generate-article.task';
 import { GenerateImageTask } from '@workers/crons/workflows/task-types/generate-image.task';
 import { GenerateMusicTask } from '@workers/crons/workflows/task-types/generate-music.task';

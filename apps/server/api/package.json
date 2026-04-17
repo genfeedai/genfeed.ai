@@ -18,7 +18,7 @@
     "@genfeedai/prisma": "workspace:*",
     "@genfeedai/tools": "workspace:*",
     "@nestjs/event-emitter": "3.0.1",
-    "@prisma/client": "^6.9.0",
+    "@prisma/adapter-pg": "^7.7.0",
     "effect": "3.21.0",
     "openai": "6.34.0",
     "rss": "1.2.2"

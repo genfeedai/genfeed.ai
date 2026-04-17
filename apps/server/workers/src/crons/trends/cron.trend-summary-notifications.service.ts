@@ -3,11 +3,11 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ParseMode } from '@genfeedai/enums';
+import type { Setting } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import type { Setting } from '@prisma/client';
 
 interface TrendSummary {
   platform: string;
