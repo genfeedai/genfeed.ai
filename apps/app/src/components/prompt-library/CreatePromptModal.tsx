@@ -101,7 +101,7 @@ function CreatePromptModalComponent() {
         className="fixed inset-0 bg-black/50 z-[60]"
         onClick={closeCreateModal}
       />
-      <div className="fixed inset-10 md:inset-20 lg:inset-x-40 bg-[var(--card)] rounded-lg shadow-xl z-[60] flex flex-col overflow-hidden">
+      <div className="fixed inset-10 z-[60] flex flex-col overflow-hidden rounded-xl bg-[var(--card)] shadow-xl md:inset-20 lg:inset-x-40">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
           <h2 className="text-lg font-semibold text-[var(--foreground)]">

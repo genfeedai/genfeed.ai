@@ -368,7 +368,7 @@ export default function DropdownTags({
           zIndex: 9999,
         }}
         className={cn(
-          'w-80 rounded-lg bg-card border border-white/[0.08] shadow-lg',
+          'w-80 rounded-md border border-white/[0.08] bg-card shadow-lg',
         )}
       >
         {/* Search Input */}

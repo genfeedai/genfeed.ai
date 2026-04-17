@@ -351,13 +351,13 @@ export default function DropdownField({
             dropdownDirection === 'down' && 'top-full mt-2',
             dropdownDirection === 'left' && 'top-full mt-2',
             dropdownDirection === 'right' && 'top-full mt-2',
-            'menu rounded-lg shadow-2xl bg-[#141414] border border-white/[0.08]',
+            'menu rounded-md border border-border bg-popover text-popover-foreground shadow-md',
             'w-80 max-h-[60vh] overflow-hidden p-2',
           )}
         >
           <div className="overflow-y-auto max-h-[calc(60vh-3rem)] space-y-1">
             {isSearchEnabled && (
-              <div className="sticky top-0 bg-[#141414] pb-2 z-10">
+              <div className="sticky top-0 z-10 bg-popover pb-2">
                 <div className="relative p-1">
                   <Input
                     value={searchTerm}
@@ -387,7 +387,7 @@ export default function DropdownField({
             )}
 
             {tabs && tabs.length > 0 && (
-              <div className="mb-2 flex items-center gap-2 border-b border-white/[0.08] px-3 pb-2">
+              <div className="mb-2 flex items-center gap-2 border-b border-border px-3 pb-2">
                 {tabs.map((tab) => (
                   <Button
                     key={tab.id}
@@ -398,10 +398,10 @@ export default function DropdownField({
                       setActiveTab(tab.id);
                     }}
                     className={cn(
-                      'px-3 py-1.5 text-xs font-medium rounded-full transition-colors',
+                      'rounded-md px-3 py-1.5 text-xs font-medium transition-colors',
                       activeTab === tab.id
-                        ? 'bg-primary/10 text-primary'
-                        : 'text-foreground/70 hover:bg-background',
+                        ? 'bg-accent text-accent-foreground'
+                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
                     )}
                   >
                     {tab.label}

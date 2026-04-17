@@ -1,5 +1,6 @@
 import { ButtonVariant } from '@genfeedai/enums';
 import { Button } from '@ui/primitives/button';
+import { Input } from '@ui/primitives/input';
 import {
   Select,
   SelectContent,
@@ -180,12 +181,11 @@ export function IdeaDraftPage({
         <label className="text-xs font-medium text-muted-foreground">
           Source URL (optional)
         </label>
-        <input
+        <Input
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://..."
-          className="rounded border border-border bg-input px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
         />
       </div>
 
@@ -198,7 +198,7 @@ export function IdeaDraftPage({
           onChange={(e) => handleContentChange(e.target.value)}
           placeholder="Highlighted text or idea to save…"
           rows={5}
-          className="rounded border border-border bg-input px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+          className="resize-none"
         />
       </div>
 
@@ -206,12 +206,11 @@ export function IdeaDraftPage({
         <label className="text-xs font-medium text-muted-foreground">
           Title
         </label>
-        <input
+        <Input
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Auto-generated from content…"
-          className="rounded border border-border bg-input px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
         />
       </div>
 
@@ -223,7 +222,7 @@ export function IdeaDraftPage({
           value={platform}
           onValueChange={(value) => setPlatform(value as SocialPlatform)}
         >
-          <SelectTrigger className="rounded border border-border bg-input px-2 py-1.5 text-sm text-foreground">
+          <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -241,7 +240,7 @@ export function IdeaDraftPage({
         variant={ButtonVariant.DEFAULT}
         onClick={handleSave}
         disabled={!content.trim()}
-        className="mt-auto rounded shadow"
+        className="mt-auto"
       >
         Save to Drafts →
       </Button>

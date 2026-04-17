@@ -150,7 +150,7 @@ function ModelCard({ model, onSelect, isRecent }: ModelCardProps) {
       variant={ButtonVariant.UNSTYLED}
       withWrapper={false}
       onClick={() => onSelect(model)}
-      className="group w-full rounded-lg border border-border bg-card text-left transition hover:border-primary overflow-hidden"
+      className="group w-full rounded-xl border border-border bg-card text-left transition hover:border-primary overflow-hidden"
     >
       <div className="flex items-stretch">
         {/* Thumbnail or placeholder - full height */}
@@ -385,7 +385,7 @@ function ModelBrowserModalComponent({
       <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose} />
 
       {/* Modal */}
-      <div className="fixed inset-4 z-50 flex flex-col overflow-hidden rounded-lg bg-card shadow-xl md:inset-10">
+      <div className="fixed inset-4 z-50 flex flex-col overflow-hidden rounded-xl bg-card shadow-xl md:inset-10">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-3">

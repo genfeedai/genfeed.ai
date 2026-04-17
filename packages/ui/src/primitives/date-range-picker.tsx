@@ -96,18 +96,18 @@ export default function DateRangePicker({
 
   return (
     <div className={cn('flex items-center gap-2', className)}>
-      <div className="inline-flex overflow-hidden rounded-lg border border-white/[0.08]">
+      <div className="inline-flex overflow-hidden rounded-md border border-border bg-background shadow-sm">
         {PRESET_OPTIONS.map((preset, index) => (
           <Button
             key={preset}
             onClick={() => handlePresetChange(preset)}
             variant={ButtonVariant.UNSTYLED}
             className={cn(
-              'h-9 border-0 px-4 text-sm',
-              index > 0 && 'border-l border-white/[0.08]',
+              'h-9 rounded-none border-0 px-4 text-sm',
+              index > 0 && 'border-l border-border',
               selectedPreset === preset
-                ? 'bg-white text-black hover:bg-white/90'
-                : 'bg-transparent text-white/80 hover:bg-white/5 hover:text-white',
+                ? 'bg-accent text-accent-foreground'
+                : 'bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground',
             )}
             withWrapper={false}
           >

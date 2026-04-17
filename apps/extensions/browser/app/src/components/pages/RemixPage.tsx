@@ -229,7 +229,7 @@ export function RemixPage({
             {remixItems.map((item, i) => (
               <div
                 key={item}
-                className="rounded border border-border bg-card p-3 text-sm text-foreground"
+                className="rounded-xl border border-border bg-card p-3 text-sm text-foreground"
               >
                 <p className="mb-2">{item}</p>
                 <div className="flex gap-2">
@@ -239,7 +239,7 @@ export function RemixPage({
                     onClick={() => {
                       void handleCopy(item, i);
                     }}
-                    className="flex-1 rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20"
+                    className="flex-1 rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20"
                   >
                     {copiedIndex === i ? '✓ Copied' : 'Copy'}
                   </Button>
@@ -247,7 +247,7 @@ export function RemixPage({
                     type="button"
                     variant={ButtonVariant.GHOST}
                     onClick={() => handleSaveDraft(item)}
-                    className="flex-1 rounded bg-muted px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/80"
+                    className="flex-1 rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground hover:bg-muted/80"
                   >
                     Save Draft
                   </Button>
@@ -256,7 +256,7 @@ export function RemixPage({
             ))}
           </div>
         ) : (
-          <div className="rounded border border-border bg-card p-3">
+          <div className="rounded-xl border border-border bg-card p-3">
             <p className="text-sm text-foreground whitespace-pre-wrap">
               {result.rawContent}
             </p>
@@ -264,7 +264,7 @@ export function RemixPage({
               type="button"
               variant={ButtonVariant.GHOST}
               onClick={() => handleCopy(result.rawContent ?? '', 0)}
-              className="mt-2 w-full rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20"
+              className="mt-2 w-full rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20"
             >
               {copiedIndex === 0 ? '✓ Copied' : 'Copy'}
             </Button>
@@ -293,7 +293,6 @@ export function RemixPage({
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://..."
-          className="rounded border border-border bg-input px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
         />
       </div>
 
@@ -306,7 +305,7 @@ export function RemixPage({
           onChange={(e) => setContent(e.target.value)}
           placeholder="Paste or type the content you want to remix…"
           rows={6}
-          className="rounded border border-border bg-input px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+          className="resize-none"
         />
       </div>
 
@@ -318,7 +317,7 @@ export function RemixPage({
           value={platform}
           onValueChange={(value) => setPlatform(value as SocialPlatform)}
         >
-          <SelectTrigger className="rounded border border-border bg-input px-2 py-1.5 text-sm text-foreground">
+          <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -336,7 +335,7 @@ export function RemixPage({
         variant={ButtonVariant.DEFAULT}
         onClick={handleRemix}
         disabled={!content.trim()}
-        className="mt-auto rounded shadow"
+        className="mt-auto"
       >
         Remix →
       </Button>

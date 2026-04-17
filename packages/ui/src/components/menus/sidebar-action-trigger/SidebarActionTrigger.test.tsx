@@ -14,10 +14,15 @@ describe('SidebarActionTrigger', () => {
       />,
     );
 
-    expect(
-      screen.getByRole('button', { name: 'New Task' }),
-    ).toBeInTheDocument();
+    const button = screen.getByRole('button', { name: 'New Task' });
+
+    expect(button).toBeInTheDocument();
     expect(screen.getByText('⌘⇧N')).toHaveClass('opacity-0');
-    expect(screen.getByText('New Task')).toHaveClass('flex-1');
+    expect(screen.getByText('New Task')).toHaveClass('min-w-0', 'flex-1');
+    expect(button).toHaveClass(
+      'rounded',
+      'hover:bg-white/[0.04]',
+      'focus-visible:ring-offset-background',
+    );
   });
 });

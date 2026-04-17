@@ -32,7 +32,7 @@ const Card = memo(function Card({
   onClick,
 }: CardProps) {
   const cardClasses = cn(
-    'relative overflow-hidden text-left transition-[border-color,background-color,box-shadow,transform] duration-200 ease-out',
+    'relative overflow-hidden rounded-xl text-left transition-[border-color,background-color,box-shadow,transform] duration-200 ease-out',
     VARIANT_CLASSES[variant],
     figure && 'flex flex-row',
     onClick &&

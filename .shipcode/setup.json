@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "setupCommands": [
+    "bun install --frozen-lockfile"
+  ],
+  "verifyCommands": [
+    "bun run test",
+    "bun run build"
+  ],
+  "envFiles": [],
+  "setupBeforeVerify": false,
+  "testingContext": "Detected bun package scripts for verification. Confirm these commands match the repo's real test workflow."
+}

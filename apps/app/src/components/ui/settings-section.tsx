@@ -63,7 +63,7 @@ export function InfoBox({
   return (
     <div
       className={cn(
-        'rounded-lg border p-4',
+        'rounded-xl border p-4',
         isWarning
           ? 'border-amber-500/30 bg-amber-500/10'
           : 'border-border bg-secondary/30',
@@ -137,12 +137,12 @@ export function LinkCard({
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
-        'flex items-center gap-3 rounded-lg border border-border transition hover:border-primary/50 hover:bg-secondary/30',
+        'flex items-center gap-3 rounded-xl border border-border transition hover:border-primary/50 hover:bg-secondary/30',
         prominent ? 'p-4' : 'p-3',
       )}
     >
       {prominent ? (
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
           <Icon className="h-5 w-5 text-primary" />
         </div>
       ) : (

@@ -47,7 +47,7 @@ function TemplateCard({
   isLoading: boolean;
 }) {
   return (
-    <div className="group relative flex flex-col overflow-hidden rounded-lg border border-border bg-card transition-all hover:border-primary/50 hover:shadow-lg">
+    <div className="group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card transition-all hover:border-primary/50 hover:shadow-lg">
       {/* Thumbnail */}
       <div className="relative aspect-video w-full bg-secondary">
         {template.thumbnail ? (
@@ -317,7 +317,7 @@ function TemplatesModalComponent() {
       <div className="fixed inset-0 z-50 bg-black/50" onClick={closeModal} />
 
       {/* Modal */}
-      <div className="fixed inset-4 z-50 flex overflow-hidden rounded-lg bg-card shadow-xl md:inset-8 lg:inset-12">
+      <div className="fixed inset-4 z-50 flex overflow-hidden rounded-xl bg-card shadow-xl md:inset-8 lg:inset-12">
         {/* Sidebar */}
         <div className="flex w-64 flex-shrink-0 flex-col border-r border-border bg-card">
           {/* Sidebar Header */}

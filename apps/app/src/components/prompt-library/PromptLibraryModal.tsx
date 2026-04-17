@@ -62,7 +62,7 @@ function PromptCard({
 
   return (
     <div
-      className="group relative cursor-pointer rounded-lg border border-border bg-background p-4 transition hover:border-primary"
+      className="group relative cursor-pointer rounded-xl border border-border bg-background p-4 transition hover:border-primary"
       onClick={() => onSelect(item)}
     >
       {/* Thumbnail or placeholder */}
@@ -235,7 +235,7 @@ function PromptLibraryModalComponent() {
   return (
     <>
       <div className="fixed inset-0 z-50 bg-black/50" onClick={closeModal} />
-      <div className="fixed inset-4 z-50 flex flex-col overflow-hidden rounded-lg bg-card shadow-xl md:inset-10">
+      <div className="fixed inset-4 z-50 flex flex-col overflow-hidden rounded-xl bg-card shadow-xl md:inset-10">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-3">

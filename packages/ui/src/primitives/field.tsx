@@ -6,6 +6,7 @@ import {
   useId,
 } from 'react';
 import { cn } from '../lib/utils';
+import { Label } from './label';
 
 export interface FieldElementProps {
   id: string;
@@ -37,44 +38,50 @@ export default function Field({
 }: FieldProps) {
   const generatedId = useId();
   const id = htmlFor || generatedId;
+  const helpTextId = helpText ? `${id}-help` : undefined;
+  const descriptionId = description ? `${id}-description` : undefined;
+  const errorId = error ? `${id}-error` : undefined;
+  const describedBy = [helpTextId, descriptionId, errorId]
+    .filter(Boolean)
+    .join(' ');
 
   return (
-    <div className={cn('flex w-full flex-col gap-1 mb-5', className)}>
-      <label htmlFor={id} className="floating-label">
-        {label && (
-          <span className="text-sm font-medium capitalize">
-            {label}
-            {isRequired && <span className="text-error ml-1">*</span>}
-          </span>
-        )}
+    <div className={cn('flex w-full flex-col gap-1.5', className)}>
+      {label ? (
+        <Label htmlFor={id}>
+          {label}
+          {isRequired ? <span className="ml-1 text-destructive">*</span> : null}
+        </Label>
+      ) : null}
 
-        {isValidElement(children)
-          ? cloneElement(children as ReactElement<FieldElementProps>, {
-              'aria-describedby': error ? `${id}-error` : undefined,
-              'aria-invalid': error ? 'true' : 'false',
-              id,
-              ...(typeof (children as ReactElement).type !== 'string' && {
-                hasError: !!error,
-              }),
-            })
-          : children}
-      </label>
+      {isValidElement(children)
+        ? cloneElement(children as ReactElement<FieldElementProps>, {
+            'aria-describedby': describedBy || undefined,
+            'aria-invalid': error ? 'true' : 'false',
+            id,
+            ...(typeof (children as ReactElement).type !== 'string' && {
+              hasError: !!error,
+            }),
+          })
+        : children}
 
-      {helpText && (
-        <div className="text-xs text-foreground/70 mt-1">{helpText}</div>
-      )}
+      {helpText ? (
+        <p id={helpTextId} className="text-sm text-muted-foreground">
+          {helpText}
+        </p>
+      ) : null}
 
-      {description && (
-        <p className="text-xs text-foreground/70 mt-1 float-end">
+      {description ? (
+        <p id={descriptionId} className="text-sm text-muted-foreground">
           {description}
         </p>
-      )}
+      ) : null}
 
-      {error && (
-        <div id={`${id}-error`} className="text-error text-xs mt-1">
+      {error ? (
+        <p id={errorId} className="text-sm text-destructive">
           {error}
-        </div>
-      )}
+        </p>
+      ) : null}
     </div>
   );
 }

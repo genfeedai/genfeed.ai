@@ -223,7 +223,7 @@ export function ReplyPage({
           {replies.map((reply, i) => (
             <div
               key={reply.text}
-              className="rounded border border-border bg-card p-3"
+              className="rounded-xl border border-border bg-card p-3"
             >
               <p className="mb-2 text-sm text-foreground">{reply.text}</p>
               <Button
@@ -232,7 +232,7 @@ export function ReplyPage({
                 onClick={() => {
                   void handleCopy(reply.text, i);
                 }}
-                className="w-full rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20"
+                className="w-full rounded-md bg-primary/10 px-2 py-1 text-xs font-medium text-primary hover:bg-primary/20"
               >
                 {copiedIndex === i ? '✓ Copied' : 'Copy reply'}
               </Button>
@@ -276,7 +276,7 @@ export function ReplyPage({
           onChange={(e) => setPostContent(e.target.value)}
           placeholder="Paste the post content here…"
           rows={5}
-          className="rounded border border-border bg-input px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none"
+          className="resize-none"
         />
       </div>
 
@@ -290,7 +290,6 @@ export function ReplyPage({
             value={author}
             onChange={(e) => setAuthor(e.target.value)}
             placeholder="@username"
-            className="rounded border border-border bg-input px-2 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
       </div>
@@ -304,14 +303,14 @@ export function ReplyPage({
             <Button
               key={t.value}
               type="button"
-              variant={ButtonVariant.UNSTYLED}
+              variant={
+                tone === t.value
+                  ? ButtonVariant.SECONDARY
+                  : ButtonVariant.OUTLINE
+              }
               onClick={() => setTone(t.value)}
               title={t.description}
-              className={`rounded border px-2 py-1.5 text-xs font-medium transition-colors ${
-                tone === t.value
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border bg-muted text-muted-foreground hover:border-primary/50 hover:text-foreground'
-              }`}
+              className="text-xs"
             >
               {t.label}
             </Button>
@@ -324,7 +323,7 @@ export function ReplyPage({
         variant={ButtonVariant.DEFAULT}
         onClick={handleGenerate}
         disabled={!postContent.trim()}
-        className="mt-auto rounded shadow"
+        className="mt-auto"
       >
         Generate replies →
       </Button>

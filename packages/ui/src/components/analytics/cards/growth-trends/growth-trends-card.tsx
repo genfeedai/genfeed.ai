@@ -18,9 +18,11 @@ export function GrowthTrendsCard({
   isLoading = false,
   className = '',
 }: GrowthTrendsCardProps) {
+  const cardClassName = `rounded-xl border border-border bg-card p-6 ${className}`;
+
   if (isLoading) {
     return (
-      <div className={`bg-card border border-border p-6 ${className}`}>
+      <div className={cardClassName}>
         <div className="animate-pulse">
           <div className="h-6 bg-muted w-1/3 mb-4" />
           <div className="space-y-4">
@@ -34,7 +36,7 @@ export function GrowthTrendsCard({
 
   if (!growthData) {
     return (
-      <div className={`bg-card border border-border p-6 ${className}`}>
+      <div className={cardClassName}>
         <h3 className="text-lg font-semibold text-foreground mb-4">
           Growth Trends
         </h3>
@@ -81,7 +83,7 @@ export function GrowthTrendsCard({
   };
 
   return (
-    <div className={`bg-card border border-border p-6 ${className}`}>
+    <div className={cardClassName}>
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-foreground">Growth Trends</h3>
         <div className="flex items-center gap-2">
@@ -183,7 +185,7 @@ export function GrowthTrendsCard({
       </div>
 
       {/* Best Day */}
-      <div className="bg-purple-50 dark:bg-purple-900/20 p-4">
+      <div className="rounded-lg bg-purple-50 p-4 dark:bg-purple-900/20">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-purple-900 dark:text-purple-100 mb-1">

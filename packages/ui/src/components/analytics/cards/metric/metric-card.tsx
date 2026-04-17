@@ -48,7 +48,8 @@ function getChangeColor(change: number | undefined): string {
     : 'text-red-600 dark:text-red-400';
 }
 
-const BASE_CARD_CLASSES = 'bg-card border border-border p-6 text-left w-full';
+const BASE_CARD_CLASSES =
+  'w-full rounded-xl border border-border bg-card p-6 text-left';
 const CLICKABLE_CLASSES =
   'cursor-pointer hover:shadow-lg hover:border-purple-300 dark:hover:border-purple-700 transition-all';
 
@@ -82,7 +83,7 @@ export function MetricCard({
         <div className="animate-pulse">
           <div className="flex items-start justify-between mb-4">
             <div className="h-4 bg-muted w-24" />
-            <div className="w-10 h-10 bg-muted rounded-full" />
+            <div className="h-10 w-10 rounded-full bg-muted" />
           </div>
           <div className="h-8 bg-muted w-32 mb-2" />
           <div className="h-4 bg-muted w-20" />
@@ -107,7 +108,7 @@ export function MetricCard({
           </p>
         </div>
         {Icon && (
-          <div className={cn('p-2 bg-muted', iconColor)}>
+          <div className={cn('rounded-md bg-muted p-2', iconColor)}>
             <Icon className="w-6 h-6" />
           </div>
         )}

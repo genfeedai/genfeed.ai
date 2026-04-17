@@ -133,7 +133,7 @@ function PromptPickerComponent({ onSelect, label }: PromptPickerProps) {
         createPortal(
           <div
             ref={dropdownRef}
-            className="fixed z-[100] w-64 overflow-hidden rounded-lg border border-border bg-card shadow-lg"
+            className="fixed z-[100] w-64 overflow-hidden rounded-md border border-border bg-card shadow-lg"
             style={{ left: dropdownPosition.left, top: dropdownPosition.top }}
           >
             {/* Header */}

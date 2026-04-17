@@ -49,7 +49,7 @@ function ModalComponent({
 
       {/* Modal */}
       <div
-        className={`fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] w-[calc(100%-2rem)] ${maxWidth} -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg bg-card shadow-xl ${className ?? ''}`}
+        className={`fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] w-[calc(100%-2rem)] ${maxWidth} -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl bg-card shadow-xl ${className ?? ''}`}
       >
         {showHeader && (
           <div className="flex items-center justify-between border-b border-border px-6 py-4">

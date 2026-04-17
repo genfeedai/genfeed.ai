@@ -300,9 +300,9 @@
     }
   },
   "dependencies": {
-    "@clerk/clerk-js": "6.7.2",
+    "@clerk/clerk-js": "6.7.3",
     "@genfeedai/ui": "workspace:*",
-    "@sentry/node": "10.48.0"
+    "@sentry/node": "10.49.0"
   },
   "description": "Content copilot for Genfeed.ai campaigns in VS Code/Cursor",
   "devDependencies": {

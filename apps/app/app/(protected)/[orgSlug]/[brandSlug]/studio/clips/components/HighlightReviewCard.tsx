@@ -186,7 +186,7 @@ export default function HighlightReviewCard({
         value={highlight.summary}
         onChange={(e) => onScriptEdit(e.target.value)}
         rows={3}
-        className="w-full resize-none rounded-lg border border-zinc-700 bg-zinc-800/30 px-3 py-2 text-xs text-zinc-300 outline-none transition-colors placeholder-zinc-600 focus:border-indigo-500"
+        className="w-full resize-none text-xs"
         placeholder="Edit the script that will be read by the avatar..."
       />
 
@@ -195,7 +195,7 @@ export default function HighlightReviewCard({
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {/* Platform selector */}
           <Select value={platform} onValueChange={setPlatform}>
-            <SelectTrigger className="h-auto w-auto rounded border border-zinc-700 bg-zinc-800/50 px-2 py-1 text-[11px] text-zinc-300 outline-none focus:border-indigo-500">
+            <SelectTrigger className="h-7 w-auto px-2 py-1 text-[11px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -209,7 +209,7 @@ export default function HighlightReviewCard({
 
           {/* Tone selector */}
           <Select value={tone} onValueChange={setTone}>
-            <SelectTrigger className="h-auto w-auto rounded border border-zinc-700 bg-zinc-800/50 px-2 py-1 text-[11px] text-zinc-300 outline-none focus:border-indigo-500">
+            <SelectTrigger className="h-7 w-auto px-2 py-1 text-[11px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

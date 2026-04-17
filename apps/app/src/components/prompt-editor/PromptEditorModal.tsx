@@ -51,7 +51,7 @@ function PromptEditorModalComponent() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div
-        className="flex flex-col w-full max-w-3xl max-h-[80vh] bg-[var(--card)] border border-[var(--border)] rounded-lg shadow-xl"
+        className="flex max-h-[80vh] w-full max-w-3xl flex-col rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-xl"
         onKeyDown={handleKeyDown}
       >
         {/* Header */}

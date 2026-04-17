@@ -257,7 +257,7 @@ export function Dropdown({
           ...(maxWidth && { maxWidth }),
         }}
       >
-        <div className="overflow-hidden rounded-lg border border-border bg-popover p-1.5 text-card-foreground shadow-lg">
+        <div className="overflow-hidden rounded-md border border-border bg-popover p-1.5 text-popover-foreground shadow-md">
           {children}
         </div>
       </div>,

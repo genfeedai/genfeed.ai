@@ -29,9 +29,11 @@ export function QuickAnalyticsPreview({
   className = '',
   title = 'Analytics Overview',
 }: QuickAnalyticsPreviewProps) {
+  const cardClassName = `rounded-xl border border-border bg-card p-6 ${className}`;
+
   if (isLoading) {
     return (
-      <div className={`bg-card border border-border p-6 ${className}`}>
+      <div className={cardClassName}>
         <div className="animate-pulse">
           <div className="h-6 bg-muted w-1/3 mb-6" />
           <div className="grid grid-cols-3 gap-4 mb-6">
@@ -48,7 +50,7 @@ export function QuickAnalyticsPreview({
 
   if (!data) {
     return (
-      <div className={`bg-card border border-border p-6 ${className}`}>
+      <div className={cardClassName}>
         <div className="flex items-center gap-2 mb-6">
           <HiChartBarSquare className="w-4 h-4 text-purple-600" />
           <h3 className="text-lg font-semibold text-foreground">{title}</h3>
@@ -59,7 +61,7 @@ export function QuickAnalyticsPreview({
           </p>
           <Link
             href={moreLink}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium transition-colors"
+            className="inline-flex items-center gap-2 rounded-md bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-700"
           >
             Go to Analytics
             <HiArrowRight className="w-4 h-4" />
@@ -114,7 +116,7 @@ export function QuickAnalyticsPreview({
   ];
 
   return (
-    <div className={`bg-card border border-border p-6 ${className}`}>
+    <div className={cardClassName}>
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
@@ -127,7 +129,10 @@ export function QuickAnalyticsPreview({
       {/* Quick Stats Grid */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         {quickStats.map((stat) => (
-          <div key={stat.label} className="bg-muted p-4 border border-border">
+          <div
+            key={stat.label}
+            className="rounded-lg border border-border bg-muted p-4"
+          >
             <div className="flex items-center gap-2 mb-2">
               <stat.icon className={`w-4 h-4 ${stat.color}`} />
               <p className="text-xs text-muted-foreground">{stat.label}</p>
@@ -147,7 +152,7 @@ export function QuickAnalyticsPreview({
       </div>
 
       {/* Mini Trend Chart */}
-      <div className="mb-6 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 p-4 border border-purple-100 dark:border-purple-900/50">
+      <div className="mb-6 rounded-lg border border-purple-100 bg-gradient-to-br from-purple-50 to-blue-50 p-4 dark:border-purple-900/50 dark:from-purple-900/20 dark:to-blue-900/20">
         <p className="text-sm font-medium text-foreground/80 mb-3">
           Views Trend
         </p>
@@ -192,7 +197,7 @@ export function QuickAnalyticsPreview({
 
       {/* Best Performing Platform */}
       {data.bestPerformingPlatform && (
-        <div className="mb-6 bg-green-50 dark:bg-green-900/20 p-3 border border-green-200 dark:border-green-900/50">
+        <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-900/50 dark:bg-green-900/20">
           <div className="flex items-center justify-between">
             <p className="text-sm font-medium text-green-900 dark:text-green-100">
               Best Performing Platform
@@ -208,7 +213,7 @@ export function QuickAnalyticsPreview({
       {/* View More Button */}
       <Link
         href={moreLink}
-        className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium transition-colors"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-purple-600 px-4 py-3 text-sm font-medium text-white transition-colors hover:bg-purple-700"
       >
         View Detailed Analytics
         <HiArrowRight className="w-4 h-4" />

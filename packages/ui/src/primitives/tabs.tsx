@@ -26,7 +26,7 @@ function getTabsTriggerClassName(className?: string) {
     'data-[variant=pills]:data-[state=active]:bg-white/[0.1] data-[variant=pills]:data-[state=active]:text-white data-[variant=pills]:data-[state=active]:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]',
     'data-[variant=underline]:border-b-2 data-[variant=underline]:border-transparent data-[variant=underline]:px-4 data-[variant=underline]:py-2.5',
     'data-[variant=underline]:text-foreground/60 data-[variant=underline]:hover:text-foreground data-[variant=underline]:data-[state=active]:border-primary data-[variant=underline]:data-[state=active]:text-primary',
-    'data-[variant=segmented]:rounded-lg data-[variant=segmented]:px-4 data-[variant=segmented]:py-2',
+    'data-[variant=segmented]:rounded-md data-[variant=segmented]:px-4 data-[variant=segmented]:py-2',
     'data-[variant=segmented]:text-muted-foreground data-[variant=segmented]:hover:text-foreground data-[variant=segmented]:data-[state=active]:bg-background data-[variant=segmented]:data-[state=active]:text-foreground data-[variant=segmented]:data-[state=active]:shadow-sm',
     'data-[size=sm]:text-xs',
     'data-[size=sm]:data-[variant=pills]:min-h-8 data-[size=sm]:data-[variant=pills]:px-3 data-[size=sm]:data-[variant=pills]:py-1.5',

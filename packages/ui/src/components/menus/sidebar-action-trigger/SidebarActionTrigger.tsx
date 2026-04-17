@@ -30,14 +30,18 @@ export default function SidebarActionTrigger({
       onClick={onClick}
       ariaLabel={ariaLabel ?? label}
       className={cn(
-        'group flex h-9 w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-white/80 transition-colors duration-200 hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60',
+        'group relative flex h-9 w-full flex-row items-center gap-3 rounded px-3 py-2 text-left text-white/80 transition',
+        'hover:bg-white/[0.04]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
         className,
       )}
     >
-      <span className="text-white/80 transition-colors duration-200 group-hover:text-white">
+      <span className="flex h-4 w-4 items-center justify-center text-white/80 transition-all duration-200 group-hover:scale-105 group-hover:text-white">
         {icon}
       </span>
-      <span className="flex-1 text-sm font-medium text-white/90">{label}</span>
+      <span className="min-w-0 flex-1 truncate text-sm font-medium text-white/90 transition-colors duration-200">
+        {label}
+      </span>
       <Kbd
         variant="ghost"
         className="ml-auto text-[11px] opacity-0 transition-opacity duration-200 group-hover:text-white/50 group-hover:opacity-100"

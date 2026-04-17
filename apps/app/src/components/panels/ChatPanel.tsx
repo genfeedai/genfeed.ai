@@ -153,7 +153,7 @@ function ChatPanelComponent() {
   if (!isChatOpen) return null;
 
   return (
-    <div className="absolute right-4 top-4 bottom-4 w-[400px] bg-background border border-border rounded-lg shadow-xl flex flex-col z-50">
+    <div className="absolute bottom-4 right-4 top-4 z-50 flex w-[400px] flex-col rounded-xl border border-border bg-background shadow-xl">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <div className="flex items-center gap-2">

@@ -176,14 +176,24 @@ function PlainTextareaInner<T extends FieldValues = FieldValues>({
 }
 
 function ControlledTextareaInner<T extends FieldValues = FieldValues>({
+  className,
   externalRef,
   fieldName,
   fieldOnBlur,
   fieldOnChange,
   fieldRef,
+  hasError = false,
+  isDisabled,
+  isReadOnly,
+  isRequired,
   maxHeight = 256,
   onBlur,
   onChange,
+  onFocus,
+  onKeyDown,
+  disabled,
+  required,
+  rows = 1,
   textareaRef,
   value,
   ...props
@@ -252,10 +262,10 @@ function ControlledTextareaInner<T extends FieldValues = FieldValues>({
       className={cn(
         fieldControlClassName,
         'min-h-textarea h-auto resize-y',
-        props.hasError && 'border-destructive focus-visible:ring-destructive',
-        props.className,
+        hasError && 'border-destructive focus-visible:ring-destructive',
+        className,
       )}
-      disabled={props.isDisabled}
+      disabled={isDisabled ?? disabled}
       name={fieldName}
       onBlur={(event) => {
         fieldOnBlur?.();
@@ -270,25 +280,36 @@ function ControlledTextareaInner<T extends FieldValues = FieldValues>({
           isUserInputRef.current = false;
         }, 0);
       }}
-      onFocus={props.onFocus}
-      onKeyDown={props.onKeyDown}
-      placeholder={props.placeholder}
-      readOnly={props.isReadOnly}
+      onFocus={onFocus}
+      onKeyDown={onKeyDown}
+      readOnly={isReadOnly}
       ref={(element) => {
         assignRef(externalRef, element);
         assignRef(stableTextareaRef, element);
         fieldRef(element);
       }}
-      required={props.isRequired}
-      rows={props.rows ?? 1}
+      required={isRequired ?? required}
+      rows={rows}
       value={currentValue}
     />
   );
 }
 
 function RegisteredTextareaInner<T extends FieldValues = FieldValues>({
+  className,
+  disabled,
   externalRef,
+  hasError = false,
+  isDisabled,
+  isReadOnly,
+  isRequired,
+  onBlur,
+  onChange,
+  onFocus,
+  onKeyDown,
   register,
+  required,
+  rows = 1,
   textareaRef,
   ...props
 }: RegisteredTextareaInnerProps<T>) {
@@ -320,27 +341,27 @@ function RegisteredTextareaInner<T extends FieldValues = FieldValues>({
       className={cn(
         fieldControlClassName,
         'min-h-textarea h-auto resize-y',
-        props.hasError && 'border-destructive focus-visible:ring-destructive',
-        props.className,
+        hasError && 'border-destructive focus-visible:ring-destructive',
+        className,
       )}
-      disabled={props.isDisabled}
+      disabled={isDisabled ?? disabled}
       name={props.name}
       onChange={(event) => {
         registerOnChangeRef.current?.(event);
-        props.onChange?.(event);
+        onChange?.(event);
         adjustHeight();
       }}
-      onFocus={props.onFocus}
-      onBlur={props.onBlur}
-      onKeyDown={props.onKeyDown}
-      readOnly={props.isReadOnly}
+      onFocus={onFocus}
+      onBlur={onBlur}
+      onKeyDown={onKeyDown}
+      readOnly={isReadOnly}
       ref={(element) => {
         assignRef(externalRef, element);
         assignRef(stableTextareaRef, element);
         registerRef(element);
       }}
-      required={props.isRequired}
-      rows={props.rows ?? 1}
+      required={isRequired ?? required}
+      rows={rows}
     />
   );
 }

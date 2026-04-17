@@ -21,7 +21,7 @@ export default function CardIcon({
       })();
 
   return (
-    <div className={cn('rounded-lg', className)}>
+    <div className={cn('rounded-md', className)}>
       {iconElement}
       {label && <span className="sr-only">{label}</span>}
     </div>

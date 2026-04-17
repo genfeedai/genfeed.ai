@@ -14,7 +14,7 @@ import {
 import { cn } from '../lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-transparent bg-transparent text-sm font-normal normal-case tracking-normal transition-all duration-200 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
+  'inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-md border border-transparent bg-transparent text-sm font-medium normal-case tracking-normal transition-[color,box-shadow,background-color,border-color] duration-200 focus-visible:outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
   {
     defaultVariants: {
       size: ButtonSize.DEFAULT,
@@ -24,34 +24,36 @@ const buttonVariants = cva(
       size: {
         [ButtonSize.DEFAULT]: 'h-9 px-4 py-2',
         [ButtonSize.ICON]: 'h-9 w-9',
-        [ButtonSize.LG]: 'h-10 px-8',
+        [ButtonSize.LG]: 'h-10 px-6',
         [ButtonSize.PUBLIC]:
           'h-auto px-12 py-5 text-sm uppercase font-semibold',
         [ButtonSize.SM]: 'h-8 px-3 text-xs',
         [ButtonSize.XS]: 'h-7 px-2 text-xs',
       },
       variant: {
-        [ButtonVariant.BLACK]: 'bg-black text-white hover:bg-black/80',
+        [ButtonVariant.BLACK]:
+          'bg-black text-white shadow-sm hover:bg-black/90',
         [ButtonVariant.DEFAULT]:
-          'bg-white text-black hover:bg-white/90 hover:text-black',
+          'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90',
         [ButtonVariant.DESTRUCTIVE]:
-          'bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90',
+          'bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 focus-visible:ring-destructive/20',
         [ButtonVariant.GENERATE]:
-          'bg-white text-black hover:bg-white/90 hover:text-black',
+          'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90',
         [ButtonVariant.GHOST]:
-          'text-white/40 hover:text-white hover:bg-white/5',
+          'text-foreground hover:bg-accent hover:text-accent-foreground',
         [ButtonVariant.LINK]:
-          'text-white/60 underline-offset-4 hover:underline hover:text-white',
+          'border-transparent px-0 text-primary underline-offset-4 hover:underline hover:text-primary',
         [ButtonVariant.OUTLINE]:
-          'border border-white/20 bg-transparent text-white hover:border-white/40 hover:bg-white/5',
+          'border-input bg-background text-foreground shadow-sm hover:bg-accent hover:text-accent-foreground',
         [ButtonVariant.OUTLINE_WHITE]:
-          'border border-white bg-transparent text-white hover:bg-white/10',
+          'border-white bg-transparent text-white hover:bg-white/10',
         [ButtonVariant.SECONDARY]:
-          'bg-white/5 text-white border border-white/20 hover:bg-white/10 hover:border-white/40',
+          'bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80',
         [ButtonVariant.SOFT]:
-          'bg-white/5 text-white/80 border border-white/10 hover:bg-white/10 hover:text-white',
+          'bg-accent text-accent-foreground hover:bg-accent/80',
         [ButtonVariant.UNSTYLED]: '',
-        [ButtonVariant.WHITE]: 'bg-white text-black hover:bg-white/90',
+        [ButtonVariant.WHITE]:
+          'bg-white text-black shadow-sm hover:bg-white/90',
       },
     },
   },
@@ -178,7 +180,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     const resolvedVariant =
       variant && variant !== ButtonVariant.UNSTYLED
         ? variant
-        : ButtonVariant.SOFT;
+        : ButtonVariant.DEFAULT;
     const transformClass =
       TEXT_TRANSFORM_CLASSES[textTransform] ?? 'normal-case';
     const buttonClassName =
@@ -194,7 +196,6 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
               size: size ?? ButtonSize.DEFAULT,
               variant: resolvedVariant,
             }),
-            'transition-all duration-300',
             transformClass,
           );
 
