@@ -1,0 +1,3569 @@
+// ─────────────────────────────────────────────────────────────
+// Genfeed.ai — Prisma Schema (PostgreSQL)
+// Migrated from Mongoose/MongoDB — ownership integrity is #1 priority
+// ─────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ENUMS
+// ═══════════════════════════════════════════════════════════════
+
+enum AppSource {
+  GENFEED
+  GETSHAREABLE
+}
+
+enum OrganizationCategory {
+  CREATOR
+  BUSINESS
+  AGENCY
+}
+
+enum AssetScope {
+  USER
+  BRAND
+  ORGANIZATION
+  PUBLIC
+}
+
+enum FontFamily {
+  MONTSERRAT_BLACK
+  MONTSERRAT_BOLD
+  MONTSERRAT_REGULAR
+}
+
+enum IngredientCategory {
+  IMAGE
+  VIDEO
+  MUSIC
+  GIF
+  AVATAR
+  AUDIO
+  IMAGE_EDIT
+  VIDEO_EDIT
+  VOICE
+  INGREDIENT
+  TEXT
+  SOURCE
+}
+
+enum IngredientStatus {
+  DRAFT
+  PROCESSING
+  UPLOADED
+  GENERATED
+  VALIDATED
+  FAILED
+  ARCHIVED
+  REJECTED
+}
+
+enum TransformationCategory {
+  UPSCALED
+  RESIZED
+  ENHANCED
+  EXTENDED
+  INTERPOLATED
+  STABILIZED
+  BACKGROUND_REMOVED
+  STYLE_TRANSFERRED
+  FACE_SWAPPED
+  LIP_SYNCED
+  ANIMATED
+  IMAGE_TO_VIDEO
+  CLIPPED
+  MERGED
+  EDITED
+  REVERSED
+  MIRRORED
+  CAPTIONED
+  VALIDATED
+  REFRAMED
+}
+
+enum ContentRating {
+  SFW
+  SUGGESTIVE
+  NSFW
+}
+
+enum DarkroomReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  NEEDS_REVISION
+}
+
+enum DarkroomAssetLabel {
+  HERO
+  FILLER
+  BTS
+  PROMO
+  LIFESTYLE
+  EDITORIAL
+}
+
+enum MetadataExtension {
+  JPEG
+  JPG
+  PNG
+  GIF
+  WEBP
+  MP4
+  WEBM
+  MOV
+  AVI
+  MP3
+  WAV
+}
+
+enum PromptCategory {
+  BRAND_DESCRIPTION
+  STORYBOARD_SCRIPT_DESCRIPTION
+  PRESET_DESCRIPTION_TEXT
+  PRESET_DESCRIPTION_IMAGE
+  PRESET_DESCRIPTION_VIDEO
+  PRESET_DESCRIPTION_MUSIC
+  POST_CONTENT_TWITTER
+  POST_CONTENT_YOUTUBE
+  POST_CONTENT_TIKTOK
+  POST_CONTENT_INSTAGRAM
+  POST_TITLE_TWITTER
+  POST_TITLE_YOUTUBE
+  POST_TITLE_TIKTOK
+  POST_TITLE_INSTAGRAM
+  MODELS_PROMPT_IMAGE
+  MODELS_PROMPT_VIDEO
+  MODELS_PROMPT_MUSIC
+  MODELS_PROMPT_TRAINING
+  ARTICLE
+}
+
+enum PromptStatus {
+  DRAFT
+  PROCESSING
+  GENERATED
+  FAILED
+}
+
+enum BookmarkCategory {
+  INSTAGRAM
+  TIKTOK
+  TWEET
+  URL
+  YOUTUBE
+}
+
+enum BookmarkPlatform {
+  INSTAGRAM
+  TIKTOK
+  TWITTER
+  WEB
+  YOUTUBE
+}
+
+enum BookmarkIntent {
+  VIDEO
+  IMAGE
+  REPLY
+  REFERENCE
+  INSPIRATION
+}
+
+enum PostStatus {
+  PUBLIC
+  PRIVATE
+  UNLISTED
+  DRAFT
+  SCHEDULED
+  PROCESSING
+  PENDING
+  FAILED
+}
+
+enum PostCategory {
+  ARTICLE
+  VIDEO
+  POST
+  REEL
+  STORY
+  IMAGE
+  TEXT
+}
+
+enum PostEntityModel {
+  INGREDIENT
+  ARTICLE
+}
+
+enum CredentialPlatform {
+  YOUTUBE
+  INSTAGRAM
+  TIKTOK
+  FACEBOOK
+  GOOGLE_ADS
+  TWITTER
+  LINKEDIN
+  PINTEREST
+  REDDIT
+  DISCORD
+  TELEGRAM
+  TWITCH
+  MEDIUM
+  THREADS
+  FANVUE
+  SLACK
+  WORDPRESS
+  SNAPCHAT
+  WHATSAPP
+  MASTODON
+  GHOST
+  SHOPIFY
+  BEEHIIV
+}
+
+enum TagCategory {
+  ORGANIZATION
+  CREDENTIAL
+  INGREDIENT
+  PROMPT
+  ARTICLE
+}
+
+enum AssetCategory {
+  LOGO
+  BANNER
+  REFERENCE
+}
+
+enum AssetParent {
+  ORGANIZATION
+  INGREDIENT
+  BRAND
+  ARTICLE
+}
+
+enum VoiceProvider {
+  HEYGEN
+  ELEVENLABS
+  HEDRA
+  GENFEED_AI
+}
+
+enum VoiceCloneStatus {
+  PENDING
+  CLONING
+  READY
+  FAILED
+}
+
+enum ApiKeyCategory {
+  GENFEEDAI
+  ELEVENLABS
+  HEDRA
+  HEYGEN
+  OPUS_PRO
+}
+
+enum IntegrationPlatform {
+  TELEGRAM
+  SLACK
+  DISCORD
+}
+
+enum IntegrationStatus {
+  ACTIVE
+  PAUSED
+  ERROR
+}
+
+enum ReferenceImageCategory {
+  FACE
+  PRODUCT
+  STYLE
+  LOGO
+}
+
+enum AgentAutonomyMode {
+  SUPERVISED
+  AUTO_PUBLISH
+}
+
+enum AgentReplyStyle {
+  CONCISE
+  DETAILED
+  FRIENDLY
+  PROFESSIONAL
+}
+
+enum ByokBillingStatus {
+  ACTIVE
+  PAST_DUE
+  SUSPENDED
+}
+
+enum LinkCategory {
+  FACEBOOK
+  INSTAGRAM
+  LINKEDIN
+  OTHER
+  TIKTOK
+  TWITTER
+  WEBSITE
+  YOUTUBE
+}
+
+enum OnboardingType {
+  CREATOR
+  ORGANIZATION
+}
+
+enum QualityStatus {
+  UNRATED
+  GOOD
+  NEEDS_REVIEW
+}
+
+enum ReviewDecision {
+  APPROVED
+  REJECTED
+  REQUEST_CHANGES
+}
+
+enum GenerationPriority {
+  QUALITY
+  SPEED
+  COST
+  BALANCED
+}
+
+enum TrendNotificationFrequency {
+  REALTIME
+  HOURLY
+  DAILY
+  WEEKLY
+}
+
+enum AgentQualityTier {
+  BUDGET
+  BALANCED
+  HIGH_QUALITY
+}
+
+enum AgentGoalProfile {
+  REACH_TRAFFIC
+}
+
+enum TrainingStage {
+  PENDING
+  UPLOADING
+  TRAINING
+  READY
+  FAILED
+  CANCELLED
+}
+
+enum WorkflowStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum WorkflowExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum NewsletterStatus {
+  DRAFT
+  SCHEDULED
+  SENT
+  FAILED
+}
+
+enum PersonaStatus {
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum AgentRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum TaskStatus {
+  BACKLOG
+  TODO
+  IN_PROGRESS
+  IN_REVIEW
+  DONE
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum CronJobStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+  FAILED
+}
+
+enum CronRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum BotStatus {
+  ACTIVE
+  PAUSED
+  STOPPED
+}
+
+enum OutreachCampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+enum CampaignTargetStatus {
+  PENDING
+  CONTACTED
+  RESPONDED
+  CONVERTED
+  REJECTED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELLED
+  PAST_DUE
+  TRIALING
+  INCOMPLETE
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  QUALIFIED
+  CONVERTED
+  LOST
+}
+
+enum ContentDraftStatus {
+  DRAFT
+  READY
+  APPROVED
+  REJECTED
+  PUBLISHED
+}
+
+enum BatchStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CORE IDENTITY — The ownership chain
+// User → Organization → Brand → Member
+// ═══════════════════════════════════════════════════════════════
+
+model User {
+  id                      String          @id @default(cuid())
+  clerkId                 String?         @unique
+  handle                  String          @unique
+  firstName               String?
+  lastName                String?
+  email                   String?
+  avatar                  String?
+  isDefault               Boolean         @default(false)
+  isDeleted               Boolean         @default(false)
+  isInvited               Boolean         @default(false)
+  isOnboardingCompleted   Boolean         @default(false)
+  onboardingStartedAt     DateTime?
+  onboardingCompletedAt   DateTime?
+  onboardingType          OnboardingType?
+  onboardingStepsCompleted String[]       @default([])
+  appSource               AppSource       @default(GENFEED)
+  stripeCustomerId        String?
+  createdAt               DateTime        @default(now())
+  updatedAt               DateTime        @updatedAt
+
+  // Ownership relations (what this user owns)
+  organizations       Organization[]
+  brands              Brand[]
+  members             Member[]
+  settings            Setting?
+  credentials         Credential[]
+  apiKeys             ApiKey[]
+  ingredients         Ingredient[]
+  posts               Post[]
+  postAnalytics       PostAnalytics[]
+  prompts             Prompt[]
+  folders             Folder[]
+  bookmarks           Bookmark[]
+  articles            Article[]
+  articleAnalytics    ArticleAnalytics[]
+  newsletters         Newsletter[]         @relation("newsletter_user")
+  newsletterApprovals Newsletter[]         @relation("newsletter_approved_by")
+  newsletterPublishes Newsletter[]         @relation("newsletter_published_by")
+  transcripts         Transcript[]
+  trainings           Training[]
+  personas            Persona[]
+  agentRuns           AgentRun[]
+  agentStrategies     AgentStrategy[]
+  agentCampaigns      AgentCampaign[]
+  agentGoals          AgentGoal[]
+  agentMemories       AgentMemory[]
+  agentThreads        AgentThread[]
+  agentMessages       AgentMessage[]
+  agentWorkflows      AgentWorkflow[]
+  workflows           Workflow[]
+  workflowExecutions  WorkflowExecution[]
+  cronJobs            CronJob[]
+  cronRuns            CronRun[]
+  bots                Bot[]
+  botActivities       BotActivity[]
+  replyBotConfigs     ReplyBotConfig[]
+  monitoredAccounts   MonitoredAccount[]
+  votes               Vote[]
+  watchlists          Watchlist[]
+  streaks             Streak[]
+  forecasts           Forecast[]
+  tasks               Task[]
+  contentPlans        ContentPlan[]
+  evaluations         Evaluation[]
+  editorProjects      EditorProject[]
+  batches             Batch[]
+  assets              Asset[]
+  subscriptions       Subscription[]
+  userSubscription    UserSubscription?
+  subscriptionAttributions SubscriptionAttribution[]
+  distributions       Distribution[]
+  repurposingJobs     RepurposingJob[]
+  contentDrafts       ContentDraft[]       @relation("content_draft_approved_by")
+  creatorAnalyses     CreatorAnalysis[]
+  profiles            Profile[]
+  contextBases        ContextBase[]
+  optimizations       Optimization[]
+  leads               Lead[]               @relation("lead_user")
+  outreachCampaigns   OutreachCampaign[]
+  captions            Caption[]
+  personaAssignments  Persona[]            @relation("persona_assigned_members")
+
+  @@index([isDefault])
+  @@index([appSource])
+  @@index([stripeCustomerId])
+  @@map("users")
+}
+
+model Organization {
+  id                       String               @id @default(cuid())
+  userId                   String
+  user                     User                 @relation(fields: [userId], references: [id])
+  label                    String
+  slug                     String               @unique
+  prefix                   String?
+  isSelected               Boolean              @default(false)
+  isDefault                Boolean              @default(false)
+  isDeleted                Boolean              @default(false)
+  category                 OrganizationCategory @default(BUSINESS)
+  accountType              OrganizationCategory?
+  onboardingCompleted      Boolean              @default(false)
+  isProactiveOnboarding    Boolean              @default(false)
+  proactiveWelcomeDismissed Boolean             @default(false)
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
+
+  // Ownership relations
+  brands               Brand[]
+  members              Member[]
+  settings             OrganizationSetting?
+  credentials          Credential[]
+  orgIntegrations      OrgIntegration[]
+  ingredients          Ingredient[]
+  posts                Post[]
+  postAnalytics        PostAnalytics[]
+  prompts              Prompt[]
+  folders              Folder[]
+  bookmarks            Bookmark[]
+  tags                 Tag[]
+  articles             Article[]
+  articleAnalytics     ArticleAnalytics[]
+  newsletters          Newsletter[]
+  transcripts          Transcript[]
+  trainings            Training[]
+  models               Model[]
+  personas             Persona[]
+  agentRuns            AgentRun[]
+  agentStrategies      AgentStrategy[]
+  agentCampaigns       AgentCampaign[]
+  agentGoals           AgentGoal[]
+  agentMemories        AgentMemory[]
+  agentThreads         AgentThread[]
+  agentMessages        AgentMessage[]
+  agentThreadEvents    AgentThreadEvent[]
+  agentThreadSnapshots AgentThreadSnapshot[]
+  threadContextStates  ThreadContextState[]
+  agentWorkflows       AgentWorkflow[]
+  agentStrategyOpportunities AgentStrategyOpportunity[]
+  agentStrategyReports AgentStrategyReport[]
+  workflows            Workflow[]
+  workflowExecutions   WorkflowExecution[]
+  batchWorkflowJobs    BatchWorkflowJob[]
+  contentRuns          ContentRun[]
+  cronJobs             CronJob[]
+  cronRuns             CronRun[]
+  bots                 Bot[]
+  botActivities        BotActivity[]
+  replyBotConfigs      ReplyBotConfig[]
+  monitoredAccounts    MonitoredAccount[]
+  processedTweets      ProcessedTweet[]
+  trackedLinks         TrackedLink[]
+  schedules            Schedule[]
+  contentSchedules     ContentSchedule[]
+  distributions        Distribution[]
+  repurposingJobs      RepurposingJob[]
+  votes                Vote[]
+  watchlists           Watchlist[]
+  goals                Goal[]
+  streaks              Streak[]
+  presets              Preset[]
+  captions             Caption[]
+  clipProjects         ClipProject[]
+  clipResults          ClipResult[]
+  editorProjects       EditorProject[]
+  forecasts            Forecast[]
+  insights             Insight[]
+  contentScores        ContentScore[]
+  optimizations        Optimization[]
+  evaluations          Evaluation[]
+  tasks                Task[]
+  taskComments         TaskComment[]
+  taskCounters         TaskCounter[]
+  contentPlans         ContentPlan[]
+  contentPlanItems     ContentPlanItem[]
+  contentPerformances  ContentPerformance[]
+  contentDrafts        ContentDraft[]
+  contentPatterns      ContentPattern[]
+  creativePatterns     CreativePattern[]
+  patternPlaybooks     PatternPlaybook[]
+  trends               Trend[]
+  trendPreferences     TrendPreferences[]
+  trendRemixLineages   TrendRemixLineage[]
+  adBulkUploadJobs     AdBulkUploadJob[]
+  adCreativeMappings   AdCreativeMapping[]
+  adOptimizationConfigs      AdOptimizationConfig[]
+  adOptimizationAuditLogs    AdOptimizationAuditLog[]
+  adOptimizationRecommendations AdOptimizationRecommendation[]
+  adPerformances       AdPerformance[]
+  outreachCampaigns    OutreachCampaign[]
+  campaignTargets      CampaignTarget[]
+  customers            Customer[]
+  subscriptions        Subscription[]
+  creditBalances       CreditBalance[]
+  creditTransactions   CreditTransaction[]
+  subscriptionAttributions SubscriptionAttribution[]
+  announcements        Announcement[]
+  leads                Lead[]              @relation("lead_org")
+  proactiveLeads       Lead[]              @relation("lead_proactive_org")
+  brandMemories        BrandMemory[]
+  contextBases         ContextBase[]
+  contextEntries       ContextEntry[]
+  skills               Skill[]
+  templates            Template[]
+  templateUsages       TemplateUsage[]
+  batches              Batch[]
+  profiles             Profile[]
+  activities           Activity[]
+  apiKeys              ApiKey[]
+  creatorAnalyses      CreatorAnalysis[]
+
+  @@index([isDefault])
+  @@index([category])
+  @@index([accountType])
+  @@map("organizations")
+}
+
+model Brand {
+  id                     String     @id @default(cuid())
+  userId                 String?
+  user                   User?      @relation(fields: [userId], references: [id])
+  organizationId         String
+  organization           Organization @relation(fields: [organizationId], references: [id])
+  voiceIngredientId      String?
+  voiceIngredient        Ingredient?  @relation("brand_voice", fields: [voiceIngredientId], references: [id])
+  musicIngredientId      String?
+  musicIngredient        Ingredient?  @relation("brand_music", fields: [musicIngredientId], references: [id])
+  slug                   String     @unique
+  label                  String
+  description            String?
+  text                   String?
+  fontFamily             FontFamily @default(MONTSERRAT_BLACK)
+  primaryColor           String     @default("#000000")
+  secondaryColor         String     @default("#FFFFFF")
+  backgroundColor        String     @default("transparent")
+  referenceImages        Json       @default("[]")
+  isSelected             Boolean
+  scope                  AssetScope @default(USER)
+  isActive               Boolean    @default(true)
+  isDefault              Boolean    @default(false)
+  isDeleted              Boolean    @default(false)
+  isHighlighted          Boolean    @default(false)
+  isDarkroomEnabled      Boolean    @default(false)
+  defaultVideoModel      String?
+  defaultImageModel      String?
+  defaultImageToVideoModel String?
+  defaultMusicModel      String?
+  agentConfig            Json       @default("{}")
+  createdAt              DateTime   @default(now())
+  updatedAt              DateTime   @updatedAt
+
+  // Ownership relations
+  members            Member[]         @relation("member_brands")
+  lastUsedByMembers  Member[]         @relation("member_last_used_brand")
+  credentials        Credential[]
+  ingredients        Ingredient[]     @relation("ingredient_brand")
+  posts              Post[]
+  postAnalytics      PostAnalytics[]
+  prompts            Prompt[]
+  folders            Folder[]
+  tags               Tag[]
+  articles           Article[]
+  articleAnalytics   ArticleAnalytics[]
+  newsletters        Newsletter[]
+  trainings          Training[]
+  personas           Persona[]
+  agentStrategies    AgentStrategy[]
+  agentCampaigns     AgentCampaign[]
+  agentGoals         AgentGoal[]
+  agentMemories      AgentMemory[]
+  agentMessages      AgentMessage[]
+  agentStrategyOpportunities AgentStrategyOpportunity[]
+  agentStrategyReports AgentStrategyReport[]
+  workflows          Workflow[]       @relation("workflow_brands")
+  contentRuns        ContentRun[]
+  contentSchedules   ContentSchedule[]
+  distributions      Distribution[]
+  watchlists         Watchlist[]
+  presets            Preset[]
+  clipProjects       ClipProject[]
+  editorProjects     EditorProject[]
+  contentPerformances ContentPerformance[]
+  contentDrafts      ContentDraft[]
+  contentPlanItems   ContentPlanItem[]
+  creativePatterns   CreativePattern[]
+  trends             Trend[]
+  trendPreferences   TrendPreferences[]
+  trendRemixLineages TrendRemixLineage[]
+  adBulkUploadJobs   AdBulkUploadJob[]
+  adCreativeMappings AdCreativeMapping[]
+  adPerformances     AdPerformance[]
+  botActivities      BotActivity[]
+  monitoredAccounts  MonitoredAccount[]
+  brandMemories      BrandMemory[]
+  links              Link[]
+  trackedLinks       TrackedLink[]
+  proactiveLeads     Lead[]           @relation("lead_proactive_brand")
+  contentPlans       ContentPlan[]
+  batches            Batch[]
+  activities         Activity[]
+  contextBases       ContextBase[]    @relation("context_base_source_brand")
+  schedules          Schedule[]
+  bookmarks          Bookmark[]
+
+  @@index([isDefault])
+  @@map("brands")
+}
+
+model Member {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  roleId          String
+  role            Role         @relation(fields: [roleId], references: [id])
+  brands          Brand[]      @relation("member_brands")
+  lastUsedBrandId String?
+  lastUsedBrand   Brand?       @relation("member_last_used_brand", fields: [lastUsedBrandId], references: [id])
+  isActive        Boolean      @default(true)
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("members")
+}
+
+model Role {
+  id           String   @id @default(cuid())
+  label        String
+  key          String   @unique
+  primaryColor String?
+  isDeleted    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  members Member[]
+
+  @@map("roles")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SETTINGS
+// ══════��════════════════════════════════════════════════════════
+
+model Setting {
+  id                             String                     @id @default(cuid())
+  userId                         String                     @unique
+  user                           User                       @relation(fields: [userId], references: [id])
+  theme                          String                     @default("dark")
+  isVerified                     Boolean                    @default(false)
+  isFirstLogin                   Boolean                    @default(true)
+  isMenuCollapsed                Boolean                    @default(false)
+  isSidebarProgressVisible       Boolean                    @default(true)
+  isSidebarProgressCollapsed     Boolean                    @default(false)
+  isAdvancedMode                 Boolean                    @default(true)
+  isTrendNotificationsInApp      Boolean                    @default(true)
+  isTrendNotificationsTelegram   Boolean                    @default(false)
+  isTrendNotificationsEmail      Boolean                    @default(false)
+  isWorkflowNotificationsEmail   Boolean                    @default(false)
+  isVideoNotificationsEmail      Boolean                    @default(false)
+  trendNotificationsTelegramChatId String?
+  trendNotificationsEmailAddress String?
+  trendNotificationsFrequency    TrendNotificationFrequency @default(DAILY)
+  trendNotificationsMinViralScore Int                       @default(70)
+  contentPreferences             String[]                   @default([])
+  favoriteModelKeys              String[]                   @default([])
+  defaultAgentModel              String                     @default("deepseek/deepseek-chat")
+  isAgentAssetsPanelOpen         Boolean                    @default(false)
+  generationPriority             GenerationPriority         @default(QUALITY)
+  dashboardPreferences           Json                       @default("{\"scopes\":{}}")
+  isDeleted                      Boolean                    @default(false)
+  createdAt                      DateTime                   @default(now())
+  updatedAt                      DateTime                   @updatedAt
+
+  @@map("settings")
+}
+
+model OrganizationSetting {
+  id                            String               @id @default(cuid())
+  organizationId                String               @unique
+  organization                  Organization         @relation(fields: [organizationId], references: [id])
+  isFirstLogin                  Boolean              @default(true)
+  isWhitelabelEnabled           Boolean              @default(false)
+  isVoiceControlEnabled         Boolean              @default(false)
+  isNotificationsDiscordEnabled Boolean              @default(false)
+  isNotificationsEmailEnabled   Boolean              @default(true)
+  isDarkroomNsfwVisible         Boolean              @default(false)
+  isWatermarkEnabled            Boolean              @default(true)
+  isVerifyScriptEnabled         Boolean              @default(true)
+  isVerifyIngredientEnabled     Boolean              @default(true)
+  isVerifyVideoEnabled          Boolean              @default(true)
+  isGenerateVideosEnabled       Boolean              @default(true)
+  isGenerateArticlesEnabled     Boolean              @default(false)
+  isGenerateImagesEnabled       Boolean              @default(true)
+  isGenerateMusicEnabled        Boolean              @default(true)
+  isAutoEvaluateEnabled         Boolean              @default(false)
+  seatsLimit                    Int                  @default(3)
+  brandsLimit                   Int                  @default(5)
+  timezone                      String               @default("UTC")
+  isWebhookEnabled              Boolean              @default(false)
+  webhookEndpoint               String?
+  webhookSecret                 String?
+  quotaYoutube                  Int                  @default(5)
+  quotaTiktok                   Int                  @default(1)
+  quotaTwitter                  Int                  @default(5)
+  quotaInstagram                Int                  @default(5)
+  enabledModelIds               String[]             @default([])
+  subscriptionTier              String?
+  isByokEnabled                 Boolean              @default(false)
+  hasEverHadCredits             Boolean              @default(false)
+  onboardingJourneyMissions     Json                 @default("[]")
+  onboardingJourneyCompletedAt  DateTime?
+  isAdvancedMode                Boolean              @default(false)
+  agentReplyStyle               AgentReplyStyle      @default(CONCISE)
+  byokOpenrouterApiKey          String?
+  byokBillingRollover           Float                @default(0)
+  byokBillingStatus             ByokBillingStatus    @default(ACTIVE)
+  byokFreeThresholdOverride     Float?
+  defaultAvatarPhotoUrl         String?
+  defaultAvatarIngredientId     String?
+  defaultVoiceId                String?
+  defaultVoiceRef               Json?
+  defaultVoiceProvider          String?
+  defaultModel                  String?
+  defaultModelReview            String?
+  defaultModelUpdate            String?
+  defaultImageModel             String?
+  defaultVideoModel             String?
+  defaultImageToVideoModel      String?
+  defaultMusicModel             String?
+  agentPolicy                   Json                 @default("{}")
+  byokKeys                      Json                 @default("{}")
+  createdAt                     DateTime             @default(now())
+  updatedAt                     DateTime             @updatedAt
+
+  @@map("organization_settings")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CREDENTIALS & API KEYS
+// ═══════════════════════════════════════════════════════════════
+
+model Credential {
+  id                 String             @id @default(cuid())
+  organizationId     String?
+  organization       Organization?      @relation(fields: [organizationId], references: [id])
+  brandId            String?
+  brand              Brand?             @relation(fields: [brandId], references: [id])
+  userId             String?
+  user               User?              @relation(fields: [userId], references: [id])
+  username           String?
+  platform           CredentialPlatform
+  externalId         String?
+  externalHandle     String?
+  externalName       String?
+  externalAvatar     String?
+  oauthState         String?
+  oauthToken         String?
+  oauthTokenHash     String?
+  oauthTokenSecret   String?
+  accessToken        String?
+  accessTokenSecret  String?
+  accessTokenExpiry  DateTime?
+  refreshToken       String?
+  refreshTokenExpiry DateTime?
+  label              String?
+  description        String?
+  isConnected        Boolean            @default(false)
+  isDeleted          Boolean            @default(false)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  // Relations
+  tags               Tag[]              @relation("credential_tags")
+  posts              Post[]
+  adBulkUploadJobs   AdBulkUploadJob[]
+  adPerformances     AdPerformance[]
+  monitoredAccounts  MonitoredAccount[]
+  personas           Persona[]          @relation("persona_credentials")
+
+  @@index([oauthTokenHash])
+  @@map("credentials")
+}
+
+model ApiKey {
+  id             String         @id @default(cuid())
+  userId         String
+  user           User           @relation(fields: [userId], references: [id])
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id])
+  key            String         @unique
+  label          String
+  category       ApiKeyCategory @default(GENFEEDAI)
+  description    String?
+  scopes         String[]       @default([])
+  lastUsedAt     DateTime?
+  lastUsedIp     String?
+  expiresAt      DateTime?
+  isRevoked      Boolean        @default(false)
+  revokedAt      DateTime?
+  usageCount     Int            @default(0)
+  rateLimit      Int?
+  allowedIps     String[]       @default([])
+  keyFingerprint String?
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([keyFingerprint])
+  @@map("api_keys")
+}
+
+model OrgIntegration {
+  id               String              @id @default(cuid())
+  organizationId   String
+  organization     Organization        @relation(fields: [organizationId], references: [id])
+  platform         IntegrationPlatform
+  encryptedToken   String
+  config           Json                @default("{}")
+  status           IntegrationStatus   @default(ACTIVE)
+  lastError        DateTime?
+  lastErrorMessage String?
+  isDeleted        Boolean             @default(false)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@map("org_integrations")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CONTENT ASSETS — Ingredient is the core content entity
+// ═══════════════════════════════════════════════════════════════
+
+model Ingredient {
+  id                    String               @id @default(cuid())
+  userId                String?
+  user                  User?                @relation(fields: [userId], references: [id])
+  organizationId        String?
+  organization          Organization?        @relation(fields: [organizationId], references: [id])
+  brandId               String?
+  brand                 Brand?               @relation("ingredient_brand", fields: [brandId], references: [id])
+  folderId              String?
+  folder                Folder?              @relation(fields: [folderId], references: [id])
+  parentId              String?
+  parent                Ingredient?          @relation("ingredient_parent", fields: [parentId], references: [id])
+  children              Ingredient[]         @relation("ingredient_parent")
+  metadataId            String?
+  metadata              Metadata?            @relation(fields: [metadataId], references: [id])
+  promptId              String?
+  prompt                Prompt?              @relation("ingredient_prompt", fields: [promptId], references: [id])
+  trainingId            String?
+  training              Training?            @relation("ingredient_training", fields: [trainingId], references: [id])
+  bookmarkId            String?
+  bookmark              Bookmark?            @relation(fields: [bookmarkId], references: [id])
+  personaId             String?
+  persona               Persona?             @relation(fields: [personaId], references: [id])
+  agentRunId            String?
+  agentRun              AgentRun?            @relation("ingredient_agent_run", fields: [agentRunId], references: [id])
+  agentStrategyId       String?
+  agentStrategy         AgentStrategy?       @relation("ingredient_agent_strategy", fields: [agentStrategyId], references: [id])
+
+  // Discriminator: single table for Image, Video, Music, GIF, Avatar, Voice, etc.
+  category              IngredientCategory   @default(IMAGE)
+  status                IngredientStatus     @default(DRAFT)
+  transformations       TransformationCategory[] @default([])
+  order                 Int                  @default(0)
+  version               Int                  @default(1)
+  isHighlighted         Boolean              @default(false)
+  isDefault             Boolean              @default(false)
+  scope                 AssetScope           @default(USER)
+  isDeleted             Boolean              @default(false)
+  isFavorite            Boolean              @default(false)
+  isPublic              Boolean              @default(false)
+  groupId               String?
+  groupIndex            Int?
+  isMergeEnabled        Boolean?
+  promptTemplate        String?
+  templateVersion       Int?
+  s3Key                 String?
+  cdnUrl                String?
+  personaSlug           String?
+  contentRating         ContentRating?
+  reviewStatus          DarkroomReviewStatus?
+  assetLabel            DarkroomAssetLabel?
+  generationSource      String?
+  campaign              String?
+  campaignWeek          Int?
+  modelUsed             String?
+  loraUsed              String?
+  generationPrompt      String?
+  negativePrompt        String?
+  generationSeed        Int?
+  cfgScale              Float?
+  generationSteps       Int?
+  workflowUsed          String?
+  generationStage       String?
+  generationProgress    Float?
+  generationError       String?
+  generationStartedAt   DateTime?
+  generationCompletedAt DateTime?
+  fileSize              Int?
+  mimeType              String?
+  postedTo              String[]             @default([])
+  qualityScore          Float?
+  qualityFeedback       String[]             @default([])
+  qualityStatus         QualityStatus        @default(UNRATED)
+
+  // Voice discriminator fields (only populated when category = VOICE)
+  voiceSource           String?
+  voiceProvider         VoiceProvider?
+  externalVoiceId       String?
+  cloneStatus           VoiceCloneStatus?
+  sampleAudioUrl        String?
+  isCloned              Boolean?
+  isVoiceActive         Boolean?
+  isDefaultSelectable   Boolean?
+  providerData          Json?
+  isFeatured            Boolean?
+
+  // Video discriminator fields
+  language              String?
+
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  // Self-referential many-to-many (sources)
+  sourceOf              Ingredient[]         @relation("ingredient_sources")
+  sources               Ingredient[]         @relation("ingredient_sources")
+
+  // Relations where this ingredient is referenced
+  tags                  Tag[]                @relation("ingredient_tags")
+  brandVoices           Brand[]              @relation("brand_voice")
+  brandMusics           Brand[]              @relation("brand_music")
+  postEntities          Post[]               @relation("post_entity_ingredient")
+  postIngredients       Post[]               @relation("post_ingredients")
+  postAnalyticsIngredients PostAnalytics[]   @relation("post_analytics_ingredients")
+  bookmarkExtracted     Bookmark[]           @relation("bookmark_extracted")
+  bookmarkGenerated     Bookmark[]           @relation("bookmark_generated")
+  trainingSources       Training[]           @relation("training_sources")
+  personaAvatars        Persona[]            @relation("persona_avatar")
+  personaVoices         Persona[]            @relation("persona_voice")
+  captions              Caption[]
+  editorProjectVideos   EditorProject[]      @relation("editor_project_video")
+  trackedLinkContent    TrackedLink[]
+  taskLinkedOutputs     Task[]           @relation("task_linked_outputs")
+  taskApprovedOutputs   Task[]           @relation("task_approved_outputs")
+
+  @@index([groupId])
+  @@index([scope])
+  @@index([isPublic])
+  @@index([agentRunId])
+  @@index([agentStrategyId])
+  @@index([personaSlug])
+  @@index([isDeleted, personaId, reviewStatus])
+  @@index([campaign, isDeleted, personaSlug])
+  @@map("ingredients")
+}
+
+model Metadata {
+  id               String             @id @default(cuid())
+  label            String
+  description      String             @default("Default Description")
+  promptId         String?
+  prompt           Prompt?            @relation(fields: [promptId], references: [id])
+  model            String?
+  style            String?
+  extension        MetadataExtension
+  assistant        String?
+  result           String             @default("")
+  error            String?
+  externalId       String?
+  externalProvider String?
+  width            Int                @default(0)
+  height           Int                @default(0)
+  duration         Float              @default(0)
+  size             Int                @default(0)
+  hasAudio         Boolean            @default(false)
+  fps              Float?
+  resolution       String?
+  seed             Int?
+  promptTemplate   String?
+  templateVersion  Int?
+  isDeleted        Boolean            @default(false)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  tags             Tag[]              @relation("metadata_tags")
+  ingredients      Ingredient[]
+
+  @@index([externalId])
+  @@index([externalProvider])
+  @@map("metadata")
+}
+
+model Prompt {
+  id               String          @id @default(cuid())
+  organizationId   String?
+  organization     Organization?   @relation(fields: [organizationId], references: [id])
+  brandId          String?
+  brand            Brand?          @relation(fields: [brandId], references: [id])
+  userId           String
+  user             User            @relation(fields: [userId], references: [id])
+  ingredientId     String?
+  articleId        String?
+  article          Article?        @relation(fields: [articleId], references: [id])
+  category         PromptCategory?
+  original         String
+  enhanced         String?
+  status           PromptStatus    @default(DRAFT)
+  style            String?
+  mood             String?
+  camera           String?
+  scene            String?
+  fontFamily       String?
+  blacklists       String[]        @default([])
+  sounds           String[]        @default([])
+  model            String?
+  duration         Float?
+  ratio            String?
+  resolution       String?
+  seed             Int?
+  reference        String?
+  isSkipEnhancement Boolean        @default(false)
+  scope            AssetScope      @default(USER)
+  isDeleted        Boolean         @default(false)
+  isFavorite       Boolean         @default(false)
+  speech           String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  tags             Tag[]           @relation("prompt_tags")
+  ingredients      Ingredient[]    @relation("ingredient_prompt")
+  metadata         Metadata[]
+
+  @@map("prompts")
+}
+
+model Folder {
+  id              String       @id @default(cuid())
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  label           String
+  description     String?
+  isActive        Boolean      @default(true)
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  tags            Tag[]        @relation("folder_tags")
+  ingredients     Ingredient[]
+  bookmarks       Bookmark[]
+
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([brandId, isDeleted, createdAt(sort: Desc)])
+  @@map("folders")
+}
+
+model Tag {
+  id              String        @id @default(cuid())
+  userId          String?
+  organizationId  String?
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?        @relation(fields: [brandId], references: [id])
+  category        TagCategory?
+  label           String
+  description     String?
+  key             String?
+  backgroundColor String        @default("#000000")
+  textColor       String        @default("#FFFFFF")
+  isDeleted       Boolean       @default(false)
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  // Many-to-many relations
+  ingredients     Ingredient[]  @relation("ingredient_tags")
+  metadata        Metadata[]    @relation("metadata_tags")
+  prompts         Prompt[]      @relation("prompt_tags")
+  folders         Folder[]      @relation("folder_tags")
+  credentials     Credential[]  @relation("credential_tags")
+  posts           Post[]        @relation("post_tags")
+  articles        Article[]     @relation("article_tags")
+  personas        Persona[]     @relation("persona_tags")
+  workflows       Workflow[]    @relation("workflow_tags")
+  bookmarks       Bookmark[]    @relation("bookmark_tags")
+
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([brandId, isDeleted, createdAt(sort: Desc)])
+  @@map("tags")
+}
+
+model Bookmark {
+  id                    String           @id @default(cuid())
+  userId                String
+  user                  User             @relation(fields: [userId], references: [id])
+  organizationId        String
+  organization          Organization     @relation(fields: [organizationId], references: [id])
+  brandId               String?
+  brand                 Brand?           @relation(fields: [brandId], references: [id])
+  folderId              String?
+  folder                Folder?          @relation(fields: [folderId], references: [id])
+  category              BookmarkCategory @default(URL)
+  url                   String
+  platform              BookmarkPlatform @default(WEB)
+  title                 String?
+  content               String
+  description           String?
+  author                String?
+  authorHandle          String?
+  thumbnailUrl          String?
+  mediaUrls             String[]         @default([])
+  platformData          Json             @default("{}")
+  intent                BookmarkIntent   @default(INSPIRATION)
+  savedAt               DateTime         @default(now())
+  processedAt           DateTime?
+  isDeleted             Boolean          @default(false)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  tags                  Tag[]            @relation("bookmark_tags")
+  extractedIngredients  Ingredient[]     @relation("bookmark_extracted")
+  generatedIngredients  Ingredient[]     @relation("bookmark_generated")
+  ingredients           Ingredient[]
+
+  @@map("bookmarks")
+}
+
+model Asset {
+  id            String        @id @default(cuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  parentType    AssetParent
+  parentOrgId   String?
+  parentBrandId String?
+  parentIngredientId String?
+  parentArticleId String?
+  category      AssetCategory
+  externalId    String?
+  isDeleted     Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@map("assets")
+}
+
+model Link {
+  id         String       @id @default(cuid())
+  brandId    String
+  brand      Brand        @relation(fields: [brandId], references: [id])
+  label      String
+  category   LinkCategory
+  url        String
+  isDeleted  Boolean      @default(false)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@map("links")
+}
+
+model TrackedLink {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  brandId        String?
+  brand          Brand?       @relation(fields: [brandId], references: [id])
+  contentId      String?
+  content        Ingredient?  @relation(fields: [contentId], references: [id])
+  originalUrl    String
+  shortUrl       String
+  shortCode      String
+  customSlug     String?
+  contentType    String?
+  platform       String?
+  campaignName   String?
+  utm            Json?
+  stats          Json         @default("{\"totalClicks\":0,\"uniqueClicks\":0}")
+  isActive       Boolean      @default(true)
+  expiresAt      DateTime?
+  isDeleted      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  linkClicks     LinkClick[]
+  subscriptionAttributions SubscriptionAttribution[] @relation("attribution_link")
+
+  @@index([shortCode])
+  @@map("tracked_links")
+}
+
+model LinkClick {
+  id         String     @id @default(cuid())
+  linkId     String
+  link       TrackedLink @relation(fields: [linkId], references: [id])
+  timestamp  DateTime   @default(now())
+  sessionId  String
+  isUnique   Boolean    @default(false)
+  referrer   String?
+  userAgent  String?
+  country    String?
+  device     String?
+  gaClientId String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  @@map("link_clicks")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// POSTS & SCHEDULING
+// ═══════════════════════════════════════════════════════════════
+
+model Post {
+  id                    String             @id @default(cuid())
+  // Polymorphic entity: either an Ingredient or an Article
+  entityIngredientId    String?
+  entityIngredient      Ingredient?        @relation("post_entity_ingredient", fields: [entityIngredientId], references: [id])
+  entityArticleId       String?
+  entityArticle         Article?           @relation("post_entity_article", fields: [entityArticleId], references: [id])
+  entityModel           PostEntityModel?
+  credentialId          String
+  credential            Credential         @relation(fields: [credentialId], references: [id])
+  platform              CredentialPlatform
+  userId                String
+  user                  User               @relation(fields: [userId], references: [id])
+  organizationId        String
+  organization          Organization       @relation(fields: [organizationId], references: [id])
+  brandId               String
+  brand                 Brand              @relation(fields: [brandId], references: [id])
+  parentId              String?
+  parent                Post?              @relation("post_thread", fields: [parentId], references: [id])
+  children              Post[]             @relation("post_thread")
+  originalPostId        String?
+  originalPost          Post?              @relation("post_variant", fields: [originalPostId], references: [id])
+  variants              Post[]             @relation("post_variant")
+  personaId             String?
+  persona               Persona?           @relation(fields: [personaId], references: [id])
+  contentRunId          String?
+  contentRun            ContentRun?        @relation(fields: [contentRunId], references: [id])
+  workflowExecutionId   String?
+  workflowExecution     WorkflowExecution? @relation(fields: [workflowExecutionId], references: [id])
+  agentRunId            String?
+  agentRun              AgentRun?          @relation("post_agent_run", fields: [agentRunId], references: [id])
+  agentStrategyId       String?
+  agentStrategy         AgentStrategy?     @relation("post_agent_strategy", fields: [agentStrategyId], references: [id])
+
+  order                 Int                @default(0)
+  externalId            String?
+  externalShortcode     String?
+  quoteTweetId          String?
+  groupId               String?
+  url                   String?
+  status                PostStatus         @default(SCHEDULED)
+  label                 String?
+  description           String
+  category              PostCategory       @default(TEXT)
+  scheduledDate         DateTime?
+  timezone              String             @default("UTC")
+  publicationDate       DateTime?
+  publishedAt           DateTime?
+  uploadedAt            DateTime?
+  nextScheduledDate     DateTime?
+  isRepeat              Boolean            @default(false)
+  repeatFrequency       String?
+  repeatInterval        Int?
+  repeatEndDate         DateTime?
+  maxRepeats            Int?
+  repeatCount           Int?
+  repeatDaysOfWeek      Int[]              @default([])
+  isShareToFeedSelected Boolean            @default(true)
+  isAnalyticsEnabled    Boolean            @default(true)
+  retryCount            Int                @default(0)
+  lastAttemptAt         DateTime?
+  variantId             String?
+  hookVersion           String?
+  creativeVersion       String?
+  scheduleSlot          String?
+  publishIntent         String?
+  generationId          String?
+  promptUsed            String?
+  reviewBatchId         String?
+  reviewItemId          String?
+  reviewDecision        ReviewDecision?
+  reviewFeedback        String?
+  reviewedAt            DateTime?
+  reviewEvents          Json               @default("[]")
+  sourceActionId        String?
+  sourceWorkflowId      String?
+  sourceWorkflowName    String?
+  isDeleted             Boolean            @default(false)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  // Many-to-many
+  ingredients           Ingredient[]       @relation("post_ingredients")
+  tags                  Tag[]              @relation("post_tags")
+
+  // Reverse relations
+  postAnalytics         PostAnalytics[]
+  contentPerformances   ContentPerformance[]
+  trendRemixLineages    TrendRemixLineage[]
+  subscriptionAttributions SubscriptionAttribution[] @relation("attribution_content")
+
+  @@index([externalId])
+  @@index([originalPostId])
+  @@index([groupId])
+  @@index([contentRunId])
+  @@index([variantId])
+  @@index([generationId])
+  @@index([agentRunId])
+  @@index([agentStrategyId])
+  @@index([isDeleted, parentId, scheduledDate, status])
+  @@index([isDeleted, organizationId, status])
+  @@index([brandId, isDeleted, status])
+  @@index([isDeleted, nextScheduledDate, status])
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([brandId, isDeleted, createdAt(sort: Desc)])
+  @@map("posts")
+}
+
+model PostAnalytics {
+  id                    String             @id @default(cuid())
+  postId                String
+  post                  Post               @relation(fields: [postId], references: [id])
+  userId                String
+  user                  User               @relation(fields: [userId], references: [id])
+  organizationId        String
+  organization          Organization       @relation(fields: [organizationId], references: [id])
+  brandId               String
+  brand                 Brand              @relation(fields: [brandId], references: [id])
+  platform              CredentialPlatform
+  date                  DateTime
+  totalViews            Int                @default(0)
+  totalLikes            Int                @default(0)
+  totalComments         Int                @default(0)
+  totalShares           Int                @default(0)
+  totalSaves            Int                @default(0)
+  totalViewsIncrement   Int                @default(0)
+  totalLikesIncrement   Int                @default(0)
+  totalCommentsIncrement Int               @default(0)
+  totalSharesIncrement  Int                @default(0)
+  totalSavesIncrement   Int                @default(0)
+  engagementRate        Float              @default(0)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  ingredients           Ingredient[]       @relation("post_analytics_ingredients")
+
+  @@map("post_analytics")
+}
+
+model Schedule {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  userId          String
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  label           String?
+  platform        CredentialPlatform?
+  timezone        String       @default("UTC")
+  slots           Json         @default("[]")
+  isActive        Boolean      @default(true)
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("schedules")
+}
+
+model ContentSchedule {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  config          Json         @default("{}")
+  isActive        Boolean      @default(true)
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("content_schedules")
+}
+
+model Distribution {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  config          Json         @default("{}")
+  status          String?
+  isActive        Boolean      @default(true)
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("distributions")
+}
+
+model RepurposingJob {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  config          Json         @default("{}")
+  status          String?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("repurposing_jobs")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BILLING & SUBSCRIPTIONS
+// ═══════════════════════════════════════════════════════════════
+
+model Customer {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  stripeCustomerId String?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  subscriptions   Subscription[]
+
+  @@map("customers")
+}
+
+model Subscription {
+  id              String             @id @default(cuid())
+  organizationId  String
+  organization    Organization       @relation(fields: [organizationId], references: [id])
+  userId          String
+  user            User               @relation(fields: [userId], references: [id])
+  customerId      String?
+  customer        Customer?          @relation(fields: [customerId], references: [id])
+  stripeSubscriptionId String?
+  stripePriceId   String?
+  status          SubscriptionStatus @default(ACTIVE)
+  plan            String?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean         @default(false)
+  isDeleted       Boolean            @default(false)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@map("subscriptions")
+}
+
+model UserSubscription {
+  id              String       @id @default(cuid())
+  userId          String       @unique
+  user            User         @relation(fields: [userId], references: [id])
+  stripeSubscriptionId String?
+  stripePriceId   String?
+  status          SubscriptionStatus @default(ACTIVE)
+  plan            String?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean    @default(false)
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("user_subscriptions")
+}
+
+model SubscriptionAttribution {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  sourceContentId String?
+  sourceContent   Post?        @relation("attribution_content", fields: [sourceContentId], references: [id])
+  sourceLinkId    String?
+  sourceLink      TrackedLink? @relation("attribution_link", fields: [sourceLinkId], references: [id])
+  channel         String?
+  referrer        String?
+  metadata        Json?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("subscription_attributions")
+}
+
+model CreditBalance {
+  id              String       @id @default(cuid())
+  organizationId  String       @unique
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  balance         Float        @default(0)
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("credit_balances")
+}
+
+model CreditTransaction {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  amount          Float
+  balanceAfter    Float?
+  source          String?
+  description     String?
+  referenceId     String?
+  referenceType   String?
+  metadata        Json?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("credit_transactions")
+}
+
+model CustomerInstance {
+  id              String   @id @default(cuid())
+  organizationId  String?
+  config          Json     @default("{}")
+  status          String?
+  isDeleted       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("customer_instances")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ARTICLES & NEWSLETTERS
+// ═══════════════════════════════════════════════════════════════
+
+model Article {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+  organizationId  String
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?        @relation(fields: [brandId], references: [id])
+  title           String
+  slug            String?
+  content         String?
+  excerpt         String?
+  coverImageUrl   String?
+  status          ArticleStatus @default(DRAFT)
+  publishedAt     DateTime?
+  isDeleted       Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  tags            Tag[]         @relation("article_tags")
+  prompts         Prompt[]
+  postEntities    Post[]        @relation("post_entity_article")
+  articleAnalytics ArticleAnalytics[]
+  transcripts     Transcript[]
+  newsletters     Newsletter[]  @relation("newsletter_articles")
+
+  @@map("articles")
+}
+
+model ArticleAnalytics {
+  id              String       @id @default(cuid())
+  articleId       String
+  article         Article      @relation(fields: [articleId], references: [id])
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  date            DateTime
+  totalViews      Int          @default(0)
+  totalLikes      Int          @default(0)
+  totalComments   Int          @default(0)
+  totalShares     Int          @default(0)
+  engagementRate  Float        @default(0)
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([articleId, date])
+  @@index([organizationId, date(sort: Desc)])
+  @@index([brandId, date(sort: Desc)])
+  @@map("article_analytics")
+}
+
+model Newsletter {
+  id                String           @id @default(cuid())
+  userId            String
+  user              User             @relation("newsletter_user", fields: [userId], references: [id])
+  organizationId    String
+  organization      Organization     @relation(fields: [organizationId], references: [id])
+  brandId           String?
+  brand             Brand?           @relation(fields: [brandId], references: [id])
+  agentRunId        String?
+  agentRun          AgentRun?        @relation(fields: [agentRunId], references: [id])
+  approvedByUserId  String?
+  approvedByUser    User?            @relation("newsletter_approved_by", fields: [approvedByUserId], references: [id])
+  publishedByUserId String?
+  publishedByUser   User?            @relation("newsletter_published_by", fields: [publishedByUserId], references: [id])
+  title             String
+  content           String?
+  status            NewsletterStatus @default(DRAFT)
+  scheduledAt       DateTime?
+  sentAt            DateTime?
+  isDeleted         Boolean          @default(false)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  articles          Article[]        @relation("newsletter_articles")
+  contextNewsletters Newsletter[]    @relation("newsletter_context")
+  contextOf         Newsletter[]     @relation("newsletter_context")
+
+  @@map("newsletters")
+}
+
+model Transcript {
+  id              String       @id @default(cuid())
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  articleId       String?
+  article         Article?     @relation(fields: [articleId], references: [id])
+  content         String?
+  language        String?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("transcripts")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TRAININGS & MODELS
+// ═══════════════════════════════════════════════════════════════
+
+model Training {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+  organizationId  String
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?        @relation(fields: [brandId], references: [id])
+  personaId       String?
+  persona         Persona?      @relation(fields: [personaId], references: [id])
+  label           String?
+  description     String?
+  externalId      String?
+  stage           TrainingStage @default(PENDING)
+  config          Json          @default("{}")
+  isDeleted       Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  sources         Ingredient[]  @relation("training_sources")
+  ingredients     Ingredient[]  @relation("ingredient_training")
+  models          Model[]
+
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([brandId, isDeleted, createdAt(sort: Desc)])
+  @@index([isDeleted, personaId, stage])
+  @@map("trainings")
+}
+
+model Model {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  trainingId      String?
+  training        Training?    @relation(fields: [trainingId], references: [id])
+  parentModelId   String?
+  parentModel     Model?       @relation("model_parent", fields: [parentModelId], references: [id])
+  childModels     Model[]      @relation("model_parent")
+  label           String?
+  externalId      String?
+  config          Json         @default("{}")
+  isActive        Boolean      @default(true)
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([organizationId, isActive, isDeleted])
+  @@map("models")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PERSONAS
+// ═══════════════════════════════════════════════════════════════
+
+model Persona {
+  id                     String        @id @default(cuid())
+  userId                 String
+  user                   User          @relation(fields: [userId], references: [id])
+  organizationId         String
+  organization           Organization  @relation(fields: [organizationId], references: [id])
+  brandId                String?
+  brand                  Brand?        @relation(fields: [brandId], references: [id])
+  avatarIngredientId     String?
+  avatarIngredient       Ingredient?   @relation("persona_avatar", fields: [avatarIngredientId], references: [id])
+  voiceIngredientId      String?
+  voiceIngredient        Ingredient?   @relation("persona_voice", fields: [voiceIngredientId], references: [id])
+  label                  String
+  slug                   String?
+  description            String?
+  status                 PersonaStatus @default(ACTIVE)
+  config                 Json          @default("{}")
+  isAutopilotEnabled     Boolean       @default(false)
+  nextAutopilotRunAt     DateTime?
+  isDeleted              Boolean       @default(false)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  tags                   Tag[]         @relation("persona_tags")
+  credentials            Credential[]  @relation("persona_credentials")
+  assignedMembers        User[]        @relation("persona_assigned_members")
+  ingredients            Ingredient[]
+  posts                  Post[]
+  trainings              Training[]
+
+  @@index([organizationId, isDeleted, status])
+  @@index([brandId, organizationId, isDeleted])
+  @@index([organizationId, isDeleted, isAutopilotEnabled, nextAutopilotRunAt])
+  @@map("personas")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AGENT SYSTEM
+// ═══════════════════════════════════════════════════════════════
+
+model AgentThread {
+  id              String       @id @default(cuid())
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  title           String?
+  config          Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  messages        AgentMessage[]
+  runs            AgentRun[]
+  events          AgentThreadEvent[]
+  snapshots       AgentThreadSnapshot[]
+  contextStates   ThreadContextState[]
+  tasks           Task[]       @relation("task_planning_thread")
+
+  @@map("agent_threads")
+}
+
+model AgentMessage {
+  id              String       @id @default(cuid())
+  threadId        String
+  thread          AgentThread  @relation(fields: [threadId], references: [id])
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  userId          String?
+  user            User?        @relation(fields: [userId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  role            String
+  content         String?
+  toolCalls       Json?
+  toolResults     Json?
+  metadata        Json?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("agent_messages")
+}
+
+model AgentRun {
+  id              String        @id @default(cuid())
+  organizationId  String
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+  strategyId      String?
+  strategy        AgentStrategy? @relation(fields: [strategyId], references: [id])
+  threadId        String?
+  thread          AgentThread?  @relation(fields: [threadId], references: [id])
+  parentRunId     String?
+  parentRun       AgentRun?     @relation("agent_run_parent", fields: [parentRunId], references: [id])
+  childRuns       AgentRun[]    @relation("agent_run_parent")
+  status          AgentRunStatus @default(PENDING)
+  type            String?
+  config          Json          @default("{}")
+  result          Json?
+  error           String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  isDeleted       Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  ingredients     Ingredient[]  @relation("ingredient_agent_run")
+  posts           Post[]        @relation("post_agent_run")
+  newsletters     Newsletter[]
+  captions        Caption[]
+  tasks           Task[]        @relation("task_linked_runs")
+
+  @@map("agent_runs")
+}
+
+model AgentStrategy {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  goalId          String?
+  goal            AgentGoal?   @relation(fields: [goalId], references: [id])
+  label           String?
+  description     String?
+  config          Json         @default("{}")
+  policies        Json         @default("{}")
+  isActive        Boolean      @default(true)
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  runs            AgentRun[]
+  ingredients     Ingredient[] @relation("ingredient_agent_strategy")
+  posts           Post[]       @relation("post_agent_strategy")
+  opportunities   AgentStrategyOpportunity[]
+  reports         AgentStrategyReport[]
+  campaigns       AgentCampaign[] @relation("campaign_agents")
+  campaignLeads   AgentCampaign[] @relation("campaign_lead")
+  batches         Batch[]
+
+  @@map("agent_strategies")
+}
+
+model AgentStrategyOpportunity {
+  id              String       @id @default(cuid())
+  strategyId      String
+  strategy        AgentStrategy @relation(fields: [strategyId], references: [id])
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("agent_strategy_opportunities")
+}
+
+model AgentStrategyReport {
+  id              String       @id @default(cuid())
+  strategyId      String
+  strategy        AgentStrategy @relation(fields: [strategyId], references: [id])
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("agent_strategy_reports")
+}
+
+model AgentCampaign {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  campaignLeadStrategyId String?
+  campaignLeadStrategy   AgentStrategy? @relation("campaign_lead", fields: [campaignLeadStrategyId], references: [id])
+  label           String?
+  description     String?
+  config          Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  agents          AgentStrategy[] @relation("campaign_agents")
+  memories        AgentMemory[]
+
+  @@map("agent_campaigns")
+}
+
+model AgentGoal {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  label           String?
+  description     String?
+  config          Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  strategies      AgentStrategy[]
+
+  @@map("agent_goals")
+}
+
+model AgentMemory {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  campaignId      String?
+  campaign        AgentCampaign? @relation(fields: [campaignId], references: [id])
+  content         String?
+  type            String?
+  metadata        Json?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("agent_memories")
+}
+
+model AgentThreadEvent {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  threadId        String
+  thread          AgentThread  @relation(fields: [threadId], references: [id])
+  sequence        Int
+  commandId       String?
+  runId           String?
+  type            String?
+  data            Json?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([organizationId, threadId, sequence])
+  @@index([organizationId, threadId, commandId])
+  @@index([organizationId, runId, sequence])
+  @@map("agent_thread_events")
+}
+
+model AgentThreadSnapshot {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  threadId        String
+  thread          AgentThread  @relation(fields: [threadId], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([organizationId, threadId])
+  @@map("agent_thread_snapshots")
+}
+
+model ThreadContextState {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  threadId        String
+  thread          AgentThread  @relation(fields: [threadId], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([organizationId, threadId])
+  @@map("thread_context_states")
+}
+
+model AgentWorkflow {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  label           String?
+  description     String?
+  config          Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("agent_workflows")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// WORKFLOWS & AUTOMATION
+// ═══════════════════════════════════════════════════════════════
+
+model Workflow {
+  id              String         @id @default(cuid())
+  userId          String
+  user            User           @relation(fields: [userId], references: [id])
+  organizationId  String
+  organization    Organization   @relation(fields: [organizationId], references: [id])
+  label           String?
+  description     String?
+  steps           Json           @default("[]")
+  nodes           Json           @default("[]")
+  edges           Json           @default("[]")
+  inputVariables  Json           @default("[]")
+  config          Json           @default("{}")
+  status          WorkflowStatus @default(DRAFT)
+  isDeleted       Boolean        @default(false)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  tags            Tag[]          @relation("workflow_tags")
+  brands          Brand[]        @relation("workflow_brands")
+  executions      WorkflowExecution[]
+  batchJobs       BatchWorkflowJob[]
+
+  @@map("workflows")
+}
+
+model WorkflowExecution {
+  id              String                  @id @default(cuid())
+  workflowId      String
+  workflow        Workflow                @relation(fields: [workflowId], references: [id])
+  userId          String
+  user            User                    @relation(fields: [userId], references: [id])
+  organizationId  String
+  organization    Organization            @relation(fields: [organizationId], references: [id])
+  status          WorkflowExecutionStatus @default(PENDING)
+  result          Json?
+  error           String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  isDeleted       Boolean                 @default(false)
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  posts           Post[]
+
+  @@map("workflow_executions")
+}
+
+model BatchWorkflowJob {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  userId          String
+  workflowId      String
+  workflow        Workflow     @relation(fields: [workflowId], references: [id])
+  items           Json         @default("[]")
+  status          BatchStatus  @default(PENDING)
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([organizationId, status])
+  @@index([workflowId])
+  @@map("batch_workflow_jobs")
+}
+
+model ContentRun {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  config          Json         @default("{}")
+  status          String?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  posts           Post[]
+  contentPerformances ContentPerformance[]
+  contentDrafts   ContentDraft[]
+
+  @@map("content_runs")
+}
+
+model CronJob {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  label           String?
+  expression      String?
+  config          Json         @default("{}")
+  status          CronJobStatus @default(ACTIVE)
+  lastRunAt       DateTime?
+  nextRunAt       DateTime?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  runs            CronRun[]
+
+  @@map("cron_jobs")
+}
+
+model CronRun {
+  id              String       @id @default(cuid())
+  cronJobId       String
+  cronJob         CronJob      @relation(fields: [cronJobId], references: [id])
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  status          CronRunStatus @default(PENDING)
+  result          Json?
+  error           String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("cron_runs")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TASKS
+// ��══════════════════════════════════════════════════════════════
+
+model Task {
+  id                  String       @id @default(cuid())
+  organizationId      String
+  organization        Organization @relation(fields: [organizationId], references: [id])
+  brandId             String?
+  userId              String?
+  user                User?        @relation(fields: [userId], references: [id])
+  parentId            String?
+  parent              Task?        @relation("task_parent", fields: [parentId], references: [id])
+  children            Task[]       @relation("task_parent")
+  planningThreadId    String?
+  planningThread      AgentThread? @relation("task_planning_thread", fields: [planningThreadId], references: [id])
+  title               String?
+  description         String?
+  status              TaskStatus   @default(TODO)
+  priority            TaskPriority @default(MEDIUM)
+  config              Json         @default("{}")
+  eventStream         Json         @default("[]")
+  decomposition       Json?
+  progress            Json?
+  isDeleted           Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  comments            TaskComment[]
+  linkedRuns          AgentRun[]   @relation("task_linked_runs")
+  linkedOutputs       Ingredient[] @relation("task_linked_outputs")
+  approvedOutputs     Ingredient[] @relation("task_approved_outputs")
+
+  @@map("tasks")
+}
+
+model TaskComment {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  taskId          String
+  task            Task         @relation(fields: [taskId], references: [id])
+  content         String?
+  authorId        String?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("task_comments")
+}
+
+model TaskCounter {
+  id              String       @id @default(cuid())
+  organizationId  String       @unique
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  counter         Int          @default(0)
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("task_counters")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BOTS & REPLY SYSTEM
+// ═══════════════════════════════════════════════════════════════
+
+model Bot {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  label           String?
+  config          Json         @default("{}")
+  targets         Json         @default("[]")
+  settings        Json         @default("{}")
+  status          BotStatus    @default(ACTIVE)
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("bots")
+}
+
+model BotActivity {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  replyBotConfigId String?
+  replyBotConfig  ReplyBotConfig? @relation(fields: [replyBotConfigId], references: [id])
+  monitoredAccountId String?
+  monitoredAccount MonitoredAccount? @relation(fields: [monitoredAccountId], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("bot_activities")
+}
+
+model ReplyBotConfig {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  config          Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  botActivities   BotActivity[]
+  monitoredAccounts MonitoredAccount[]
+  processedTweets ProcessedTweet[]
+
+  @@map("reply_bot_configs")
+}
+
+model MonitoredAccount {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  credentialId    String?
+  credential      Credential?  @relation(fields: [credentialId], references: [id])
+  botConfigId     String?
+  botConfig       ReplyBotConfig? @relation(fields: [botConfigId], references: [id])
+  config          Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  botActivities   BotActivity[]
+  processedTweets ProcessedTweet[]
+
+  @@map("monitored_accounts")
+}
+
+model ProcessedTweet {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  replyBotConfigId String?
+  replyBotConfig  ReplyBotConfig? @relation(fields: [replyBotConfigId], references: [id])
+  botActivityId   String?
+  monitoredAccountId String?
+  monitoredAccount MonitoredAccount? @relation(fields: [monitoredAccountId], references: [id])
+  tweetId         String
+  processedBy     String?
+  processedAt     DateTime     @default(now())
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@unique([organizationId, tweetId, processedBy])
+  @@map("processed_tweets")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CONTENT INTELLIGENCE & ANALYTICS
+// ═══════════════════════════════════════════════════════════════
+
+model ContentPerformance {
+  id                  String       @id @default(cuid())
+  organizationId      String
+  organization        Organization @relation(fields: [organizationId], references: [id])
+  brandId             String?
+  brand               Brand?       @relation(fields: [brandId], references: [id])
+  userId              String?
+  postId              String?
+  post                Post?        @relation(fields: [postId], references: [id])
+  contentRunId        String?
+  contentRun          ContentRun?  @relation(fields: [contentRunId], references: [id])
+  workflowExecutionId String?
+  platform            String?
+  variantId           String?
+  generationId        String?
+  data                Json         @default("{}")
+  isDeleted           Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+
+  @@index([organizationId])
+  @@index([brandId])
+  @@index([platform])
+  @@index([contentRunId])
+  @@index([variantId])
+  @@index([generationId])
+  @@map("content_performance")
+}
+
+model ContentPattern {
+  id                String       @id @default(cuid())
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  sourceCreatorId   String?
+  sourceCreator     CreatorAnalysis? @relation(fields: [sourceCreatorId], references: [id])
+  data              Json         @default("{}")
+  isDeleted         Boolean      @default(false)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@map("content_patterns")
+}
+
+model CreatorAnalysis {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  createdById     String?
+  createdBy       User?        @relation(fields: [createdById], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  contentPatterns ContentPattern[]
+  patternPlaybooks PatternPlaybook[]
+
+  @@map("creator_analyses")
+}
+
+model PatternPlaybook {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  createdById     String?
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  sourceCreators  CreatorAnalysis[]
+
+  @@map("pattern_playbooks")
+}
+
+model CreativePattern {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("creative_patterns")
+}
+
+model ContentDraft {
+  id              String            @id @default(cuid())
+  organizationId  String
+  organization    Organization      @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?            @relation(fields: [brandId], references: [id])
+  contentRunId    String?
+  contentRun      ContentRun?       @relation(fields: [contentRunId], references: [id])
+  approvedById    String?
+  approvedBy      User?             @relation("content_draft_approved_by", fields: [approvedById], references: [id])
+  status          ContentDraftStatus @default(DRAFT)
+  data            Json              @default("{}")
+  isDeleted       Boolean           @default(false)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  trendRemixLineages TrendRemixLineage[]
+
+  @@map("content_drafts")
+}
+
+model ContentPlan {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  createdById     String?
+  createdBy       User?        @relation(fields: [createdById], references: [id])
+  label           String?
+  config          Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  items           ContentPlanItem[]
+
+  @@map("content_plans")
+}
+
+model ContentPlanItem {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  planId          String
+  plan            ContentPlan  @relation(fields: [planId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("content_plan_items")
+}
+
+model ContentScore {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  optimizations   Optimization[]
+
+  @@map("content_scores")
+}
+
+model Optimization {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  scoreId         String?
+  score           ContentScore? @relation(fields: [scoreId], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("optimizations")
+}
+
+model Evaluation {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  contentType     String?
+  contentId       String?
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("evaluations")
+}
+
+model Activity {
+  id              String       @id @default(cuid())
+  userId          String?
+  organizationId  String?
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  entityId        String?
+  entityModel     String?
+  action          String?
+  data            Json?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("activities")
+}
+
+model Insight {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("insights")
+}
+
+model Forecast {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("forecasts")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ADS
+// ═══════════════════════════════════════════════════════════════
+
+model AdBulkUploadJob {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  credentialId    String?
+  credential      Credential?  @relation(fields: [credentialId], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("ad_bulk_upload_jobs")
+}
+
+model AdCreativeMapping {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("ad_creative_mappings")
+}
+
+model AdInsights {
+  id        String   @id @default(cuid())
+  data      Json     @default("{}")
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("ad_insights")
+}
+
+model AdOptimizationAuditLog {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("ad_optimization_audit_logs")
+}
+
+model AdOptimizationConfig {
+  id              String       @id @default(cuid())
+  organizationId  String       @unique
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  config          Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("ad_optimization_configs")
+}
+
+model AdOptimizationRecommendation {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("ad_optimization_recommendations")
+}
+
+model AdPerformance {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  credentialId    String?
+  credential      Credential?  @relation(fields: [credentialId], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("ad_performance")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TRENDS
+// ═══════════════════════════════════════════════════════════════
+
+model Trend {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  sourceReferenceLinks TrendSourceReferenceLink[]
+  remixLineages   TrendRemixLineage[] @relation("remix_lineage_trends")
+
+  @@map("trends")
+}
+
+model TrendingHashtag {
+  id        String   @id @default(cuid())
+  data      Json     @default("{}")
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("trending_hashtags")
+}
+
+model TrendingSound {
+  id        String   @id @default(cuid())
+  data      Json     @default("{}")
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("trending_sounds")
+}
+
+model TrendingVideo {
+  id        String   @id @default(cuid())
+  data      Json     @default("{}")
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("trending_videos")
+}
+
+model TrendPreferences {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  config          Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("trend_preferences")
+}
+
+model TrendRemixLineage {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  contentDraftId  String?
+  contentDraft    ContentDraft? @relation(fields: [contentDraftId], references: [id])
+  postId          String?
+  post            Post?        @relation(fields: [postId], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  trends          Trend[]      @relation("remix_lineage_trends")
+  sourceReferences TrendSourceReference[] @relation("remix_lineage_source_refs")
+
+  @@map("trend_remix_lineages")
+}
+
+model TrendSourceReference {
+  id        String   @id @default(cuid())
+  data      Json     @default("{}")
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  links           TrendSourceReferenceLink[]
+  snapshots       TrendSourceReferenceSnapshot[]
+  remixLineages   TrendRemixLineage[] @relation("remix_lineage_source_refs")
+
+  @@map("trend_source_references")
+}
+
+model TrendSourceReferenceLink {
+  id                String               @id @default(cuid())
+  trendId           String?
+  trend             Trend?               @relation(fields: [trendId], references: [id])
+  sourceReferenceId String?
+  sourceReference   TrendSourceReference? @relation(fields: [sourceReferenceId], references: [id])
+  isDeleted         Boolean              @default(false)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  @@map("trend_source_reference_links")
+}
+
+model TrendSourceReferenceSnapshot {
+  id                String               @id @default(cuid())
+  sourceReferenceId String?
+  sourceReference   TrendSourceReference? @relation(fields: [sourceReferenceId], references: [id])
+  data              Json                 @default("{}")
+  isDeleted         Boolean              @default(false)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  @@map("trend_source_reference_snapshots")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// OUTREACH & CAMPAIGNS
+// ═══════════════════════════════════════════════════════════════
+
+model OutreachCampaign {
+  id              String                 @id @default(cuid())
+  organizationId  String
+  organization    Organization           @relation(fields: [organizationId], references: [id])
+  userId          String?
+  user            User?                  @relation(fields: [userId], references: [id])
+  brandId         String?
+  status          OutreachCampaignStatus @default(DRAFT)
+  config          Json                   @default("{}")
+  isDeleted       Boolean                @default(false)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  targets         CampaignTarget[]
+
+  @@map("outreach_campaigns")
+}
+
+model CampaignTarget {
+  id              String               @id @default(cuid())
+  organizationId  String
+  organization    Organization         @relation(fields: [organizationId], references: [id])
+  campaignId      String
+  campaign        OutreachCampaign     @relation(fields: [campaignId], references: [id])
+  status          CampaignTargetStatus @default(PENDING)
+  data            Json                 @default("{}")
+  isDeleted       Boolean              @default(false)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  @@map("campaign_targets")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MISC: Elements, Presets, Captions, Clips, Editor, etc.
+// ═══════════════════════════════════════════════════════════════
+
+model ElementBlacklist {
+  id              String       @id @default(cuid())
+  organizationId  String
+  key             String?
+  label           String?
+  description     String?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@map("elements_blacklists")
+}
+
+model ElementCamera {
+  id              String       @id @default(cuid())
+  organizationId  String
+  key             String?
+  label           String?
+  description     String?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@map("elements_cameras")
+}
+
+model ElementCameraMovement {
+  id              String       @id @default(cuid())
+  organizationId  String
+  key             String?
+  label           String?
+  description     String?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("elements_camera_movements")
+}
+
+model ElementLens {
+  id              String       @id @default(cuid())
+  organizationId  String
+  key             String?
+  label           String?
+  description     String?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("elements_lenses")
+}
+
+model ElementLighting {
+  id              String       @id @default(cuid())
+  organizationId  String
+  key             String?
+  label           String?
+  description     String?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("elements_lightings")
+}
+
+model ElementMood {
+  id              String       @id @default(cuid())
+  organizationId  String
+  key             String?
+  label           String?
+  description     String?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("elements_moods")
+}
+
+model ElementScene {
+  id              String       @id @default(cuid())
+  organizationId  String
+  key             String?
+  label           String?
+  description     String?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("elements_scenes")
+}
+
+model ElementSound {
+  id              String       @id @default(cuid())
+  organizationId  String
+  key             String?
+  label           String?
+  description     String?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("elements_sounds")
+}
+
+model ElementStyle {
+  id              String       @id @default(cuid())
+  organizationId  String
+  key             String?
+  label           String?
+  description     String?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("elements_styles")
+}
+
+model FontFamilyRecord {
+  id              String       @id @default(cuid())
+  organizationId  String
+  key             String?
+  label           String?
+  description     String?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("font_families")
+}
+
+model Preset {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  config          Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("presets")
+}
+
+model Caption {
+  id              String       @id @default(cuid())
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  ingredientId    String?
+  ingredient      Ingredient?  @relation(fields: [ingredientId], references: [id])
+  agentRunId      String?
+  agentRun        AgentRun?    @relation(fields: [agentRunId], references: [id])
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  content         String?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("captions")
+}
+
+model ClipProject {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  config          Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("clip_projects")
+}
+
+model ClipResult {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("clip_results")
+}
+
+model EditorProject {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  renderedVideoId String?
+  renderedVideo   Ingredient?  @relation("editor_project_video", fields: [renderedVideoId], references: [id])
+  tracks          Json         @default("[]")
+  config          Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("editor_projects")
+}
+
+model BrandMemory {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  content         String?
+  type            String?
+  metadata        Json?
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("brand_memories")
+}
+
+model ContextBase {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  createdById     String?
+  createdBy       User?        @relation(fields: [createdById], references: [id])
+  sourceBrandId   String?
+  sourceBrand     Brand?       @relation("context_base_source_brand", fields: [sourceBrandId], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  entries         ContextEntry[]
+
+  @@map("context_bases")
+}
+
+model ContextEntry {
+  id              String       @id @default(cuid())
+  contextBaseId   String
+  contextBase     ContextBase  @relation(fields: [contextBaseId], references: [id])
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("context_entries")
+}
+
+model Skill {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  label           String?
+  config          Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("skills")
+}
+
+model SkillReceipt {
+  id        String   @id @default(cuid())
+  data      Json     @default("{}")
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("skill_receipts")
+}
+
+model Template {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  label           String?
+  config          Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  metadata        TemplateMetadata?
+  usages          TemplateUsage[]
+
+  @@map("templates")
+}
+
+model TemplateMetadata {
+  id         String   @id @default(cuid())
+  templateId String   @unique
+  template   Template @relation(fields: [templateId], references: [id])
+  data       Json     @default("{}")
+  isDeleted  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("template_metadata")
+}
+
+model TemplateUsage {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  userId          String
+  templateId      String
+  template        Template     @relation(fields: [templateId], references: [id])
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("template_usages")
+}
+
+model Vote {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+  organizationId  String?
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+  entityId        String?
+  entityModel     String?
+  isDeleted       Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@map("votes")
+}
+
+model Watchlist {
+  id              String       @id @default(cuid())
+  brandId         String?
+  brand           Brand?       @relation(fields: [brandId], references: [id])
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  config          Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("watchlists")
+}
+
+model Goal {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  parentId        String?
+  parent          Goal?        @relation("goal_parent", fields: [parentId], references: [id])
+  children        Goal[]       @relation("goal_parent")
+  label           String?
+  config          Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("goals")
+}
+
+model Streak {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  userId          String
+  user            User         @relation(fields: [userId], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("streaks")
+}
+
+model Announcement {
+  id              String       @id @default(cuid())
+  organizationId  String?
+  organization    Organization? @relation(fields: [organizationId], references: [id])
+  title           String?
+  content         String?
+  config          Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("announcements")
+}
+
+model Lead {
+  id                    String       @id @default(cuid())
+  organizationId        String?
+  organization          Organization? @relation("lead_org", fields: [organizationId], references: [id])
+  userId                String?
+  user                  User?        @relation("lead_user", fields: [userId], references: [id])
+  proactiveOrganizationId String?
+  proactiveOrganization Organization? @relation("lead_proactive_org", fields: [proactiveOrganizationId], references: [id])
+  proactiveBrandId      String?
+  proactiveBrand        Brand?       @relation("lead_proactive_brand", fields: [proactiveBrandId], references: [id])
+  status                LeadStatus   @default(NEW)
+  data                  Json         @default("{}")
+  isDeleted             Boolean      @default(false)
+  createdAt             DateTime     @default(now())
+  updatedAt             DateTime     @updatedAt
+
+  @@index([organizationId, isDeleted, status])
+  @@map("leads")
+}
+
+model Profile {
+  id              String       @id @default(cuid())
+  organizationId  String
+  organization    Organization @relation(fields: [organizationId], references: [id])
+  createdById     String?
+  createdBy       User?        @relation(fields: [createdById], references: [id])
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("profiles")
+}
+
+model Batch {
+  id              String        @id @default(cuid())
+  organizationId  String
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+  brandId         String?
+  brand           Brand?        @relation(fields: [brandId], references: [id])
+  agentStrategyId String?
+  agentStrategy   AgentStrategy? @relation(fields: [agentStrategyId], references: [id])
+  items           Json          @default("[]")
+  status          BatchStatus   @default(PENDING)
+  config          Json          @default("{}")
+  isDeleted       Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@map("batches")
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FANVUE (integration-specific collections)
+// ═══════════════════════════════════════════════════════════════
+
+model FanvueContent {
+  id              String   @id @default(cuid())
+  organizationId  String
+  userId          String
+  status          String?
+  data            Json     @default("{}")
+  publishedAt     DateTime?
+  isDeleted       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  schedules       FanvueSchedule[]
+
+  @@index([organizationId, isDeleted, status])
+  @@index([organizationId, publishedAt(sort: Desc)])
+  @@map("fanvue_content")
+}
+
+model FanvueEarnings {
+  id              String   @id @default(cuid())
+  organizationId  String
+  userId          String
+  type            String?
+  data            Json     @default("{}")
+  earnedAt        DateTime?
+  isDeleted       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organizationId, isDeleted, type])
+  @@index([organizationId, earnedAt(sort: Desc)])
+  @@map("fanvue_earnings")
+}
+
+model FanvueSchedule {
+  id              String   @id @default(cuid())
+  organizationId  String
+  userId          String
+  contentId       String?
+  content         FanvueContent? @relation(fields: [contentId], references: [id])
+  status          String?
+  scheduledAt     DateTime?
+  data            Json     @default("{}")
+  isDeleted       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organizationId, isDeleted, status])
+  @@index([scheduledAt, status])
+  @@map("fanvue_schedules")
+}
+
+model FanvueSubscriber {
+  id              String   @id @default(cuid())
+  organizationId  String
+  userId          String
+  externalId      String?
+  status          String?
+  data            Json     @default("{}")
+  isDeleted       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([organizationId, externalId])
+  @@index([organizationId, isDeleted, status])
+  @@map("fanvue_subscribers")
+}
+
+model LivestreamBotSession {
+  id        String   @id @default(cuid())
+  data      Json     @default("{}")
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("livestream_bot_sessions")
+}
+
+model Run {
+  id              String       @id @default(cuid())
+  organizationId  String
+  brandId         String?
+  data            Json         @default("{}")
+  isDeleted       Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@map("runs")
+}
+
+model Analytic {
+  id        String   @id @default(cuid())
+  data      Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("analytics")
+}

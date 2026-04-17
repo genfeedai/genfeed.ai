@@ -1,0 +1,24 @@
+{
+  "name": "@genfeedai/prisma",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Prisma schema, client, and migrations for Genfeed PostgreSQL",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts"
+  },
+  "scripts": {
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:push": "prisma db push",
+    "db:studio": "prisma studio",
+    "db:validate": "prisma validate",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.9.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.9.0"
+  }
+}
