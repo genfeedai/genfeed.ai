@@ -44,6 +44,7 @@ jobs:
         uses: ./.github/actions/setup-bun-env
         with:
           node-version: "22.x"
+          install-command: "bun install"
 
       - name: Run coverage
         run: cd ${{ matrix.package }} && npx vitest run --coverage
@@ -77,6 +78,7 @@ jobs:
         uses: ./.github/actions/setup-bun-env
         with:
           node-version: "22.x"
+          install-command: "bun install"
 
       - name: Build dependent packages
         run: bunx turbo build --filter="@genfeedai/client" --filter="@genfeedai/serializers" --filter="@genfeedai/helpers"
@@ -113,6 +115,7 @@ jobs:
         uses: ./.github/actions/setup-bun-env
         with:
           node-version: "22.x"
+          install-command: "bun install"
 
       - name: Run coverage
         run: cd apps/server/api && npx vitest run --coverage
