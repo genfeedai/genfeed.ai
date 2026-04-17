@@ -21,7 +21,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { ModuleRef } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('IngredientsOperationsController', () => {
   let controller: IngredientsOperationsController;
@@ -44,20 +43,20 @@ describe('IngredientsOperationsController', () => {
   } as unknown as Request;
 
   const mockIngredient = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439014'),
-    brand: new Types.ObjectId('507f1f77bcf86cd799439013'),
+    _id: '507f1f77bcf86cd799439014',
+    brand: '507f1f77bcf86cd799439013',
     category: 'image',
     metadata: {
-      _id: new Types.ObjectId('507f1f77bcf86cd799439015'),
+      _id: '507f1f77bcf86cd799439015',
       extension: 'jpg',
       height: 1080,
       width: 1920,
     },
     organization: {
-      id: new Types.ObjectId('507f1f77bcf86cd799439012'),
+      id: '507f1f77bcf86cd799439012',
     },
     user: {
-      id: new Types.ObjectId('507f1f77bcf86cd799439011'),
+      id: '507f1f77bcf86cd799439011',
     },
   };
 
@@ -97,10 +96,10 @@ describe('IngredientsOperationsController', () => {
     sharedService: {
       saveDocuments: vi.fn().mockResolvedValue({
         ingredientData: {
-          _id: new Types.ObjectId('507f1f77bcf86cd799439016'),
+          _id: '507f1f77bcf86cd799439016',
         },
         metadataData: {
-          _id: new Types.ObjectId('507f1f77bcf86cd799439017'),
+          _id: '507f1f77bcf86cd799439017',
         },
       }),
     },
@@ -225,10 +224,7 @@ describe('IngredientsOperationsController', () => {
   describe('updateTags', () => {
     it('should update tags successfully', async () => {
       const updateTagsDto: UpdateTagsDto = {
-        tags: [
-          new Types.ObjectId('507f1f77bcf86cd799439020'),
-          new Types.ObjectId('507f1f77bcf86cd799439021'),
-        ],
+        tags: ['507f1f77bcf86cd799439020', '507f1f77bcf86cd799439021'],
       };
 
       const result = await controller.updateTags(
@@ -252,12 +248,12 @@ describe('IngredientsOperationsController', () => {
       mockServices.ingredientsService.findOne
         .mockResolvedValueOnce({
           ...mockIngredient,
-          user: { id: new Types.ObjectId('507f1f77bcf86cd799439011') },
+          user: { id: '507f1f77bcf86cd799439011' },
         })
         .mockResolvedValueOnce({
           ...mockIngredient,
-          _id: new Types.ObjectId('507f1f77bcf86cd799439015'),
-          user: { id: new Types.ObjectId('507f1f77bcf86cd799439011') },
+          _id: '507f1f77bcf86cd799439015',
+          user: { id: '507f1f77bcf86cd799439011' },
         });
 
       const result = await controller.bulkDelete(mockUser, bulkDeleteDto);

@@ -1,7 +1,6 @@
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { WebhookClientService } from '@api/services/webhook-client/webhook-client.service';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 
 const orgId = new Types.ObjectId().toString();
 

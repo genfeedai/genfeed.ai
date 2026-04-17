@@ -1,13 +1,12 @@
 import { ArticleAnalytics } from '@api/collections/articles/schemas/article-analytics.schema';
-import type { Types } from 'mongoose';
 
 export class ArticleAnalyticsEntity implements ArticleAnalytics {
   declare readonly _id: string;
 
-  declare readonly article: Types.ObjectId;
-  declare readonly user: Types.ObjectId;
-  declare readonly brand: Types.ObjectId;
-  declare readonly organization: Types.ObjectId;
+  declare readonly article: string;
+  declare readonly user: string;
+  declare readonly brand: string;
+  declare readonly organization: string;
 
   declare readonly date: Date;
 

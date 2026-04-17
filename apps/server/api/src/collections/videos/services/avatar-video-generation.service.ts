@@ -40,7 +40,6 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 interface AvatarVideoGenerationContext {
   organizationId: string;

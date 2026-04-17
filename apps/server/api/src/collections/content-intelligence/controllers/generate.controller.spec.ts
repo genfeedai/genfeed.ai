@@ -5,7 +5,6 @@ import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('GenerateController', () => {
   it('should be defined', () => {
@@ -39,8 +38,8 @@ describe('GenerateController', () => {
     const mockUser = {
       id: 'user_123',
       publicMetadata: {
-        organization: new Types.ObjectId().toString(),
-        user: new Types.ObjectId().toString(),
+        organization: '507f191e810c19729de860ee'.toString(),
+        user: '507f191e810c19729de860ee'.toString(),
       },
     } as unknown as User;
 

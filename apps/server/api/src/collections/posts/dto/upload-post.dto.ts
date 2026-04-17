@@ -1,7 +1,6 @@
 import { CredentialPlatform } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class UploadPostDto {
   @ApiProperty()
@@ -28,7 +27,7 @@ export class UploadPostDto {
 
   @ApiProperty({ required: false, type: [String] })
   @IsOptional()
-  tags?: Types.ObjectId[];
+  tags?: string[];
 
   @ApiProperty({ required: false })
   @IsOptional()

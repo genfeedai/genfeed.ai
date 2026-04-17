@@ -4,7 +4,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { AdOptimizationRecommendationsService } from './ad-optimization-recommendations.service';
 
 describe('AdOptimizationRecommendationsService', () => {

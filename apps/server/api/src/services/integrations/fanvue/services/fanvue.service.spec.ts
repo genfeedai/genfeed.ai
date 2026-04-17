@@ -5,7 +5,6 @@ import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { of, throwError } from 'rxjs';
 
 vi.mock('@api/shared/utils/encryption/encryption.util', () => ({

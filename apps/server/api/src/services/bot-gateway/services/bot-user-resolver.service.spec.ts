@@ -4,7 +4,6 @@ import { BotUserResolverService } from '@api/services/bot-gateway/services/bot-u
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 const mockCredential = (overrides: Record<string, unknown> = {}) => ({
   _id: new Types.ObjectId(),

@@ -17,10 +17,6 @@ import { OrganizationsIntegrationsController } from '@api/collections/organizati
 import { OrganizationsMembersController } from '@api/collections/organizations/controllers/organizations-members.controller';
 import { OrganizationsRelationshipsController } from '@api/collections/organizations/controllers/organizations-relationships.controller';
 import { OrganizationsSettingsController } from '@api/collections/organizations/controllers/organizations-settings.controller';
-import {
-  Organization,
-  OrganizationSchema,
-} from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { PostsModule } from '@api/collections/posts/posts.module';
 import { RolesModule } from '@api/collections/roles/roles.module';
@@ -30,9 +26,6 @@ import { TagsModule } from '@api/collections/tags/tags.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { VideosModule } from '@api/collections/videos/videos.module';
 import { CommonModule } from '@api/common/common.module';
-import { ConfigModule } from '@api/config/config.module';
-import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { IntegrationsModule } from '@api/endpoints/integrations/integrations.module';
 import { MemberCreditsGuard } from '@api/helpers/guards/member-credits/member-credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
@@ -41,8 +34,6 @@ import { ClerkModule } from '@api/services/integrations/clerk/clerk.module';
 import { FleetModule } from '@api/services/integrations/fleet/fleet.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { forwardRef, Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import mongooseAggregatePaginateV2 from 'mongoose-aggregate-paginate-v2';
 
 @Module({
   controllers: [
@@ -52,7 +43,7 @@ import mongooseAggregatePaginateV2 from 'mongoose-aggregate-paginate-v2';
     OrganizationsRelationshipsController,
     OrganizationsSettingsController,
   ],
-  exports: [MongooseModule, OrganizationsService],
+  exports: [OrganizationsService],
   imports: [
     // Core modules
     forwardRef(() => ActivitiesModule),
@@ -76,46 +67,6 @@ import mongooseAggregatePaginateV2 from 'mongoose-aggregate-paginate-v2';
     forwardRef(() => TagsModule),
     forwardRef(() => UsersModule),
     forwardRef(() => VideosModule),
-    MongooseModule.forFeatureAsync(
-      [
-        {
-          imports: [ConfigModule],
-          inject: [ConfigService],
-          name: Organization.name,
-          useFactory: () => {
-            const schema = OrganizationSchema;
-
-            schema.plugin(mongooseAggregatePaginateV2);
-
-            // Unique sparse index: only enforced when prefix is set
-            schema.index({ prefix: 1 }, { sparse: true, unique: true });
-
-            schema.virtual('settings', {
-              foreignField: 'organization',
-              justOne: true,
-              localField: '_id',
-              ref: 'OrganizationSetting',
-            });
-
-            schema.virtual('credits', {
-              foreignField: 'organization',
-              justOne: true,
-              localField: '_id',
-              match: { isDeleted: false },
-              ref: 'CreditBalance',
-            });
-
-            // NOTE: logo and banner virtuals removed — Asset model lives on the
-            // default ('cloud') connection while Organization is on 'auth'.
-            // Mongoose virtual populate cannot cross connections.
-            // Logo/banner are fetched via $lookup in aggregation pipelines instead.
-
-            return schema;
-          },
-        },
-      ],
-      DB_CONNECTIONS.AUTH,
-    ),
   ],
   providers: [
     OrganizationsService,

@@ -1,6 +1,5 @@
 import { AgentType } from '@genfeedai/enums';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {

@@ -1,24 +1,12 @@
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import type { AgentRunDocument } from '@api/collections/agent-runs/schemas/agent-run.schema';
-import {
-  AgentRoom,
-  type AgentRoomDocument,
-} from '@api/collections/agent-threads/schemas/agent-thread.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
-import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
+import type { AgentRoomDocument } from '@api/collections/agent-threads/schemas/agent-thread.schema';
 import type { AgentThreadSnapshotDocument } from '@api/services/agent-threading/schemas/agent-thread-snapshot.schema';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { AgentExecutionStatus, AgentThreadStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 type ThreadRunStatus =
   | 'queued'
@@ -44,40 +32,31 @@ type AgentThreadWithSummary = AgentRoomDocument & AgentThreadSummary;
 @Injectable()
 export class AgentThreadsService extends BaseService<AgentRoomDocument> {
   constructor(
-    @InjectModel(AgentRoom.name, DB_CONNECTIONS.AGENT)
-    protected readonly model: AggregatePaginateModel<AgentRoomDocument>,
-    private readonly prisma: PrismaService,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     private readonly agentMessagesService: AgentMessagesService,
   ) {
-    super(model, logger);
+    super(prisma, 'agentRoom', logger);
   }
 
-  getUserThreads(
+  async getUserThreads(
     userId: string,
     organizationId: string,
     status?: AgentThreadStatus,
   ): Promise<AgentThreadWithSummary[]> {
-    this.ensureObjectId(userId, 'userId');
-    this.ensureObjectId(organizationId, 'organizationId');
-
-    const filters: Record<string, unknown> = {
-      user: this.buildUserOwnershipFilter(userId),
+    const where: Record<string, unknown> = {
+      isDeleted: false,
+      organizationId,
+      userId,
     };
 
     if (status === AgentThreadStatus.ACTIVE) {
-      // Match documents with status 'ACTIVE' OR missing status field entirely.
-      // Old threads created before the status field was added won't have it,
-      // and Mongoose defaults only apply on document creation, not queries.
-      filters.$or = [
-        { status: AgentThreadStatus.ACTIVE },
-        { status: { $exists: false } },
-      ];
+      where.status = AgentThreadStatus.ACTIVE;
     } else if (status) {
-      filters.status = status;
+      where.status = status;
     }
 
-    return this.findThreadsWithSnapshots(organizationId, filters);
+    return this.findThreadsWithSnapshots(organizationId, where);
   }
 
   archiveThread(
@@ -95,25 +74,17 @@ export class AgentThreadsService extends BaseService<AgentRoomDocument> {
     userId: string,
     organizationId: string,
   ): Promise<number> {
-    const parsedOrganizationId = this.ensureObjectId(
-      organizationId,
-      'organizationId',
-    );
-
-    const result = await this.model.updateMany(
-      {
-        $or: [
-          { status: AgentThreadStatus.ACTIVE },
-          { status: { $exists: false } },
-        ],
+    const result = await this.delegate.updateMany({
+      where: {
         isDeleted: false,
-        organization: parsedOrganizationId,
-        user: this.buildUserOwnershipFilter(userId),
+        organizationId,
+        status: AgentThreadStatus.ACTIVE,
+        userId,
       },
-      { $set: { status: AgentThreadStatus.ARCHIVED } },
-    );
+      data: { status: AgentThreadStatus.ARCHIVED },
+    });
 
-    return result.modifiedCount ?? 0;
+    return result.count ?? 0;
   }
 
   updateThreadMetadata(
@@ -137,18 +108,11 @@ export class AgentThreadsService extends BaseService<AgentRoomDocument> {
     organizationId: string,
     userId: string,
   ): Promise<AgentRoomDocument> {
-    const parsedConversationId = this.ensureObjectId(threadId, 'threadId');
-    const parsedOrganizationId = this.ensureObjectId(
-      organizationId,
-      'organizationId',
-    );
-    const parsedUserId = this.ensureObjectId(userId, 'userId');
-
     const parent = await this.findOne({
-      _id: parsedConversationId,
+      id: threadId,
       isDeleted: false,
-      organization: parsedOrganizationId,
-      user: this.buildUserOwnershipFilter(userId),
+      organizationId,
+      userId,
     });
 
     if (!parent) {
@@ -156,18 +120,18 @@ export class AgentThreadsService extends BaseService<AgentRoomDocument> {
     }
 
     const cloned = await this.create({
-      organization: parent.organization,
-      parentThreadId: parent._id,
+      organizationId: parent.organizationId,
+      parentThreadId: parent.id,
       source: parent.source,
       systemPrompt: parent.systemPrompt,
       title: parent.title ? `${parent.title} (branch)` : 'Branched thread',
-      user: parsedUserId,
+      userId,
     } as Record<string, unknown>);
 
     await this.agentMessagesService.copyMessages(
-      String(parsedConversationId),
-      String(cloned._id),
-      String(parsedOrganizationId),
+      threadId,
+      cloned.id,
+      organizationId,
     );
 
     return cloned;
@@ -189,29 +153,10 @@ export class AgentThreadsService extends BaseService<AgentRoomDocument> {
     organizationId: string,
     status: AgentThreadStatus,
   ): Promise<AgentRoomDocument> {
-    const parsedConversationId = this.ensureObjectId(threadId, 'threadId');
-    const parsedOrganizationId = this.ensureObjectId(
-      organizationId,
-      'organizationId',
-    );
-
-    const updated = await (
-      this.model as unknown as {
-        findOneAndUpdate: (
-          filter: unknown,
-          update: unknown,
-          options: unknown,
-        ) => Promise<AgentRoomDocument | null>;
-      }
-    ).findOneAndUpdate(
-      {
-        _id: parsedConversationId,
-        isDeleted: false,
-        organization: parsedOrganizationId,
-      },
-      { $set: { status } },
-      { new: true },
-    );
+    const updated = (await this.delegate.update({
+      where: { id: threadId, isDeleted: false, organizationId },
+      data: { status },
+    })) as AgentRoomDocument | null;
 
     if (!updated) {
       throw new NotFoundException(`Thread "${threadId}" not found`);
@@ -225,29 +170,10 @@ export class AgentThreadsService extends BaseService<AgentRoomDocument> {
     organizationId: string,
     update: Record<string, unknown>,
   ): Promise<AgentRoomDocument> {
-    const parsedConversationId = this.ensureObjectId(threadId, 'threadId');
-    const parsedOrganizationId = this.ensureObjectId(
-      organizationId,
-      'organizationId',
-    );
-
-    const updated = await (
-      this.model as unknown as {
-        findOneAndUpdate: (
-          filter: unknown,
-          update: unknown,
-          options: unknown,
-        ) => Promise<AgentRoomDocument | null>;
-      }
-    ).findOneAndUpdate(
-      {
-        _id: parsedConversationId,
-        isDeleted: false,
-        organization: parsedOrganizationId,
-      },
-      { $set: update },
-      { new: true },
-    );
+    const updated = (await this.delegate.update({
+      where: { id: threadId, isDeleted: false, organizationId },
+      data: update,
+    })) as AgentRoomDocument | null;
 
     if (!updated) {
       throw new NotFoundException(`Thread "${threadId}" not found`);
@@ -260,41 +186,16 @@ export class AgentThreadsService extends BaseService<AgentRoomDocument> {
     organizationId: string,
     filters?: Record<string, unknown>,
   ): Promise<AgentRoomDocument[]> {
-    const query: Record<string, unknown> = {
+    const where: Record<string, unknown> = {
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
+      ...filters,
     };
 
-    if (filters) {
-      for (const [key, value] of Object.entries(filters)) {
-        if (value === undefined || value === null) {
-          continue;
-        }
-        query[key] = value;
-      }
-    }
-
-    return this.model
-      .find(query)
-      .sort({ updatedAt: -1 })
-      .lean() as unknown as Promise<AgentRoomDocument[]>;
-  }
-
-  private ensureObjectId(value: string, field: string): Types.ObjectId {
-    if (!ObjectIdUtil.isValid(value)) {
-      throw new BadRequestException(`Invalid ${field}`);
-    }
-    return new Types.ObjectId(value);
-  }
-
-  private buildUserOwnershipFilter(userId: string): {
-    $in: [Types.ObjectId, string];
-  } {
-    return {
-      // Legacy agent rooms stored the Mongo user id as a plain string.
-      // Keep writing canonical ObjectIds, but keep reading both forms.
-      $in: [this.ensureObjectId(userId, 'userId'), userId],
-    };
+    return this.delegate.findMany({
+      where,
+      orderBy: { updatedAt: 'desc' },
+    }) as Promise<AgentRoomDocument[]>;
   }
 
   private async findThreadsWithSnapshots(
@@ -307,9 +208,7 @@ export class AgentThreadsService extends BaseService<AgentRoomDocument> {
       return [];
     }
 
-    const threadIds = threads
-      .map((thread) => this.readThreadId(thread))
-      .filter((threadId): threadId is Types.ObjectId => threadId !== null);
+    const threadIds = threads.map((thread) => thread.id);
 
     if (threadIds.length === 0) {
       return threads as AgentThreadWithSummary[];
@@ -319,7 +218,7 @@ export class AgentThreadsService extends BaseService<AgentRoomDocument> {
       where: {
         isDeleted: false,
         organizationId,
-        threadId: { in: threadIds.map((id) => id.toString()) },
+        threadId: { in: threadIds },
       },
     });
 
@@ -335,8 +234,8 @@ export class AgentThreadsService extends BaseService<AgentRoomDocument> {
     );
 
     return threads.map((thread) => {
-      const snapshot = snapshotsByThreadId.get(String(thread._id));
-      const latestRun = latestRunsByThreadId.get(String(thread._id));
+      const snapshot = snapshotsByThreadId.get(String(thread.id));
+      const latestRun = latestRunsByThreadId.get(String(thread.id));
       return {
         ...thread,
         ...this.buildThreadSummary(snapshot, latestRun),
@@ -393,14 +292,14 @@ export class AgentThreadsService extends BaseService<AgentRoomDocument> {
 
   private async findLatestRunsByThreadIds(
     organizationId: string,
-    threadIds: Types.ObjectId[],
+    threadIds: string[],
   ): Promise<Map<string, AgentRunDocument>> {
     const runs = await this.prisma.agentRun.findMany({
       orderBy: { createdAt: 'desc' },
       where: {
         isDeleted: false,
         organizationId,
-        threadId: { in: threadIds.map((id) => id.toString()) },
+        threadId: { in: threadIds },
       },
     });
 
@@ -483,20 +382,6 @@ export class AgentThreadsService extends BaseService<AgentRoomDocument> {
       default:
         return 'idle';
     }
-  }
-
-  private readThreadId(thread: AgentRoomDocument): Types.ObjectId | null {
-    const threadId: unknown = thread._id;
-
-    if (threadId instanceof Types.ObjectId) {
-      return threadId;
-    }
-
-    if (typeof threadId === 'string' && ObjectIdUtil.isValid(threadId)) {
-      return new Types.ObjectId(threadId);
-    }
-
-    return null;
   }
 
   private asRecord(value: unknown): Record<string, unknown> | undefined {

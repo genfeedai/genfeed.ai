@@ -12,7 +12,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('WorkflowExecutionsService', () => {
   let service: WorkflowExecutionsService;

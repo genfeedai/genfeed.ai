@@ -25,7 +25,6 @@ import { MusicSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('musics')
@@ -52,7 +51,7 @@ export class MusicsController extends BaseCRUDController<
   public buildFindAllPipeline(
     user: User,
     query: MusicQueryDto,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const publicMetadata = getPublicMetadata(user);
 
     // Use CollectionFilterUtil for common filtering patterns
@@ -82,7 +81,7 @@ export class MusicsController extends BaseCRUDController<
               category: IngredientCategory.MUSIC,
               isDeleted: query.isDeleted ?? false,
               status,
-              user: new Types.ObjectId(publicMetadata.user),
+              user: publicMetadata.user,
             },
             {
               category: IngredientCategory.MUSIC,
@@ -177,7 +176,7 @@ export class MusicsController extends BaseCRUDController<
   }
 
   private isValidObjectId(id: string): boolean {
-    return Types.ObjectId.isValid(id);
+    return /^[0-9a-f]{24}$/i.test(id);
   }
 
   @Get('latest')
@@ -196,9 +195,9 @@ export class MusicsController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
     const scope = { $ne: null };
-    const brand = new Types.ObjectId(publicMetadata.brand);
+    const brand = publicMetadata.brand;
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           $or: [
@@ -208,7 +207,7 @@ export class MusicsController extends BaseCRUDController<
               isDeleted,
               // Exclude training source musics by default
               training: { $exists: false },
-              user: new Types.ObjectId(publicMetadata.user),
+              user: publicMetadata.user,
             },
             {
               // Filter default musics by brand when brand is specified

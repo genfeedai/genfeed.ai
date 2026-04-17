@@ -1,5 +1,4 @@
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
-import { Types } from 'mongoose';
 
 describe('IngredientFilterUtil', () => {
   describe('buildParentFilter', () => {
@@ -14,7 +13,7 @@ describe('IngredientFilterUtil', () => {
     });
 
     it('should filter by parent ID when valid ObjectId provided', () => {
-      const parentId = new Types.ObjectId();
+      const parentId = '507f191e810c19729de860ee';
       const result = IngredientFilterUtil.buildParentFilter(parentId);
       expect(result).toEqual({ parent: parentId });
     });
@@ -32,7 +31,7 @@ describe('IngredientFilterUtil', () => {
     });
 
     it('should filter by folder ID when valid ObjectId provided', () => {
-      const folderId = new Types.ObjectId();
+      const folderId = '507f191e810c19729de860ee';
       const result = IngredientFilterUtil.buildFolderFilter(folderId);
       expect(result).toEqual({ folder: folderId });
     });
@@ -50,7 +49,7 @@ describe('IngredientFilterUtil', () => {
     });
 
     it('should filter by training ID when valid ObjectId provided', () => {
-      const trainingId = new Types.ObjectId();
+      const trainingId = '507f191e810c19729de860ee';
       const result = IngredientFilterUtil.buildTrainingFilter(trainingId);
       expect(result).toEqual({ training: trainingId });
     });
@@ -105,7 +104,7 @@ describe('IngredientFilterUtil', () => {
 
   describe('buildBrandFilter', () => {
     it('should filter by brand ID when valid ObjectId provided', () => {
-      const brandId = new Types.ObjectId();
+      const brandId = '507f191e810c19729de860ee';
       const result = IngredientFilterUtil.buildBrandFilter(brandId);
       expect(result).toEqual(brandId);
     });

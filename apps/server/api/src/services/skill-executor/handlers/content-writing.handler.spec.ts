@@ -3,7 +3,6 @@ import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatc
 import { ContentWritingHandler } from '@api/services/skill-executor/handlers/content-writing.handler';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('ContentWritingHandler', () => {

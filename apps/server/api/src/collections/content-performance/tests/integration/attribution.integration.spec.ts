@@ -4,7 +4,6 @@ import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 /**
  * Integration test: Attribution service
@@ -16,10 +15,10 @@ import { Types } from 'mongoose';
 describe('Attribution (Integration)', () => {
   let service: AttributionService;
 
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
-  const workflowExecId1 = new Types.ObjectId();
-  const workflowExecId2 = new Types.ObjectId();
+  const orgId = '507f191e810c19729de860ee'.toString();
+  const brandId = '507f191e810c19729de860ee'.toString();
+  const workflowExecId1 = '507f191e810c19729de860ee';
+  const workflowExecId2 = '507f191e810c19729de860ee';
 
   const mockModel = {
     aggregate: vi.fn(),

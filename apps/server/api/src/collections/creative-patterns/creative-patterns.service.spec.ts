@@ -2,7 +2,6 @@ import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import type { PatternType } from '@genfeedai/interfaces';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CreativePatternsService } from './creative-patterns.service';
 import {
@@ -14,12 +13,12 @@ const makePattern = (
   overrides: Partial<CreativePatternDocument> = {},
 ): CreativePatternDocument =>
   ({
-    _id: new Types.ObjectId(),
+    _id: '507f191e810c19729de860ee',
     avgPerformanceScore: 0.8,
     brand: null,
     industry: null,
     isDeleted: false,
-    organization: new Types.ObjectId(),
+    organization: '507f191e810c19729de860ee',
     patternType: 'hook' as PatternType,
     platform: 'instagram',
     scope: 'private',
@@ -104,8 +103,8 @@ describe('CreativePatternsService', () => {
       };
       mockModel.find.mockReturnValue(mockQuery);
 
-      const orgId = new Types.ObjectId().toString();
-      const brandId = new Types.ObjectId().toString();
+      const orgId = '507f191e810c19729de860ee'.toString();
+      const brandId = '507f191e810c19729de860ee'.toString();
       const result = await service.findTopForBrand(orgId, brandId);
 
       expect(mockModel.find).toHaveBeenCalledWith(
@@ -129,8 +128,8 @@ describe('CreativePatternsService', () => {
       mockModel.find.mockReturnValue(mockQuery);
 
       await service.findTopForBrand(
-        new Types.ObjectId().toString(),
-        new Types.ObjectId().toString(),
+        '507f191e810c19729de860ee'.toString(),
+        '507f191e810c19729de860ee'.toString(),
       );
 
       expect(mockQuery.limit).toHaveBeenCalledWith(10);
@@ -146,8 +145,8 @@ describe('CreativePatternsService', () => {
       mockModel.find.mockReturnValue(mockQuery);
 
       await service.findTopForBrand(
-        new Types.ObjectId().toString(),
-        new Types.ObjectId().toString(),
+        '507f191e810c19729de860ee'.toString(),
+        '507f191e810c19729de860ee'.toString(),
         { limit: 5 },
       );
 
@@ -164,8 +163,8 @@ describe('CreativePatternsService', () => {
       mockModel.find.mockReturnValue(mockQuery);
 
       await service.findTopForBrand(
-        new Types.ObjectId().toString(),
-        new Types.ObjectId().toString(),
+        '507f191e810c19729de860ee'.toString(),
+        '507f191e810c19729de860ee'.toString(),
         {
           patternTypes: ['hook' as PatternType],
         },

@@ -2,7 +2,6 @@ import type { CreateElementSoundDto } from '@api/collections/elements/sounds/dto
 import { ElementsSoundsService } from '@api/collections/elements/sounds/services/sounds.service';
 import { createMockModel } from '@api/shared/testing/mock-model.factory';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 
 const mockLoggerService = {
   debug: vi.fn(),

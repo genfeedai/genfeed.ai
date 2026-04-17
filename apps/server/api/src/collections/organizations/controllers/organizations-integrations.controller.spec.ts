@@ -11,7 +11,6 @@ import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('OrganizationsIntegrationsController', () => {
   let controller: OrganizationsIntegrationsController;
@@ -22,12 +21,12 @@ describe('OrganizationsIntegrationsController', () => {
   const integrationId = '507f1f77bcf86cd799439011';
 
   const mockIntegration = {
-    _id: new Types.ObjectId(integrationId),
+    _id: integrationId,
     config: {},
     createdAt: new Date(),
     encryptedToken: 'encrypted-token',
     isDeleted: false,
-    organization: new Types.ObjectId(organizationId),
+    organization: organizationId,
     platform: IntegrationPlatform.DISCORD,
     status: IntegrationStatus.ACTIVE,
     updatedAt: new Date(),

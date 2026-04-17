@@ -36,7 +36,11 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 @AutoSwagger()
 @ApiTags('presets')
@@ -64,7 +68,7 @@ export class PresetsController extends BaseCRUDController<
   public buildFindAllPipeline(
     user: User,
     query: PresetsQueryDto,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const publicMetadata = getPublicMetadata(user);
 
     // Use PresetFilterUtil to build base match stage
@@ -138,7 +142,7 @@ export class PresetsController extends BaseCRUDController<
 
     // Check if preset exists - don't populate 'user' since Preset doesn't have that field
     const existing = await this.presetsService.findOne({
-      _id: new Types.ObjectId(presetId),
+      _id: presetId,
     });
 
     if (!existing) {
@@ -160,11 +164,11 @@ export class PresetsController extends BaseCRUDController<
       ...updateDto,
       // Only add organization if it's being updated
       ...(updateDto.organization && {
-        organization: new Types.ObjectId(updateDto.organization),
+        organization: updateDto.organization,
       }),
 
       ...(updateDto.brand && {
-        brand: new Types.ObjectId(updateDto.brand),
+        brand: updateDto.brand,
       }),
     };
 

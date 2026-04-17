@@ -13,7 +13,6 @@ import { AvatarProvider, VoiceProvider } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const objectId = () => new Types.ObjectId();

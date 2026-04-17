@@ -21,12 +21,11 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import type { Types } from 'mongoose';
 
 export class CreateVideoWithCaptionsDto {
   @IsMongoId()
   @ApiProperty({ required: true })
-  readonly caption?: Types.ObjectId;
+  readonly caption?: string;
 
   @IsString()
   @IsOptional()
@@ -47,7 +46,7 @@ export class CreateMergedVideoDto {
   @IsMongoId()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly music?: Types.ObjectId;
+  readonly music?: string;
 
   @IsBoolean()
   @IsOptional()
@@ -535,7 +534,7 @@ export class CreateVideoDto extends OmitType(CreateIngredientDto, [
     description: 'The bookmark ID that this video was generated from',
     required: false,
   })
-  readonly bookmark?: string | Types.ObjectId;
+  readonly bookmark?: string;
 
   @IsString()
   @IsOptional()

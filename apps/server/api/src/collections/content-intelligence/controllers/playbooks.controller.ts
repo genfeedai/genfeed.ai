@@ -30,7 +30,11 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 // Simple serializer for pattern playbook
 const PatternPlaybookSerializer = {
@@ -71,9 +75,9 @@ export class PlaybooksController {
     @CurrentUser() user: User,
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
-    const organizationId = new Types.ObjectId(publicMetadata.organization);
+    const organizationId = publicMetadata.organization;
 
-    const pipeline: PipelineStage[] = [
+    const pipeline: Record<string, unknown>[] = [
       {
         $match: {
           isDeleted: false,
@@ -106,7 +110,7 @@ export class PlaybooksController {
     const data = await this.playbookBuilderService.findOne({
       _id: id,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!data) {
@@ -123,8 +127,8 @@ export class PlaybooksController {
     @Body() dto: CreatePlaybookDto,
   ): Promise<JsonApiSingleResponse> {
     const publicMetadata = getPublicMetadata(user);
-    const organizationId = new Types.ObjectId(publicMetadata.organization);
-    const userId = new Types.ObjectId(publicMetadata.user);
+    const organizationId = publicMetadata.organization;
+    const userId = publicMetadata.user;
 
     const data = await this.playbookBuilderService.createPlaybook(
       organizationId,
@@ -150,7 +154,7 @@ export class PlaybooksController {
     const existing = await this.playbookBuilderService.findOne({
       _id: id,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!existing) {
@@ -176,7 +180,7 @@ export class PlaybooksController {
     const existing = await this.playbookBuilderService.findOne({
       _id: id,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!existing) {
@@ -203,7 +207,7 @@ export class PlaybooksController {
     const existing = await this.playbookBuilderService.findOne({
       _id: id,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!existing) {

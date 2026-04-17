@@ -81,7 +81,6 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 type WorkflowTemplates = Awaited<
   ReturnType<WorkflowsService['getWorkflowTemplates']>
@@ -274,7 +273,7 @@ export class WorkflowsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           isDeleted: false,
@@ -299,11 +298,11 @@ export class WorkflowsController {
     @CurrentUser() user: User,
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           isDeleted: false,
-          organization: new Types.ObjectId(publicMetadata.organization),
+          organization: publicMetadata.organization,
         },
       },
       {
@@ -336,7 +335,7 @@ export class WorkflowsController {
   }> {
     const publicMetadata = getPublicMetadata(user);
     const workflow = await this.workflowsService.findOne({
-      _id: new Types.ObjectId(workflowId),
+      _id: workflowId,
     } as Record<string, unknown>);
 
     if (
@@ -407,7 +406,7 @@ export class WorkflowsController {
   ): Promise<{ data: { isValid: boolean; errors: string[] } }> {
     const publicMetadata = getPublicMetadata(user);
     const workflow = await this.workflowsService.findOne({
-      _id: new Types.ObjectId(workflowId),
+      _id: workflowId,
     } as Record<string, unknown>);
 
     if (
@@ -460,8 +459,8 @@ export class WorkflowsController {
     const workflow = await this.workflowsService.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: publicMetadata.organization,
+      user: publicMetadata.user,
     });
 
     if (!workflow) {
@@ -487,8 +486,8 @@ export class WorkflowsController {
     const workflow = await this.workflowsService.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: publicMetadata.organization,
+      user: publicMetadata.user,
     });
 
     if (!workflow) {
@@ -520,8 +519,8 @@ export class WorkflowsController {
     const workflow = await this.workflowsService.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: publicMetadata.organization,
+      user: publicMetadata.user,
     });
 
     if (!workflow) {
@@ -553,8 +552,8 @@ export class WorkflowsController {
     const workflow = await this.workflowsService.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: publicMetadata.organization,
+      user: publicMetadata.user,
     });
 
     if (!workflow) {
@@ -647,8 +646,8 @@ export class WorkflowsController {
     const workflow = await this.workflowsService.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: publicMetadata.organization,
+      user: publicMetadata.user,
     });
 
     if (!workflow) {
@@ -975,12 +974,12 @@ export class WorkflowsController {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           isDeleted,
-          organization: new Types.ObjectId(publicMetadata.organization),
-          user: new Types.ObjectId(publicMetadata.user),
+          organization: publicMetadata.organization,
+          user: publicMetadata.user,
         },
       },
       {
@@ -1145,8 +1144,8 @@ export class WorkflowsController {
     const workflow = await this.workflowsService.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: publicMetadata.organization,
+      user: publicMetadata.user,
     });
 
     if (!workflow) {
@@ -1175,8 +1174,8 @@ export class WorkflowsController {
     const workflow = await this.workflowsService.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: publicMetadata.organization,
+      user: publicMetadata.user,
     });
 
     return workflow
@@ -1220,8 +1219,8 @@ export class WorkflowsController {
     const workflow = await this.workflowsService.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: publicMetadata.organization,
+      user: publicMetadata.user,
     });
 
     if (!workflow) {
@@ -1249,8 +1248,8 @@ export class WorkflowsController {
     const workflow = await this.workflowsService.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: publicMetadata.organization,
+      user: publicMetadata.user,
     });
 
     if (!workflow) {
@@ -1285,8 +1284,8 @@ export class WorkflowsController {
     const workflow = await this.workflowsService.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: publicMetadata.organization,
+      user: publicMetadata.user,
     });
 
     if (!workflow) {
@@ -1311,8 +1310,8 @@ export class WorkflowsController {
     const workflow = await this.workflowsService.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: publicMetadata.organization,
+      user: publicMetadata.user,
     });
 
     if (!workflow) {
@@ -1341,8 +1340,8 @@ export class WorkflowsController {
     const workflow = await this.workflowsService.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: publicMetadata.organization,
+      user: publicMetadata.user,
     });
 
     if (!workflow) {
@@ -1371,8 +1370,8 @@ export class WorkflowsController {
     const workflow = await this.workflowsService.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: publicMetadata.organization,
+      user: publicMetadata.user,
     });
 
     if (!workflow) {
@@ -1411,7 +1410,7 @@ export class WorkflowsController {
     const workflow = await this.workflowsService.findOne({
       _id: workflowId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!workflow) {

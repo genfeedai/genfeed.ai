@@ -1,15 +1,6 @@
-import {
-  PostAnalytics,
-  type PostAnalyticsDocument,
-} from '@api/collections/posts/schemas/post-analytics.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { type PipelineStage, Types } from 'mongoose';
-
-type PostAnalyticsModel = AggregatePaginateModel<PostAnalyticsDocument>;
 
 export interface WeeklySummaryOptions {
   topN?: number;
@@ -74,10 +65,7 @@ export interface WeeklySummary {
 
 @Injectable()
 export class PerformanceSummaryService {
-  constructor(
-    @InjectModel(PostAnalytics.name, DB_CONNECTIONS.ANALYTICS)
-    private readonly postAnalyticsModel: PostAnalyticsModel,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   private parseDateRange(startDate?: Date | string, endDate?: Date | string) {
     return DateRangeUtil.parseDateRange(startDate, endDate);
@@ -90,10 +78,10 @@ export class PerformanceSummaryService {
     endDate: Date,
   ): Record<string, unknown> {
     return {
-      brand: new Types.ObjectId(brandId),
-      date: { $gte: startDate, $lte: endDate },
+      brandId,
+      date: { gte: startDate, lte: endDate },
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     };
   }
 
@@ -127,15 +115,15 @@ export class PerformanceSummaryService {
       topHooks,
       weekOverWeekTrend,
     ] = await Promise.all([
-      this.getContentByEngagement(matchFilter, topN, -1),
-      this.getContentByEngagement(matchFilter, worstN, 1),
+      this.getContentByEngagement(matchFilter, topN, 'desc'),
+      this.getContentByEngagement(matchFilter, worstN, 'asc'),
       this.getAvgEngagementByPlatform(matchFilter),
       this.getAvgEngagementByContentType(matchFilter),
       this.getBestPostingTimes(matchFilter),
       this.getTopHooks(matchFilter),
       this.getWeekOverWeekTrend(matchFilter, {
         ...matchFilter,
-        date: { $gte: previousStartDate, $lte: previousEndDate },
+        date: { gte: previousStartDate, lte: previousEndDate },
       }),
     ]);
 
@@ -171,11 +159,11 @@ export class PerformanceSummaryService {
       endDate,
     );
 
-    return this.getContentByEngagement(matchFilter, limit, -1);
+    return this.getContentByEngagement(matchFilter, limit, 'desc');
   }
 
   /**
-   * Get prompt/description performance — which content descriptions produce the best results.
+   * Get prompt/description performance.
    */
   async getPromptPerformance(
     organizationId: string,
@@ -195,49 +183,32 @@ export class PerformanceSummaryService {
       parsedEnd,
     );
 
-    const pipeline: PipelineStage[] = [
-      { $match: matchFilter },
-      {
-        $group: {
-          _id: '$post',
-          avgEngagementRate: { $avg: '$engagementRate' },
-          totalViews: { $max: '$totalViews' },
-        },
-      },
-      { $sort: { avgEngagementRate: -1 } },
-      { $limit: 50 },
-      {
-        $lookup: {
-          as: 'postDoc',
-          foreignField: '_id',
-          from: 'posts',
-          localField: '_id',
-        },
-      },
-      { $unwind: { path: '$postDoc', preserveNullAndEmptyArrays: true } },
-      {
-        $project: {
-          avgEngagementRate: 1,
-          description: '$postDoc.description',
-          label: '$postDoc.label',
-          totalViews: 1,
-        },
-      },
-    ];
+    // Fetch post analytics grouped by post, then join with posts
+    const analytics = await this.prisma.postAnalytics.findMany({
+      where: matchFilter as Parameters<
+        typeof this.prisma.postAnalytics.findMany
+      >[0]['where'],
+      orderBy: { engagementRate: 'desc' },
+      take: 50,
+    });
 
-    const results = await this.postAnalyticsModel.aggregate(pipeline);
+    // Group by first 100 chars of description/label
+    const postIds = [...new Set(analytics.map((a) => String(a.postId)))];
+    const posts =
+      postIds.length > 0
+        ? await this.prisma.post.findMany({ where: { id: { in: postIds } } })
+        : [];
+    const postMap = new Map(posts.map((p) => [p.id, p]));
 
-    // Group by first 100 chars of description to find patterns
     const promptMap = new Map<
       string,
       { totalEngagement: number; totalViews: number; count: number }
     >();
 
-    for (const item of results) {
-      const desc = String(item.description || item.label || '').trim();
-      if (!desc) {
-        continue;
-      }
+    for (const item of analytics) {
+      const post = postMap.get(String(item.postId));
+      const desc = String(post?.description || post?.label || '').trim();
+      if (!desc) continue;
 
       const snippet = desc.substring(0, 100);
       const existing = promptMap.get(snippet) || {
@@ -246,7 +217,7 @@ export class PerformanceSummaryService {
         totalViews: 0,
       };
 
-      existing.totalEngagement += Number(item.avgEngagementRate || 0);
+      existing.totalEngagement += Number(item.engagementRate || 0);
       existing.totalViews += Number(item.totalViews || 0);
       existing.count += 1;
       promptMap.set(snippet, existing);
@@ -282,18 +253,17 @@ export class PerformanceSummaryService {
 
     const [topPerformers, platformEngagement, bestTimes, trend] =
       await Promise.all([
-        this.getContentByEngagement(matchFilter, 3, -1),
+        this.getContentByEngagement(matchFilter, 3, 'desc'),
         this.getAvgEngagementByPlatform(matchFilter),
         this.getBestPostingTimes(matchFilter),
         this.getWeekOverWeekTrend(matchFilter, {
           ...matchFilter,
-          date: { $gte: previousStartDate, $lte: previousEndDate },
+          date: { gte: previousStartDate, lte: previousEndDate },
         }),
       ]);
 
     const lines: string[] = [];
 
-    // Top hooks
     if (topPerformers.length > 0) {
       const hooks = topPerformers
         .map((p) => {
@@ -307,7 +277,6 @@ export class PerformanceSummaryService {
       }
     }
 
-    // Best posting time
     if (bestTimes.length > 0) {
       const bestHour = bestTimes[0].hour;
       const period = bestHour >= 12 ? 'PM' : 'AM';
@@ -315,7 +284,6 @@ export class PerformanceSummaryService {
       lines.push(`Best posting time: ${displayHour}${period}.`);
     }
 
-    // Best platform
     if (platformEngagement.length > 0) {
       const best = platformEngagement.sort(
         (a, b) => b.avgEngagementRate - a.avgEngagementRate,
@@ -323,7 +291,6 @@ export class PerformanceSummaryService {
       lines.push(`Best platform: ${best.platform}.`);
     }
 
-    // Trend
     const direction = trend.direction.toUpperCase();
     const pct = Math.abs(trend.percentageChange).toFixed(0);
     lines.push(`Engagement trending ${direction} ${pct}%.`);
@@ -336,180 +303,174 @@ export class PerformanceSummaryService {
   private async getContentByEngagement(
     matchFilter: Record<string, unknown>,
     limit: number,
-    sortDirection: 1 | -1,
+    sortDirection: 'asc' | 'desc',
   ): Promise<PerformanceContentItem[]> {
-    const pipeline: PipelineStage[] = [
-      { $match: matchFilter },
-      {
-        $group: {
-          _id: '$post',
-          avgEngagementRate: { $avg: '$engagementRate' },
-          comments: { $max: '$totalComments' },
-          likes: { $max: '$totalLikes' },
-          platform: { $first: '$platform' },
-          saves: { $max: '$totalSaves' },
-          shares: { $max: '$totalShares' },
-          views: { $max: '$totalViews' },
-        },
-      },
-      { $sort: { avgEngagementRate: sortDirection } },
-      { $limit: limit },
-      {
-        $lookup: {
-          as: 'postDoc',
-          foreignField: '_id',
-          from: 'posts',
-          localField: '_id',
-        },
-      },
-      { $unwind: { path: '$postDoc', preserveNullAndEmptyArrays: true } },
-      {
-        $project: {
-          avgEngagementRate: 1,
-          comments: 1,
-          description: '$postDoc.description',
-          likes: 1,
-          platform: 1,
-          publishDate: '$postDoc.publicationDate',
-          saves: 1,
-          shares: 1,
-          title: '$postDoc.label',
-          views: 1,
-        },
-      },
-    ];
+    const analytics = await this.prisma.postAnalytics.findMany({
+      where: matchFilter as Parameters<
+        typeof this.prisma.postAnalytics.findMany
+      >[0]['where'],
+      orderBy: { engagementRate: sortDirection },
+      take: limit,
+    });
 
-    const results = await this.postAnalyticsModel.aggregate(pipeline);
+    const postIds = [...new Set(analytics.map((a) => String(a.postId)))];
+    const posts =
+      postIds.length > 0
+        ? await this.prisma.post.findMany({ where: { id: { in: postIds } } })
+        : [];
+    const postMap = new Map(posts.map((p) => [p.id, p]));
 
-    return results.map((item: Record<string, unknown>) => ({
-      comments: Number(item.comments || 0),
-      description: String(item.description || ''),
-      engagementRate: Number(item.avgEngagementRate || 0),
-      likes: Number(item.likes || 0),
-      platform: String(item.platform || ''),
-      postId: String(item._id),
-      publishDate: item.publishDate as Date | undefined,
-      saves: Number(item.saves || 0),
-      shares: Number(item.shares || 0),
-      title: String(item.title || ''),
-      views: Number(item.views || 0),
-    }));
+    return analytics.map((item) => {
+      const post = postMap.get(String(item.postId));
+      return {
+        comments: Number(item.totalComments || 0),
+        description: String(post?.description || ''),
+        engagementRate: Number(item.engagementRate || 0),
+        likes: Number(item.totalLikes || 0),
+        platform: String(item.platform || ''),
+        postId: String(item.postId),
+        publishDate: post?.publicationDate ?? undefined,
+        saves: Number(item.totalSaves || 0),
+        shares: Number(item.totalShares || 0),
+        title: String(post?.label || ''),
+        views: Number(item.totalViews || 0),
+      };
+    });
   }
 
   private async getAvgEngagementByPlatform(
     matchFilter: Record<string, unknown>,
   ): Promise<PlatformEngagement[]> {
-    const pipeline: PipelineStage[] = [
-      { $match: matchFilter },
-      {
-        $group: {
-          _id: '$platform',
-          avgEngagementRate: { $avg: '$engagementRate' },
-          posts: { $addToSet: '$post' },
-        },
-      },
-      {
-        $project: {
-          avgEngagementRate: 1,
-          platform: '$_id',
-          totalPosts: { $size: '$posts' },
-        },
-      },
-      { $sort: { avgEngagementRate: -1 } },
-    ];
+    const analytics = await this.prisma.postAnalytics.findMany({
+      where: matchFilter as Parameters<
+        typeof this.prisma.postAnalytics.findMany
+      >[0]['where'],
+    });
 
-    const results = await this.postAnalyticsModel.aggregate(pipeline);
+    const platformMap = new Map<
+      string,
+      { totalEngagement: number; postIds: Set<string> }
+    >();
 
-    return results.map((item: Record<string, unknown>) => ({
-      avgEngagementRate: Number(item.avgEngagementRate || 0),
-      platform: String(item.platform),
-      totalPosts: Number(item.totalPosts || 0),
-    }));
+    for (const item of analytics) {
+      const platform = String(item.platform || 'unknown');
+      const existing = platformMap.get(platform) ?? {
+        postIds: new Set<string>(),
+        totalEngagement: 0,
+      };
+      existing.totalEngagement += Number(item.engagementRate || 0);
+      existing.postIds.add(String(item.postId));
+      platformMap.set(platform, existing);
+    }
+
+    return Array.from(platformMap.entries())
+      .map(([platform, data]) => ({
+        avgEngagementRate:
+          data.postIds.size > 0 ? data.totalEngagement / data.postIds.size : 0,
+        platform,
+        totalPosts: data.postIds.size,
+      }))
+      .sort((a, b) => b.avgEngagementRate - a.avgEngagementRate);
   }
 
   private async getAvgEngagementByContentType(
     matchFilter: Record<string, unknown>,
   ): Promise<ContentTypeEngagement[]> {
-    const pipeline: PipelineStage[] = [
-      { $match: matchFilter },
-      {
-        $lookup: {
-          as: 'postDoc',
-          foreignField: '_id',
-          from: 'posts',
-          localField: 'post',
-        },
-      },
-      { $unwind: { path: '$postDoc', preserveNullAndEmptyArrays: true } },
-      {
-        $group: {
-          _id: '$postDoc.category',
-          avgEngagementRate: { $avg: '$engagementRate' },
-          posts: { $addToSet: '$post' },
-        },
-      },
-      {
-        $project: {
-          avgEngagementRate: 1,
-          category: '$_id',
-          totalPosts: { $size: '$posts' },
-        },
-      },
-      { $sort: { avgEngagementRate: -1 } },
-    ];
+    const analytics = await this.prisma.postAnalytics.findMany({
+      where: matchFilter as Parameters<
+        typeof this.prisma.postAnalytics.findMany
+      >[0]['where'],
+    });
 
-    const results = await this.postAnalyticsModel.aggregate(pipeline);
+    const postIds = [...new Set(analytics.map((a) => String(a.postId)))];
+    const posts =
+      postIds.length > 0
+        ? await this.prisma.post.findMany({ where: { id: { in: postIds } } })
+        : [];
+    const postMap = new Map(posts.map((p) => [p.id, p]));
 
-    return results.map((item: Record<string, unknown>) => ({
-      avgEngagementRate: Number(item.avgEngagementRate || 0),
-      category: String(item.category || 'unknown'),
-      totalPosts: Number(item.totalPosts || 0),
-    }));
+    const categoryMap = new Map<
+      string,
+      { totalEngagement: number; postIds: Set<string> }
+    >();
+
+    for (const item of analytics) {
+      const post = postMap.get(String(item.postId));
+      const category = String(post?.category || 'unknown');
+      const existing = categoryMap.get(category) ?? {
+        postIds: new Set<string>(),
+        totalEngagement: 0,
+      };
+      existing.totalEngagement += Number(item.engagementRate || 0);
+      existing.postIds.add(String(item.postId));
+      categoryMap.set(category, existing);
+    }
+
+    return Array.from(categoryMap.entries())
+      .map(([category, data]) => ({
+        avgEngagementRate:
+          data.postIds.size > 0 ? data.totalEngagement / data.postIds.size : 0,
+        category,
+        totalPosts: data.postIds.size,
+      }))
+      .sort((a, b) => b.avgEngagementRate - a.avgEngagementRate);
   }
 
   private async getBestPostingTimes(
     matchFilter: Record<string, unknown>,
   ): Promise<PostingTimeAnalysis[]> {
-    const pipeline: PipelineStage[] = [
-      { $match: matchFilter },
-      {
-        $lookup: {
-          as: 'postDoc',
-          foreignField: '_id',
-          from: 'posts',
-          localField: 'post',
-        },
-      },
-      { $unwind: { path: '$postDoc', preserveNullAndEmptyArrays: true } },
-      {
-        $group: {
-          _id: { $hour: '$postDoc.publicationDate' },
-          avgEngagementRate: { $avg: '$engagementRate' },
-          postCount: { $sum: 1 },
-        },
-      },
-      { $sort: { avgEngagementRate: -1 } },
-    ];
+    const analytics = await this.prisma.postAnalytics.findMany({
+      where: matchFilter as Parameters<
+        typeof this.prisma.postAnalytics.findMany
+      >[0]['where'],
+    });
 
-    const results = await this.postAnalyticsModel.aggregate(pipeline);
+    const postIds = [...new Set(analytics.map((a) => String(a.postId)))];
+    const posts =
+      postIds.length > 0
+        ? await this.prisma.post.findMany({ where: { id: { in: postIds } } })
+        : [];
+    const postMap = new Map(posts.map((p) => [p.id, p]));
 
-    return results.map((item: Record<string, unknown>) => ({
-      avgEngagementRate: Number(item.avgEngagementRate || 0),
-      hour: Number(item._id ?? 0),
-      postCount: Number(item.postCount || 0),
-    }));
+    const hourMap = new Map<
+      number,
+      { totalEngagement: number; count: number }
+    >();
+
+    for (const item of analytics) {
+      const post = postMap.get(String(item.postId));
+      const pubDate = post?.publicationDate;
+      if (!pubDate) continue;
+
+      const hour = new Date(pubDate).getHours();
+      const existing = hourMap.get(hour) ?? { count: 0, totalEngagement: 0 };
+      existing.totalEngagement += Number(item.engagementRate || 0);
+      existing.count += 1;
+      hourMap.set(hour, existing);
+    }
+
+    return Array.from(hourMap.entries())
+      .map(([hour, data]) => ({
+        avgEngagementRate:
+          data.count > 0 ? data.totalEngagement / data.count : 0,
+        hour,
+        postCount: data.count,
+      }))
+      .sort((a, b) => b.avgEngagementRate - a.avgEngagementRate);
   }
 
   private async getTopHooks(
     matchFilter: Record<string, unknown>,
   ): Promise<string[]> {
-    // Get top 5 performing posts and extract their first line as "hooks"
-    const topContent = await this.getContentByEngagement(matchFilter, 5, -1);
+    const topContent = await this.getContentByEngagement(
+      matchFilter,
+      5,
+      'desc',
+    );
 
     return topContent
       .map((item) => {
         const text = item.description || item.title || '';
-        // Extract first line/sentence as the hook
         const firstLine = text.split(/[.\n]/)[0]?.trim();
         return firstLine || '';
       })
@@ -528,20 +489,19 @@ export class PerformanceSummaryService {
     const aggregateEngagement = async (
       filter: Record<string, unknown>,
     ): Promise<number> => {
-      const result = await this.postAnalyticsModel.aggregate([
-        { $match: filter },
-        {
-          $group: {
-            _id: null,
-            totalEngagement: {
-              $sum: {
-                $add: ['$totalLikes', '$totalComments', '$totalShares'],
-              },
-            },
-          },
-        },
-      ]);
-      return result[0]?.totalEngagement || 0;
+      const rows = await this.prisma.postAnalytics.findMany({
+        where: filter as Parameters<
+          typeof this.prisma.postAnalytics.findMany
+        >[0]['where'],
+      });
+      return rows.reduce(
+        (sum, r) =>
+          sum +
+          (Number(r.totalLikes || 0) +
+            Number(r.totalComments || 0) +
+            Number(r.totalShares || 0)),
+        0,
+      );
     };
 
     const [currentEngagement, previousEngagement] = await Promise.all([

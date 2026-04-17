@@ -12,7 +12,6 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class TwitterPipelineService {

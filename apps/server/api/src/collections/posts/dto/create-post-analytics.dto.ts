@@ -1,37 +1,36 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsDate, IsMongoId, IsNumber, IsString, Min } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreatePostAnalyticsDto {
   @ApiProperty({
     description: 'Post ID',
   })
   @IsMongoId()
-  post!: Types.ObjectId;
+  post!: string;
 
   @ApiProperty({
     description: 'Ingredient ID',
   })
   @IsMongoId()
-  ingredients!: Types.ObjectId[];
+  ingredients!: string[];
 
   @ApiProperty({
     description: 'User ID',
   })
   @IsMongoId()
-  user!: Types.ObjectId;
+  user!: string;
 
   @ApiProperty({
     description: 'Brand ID',
   })
   @IsMongoId()
-  brand!: Types.ObjectId;
+  brand!: string;
 
   @ApiProperty({
     description: 'Organization ID',
   })
   @IsMongoId()
-  organization!: Types.ObjectId;
+  organization!: string;
 
   @ApiProperty({
     description: 'Social media platform',

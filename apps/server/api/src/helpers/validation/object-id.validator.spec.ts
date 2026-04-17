@@ -1,8 +1,7 @@
 import { ObjectIdValidator } from '@api/helpers/validation/object-id.validator';
-import { Types } from 'mongoose';
 
 describe('ObjectIdValidator', () => {
-  const validObjectId = new Types.ObjectId().toString();
+  const validObjectId = '507f1f77bcf86cd799439011';
   const invalidIds = [
     '',
     'invalid',
@@ -50,9 +49,9 @@ describe('ObjectIdValidator', () => {
   describe('areAllValid', () => {
     it('should return true for array of valid ObjectIds', () => {
       const validIds = [
-        new Types.ObjectId().toString(),
-        new Types.ObjectId().toString(),
-        new Types.ObjectId().toString(),
+        '507f1f77bcf86cd799439011',
+        '507f1f77bcf86cd799439012',
+        '507f1f77bcf86cd799439013',
       ];
       expect(ObjectIdValidator.areAllValid(validIds)).toBe(true);
     });
@@ -74,10 +73,10 @@ describe('ObjectIdValidator', () => {
   });
 
   describe('createObjectId', () => {
-    it('should create ObjectId from valid string', () => {
+    it('should return the id string for valid ObjectId', () => {
       const result = ObjectIdValidator.createObjectId(validObjectId);
-      expect(result).toBeInstanceOf(Types.ObjectId);
-      expect(result.toString()).toBe(validObjectId);
+      expect(typeof result).toBe('string');
+      expect(result).toBe(validObjectId);
     });
 
     it('should throw error for invalid ObjectId string', () => {
@@ -94,10 +93,10 @@ describe('ObjectIdValidator', () => {
   });
 
   describe('safeCreateObjectId', () => {
-    it('should create ObjectId from valid string', () => {
+    it('should return the id string for valid ObjectId', () => {
       const result = ObjectIdValidator.safeCreateObjectId(validObjectId);
-      expect(result).toBeInstanceOf(Types.ObjectId);
-      expect(result?.toString()).toBe(validObjectId);
+      expect(typeof result).toBe('string');
+      expect(result).toBe(validObjectId);
     });
 
     it('should return null for invalid ObjectId string', () => {

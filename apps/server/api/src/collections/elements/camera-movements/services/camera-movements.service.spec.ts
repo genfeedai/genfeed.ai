@@ -2,7 +2,6 @@ import type { CreateElementCameraMovementDto } from '@api/collections/elements/c
 import { ElementsCameraMovementsService } from '@api/collections/elements/camera-movements/services/camera-movements.service';
 import { createMockModel } from '@api/shared/testing/mock-model.factory';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 
 const mockLoggerService = {
   debug: vi.fn(),

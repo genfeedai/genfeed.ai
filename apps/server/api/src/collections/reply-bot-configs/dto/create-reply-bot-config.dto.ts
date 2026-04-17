@@ -21,7 +21,6 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class ReplyBotFiltersDto {
   @IsArray()
@@ -66,7 +65,7 @@ export class CreateReplyBotConfigDto {
     description: 'Organization that owns this bot config',
     required: false,
   })
-  organization?: Types.ObjectId;
+  organization?: string;
 
   @IsMongoId()
   @IsOptional()
@@ -74,7 +73,7 @@ export class CreateReplyBotConfigDto {
     description: 'Brand this bot config is scoped to',
     required: false,
   })
-  brand?: Types.ObjectId;
+  brand?: string;
 
   @IsMongoId()
   @IsOptional()
@@ -82,14 +81,14 @@ export class CreateReplyBotConfigDto {
     description: 'User that created this bot config',
     required: false,
   })
-  user?: Types.ObjectId;
+  user?: string;
 
   @IsMongoId()
   @ApiProperty({
     description: 'Twitter credential to use for posting replies and DMs',
     required: true,
   })
-  credential!: Types.ObjectId;
+  credential!: string;
 
   @IsString()
   @MaxLength(120)
@@ -219,7 +218,7 @@ export class CreateReplyBotConfigDto {
     required: false,
     type: [String],
   })
-  monitoredAccounts?: Types.ObjectId[];
+  monitoredAccounts?: string[];
 
   @IsBoolean()
   @IsOptional()

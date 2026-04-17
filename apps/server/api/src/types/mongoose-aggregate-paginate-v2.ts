@@ -1,15 +1,8 @@
 /**
- * Type definitions for mongoose-aggregate-paginate-v2
- * Canonical source for pagination types used across the API.
- * Converted from .d.ts to .ts for Bun runtime compatibility.
- *
- * NOTE: `any` types are kept intentionally to match the upstream library's
- * type signatures (mongoose-aggregate-paginate-v2).
+ * Type definitions for aggregate pagination results.
+ * Previously wrapping mongoose-aggregate-paginate-v2 — now a standalone type
+ * used for Prisma-based aggregation result shaping.
  */
-
-import type { Model, PipelineStage } from 'mongoose';
-
-export type PrePaginatePipelineStage = PipelineStage | '__PREPAGINATE__';
 
 export interface CustomLabels<T = string | undefined | boolean> {
   totalDocs?: T | undefined;
@@ -59,7 +52,8 @@ export interface AggregatePaginateResult<T> {
     | undefined;
 }
 
-export interface AggregatePaginateModel<T> extends Model<T> {
+/** @deprecated Use Prisma-based pagination instead */
+export interface AggregatePaginateModel<T> {
   aggregatePaginate<R>(
     query?: unknown,
     options?: PaginateOptions,

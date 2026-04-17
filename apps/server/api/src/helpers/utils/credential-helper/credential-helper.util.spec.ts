@@ -1,5 +1,4 @@
 import { CredentialPlatform } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/shared/utils/encryption/encryption.util', () => ({
@@ -12,14 +11,14 @@ import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 
 import { CredentialHelper } from './credential-helper.util';
 
-const orgId = new Types.ObjectId().toHexString();
-const brandId = new Types.ObjectId().toHexString();
+const orgId = '507f191e810c19729de860ee'.toHexString();
+const brandId = '507f191e810c19729de860ee'.toHexString();
 const platform = CredentialPlatform.INSTAGRAM;
 
 const baseOptions = { brandId, organizationId: orgId, platform };
 
 const mockCredential = {
-  _id: new Types.ObjectId(),
+  _id: '507f191e810c19729de860ee',
   accessToken: 'encrypted-token',
   platform,
 };

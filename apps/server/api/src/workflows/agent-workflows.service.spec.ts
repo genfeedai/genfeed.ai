@@ -5,7 +5,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('AgentWorkflowsService', () => {
   let service: AgentWorkflowsService;
@@ -14,8 +13,8 @@ describe('AgentWorkflowsService', () => {
     findOne: ReturnType<typeof vi.fn>;
   };
 
-  const organizationId = new Types.ObjectId().toHexString();
-  const userId = new Types.ObjectId().toHexString();
+  const organizationId = '507f191e810c19729de860ee'.toHexString();
+  const userId = '507f191e810c19729de860ee'.toHexString();
 
   beforeEach(async () => {
     model = {
@@ -51,7 +50,7 @@ describe('AgentWorkflowsService', () => {
 
   it('creates a workflow in exploring state', async () => {
     model.create.mockResolvedValue({
-      _id: new Types.ObjectId(),
+      _id: '507f191e810c19729de860ee',
       agentId: 'agent-1',
       approaches: [],
       currentPhase: 'exploring',
@@ -176,14 +175,17 @@ describe('AgentWorkflowsService', () => {
     model.findOne.mockResolvedValue(null);
 
     await expect(
-      service.getWorkflow(new Types.ObjectId().toHexString(), organizationId),
+      service.getWorkflow(
+        '507f191e810c19729de860ee'.toHexString(),
+        organizationId,
+      ),
     ).rejects.toThrow(NotFoundException);
   });
 });
 
 function createWorkflowDoc(overrides: Record<string, unknown> = {}) {
   return {
-    _id: new Types.ObjectId(),
+    _id: '507f191e810c19729de860ee',
     agentId: 'agent-1',
     approaches: [],
     currentPhase: 'exploring',

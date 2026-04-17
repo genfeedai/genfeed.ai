@@ -19,7 +19,6 @@ import type {
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('FacebookPublisherService', () => {
   let service: FacebookPublisherService;

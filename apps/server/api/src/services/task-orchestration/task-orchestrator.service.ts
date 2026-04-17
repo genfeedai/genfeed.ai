@@ -16,7 +16,6 @@ import {
 import { AgentExecutionStatus, AgentExecutionTrigger } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 export interface OrchestrateTaskParams {
   /** Workspace task ID */

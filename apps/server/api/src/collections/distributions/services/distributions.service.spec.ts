@@ -6,7 +6,6 @@ import {
   PublishStatus,
 } from '@genfeedai/enums';
 import { NotFoundException } from '@nestjs/common';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockModel() {

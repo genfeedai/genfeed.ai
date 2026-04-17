@@ -2,7 +2,6 @@ import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { VoiceProvider } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AvatarVideoGenerationService', () => {

@@ -6,7 +6,6 @@ import {
 import { ContentDraftsService } from '@api/collections/content-drafts/services/content-drafts.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class ContentReviewService {

@@ -6,7 +6,6 @@ import {
 } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsMongoId, IsOptional, IsString } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class BookmarksQueryDto extends BaseQueryDto {
   @ApiProperty({
@@ -53,7 +52,7 @@ export class BookmarksQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  folder?: Types.ObjectId;
+  folder?: string;
 
   @ApiProperty({
     description: 'Filter bookmarks by brand ID',
@@ -61,5 +60,5 @@ export class BookmarksQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  brand?: Types.ObjectId;
+  brand?: string;
 }

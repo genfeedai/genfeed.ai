@@ -1,5 +1,4 @@
 import { AgentThreadProjectorService } from '@api/services/agent-threading/services/agent-thread-projector.service';
-import { Types } from 'mongoose';
 
 describe('AgentThreadProjectorService', () => {
   let service: AgentThreadProjectorService;

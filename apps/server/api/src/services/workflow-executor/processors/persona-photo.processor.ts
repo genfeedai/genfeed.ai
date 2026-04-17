@@ -5,7 +5,6 @@ import {
 } from '@api/services/persona-content/persona-content.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 export interface PersonaPhotoProcessorInput {
   personaId: string;

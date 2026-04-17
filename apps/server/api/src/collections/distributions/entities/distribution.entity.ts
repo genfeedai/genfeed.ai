@@ -5,12 +5,11 @@ import type {
   DistributionPlatform,
   PublishStatus,
 } from '@genfeedai/enums';
-import type { Types } from 'mongoose';
 
 export class DistributionEntity extends BaseEntity implements Distribution {
-  declare readonly organization: Types.ObjectId;
-  declare readonly user: Types.ObjectId;
-  declare readonly brand?: Types.ObjectId;
+  declare readonly organization: string;
+  declare readonly user: string;
+  declare readonly brand?: string;
   declare readonly platform: DistributionPlatform;
   declare readonly contentType: DistributionContentType;
   declare readonly text?: string;

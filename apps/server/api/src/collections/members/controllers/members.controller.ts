@@ -38,7 +38,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('members')
@@ -75,11 +74,11 @@ export class MembersController {
 
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           isDeleted,
-          user: new Types.ObjectId(publicMetadata.user),
+          user: publicMetadata.user,
         },
       },
       {
@@ -137,8 +136,8 @@ export class MembersController {
       const existingMember = await this.membersService.findOne({
         isActive: true,
         isDeleted: false,
-        organization: new Types.ObjectId(orgId),
-        user: new Types.ObjectId(clerkMeta.user as string),
+        organization: orgId,
+        user: clerkMeta.user as string,
       });
       if (existingMember) {
         throw new HttpException(

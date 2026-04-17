@@ -1,18 +1,15 @@
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
 import { CreateCronJobDto } from '@api/collections/cron-jobs/dto/create-cron-job.dto';
 import { UpdateCronJobDto } from '@api/collections/cron-jobs/dto/update-cron-job.dto';
-import {
-  CronJob,
-  type CronJobDocument,
-  type CronJobType,
+import type {
+  CronJobDocument,
+  CronJobType,
 } from '@api/collections/cron-jobs/schemas/cron-job.schema';
-import {
-  CronRun,
-  type CronRunDocument,
-  type CronRunTrigger,
+import type {
+  CronRunDocument,
+  CronRunTrigger,
 } from '@api/collections/cron-jobs/schemas/cron-run.schema';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
@@ -25,9 +22,7 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { CronJob as CronParser } from 'cron';
-import { Model, Types } from 'mongoose';
 
 interface NewsletterPayload {
   topic?: string;
@@ -67,10 +62,6 @@ export function computeNextRunAtOrThrow(
 @Injectable()
 export class CronJobsService {
   constructor(
-    @InjectModel(CronJob.name, DB_CONNECTIONS.CLOUD)
-    private readonly cronJobModel: Model<CronJobDocument>,
-    @InjectModel(CronRun.name, DB_CONNECTIONS.CLOUD)
-    private readonly cronRunModel: Model<CronRunDocument>,
     private readonly prisma: PrismaService,
     private readonly workflowsService: WorkflowsService,
     private readonly agentRunsService: AgentRunsService,
@@ -88,18 +79,20 @@ export class CronJobsService {
   ): Promise<CronJobDocument> {
     this.assertValidSchedule(dto.schedule, dto.timezone);
 
-    return await this.cronJobModel.create({
-      enabled: dto.enabled ?? true,
-      jobType: dto.jobType,
-      lastStatus: 'never',
-      name: dto.name,
-      nextRunAt: computeNextRunAtOrThrow(dto.schedule, dto.timezone),
-      organization: new Types.ObjectId(organizationId),
-      payload: dto.payload ?? {},
-      schedule: dto.schedule,
-      timezone: dto.timezone ?? 'UTC',
-      user: new Types.ObjectId(userId),
-    });
+    return (await this.prisma.cronJob.create({
+      data: {
+        enabled: dto.enabled ?? true,
+        jobType: dto.jobType,
+        lastStatus: 'never',
+        name: dto.name,
+        nextRunAt: computeNextRunAtOrThrow(dto.schedule, dto.timezone),
+        organizationId,
+        payload: dto.payload ?? {},
+        schedule: dto.schedule,
+        timezone: dto.timezone ?? 'UTC',
+        userId,
+      },
+    })) as unknown as CronJobDocument;
   }
 
   async list(
@@ -109,26 +102,28 @@ export class CronJobsService {
       jobType?: string;
     } = {},
   ): Promise<CronJobDocument[]> {
-    return await this.cronJobModel
-      .find({
+    return (await this.prisma.cronJob.findMany({
+      orderBy: { createdAt: 'desc' },
+      where: {
         ...(filters.enabled !== undefined ? { enabled: filters.enabled } : {}),
         ...(filters.jobType ? { jobType: filters.jobType } : {}),
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      })
-      .sort({ createdAt: -1 })
-      .exec();
+        organizationId,
+      },
+    })) as unknown as CronJobDocument[];
   }
 
   async findOne(
     id: string,
     organizationId: string,
   ): Promise<CronJobDocument | null> {
-    return await this.cronJobModel.findOne({
-      _id: id,
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-    });
+    return (await this.prisma.cronJob.findFirst({
+      where: {
+        id,
+        isDeleted: false,
+        organizationId,
+      },
+    })) as unknown as CronJobDocument | null;
   }
 
   async update(
@@ -145,33 +140,26 @@ export class CronJobsService {
     const timezone = dto.timezone ?? current.timezone;
     this.assertValidSchedule(schedule, timezone);
 
-    return await this.cronJobModel.findOneAndUpdate(
-      {
-        _id: id,
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      {
+    return (await this.prisma.cronJob.update({
+      data: {
         ...dto,
         nextRunAt: computeNextRunAtOrThrow(schedule, timezone),
       },
-      { new: true },
-    );
+      where: { id },
+    })) as unknown as CronJobDocument;
   }
 
   async pause(
     id: string,
     organizationId: string,
   ): Promise<CronJobDocument | null> {
-    return await this.cronJobModel.findOneAndUpdate(
-      {
-        _id: id,
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      { enabled: false },
-      { new: true },
-    );
+    const existing = await this.findOne(id, organizationId);
+    if (!existing) return null;
+
+    return (await this.prisma.cronJob.update({
+      data: { enabled: false },
+      where: { id },
+    })) as unknown as CronJobDocument;
   }
 
   async resume(
@@ -183,51 +171,44 @@ export class CronJobsService {
       return null;
     }
 
-    return await this.cronJobModel.findOneAndUpdate(
-      {
-        _id: id,
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      {
+    return (await this.prisma.cronJob.update({
+      data: {
         enabled: true,
         nextRunAt: computeNextRunAtOrThrow(current.schedule, current.timezone),
       },
-      { new: true },
-    );
+      where: { id },
+    })) as unknown as CronJobDocument;
   }
 
   async delete(
     id: string,
     organizationId: string,
   ): Promise<CronJobDocument | null> {
-    return await this.cronJobModel.findOneAndUpdate(
-      {
-        _id: id,
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      {
+    const existing = await this.findOne(id, organizationId);
+    if (!existing) return null;
+
+    return (await this.prisma.cronJob.update({
+      data: {
         enabled: false,
         isDeleted: true,
       },
-      { new: true },
-    );
+      where: { id },
+    })) as unknown as CronJobDocument;
   }
 
   async getRuns(
     id: string,
     organizationId: string,
   ): Promise<CronRunDocument[]> {
-    return await this.cronRunModel
-      .find({
-        cronJob: new Types.ObjectId(id),
+    return (await this.prisma.cronRun.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      where: {
+        cronJobId: id,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      })
-      .sort({ createdAt: -1 })
-      .limit(100)
-      .exec();
+        organizationId,
+      },
+    })) as unknown as CronRunDocument[];
   }
 
   async getRun(
@@ -235,12 +216,14 @@ export class CronJobsService {
     runId: string,
     organizationId: string,
   ): Promise<CronRunDocument | null> {
-    return await this.cronRunModel.findOne({
-      _id: runId,
-      cronJob: new Types.ObjectId(jobId),
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-    });
+    return (await this.prisma.cronRun.findFirst({
+      where: {
+        cronJobId: jobId,
+        id: runId,
+        isDeleted: false,
+        organizationId,
+      },
+    })) as unknown as CronRunDocument | null;
   }
 
   async runNow(
@@ -256,20 +239,20 @@ export class CronJobsService {
   }
 
   async processDueJobs(limit = 30): Promise<number> {
-    const dueJobs = await this.cronJobModel
-      .find({
+    const dueJobs = (await this.prisma.cronJob.findMany({
+      orderBy: { nextRunAt: 'asc' },
+      take: limit,
+      where: {
         enabled: true,
         isDeleted: false,
-        nextRunAt: { $lte: new Date() },
-      })
-      .sort({ nextRunAt: 1 })
-      .limit(limit)
-      .exec();
+        nextRunAt: { lte: new Date() },
+      },
+    })) as unknown as CronJobDocument[];
 
     let processed = 0;
 
     for (const job of dueJobs) {
-      const lockKey = `cron-job:lock:${String(job._id)}`;
+      const lockKey = `cron-job:lock:${(job as Record<string, unknown>).id as string}`;
       const acquired = await this.cacheService.acquireLock(lockKey, 300);
 
       if (!acquired) {
@@ -292,94 +275,84 @@ export class CronJobsService {
     trigger: CronRunTrigger,
   ): Promise<CronRunDocument> {
     const start = new Date();
+    const jobId = (job as Record<string, unknown>).id as string;
 
-    const run = await this.cronRunModel.create({
-      cronJob: job._id,
-      organization: job.organization,
-      startedAt: start,
-      status: 'running',
-      trigger,
-      user: job.user,
-    });
-
-    await this.cronJobModel.updateOne(
-      { _id: job._id },
-      {
-        $set: {
-          lastRunAt: start,
-          lastStatus: 'running',
-        },
+    const run = (await this.prisma.cronRun.create({
+      data: {
+        cronJobId: jobId,
+        organizationId: (job as Record<string, unknown>)
+          .organizationId as string,
+        startedAt: start,
+        status: 'running',
+        trigger,
+        userId: (job as Record<string, unknown>).userId as string,
       },
-    );
+    })) as unknown as CronRunDocument;
+
+    const runId = run.id;
+
+    await this.prisma.cronJob.update({
+      data: {
+        lastRunAt: start,
+        lastStatus: 'running',
+      },
+      where: { id: jobId },
+    });
 
     try {
       const artifacts = await this.executeByType(job.jobType, job.payload, job);
 
-      await this.cronRunModel.updateOne(
-        { _id: run._id },
-        {
-          $set: {
-            artifacts,
-            endedAt: new Date(),
-            status: 'success',
-          },
+      await this.prisma.cronRun.update({
+        data: {
+          artifacts: artifacts as Record<string, unknown>,
+          endedAt: new Date(),
+          status: 'success',
         },
-      );
+        where: { id: runId },
+      });
 
-      await this.cronJobModel.updateOne(
-        { _id: job._id },
-        {
-          $set: {
-            consecutiveFailures: 0,
-            lastStatus: 'success',
-            nextRunAt: computeNextRunAtOrThrow(job.schedule, job.timezone),
-          },
+      await this.prisma.cronJob.update({
+        data: {
+          consecutiveFailures: 0,
+          lastStatus: 'success',
+          nextRunAt: computeNextRunAtOrThrow(job.schedule, job.timezone),
         },
-      );
+        where: { id: jobId },
+      });
 
-      const updatedRun = await this.cronRunModel.findById(run._id).exec();
-      if (!updatedRun) {
-        throw new Error('Cron run missing after completion');
-      }
-
-      return updatedRun;
+      return (await this.prisma.cronRun.findUnique({
+        where: { id: runId },
+      })) as unknown as CronRunDocument;
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
 
       this.logger.error('Dynamic cron job execution failed', {
         error: message,
-        jobId: String(job._id),
+        jobId,
         jobType: job.jobType,
       });
 
-      await this.cronRunModel.updateOne(
-        { _id: run._id },
-        {
-          $set: {
-            endedAt: new Date(),
-            error: message,
-            status: 'failed',
-          },
+      await this.prisma.cronRun.update({
+        data: {
+          endedAt: new Date(),
+          error: message,
+          status: 'failed',
         },
-      );
+        where: { id: runId },
+      });
 
-      await this.cronJobModel.updateOne(
-        { _id: job._id },
-        {
-          $inc: { consecutiveFailures: 1 },
-          $set: {
-            lastStatus: 'failed',
-            nextRunAt: computeNextRunAtOrThrow(job.schedule, job.timezone),
-          },
+      await this.prisma.cronJob.update({
+        data: {
+          consecutiveFailures: { increment: 1 },
+          lastStatus: 'failed',
+          nextRunAt: computeNextRunAtOrThrow(job.schedule, job.timezone),
         },
-      );
+        where: { id: jobId },
+      });
 
-      const failedRun = await this.cronRunModel.findById(run._id).exec();
-      if (!failedRun) {
-        throw new Error('Cron run missing after failure');
-      }
-
-      return failedRun;
+      return (await this.prisma.cronRun.findUnique({
+        where: { id: runId },
+      })) as unknown as CronRunDocument;
     }
   }
 
@@ -396,10 +369,11 @@ export class CronJobsService {
         }
 
         const workflow = await this.workflowsService.findOne({
-          _id: workflowId,
+          id: workflowId,
           isDeleted: false,
-          organization: job.organization,
-          user: job.user,
+          organizationId: (job as Record<string, unknown>)
+            .organizationId as string,
+          userId: (job as Record<string, unknown>).userId as string,
         });
         if (!workflow) {
           throw new Error('Workflow not found for this tenant');
@@ -431,14 +405,16 @@ export class CronJobsService {
   ): Promise<Record<string, unknown>> {
     const typedPayload = payload as AgentStrategyPayload;
     const strategyId = String(typedPayload.strategyId ?? '');
+    const orgId = (job as Record<string, unknown>).organizationId as string;
+    const userId = (job as Record<string, unknown>).userId as string;
 
     const strategy = strategyId
       ? await this.prisma.agentStrategy.findFirst({
           where: {
             id: strategyId,
             isDeleted: false,
-            organizationId: job.organization.toString(),
-            userId: job.user.toString(),
+            organizationId: orgId,
+            userId,
           },
         })
       : null;
@@ -455,10 +431,10 @@ export class CronJobsService {
         ? `Cron: ${strategy.label}`
         : `Cron Agent Job: ${job.name}`,
       objective,
-      organization: job.organization,
+      organization: orgId,
       strategy: strategy?.id,
       trigger: AgentExecutionTrigger.CRON,
-      user: job.user,
+      user: userId,
     });
 
     await this.agentRunQueueService.queueRun({
@@ -472,14 +448,14 @@ export class CronJobsService {
         typedPayload.creditBudget ?? strategy?.dailyCreditBudget ?? 50,
       model: typedPayload.model ?? strategy?.model,
       objective,
-      organizationId: job.organization.toString(),
-      runId: String(run._id),
+      organizationId: orgId,
+      runId: run.id,
       strategyId: strategy ? String(strategy.id) : undefined,
-      userId: job.user.toString(),
+      userId,
     });
 
     return {
-      agentRunId: String(run._id),
+      agentRunId: run.id,
       strategyId: strategy ? String(strategy.id) : null,
     };
   }
@@ -488,6 +464,7 @@ export class CronJobsService {
     payload: NewsletterPayload,
     job: CronJobDocument,
   ): Promise<Record<string, unknown>> {
+    const jobId = (job as Record<string, unknown>).id as string;
     const topic = payload.topic ?? 'Genfeed.ai weekly update';
     const publicationName = payload.publicationName ?? 'Genfeed.ai Newsletter';
     const sourceList = (payload.sources ?? [])
@@ -532,7 +509,7 @@ export class CronJobsService {
       const delivery = await this.substackService.deliverDraftWebhook({
         payload: {
           event: 'newsletter.draft.ready',
-          jobId: String(job._id),
+          jobId,
           markdown:
             draftContent ??
             'Newsletter draft generation returned empty content.',
@@ -551,7 +528,7 @@ export class CronJobsService {
         draft:
           draftContent ?? 'Newsletter draft generation returned empty content.',
         draftTitle,
-        jobId: String(job._id),
+        jobId,
         model,
         publicationName,
         sources: payload.sources ?? [],
@@ -567,8 +544,8 @@ export class CronJobsService {
           payload: {
             event: 'newsletter.draft.ready',
             fallback: true,
-            jobId: String(job._id),
-            markdown: `# ${topic}\n\nFallback draft generated by cron job ${String(job._id)}.`,
+            jobId,
+            markdown: `# ${topic}\n\nFallback draft generated by cron job ${jobId}.`,
             publicationName,
             title: topic,
             topic,
@@ -584,7 +561,7 @@ export class CronJobsService {
         sources: payload.sources ?? [],
         status: 'draft_created_fallback',
         substack: await this.substackService.createDraft({
-          markdown: `# ${topic}\n\nFallback draft generated by cron job ${String(job._id)}.`,
+          markdown: `# ${topic}\n\nFallback draft generated by cron job ${jobId}.`,
           publication: publicationName,
           title: topic,
         }),

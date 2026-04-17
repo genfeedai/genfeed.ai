@@ -1,5 +1,3 @@
-import type { PipelineStage } from 'mongoose';
-
 /**
  * TemplateFilterUtil - Utility for building template-specific query filters
  *
@@ -155,7 +153,7 @@ export class TemplateFilterUtil {
   static buildArrayInFilter(
     field: string,
     values?: string | string[],
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     if (!values) {
       return [];
     }
@@ -305,8 +303,8 @@ export class TemplateFilterUtil {
       search?: string;
     },
     baseMatch: Record<string, unknown>,
-  ): PipelineStage[] {
-    const pipeline: PipelineStage[] = [
+  ): Record<string, unknown>[] {
+    const pipeline: Record<string, unknown>[] = [
       {
         $match: {
           ...baseMatch,

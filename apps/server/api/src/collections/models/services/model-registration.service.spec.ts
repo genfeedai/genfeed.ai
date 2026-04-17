@@ -1,6 +1,5 @@
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
-import { Types } from 'mongoose';
 import type { OrganizationSettingsService } from '../../organization-settings/services/organization-settings.service';
 import type { TrainingDocument } from '../../trainings/schemas/training.schema';
 import { ModelRegistrationService } from './model-registration.service';

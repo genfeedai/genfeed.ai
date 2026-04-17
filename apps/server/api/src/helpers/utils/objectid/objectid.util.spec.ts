@@ -2,7 +2,6 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import type { IClerkPublicMetadata } from '@libs/interfaces/clerk.interface';
-import { Types } from 'mongoose';
 
 // Mock cache decorator
 vi.mock('@helpers/utils/cache/cache.util', () => ({
@@ -105,7 +104,7 @@ describe('ObjectIdUtil', () => {
 
   describe('toString', () => {
     it('should convert ObjectId to string', () => {
-      const objectId = new Types.ObjectId('507f1f77bcf86cd799439011');
+      const objectId = '507f1f77bcf86cd799439011';
       const result = ObjectIdUtil.toString(objectId);
 
       expect(result).toBe('507f1f77bcf86cd799439011');
@@ -365,7 +364,7 @@ describe('ObjectIdUtil', () => {
       );
 
       expect(Array.isArray(result.user)).toBe(true);
-      (result.user as Types.ObjectId[]).forEach((id) =>
+      (result.user as string[]).forEach((id) =>
         expect(id).toBeInstanceOf(Types.ObjectId),
       );
     });

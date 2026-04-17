@@ -6,7 +6,6 @@ import {
   ContentIntelligencePlatform,
   CreatorAnalysisStatus,
 } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockApifyService = {

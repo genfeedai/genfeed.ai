@@ -63,7 +63,11 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
-import { isValidObjectId, Types } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 @AutoSwagger()
 @Controller('assets')
@@ -103,7 +107,7 @@ export class AssetsOperationsController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const publicMetadata = getPublicMetadata(user);
 
-    let parentId: Types.ObjectId;
+    let parentId: string;
     if (generateAssetDto.parentModel === AssetParent.BRAND) {
       const parentIdString =
         generateAssetDto.parent instanceof Types.ObjectId
@@ -116,7 +120,7 @@ export class AssetsOperationsController {
         throw new ValidationException('Brand ID is required');
       }
 
-      parentId = new Types.ObjectId(publicMetadata.brand);
+      parentId = publicMetadata.brand;
     }
 
     const category = InputValidationUtil.validateString(
@@ -147,7 +151,7 @@ export class AssetsOperationsController {
       generateAssetDto.parentModel === AssetParent.BRAND
         ? parentId
         : publicMetadata.brand
-          ? new Types.ObjectId(publicMetadata.brand)
+          ? publicMetadata.brand
           : null;
 
     if (brandIdToUse) {
@@ -155,7 +159,7 @@ export class AssetsOperationsController {
         brand = await this.brandsService.findOne({
           _id: brandIdToUse,
           isDeleted: false,
-          organization: new Types.ObjectId(publicMetadata.organization),
+          organization: publicMetadata.organization,
         });
       } catch (error) {
         this.loggerService.error(`${url} - Failed to fetch brand`, error);
@@ -220,7 +224,7 @@ export class AssetsOperationsController {
       {
         category,
         parent: parentId,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
       },
       { isDeleted: true },
     );
@@ -230,7 +234,7 @@ export class AssetsOperationsController {
         category,
         parent: parentId,
         parentModel: generateAssetDto.parentModel,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
       }),
     );
 
@@ -315,10 +319,10 @@ export class AssetsOperationsController {
         category: uploadDto.category,
         parent:
           uploadDto.parent && isValidObjectId(uploadDto.parent)
-            ? new Types.ObjectId(uploadDto.parent)
+            ? uploadDto.parent
             : undefined,
         parentModel: uploadDto.parentModel,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
       };
 
       this.loggerService.log(`${url} - Creating asset with data`, {
@@ -462,7 +466,7 @@ export class AssetsOperationsController {
     const ingredient = await this.ingredientsService.findOne({
       _id: validatedIngredientId,
       isDeleted: false,
-      user: new Types.ObjectId(publicMetadata.user),
+      user: publicMetadata.user,
     });
 
     if (!ingredient) {
@@ -489,7 +493,7 @@ export class AssetsOperationsController {
     const ingredientType = 'images';
     const sourceKey = `ingredients/${ingredientType}/${validatedIngredientId}`;
 
-    const parentObjectId = new Types.ObjectId(validatedParent);
+    const parentObjectId = validatedParent;
     await this.assetsService.patchAll(
       {
         category: validatedCategory,
@@ -505,7 +509,7 @@ export class AssetsOperationsController {
         category: validatedCategory,
         parent: parentObjectId,
         parentModel: AssetParent.BRAND,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
       }),
     );
 

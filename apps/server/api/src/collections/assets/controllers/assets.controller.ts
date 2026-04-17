@@ -40,7 +40,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 type AssetMatchConditions = Record<string, unknown>;
 type MutableAssetUpdate = {
@@ -98,13 +97,13 @@ export class AssetsController {
 
     // Add parent filter if provided
     if (query.parent) {
-      matchConditions.parent = new Types.ObjectId(query.parent);
+      matchConditions.parent = query.parent;
     }
 
     // Create secure aggregation pipeline
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
-        $match: matchConditions as PipelineStage.Match['$match'],
+        $match: matchConditions as Record<string, unknown>,
       },
       {
         $sort: handleQuerySort(query.sort),
@@ -134,7 +133,7 @@ export class AssetsController {
     const asset = await this.assetsService.findOne({
       _id: validatedId,
       isDeleted: false,
-      user: new Types.ObjectId(publicMetadata.user),
+      user: publicMetadata.user,
     });
 
     if (!asset) {
@@ -161,7 +160,7 @@ export class AssetsController {
     const existingAsset = await this.assetsService.findOne({
       _id: validatedId,
       isDeleted: false,
-      user: new Types.ObjectId(publicMetadata.user),
+      user: publicMetadata.user,
     });
 
     if (!existingAsset) {
@@ -208,7 +207,7 @@ export class AssetsController {
           _id: { $ne: validatedId },
           category: updateAssetDto.category,
           isDeleted: false,
-          parent: new Types.ObjectId(updateAssetDto.parent),
+          parent: updateAssetDto.parent,
           parentModel: AssetParent.BRAND,
         },
         { isDeleted: true },
@@ -274,7 +273,7 @@ export class AssetsController {
     const existingAsset = await this.assetsService.findOne({
       _id: validatedId,
       isDeleted: false,
-      user: new Types.ObjectId(publicMetadata.user),
+      user: publicMetadata.user,
     });
 
     if (!existingAsset) {

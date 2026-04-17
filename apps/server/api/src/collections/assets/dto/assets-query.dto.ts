@@ -3,7 +3,6 @@ import { AssetCategory, AssetParent } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsEnum, IsMongoId, IsOptional } from 'class-validator';
-import type { Types } from 'mongoose';
 
 export class AssetQueryDto extends BaseQueryDto {
   @ApiProperty({
@@ -32,7 +31,7 @@ export class AssetQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  parent?: Types.ObjectId;
+  parent?: string;
 
   @ApiProperty({
     description: 'Filter by brand ID',
@@ -40,7 +39,7 @@ export class AssetQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  brand?: Types.ObjectId;
+  brand?: string;
 
   @ApiProperty({
     default: false,

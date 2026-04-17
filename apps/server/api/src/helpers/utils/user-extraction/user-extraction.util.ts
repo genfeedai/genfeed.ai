@@ -1,11 +1,10 @@
 import { getUserRoomName } from '@libs/websockets/room-name.util';
-import { Types } from 'mongoose';
 
 /**
  * User document structure from populated user references
  */
 export interface PopulatedUserDoc {
-  _id?: string | Types.ObjectId;
+  _id?: string;
   clerkId?: string;
 }
 
@@ -40,7 +39,7 @@ export class UserExtractionUtil {
    * @returns ExtractedUserIds with all available user identifiers
    */
   static extractUserIds(
-    userField: PopulatedUserDoc | string | Types.ObjectId | undefined,
+    userField: PopulatedUserDoc | string | undefined,
   ): ExtractedUserIds {
     if (!userField) {
       return {};
@@ -88,11 +87,7 @@ export class UserExtractionUtil {
    * Handles populated and unpopulated references.
    */
   static extractBrandId(
-    brandField:
-      | { _id?: string | Types.ObjectId }
-      | string
-      | Types.ObjectId
-      | undefined,
+    brandField: { _id?: string } | string | Types.ObjectId | undefined,
   ): string | undefined {
     if (!brandField) {
       return undefined;
@@ -107,7 +102,7 @@ export class UserExtractionUtil {
     }
 
     if (typeof brandField === 'object' && brandField !== null) {
-      const brandDoc = brandField as { _id?: string | Types.ObjectId };
+      const brandDoc = brandField as { _id?: string };
       if (brandDoc._id instanceof Types.ObjectId) {
         return brandDoc._id.toHexString();
       }

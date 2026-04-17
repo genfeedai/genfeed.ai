@@ -21,7 +21,6 @@ import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('ImagesController', () => {
   let controller: ImagesController;
@@ -39,22 +38,22 @@ describe('ImagesController', () => {
   } as unknown as User;
 
   const mockImage = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439014'),
-    brand: new Types.ObjectId('507f1f77bcf86cd799439013'),
+    _id: '507f1f77bcf86cd799439014',
+    brand: '507f1f77bcf86cd799439013',
     category: 'image',
     isDeleted: false,
     metadata: {
-      _id: new Types.ObjectId('507f1f77bcf86cd799439015'),
+      _id: '507f1f77bcf86cd799439015',
       height: 1080,
       label: 'Test Image',
       width: 1920,
     },
-    organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
+    organization: '507f1f77bcf86cd799439012',
     prompt: {
-      _id: new Types.ObjectId('507f1f77bcf86cd799439016'),
+      _id: '507f1f77bcf86cd799439016',
       original: 'Test prompt',
     },
-    user: new Types.ObjectId('507f1f77bcf86cd799439011'),
+    user: '507f1f77bcf86cd799439011',
   };
 
   const mockRequest = {
@@ -278,9 +277,9 @@ describe('ImagesController', () => {
 
     it('should include vote status', async () => {
       const mockVote = {
-        _id: new Types.ObjectId('507f1f77bcf86cd799439017'),
-        entity: new Types.ObjectId('507f1f77bcf86cd799439014'),
-        user: new Types.ObjectId('507f1f77bcf86cd799439011'),
+        _id: '507f1f77bcf86cd799439017',
+        entity: '507f1f77bcf86cd799439014',
+        user: '507f1f77bcf86cd799439011',
       };
 
       mockServices.imagesService.findOne.mockResolvedValue(mockImage);

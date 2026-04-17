@@ -1,4 +1,4 @@
-import { Types } from 'mongoose';
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
 
 export class ObjectIdValidator {
   /**
@@ -11,7 +11,7 @@ export class ObjectIdValidator {
       return false;
     }
 
-    return Types.ObjectId.isValid(id) && id.length === 24;
+    return OBJECT_ID_REGEX.test(id);
   }
 
   /**
@@ -28,25 +28,26 @@ export class ObjectIdValidator {
   }
 
   /**
-   * Creates a new ObjectId from a string, with validation
-   * @param id - The string to convert
-   * @returns ObjectId instance
+   * Returns the id string if valid, throws if invalid.
+   * Prisma uses string IDs — no ObjectId conversion needed.
+   * @param id - The string to validate
+   * @returns The id string
    * @throws Error if invalid ObjectId string
    */
-  static createObjectId(id: string): Types.ObjectId {
+  static createObjectId(id: string): string {
     if (!ObjectIdValidator.isValid(id)) {
       throw new Error(`Invalid ObjectId: ${id}`);
     }
 
-    return new Types.ObjectId(id);
+    return id;
   }
 
   /**
-   * Safely creates an ObjectId, returning null if invalid
-   * @param id - The string to convert
-   * @returns ObjectId instance or null if invalid
+   * Safely validates an id string, returning null if invalid.
+   * @param id - The string to validate
+   * @returns The id string or null if invalid
    */
-  static safeCreateObjectId(id: string): Types.ObjectId | null {
+  static safeCreateObjectId(id: string): string | null {
     try {
       return ObjectIdValidator.createObjectId(id);
     } catch {

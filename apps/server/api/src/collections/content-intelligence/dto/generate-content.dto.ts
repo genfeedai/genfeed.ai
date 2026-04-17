@@ -15,7 +15,6 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class GenerateContentDto {
   @IsEnum(ContentIntelligencePlatform)
@@ -60,7 +59,7 @@ export class GenerateContentDto {
     description: 'Specific pattern ID to use for generation',
     required: false,
   })
-  patternId?: Types.ObjectId;
+  patternId?: string;
 
   @IsOptional()
   @IsMongoId()
@@ -68,7 +67,7 @@ export class GenerateContentDto {
     description: 'Playbook ID to use for generation guidelines',
     required: false,
   })
-  playbookId?: Types.ObjectId;
+  playbookId?: string;
 
   @IsOptional()
   @IsMongoId()
@@ -76,7 +75,7 @@ export class GenerateContentDto {
     description: 'Brand ID to apply brand voice',
     required: false,
   })
-  brandId?: Types.ObjectId;
+  brandId?: string;
 
   @IsOptional()
   @IsNumber()

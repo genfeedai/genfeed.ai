@@ -15,7 +15,6 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreateCampaignTargetDto {
   @IsMongoId()
@@ -24,14 +23,14 @@ export class CreateCampaignTargetDto {
     description: 'Organization that owns this target',
     required: false,
   })
-  organization?: Types.ObjectId;
+  organization?: string;
 
   @IsMongoId()
   @ApiProperty({
     description: 'Campaign this target belongs to',
     required: true,
   })
-  campaign!: Types.ObjectId;
+  campaign!: string;
 
   @IsEnum(CampaignPlatform)
   @ApiProperty({

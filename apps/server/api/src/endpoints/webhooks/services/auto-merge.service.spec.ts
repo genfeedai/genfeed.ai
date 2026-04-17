@@ -4,7 +4,6 @@ import {
   IngredientStatus,
   TransformationCategory,
 } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AutoMergeService', () => {

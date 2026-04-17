@@ -37,7 +37,6 @@ import {
 } from '@nestjs/common';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { ModuleRef } from '@nestjs/core';
-import { Model, type PipelineStage, Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('models')
@@ -95,7 +94,7 @@ export class ModelsController extends BaseCRUDController<
   public buildFindAllPipeline(
     _user: User,
     query: ModelsQueryDto,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     let matchConditions: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
     };
@@ -162,12 +161,12 @@ export class ModelsController extends BaseCRUDController<
     if (query.organizationId) {
       const organizationSettings =
         await this.getOrganizationSettingsService().findOne({
-          organization: new Types.ObjectId(query.organizationId),
+          organization: query.organizationId,
         });
 
       if (organizationSettings?.enabledModels) {
         const enabledModelIds = organizationSettings.enabledModels.map(
-          (id) => new Types.ObjectId(id),
+          (id) => id,
         );
         // Strict mode: if enabledModels array exists, only return those models
         // If array is empty, no models will match (strict mode)
@@ -196,7 +195,7 @@ export class ModelsController extends BaseCRUDController<
     // Defense-in-depth: org-scoped tenant isolation
     // Derive org from request context middleware, NOT from query params
     const authenticatedOrgId = request.context?.organizationId
-      ? new Types.ObjectId(request.context.organizationId)
+      ? request.context.organizationId
       : null;
 
     if (authenticatedOrgId) {

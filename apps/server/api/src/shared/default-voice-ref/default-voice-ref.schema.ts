@@ -1,6 +1,5 @@
 import { VoiceProvider } from '@genfeedai/enums';
 import { Prop, Schema } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 import {
   DEFAULT_VOICE_REF_SOURCES,
   type DefaultVoiceRefSource,

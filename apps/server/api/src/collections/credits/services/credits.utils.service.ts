@@ -20,7 +20,6 @@ import type { ICreditsUtilsService } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 type ActivitiesServiceContract = {
   create: (

@@ -5,7 +5,6 @@ import { createMockModel } from '@api/shared/testing/mock-model.factory';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('SettingsService', () => {
   let service: SettingsService;

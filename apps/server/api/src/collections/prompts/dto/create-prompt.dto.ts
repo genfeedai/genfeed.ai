@@ -10,18 +10,17 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreatePromptDto {
   @IsMongoId()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly organization?: Types.ObjectId;
+  readonly organization?: string;
 
   @IsMongoId()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly brand?: Types.ObjectId;
+  readonly brand?: string;
 
   @IsString()
   @ApiProperty({
@@ -83,7 +82,7 @@ export class CreatePromptDto {
   @IsArray()
   @IsOptional()
   @ApiProperty({ required: false, type: [String] })
-  readonly tags?: Types.ObjectId[];
+  readonly tags?: string[];
 
   // Model-specific fields
   @IsString()

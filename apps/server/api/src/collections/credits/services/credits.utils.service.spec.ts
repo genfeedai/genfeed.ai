@@ -14,7 +14,6 @@ import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { ActivitySource, CreditTransactionCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 
 describe('CreditsUtilsService', () => {
   let service: CreditsUtilsService;

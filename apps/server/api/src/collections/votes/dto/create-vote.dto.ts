@@ -1,7 +1,6 @@
 import { VoteEntityModel } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsMongoId, IsString } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreateVoteDto {
   @IsString()
@@ -19,5 +18,5 @@ export class CreateVoteDto {
     description: 'The ID of the entity being voted on',
     required: true,
   })
-  readonly entity!: Types.ObjectId;
+  readonly entity!: string;
 }

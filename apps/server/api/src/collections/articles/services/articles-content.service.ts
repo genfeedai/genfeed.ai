@@ -59,7 +59,6 @@ import type {
 } from '@genfeedai/interfaces/content/article.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Inject, Injectable, Optional } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 export interface ArticleCycleModelConfig {
   generationModel?: string;

@@ -1,9 +1,8 @@
 import { CredentialPlatform } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 
 export class TestDataFactory {
-  static createObjectId(): Types.ObjectId {
-    return new Types.ObjectId();
+  static createObjectId(): string {
+    return '507f191e810c19729de860ee';
   }
 
   static createMockUser(overrides?: Partial<unknown>) {

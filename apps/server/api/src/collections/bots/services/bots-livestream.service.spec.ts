@@ -14,7 +14,6 @@ import { ReplicateService } from '@api/services/integrations/replicate/replicate
 import { LoggerService } from '@libs/logger/logger.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { BotsLivestreamDeliveryService } from './bots-livestream-delivery.service';

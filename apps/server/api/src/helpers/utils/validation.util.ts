@@ -1,5 +1,3 @@
-import { Types } from 'mongoose';
-
 export function validateEmail(value: unknown): boolean {
   if (typeof value !== 'string') return false;
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -28,7 +26,5 @@ export function validateUrl(value: unknown): boolean {
 
 export function validateObjectId(value: unknown): boolean {
   if (typeof value !== 'string') return false;
-  return (
-    Types.ObjectId.isValid(value) && String(new Types.ObjectId(value)) === value
-  );
+  return /^[0-9a-f]{24}$/i.test(value) && String(value) === value;
 }

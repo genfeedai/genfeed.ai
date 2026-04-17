@@ -17,7 +17,6 @@ import type { JsonApiSingleResponse } from '@genfeedai/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { Body, Controller, Param, Patch, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('ingredients')
@@ -55,19 +54,19 @@ export class IngredientsController {
       Array.isArray(updateOps.$set.tags)
     ) {
       updateOps.$set.tags = updateOps.$set.tags.map(
-        (tag: string | Types.ObjectId | { _id: string }) => {
+        (tag: string | { _id: string }) => {
           // If tag is a string ID, convert to ObjectId
           if (typeof tag === 'string') {
-            return new Types.ObjectId(tag);
+            return tag;
           }
 
           // If tag is an object with _id, convert the _id
           if (tag && typeof tag === 'object' && '_id' in tag) {
-            return new Types.ObjectId(tag._id);
+            return tag._id;
           }
 
           // If already ObjectId, return as is
-          return tag as Types.ObjectId;
+          return tag as string;
         },
       );
     }
@@ -77,8 +76,8 @@ export class IngredientsController {
       {
         _id: ingredientId,
         $or: [
-          { user: new Types.ObjectId(publicMetadata.user) },
-          { organization: new Types.ObjectId(publicMetadata.organization) },
+          { user: publicMetadata.user },
+          { organization: publicMetadata.organization },
         ],
       },
       [PopulatePatterns.metadataFull],

@@ -12,7 +12,6 @@ import type { ClipFactoryQueueService } from '@api/queues/clip-factory/clip-fact
 import type { LoggerService } from '@libs/logger/logger.service';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
-import { Types } from 'mongoose';
 
 function createMockLogger(): LoggerService {
   return {
@@ -63,16 +62,16 @@ function createProject(
       },
     ],
     isDeleted: false,
-    organization: new Types.ObjectId(organizationId),
+    organization: organizationId,
     status: 'analyzed',
     transcriptText: 'Original title. Original summary',
   } as unknown as ClipProjectDocument;
 }
 
 describe('ClipProjectsController', () => {
-  const organizationId = new Types.ObjectId().toString();
-  const projectId = new Types.ObjectId().toString();
-  const userId = new Types.ObjectId().toString();
+  const organizationId = '507f191e810c19729de860ee'.toString();
+  const projectId = '507f191e810c19729de860ee'.toString();
+  const userId = '507f191e810c19729de860ee'.toString();
   const currentUser = {
     publicMetadata: {
       organization: organizationId,

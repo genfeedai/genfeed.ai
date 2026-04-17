@@ -4,7 +4,6 @@ import {
   DistributionPlatform,
   PublishStatus,
 } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 

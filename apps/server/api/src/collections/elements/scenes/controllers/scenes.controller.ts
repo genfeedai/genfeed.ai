@@ -33,7 +33,6 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('elements/scenes')
@@ -108,7 +107,7 @@ export class ElementsScenesController extends BaseCRUDController<
   public buildFindAllPipeline(
     user: User,
     query: BaseQueryDto,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const publicMetadata = getPublicMetadata(user);
     const adminFilter = CollectionFilterUtil.buildAdminFilter(
       publicMetadata,
@@ -122,12 +121,12 @@ export class ElementsScenesController extends BaseCRUDController<
 
     if (publicMetadata.organization) {
       orConditions.push({
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       });
     }
 
     if (publicMetadata.user) {
-      orConditions.push({ user: new Types.ObjectId(publicMetadata.user) });
+      orConditions.push({ user: publicMetadata.user });
     }
 
     return PipelineBuilder.create()

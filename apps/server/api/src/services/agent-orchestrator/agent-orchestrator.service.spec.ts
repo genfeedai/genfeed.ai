@@ -20,7 +20,6 @@ import { AgentToolName } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import { Effect } from 'effect';
-import { Types } from 'mongoose';
 
 const ORG_ID = '67a123456789012345678901';
 const USER_ID = '67a123456789012345678902';

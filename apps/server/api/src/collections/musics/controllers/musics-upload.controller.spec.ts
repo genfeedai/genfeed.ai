@@ -18,7 +18,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('MusicsUploadController', () => {
   let controller: MusicsUploadController;
@@ -64,11 +63,11 @@ describe('MusicsUploadController', () => {
     sharedService: {
       saveDocuments: vi.fn().mockResolvedValue({
         ingredientData: {
-          _id: new Types.ObjectId('507f1f77bcf86cd799439014'),
+          _id: '507f1f77bcf86cd799439014',
           category: 'music',
         },
         metadataData: {
-          _id: new Types.ObjectId('507f1f77bcf86cd799439015'),
+          _id: '507f1f77bcf86cd799439015',
         },
       }),
     },

@@ -9,7 +9,6 @@ import type { User } from '@clerk/backend';
 import { CredentialPlatform } from '@genfeedai/enums';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { Types } from 'mongoose';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
@@ -72,14 +71,14 @@ class TestIntegrationController extends BaseIntegrationController {
   }
 
   async testGetOrCreateCredential(
-    brand: { _id: Types.ObjectId; organization: Types.ObjectId },
+    brand: { _id: string; organization: string },
     initialData?: Record<string, unknown>,
   ) {
     return this.getOrCreateCredential(brand, initialData);
   }
 
   testUpdateCredentialWithTokens(
-    credentialId: Types.ObjectId,
+    credentialId: string,
     verifyResult: {
       accessToken: string;
       accessSecret?: string;
@@ -110,7 +109,7 @@ function createMockLogger(): LoggerService {
 describe('BaseIntegrationController', () => {
   const orgId = '507f1f77bcf86cd799439012';
   const userId = '507f1f77bcf86cd799439011';
-  const brandId = new Types.ObjectId();
+  const brandId = '507f191e810c19729de860ee';
 
   let controller: TestIntegrationController;
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
@@ -128,13 +127,13 @@ describe('BaseIntegrationController', () => {
     brandsService = {
       findOne: vi.fn().mockResolvedValue({
         _id: brandId,
-        organization: new Types.ObjectId(orgId),
+        organization: orgId,
       }),
     };
 
     credentialsService = {
       findOne: vi.fn().mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         isConnected: false,
       }),
       patch: vi.fn().mockResolvedValue({ _id: 'cred-1', isConnected: true }),
@@ -185,7 +184,7 @@ describe('BaseIntegrationController', () => {
 
     it('should throw FORBIDDEN when brand is not found', async () => {
       brandsService.findOne.mockResolvedValue(null);
-      const fakeBrandId = new Types.ObjectId().toString();
+      const fakeBrandId = '507f191e810c19729de860ee'.toString();
 
       await expect(
         controller.testValidateBrand(fakeBrandId, orgId),
@@ -203,7 +202,7 @@ describe('BaseIntegrationController', () => {
     it('should return existing credential if found', async () => {
       const brand = {
         _id: brandId,
-        organization: new Types.ObjectId(orgId),
+        organization: orgId,
       };
 
       const result = await controller.testGetOrCreateCredential(brand);
@@ -222,13 +221,13 @@ describe('BaseIntegrationController', () => {
     it('should create and return new credential if none exists', async () => {
       const brand = {
         _id: brandId,
-        organization: new Types.ObjectId(orgId),
+        organization: orgId,
       };
 
       credentialsService.findOne
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce({
-          _id: new Types.ObjectId(),
+          _id: '507f191e810c19729de860ee',
           isConnected: false,
         });
 
@@ -288,7 +287,7 @@ describe('BaseIntegrationController', () => {
 
       await expect(
         controller.testHandleConnect(mockUser, {
-          brand: new Types.ObjectId().toString(),
+          brand: '507f191e810c19729de860ee'.toString(),
         }),
       ).rejects.toThrow(HttpException);
     });
@@ -296,7 +295,7 @@ describe('BaseIntegrationController', () => {
 
   describe('updateCredentialWithTokens', () => {
     it('should patch credential with tokens and clear temporary fields', () => {
-      const credId = new Types.ObjectId();
+      const credId = '507f191e810c19729de860ee';
       const verifyResult = {
         accessSecret: 'access-secret',
         accessToken: 'final-access-token',
@@ -326,7 +325,7 @@ describe('BaseIntegrationController', () => {
     });
 
     it('should handle missing optional fields', () => {
-      const credId = new Types.ObjectId();
+      const credId = '507f191e810c19729de860ee';
       const verifyResult = {
         accessToken: 'token-only',
       };

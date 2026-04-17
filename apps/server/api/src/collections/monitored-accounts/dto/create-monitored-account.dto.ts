@@ -9,7 +9,6 @@ import {
   MaxLength,
   ValidateNested,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreateMonitoredAccountDto {
   @IsMongoId()
@@ -18,7 +17,7 @@ export class CreateMonitoredAccountDto {
     description: 'Organization that owns this monitored account',
     required: false,
   })
-  organization?: Types.ObjectId;
+  organization?: string;
 
   @IsMongoId()
   @IsOptional()
@@ -26,7 +25,7 @@ export class CreateMonitoredAccountDto {
     description: 'Brand this monitored account is scoped to',
     required: false,
   })
-  brand?: Types.ObjectId;
+  brand?: string;
 
   @IsMongoId()
   @IsOptional()
@@ -34,7 +33,7 @@ export class CreateMonitoredAccountDto {
     description: 'User that created this monitored account',
     required: false,
   })
-  user?: Types.ObjectId;
+  user?: string;
 
   @IsMongoId()
   @IsOptional()
@@ -42,7 +41,7 @@ export class CreateMonitoredAccountDto {
     description: 'Credential used for Twitter API access',
     required: false,
   })
-  credential?: Types.ObjectId;
+  credential?: string;
 
   @IsString()
   @MaxLength(15)

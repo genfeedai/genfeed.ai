@@ -85,7 +85,11 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 @AutoSwagger()
 @ApiTags('organizations')
 @ApiBearerAuth()
@@ -136,12 +140,12 @@ export class OrganizationsController extends BaseCRUDController<
       this.membersService.findOne({
         isActive: true,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-        user: new Types.ObjectId(userId),
+        organization: organizationId,
+        user: userId,
       }),
       this.organizationsService.findOne({
-        _id: new Types.ObjectId(organizationId),
-        user: new Types.ObjectId(userId),
+        _id: organizationId,
+        user: userId,
       }),
     ]);
 
@@ -208,7 +212,7 @@ export class OrganizationsController extends BaseCRUDController<
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           isDeleted,
@@ -240,12 +244,12 @@ export class OrganizationsController extends BaseCRUDController<
     };
 
     const publicMetadata = getPublicMetadata(user);
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           $or: [
-            { user: new Types.ObjectId(publicMetadata.user) },
-            { organization: new Types.ObjectId(organizationId) },
+            { user: publicMetadata.user },
+            { organization: organizationId },
           ],
           isDeleted,
         },
@@ -275,8 +279,8 @@ export class OrganizationsController extends BaseCRUDController<
     // Check if the user is a member of the organization
     const member = await this.membersService.findOne({
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: organizationId,
+      user: publicMetadata.user,
     });
 
     if (!member) {
@@ -299,7 +303,7 @@ export class OrganizationsController extends BaseCRUDController<
 
     const matchConditions = {
       isDeleted,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       ...statusFilter,
       ...(query.search && {
         $or: [
@@ -310,7 +314,7 @@ export class OrganizationsController extends BaseCRUDController<
       ...(query.category && { category: query.category }),
       ...(query.brand &&
         isValidObjectId(query.brand) && {
-          brand: new Types.ObjectId(query.brand),
+          brand: query.brand,
         }),
       ...(Object.keys(parentConditions).length > 0 && {
         $and: [parentConditions],
@@ -344,12 +348,12 @@ export class OrganizationsController extends BaseCRUDController<
 
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           isDeleted,
-          organization: new Types.ObjectId(organizationId),
-          user: new Types.ObjectId(publicMetadata.user),
+          organization: organizationId,
+          user: publicMetadata.user,
         },
       },
       {
@@ -387,9 +391,9 @@ export class OrganizationsController extends BaseCRUDController<
           // Global tags (default/system tags)
           { organization: { $exists: false }, user: { $exists: false } },
           // Tags for this organization
-          { organization: new Types.ObjectId(organizationId) },
+          { organization: organizationId },
           // Tags for the current user
-          { user: new Types.ObjectId(publicMetadata.user) },
+          { user: publicMetadata.user },
         ],
         isDeleted,
       })
@@ -422,11 +426,11 @@ export class OrganizationsController extends BaseCRUDController<
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           isDeleted,
-          organization: new Types.ObjectId(organizationId),
+          organization: organizationId,
         },
       },
       {
@@ -551,11 +555,11 @@ export class OrganizationsController extends BaseCRUDController<
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           isDeleted,
-          organization: new Types.ObjectId(organizationId),
+          organization: organizationId,
         },
       },
       ...ActivitiesService.buildEntityLookup(),
@@ -596,7 +600,7 @@ export class OrganizationsController extends BaseCRUDController<
     const members = await this.membersService.find({
       isActive: true,
       isDeleted: false,
-      user: new Types.ObjectId(userId),
+      user: userId,
     });
 
     if (!members.length) {
@@ -622,7 +626,7 @@ export class OrganizationsController extends BaseCRUDController<
         .map(async (org) => {
           const brand = await this.brandsService.findOne({
             isDeleted: false,
-            organization: new Types.ObjectId(org._id),
+            organization: org._id,
           });
           return {
             brand: brand
@@ -664,8 +668,8 @@ export class OrganizationsController extends BaseCRUDController<
     const member = await this.membersService.findOne({
       isActive: true,
       isDeleted: false,
-      organization: new Types.ObjectId(orgId),
-      user: new Types.ObjectId(userId),
+      organization: orgId,
+      user: userId,
     });
 
     if (!member && !getIsSuperAdmin(user)) {
@@ -684,13 +688,13 @@ export class OrganizationsController extends BaseCRUDController<
       brand = await this.brandsService.findOne({
         _id: member.lastUsedBrand,
         isDeleted: false,
-        organization: new Types.ObjectId(orgId),
+        organization: orgId,
       });
     }
     if (!brand) {
       brand = await this.brandsService.findOne({
         isDeleted: false,
-        organization: new Types.ObjectId(orgId),
+        organization: orgId,
       });
     }
 
@@ -708,7 +712,7 @@ export class OrganizationsController extends BaseCRUDController<
     });
 
     const org = await this.organizationsService.findOne({
-      _id: new Types.ObjectId(orgId),
+      _id: orgId,
       isDeleted: false,
     });
 
@@ -748,7 +752,7 @@ export class OrganizationsController extends BaseCRUDController<
     }
 
     const userDoc = await this.usersService.findOne({
-      _id: new Types.ObjectId(userId),
+      _id: userId,
       isDeleted: false,
     });
 
@@ -764,11 +768,11 @@ export class OrganizationsController extends BaseCRUDController<
       new OrganizationEntity({
         isSelected: false,
         label: body.label.trim(),
-        user: new Types.ObjectId(userId),
+        user: userId,
       }),
     );
 
-    const orgId = new Types.ObjectId(org._id);
+    const orgId = org._id;
 
     // Step 2: Create org settings
     const enabledModelIds =
@@ -810,7 +814,7 @@ export class OrganizationsController extends BaseCRUDController<
         organization: orgId,
         primaryColor: '#000000',
         secondaryColor: '#FFFFFF',
-        user: new Types.ObjectId(userId),
+        user: userId,
       }),
     );
 
@@ -837,8 +841,8 @@ export class OrganizationsController extends BaseCRUDController<
       new MemberEntity({
         isActive: true,
         organization: orgId,
-        role: new Types.ObjectId(adminRole._id),
-        user: new Types.ObjectId(userId),
+        role: adminRole._id,
+        user: userId,
       }),
     );
 

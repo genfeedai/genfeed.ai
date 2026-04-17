@@ -1,6 +1,5 @@
 import { PostProcessingOrchestratorService } from '@api/endpoints/webhooks/services/post-processing-orchestrator.service';
 import { IngredientCategory } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('PostProcessingOrchestratorService', () => {

@@ -8,7 +8,6 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 const makeContext = (
   params: Record<string, string>,
@@ -24,9 +23,9 @@ describe('AssetAccessGuard', () => {
   let guard: AssetAccessGuard;
   let ingredientsService: vi.Mocked<IngredientsService>;
 
-  const orgId = new Types.ObjectId().toString();
-  const userId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
+  const orgId = '507f191e810c19729de860ee'.toString();
+  const userId = '507f191e810c19729de860ee'.toString();
+  const brandId = '507f191e810c19729de860ee'.toString();
   const clerkId = 'user_clerk_abc123';
 
   beforeEach(async () => {
@@ -99,7 +98,7 @@ describe('AssetAccessGuard', () => {
       ingredientsService.findOne.mockResolvedValue({
         organization: { _id: orgId },
         scope: AssetScope.ORGANIZATION,
-        user: new Types.ObjectId(),
+        user: '507f191e810c19729de860ee',
       } as never);
       const ctx = makeContext({ id: 'asset-123' }, null);
       await expect(guard.canActivate(ctx)).rejects.toThrow(
@@ -109,13 +108,13 @@ describe('AssetAccessGuard', () => {
 
     it('should return true when user is owner via clerkId', async () => {
       ingredientsService.findOne.mockResolvedValue({
-        organization: { _id: new Types.ObjectId(orgId) },
+        organization: { _id: orgId },
         scope: AssetScope.ORGANIZATION,
-        user: { _id: new Types.ObjectId(), clerkId },
+        user: { _id: '507f191e810c19729de860ee', clerkId },
       } as never);
       const user = {
         id: clerkId,
-        publicMetadata: { organization: new Types.ObjectId().toString() },
+        publicMetadata: { organization: '507f191e810c19729de860ee'.toString() },
       };
       expect(
         await guard.canActivate(makeContext({ ingredientId: 'x' }, user)),
@@ -123,16 +122,16 @@ describe('AssetAccessGuard', () => {
     });
 
     it('should return true when user objectId matches asset user', async () => {
-      const assetUserId = new Types.ObjectId();
+      const assetUserId = '507f191e810c19729de860ee';
       ingredientsService.findOne.mockResolvedValue({
-        organization: { _id: new Types.ObjectId() },
+        organization: { _id: '507f191e810c19729de860ee' },
         scope: AssetScope.ORGANIZATION,
         user: assetUserId,
       } as never);
       const user = {
         id: 'other',
         publicMetadata: {
-          organization: new Types.ObjectId().toString(),
+          organization: '507f191e810c19729de860ee'.toString(),
           user: assetUserId.toString(),
         },
       };
@@ -143,9 +142,9 @@ describe('AssetAccessGuard', () => {
 
     it('should return true when user shares organization', async () => {
       ingredientsService.findOne.mockResolvedValue({
-        organization: { _id: new Types.ObjectId(orgId) },
+        organization: { _id: orgId },
         scope: AssetScope.ORGANIZATION,
-        user: new Types.ObjectId(),
+        user: '507f191e810c19729de860ee',
       } as never);
       const user = {
         id: 'other',
@@ -158,14 +157,14 @@ describe('AssetAccessGuard', () => {
 
     it('should throw ForbiddenException when organization does not match', async () => {
       ingredientsService.findOne.mockResolvedValue({
-        organization: { _id: new Types.ObjectId() },
+        organization: { _id: '507f191e810c19729de860ee' },
         scope: AssetScope.ORGANIZATION,
-        user: new Types.ObjectId(),
+        user: '507f191e810c19729de860ee',
       } as never);
       const user = {
         id: 'other',
         publicMetadata: {
-          organization: new Types.ObjectId().toString(),
+          organization: '507f191e810c19729de860ee'.toString(),
           user: userId,
         },
       };
@@ -176,9 +175,9 @@ describe('AssetAccessGuard', () => {
 
     it('should handle raw ObjectId (non-populated) organization field', async () => {
       ingredientsService.findOne.mockResolvedValue({
-        organization: new Types.ObjectId(orgId),
+        organization: orgId,
         scope: AssetScope.ORGANIZATION,
-        user: new Types.ObjectId(),
+        user: '507f191e810c19729de860ee',
       } as never);
       const user = {
         id: 'other',
@@ -195,7 +194,7 @@ describe('AssetAccessGuard', () => {
       ingredientsService.findOne.mockResolvedValue({
         brand: { _id: brandId },
         scope: AssetScope.BRAND,
-        user: new Types.ObjectId(),
+        user: '507f191e810c19729de860ee',
       } as never);
       await expect(
         guard.canActivate(makeContext({ ingredientId: 'x' }, null)),
@@ -204,13 +203,13 @@ describe('AssetAccessGuard', () => {
 
     it('should return true when user is owner via clerkId', async () => {
       ingredientsService.findOne.mockResolvedValue({
-        brand: { _id: new Types.ObjectId(brandId) },
+        brand: { _id: brandId },
         scope: AssetScope.BRAND,
-        user: { _id: new Types.ObjectId(), clerkId },
+        user: { _id: '507f191e810c19729de860ee', clerkId },
       } as never);
       const user = {
         id: clerkId,
-        publicMetadata: { brand: new Types.ObjectId().toString() },
+        publicMetadata: { brand: '507f191e810c19729de860ee'.toString() },
       };
       expect(
         await guard.canActivate(makeContext({ ingredientId: 'x' }, user)),
@@ -219,9 +218,9 @@ describe('AssetAccessGuard', () => {
 
     it('should return true when user shares brand', async () => {
       ingredientsService.findOne.mockResolvedValue({
-        brand: { _id: new Types.ObjectId(brandId) },
+        brand: { _id: brandId },
         scope: AssetScope.BRAND,
-        user: new Types.ObjectId(),
+        user: '507f191e810c19729de860ee',
       } as never);
       const user = {
         id: 'other',
@@ -234,14 +233,14 @@ describe('AssetAccessGuard', () => {
 
     it('should throw ForbiddenException when brand does not match', async () => {
       ingredientsService.findOne.mockResolvedValue({
-        brand: { _id: new Types.ObjectId() },
+        brand: { _id: '507f191e810c19729de860ee' },
         scope: AssetScope.BRAND,
-        user: new Types.ObjectId(),
+        user: '507f191e810c19729de860ee',
       } as never);
       const user = {
         id: 'other',
         publicMetadata: {
-          brand: new Types.ObjectId().toString(),
+          brand: '507f191e810c19729de860ee'.toString(),
           user: userId,
         },
       };
@@ -255,7 +254,7 @@ describe('AssetAccessGuard', () => {
     it('should throw UnauthorizedException when unauthenticated', async () => {
       ingredientsService.findOne.mockResolvedValue({
         scope: AssetScope.USER,
-        user: new Types.ObjectId(),
+        user: '507f191e810c19729de860ee',
       } as never);
       await expect(
         guard.canActivate(makeContext({ ingredientId: 'x' }, null)),
@@ -265,7 +264,7 @@ describe('AssetAccessGuard', () => {
     it('should return true when user is owner via clerkId', async () => {
       ingredientsService.findOne.mockResolvedValue({
         scope: AssetScope.USER,
-        user: { _id: new Types.ObjectId(), clerkId },
+        user: { _id: '507f191e810c19729de860ee', clerkId },
       } as never);
       const user = { id: clerkId, publicMetadata: { user: userId } };
       expect(
@@ -274,7 +273,7 @@ describe('AssetAccessGuard', () => {
     });
 
     it('should return true when user objectId matches', async () => {
-      const assetUserId = new Types.ObjectId();
+      const assetUserId = '507f191e810c19729de860ee';
       ingredientsService.findOne.mockResolvedValue({
         scope: AssetScope.USER,
         user: assetUserId,
@@ -291,11 +290,11 @@ describe('AssetAccessGuard', () => {
     it('should throw ForbiddenException when user is not the owner', async () => {
       ingredientsService.findOne.mockResolvedValue({
         scope: AssetScope.USER,
-        user: new Types.ObjectId(),
+        user: '507f191e810c19729de860ee',
       } as never);
       const user = {
         id: 'other',
-        publicMetadata: { user: new Types.ObjectId().toString() },
+        publicMetadata: { user: '507f191e810c19729de860ee'.toString() },
       };
       await expect(
         guard.canActivate(makeContext({ ingredientId: 'x' }, user)),
@@ -320,7 +319,7 @@ describe('AssetAccessGuard', () => {
     it('should throw ForbiddenException for unrecognized scope', async () => {
       ingredientsService.findOne.mockResolvedValue({
         scope: 'unknown' as AssetScope,
-        user: new Types.ObjectId(),
+        user: '507f191e810c19729de860ee',
       } as never);
       const user = { id: clerkId, publicMetadata: { user: userId } };
       await expect(

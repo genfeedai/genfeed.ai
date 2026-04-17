@@ -17,7 +17,6 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('PostsAnalyticsController', () => {
   let controller: PostsAnalyticsController;
@@ -32,18 +31,18 @@ describe('PostsAnalyticsController', () => {
   } as unknown as User;
 
   const mockPost = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439014'),
-    brand: new Types.ObjectId('507f1f77bcf86cd799439013'),
-    credential: new Types.ObjectId('507f1f77bcf86cd799439016'),
+    _id: '507f1f77bcf86cd799439014',
+    brand: '507f1f77bcf86cd799439013',
+    credential: '507f1f77bcf86cd799439016',
     isDeleted: false,
-    organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
-    user: new Types.ObjectId('507f1f77bcf86cd799439011'),
+    organization: '507f1f77bcf86cd799439012',
+    user: '507f1f77bcf86cd799439011',
   };
 
   const mockCredential = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439016'),
+    _id: '507f1f77bcf86cd799439016',
     isConnected: true,
-    organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
+    organization: '507f1f77bcf86cd799439012',
     platform: 'twitter',
   };
 

@@ -1,5 +1,3 @@
-import { type Document, Types } from 'mongoose';
-
 // Base pagination query interface
 export interface BasePaginationQuery {
   page?: number;
@@ -11,17 +9,17 @@ export interface BasePaginationQuery {
 
 // Base entity interface
 export interface BaseEntity {
-  _id: Types.ObjectId;
-  user: Types.ObjectId;
-  organization?: Types.ObjectId;
-  brand?: Types.ObjectId;
+  _id: string;
+  user: string;
+  organization?: string;
+  brand?: string;
   createdAt: Date;
   updatedAt: Date;
   isDeleted: boolean;
 }
 
-// Document type pattern for Mongoose entities
-export type EntityDocument<T> = T & Document;
+// Document type pattern for entity compatibility
+export type EntityDocument<T> = T & { _id: string; [key: string]: unknown };
 
 // API Response wrapper
 export interface ApiResponse<T = unknown> {

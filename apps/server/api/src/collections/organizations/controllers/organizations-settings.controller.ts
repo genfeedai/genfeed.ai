@@ -53,7 +53,6 @@ import {
 import { ApiBearerAuth, ApiParam, ApiTags } from '@nestjs/swagger';
 import axios from 'axios';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @ApiTags('organizations')
@@ -115,7 +114,7 @@ export class OrganizationsSettingsController {
     @Param('organizationId') organizationId: string,
   ): Promise<JsonApiSingleResponse> {
     const data = await this.organizationSettingsService.findOne({
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!data) {
@@ -135,7 +134,7 @@ export class OrganizationsSettingsController {
   ): Promise<JsonApiSingleResponse> {
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
       },
     );
 
@@ -165,9 +164,9 @@ export class OrganizationsSettingsController {
   ): Promise<JsonApiSingleResponse> {
     const brandSettings = await this.brandsService.findOne(
       {
-        _id: new Types.ObjectId(brandId),
+        _id: brandId,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
       },
       'none',
     );
@@ -204,7 +203,7 @@ export class OrganizationsSettingsController {
     @Param('organizationId') organizationId: string,
   ): Promise<JsonApiSingleResponse> {
     const data = await this.subscriptionsService.findOne({
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     return serializeSingle(req, SubscriptionSerializer, data);

@@ -46,7 +46,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('trainings')
@@ -71,10 +70,10 @@ export class TrainingsOperationsController {
       const publicMetadata = getPublicMetadata(user);
 
       const existingTraining = await this.trainingsService.findOne({
-        _id: new Types.ObjectId(trainingId),
+        _id: trainingId,
         $or: [
-          { user: new Types.ObjectId(publicMetadata.user) },
-          { organization: new Types.ObjectId(publicMetadata.organization) },
+          { user: publicMetadata.user },
+          { organization: publicMetadata.organization },
         ],
       });
 
@@ -106,11 +105,11 @@ export class TrainingsOperationsController {
               $match: {
                 _id: {
                   $in: existingTraining.sources.map((sid: unknown) =>
-                    typeof sid === 'string' ? new Types.ObjectId(sid) : sid,
+                    typeof sid === 'string' ? sid : sid,
                   ),
                 },
                 category: IngredientCategory.SOURCE,
-                user: new Types.ObjectId(publicMetadata.user),
+                user: publicMetadata.user,
               },
             },
             {
@@ -150,23 +149,21 @@ export class TrainingsOperationsController {
         new TrainingEntity({
           brand:
             existingTraining.brand ||
-            (publicMetadata.brand
-              ? new Types.ObjectId(publicMetadata.brand)
-              : undefined),
+            (publicMetadata.brand ? publicMetadata.brand : undefined),
           category: existingTraining.category,
           description: existingTraining.description || '',
           label: existingTraining.label,
           model:
             existingTraining.model ||
             this.configService.get('REPLICATE_MODELS_TRAINER'),
-          organization: new Types.ObjectId(publicMetadata.organization),
+          organization: publicMetadata.organization,
           provider: existingTraining.provider || 'replicate',
           seed: existingTraining.seed ?? -1,
           sources: existingTraining.sources,
           status: IngredientStatus.PROCESSING,
           steps: existingTraining.steps,
           trigger: existingTraining.trigger,
-          user: new Types.ObjectId(publicMetadata.user),
+          user: publicMetadata.user,
         }),
       );
 
@@ -184,7 +181,7 @@ export class TrainingsOperationsController {
         sourceImages.map((img) =>
           this.ingredientsService.patch(img._id, {
             category: IngredientCategory.SOURCE,
-            training: newTraining._id as Types.ObjectId,
+            training: newTraining._id as string,
           }),
         ),
       );
@@ -218,10 +215,10 @@ export class TrainingsOperationsController {
 
       // Find the training
       const training = await this.trainingsService.findOne({
-        _id: new Types.ObjectId(trainingId),
+        _id: trainingId,
         $or: [
-          { user: new Types.ObjectId(publicMetadata.user) },
-          { organization: new Types.ObjectId(publicMetadata.organization) },
+          { user: publicMetadata.user },
+          { organization: publicMetadata.organization },
         ],
       });
 
@@ -269,7 +266,7 @@ export class TrainingsOperationsController {
 
       // NOT NEEDED RIGHT NOW
       // if (query.brand && isValidObjectId(query.brand)) {
-      //   imageMatchConditions.brand = new Types.ObjectId(query.brand);
+      //   imageMatchConditions.brand = query.brand;
       // }
 
       const data = await this.ingredientsService.findAll(
@@ -322,10 +319,10 @@ export class TrainingsOperationsController {
       const publicMetadata = getPublicMetadata(user);
 
       const training = await this.trainingsService.findOne({
-        _id: new Types.ObjectId(trainingId),
+        _id: trainingId,
         $or: [
-          { user: new Types.ObjectId(publicMetadata.user) },
-          { organization: new Types.ObjectId(publicMetadata.organization) },
+          { user: publicMetadata.user },
+          { organization: publicMetadata.organization },
         ],
       });
 

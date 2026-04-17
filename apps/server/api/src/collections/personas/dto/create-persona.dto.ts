@@ -14,7 +14,6 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class ContentStrategyDto {
   @IsOptional()
@@ -104,7 +103,7 @@ export class CreatePersonaDto {
     description: 'Avatar ingredient ID',
     required: false,
   })
-  readonly avatar?: Types.ObjectId;
+  readonly avatar?: string;
 
   @IsOptional()
   @IsEnum(AvatarProvider)
@@ -130,7 +129,7 @@ export class CreatePersonaDto {
     description: 'Voice ID',
     required: false,
   })
-  readonly voice?: Types.ObjectId;
+  readonly voice?: string;
 
   @IsOptional()
   @IsEnum(VoiceProvider)
@@ -168,7 +167,7 @@ export class CreatePersonaDto {
     required: false,
     type: [String],
   })
-  readonly credentials?: Types.ObjectId[];
+  readonly credentials?: string[];
 
   @IsOptional()
   @IsArray()
@@ -178,7 +177,7 @@ export class CreatePersonaDto {
     required: false,
     type: [String],
   })
-  readonly assignedMembers?: Types.ObjectId[];
+  readonly assignedMembers?: string[];
 
   @IsOptional()
   @IsEnum(PersonaStatus)
@@ -199,5 +198,5 @@ export class CreatePersonaDto {
     required: false,
     type: [String],
   })
-  readonly tags?: Types.ObjectId[];
+  readonly tags?: string[];
 }

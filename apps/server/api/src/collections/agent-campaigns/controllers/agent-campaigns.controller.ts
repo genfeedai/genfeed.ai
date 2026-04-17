@@ -26,7 +26,6 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { type PipelineStage, Types } from 'mongoose';
 
 @ApiTags('Agent Campaigns')
 @AutoSwagger()
@@ -107,7 +106,7 @@ export class AgentCampaignsController extends BaseCRUDController<
   public buildFindAllPipeline(
     user: User,
     query: AgentCampaignsQueryDto,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
@@ -115,19 +114,19 @@ export class AgentCampaignsController extends BaseCRUDController<
 
     const organizationId = publicMetadata.organization?.toString();
     if (organizationId) {
-      match.organization = new Types.ObjectId(organizationId);
+      match.organization = organizationId;
     }
 
     const brandId = publicMetadata.brand?.toString();
     if (brandId) {
-      match.brand = new Types.ObjectId(brandId);
+      match.brand = brandId;
     }
 
     if (query.status) {
       match.status = query.status;
     }
 
-    const pipeline: PipelineStage[] = [
+    const pipeline: Record<string, unknown>[] = [
       { $match: match },
       { $sort: handleQuerySort(query.sort) },
     ];
@@ -142,9 +141,8 @@ export class AgentCampaignsController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
 
     const entityOrganizationId =
-      (
-        entity.organization as unknown as { _id: Types.ObjectId }
-      )?._id?.toString() || entity.organization?.toString();
+      (entity.organization as unknown as { _id: string })?._id?.toString() ||
+      entity.organization?.toString();
 
     if (
       entityOrganizationId &&

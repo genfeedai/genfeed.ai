@@ -8,7 +8,6 @@ import type {
 import { SkillExecutorService } from '@api/services/skill-executor/skill-executor.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class ContentGatewayService {

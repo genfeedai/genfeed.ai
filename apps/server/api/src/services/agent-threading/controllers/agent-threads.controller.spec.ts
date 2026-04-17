@@ -6,7 +6,6 @@ import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
 import { Effect } from 'effect';
-import { Types } from 'mongoose';
 
 vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   ErrorResponse: {

@@ -1,4 +1,7 @@
-import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 /**
  * IngredientFilterUtil - Utility for building consistent ingredient query filters
@@ -14,7 +17,7 @@ import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
  * const formatStage = IngredientFilterUtil.buildFormatFilterStage(query.format);
  *
  * // Use in aggregation pipeline
- * const aggregate: PipelineStage[] = [
+ * const aggregate: Record<string, unknown>[] = [
  *   { $match: { ...matchStage, ...parentConditions } },
  *   { $lookup: { ... } }, // metadata lookup
  *   ...formatStage,
@@ -45,7 +48,7 @@ export class IngredientFilterUtil {
         return { parent: { $exists: false } };
       } else if (isValidObjectId(parent)) {
         // Valid parent ID provided
-        return { parent: new Types.ObjectId(parent) };
+        return { parent: parent };
       } else {
         // Invalid parent ID, default to root ingredients
         return { parent: { $exists: false } };
@@ -74,7 +77,7 @@ export class IngredientFilterUtil {
 
     if (hasFolderParam) {
       if (isValidObjectId(folder)) {
-        return { folder: new Types.ObjectId(folder) };
+        return { folder: folder };
       } else {
         // null, 'null', '' or invalid ID → no folder
         return { folder: { $exists: false } };
@@ -101,7 +104,7 @@ export class IngredientFilterUtil {
     if (training) {
       if (isValidObjectId(training)) {
         // Show only ingredients with this specific training
-        return { training: new Types.ObjectId(training) };
+        return { training: training };
       } else {
         // Invalid training ID - exclude training ingredients
         return { training: { $exists: false } };
@@ -126,7 +129,7 @@ export class IngredientFilterUtil {
    * @param format - Format filter from query params
    * @returns Array of pipeline stages (empty if no format specified)
    */
-  static buildFormatFilterStage(format?: string): PipelineStage[] {
+  static buildFormatFilterStage(format?: string): Record<string, unknown>[] {
     if (!format || format === '') {
       return [];
     }
@@ -160,9 +163,9 @@ export class IngredientFilterUtil {
    */
   static buildBrandFilter(
     brand: string | undefined,
-  ): Types.ObjectId | Record<string, boolean> {
+  ): string | Record<string, boolean> {
     if (isValidObjectId(brand)) {
-      return new Types.ObjectId(brand);
+      return brand;
     }
     return { $exists: true };
   }
@@ -180,7 +183,7 @@ export class IngredientFilterUtil {
    *
    * @returns Array of pipeline stages for metadata lookup with model label
    */
-  static buildMetadataLookup(): PipelineStage[] {
+  static buildMetadataLookup(): Record<string, unknown>[] {
     return [
       // 1. Lookup metadata document
       {
@@ -267,7 +270,7 @@ export class IngredientFilterUtil {
    * @param lightweight - Whether to skip prompt lookup for performance
    * @returns Array of pipeline stages for prompt lookup (empty if lightweight)
    */
-  static buildPromptLookup(lightweight?: boolean): PipelineStage[] {
+  static buildPromptLookup(lightweight?: boolean): Record<string, unknown>[] {
     if (lightweight) {
       return [];
     }
@@ -310,7 +313,7 @@ export class IngredientFilterUtil {
       lightweight?: boolean;
     },
     baseMatch: Record<string, unknown>,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const parentConditions = IngredientFilterUtil.buildParentFilter(
       query.parent,
     );

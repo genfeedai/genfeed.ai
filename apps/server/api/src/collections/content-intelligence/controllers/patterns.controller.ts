@@ -20,7 +20,11 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller, Delete, Get, Param, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 // Simple serializer for content pattern
 const ContentPatternSerializer = {
@@ -67,7 +71,7 @@ export class PatternsController {
     @Query() query: PatternsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
-    const organizationId = new Types.ObjectId(publicMetadata.organization);
+    const organizationId = publicMetadata.organization;
 
     const options = {
       customLabels,
@@ -89,7 +93,7 @@ export class PatternsController {
       match.templateCategory = query.templateCategory;
     }
     if (query.sourceCreator) {
-      match.sourceCreator = new Types.ObjectId(query.sourceCreator.toString());
+      match.sourceCreator = query.sourceCreator.toString();
     }
     if (query.tags && query.tags.length > 0) {
       match.tags = { $in: query.tags };
@@ -104,7 +108,7 @@ export class PatternsController {
     const sortField = query.sortBy || 'sourceMetrics.engagementRate';
     const sortOrder = query.sortOrder === 'asc' ? 1 : -1;
 
-    const pipeline: PipelineStage[] = [
+    const pipeline: Record<string, unknown>[] = [
       { $match: match },
       { $sort: { [sortField]: sortOrder, createdAt: -1 } },
     ];
@@ -120,7 +124,7 @@ export class PatternsController {
     @Query() query: PatternsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
-    const organizationId = new Types.ObjectId(publicMetadata.organization);
+    const organizationId = publicMetadata.organization;
 
     const hooks = await this.patternStoreService.findHooks(
       organizationId,
@@ -149,7 +153,7 @@ export class PatternsController {
     @Query() query: PatternsQueryDto,
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
-    const organizationId = new Types.ObjectId(publicMetadata.organization);
+    const organizationId = publicMetadata.organization;
 
     const options = {
       customLabels,
@@ -169,7 +173,7 @@ export class PatternsController {
       match.templateCategory = query.templateCategory;
     }
 
-    const pipeline: PipelineStage[] = [
+    const pipeline: Record<string, unknown>[] = [
       { $match: match },
       { $sort: { createdAt: -1, 'sourceMetrics.engagementRate': -1 } },
     ];
@@ -192,7 +196,7 @@ export class PatternsController {
     const data = await this.patternStoreService.findOne({
       _id: id,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!data) {
@@ -216,7 +220,7 @@ export class PatternsController {
     const pattern = await this.patternStoreService.findOne({
       _id: id,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!pattern) {

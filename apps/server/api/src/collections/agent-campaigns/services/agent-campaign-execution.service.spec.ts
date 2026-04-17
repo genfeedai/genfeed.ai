@@ -6,7 +6,6 @@ import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.serv
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AgentCampaignExecutionService } from './agent-campaign-execution.service';

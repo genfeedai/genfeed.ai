@@ -23,7 +23,6 @@ import {
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class AgentCreditGovernanceDto {
   @IsBoolean()
@@ -172,7 +171,7 @@ export class CreateOrganizationSettingDto {
 
   @IsMongoId()
   @ApiProperty({ required: true })
-  readonly organization!: Types.ObjectId;
+  readonly organization!: string;
 
   @IsBoolean()
   @ApiProperty({ default: false, required: true })
@@ -336,7 +335,7 @@ export class CreateOrganizationSettingDto {
     required: false,
     type: [String],
   })
-  readonly enabledModels?: Types.ObjectId[];
+  readonly enabledModels?: string[];
 
   @IsString()
   @IsOptional()
@@ -399,7 +398,7 @@ export class CreateOrganizationSettingDto {
     description: 'Default avatar ingredient ID for identity generation',
     required: false,
   })
-  readonly defaultAvatarIngredientId?: Types.ObjectId;
+  readonly defaultAvatarIngredientId?: string;
 
   @IsMongoId()
   @IsOptional()
@@ -407,7 +406,7 @@ export class CreateOrganizationSettingDto {
     description: 'Default cloned voice ingredient ID for identity generation',
     required: false,
   })
-  readonly defaultVoiceId?: Types.ObjectId;
+  readonly defaultVoiceId?: string;
 
   @ValidateNested()
   @Type(() => DefaultVoiceRefDto)

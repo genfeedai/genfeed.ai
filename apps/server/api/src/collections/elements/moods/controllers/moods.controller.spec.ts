@@ -9,7 +9,6 @@ import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 const createBaseQuery = (partial: Partial<BaseQueryDto> = {}): BaseQueryDto =>
   ({
@@ -21,11 +20,11 @@ const createBaseQuery = (partial: Partial<BaseQueryDto> = {}): BaseQueryDto =>
     ...partial,
   }) as BaseQueryDto;
 
-const asMatchStage = (stage: PipelineStage) =>
-  stage as PipelineStage.Match & { $match: Record<string, unknown> };
+const asMatchStage = (stage: Record<string, unknown>) =>
+  stage as Record<string, unknown> & { $match: Record<string, unknown> };
 
-const asSortStage = (stage: PipelineStage) =>
-  stage as PipelineStage.Sort & { $sort: Record<string, unknown> };
+const asSortStage = (stage: Record<string, unknown>) =>
+  stage as Record<string, unknown> & { $sort: Record<string, unknown> };
 
 vi.mock('@genfeedai/helpers', async () => ({
   ...(await vi.importActual('@genfeedai/helpers')),
@@ -56,17 +55,17 @@ describe('ElementsMoodsController', () => {
   const mockUser = {
     id: 'user-123',
     publicMetadata: {
-      brand: new Types.ObjectId().toString(),
-      organization: new Types.ObjectId().toString(),
-      user: new Types.ObjectId().toString(),
+      brand: '507f191e810c19729de860ee'.toString(),
+      organization: '507f191e810c19729de860ee'.toString(),
+      user: '507f191e810c19729de860ee'.toString(),
     } as IClerkPublicMetadata,
   } as unknown as User;
 
   const mockUserWithoutOrg = {
     id: 'user-456',
     publicMetadata: {
-      brand: new Types.ObjectId().toString(),
-      user: new Types.ObjectId().toString(),
+      brand: '507f191e810c19729de860ee'.toString(),
+      user: '507f191e810c19729de860ee'.toString(),
     } as IClerkPublicMetadata,
   } as unknown as User;
 
@@ -126,13 +125,13 @@ describe('ElementsMoodsController', () => {
       } as unknown as CreateElementMoodDto;
 
       const mockCreatedMood = {
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         ...createDto,
         isDeleted: false,
-        organization: new Types.ObjectId(
+        organization: 
           mockUser.publicMetadata.organization as string,
-        ),
-        user: new Types.ObjectId(mockUser.publicMetadata.user as string),
+        ,
+        user: mockUser.publicMetadata.user as string,
       };
 
       moodsService.create.mockResolvedValueOnce(
@@ -152,13 +151,13 @@ describe('ElementsMoodsController', () => {
       } as unknown as CreateElementMoodDto;
 
       const mockCreatedMood = {
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         ...createDto,
         isDeleted: false,
-        organization: new Types.ObjectId(
+        organization: 
           mockUser.publicMetadata.organization as string,
-        ),
-        user: new Types.ObjectId(mockUser.publicMetadata.user as string),
+        ,
+        user: mockUser.publicMetadata.user as string,
       };
 
       moodsService.create.mockResolvedValueOnce(
@@ -174,7 +173,7 @@ describe('ElementsMoodsController', () => {
 
   describe('update', () => {
     it('should update an existing mood', async () => {
-      const moodId = new Types.ObjectId().toString();
+      const moodId = '507f191e810c19729de860ee'.toString();
       const updateDto: UpdateElementMoodDto = {
         label: 'Updated Mood',
       } as unknown as UpdateElementMoodDto;
@@ -184,10 +183,10 @@ describe('ElementsMoodsController', () => {
         isDeleted: false,
         key: 'old-mood',
         label: 'Old Mood',
-        organization: new Types.ObjectId(
+        organization: 
           mockUser.publicMetadata.organization as string,
-        ),
-        user: new Types.ObjectId(mockUser.publicMetadata.user as string),
+        ,
+        user: mockUser.publicMetadata.user as string,
       };
 
       const mockUpdatedMood = {
@@ -215,7 +214,7 @@ describe('ElementsMoodsController', () => {
     });
 
     it('should throw error when mood not found', async () => {
-      const moodId = new Types.ObjectId().toString();
+      const moodId = '507f191e810c19729de860ee'.toString();
       const updateDto: UpdateElementMoodDto = {
         label: 'Updated',
       } as unknown as UpdateElementMoodDto;
@@ -230,16 +229,16 @@ describe('ElementsMoodsController', () => {
 
   describe('remove', () => {
     it('should delete a mood', async () => {
-      const moodId = new Types.ObjectId().toString();
+      const moodId = '507f191e810c19729de860ee'.toString();
       const mockMood = {
         _id: moodId,
         isDeleted: false,
         key: 'mood-to-delete',
         label: 'Mood to Delete',
-        organization: new Types.ObjectId(
+        organization: 
           mockUser.publicMetadata.organization as string,
-        ),
-        user: new Types.ObjectId(mockUser.publicMetadata.user as string),
+        ,
+        user: mockUser.publicMetadata.user as string,
       };
 
       moodsService.findOne.mockResolvedValueOnce(mockMood as unknown as never);
@@ -253,7 +252,7 @@ describe('ElementsMoodsController', () => {
     });
 
     it('should return error when mood not found', async () => {
-      const moodId = new Types.ObjectId().toString();
+      const moodId = '507f191e810c19729de860ee'.toString();
 
       moodsService.findOne.mockResolvedValueOnce(null);
 
@@ -334,7 +333,7 @@ describe('ElementsMoodsController', () => {
         user: { $exists: false },
       });
       expect(orConditions[1].organization).toEqual(
-        new Types.ObjectId(mockUser.publicMetadata.organization as string),
+        mockUser.publicMetadata.organization as string,
       );
     });
 
@@ -409,14 +408,14 @@ describe('ElementsMoodsController', () => {
     });
 
     it('should handle findOne', async () => {
-      const moodId = new Types.ObjectId().toString();
+      const moodId = '507f191e810c19729de860ee'.toString();
       const mockMood = {
         _id: moodId,
         isDeleted: false,
         key: 'happy',
         label: 'Happy',
-        organization: new Types.ObjectId(),
-        user: new Types.ObjectId(),
+        organization: '507f191e810c19729de860ee',
+        user: '507f191e810c19729de860ee',
       };
 
       moodsService.findOne.mockResolvedValueOnce(mockMood as unknown as never);
@@ -428,7 +427,7 @@ describe('ElementsMoodsController', () => {
     });
 
     it('should return not found when mood does not exist', async () => {
-      const moodId = new Types.ObjectId().toString();
+      const moodId = '507f191e810c19729de860ee'.toString();
 
       moodsService.findOne.mockResolvedValueOnce(null);
 
@@ -467,7 +466,7 @@ describe('ElementsMoodsController', () => {
     });
 
     it('should serialize single mood result', async () => {
-      const moodId = new Types.ObjectId().toString();
+      const moodId = '507f191e810c19729de860ee'.toString();
       const mockMood = { _id: moodId, key: 'happy', label: 'Happy' };
 
       moodsService.findOne.mockResolvedValueOnce(mockMood as unknown as never);

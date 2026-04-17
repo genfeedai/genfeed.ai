@@ -1,11 +1,9 @@
-import { Types } from 'mongoose';
-
 declare global {
   namespace jest {
     interface Matchers<R> {
       toBeValidObjectId(): R;
       toBeWithinTimeRange(start: Date, end: Date): R;
-      toContainObjectId(objectId: Types.ObjectId | string): R;
+      toContainObjectId(objectId: string | string): R;
       toHaveValidPaginationStructure(): R;
       toBeValidHttpResponse(): R;
     }
@@ -14,7 +12,7 @@ declare global {
 
 type ObjectLike = Record<string, unknown>;
 type ObjectIdContainer = {
-  _id?: Types.ObjectId | string | { toString(): string };
+  _id?: string | string | { toString(): string };
   toString(): string;
 };
 
@@ -58,8 +56,8 @@ expect.extend({
       typeof received === 'string' ||
       received instanceof Types.ObjectId ||
       (received instanceof Uint8Array
-        ? Types.ObjectId.isValid(received)
-        : Types.ObjectId.isValid(String(received)));
+        ? /^[0-9a-f]{24}$/i.test(received)
+        : string.isValid(String(received)));
 
     if (pass) {
       return {
@@ -96,7 +94,7 @@ expect.extend({
     }
   },
 
-  toContainObjectId(received: unknown[], objectId: Types.ObjectId | string) {
+  toContainObjectId(received: unknown[], objectId: string | string) {
     const objectIdString = objectId.toString();
     const pass = received.some(
       (item) =>

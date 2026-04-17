@@ -1,7 +1,6 @@
 import { CaptionFormat } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsMongoId, IsString } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreateCaptionDto {
   @IsMongoId()
@@ -9,7 +8,7 @@ export class CreateCaptionDto {
     description: 'The ingredient ID that this caption belongs to',
     required: true,
   })
-  readonly ingredient!: Types.ObjectId;
+  readonly ingredient!: string;
 
   @IsString()
   @ApiProperty({

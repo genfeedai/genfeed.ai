@@ -17,7 +17,6 @@ import {
   HttpException,
   NotFoundException,
 } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 describe('OrganizationsController', () => {
   let controller: OrganizationsController;
@@ -38,9 +37,9 @@ describe('OrganizationsController', () => {
     warn: vi.fn(),
   };
 
-  const userId = new Types.ObjectId().toString();
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
+  const userId = '507f191e810c19729de860ee'.toString();
+  const orgId = '507f191e810c19729de860ee'.toString();
+  const brandId = '507f191e810c19729de860ee'.toString();
 
   const mockUser = {
     id: 'clerk_user_123',
@@ -144,16 +143,16 @@ describe('OrganizationsController', () => {
 
   describe('findMine', () => {
     it('should return organizations the user belongs to', async () => {
-      const memberOrgId = new Types.ObjectId();
+      const memberOrgId = '507f191e810c19729de860ee';
       membersService.find.mockResolvedValue([
-        { organization: memberOrgId, user: new Types.ObjectId(userId) },
+        { organization: memberOrgId, user: userId },
       ]);
       organizationsService.findOne.mockResolvedValue({
         _id: memberOrgId,
         label: 'Test Org',
       });
       brandsService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(brandId),
+        _id: brandId,
         label: 'Test Brand',
       });
 
@@ -189,17 +188,17 @@ describe('OrganizationsController', () => {
 
   describe('switchOrganization', () => {
     it('should switch organization and update clerk metadata', async () => {
-      const newOrgId = new Types.ObjectId().toString();
+      const newOrgId = '507f191e810c19729de860ee'.toString();
       membersService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(),
-        lastUsedBrand: new Types.ObjectId(brandId),
+        _id: '507f191e810c19729de860ee',
+        lastUsedBrand: brandId,
       });
       brandsService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(brandId),
+        _id: brandId,
         label: 'Brand',
       });
       organizationsService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(newOrgId),
+        _id: newOrgId,
         label: 'New Org',
       });
 
@@ -218,19 +217,21 @@ describe('OrganizationsController', () => {
 
       await expect(
         controller.switchOrganization(
-          new Types.ObjectId().toString(),
+          '507f191e810c19729de860ee'.toString(),
           mockUser,
         ),
       ).rejects.toThrow(HttpException);
     });
 
     it('should throw Not Found if no brand exists for the org', async () => {
-      membersService.findOne.mockResolvedValue({ _id: new Types.ObjectId() });
+      membersService.findOne.mockResolvedValue({
+        _id: '507f191e810c19729de860ee',
+      });
       brandsService.findOne.mockResolvedValue(null);
 
       await expect(
         controller.switchOrganization(
-          new Types.ObjectId().toString(),
+          '507f191e810c19729de860ee'.toString(),
           mockUser,
         ),
       ).rejects.toThrow(HttpException);
@@ -239,12 +240,12 @@ describe('OrganizationsController', () => {
 
   describe('createOrganization', () => {
     it('should create org, settings, brand, and member', async () => {
-      const createdOrgId = new Types.ObjectId();
-      const createdBrandId = new Types.ObjectId();
-      const roleId = new Types.ObjectId();
+      const createdOrgId = '507f191e810c19729de860ee';
+      const createdBrandId = '507f191e810c19729de860ee';
+      const roleId = '507f191e810c19729de860ee';
 
       usersService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(userId),
+        _id: userId,
       });
       organizationsService.create.mockResolvedValue({
         _id: createdOrgId,
@@ -290,7 +291,7 @@ describe('OrganizationsController', () => {
   describe('findBySlug', () => {
     it('should return a serialized organization when slug exists', async () => {
       const mockOrg = {
-        _id: new Types.ObjectId(orgId),
+        _id: orgId,
         label: 'Test Org',
         slug: 'test-org',
       };
@@ -315,7 +316,7 @@ describe('OrganizationsController', () => {
     it('should update slug successfully when not taken', async () => {
       organizationsService.findBySlug.mockResolvedValue(null);
       const updatedOrg = {
-        _id: new Types.ObjectId(orgId),
+        _id: orgId,
         label: 'Test Org',
         slug: 'new-slug',
       };
@@ -334,7 +335,7 @@ describe('OrganizationsController', () => {
 
     it('should allow updating slug when taken by the same org', async () => {
       const existingOrg = {
-        _id: new Types.ObjectId(orgId),
+        _id: orgId,
         label: 'Test Org',
         slug: 'existing-slug',
       };
@@ -353,9 +354,9 @@ describe('OrganizationsController', () => {
     });
 
     it('should throw BadRequestException when slug is taken by another org', async () => {
-      const differentOrgId = new Types.ObjectId().toString();
+      const differentOrgId = '507f191e810c19729de860ee'.toString();
       organizationsService.findBySlug.mockResolvedValue({
-        _id: new Types.ObjectId(differentOrgId),
+        _id: differentOrgId,
         label: 'Other Org',
         slug: 'taken-slug',
       });

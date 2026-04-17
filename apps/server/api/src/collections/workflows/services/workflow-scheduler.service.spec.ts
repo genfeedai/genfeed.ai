@@ -10,7 +10,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { SchedulerRegistry } from '@nestjs/schedule';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('WorkflowSchedulerService', () => {
   let service: WorkflowSchedulerService;

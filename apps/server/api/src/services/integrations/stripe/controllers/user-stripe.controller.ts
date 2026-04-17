@@ -31,7 +31,6 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 interface CreateUserCheckoutDto {
   stripePriceId: string;

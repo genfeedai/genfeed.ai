@@ -21,7 +21,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { forwardRef, Inject, Optional } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { Types } from 'mongoose';
 
 const FAILURES_BEFORE_PAUSE = 3;
 const FAILURES_BEFORE_MANUAL_REACTIVATION = 5;
@@ -165,9 +164,9 @@ export class AgentRunProcessor extends WorkerHost {
       const summary = extractRunCompletionSummary(result);
       const threadId = extractRunThreadId(result);
 
-      if (threadId && Types.ObjectId.isValid(threadId)) {
+      if (threadId && /^[0-9a-f]{24}$/i.test(threadId)) {
         await this.agentRunsService.patch(data.runId, {
-          thread: new Types.ObjectId(threadId),
+          thread: threadId,
         } as Record<string, unknown>);
         await this.agentRunsService.mergeMetadata(
           data.runId,

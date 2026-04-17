@@ -22,7 +22,6 @@ import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('VideosCaptionsController', () => {
   let controller: VideosCaptionsController;
@@ -32,18 +31,18 @@ describe('VideosCaptionsController', () => {
   const mockReq = {} as Request;
 
   const mockVideo = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439011'),
-    brand: new Types.ObjectId('507f1f77bcf86cd799439014'),
+    _id: '507f1f77bcf86cd799439011',
+    brand: '507f1f77bcf86cd799439014',
     captions: [
       {
-        _id: new Types.ObjectId('507f1f77bcf86cd799439015'),
+        _id: '507f1f77bcf86cd799439015',
         content: 'Test caption content',
         format: 'srt',
         language: 'en',
       },
     ],
-    organization: new Types.ObjectId('507f1f77bcf86cd799439013'),
-    user: new Types.ObjectId('507f1f77bcf86cd799439012'),
+    organization: '507f1f77bcf86cd799439013',
+    user: '507f1f77bcf86cd799439012',
   };
 
   const mockUser = {
@@ -164,10 +163,10 @@ describe('VideosCaptionsController', () => {
       );
       mockServices.sharedService.saveDocuments.mockResolvedValue({
         ingredientData: {
-          _id: new Types.ObjectId('507f1f77bcf86cd799439016'),
+          _id: '507f1f77bcf86cd799439016',
         },
         metadataData: {
-          _id: new Types.ObjectId('507f1f77bcf86cd799439017'),
+          _id: '507f1f77bcf86cd799439017',
         },
       });
       mockServices.configService.get.mockReturnValue('https://api.example.com');

@@ -7,7 +7,6 @@ import { ConfigService } from '@api/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('ArticlesContentService', () => {
   let service: ArticlesContentService;

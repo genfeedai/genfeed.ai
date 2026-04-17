@@ -26,7 +26,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Body, Controller, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('services/fanvue')

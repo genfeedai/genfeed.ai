@@ -9,7 +9,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { Types } from 'mongoose';
 
 export interface MetaAdSyncJobData {
   credentialId: string;
@@ -128,7 +127,7 @@ export class AdSyncMetaProcessor extends WorkerHost {
     return {
       adPlatform: 'meta',
       bodyText: record.bodyText,
-      brand: new Types.ObjectId(jobData.brandId),
+      brand: jobData.brandId,
       campaignName: record.campaignName,
       campaignObjective: record.campaignObjective,
       campaignStatus: record.campaignStatus,
@@ -137,7 +136,7 @@ export class AdSyncMetaProcessor extends WorkerHost {
       cpa: record.cpa,
       cpc: record.cpc,
       cpm: record.cpm,
-      credential: new Types.ObjectId(jobData.credentialId),
+      credential: jobData.credentialId,
       ctaText: record.ctaText,
       ctr: record.ctr,
       currency: record.currency,
@@ -150,7 +149,7 @@ export class AdSyncMetaProcessor extends WorkerHost {
       granularity: record.granularity,
       headlineText: record.headlineText,
       impressions: record.impressions,
-      organization: new Types.ObjectId(jobData.organizationId),
+      organization: jobData.organizationId,
       revenue: record.revenue,
       roas: record.roas,
       spend: record.spend,

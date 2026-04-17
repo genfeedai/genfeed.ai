@@ -16,7 +16,6 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 
 type FileProcessingJob = IFileProcessingJob;

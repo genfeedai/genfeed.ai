@@ -26,7 +26,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { REQUEST } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 // Mock utility functions
 vi.mock('@genfeedai/helpers', async () => ({
@@ -55,20 +54,20 @@ describe('BrandsController', () => {
   const mockUser = {
     id: 'user-123',
     publicMetadata: {
-      brand: new Types.ObjectId().toString(),
+      brand: '507f191e810c19729de860ee'.toString(),
       isSuperAdmin: false,
-      organization: new Types.ObjectId().toString(),
-      user: new Types.ObjectId().toString(),
+      organization: '507f191e810c19729de860ee'.toString(),
+      user: '507f191e810c19729de860ee'.toString(),
     } as IClerkPublicMetadata,
   } as unknown as User;
 
   const mockBrand = {
-    _id: new Types.ObjectId(),
+    _id: '507f191e810c19729de860ee',
     description: 'A test brand',
     isDeleted: false,
     name: 'Test Brand',
     slug: 'test-brand',
-    user: new Types.ObjectId(),
+    user: '507f191e810c19729de860ee',
   };
 
   const mockRequest = {
@@ -210,7 +209,7 @@ describe('BrandsController', () => {
 
   describe('findOne', () => {
     it('should return a brand by id', async () => {
-      const brandId = new Types.ObjectId().toString();
+      const brandId = '507f191e810c19729de860ee'.toString();
       brandsService.findOne.mockResolvedValue(
         mockBrand as unknown as BrandEntity,
       );

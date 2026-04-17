@@ -14,7 +14,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('CreatorsController', () => {
   let controller: CreatorsController;
@@ -34,9 +33,9 @@ describe('CreatorsController', () => {
   } as Request;
 
   const mockCreator = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439015'),
+    _id: '507f1f77bcf86cd799439015',
     handle: '@testcreator',
-    organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
+    organization: '507f1f77bcf86cd799439012',
     platform: 'twitter',
     status: 'active',
   };
@@ -253,7 +252,7 @@ describe('CreatorsController', () => {
       );
 
       expect(mockPatternStoreService.deleteByCreator).toHaveBeenCalledWith(
-        new Types.ObjectId('507f1f77bcf86cd799439015'),
+        '507f1f77bcf86cd799439015',
       );
       expect(mockContentIntelligenceService.remove).toHaveBeenCalledWith(
         '507f1f77bcf86cd799439015',

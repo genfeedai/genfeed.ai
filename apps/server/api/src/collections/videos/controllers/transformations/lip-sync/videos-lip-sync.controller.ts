@@ -45,7 +45,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('videos')
@@ -89,7 +88,7 @@ export class VideosLipSyncController {
       const imageIngredient = await this.ingredientsService.findOne({
         _id: createLipSyncDto.parent,
         isDeleted: false,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       });
 
       if (!imageIngredient) {
@@ -131,7 +130,7 @@ export class VideosLipSyncController {
       const audioIngredient = await this.ingredientsService.findOne({
         _id: createLipSyncDto.voice,
         isDeleted: false,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       });
 
       if (!audioIngredient) {
@@ -186,23 +185,23 @@ export class VideosLipSyncController {
       // 4. Create video ingredient with metadata
       const { metadataData, ingredientData } =
         await this.sharedService.saveDocuments(user, {
-          brand: new Types.ObjectId(
+          brand: 
             imageIngredient.brand || publicMetadata.brand,
-          ),
+          ,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
           model: MODEL_KEYS.HEYGEN_AVATAR,
-          organization: new Types.ObjectId(publicMetadata.organization),
-          parent: new Types.ObjectId(createLipSyncDto.parent),
+          organization: publicMetadata.organization,
+          parent: createLipSyncDto.parent,
           // Store references for traceability
           references: [
-            new Types.ObjectId(createLipSyncDto.parent),
-            new Types.ObjectId(createLipSyncDto.voice),
+            createLipSyncDto.parent,
+            createLipSyncDto.voice,
           ],
           status: IngredientStatus.PROCESSING,
         });
 
-      ingredientId = (ingredientData._id as Types.ObjectId).toHexString();
+      ingredientId = (ingredientData._id as string).toHexString();
 
       // 5. Call HeyGen Photo Avatar API
       this.loggerService.log(`${url} calling HeyGen Photo Avatar API`, {

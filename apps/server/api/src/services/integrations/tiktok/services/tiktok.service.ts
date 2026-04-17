@@ -22,7 +22,6 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { AxiosError } from 'axios';
-import { Types } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable()

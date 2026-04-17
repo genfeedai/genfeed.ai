@@ -15,7 +15,6 @@ import { TaskSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('TasksController', () => {
   let controller: TasksController;
@@ -36,8 +35,8 @@ describe('TasksController', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
-  const organizationId = new Types.ObjectId().toString();
-  const userId = new Types.ObjectId().toString();
+  const organizationId = '507f191e810c19729de860ee'.toString();
+  const userId = '507f191e810c19729de860ee'.toString();
 
   const mockUser = {
     id: 'user-1',
@@ -100,7 +99,7 @@ describe('TasksController', () => {
   describe('create', () => {
     it('creates a task with organization prefix and next counter number', async () => {
       const createdTask = {
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         identifier: 'GENA-18',
         taskNumber: 18,
         title: 'Add task tests',
@@ -131,7 +130,7 @@ describe('TasksController', () => {
       );
 
       const payload = tasksService.create.mock.calls[0]?.[0] as {
-        organization: Types.ObjectId;
+        organization: string;
       };
       expect(payload.organization.toString()).toBe(organizationId);
       expect(result).toEqual({ data: createdTask });
@@ -155,7 +154,7 @@ describe('TasksController', () => {
 
   describe('buildFindAllPipeline', () => {
     it('adds organization scope and optional filters to the match stage', () => {
-      const parentId = new Types.ObjectId().toString();
+      const parentId = '507f191e810c19729de860ee'.toString();
       const pipeline = controller.buildFindAllPipeline(mockUser, {
         assigneeAgentId: 'agent-1',
         assigneeUserId: 'user-2',
@@ -178,20 +177,18 @@ describe('TasksController', () => {
         status: 'todo',
       });
       expect(matchStage.$match.organization).toBeInstanceOf(Types.ObjectId);
-      expect(
-        (matchStage.$match.organization as Types.ObjectId).toString(),
-      ).toBe(organizationId);
-      expect(matchStage.$match.parentId).toBeInstanceOf(Types.ObjectId);
-      expect((matchStage.$match.parentId as Types.ObjectId).toString()).toBe(
-        parentId,
+      expect((matchStage.$match.organization as string).toString()).toBe(
+        organizationId,
       );
+      expect(matchStage.$match.parentId).toBeInstanceOf(Types.ObjectId);
+      expect((matchStage.$match.parentId as string).toString()).toBe(parentId);
     });
   });
 
   describe('canUserModifyEntity', () => {
     it('allows modification when the task stores organization as an ObjectId', () => {
       const entity = {
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
       } as TaskDocument;
 
       expect(controller.canUserModifyEntity(mockUser, entity)).toBe(true);
@@ -200,7 +197,7 @@ describe('TasksController', () => {
     it('allows modification when the task stores a populated organization object', () => {
       const entity = {
         organization: {
-          _id: new Types.ObjectId(organizationId),
+          _id: organizationId,
         },
       } as unknown as TaskDocument;
 
@@ -209,7 +206,7 @@ describe('TasksController', () => {
 
     it('rejects modification when organizations differ', () => {
       const entity = {
-        organization: new Types.ObjectId(),
+        organization: '507f191e810c19729de860ee',
       } as TaskDocument;
 
       expect(controller.canUserModifyEntity(mockUser, entity)).toBe(false);
@@ -219,7 +216,7 @@ describe('TasksController', () => {
   describe('findByIdentifier', () => {
     it('returns a serialized task when found', async () => {
       const task = {
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         identifier: 'GENA-18',
       } as TaskDocument;
       tasksService.findByIdentifier.mockResolvedValue(task);
@@ -241,10 +238,10 @@ describe('TasksController', () => {
 
   describe('findChildren', () => {
     it('loads children in the current organization scope', async () => {
-      const taskId = new Types.ObjectId().toString();
+      const taskId = '507f191e810c19729de860ee'.toString();
       const children = [
         {
-          _id: new Types.ObjectId(),
+          _id: '507f191e810c19729de860ee',
           title: 'Child task',
         },
       ] as TaskDocument[];

@@ -17,7 +17,6 @@ import { LinkedInPublisherService } from '@api/services/integrations/publishers/
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('LinkedInPublisherService', () => {
   let service: LinkedInPublisherService;

@@ -8,7 +8,6 @@ import { ElementsScenesService } from '@api/collections/elements/scenes/services
 import { ElementsSoundsService } from '@api/collections/elements/sounds/services/sounds.service';
 import { ElementsStylesService } from '@api/collections/elements/styles/services/styles.service';
 import { Injectable } from '@nestjs/common';
-import { type PipelineStage, Types } from 'mongoose';
 
 @Injectable()
 export class ElementsService {
@@ -26,7 +25,7 @@ export class ElementsService {
 
   async findAllElements(organizationId: string | null | undefined) {
     // Build aggregation pipeline to get both default (no org) and org-specific elements
-    const buildPipeline = (): PipelineStage[] => {
+    const buildPipeline = (): Record<string, unknown>[] => {
       // Always filter by isDeleted: false, and add org logic
       const baseMatch: Record<string, unknown> = { isDeleted: false };
 
@@ -37,10 +36,7 @@ export class ElementsService {
       ];
 
       baseMatch.$or = organizationId
-        ? [
-            { organization: new Types.ObjectId(organizationId) },
-            ...defaultOrgConditions,
-          ]
+        ? [{ organization: organizationId }, ...defaultOrgConditions]
         : defaultOrgConditions;
 
       return [{ $match: baseMatch }, { $sort: { createdAt: -1, key: 1 } }];

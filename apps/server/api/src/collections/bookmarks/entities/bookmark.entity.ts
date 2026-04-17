@@ -5,12 +5,11 @@ import {
   BookmarkIntent,
   BookmarkPlatform,
 } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 
 export class BookmarkEntity extends BaseEntity implements Bookmark {
-  user!: Types.ObjectId;
-  organization!: Types.ObjectId;
-  brand?: Types.ObjectId;
+  user!: string;
+  organization!: string;
+  brand?: string;
   category!: BookmarkCategory;
   url!: string;
   platform!: BookmarkPlatform;
@@ -21,7 +20,7 @@ export class BookmarkEntity extends BaseEntity implements Bookmark {
   authorHandle?: string;
   thumbnailUrl?: string;
   mediaUrls!: string[];
-  extractedIngredients!: Types.ObjectId[];
+  extractedIngredients!: string[];
   platformData!: {
     tweetId?: string;
     engagement?: {
@@ -35,9 +34,9 @@ export class BookmarkEntity extends BaseEntity implements Bookmark {
     metadata?: Record<string, unknown>;
   };
   intent!: BookmarkIntent;
-  generatedIngredients!: Types.ObjectId[];
-  folder?: Types.ObjectId;
-  tags!: Types.ObjectId[];
+  generatedIngredients!: string[];
+  folder?: string;
+  tags!: string[];
   savedAt!: Date;
   processedAt?: Date;
 }

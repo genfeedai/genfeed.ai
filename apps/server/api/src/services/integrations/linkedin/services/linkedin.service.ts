@@ -8,7 +8,6 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import { AuthClient } from 'linkedin-api-client';
-import { Types } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 
 interface LinkedInTrendTopic {

@@ -6,7 +6,6 @@ import { AgentContextAssemblyService } from '@api/services/agent-context-assembl
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { vi } from 'vitest';
 
 const ORG_ID = new Types.ObjectId();

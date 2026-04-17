@@ -1,4 +1,7 @@
-import type { PipelineStage, Types } from 'mongoose';
+/**
+ * MongoDB aggregation pipeline stage - a raw document passed to the driver
+ */
+export type PipelineStage = Record<string, unknown>;
 
 /**
  * Type-safe MongoDB match conditions
@@ -10,17 +13,16 @@ export type MatchConditions = {
     | number
     | boolean
     | Date
-    | Types.ObjectId
     | null
     | undefined
     | MatchConditions
     | MatchConditions[]
     | MatchOperator
-    | (string | number | boolean | Date | Types.ObjectId | null)[];
+    | (string | number | boolean | Date | null)[];
 };
 
 /** Primitive MongoDB value types */
-type MongoValue = string | number | boolean | Date | Types.ObjectId | null;
+type MongoValue = string | number | boolean | Date | null;
 
 /**
  * MongoDB query operators

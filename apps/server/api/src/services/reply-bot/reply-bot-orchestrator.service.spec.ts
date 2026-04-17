@@ -10,7 +10,6 @@ import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation
 import { SocialMonitorService } from '@api/services/reply-bot/social-monitor.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('ReplyBotOrchestratorService', () => {
   let service: ReplyBotOrchestratorService;

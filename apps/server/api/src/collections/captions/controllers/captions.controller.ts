@@ -40,7 +40,11 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 @AutoSwagger()
 @Controller('captions')
@@ -71,7 +75,7 @@ export class CaptionsController {
     // Build match conditions
     const matchConditions: Record<string, unknown> = {
       isDeleted: false,
-      user: new Types.ObjectId(publicMetadata.user),
+      user: publicMetadata.user,
     };
 
     // Add language filter if provided
@@ -84,7 +88,7 @@ export class CaptionsController {
       matchConditions.format = query.format;
     }
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: matchConditions,
       },
@@ -107,7 +111,7 @@ export class CaptionsController {
         ? [
             {
               $match: {
-                'ingredient.brand': new Types.ObjectId(query.brand),
+                'ingredient.brand': query.brand,
               },
             },
           ]
@@ -220,10 +224,10 @@ export class CaptionsController {
         ...createCaptionDto,
         content: captionContent,
         format: createCaptionDto.format,
-        ingredient: new Types.ObjectId(createCaptionDto.ingredient),
+        ingredient: createCaptionDto.ingredient,
         isDeleted: false,
         language: createCaptionDto.language,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
       }),
     );
     return serializeSingle(request, CaptionSerializer, data);

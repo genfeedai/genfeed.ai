@@ -2,7 +2,6 @@ import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import { getAgentTypeConfig } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
 import type { AgentType } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 export interface AgentProfileResolutionContext {
   agentType?: AgentType;

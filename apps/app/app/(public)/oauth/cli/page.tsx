@@ -168,9 +168,8 @@ export default function CliAuthPage() {
   const portParam = searchParams.get('port');
   const isDesktopMode = searchParams.get('desktop') === '1';
   const desktopReturnTo = searchParams.get('return_to');
-  const hasValidDesktopReturnTarget = isDesktopCallbackTargetValid(
-    desktopReturnTo,
-  );
+  const hasValidDesktopReturnTarget =
+    isDesktopCallbackTargetValid(desktopReturnTo);
   const port = validatePort(portParam);
 
   const requestTokenAndRedirect = useCallback(

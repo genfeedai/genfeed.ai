@@ -29,7 +29,6 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import type { Types } from 'mongoose';
 
 @ApiTags('Agent Threads')
 @Controller('threads')
@@ -128,10 +127,10 @@ export class AgentThreadsController {
       const organizationId = this.resolveOrganizationId(user);
       const dbUserId = await this.resolveMongoUserId(user);
       const thread = await this.agentThreadsService.create({
-        organization: ObjectIdUtil.toObjectId(organizationId) as Types.ObjectId,
+        organization: ObjectIdUtil.toObjectId(organizationId) as string,
         source: body.source || 'web',
         title: body.title,
-        user: ObjectIdUtil.toObjectId(dbUserId) as Types.ObjectId,
+        user: ObjectIdUtil.toObjectId(dbUserId) as string,
       } as Record<string, unknown>);
       return serializeSingle(req, AgentThreadSerializer, thread);
     } catch (error: unknown) {

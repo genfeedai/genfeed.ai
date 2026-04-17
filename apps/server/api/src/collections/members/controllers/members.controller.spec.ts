@@ -5,7 +5,6 @@ import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { RATE_LIMIT_KEY } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 describe('MembersController', () => {
   let controller: MembersController;
@@ -13,8 +12,8 @@ describe('MembersController', () => {
   let clerkService: Record<string, ReturnType<typeof vi.fn>>;
   let rolesService: Record<string, ReturnType<typeof vi.fn>>;
 
-  const userId = new Types.ObjectId().toString();
-  const orgId = new Types.ObjectId().toString();
+  const userId = '507f191e810c19729de860ee'.toString();
+  const orgId = '507f191e810c19729de860ee'.toString();
 
   const mockUser = {
     id: 'clerk_user_123',
@@ -88,7 +87,7 @@ describe('MembersController', () => {
   describe('findAll', () => {
     it('should return serialized member collection', async () => {
       membersService.findAll.mockResolvedValue({
-        docs: [{ _id: new Types.ObjectId(), user: userId }],
+        docs: [{ _id: '507f191e810c19729de860ee', user: userId }],
         limit: 10,
         page: 1,
         totalDocs: 1,
@@ -108,7 +107,7 @@ describe('MembersController', () => {
 
   describe('findOne', () => {
     it('should return a member when found', async () => {
-      const memberId = new Types.ObjectId().toString();
+      const memberId = '507f191e810c19729de860ee'.toString();
       membersService.findOne.mockResolvedValue({ _id: memberId });
 
       const result = await controller.findOne(mockRequest, memberId);
@@ -130,7 +129,7 @@ describe('MembersController', () => {
     it('should create an invitation successfully', async () => {
       clerkService.getUserByEmail.mockResolvedValue(null);
       rolesService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         key: 'member',
       });
       clerkService.createInvitation.mockResolvedValue({
@@ -161,10 +160,10 @@ describe('MembersController', () => {
 
     it('should throw CONFLICT when user is already a member', async () => {
       clerkService.getUserByEmail.mockResolvedValue({
-        publicMetadata: { user: new Types.ObjectId().toString() },
+        publicMetadata: { user: '507f191e810c19729de860ee'.toString() },
       });
       membersService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
       });
 
       await expect(
@@ -190,7 +189,7 @@ describe('MembersController', () => {
     it('should throw FORBIDDEN for invitation from different org', async () => {
       clerkService.getInvitation.mockResolvedValue({
         id: 'inv_123',
-        publicMetadata: { organization: new Types.ObjectId().toString() },
+        publicMetadata: { organization: '507f191e810c19729de860ee'.toString() },
       });
 
       await expect(

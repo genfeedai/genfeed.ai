@@ -1,18 +1,12 @@
 import { CreateContentScheduleDto } from '@api/collections/content-schedules/dto/create-content-schedule.dto';
 import { UpdateContentScheduleDto } from '@api/collections/content-schedules/dto/update-content-schedule.dto';
-import {
-  ContentSchedule,
-  type ContentScheduleDocument,
-} from '@api/collections/content-schedules/schemas/content-schedule.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { ContentScheduleDocument } from '@api/collections/content-schedules/schemas/content-schedule.schema';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { CronJob } from 'cron';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class ContentSchedulesService extends BaseService<
@@ -21,11 +15,10 @@ export class ContentSchedulesService extends BaseService<
   UpdateContentScheduleDto
 > {
   constructor(
-    @InjectModel(ContentSchedule.name, DB_CONNECTIONS.CLOUD)
-    protected readonly model: AggregatePaginateModel<ContentScheduleDocument>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    super(prisma, 'contentSchedule', logger);
   }
 
   async createForBrand(
@@ -36,20 +29,20 @@ export class ContentSchedulesService extends BaseService<
     const now = new Date();
     const timezone = dto.timezone ?? 'UTC';
 
-    const schedule = await this.model.create({
-      brand: new Types.ObjectId(brandId),
-      cronExpression: dto.cronExpression,
-      isDeleted: false,
-      isEnabled: dto.isEnabled ?? true,
-      name: dto.name,
-      nextRunAt: this.calculateNextRunAt(dto.cronExpression, timezone, now),
-      organization: new Types.ObjectId(organizationId),
-      skillParams: dto.skillParams,
-      skillSlugs: dto.skillSlugs,
-      timezone,
-    });
-
-    return schedule;
+    return this.delegate.create({
+      data: {
+        brandId,
+        cronExpression: dto.cronExpression,
+        isDeleted: false,
+        isEnabled: dto.isEnabled ?? true,
+        name: dto.name,
+        nextRunAt: this.calculateNextRunAt(dto.cronExpression, timezone, now),
+        organizationId,
+        skillParams: (dto.skillParams ?? {}) as Record<string, unknown>,
+        skillSlugs: dto.skillSlugs ?? [],
+        timezone,
+      } as Record<string, unknown>,
+    }) as Promise<ContentScheduleDocument>;
   }
 
   listByBrand(
@@ -57,12 +50,14 @@ export class ContentSchedulesService extends BaseService<
     brandId: string,
     isEnabled?: boolean,
   ): Promise<ContentScheduleDocument[]> {
-    return this.find({
-      brand: new Types.ObjectId(brandId),
-      ...(isEnabled === undefined ? {} : { isEnabled }),
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-    });
+    return this.delegate.findMany({
+      where: {
+        brandId,
+        ...(isEnabled === undefined ? {} : { isEnabled }),
+        isDeleted: false,
+        organizationId,
+      },
+    }) as Promise<ContentScheduleDocument[]>;
   }
 
   async getById(
@@ -71,10 +66,10 @@ export class ContentSchedulesService extends BaseService<
     scheduleId: string,
   ): Promise<ContentScheduleDocument> {
     const schedule = await this.findOne({
-      _id: new Types.ObjectId(scheduleId),
-      brand: new Types.ObjectId(brandId),
+      id: scheduleId,
+      brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     });
 
     if (!schedule) {
@@ -104,22 +99,18 @@ export class ContentSchedulesService extends BaseService<
       );
     }
 
-    const updated = await this.model.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(scheduleId),
-        brand: new Types.ObjectId(brandId),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      { $set: updatePayload },
-      { new: true },
-    );
+    const updated = await this.delegate.findFirst({
+      where: { id: scheduleId, brandId, isDeleted: false, organizationId },
+    });
 
     if (!updated) {
       throw new NotFoundException('ContentSchedule', scheduleId);
     }
 
-    return updated;
+    return this.delegate.update({
+      where: { id: scheduleId },
+      data: updatePayload,
+    }) as Promise<ContentScheduleDocument>;
   }
 
   async removeForBrand(
@@ -127,35 +118,31 @@ export class ContentSchedulesService extends BaseService<
     brandId: string,
     scheduleId: string,
   ): Promise<ContentScheduleDocument> {
-    const removed = await this.model.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(scheduleId),
-        brand: new Types.ObjectId(brandId),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      { $set: { isDeleted: true } },
-      { new: true },
-    );
+    const existing = await this.delegate.findFirst({
+      where: { id: scheduleId, brandId, isDeleted: false, organizationId },
+    });
 
-    if (!removed) {
+    if (!existing) {
       throw new NotFoundException('ContentSchedule', scheduleId);
     }
 
-    return removed;
+    return this.delegate.update({
+      where: { id: scheduleId },
+      data: { isDeleted: true },
+    }) as Promise<ContentScheduleDocument>;
   }
 
   getActiveSchedules(
     now: Date = new Date(),
   ): Promise<ContentScheduleDocument[]> {
-    return this.model
-      .find({
+    return this.delegate.findMany({
+      where: {
         isDeleted: false,
         isEnabled: true,
-        nextRunAt: { $lte: now },
-        organization: { $exists: true },
-      })
-      .exec();
+        nextRunAt: { lte: now },
+        organizationId: { not: null },
+      },
+    }) as Promise<ContentScheduleDocument[]>;
   }
 
   async markScheduleRan(
@@ -164,19 +151,16 @@ export class ContentSchedulesService extends BaseService<
     nextRunAt: Date,
     lastRunAt: Date,
   ): Promise<void> {
-    await this.model.updateOne(
-      {
-        _id: new Types.ObjectId(scheduleId),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      {
-        $set: {
-          lastRunAt,
-          nextRunAt,
-        },
-      },
-    );
+    const existing = await this.delegate.findFirst({
+      where: { id: scheduleId, isDeleted: false, organizationId },
+    });
+
+    if (!existing) return;
+
+    await this.delegate.update({
+      where: { id: scheduleId },
+      data: { lastRunAt, nextRunAt },
+    });
   }
 
   calculateNextRunAt(

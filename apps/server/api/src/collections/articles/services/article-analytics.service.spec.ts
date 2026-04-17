@@ -15,7 +15,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('ArticleAnalyticsService', () => {
   let service: ArticleAnalyticsService;

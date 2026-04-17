@@ -2,7 +2,6 @@ import type { CreateElementLensDto } from '@api/collections/elements/lenses/dto/
 import { ElementsLensesService } from '@api/collections/elements/lenses/services/lenses.service';
 import { createMockModel } from '@api/shared/testing/mock-model.factory';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 
 const mockLoggerService = {
   debug: vi.fn(),

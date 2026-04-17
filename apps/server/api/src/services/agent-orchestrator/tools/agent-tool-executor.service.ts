@@ -93,7 +93,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Inject, Injectable, Optional } from '@nestjs/common';
 import { Effect } from 'effect';
-import { Types } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 
 interface ToolExecutionContext {

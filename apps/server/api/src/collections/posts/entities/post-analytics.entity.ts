@@ -1,15 +1,14 @@
 import { PostAnalytics } from '@api/collections/posts/schemas/post-analytics.schema';
 import { CredentialPlatform } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 
 export class PostAnalyticsEntity implements PostAnalytics {
   declare readonly _id: string;
 
-  declare readonly post: Types.ObjectId;
-  declare readonly ingredients: Types.ObjectId[];
-  declare readonly user: Types.ObjectId;
-  declare readonly brand: Types.ObjectId;
-  declare readonly organization: Types.ObjectId;
+  declare readonly post: string;
+  declare readonly ingredients: string[];
+  declare readonly user: string;
+  declare readonly brand: string;
+  declare readonly organization: string;
 
   declare readonly platform: CredentialPlatform;
   declare readonly date: Date;

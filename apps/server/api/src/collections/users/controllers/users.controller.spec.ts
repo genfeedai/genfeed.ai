@@ -10,7 +10,6 @@ import { RequestContextCacheService } from '@api/common/services/request-context
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 
 describe('UsersController', () => {
   let controller: UsersController;
@@ -25,9 +24,9 @@ describe('UsersController', () => {
   let requestContextCacheService: Record<string, ReturnType<typeof vi.fn>>;
   let accessBootstrapCacheService: Record<string, ReturnType<typeof vi.fn>>;
 
-  const userId = new Types.ObjectId().toString();
-  const orgId = new Types.ObjectId().toString();
-  const settingsId = new Types.ObjectId().toString();
+  const userId = '507f191e810c19729de860ee'.toString();
+  const orgId = '507f191e810c19729de860ee'.toString();
+  const settingsId = '507f191e810c19729de860ee'.toString();
 
   const mockUser = {
     id: 'clerk_user_123',
@@ -297,7 +296,7 @@ describe('UsersController', () => {
 
   describe('updateBrandSelection', () => {
     it('should select brand and update clerk metadata', async () => {
-      const selectedBrandId = new Types.ObjectId();
+      const selectedBrandId = '507f191e810c19729de860ee';
       brandsService.selectBrandForUser.mockResolvedValue({
         _id: selectedBrandId,
         label: 'Selected Brand',
@@ -333,9 +332,9 @@ describe('UsersController', () => {
       expect(requestContextCacheService.invalidateForUser).toHaveBeenCalledWith(
         'clerk_user_123',
       );
-      expect(accessBootstrapCacheService.invalidateForUser).toHaveBeenCalledWith(
-        'clerk_user_123',
-      );
+      expect(
+        accessBootstrapCacheService.invalidateForUser,
+      ).toHaveBeenCalledWith('clerk_user_123');
     });
   });
 
@@ -357,7 +356,7 @@ describe('UsersController', () => {
     });
 
     it('should throw for unauthorized user', async () => {
-      const otherUserId = new Types.ObjectId().toString();
+      const otherUserId = '507f191e810c19729de860ee'.toString();
 
       await expect(
         controller.getOnboardingStatus(mockRequest, mockUser, otherUserId),

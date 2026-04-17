@@ -7,7 +7,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { ModuleRef } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('IngredientsRelationshipsController', () => {
   let controller: IngredientsRelationshipsController;
@@ -21,13 +20,13 @@ describe('IngredientsRelationshipsController', () => {
   } as unknown as Request;
 
   const mockIngredient = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439014'),
+    _id: '507f1f77bcf86cd799439014',
     category: 'image',
     metadata: {
-      _id: new Types.ObjectId('507f1f77bcf86cd799439015'),
+      _id: '507f1f77bcf86cd799439015',
       label: 'Test Image',
     },
-    organization: new Types.ObjectId('507f1f77bcf86cd799439099'),
+    organization: '507f1f77bcf86cd799439099',
   };
 
   const mockServices = {
@@ -46,8 +45,8 @@ describe('IngredientsRelationshipsController', () => {
       findAll: vi.fn().mockResolvedValue({
         docs: [
           {
-            _id: new Types.ObjectId('507f1f77bcf86cd799439020'),
-            ingredients: [new Types.ObjectId('507f1f77bcf86cd799439014')],
+            _id: '507f1f77bcf86cd799439020',
+            ingredients: ['507f1f77bcf86cd799439014'],
           },
         ],
         limit: 10,
@@ -138,7 +137,7 @@ describe('IngredientsRelationshipsController', () => {
         [
           {
             $match: {
-              ingredients: new Types.ObjectId('507f1f77bcf86cd799439014'),
+              ingredients: '507f1f77bcf86cd799439014',
               isDeleted: false,
               organization: mockIngredient.organization,
             },

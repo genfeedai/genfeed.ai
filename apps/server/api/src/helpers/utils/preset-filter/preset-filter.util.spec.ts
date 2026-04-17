@@ -1,5 +1,4 @@
 import { PresetFilterUtil } from '@api/helpers/utils/preset-filter/preset-filter.util';
-import { Types } from 'mongoose';
 
 describe('PresetFilterUtil', () => {
   afterEach(() => {
@@ -10,8 +9,8 @@ describe('PresetFilterUtil', () => {
 
   describe('buildScopeOrConditions', () => {
     it('includes global, organization, and user scopes', () => {
-      const organization = new Types.ObjectId().toHexString();
-      const user = new Types.ObjectId().toHexString();
+      const organization = '507f191e810c19729de860ee'.toHexString();
+      const user = '507f191e810c19729de860ee'.toHexString();
 
       const conditions = PresetFilterUtil.buildScopeOrConditions({
         organization,
@@ -53,7 +52,7 @@ describe('PresetFilterUtil', () => {
     });
 
     it('allows modification when organizations match', () => {
-      const orgId = new Types.ObjectId();
+      const orgId = '507f191e810c19729de860ee';
       const canModify = PresetFilterUtil.canUserModifyPreset(
         {
           publicMetadata: {
@@ -69,8 +68,8 @@ describe('PresetFilterUtil', () => {
 
   describe('enrichPresetDto', () => {
     it('assigns organization/brand for regular users', () => {
-      const orgId = new Types.ObjectId().toHexString();
-      const brandId = new Types.ObjectId().toHexString();
+      const orgId = '507f191e810c19729de860ee'.toHexString();
+      const brandId = '507f191e810c19729de860ee'.toHexString();
 
       const enriched = PresetFilterUtil.enrichPresetDto(
         { brand: brandId, label: 'My Preset' },
@@ -92,8 +91,8 @@ describe('PresetFilterUtil', () => {
     });
 
     it('converts provided organization/brand for superadmin org presets', () => {
-      const org = new Types.ObjectId().toHexString();
-      const brand = new Types.ObjectId().toHexString();
+      const org = '507f191e810c19729de860ee'.toHexString();
+      const brand = '507f191e810c19729de860ee'.toHexString();
       const enriched = PresetFilterUtil.enrichPresetDto(
         { brand, label: 'Org preset', organization: org },
         { publicMetadata: { isSuperAdmin: true } },
@@ -106,8 +105,8 @@ describe('PresetFilterUtil', () => {
 
   describe('buildBaseMatch', () => {
     it('builds match object with filters and scope', () => {
-      const organization = new Types.ObjectId().toHexString();
-      const user = new Types.ObjectId().toHexString();
+      const organization = '507f191e810c19729de860ee'.toHexString();
+      const user = '507f191e810c19729de860ee'.toHexString();
       const match = PresetFilterUtil.buildBaseMatch(
         { organization, user },
         { category: 'video', isActive: true, isFavorite: false },

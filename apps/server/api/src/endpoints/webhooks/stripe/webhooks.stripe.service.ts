@@ -38,7 +38,6 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { type PipelineStage, Types } from 'mongoose';
 import { nanoid } from 'nanoid';
 import Stripe from 'stripe';
 
@@ -527,11 +526,11 @@ export class StripeWebhookService {
         }
 
         await this.activitiesService.create({
-          brand: new Types.ObjectId(subscription.organization),
+          brand: subscription.organization,
           key: ActivityKey.CREDITS_ADD,
-          organization: new Types.ObjectId(subscription.organization),
+          organization: subscription.organization,
           source: ActivitySource.PAY_AS_YOU_GO,
-          user: new Types.ObjectId(subscription.user),
+          user: subscription.user,
           value: String(creditsToAdd),
         });
 
@@ -687,7 +686,7 @@ export class StripeWebhookService {
 
     const organization = await this.organizationsService.findOne({
       isDeleted: false,
-      user: new Types.ObjectId(String(dbUser._id)),
+      user: String(dbUser._id),
     });
 
     if (!organization) {
@@ -699,7 +698,7 @@ export class StripeWebhookService {
     const brand = await this.brandsService.findOne(
       {
         isDeleted: false,
-        organization: new Types.ObjectId(String(organization._id)),
+        organization: String(organization._id),
       },
       'minimal',
     );
@@ -740,8 +739,8 @@ export class StripeWebhookService {
         category: ApiKeyCategory.GENFEEDAI,
         isRevoked: false,
         label: MANAGED_API_KEY_LABEL,
-        organization: new Types.ObjectId(String(organization._id)),
-        user: new Types.ObjectId(String(dbUser._id)),
+        organization: String(organization._id),
+        user: String(dbUser._id),
       },
       [],
     );
@@ -757,10 +756,10 @@ export class StripeWebhookService {
           source: 'managed_inference',
           stripeSessionId: session.id,
         },
-        organization: new Types.ObjectId(String(organization._id)),
+        organization: String(organization._id),
         rateLimit: 100,
         scopes: MANAGED_API_KEY_SCOPES,
-        user: new Types.ObjectId(String(dbUser._id)),
+        user: String(dbUser._id),
       });
 
       plainKey = createdApiKey.plainKey;
@@ -785,7 +784,7 @@ export class StripeWebhookService {
 
     const orgSetting = await this.organizationSettingsService.findOne({
       isDeleted: false,
-      organization: new Types.ObjectId(String(organization._id)),
+      organization: String(organization._id),
     });
 
     if (orgSetting) {
@@ -809,11 +808,11 @@ export class StripeWebhookService {
     await this.accessBootstrapCacheService.invalidateForUser(clerkUser.id);
 
     await this.activitiesService.create({
-      brand: new Types.ObjectId(String(brand._id)),
+      brand: String(brand._id),
       key: ActivityKey.CREDITS_ADD,
-      organization: new Types.ObjectId(String(organization._id)),
+      organization: String(organization._id),
       source: ActivitySource.PAY_AS_YOU_GO,
-      user: new Types.ObjectId(String(dbUser._id)),
+      user: String(dbUser._id),
       value: String(creditsToAdd),
     });
 
@@ -859,7 +858,7 @@ export class StripeWebhookService {
 
       // Find user
       const dbUser = await this.usersService.findOne({
-        _id: new Types.ObjectId(userId),
+        _id: userId,
       });
 
       if (!dbUser) {
@@ -874,7 +873,7 @@ export class StripeWebhookService {
       const creatorOrg = await this.organizationsService.findOne({
         category: OrganizationCategory.CREATOR,
         isDeleted: false,
-        members: new Types.ObjectId(userId),
+        members: userId,
       });
 
       if (!creatorOrg) {
@@ -886,7 +885,7 @@ export class StripeWebhookService {
         // Fall back to first org the user belongs to
         const fallbackOrg = await this.organizationsService.findOne({
           isDeleted: false,
-          members: new Types.ObjectId(userId),
+          members: userId,
         });
 
         if (!fallbackOrg) {
@@ -920,7 +919,7 @@ export class StripeWebhookService {
 
   private async addCreditsToOrgFromUserCheckout(
     organizationId: string,
-    dbUser: { _id: Types.ObjectId; clerkId?: string },
+    dbUser: { _id: string; clerkId?: string },
     session: Stripe.Checkout.Session,
     url: string,
   ) {
@@ -961,11 +960,11 @@ export class StripeWebhookService {
     }
 
     await this.activitiesService.create({
-      brand: new Types.ObjectId(organizationId),
+      brand: organizationId,
       key: ActivityKey.CREDITS_ADD,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       source: ActivitySource.PAY_AS_YOU_GO,
-      user: new Types.ObjectId(userId),
+      user: userId,
       value: String(creditsToAdd),
     });
 
@@ -1253,9 +1252,7 @@ export class StripeWebhookService {
     });
   }
 
-  private normalizeObjectId(
-    value: string | Types.ObjectId | undefined,
-  ): string {
+  private normalizeObjectId(value: string | undefined): string {
     if (!value) {
       return 'unknown';
     }
@@ -1466,11 +1463,11 @@ export class StripeWebhookService {
               : ActivityKey.CREDITS_RESET;
 
           await this.activitiesService.create({
-            brand: new Types.ObjectId(subscription.organization),
+            brand: subscription.organization,
             key: activityKey,
-            organization: new Types.ObjectId(subscription.organization),
+            organization: subscription.organization,
             source: ActivitySource.SUBSCRIPTION,
-            user: new Types.ObjectId(subscription.user),
+            user: subscription.user,
             value: String(creditsToAdd),
           });
 
@@ -1498,9 +1495,7 @@ export class StripeWebhookService {
           try {
             const orgSetting = await this.organizationSettingsService.findOne({
               isDeleted: false,
-              organization: new Types.ObjectId(
-                subscription.organization.toString(),
-              ),
+              organization: subscription.organization.toString(),
             });
             if (orgSetting) {
               await this.organizationSettingsService.patch(
@@ -1642,7 +1637,7 @@ export class StripeWebhookService {
       // Reset byokBillingStatus to 'active'
       const orgSetting = await this.organizationSettingsService.findOne({
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
       });
 
       if (orgSetting) {
@@ -1662,9 +1657,9 @@ export class StripeWebhookService {
       // Log activity
       // @ts-expect-error CreateActivityDto shape
       await this.activitiesService.create({
-        brand: new Types.ObjectId(organizationId),
+        brand: organizationId,
         key: ActivityKey.CREDITS_ADD,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         source: ActivitySource.SUBSCRIPTION,
         value: `BYOK platform fee paid: $${((invoice.amount_paid || 0) / 100).toFixed(2)}`,
       });
@@ -1700,7 +1695,7 @@ export class StripeWebhookService {
       // Set byokBillingStatus to 'past_due'
       const orgSetting = await this.organizationSettingsService.findOne({
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
       });
 
       if (orgSetting) {
@@ -1774,11 +1769,11 @@ export class StripeWebhookService {
     url: string,
   ) {
     try {
-      const aggregate: PipelineStage[] = [
+      const aggregate: Record<string, unknown>[] = [
         {
           $match: {
             isDeleted: { $ne: true },
-            organization: new Types.ObjectId(organizationId),
+            organization: organizationId,
             status: { $in: ['active', 'trialing', 'past_due'] },
           },
         },

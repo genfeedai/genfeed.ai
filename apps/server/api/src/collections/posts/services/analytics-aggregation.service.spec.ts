@@ -4,7 +4,6 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('AnalyticsAggregationService', () => {
   let service: AnalyticsAggregationService;

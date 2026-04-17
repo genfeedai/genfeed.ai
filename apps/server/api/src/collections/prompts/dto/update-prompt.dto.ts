@@ -1,13 +1,12 @@
 import { CreatePromptDto } from '@api/collections/prompts/dto/create-prompt.dto';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { IsBoolean, IsMongoId, IsOptional } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class UpdatePromptDto extends PartialType(CreatePromptDto) {
   @IsMongoId()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly ingredient?: Types.ObjectId;
+  readonly ingredient?: string;
 
   @IsBoolean()
   @IsOptional()

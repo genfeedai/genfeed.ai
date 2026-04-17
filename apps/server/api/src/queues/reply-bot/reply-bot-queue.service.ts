@@ -8,7 +8,6 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 import { Queue } from 'bullmq';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class ReplyBotQueueService implements OnModuleInit {
@@ -120,7 +119,7 @@ export class ReplyBotQueueService implements OnModuleInit {
       const organizations = orgsResult.docs || [];
 
       for (const org of organizations) {
-        const orgId = (org._id as Types.ObjectId).toString();
+        const orgId = (org._id as string).toString();
 
         // Check if org has active reply bot configs
         const activeBots = await this.replyBotConfigsService.findActive(orgId);
@@ -138,7 +137,7 @@ export class ReplyBotQueueService implements OnModuleInit {
 
         if (credential) {
           results.push({
-            credentialId: (credential._id as Types.ObjectId).toString(),
+            credentialId: (credential._id as string).toString(),
             organizationId: orgId,
           });
         } else {

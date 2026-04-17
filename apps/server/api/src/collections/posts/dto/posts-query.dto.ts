@@ -2,7 +2,6 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsDateString, IsEnum, IsMongoId, IsOptional } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class PostsQueryDto extends BaseQueryDto {
   @ApiProperty({
@@ -51,5 +50,5 @@ export class PostsQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  credential?: Types.ObjectId;
+  credential?: string;
 }

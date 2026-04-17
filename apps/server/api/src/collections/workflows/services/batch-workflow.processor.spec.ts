@@ -5,7 +5,6 @@ import { WorkflowExecutorService } from '@api/collections/workflows/services/wor
 import { ConfigService } from '@api/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import type { Mock } from 'vitest';
 
 // =============================================================================

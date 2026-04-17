@@ -41,7 +41,6 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class TrendsService {

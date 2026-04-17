@@ -1,15 +1,10 @@
 import { CreateClipProjectDto } from '@api/collections/clip-projects/dto/create-clip-project.dto';
 import { UpdateClipProjectDto } from '@api/collections/clip-projects/dto/update-clip-project.dto';
-import {
-  ClipProject,
-  type ClipProjectDocument,
-} from '@api/collections/clip-projects/schemas/clip-project.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { ClipProjectDocument } from '@api/collections/clip-projects/schemas/clip-project.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class ClipProjectsService extends BaseService<
@@ -18,10 +13,9 @@ export class ClipProjectsService extends BaseService<
   UpdateClipProjectDto
 > {
   constructor(
-    @InjectModel(ClipProject.name, DB_CONNECTIONS.CLIPS)
-    protected readonly model: AggregatePaginateModel<ClipProjectDocument>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    super(prisma, 'clipProject', logger);
   }
 }

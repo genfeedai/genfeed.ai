@@ -5,7 +5,6 @@ import { AgentOrchestratorController } from '@api/services/agent-orchestrator/ag
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 
 vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
   getPublicMetadata: vi.fn(() => ({

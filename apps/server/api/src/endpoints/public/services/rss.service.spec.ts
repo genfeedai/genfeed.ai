@@ -3,7 +3,6 @@ import { ConfigService } from '@api/config/config.service';
 import { RssService } from '@api/endpoints/public/services/rss.service';
 import { ArticleScope, ArticleStatus } from '@genfeedai/enums';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('RssService', () => {
   let service: RssService;

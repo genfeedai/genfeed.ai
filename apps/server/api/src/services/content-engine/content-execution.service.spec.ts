@@ -8,7 +8,6 @@ import {
   VideoTaskModel,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 
 // ---------------------------------------------------------------------------
 // Helpers

@@ -19,7 +19,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 function buildRunDocument(partial: Partial<RunDocument> = {}): RunDocument {
   const now = new Date('2026-02-10T12:00:00.000Z');

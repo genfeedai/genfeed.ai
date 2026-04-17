@@ -18,7 +18,6 @@ import { CampaignStatus, CampaignType } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { Types } from 'mongoose';
 
 export interface CampaignProcessingJobData {
   campaignId: string;
@@ -80,9 +79,9 @@ export class CampaignProcessor extends WorkerHost {
 
       // Fetch campaign
       const campaign = await this.campaignsService.findOne({
-        _id: new Types.ObjectId(campaignId),
+        _id: campaignId,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
       });
 
       if (!campaign) {

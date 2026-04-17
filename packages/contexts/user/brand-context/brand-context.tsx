@@ -305,10 +305,13 @@ export function BrandProvider({
         return;
       }
 
-      const routeOrganizationId = getBrandOrganizationId(routeOrganizationBrand);
+      const routeOrganizationId = getBrandOrganizationId(
+        routeOrganizationBrand,
+      );
       const shouldClearBrand = brandId.length > 0;
       const shouldUpdateOrganization =
-        routeOrganizationId.length > 0 && routeOrganizationId !== organizationId;
+        routeOrganizationId.length > 0 &&
+        routeOrganizationId !== organizationId;
 
       if (!shouldClearBrand && !shouldUpdateOrganization) {
         return;

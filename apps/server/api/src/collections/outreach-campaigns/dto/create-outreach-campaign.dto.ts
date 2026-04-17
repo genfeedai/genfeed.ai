@@ -15,7 +15,6 @@ import {
   MaxLength,
   ValidateNested,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreateOutreachCampaignDto {
   @IsMongoId()
@@ -24,7 +23,7 @@ export class CreateOutreachCampaignDto {
     description: 'Organization that owns this campaign',
     required: false,
   })
-  organization?: Types.ObjectId;
+  organization?: string;
 
   @IsMongoId()
   @IsOptional()
@@ -32,7 +31,7 @@ export class CreateOutreachCampaignDto {
     description: 'Brand this campaign is scoped to',
     required: false,
   })
-  brand?: Types.ObjectId;
+  brand?: string;
 
   @IsMongoId()
   @IsOptional()
@@ -40,14 +39,14 @@ export class CreateOutreachCampaignDto {
     description: 'User that created this campaign',
     required: false,
   })
-  user?: Types.ObjectId;
+  user?: string;
 
   @IsMongoId()
   @ApiProperty({
     description: 'Credential to use for posting replies',
     required: true,
   })
-  credential!: Types.ObjectId;
+  credential!: string;
 
   @IsString()
   @MaxLength(120)

@@ -7,7 +7,6 @@ import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 vi.mock('@genfeedai/helpers', async () => ({
   ...(await vi.importActual('@genfeedai/helpers')),
@@ -46,7 +45,7 @@ describe('ElementsStylesController', () => {
     label: 'Modern Style',
     settings: {},
     updatedAt: new Date(),
-    user: new Types.ObjectId('507f1f77bcf86cd799439011'),
+    user: '507f1f77bcf86cd799439011',
   };
 
   const mockElementsStylesService = {

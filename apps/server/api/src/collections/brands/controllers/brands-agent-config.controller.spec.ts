@@ -5,11 +5,10 @@ import type { User } from '@clerk/backend';
 import { BrandSerializer } from '@genfeedai/serializers';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('BrandsController agent-config endpoint', () => {
-  const orgId = new Types.ObjectId().toString();
-  const userId = new Types.ObjectId().toString();
+  const orgId = '507f191e810c19729de860ee'.toString();
+  const userId = '507f191e810c19729de860ee'.toString();
 
   const mockRequest = {
     originalUrl: '/v1/brands/brand-id/agent-config',
@@ -24,7 +23,7 @@ describe('BrandsController agent-config endpoint', () => {
   } as unknown as User;
 
   const mockBrand = {
-    _id: new Types.ObjectId().toString(),
+    _id: '507f191e810c19729de860ee'.toString(),
     isDeleted: false,
     label: 'Test Brand',
     slug: 'test-handle',
@@ -211,7 +210,7 @@ describe('BrandsController agent-config endpoint', () => {
   });
 
   it('uses the brandId parameter correctly', async () => {
-    const brandId = new Types.ObjectId().toString();
+    const brandId = '507f191e810c19729de860ee'.toString();
     mockBrandsService.updateAgentConfig.mockResolvedValue(mockBrand as never);
     await controller.updateAgentConfig(
       mockRequest,

@@ -24,7 +24,6 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class ContentMixConfigDto {
   @IsNumber()
@@ -188,7 +187,7 @@ export class ReportingPolicyDto {
     required: false,
     type: [String],
   })
-  reportRecipientUserIds?: Types.ObjectId[];
+  reportRecipientUserIds?: string[];
 }
 
 export class RankingPolicyDto {
@@ -231,22 +230,22 @@ export class CreateAgentStrategyDto {
   @IsMongoId()
   @IsOptional()
   @ApiProperty({ description: 'Organization ID', required: false })
-  organization?: Types.ObjectId;
+  organization?: string;
 
   @IsMongoId()
   @IsOptional()
   @ApiProperty({ description: 'User ID', required: false })
-  user?: Types.ObjectId;
+  user?: string;
 
   @IsMongoId()
   @IsOptional()
   @ApiProperty({ description: 'Brand ID', required: false })
-  brand?: Types.ObjectId;
+  brand?: string;
 
   @IsMongoId()
   @IsOptional()
   @ApiProperty({ description: 'Optional linked goal ID', required: false })
-  goalId?: Types.ObjectId;
+  goalId?: string;
 
   @IsIn(AGENT_TYPE_VALUES)
   @IsOptional()

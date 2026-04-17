@@ -13,16 +13,14 @@ import {
 } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import { isValidObjectId, Types } from 'mongoose';
 
-const toObjectId = (value: unknown): Types.ObjectId | undefined => {
-  if (value instanceof Types.ObjectId) {
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+
+const toId = (value: unknown): string | undefined => {
+  if (typeof value === 'string' && OBJECT_ID_REGEX.test(value)) {
     return value;
   }
-
-  return typeof value === 'string' && isValidObjectId(value)
-    ? new Types.ObjectId(value)
-    : undefined;
+  return undefined;
 };
 
 @Injectable()
@@ -40,14 +38,12 @@ export class SharedService {
 
   public async saveDocuments(user: User, body: Record<string, unknown>) {
     const publicMetadata = getPublicMetadata(user);
-    const promptId = toObjectId(body.prompt);
-    const parentId = toObjectId(body.parent);
-    const brandId =
-      toObjectId(body.brand) || new Types.ObjectId(publicMetadata.brand);
+    const promptId = toId(body.prompt);
+    const parentId = toId(body.parent);
+    const brandId = toId(body.brand) || publicMetadata.brand;
     const organizationId =
-      toObjectId(body.organization) ||
-      new Types.ObjectId(publicMetadata.organization);
-    const userId = new Types.ObjectId(publicMetadata.user);
+      toId(body.organization) || publicMetadata.organization;
+    const userId = publicMetadata.user;
 
     // @ts-expect-error TS2739
     const metadataData = (await this.metadataService.create(
@@ -71,13 +67,13 @@ export class SharedService {
     const ingredientData = (await this.ingredientsService.create(
       new IngredientEntity({
         ...body,
-        ...(toObjectId(body.frame) ? { frame: toObjectId(body.frame) } : {}),
+        ...(toId(body.frame) ? { frame: toId(body.frame) } : {}),
         ...(parentId ? { parent: parentId } : {}),
         ...(promptId ? { prompt: promptId } : {}),
-        ...(toObjectId(body.script) ? { script: toObjectId(body.script) } : {}),
+        ...(toId(body.script) ? { script: toId(body.script) } : {}),
         brand: brandId,
         isDefault: false,
-        metadata: new Types.ObjectId(metadataData._id),
+        metadata: metadataData._id,
         organization: organizationId,
         status:
           (body.status as IngredientStatus) || IngredientStatus.PROCESSING,
@@ -94,15 +90,15 @@ export class SharedService {
    * Use this when you don't have access to the Clerk User object
    */
   public async saveDocumentsInternal(body: {
-    brand: Types.ObjectId;
+    brand: string;
     category: IngredientCategory;
     extension: IngredientExtension | MetadataExtension;
-    organization: Types.ObjectId;
-    user: Types.ObjectId;
+    organization: string;
+    user: string;
     status?: IngredientStatus;
-    prompt?: Types.ObjectId;
-    sources?: Types.ObjectId[];
-    parent?: Types.ObjectId;
+    prompt?: string;
+    sources?: string[];
+    parent?: string;
     [key: string]: unknown;
   }) {
     // @ts-expect-error TS2739
@@ -128,7 +124,7 @@ export class SharedService {
         ...body,
         brand: body.brand,
         isDefault: false,
-        metadata: new Types.ObjectId(metadataData._id),
+        metadata: metadataData._id,
         organization: body.organization,
         status: body.status || IngredientStatus.PROCESSING,
         user: body.user,
@@ -145,29 +141,28 @@ export class SharedService {
     result: string,
     // TO DO
     // TEST ALL CASES BEFORE MAKING IT MANDATORY
-    promptId?: Types.ObjectId,
+    promptId?: string,
   ) {
+    const validPromptId =
+      promptId && OBJECT_ID_REGEX.test(promptId) ? promptId : undefined;
+
     await this.metadataService.patch(
       metadataData._id,
       new MetadataEntity({
-        prompt: isValidObjectId(promptId)
-          ? new Types.ObjectId(promptId)
-          : undefined,
+        prompt: validPromptId,
         result,
       }),
     );
 
     await this.ingredientsService.patch(ingredientData._id, {
-      prompt: isValidObjectId(promptId)
-        ? new Types.ObjectId(promptId)
-        : undefined,
+      prompt: validPromptId,
       status: IngredientStatus.GENERATED,
     });
 
     // Update the prompt with the ingredient reference for bidirectional linking
-    if (promptId && isValidObjectId(promptId)) {
-      await this.promptsService.patch(promptId, {
-        ingredient: new Types.ObjectId(ingredientData._id),
+    if (validPromptId) {
+      await this.promptsService.patch(validPromptId, {
+        ingredient: ingredientData._id,
       });
     }
   }

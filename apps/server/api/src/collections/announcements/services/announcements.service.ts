@@ -1,13 +1,9 @@
-import {
-  Announcement,
-  type AnnouncementDocument,
-} from '@api/collections/announcements/schemas/announcement.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { AnnouncementDocument } from '@api/collections/announcements/schemas/announcement.schema';
+import { Announcement } from '@api/collections/announcements/schemas/announcement.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class AnnouncementsService extends BaseService<
@@ -16,11 +12,10 @@ export class AnnouncementsService extends BaseService<
   Partial<Announcement>
 > {
   constructor(
-    @InjectModel(Announcement.name, DB_CONNECTIONS.CLOUD)
-    model: AggregatePaginateModel<AnnouncementDocument>,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    super(prisma, 'announcement', logger);
   }
 
   /**
@@ -36,15 +31,7 @@ export class AnnouncementsService extends BaseService<
    * Get all announcements ordered by newest first (no org filter — global/admin data)
    */
   async getAll(): Promise<AnnouncementDocument[]> {
-    const result = await this.findAll(
-      [
-        { $match: { isDeleted: false } },
-        { $sort: { createdAt: -1 } },
-        { $limit: 200 },
-      ],
-      { limit: 200, page: 1 },
-    );
-
+    const result = await this.findAll([], { limit: 200, page: 1 });
     return result.docs;
   }
 }

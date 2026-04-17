@@ -58,7 +58,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 interface TokenRefreshService {
   refreshToken(orgId: string, brandId: string): Promise<unknown>;
@@ -125,11 +124,11 @@ export class CredentialsController {
 
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           isDeleted,
-          user: new Types.ObjectId(publicMetadata.user),
+          user: publicMetadata.user,
         },
       },
       {
@@ -151,7 +150,7 @@ export class CredentialsController {
     const credentials = await this.credentialsService.find({
       isConnected: true,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     const seen = new Set<string>();
@@ -181,7 +180,7 @@ export class CredentialsController {
   ): Promise<JsonApiSingleResponse> {
     const data: CredentialDocument | null =
       await this.credentialsService.findOne({
-        _id: new Types.ObjectId(credentialId),
+        _id: credentialId,
       });
 
     return data
@@ -199,9 +198,9 @@ export class CredentialsController {
     const publicMetadata = getPublicMetadata(user);
 
     const credential = await this.credentialsService.findOne({
-      _id: new Types.ObjectId(credentialId),
+      _id: credentialId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!credential) {
@@ -260,9 +259,9 @@ export class CredentialsController {
 
       // Get the Instagram credential for this brand
       const credential = await this.credentialsService.findOne({
-        _id: new Types.ObjectId(credentialId),
+        _id: credentialId,
         isDeleted: false,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         platform: CredentialPlatform.INSTAGRAM,
       });
 
@@ -277,9 +276,9 @@ export class CredentialsController {
       }
 
       const brand = await this.brandsService.findOne({
-        _id: new Types.ObjectId(credential.brand),
+        _id: credential.brand,
         isDeleted: false,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       });
 
       if (!brand) {
@@ -323,9 +322,9 @@ export class CredentialsController {
         // Find the credential and mark it as disconnected
         const publicMetadata = getPublicMetadata(user);
         const credential = await this.credentialsService.findOne({
-          _id: new Types.ObjectId(credentialId),
+          _id: credentialId,
           isDeleted: false,
-          organization: new Types.ObjectId(publicMetadata.organization),
+          organization: publicMetadata.organization,
           platform: CredentialPlatform.INSTAGRAM,
         });
 
@@ -360,9 +359,9 @@ export class CredentialsController {
     const publicMetadata = getPublicMetadata(user);
 
     const credential = await this.credentialsService.findOne({
-      _id: new Types.ObjectId(credentialId),
+      _id: credentialId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!credential) {
@@ -421,9 +420,9 @@ export class CredentialsController {
 
     // Verify ownership before deletion
     const credential = await this.credentialsService.findOne({
-      _id: new Types.ObjectId(credentialId),
+      _id: credentialId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!credential) {
@@ -474,8 +473,8 @@ export class CredentialsController {
 
     // Verify ownership
     const credential = await this.credentialsService.findOne({
-      _id: new Types.ObjectId(credentialId),
-      user: new Types.ObjectId(publicMetadata.user),
+      _id: credentialId,
+      user: publicMetadata.user,
     });
 
     if (!credential) {
@@ -489,7 +488,7 @@ export class CredentialsController {
     }
 
     const organization = await this.organizationsService.findOne({
-      _id: new Types.ObjectId(organizationId || publicMetadata.organization),
+      _id: organizationId || publicMetadata.organization,
     });
 
     if (!organization) {

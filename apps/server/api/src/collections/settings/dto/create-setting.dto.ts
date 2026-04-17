@@ -11,7 +11,6 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export type TrendNotificationFrequency =
   | 'realtime'
@@ -25,7 +24,7 @@ export class CreateSettingDto {
     description: 'The user ID that owns these settings',
     required: true,
   })
-  readonly user!: Types.ObjectId;
+  readonly user!: string;
 
   @IsString()
   @ApiProperty({

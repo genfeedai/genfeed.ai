@@ -28,7 +28,6 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import * as Sentry from '@sentry/nestjs';
 import { SentryTraced } from '@sentry/nestjs';
-import { Types } from 'mongoose';
 
 /** Config passed to the queue / processor. Exported as the canonical alias type. */
 export type PipelineConfig = PipelineConfigV2;

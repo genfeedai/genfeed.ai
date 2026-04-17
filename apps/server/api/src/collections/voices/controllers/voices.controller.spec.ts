@@ -14,7 +14,6 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockLogger() {
@@ -31,9 +30,9 @@ function createMockUser(overrides: Record<string, unknown> = {}) {
   return {
     id: 'user_test123',
     publicMetadata: {
-      brand: new Types.ObjectId().toHexString(),
-      organization: new Types.ObjectId().toHexString(),
-      user: new Types.ObjectId().toHexString(),
+      brand: '507f191e810c19729de860ee'.toHexString(),
+      organization: '507f191e810c19729de860ee'.toHexString(),
+      user: '507f191e810c19729de860ee'.toHexString(),
       ...overrides,
     },
   };
@@ -120,7 +119,7 @@ describe('VoicesController', () => {
       const user = createMockUser();
       const request = createMockRequest();
       voicesService.findAll.mockResolvedValue({
-        docs: [{ _id: new Types.ObjectId(), type: 'voice' }],
+        docs: [{ _id: '507f191e810c19729de860ee', type: 'voice' }],
         hasNextPage: false,
         hasPrevPage: false,
         limit: 10,
@@ -139,8 +138,8 @@ describe('VoicesController', () => {
     });
 
     it('builds a tenant-scoped aggregate for canonical voice listing', async () => {
-      const brandId = new Types.ObjectId();
-      const organizationId = new Types.ObjectId();
+      const brandId = '507f191e810c19729de860ee';
+      const organizationId = '507f191e810c19729de860ee';
       const user = createMockUser({
         brand: brandId.toHexString(),
         organization: organizationId.toHexString(),
@@ -199,8 +198,8 @@ describe('VoicesController', () => {
     });
 
     it('ignores tenant override query params and scopes to Clerk metadata', async () => {
-      const brandId = new Types.ObjectId();
-      const organizationId = new Types.ObjectId();
+      const brandId = '507f191e810c19729de860ee';
+      const organizationId = '507f191e810c19729de860ee';
       const user = createMockUser({
         brand: brandId.toHexString(),
         organization: organizationId.toHexString(),
@@ -219,8 +218,8 @@ describe('VoicesController', () => {
 
       await controller.findAll(
         {
-          brand: new Types.ObjectId().toHexString(),
-          organization: new Types.ObjectId().toHexString(),
+          brand: '507f191e810c19729de860ee'.toHexString(),
+          organization: '507f191e810c19729de860ee'.toHexString(),
         } as never,
         request as never,
         user as never,
@@ -302,8 +301,8 @@ describe('VoicesController', () => {
     });
 
     it('applies provider, source, search, scope, and activation filters to the aggregate', async () => {
-      const brandId = new Types.ObjectId();
-      const organizationId = new Types.ObjectId();
+      const brandId = '507f191e810c19729de860ee';
+      const organizationId = '507f191e810c19729de860ee';
       const user = createMockUser({
         brand: brandId.toHexString(),
         organization: organizationId.toHexString(),
@@ -501,7 +500,7 @@ describe('VoicesController', () => {
     it('should generate voice and return serialized result', async () => {
       const user = createMockUser();
       const request = createMockRequest();
-      const ingredientId = new Types.ObjectId();
+      const ingredientId = '507f191e810c19729de860ee';
 
       sharedService.saveDocuments.mockResolvedValue({
         ingredientData: { _id: ingredientId },
@@ -550,7 +549,7 @@ describe('VoicesController', () => {
     it('should mark ingredient as failed when generation errors', async () => {
       const user = createMockUser();
       const request = createMockRequest();
-      const ingredientId = new Types.ObjectId();
+      const ingredientId = '507f191e810c19729de860ee';
 
       sharedService.saveDocuments.mockResolvedValue({
         ingredientData: { _id: ingredientId },
@@ -617,7 +616,9 @@ describe('VoicesController', () => {
       const user = createMockUser();
       const request = createMockRequest();
       voicesService.findAll.mockResolvedValue({
-        docs: [{ _id: new Types.ObjectId(), isCloned: true, type: 'voice' }],
+        docs: [
+          { _id: '507f191e810c19729de860ee', isCloned: true, type: 'voice' },
+        ],
         hasNextPage: false,
         hasPrevPage: false,
         limit: 10,
@@ -673,7 +674,7 @@ describe('VoicesController', () => {
         controller.deleteClonedVoice(
           request as never,
           user as never,
-          new Types.ObjectId().toHexString(),
+          '507f191e810c19729de860ee'.toHexString(),
         ),
       ).rejects.toThrow(HttpException);
     });
@@ -681,7 +682,7 @@ describe('VoicesController', () => {
     it('should soft-delete a cloned voice and delete from provider', async () => {
       const user = createMockUser();
       const request = createMockRequest();
-      const voiceId = new Types.ObjectId();
+      const voiceId = '507f191e810c19729de860ee';
       const voice = {
         _id: voiceId,
         externalVoiceId: 'el_voice_123',

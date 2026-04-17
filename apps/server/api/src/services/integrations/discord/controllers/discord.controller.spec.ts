@@ -4,7 +4,6 @@ import { DiscordController } from '@api/services/integrations/discord/controller
 import { DiscordService } from '@api/services/integrations/discord/services/discord.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('DiscordController', () => {
   let controller: DiscordController;

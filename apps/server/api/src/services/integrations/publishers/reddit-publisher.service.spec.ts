@@ -17,7 +17,6 @@ import { RedditService } from '@api/services/integrations/reddit/services/reddit
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('RedditPublisherService', () => {
   let service: RedditPublisherService;

@@ -1,17 +1,11 @@
 import { CreateAgentStrategyDto } from '@api/collections/agent-strategies/dto/create-agent-strategy.dto';
 import { UpdateAgentStrategyDto } from '@api/collections/agent-strategies/dto/update-agent-strategy.dto';
-import {
-  AgentStrategy,
-  type AgentStrategyDocument,
-} from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { AgentRunStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class AgentStrategiesService extends BaseService<
@@ -20,11 +14,10 @@ export class AgentStrategiesService extends BaseService<
   UpdateAgentStrategyDto
 > {
   constructor(
-    @InjectModel(AgentStrategy.name, DB_CONNECTIONS.AGENT)
-    model: AggregatePaginateModel<AgentStrategyDocument>,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    super(prisma, 'agentStrategy', logger);
   }
 
   /**
@@ -61,9 +54,9 @@ export class AgentStrategiesService extends BaseService<
     organizationId: string,
   ): Promise<AgentStrategyDocument | null> {
     return this.findOne({
-      _id: new Types.ObjectId(id),
+      id,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     });
   }
 
@@ -110,27 +103,26 @@ export class AgentStrategiesService extends BaseService<
       threadId?: string;
     },
   ): Promise<void> {
-    await this.model.updateOne(
-      // @ts-expect-error TS2769
-      { _id: new Types.ObjectId(id) },
-      {
-        $inc: {
-          creditsUsedThisWeek: run.creditsUsed,
-          creditsUsedToday: run.creditsUsed,
-          dailyCreditsUsed: run.creditsUsed,
-          monthToDateCreditsUsed: run.creditsUsed,
-        },
-        $push: {
-          runHistory: {
-            $each: [run],
-            $slice: -50,
-          },
-        },
-        $set: {
-          lastRunAt: run.completedAt,
-        },
+    const current = (await this.delegate.findFirst({
+      where: { id },
+    })) as AgentStrategyDocument | null;
+    if (!current) return;
+
+    const existingHistory = (current.runHistory as unknown[]) ?? [];
+    // Keep last 50 entries
+    const trimmedHistory = [...existingHistory, run].slice(-50);
+
+    await this.delegate.update({
+      where: { id },
+      data: {
+        creditsUsedThisWeek: { increment: run.creditsUsed },
+        creditsUsedToday: { increment: run.creditsUsed },
+        dailyCreditsUsed: { increment: run.creditsUsed },
+        monthToDateCreditsUsed: { increment: run.creditsUsed },
+        lastRunAt: run.completedAt,
+        runHistory: trimmedHistory,
       },
-    );
+    });
   }
 
   /**
@@ -138,21 +130,12 @@ export class AgentStrategiesService extends BaseService<
    * Used by the processor after a run fails.
    */
   async incrementFailures(id: string): Promise<number> {
-    const result = await (
-      this.model as unknown as {
-        findOneAndUpdate: (
-          filter: unknown,
-          update: unknown,
-          options: unknown,
-        ) => Promise<AgentStrategyDocument | null>;
-      }
-    ).findOneAndUpdate(
-      { _id: new Types.ObjectId(id) },
-      { $inc: { consecutiveFailures: 1 } },
-      { returnDocument: 'after' },
-    );
+    const result = (await this.delegate.update({
+      where: { id },
+      data: { consecutiveFailures: { increment: 1 } },
+    })) as AgentStrategyDocument | null;
 
-    return result?.consecutiveFailures ?? 0;
+    return (result?.consecutiveFailures as number) ?? 0;
   }
 
   /**
@@ -160,11 +143,10 @@ export class AgentStrategiesService extends BaseService<
    * Used by the processor after a successful run.
    */
   async resetFailures(id: string): Promise<void> {
-    await this.model.updateOne(
-      // @ts-expect-error TS2769
-      { _id: new Types.ObjectId(id) },
-      { $set: { consecutiveFailures: 0 } },
-    );
+    await this.delegate.updateMany({
+      where: { id },
+      data: { consecutiveFailures: 0 },
+    });
   }
 
   /**
@@ -172,11 +154,10 @@ export class AgentStrategiesService extends BaseService<
    * Used for auto-pause after consecutive failures.
    */
   async pauseStrategy(id: string): Promise<void> {
-    await this.model.updateOne(
-      // @ts-expect-error TS2769
-      { _id: new Types.ObjectId(id) },
-      { $set: { isActive: false, nextRunAt: null } },
-    );
+    await this.delegate.updateMany({
+      where: { id },
+      data: { isActive: false, nextRunAt: null },
+    });
   }
 
   /**
@@ -186,27 +167,26 @@ export class AgentStrategiesService extends BaseService<
   async findEnabledStrategies(
     filter: Record<string, unknown> = {},
   ): Promise<AgentStrategyDocument[]> {
-    return this.model.find({
-      isDeleted: false,
-      isEnabled: true,
-      ...filter,
-    });
+    return this.delegate.findMany({
+      where: {
+        isDeleted: false,
+        isEnabled: true,
+        ...filter,
+      },
+    }) as Promise<AgentStrategyDocument[]>;
   }
 
   /**
    * Mark strategy for manual reactivation after repeated failures.
    */
   async requireManualReactivation(id: string): Promise<void> {
-    await this.model.updateOne(
-      // @ts-expect-error TS2769
-      { _id: new Types.ObjectId(id) },
-      {
-        $set: {
-          isActive: false,
-          nextRunAt: null,
-          requiresManualReactivation: true,
-        },
+    await this.delegate.updateMany({
+      where: { id },
+      data: {
+        isActive: false,
+        nextRunAt: null,
+        requiresManualReactivation: true,
       },
-    );
+    });
   }
 }

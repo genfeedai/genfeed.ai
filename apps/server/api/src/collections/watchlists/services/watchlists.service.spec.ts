@@ -6,7 +6,6 @@ import { WatchlistPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('WatchlistsService', () => {
   let service: WatchlistsService;

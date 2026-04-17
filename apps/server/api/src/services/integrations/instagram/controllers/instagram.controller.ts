@@ -26,7 +26,6 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Body, Controller, Get, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 
 @AutoSwagger()

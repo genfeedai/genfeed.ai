@@ -1,25 +1,10 @@
-import {
-  ContentPerformance,
-  type ContentPerformanceDocument,
-  PerformanceSource,
-} from '@api/collections/content-performance/schemas/content-performance.schema';
-import {
-  Post,
-  type PostDocument,
-} from '@api/collections/posts/schemas/post.schema';
-import {
-  PostAnalytics,
-  type PostAnalyticsDocument,
-} from '@api/collections/posts/schemas/post-analytics.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { ContentPerformanceDocument } from '@api/collections/content-performance/schemas/content-performance.schema';
+import { PerformanceSource } from '@api/collections/content-performance/schemas/content-performance.schema';
 import { BrandMemorySyncService } from '@api/services/brand-memory/brand-memory-sync.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentType, PostCategory } from '@genfeedai/enums';
-import type { IAnalyticsMatchStage } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { type Model, Types } from 'mongoose';
 
 export interface AnalyticsSyncResult {
   synced: number;
@@ -43,12 +28,7 @@ export class AnalyticsSyncService {
   private static readonly DEFAULT_BATCH_SIZE = 100;
 
   constructor(
-    @InjectModel(ContentPerformance.name, DB_CONNECTIONS.CLOUD)
-    private readonly contentPerformanceModel: AggregatePaginateModel<ContentPerformanceDocument>,
-    @InjectModel(PostAnalytics.name, DB_CONNECTIONS.ANALYTICS)
-    private readonly postAnalyticsModel: Model<PostAnalyticsDocument>,
-    @InjectModel(Post.name, DB_CONNECTIONS.CLOUD)
-    private readonly postModel: Model<PostDocument>,
+    private readonly prisma: PrismaService,
     private readonly brandMemorySyncService: BrandMemorySyncService,
     private readonly logger: LoggerService,
   ) {}
@@ -116,10 +96,6 @@ export class AnalyticsSyncService {
 
   /**
    * Sync platform analytics data into the closed-loop ContentPerformance collection.
-   *
-   * Reads from PostAnalytics (populated by analytics-twitter, analytics-social, etc.),
-   * joins with Post data (for generationId, promptUsed, etc.),
-   * and upserts into ContentPerformance.
    */
   async syncAnalytics(
     options: AnalyticsSyncOptions,
@@ -144,32 +120,32 @@ export class AnalyticsSyncService {
     };
     const touchedBrandIds = new Set<string>();
 
-    // Build match filter for PostAnalytics
-    const matchFilter: IAnalyticsMatchStage = {
+    const postAnalyticsWhere: Record<string, unknown> = {
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     };
 
     if (brandId) {
-      matchFilter.brand = new Types.ObjectId(brandId);
+      postAnalyticsWhere.brandId = brandId;
     }
 
     if (since) {
-      matchFilter.date = { $gte: since };
+      postAnalyticsWhere.date = { gte: since };
     }
 
-    // Process in batches using cursor
+    // Process in batches
     let skip = 0;
     let hasMore = true;
 
     while (hasMore) {
-      const analyticsBatch = await this.postAnalyticsModel
-        .find(matchFilter)
-        .sort({ date: -1 })
-        .skip(skip)
-        .limit(batchSize)
-        .lean()
-        .exec();
+      const analyticsBatch = await this.prisma.postAnalytics.findMany({
+        where: postAnalyticsWhere as Parameters<
+          typeof this.prisma.postAnalytics.findMany
+        >[0]['where'],
+        orderBy: { date: 'desc' },
+        skip,
+        take: batchSize,
+      });
 
       if (analyticsBatch.length === 0) {
         hasMore = false;
@@ -177,22 +153,19 @@ export class AnalyticsSyncService {
       }
 
       // Collect post IDs to batch-fetch post data
-      const postIds = [
-        ...new Set(analyticsBatch.map((a) => a.post.toString())),
-      ];
-      const posts = await this.postModel
-        .find({
-          _id: { $in: postIds.map((id) => new Types.ObjectId(id)) },
-          isDeleted: { $ne: true },
-          organization: new Types.ObjectId(organizationId),
-        })
-        .lean()
-        .exec();
-      const postMap = new Map(posts.map((p) => [p._id.toString(), p]));
+      const postIds = [...new Set(analyticsBatch.map((a) => String(a.postId)))];
+      const posts = await this.prisma.post.findMany({
+        where: {
+          id: { in: postIds },
+          isDeleted: false,
+          organizationId,
+        },
+      });
+      const postMap = new Map(posts.map((p) => [p.id, p]));
 
       for (const analytics of analyticsBatch) {
         try {
-          const post = postMap.get(analytics.post.toString());
+          const post = postMap.get(String(analytics.postId));
 
           const metrics = {
             clicks: 0,
@@ -203,77 +176,82 @@ export class AnalyticsSyncService {
             views: analytics.totalViews ?? 0,
           };
 
-          // Upsert: unique on post + measuredAt date (day granularity)
           const measuredAt = new Date(analytics.date);
 
-          const updateResult =
-            await this.contentPerformanceModel.findOneAndUpdate(
-              {
-                isDeleted: { $ne: true },
+          await this.prisma.contentPerformance.upsert({
+            where: {
+              organizationId_postId_measuredAt_source: {
+                organizationId,
+                postId: String(analytics.postId),
                 measuredAt,
-                organization: new Types.ObjectId(organizationId),
-                post: analytics.post,
                 source: PerformanceSource.API,
               },
-              {
-                $set: {
-                  brand: analytics.brand,
-                  clicks: metrics.clicks,
-                  contentRunId: post?.contentRunId,
-                  comments: metrics.comments,
-                  contentType: this.mapCategoryToContentType(post?.category),
-                  creativeVersion: post?.creativeVersion,
-                  engagementRate: this.computeEngagementRate(metrics),
-                  externalPostId: post?.externalId,
-                  generationId: post?.generationId,
-                  hookVersion: post?.hookVersion,
-                  likes: metrics.likes,
-                  measuredAt,
-                  organization: new Types.ObjectId(organizationId),
-                  performanceScore: this.computePerformanceScore(metrics),
-                  platform: analytics.platform,
-                  post: analytics.post,
-                  publishIntent: post?.publishIntent,
-                  promptUsed: post?.promptUsed,
-                  revenue: 0,
-                  saves: metrics.saves,
-                  scheduleSlot: post?.scheduleSlot,
-                  shares: metrics.shares,
-                  source: PerformanceSource.API,
-                  user: analytics.user,
-                  variantId: post?.variantId,
-                  views: metrics.views,
-                  workflowExecutionId: post?.workflowExecutionId,
-                },
-              },
-              { new: true, upsert: true },
-            );
+            },
+            create: {
+              brandId: analytics.brandId ?? undefined,
+              clicks: metrics.clicks,
+              comments: metrics.comments,
+              contentRunId: post?.contentRunId ?? undefined,
+              contentType: this.mapCategoryToContentType(
+                post?.category ?? undefined,
+              ),
+              creativeVersion: post?.creativeVersion ?? undefined,
+              engagementRate: this.computeEngagementRate(metrics),
+              externalPostId: post?.externalId ?? undefined,
+              generationId: post?.generationId ?? undefined,
+              hookVersion: post?.hookVersion ?? undefined,
+              isDeleted: false,
+              likes: metrics.likes,
+              measuredAt,
+              organizationId,
+              performanceScore: this.computePerformanceScore(metrics),
+              platform: analytics.platform ?? undefined,
+              postId: String(analytics.postId),
+              revenue: 0,
+              saves: metrics.saves,
+              source: PerformanceSource.API,
+              userId: analytics.userId ?? undefined,
+              views: metrics.views,
+            } as Record<string, unknown>,
+            update: {
+              brandId: analytics.brandId ?? undefined,
+              clicks: metrics.clicks,
+              comments: metrics.comments,
+              contentType: this.mapCategoryToContentType(
+                post?.category ?? undefined,
+              ),
+              engagementRate: this.computeEngagementRate(metrics),
+              likes: metrics.likes,
+              measuredAt,
+              performanceScore: this.computePerformanceScore(metrics),
+              saves: metrics.saves,
+              shares: metrics.shares,
+              views: metrics.views,
+            } as Record<string, unknown>,
+          });
 
-          if (updateResult) {
-            result.synced++;
+          result.synced++;
 
-            const resolvedBrandId = analytics.brand?.toString();
-
-            if (resolvedBrandId && post?._id) {
-              touchedBrandIds.add(resolvedBrandId);
-              try {
-                await this.brandMemorySyncService.syncPostPerformance(
-                  organizationId,
-                  resolvedBrandId,
-                  post._id.toString(),
-                );
-              } catch (syncError) {
-                this.logger.error(
-                  `Failed to sync brand memory for post ${post._id.toString()}`,
-                  syncError,
-                );
-              }
+          const resolvedBrandId = analytics.brandId ?? undefined;
+          if (resolvedBrandId && post?.id) {
+            touchedBrandIds.add(resolvedBrandId);
+            try {
+              await this.brandMemorySyncService.syncPostPerformance(
+                organizationId,
+                resolvedBrandId,
+                post.id,
+              );
+            } catch (syncError) {
+              this.logger.error(
+                `Failed to sync brand memory for post ${post.id}`,
+                syncError,
+              );
             }
           }
         } catch (error) {
           result.errors++;
           this.logger.error(
-            `Failed to sync analytics for post ${analytics.post}`,
+            `Failed to sync analytics for post ${analytics.postId}`,
             error,
           );
         }
@@ -319,22 +297,23 @@ export class AnalyticsSyncService {
     organizationId: string,
     brandId?: string,
   ): Promise<Date | null> {
-    const query: Record<string, unknown> = {
+    const where: Record<string, unknown> = {
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
       source: PerformanceSource.API,
     };
 
     if (brandId) {
-      query.brand = new Types.ObjectId(brandId);
+      where.brandId = brandId;
     }
 
-    const latest = await this.contentPerformanceModel
-      .findOne(query)
-      .sort({ measuredAt: -1 })
-      .lean()
-      .exec();
+    const latest = await this.prisma.contentPerformance.findFirst({
+      where: where as Parameters<
+        typeof this.prisma.contentPerformance.findFirst
+      >[0]['where'],
+      orderBy: { measuredAt: 'desc' },
+    });
 
-    return latest?.measuredAt ?? null;
+    return (latest as ContentPerformanceDocument | null)?.measuredAt ?? null;
   }
 }

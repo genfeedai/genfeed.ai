@@ -3,7 +3,6 @@ import { BrandMemoryService } from '@api/collections/brand-memory/services/brand
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { describe, expect, it, vi } from 'vitest';
 
 import { AgentMemoryCaptureService } from './agent-memory-capture.service';

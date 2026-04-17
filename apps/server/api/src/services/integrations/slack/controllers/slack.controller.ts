@@ -12,7 +12,6 @@ import {
   HttpStatus,
   Post,
 } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 @Controller('services/slack')
 export class SlackController {

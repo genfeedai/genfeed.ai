@@ -5,7 +5,6 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { BotPlatform, BotStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('BotsController', () => {
   let controller: BotsController;
@@ -105,7 +104,7 @@ describe('BotsController', () => {
       expect(pipeline[0]).toEqual({
         $match: {
           isDeleted: false,
-          organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
+          organization: '507f1f77bcf86cd799439012',
         },
       });
       expect(pipeline[1]).toEqual({
@@ -115,7 +114,7 @@ describe('BotsController', () => {
 
     it('should build pipeline with brand scope', () => {
       const query = {
-        brand: new Types.ObjectId('507f1f77bcf86cd799439013'),
+        brand: '507f1f77bcf86cd799439013',
         scope: 'brand',
       };
 
@@ -123,7 +122,7 @@ describe('BotsController', () => {
 
       expect(pipeline[0]).toEqual({
         $match: {
-          brand: new Types.ObjectId('507f1f77bcf86cd799439013'),
+          brand: '507f1f77bcf86cd799439013',
           isDeleted: false,
         },
       });
@@ -132,7 +131,7 @@ describe('BotsController', () => {
     it('should build pipeline with user scope', () => {
       const query = {
         scope: 'user',
-        user: new Types.ObjectId('507f1f77bcf86cd799439014'),
+        user: '507f1f77bcf86cd799439014',
       };
 
       const pipeline = controller.buildFindAllPipeline(mockUser, query);
@@ -140,7 +139,7 @@ describe('BotsController', () => {
       expect(pipeline[0]).toEqual({
         $match: {
           isDeleted: false,
-          user: new Types.ObjectId('507f1f77bcf86cd799439014'),
+          user: '507f1f77bcf86cd799439014',
         },
       });
     });
@@ -156,7 +155,7 @@ describe('BotsController', () => {
         $match: {
           isDeleted: false,
           platforms: { $in: ['twitter'] },
-          user: new Types.ObjectId('507f1f77bcf86cd799439014'),
+          user: '507f1f77bcf86cd799439014',
         },
       });
     });
@@ -172,7 +171,7 @@ describe('BotsController', () => {
         $match: {
           isDeleted: false,
           status: BotStatus.ACTIVE,
-          user: new Types.ObjectId('507f1f77bcf86cd799439014'),
+          user: '507f1f77bcf86cd799439014',
         },
       });
     });
@@ -188,7 +187,7 @@ describe('BotsController', () => {
         $match: {
           category: 'social',
           isDeleted: false,
-          user: new Types.ObjectId('507f1f77bcf86cd799439014'),
+          user: '507f1f77bcf86cd799439014',
         },
       });
     });
@@ -256,7 +255,7 @@ describe('BotsController', () => {
 
   describe('livestream session endpoints', () => {
     const mockBot = {
-      _id: new Types.ObjectId('507f1f77bcf86cd799439011'),
+      _id: '507f1f77bcf86cd799439011',
       brand: { _id: '507f1f77bcf86cd799439013' },
       organization: { _id: '507f1f77bcf86cd799439012' },
       user: { _id: '507f1f77bcf86cd799439014' },

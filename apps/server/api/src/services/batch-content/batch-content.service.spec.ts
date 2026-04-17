@@ -8,7 +8,6 @@ import type {
 import type { ContentDraft } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 function createMockLogger(): LoggerService {
   return {

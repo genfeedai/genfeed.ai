@@ -1,6 +1,5 @@
 import { SlackController } from '@api/services/integrations/slack/controllers/slack.controller';
 import { HttpException } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 describe('SlackController', () => {
   const mockOrganization = new Types.ObjectId().toString();

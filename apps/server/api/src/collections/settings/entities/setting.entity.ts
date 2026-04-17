@@ -1,10 +1,9 @@
 import { Setting } from '@api/collections/settings/schemas/setting.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
-import { Types } from 'mongoose';
 
 // @ts-expect-error - implements via BaseEntity + explicit fields
 export class SettingEntity extends BaseEntity implements Setting {
-  declare readonly user: Types.ObjectId;
+  declare readonly user: string;
 
   declare readonly theme: string;
 

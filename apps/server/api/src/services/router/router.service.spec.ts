@@ -8,7 +8,6 @@ import { ModelCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('RouterService', () => {
   let service: RouterService;

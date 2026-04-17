@@ -1,11 +1,10 @@
 import type { ElementStyle } from '@api/collections/elements/styles/schemas/style.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import type { ModelCategory } from '@genfeedai/enums';
-import type { Types } from 'mongoose';
 
 export class ElementStyleEntity extends BaseEntity implements ElementStyle {
-  declare readonly user?: Types.ObjectId;
-  declare readonly organization?: Types.ObjectId;
+  declare readonly user?: string;
+  declare readonly organization?: string;
 
   declare readonly key: string;
   declare readonly label: string;

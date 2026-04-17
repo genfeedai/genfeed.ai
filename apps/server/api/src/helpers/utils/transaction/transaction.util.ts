@@ -1,75 +1,68 @@
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectConnection } from '@nestjs/mongoose';
-import type { ClientSession, Connection } from 'mongoose';
+
+type PrismaTransactionClient = Omit<
+  PrismaService,
+  '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'
+>;
 
 /**
- * Transaction utility for running MongoDB operations atomically.
- * Requires MongoDB replica set to be configured.
+ * Transaction utility for running database operations atomically.
  *
  * Usage:
  * ```
- * await this.transactionUtil.runInTransaction(async (session) => {
- *   await this.usersService.create(userData, { session });
- *   await this.creditsService.create(creditData, { session });
+ * await this.transactionUtil.runInTransaction(async (tx) => {
+ *   await this.usersService.create(userData, tx);
+ *   await this.creditsService.create(creditData, tx);
  * });
  * ```
  */
 @Injectable()
 export class TransactionUtil {
   constructor(
-    @InjectConnection(DB_CONNECTIONS.CLOUD)
-    private readonly connection: Connection,
+    private readonly prismaService: PrismaService,
     private readonly loggerService: LoggerService,
   ) {}
 
   /**
-   * Execute a function within a MongoDB transaction.
-   * Automatically commits on success or aborts on error.
+   * Execute a function within a Prisma transaction.
+   * Automatically commits on success or rolls back on error.
    *
    * @param fn - Function to execute within the transaction
+   * @param options - Optional Prisma transaction options
    * @returns Result of the function
    * @throws Error if transaction fails
    */
   async runInTransaction<T>(
-    fn: (session: ClientSession) => Promise<T>,
+    fn: (tx: PrismaTransactionClient) => Promise<T>,
+    options?: Prisma.TransactionOptions,
   ): Promise<T> {
-    const session = await this.connection.startSession();
-
     try {
-      session.startTransaction({
-        readConcern: { level: 'majority' },
-        writeConcern: { w: 'majority' },
-      });
-
-      const result = await fn(session);
-
-      await session.commitTransaction();
-
-      return result;
+      return await this.prismaService.$transaction(
+        (tx) => fn(tx as PrismaTransactionClient),
+        options,
+      );
     } catch (error) {
-      await session.abortTransaction();
-
       this.loggerService.error('Transaction aborted', {
         error: (error as Error)?.message,
         stack: (error as Error)?.stack,
       });
 
       throw error;
-    } finally {
-      await session.endSession();
     }
   }
 
   /**
-   * Check if transactions are supported (requires replica set).
-   * Useful for graceful degradation in development environments.
+   * Check if transactions are supported.
+   * Always returns true for Prisma (supported in all environments).
    */
   async isTransactionSupported(): Promise<boolean> {
     try {
-      const session = await this.connection.startSession();
-      await session.endSession();
+      await this.prismaService.$transaction(async () => {
+        // no-op to test transaction support
+      });
       return true;
     } catch {
       return false;

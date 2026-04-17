@@ -1,10 +1,6 @@
-import {
-  ContentPattern,
-  type ContentPatternDocument,
-} from '@api/collections/content-intelligence/schemas/content-pattern.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { ContentPatternDocument } from '@api/collections/content-intelligence/schemas/content-pattern.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import {
   ContentIntelligencePlatform,
   ContentPatternType,
@@ -12,12 +8,10 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { type PipelineStage, Types } from 'mongoose';
 
 export interface CreatePatternDto {
-  organization: Types.ObjectId;
-  sourceCreator?: Types.ObjectId;
+  organizationId: string;
+  sourceCreatorId?: string;
   platform: ContentIntelligencePlatform;
   patternType: ContentPatternType;
   templateCategory?: TemplateCategory;
@@ -47,11 +41,10 @@ export class PatternStoreService extends BaseService<
   Partial<CreatePatternDto>
 > {
   constructor(
-    @InjectModel(ContentPattern.name, DB_CONNECTIONS.CLOUD)
-    model: AggregatePaginateModel<ContentPatternDocument>,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    super(prisma, 'contentPattern', logger);
   }
 
   storePattern(dto: CreatePatternDto): Promise<ContentPatternDocument> {
@@ -74,95 +67,89 @@ export class PatternStoreService extends BaseService<
   }
 
   async findByOrganization(
-    organizationId: Types.ObjectId,
+    organizationId: string,
     filters?: {
       platform?: ContentIntelligencePlatform;
       patternType?: ContentPatternType;
       templateCategory?: TemplateCategory;
-      sourceCreator?: Types.ObjectId;
+      sourceCreator?: string;
       tags?: string[];
       minRelevanceWeight?: number;
       minEngagementRate?: number;
     },
   ): Promise<ContentPatternDocument[]> {
-    const match: Record<string, unknown> = {
+    const where: Record<string, unknown> = {
       isDeleted: false,
-      organization: organizationId,
+      organizationId,
     };
 
     if (filters?.platform) {
-      match.platform = filters.platform;
+      where.platform = filters.platform;
     }
     if (filters?.patternType) {
-      match.patternType = filters.patternType;
+      where.patternType = filters.patternType;
     }
     if (filters?.templateCategory) {
-      match.templateCategory = filters.templateCategory;
+      where.templateCategory = filters.templateCategory;
     }
     if (filters?.sourceCreator) {
-      match.sourceCreator = filters.sourceCreator;
+      where.sourceCreatorId = filters.sourceCreator;
     }
     if (filters?.tags && filters.tags.length > 0) {
-      match.tags = { $in: filters.tags };
+      where.tags = { hasSome: filters.tags };
     }
     if (filters?.minRelevanceWeight !== undefined) {
-      match.relevanceWeight = { $gte: filters.minRelevanceWeight };
+      where.relevanceWeight = { gte: filters.minRelevanceWeight };
     }
     if (filters?.minEngagementRate !== undefined) {
-      match['sourceMetrics.engagementRate'] = {
-        $gte: filters.minEngagementRate,
+      where.sourceMetrics = {
+        path: ['engagementRate'],
+        gte: filters.minEngagementRate,
       };
     }
 
-    const pipeline: PipelineStage[] = [
-      { $match: match },
-      { $sort: { createdAt: -1, 'sourceMetrics.engagementRate': -1 } },
-    ];
-
-    const result = await this.findAll(pipeline, { pagination: false });
-    return result.docs;
+    return this.delegate.findMany({
+      where,
+      orderBy: [{ createdAt: 'desc' }],
+    }) as Promise<ContentPatternDocument[]>;
   }
 
   async findHooks(
-    organizationId: Types.ObjectId,
+    organizationId: string,
     platform?: ContentIntelligencePlatform,
     limit = 50,
   ): Promise<ContentPatternDocument[]> {
-    const match: Record<string, unknown> = {
+    const where: Record<string, unknown> = {
       isDeleted: false,
-      organization: organizationId,
+      organizationId,
       patternType: ContentPatternType.HOOK,
     };
 
     if (platform) {
-      match.platform = platform;
+      where.platform = platform;
     }
 
-    const pipeline: PipelineStage[] = [
-      { $match: match },
-      { $sort: { 'sourceMetrics.engagementRate': -1 } },
-      { $limit: limit },
-    ];
-
-    const result = await this.findAll(pipeline, { pagination: false });
-    return result.docs;
+    return this.delegate.findMany({
+      where,
+      take: limit,
+    }) as Promise<ContentPatternDocument[]>;
   }
 
-  findByCreator(creatorId: Types.ObjectId): Promise<ContentPatternDocument[]> {
-    return this.findAllByOrganization('', {
-      sourceCreator: creatorId,
+  findByCreator(creatorId: string): Promise<ContentPatternDocument[]> {
+    return this.delegate.findMany({
+      where: { isDeleted: false, sourceCreatorId: creatorId },
+    }) as Promise<ContentPatternDocument[]>;
+  }
+
+  async incrementUsage(id: string): Promise<void> {
+    await this.delegate.update({
+      where: { id },
+      data: { usageCount: { increment: 1 } },
     });
   }
 
-  async incrementUsage(id: Types.ObjectId | string): Promise<void> {
-    await this.patchAll(
-      { _id: new Types.ObjectId(id.toString()) },
-      { $inc: { usageCount: 1 } },
-    );
-  }
-
   updateRelevanceWeight(
-    id: Types.ObjectId | string,
+    id: string,
     weight: number,
   ): Promise<ContentPatternDocument> {
     return this.patch(id, {
@@ -170,11 +157,11 @@ export class PatternStoreService extends BaseService<
     });
   }
 
-  async deleteByCreator(creatorId: Types.ObjectId): Promise<{ count: number }> {
-    const result = await this.patchAll(
-      { isDeleted: false, sourceCreator: creatorId },
-      { $set: { isDeleted: true } },
-    );
-    return { count: result.modifiedCount };
+  async deleteByCreator(creatorId: string): Promise<{ count: number }> {
+    const result = (await this.delegate.updateMany({
+      where: { isDeleted: false, sourceCreatorId: creatorId },
+      data: { isDeleted: true },
+    })) as { count: number };
+    return { count: result.count };
   }
 }

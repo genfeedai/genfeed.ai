@@ -6,7 +6,6 @@ import { ContentPipelineQueueService } from '@api/services/content-orchestration
 import { ImageTaskModel, VideoTaskModel } from '@genfeedai/enums';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('ContentOrchestrationController', () => {
   let controller: ContentOrchestrationController;

@@ -1,7 +1,6 @@
 import { Post } from '@api/collections/posts/schemas/post.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 
 export interface PostAnalyticsSummary {
   totalViews: number;
@@ -24,12 +23,12 @@ export interface PostAnalyticsSummary {
 }
 
 export class PostEntity extends BaseEntity implements Post {
-  declare readonly ingredients: Types.ObjectId[];
-  declare readonly credential: Types.ObjectId;
-  declare readonly user: Types.ObjectId;
-  declare readonly brand: Types.ObjectId;
-  declare readonly organization: Types.ObjectId;
-  declare readonly children?: Types.ObjectId[];
+  declare readonly ingredients: string[];
+  declare readonly credential: string;
+  declare readonly user: string;
+  declare readonly brand: string;
+  declare readonly organization: string;
+  declare readonly children?: string[];
 
   declare readonly externalId: string;
   declare readonly externalShortcode?: string;
@@ -39,7 +38,7 @@ export class PostEntity extends BaseEntity implements Post {
   declare readonly description: string;
   declare readonly category: PostCategory;
   declare readonly status: PostStatus;
-  declare readonly tags?: Types.ObjectId[];
+  declare readonly tags?: string[];
   declare readonly scheduledDate: Date;
   declare readonly publicationDate: Date;
 

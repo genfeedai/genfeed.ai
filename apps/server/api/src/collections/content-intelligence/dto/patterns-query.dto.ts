@@ -14,7 +14,6 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class PatternsQueryDto {
   @IsOptional()
@@ -53,7 +52,7 @@ export class PatternsQueryDto {
     description: 'Filter by source creator',
     required: false,
   })
-  sourceCreator?: Types.ObjectId;
+  sourceCreator?: string;
 
   @IsOptional()
   @IsArray()

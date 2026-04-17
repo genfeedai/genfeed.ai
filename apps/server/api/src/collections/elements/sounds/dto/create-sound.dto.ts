@@ -8,13 +8,12 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreateElementSoundDto {
   @ApiProperty({ required: false })
   @IsMongoId()
   @IsOptional()
-  organization?: Types.ObjectId;
+  organization?: string;
 
   @ApiProperty({
     enum: ModelCategory,

@@ -45,7 +45,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('VideosLipSyncController', () => {
   let controller: VideosLipSyncController;
@@ -62,26 +61,26 @@ describe('VideosLipSyncController', () => {
   } as unknown as User;
 
   const mockImageIngredient = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439001'),
+    _id: '507f1f77bcf86cd799439001',
     brand: '507f1f77bcf86cd799439014',
     category: IngredientCategory.IMAGE,
-    organization: new Types.ObjectId('507f1f77bcf86cd799439013'),
+    organization: '507f1f77bcf86cd799439013',
     status: IngredientStatus.GENERATED,
   };
 
   const mockAudioIngredient = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439002'),
+    _id: '507f1f77bcf86cd799439002',
     category: IngredientCategory.AUDIO,
-    organization: new Types.ObjectId('507f1f77bcf86cd799439013'),
+    organization: '507f1f77bcf86cd799439013',
     status: IngredientStatus.GENERATED,
   };
 
   const mockIngredientData = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439040'),
+    _id: '507f1f77bcf86cd799439040',
   };
 
   const mockMetadataData = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439050'),
+    _id: '507f1f77bcf86cd799439050',
   };
 
   const mockDto: CreateLipSyncDto = {

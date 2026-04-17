@@ -28,7 +28,6 @@ import {
 import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('ingredients')
@@ -69,7 +68,7 @@ export class IngredientsRelationshipsController {
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
     const matchStage: unknown = {
       isDeleted,
-      parent: new Types.ObjectId(ingredientId),
+      parent: ingredientId,
       training: { $exists: false },
     };
 
@@ -78,7 +77,7 @@ export class IngredientsRelationshipsController {
       matchStage.isFavorite = query.isFavorite;
     }
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: matchStage,
       },
@@ -133,10 +132,10 @@ export class IngredientsRelationshipsController {
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
-          ingredients: new Types.ObjectId(ingredientId),
+          ingredients: ingredientId,
           isDeleted,
           organization: ingredient.organization,
         },

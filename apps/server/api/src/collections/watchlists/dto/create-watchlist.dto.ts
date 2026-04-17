@@ -7,26 +7,19 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreateWatchlistDto {
   @IsNotEmpty()
-  @Transform(({ value }) =>
-    typeof value === 'string' ? new Types.ObjectId(value) : value,
-  )
-  brand!: Types.ObjectId;
+  @Transform(({ value }) => (typeof value === 'string' ? value : value))
+  brand!: string;
 
   @IsNotEmpty()
-  @Transform(({ value }) =>
-    typeof value === 'string' ? new Types.ObjectId(value) : value,
-  )
-  organization!: Types.ObjectId;
+  @Transform(({ value }) => (typeof value === 'string' ? value : value))
+  organization!: string;
 
   @IsNotEmpty()
-  @Transform(({ value }) =>
-    typeof value === 'string' ? new Types.ObjectId(value) : value,
-  )
-  user!: Types.ObjectId;
+  @Transform(({ value }) => (typeof value === 'string' ? value : value))
+  user!: string;
 
   @IsNotEmpty()
   @IsString()

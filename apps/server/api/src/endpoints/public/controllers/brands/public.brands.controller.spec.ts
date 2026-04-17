@@ -15,18 +15,17 @@ import { AssetScope } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('PublicBrandsController', () => {
   let controller: PublicBrandsController;
   let brandsService: vi.Mocked<BrandsService>;
 
   const mockBrand = {
-    _id: new Types.ObjectId(),
+    _id: '507f191e810c19729de860ee',
     description: 'A public test brand',
     handle: 'test-brand',
     isDeleted: false,
-    logo: new Types.ObjectId(),
+    logo: '507f191e810c19729de860ee',
     name: 'Test Brand',
     scope: AssetScope.PUBLIC,
   };

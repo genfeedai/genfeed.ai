@@ -14,7 +14,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class PresignedUploadService {

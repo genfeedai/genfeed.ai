@@ -1,5 +1,4 @@
 import { Prop, Schema } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 export const AGENT_STRATEGY_GOAL_PROFILES = ['reach_traffic'] as const;
 export type AgentStrategyGoalProfile =

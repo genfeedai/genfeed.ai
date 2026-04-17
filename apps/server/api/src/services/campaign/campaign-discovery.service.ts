@@ -27,7 +27,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 export interface DiscoveredTarget {
   platform: CampaignPlatform;

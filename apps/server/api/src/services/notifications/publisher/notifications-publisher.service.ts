@@ -10,7 +10,6 @@ import type {
 import { RedisService } from '@libs/redis/redis.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 /**
  * NotificationsPublisherService

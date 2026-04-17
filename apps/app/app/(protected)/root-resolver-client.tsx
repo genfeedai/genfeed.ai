@@ -43,7 +43,8 @@ export default function ProtectedRootResolver() {
         accessState.organizationId.length > 0);
     const hasSelectedBrand =
       (typeof brandId === 'string' && brandId.length > 0) ||
-      (typeof accessState?.brandId === 'string' && accessState.brandId.length > 0);
+      (typeof accessState?.brandId === 'string' &&
+        accessState.brandId.length > 0);
 
     if (hasOrganization && hasSelectedBrand) {
       const orgSlug = getBrandOrganizationSlug(selectedBrand);
@@ -66,7 +67,14 @@ export default function ProtectedRootResolver() {
 
     setStatusMessage('Opening onboarding...');
     window.location.replace('/onboarding');
-  }, [accessState, brandId, brands, isAccessStateLoading, organizationId, selectedBrand]);
+  }, [
+    accessState,
+    brandId,
+    brands,
+    isAccessStateLoading,
+    organizationId,
+    selectedBrand,
+  ]);
 
   return <PageLoadingState className="bg-black" message={statusMessage} />;
 }

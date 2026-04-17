@@ -7,7 +7,6 @@ import { ModelCategory } from '@genfeedai/enums';
 import type { ExecutionContext } from '@nestjs/common';
 import { ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Types } from 'mongoose';
 
 describe('ModelsGuard', () => {
   let guard: ModelsGuard;
@@ -18,7 +17,7 @@ describe('ModelsGuard', () => {
 
   const createContext = (
     body: Record<string, unknown> = {},
-    organizationId = new Types.ObjectId().toString(),
+    organizationId = '507f191e810c19729de860ee'.toString(),
   ): ExecutionContext => {
     const req: Record<string, unknown> = {
       body,
@@ -36,7 +35,7 @@ describe('ModelsGuard', () => {
     reflector = new Reflector();
     modelRegistrationService = {
       validateModelForOrg: vi.fn().mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         category: ModelCategory.IMAGE,
         key: 'stable-diffusion',
       }),
@@ -84,7 +83,7 @@ describe('ModelsGuard', () => {
 
   it('sets selectedModel on request after validation', async () => {
     const mockModel = {
-      _id: new Types.ObjectId(),
+      _id: '507f191e810c19729de860ee',
       category: ModelCategory.IMAGE,
       key: 'stable-diffusion',
     };
@@ -100,7 +99,7 @@ describe('ModelsGuard', () => {
 
   it('throws ForbiddenException when model category does not match', async () => {
     modelRegistrationService.validateModelForOrg.mockResolvedValue({
-      _id: new Types.ObjectId(),
+      _id: '507f191e810c19729de860ee',
       category: ModelCategory.IMAGE,
       key: 'stable-diffusion',
     });
@@ -113,7 +112,7 @@ describe('ModelsGuard', () => {
 
   it('allows model when category matches exactly', async () => {
     modelRegistrationService.validateModelForOrg.mockResolvedValue({
-      _id: new Types.ObjectId(),
+      _id: '507f191e810c19729de860ee',
       category: ModelCategory.VIDEO,
       key: 'sora-turbo',
     });
@@ -127,7 +126,7 @@ describe('ModelsGuard', () => {
 
   it('allows model when model has no category set', async () => {
     modelRegistrationService.validateModelForOrg.mockResolvedValue({
-      _id: new Types.ObjectId(),
+      _id: '507f191e810c19729de860ee',
       key: 'generic-model',
     });
     vi.spyOn(reflector, 'get').mockReturnValue({

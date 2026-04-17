@@ -1,22 +1,15 @@
 import { CreateArticleAnalyticsDto } from '@api/collections/articles/dto/create-article-analytics.dto';
 import { UpdateArticleAnalyticsDto } from '@api/collections/articles/dto/update-article-analytics.dto';
 import { ArticleAnalyticsEntity } from '@api/collections/articles/entities/article-analytics.entity';
-import {
-  ArticleAnalytics,
-  type ArticleAnalyticsDocument,
-} from '@api/collections/articles/schemas/article-analytics.schema';
+import type { ArticleAnalyticsDocument } from '@api/collections/articles/schemas/article-analytics.schema';
 import {
   normalizePerformanceMetrics,
   type PerformanceMetricsInput,
 } from '@api/collections/articles/utils/virality-analysis.mapper';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, NotFoundException, Optional } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { type PipelineStage, Types } from 'mongoose';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
 @Injectable()
 export class ArticleAnalyticsService extends BaseService<
@@ -25,12 +18,10 @@ export class ArticleAnalyticsService extends BaseService<
   UpdateArticleAnalyticsDto
 > {
   constructor(
-    @InjectModel(ArticleAnalytics.name, DB_CONNECTIONS.ANALYTICS)
-    protected readonly model: AggregatePaginateModel<ArticleAnalyticsDocument>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
-    @Optional() private readonly prisma?: PrismaService,
   ) {
-    super(model, logger);
+    super(prisma, 'articleAnalytics', logger);
   }
 
   /**
@@ -43,49 +34,26 @@ export class ArticleAnalyticsService extends BaseService<
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    try {
-      // Use findOneAndUpdate with upsert to avoid race conditions
-      const result = await this.model.findOneAndUpdate(
-        {
-          article: new Types.ObjectId(articleId),
-          date: today,
-        },
-        {
-          $setOnInsert: {
-            ...data,
-            article: new Types.ObjectId(articleId),
-            clickThroughRate: 0,
-            date: today,
-            engagementRate: 0,
-            isDeleted: false,
-            totalComments: 0,
-            totalLikes: 0,
-            totalShares: 0,
-            totalViews: 0,
-          },
-        },
-        {
-          returnDocument: 'after',
-          setDefaultsOnInsert: true,
-          upsert: true,
-        },
-      );
+    const result = await this.delegate.upsert({
+      where: {
+        articleId_date: { articleId, date: today },
+      },
+      create: {
+        ...data,
+        articleId,
+        clickThroughRate: 0,
+        date: today,
+        engagementRate: 0,
+        isDeleted: false,
+        totalComments: 0,
+        totalLikes: 0,
+        totalShares: 0,
+        totalViews: 0,
+      } as Record<string, unknown>,
+      update: {},
+    });
 
-      return new ArticleAnalyticsEntity(result);
-    } catch (error: unknown) {
-      // Handle duplicate key error in case of race condition
-      // @ts-expect-error TS2367
-      if ((error as { code?: string }).code === 11000) {
-        const existing = await this.findOne({
-          article: new Types.ObjectId(articleId),
-          date: today,
-        });
-        if (existing) {
-          return new ArticleAnalyticsEntity(existing);
-        }
-      }
-      throw error;
-    }
+    return new ArticleAnalyticsEntity(result);
   }
 
   /**
@@ -109,8 +77,9 @@ export class ArticleAnalyticsService extends BaseService<
     yesterday.setDate(yesterday.getDate() - 1);
 
     const yesterdayAnalytics = await this.findOne({
-      article: new Types.ObjectId(articleId),
+      articleId,
       date: yesterday,
+      isDeleted: false,
     });
 
     // Get current values from yesterday or 0
@@ -119,10 +88,10 @@ export class ArticleAnalyticsService extends BaseService<
     const yesterdayComments = yesterdayAnalytics?.totalComments || 0;
     const yesterdayShares = yesterdayAnalytics?.totalShares || 0;
 
-    // Use provided metrics or get from today's record if it exists
     const todayAnalytics = await this.findOne({
-      article: new Types.ObjectId(articleId),
+      articleId,
       date: today,
+      isDeleted: false,
     });
 
     const currentViews = metrics.totalViews ?? todayAnalytics?.totalViews ?? 0;
@@ -149,10 +118,6 @@ export class ArticleAnalyticsService extends BaseService<
         : 0;
 
     // Fetch article to get required fields for upsert
-    if (!this.prisma) {
-      throw new Error('PrismaService not available');
-    }
-
     const article = await this.prisma.article.findFirst({
       where: { id: articleId, isDeleted: false },
     });
@@ -161,34 +126,36 @@ export class ArticleAnalyticsService extends BaseService<
       throw new NotFoundException('Article not found');
     }
 
-    const filter = {
-      article: new Types.ObjectId(articleId),
-      date: today,
-    };
-
-    const update = {
-      $set: {
+    const result = await this.delegate.upsert({
+      where: {
+        articleId_date: { articleId, date: today },
+      },
+      create: {
+        articleId,
+        brandId: (article as Record<string, unknown>).brandId as string,
         clickThroughRate: currentCTR,
+        date: today,
+        engagementRate,
+        isDeleted: false,
+        organizationId: (article as Record<string, unknown>)
+          .organizationId as string,
+        totalComments: currentComments,
+        totalLikes: currentLikes,
+        totalShares: currentShares,
+        totalViews: currentViews,
+        userId: (article as Record<string, unknown>).userId as string,
+        ...increments,
+      } as Record<string, unknown>,
+      update: {
+        clickThroughRate: currentCTR,
+        engagementRate,
         totalComments: currentComments,
         totalLikes: currentLikes,
         totalShares: currentShares,
         totalViews: currentViews,
         ...increments,
-        engagementRate,
-      },
-      $setOnInsert: {
-        brand: (article as Record<string, unknown>).brandId,
-        organization: (article as Record<string, unknown>).organizationId,
-        user: (article as Record<string, unknown>).userId,
-      },
-    };
-
-    const result = await this.model
-      .findOneAndUpdate(filter, update, {
-        returnDocument: 'after',
-        upsert: true,
-      })
-      .exec();
+      } as Record<string, unknown>,
+    });
 
     return result ? new ArticleAnalyticsEntity(result) : null;
   }
@@ -205,33 +172,12 @@ export class ArticleAnalyticsService extends BaseService<
     avgClickThroughRate: number;
     lastUpdated?: Date;
   }> {
-    const pipeline: PipelineStage[] = [
-      {
-        $match: {
-          article: new Types.ObjectId(articleId),
-          isDeleted: false,
-        },
-      },
-      {
-        $sort: { date: -1 },
-      },
-      {
-        $group: {
-          _id: null,
-          avgClickThroughRate: { $avg: '$clickThroughRate' },
-          avgEngagementRate: { $avg: '$engagementRate' },
-          lastUpdated: { $max: '$updatedAt' },
-          totalComments: { $max: '$totalComments' },
-          totalLikes: { $max: '$totalLikes' },
-          totalShares: { $max: '$totalShares' },
-          totalViews: { $max: '$totalViews' },
-        },
-      },
-    ];
+    const rows = await this.delegate.findMany({
+      where: { articleId, isDeleted: false },
+      orderBy: { date: 'desc' },
+    });
 
-    const results = await this.model.aggregate(pipeline).exec();
-
-    if (results.length === 0) {
+    if (rows.length === 0) {
       return {
         avgClickThroughRate: 0,
         avgEngagementRate: 0,
@@ -242,15 +188,52 @@ export class ArticleAnalyticsService extends BaseService<
       };
     }
 
-    const result = results[0];
+    const totalViews = Math.max(
+      ...rows.map(
+        (r) => ((r as Record<string, unknown>).totalViews as number) ?? 0,
+      ),
+    );
+    const totalLikes = Math.max(
+      ...rows.map(
+        (r) => ((r as Record<string, unknown>).totalLikes as number) ?? 0,
+      ),
+    );
+    const totalComments = Math.max(
+      ...rows.map(
+        (r) => ((r as Record<string, unknown>).totalComments as number) ?? 0,
+      ),
+    );
+    const totalShares = Math.max(
+      ...rows.map(
+        (r) => ((r as Record<string, unknown>).totalShares as number) ?? 0,
+      ),
+    );
+    const avgEngagementRate =
+      rows.reduce(
+        (sum, r) =>
+          sum +
+          (((r as Record<string, unknown>).engagementRate as number) ?? 0),
+        0,
+      ) / rows.length;
+    const avgClickThroughRate =
+      rows.reduce(
+        (sum, r) =>
+          sum +
+          (((r as Record<string, unknown>).clickThroughRate as number) ?? 0),
+        0,
+      ) / rows.length;
+    const lastUpdated = rows[0]
+      ? ((rows[0] as Record<string, unknown>).updatedAt as Date)
+      : undefined;
+
     return {
-      avgClickThroughRate: result.avgClickThroughRate || 0,
-      avgEngagementRate: result.avgEngagementRate || 0,
-      lastUpdated: result.lastUpdated,
-      totalComments: result.totalComments || 0,
-      totalLikes: result.totalLikes || 0,
-      totalShares: result.totalShares || 0,
-      totalViews: result.totalViews || 0,
+      avgClickThroughRate,
+      avgEngagementRate,
+      lastUpdated,
+      totalComments,
+      totalLikes,
+      totalShares,
+      totalViews,
     };
   }
 
@@ -268,23 +251,20 @@ export class ArticleAnalyticsService extends BaseService<
     const end = new Date(endDate);
     end.setHours(23, 59, 59, 999);
 
-    const results = await this.model
-      .find({
-        article: new Types.ObjectId(articleId),
-        date: { $gte: start, $lte: end },
+    const results = await this.delegate.findMany({
+      where: {
+        articleId,
+        date: { gte: start, lte: end },
         isDeleted: false,
-      })
-      .sort({ date: -1 })
-      .exec();
+      },
+      orderBy: { date: 'desc' },
+    });
 
-    return results.map((doc) => new ArticleAnalyticsEntity(doc.toObject()));
+    return results.map((doc) => new ArticleAnalyticsEntity(doc));
   }
 
   /**
    * Update performance metrics (convenience method that calls updateTodayAnalytics).
-   * Uses the shared PerformanceMetricsInput type and normalizePerformanceMetrics
-   * mapper from virality-analysis.mapper to stay consistent with
-   * ArticlesAnalyticsService.
    */
   async updatePerformanceMetrics(
     articleId: string,

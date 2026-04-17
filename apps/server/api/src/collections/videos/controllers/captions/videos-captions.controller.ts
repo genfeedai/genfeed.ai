@@ -55,7 +55,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 /**
  * VideosCaption Controller
@@ -104,8 +108,8 @@ export class VideosCaptionsController {
     const video = await this.videosService.findOne({
       _id: videoId,
       $or: [
-        { user: new Types.ObjectId(publicMetadata.user) },
-        { organization: new Types.ObjectId(publicMetadata.organization) },
+        { user: publicMetadata.user },
+        { organization: publicMetadata.organization },
       ],
       isDeleted: false,
     });
@@ -120,10 +124,10 @@ export class VideosCaptionsController {
     };
 
     // Build aggregation pipeline to get captions for this video (ingredient)
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
-          ingredient: new Types.ObjectId(videoId),
+          ingredient: videoId,
           isDeleted: false,
         },
       },
@@ -182,12 +186,11 @@ export class VideosCaptionsController {
     let caption;
     if (isValidObjectId(createVideoWithCaptionsDto.caption)) {
       caption = await this.captionsService.findOne({
-        _id: new Types.ObjectId(createVideoWithCaptionsDto.caption),
+        _id: createVideoWithCaptionsDto.caption,
       });
     } else {
-      caption = (
-        video as unknown as { captions?: Array<{ _id: Types.ObjectId }> }
-      ).captions?.[0];
+      caption = (video as unknown as { captions?: Array<{ _id: string }> })
+        .captions?.[0];
     }
 
     if (!caption) {
@@ -197,12 +200,12 @@ export class VideosCaptionsController {
     const publicMetadata = getPublicMetadata(user);
     const { ingredientData, metadataData } =
       await this.sharedService.saveDocuments(user, {
-        brand: new Types.ObjectId(publicMetadata.brand),
+        brand: publicMetadata.brand,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,
         label: generateLabel(),
-        organization: new Types.ObjectId(publicMetadata.organization),
-        parent: new Types.ObjectId(videoId),
+        organization: publicMetadata.organization,
+        parent: videoId,
         scope: AssetScope.USER,
         status: IngredientStatus.PROCESSING,
       });
@@ -226,9 +229,7 @@ export class VideosCaptionsController {
       .then(async (job) => {
         const result = await this.fileQueueService.waitForJob(job.jobId, 60000);
         const output = result.outputPath;
-        const ingredientId = (
-          ingredientData._id as Types.ObjectId
-        ).toHexString();
+        const ingredientId = (ingredientData._id as string).toHexString();
 
         this.filesClientService
           .uploadToS3(ingredientId, `videos`, {

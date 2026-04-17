@@ -5,11 +5,18 @@ import type {
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from 'express';
-import { Error as MongooseError } from 'mongoose';
 
-@Catch(MongooseError.ValidationError)
+// Generic validation error filter for database validation failures (Prisma or otherwise)
+@Catch(Error)
 export class MongoValidationExceptionFilter extends AllExceptionFilter {
-  public catch(exception: MongooseError.ValidationError, host: ArgumentsHost) {
+  public catch(exception: Error, host: ArgumentsHost) {
+    // Only handle validation errors (Prisma validation or custom validation errors)
+    if (
+      !exception.name.includes('ValidationError') &&
+      !exception.constructor.name.includes('PrismaClientValidationError')
+    ) {
+      throw exception;
+    }
     const ctx = host.switchToHttp();
     const res = ctx.getResponse<ExpressResponse>();
     const req = ctx.getRequest<ExpressRequest>();
@@ -27,7 +34,7 @@ export class MongoValidationExceptionFilter extends AllExceptionFilter {
       });
     } else {
       this.loggerService.error(
-        `Mongoose ValidationError on ${req.method} ${req.originalUrl}`,
+        `ValidationError on ${req.method} ${req.originalUrl}`,
         { detail, title },
       );
     }

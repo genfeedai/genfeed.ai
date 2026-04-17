@@ -1,16 +1,14 @@
-import { Types } from 'mongoose';
-
 /**
  * Creates a mock Mongoose model that works with BaseService.
  * Supports both `new Model()` constructor calls and static methods.
  */
 export function createMockModel(defaults: Record<string, unknown> = {}) {
   const savedDoc = {
-    _id: new Types.ObjectId(),
+    _id: 'mock-id-' + Math.random().toString(36).slice(2, 10),
     ...defaults,
     populate: vi.fn().mockReturnThis(),
     save: vi.fn().mockResolvedValue({
-      _id: new Types.ObjectId(),
+      _id: savedDoc._id,
       ...defaults,
     }),
     toObject: vi.fn().mockReturnValue(defaults),

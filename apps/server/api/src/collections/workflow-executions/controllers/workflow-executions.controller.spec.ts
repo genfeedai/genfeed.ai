@@ -16,7 +16,6 @@ import { WorkflowExecutorService } from '@api/collections/workflows/services/wor
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('WorkflowExecutionsController', () => {
   let controller: WorkflowExecutionsController;

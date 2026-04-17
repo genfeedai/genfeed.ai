@@ -28,7 +28,6 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('services/meta-ads')

@@ -7,12 +7,11 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import type { Types } from 'mongoose';
 
 export class CreateClipResultDto extends OrganizationalCreateDto {
   @IsMongoId()
   @ApiProperty({ description: 'The clip project ID', required: true })
-  readonly project!: Types.ObjectId;
+  readonly project!: string;
 
   @IsNumber()
   @ApiProperty({ description: 'Clip index within the project', required: true })

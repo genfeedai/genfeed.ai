@@ -11,7 +11,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 vi.mock('@genfeedai/helpers', async () => ({
   ...(await vi.importActual('@genfeedai/helpers')),
@@ -39,9 +38,9 @@ describe('FoldersController', () => {
   const mockUser = {
     id: 'user-123',
     publicMetadata: {
-      brand: new Types.ObjectId().toString(),
-      organization: new Types.ObjectId().toString(),
-      user: new Types.ObjectId().toString(),
+      brand: '507f191e810c19729de860ee'.toString(),
+      organization: '507f191e810c19729de860ee'.toString(),
+      user: '507f191e810c19729de860ee'.toString(),
     } as IClerkPublicMetadata,
   } as unknown as User;
 
@@ -127,7 +126,7 @@ describe('FoldersController', () => {
       };
 
       const mockCreatedFolder = {
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         ...createDto,
         user: mockUser.publicMetadata.user,
       };
@@ -155,7 +154,7 @@ describe('FoldersController', () => {
 
   describe('update', () => {
     it('should update a folder', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = '507f191e810c19729de860ee'.toString();
       const updateDto: UpdateFolderDto = {
         name: 'Updated Folder',
       };
@@ -163,7 +162,7 @@ describe('FoldersController', () => {
       const mockExistingFolder = {
         _id: id,
         name: 'Old Folder',
-        user: new Types.ObjectId(mockUser.publicMetadata.user as string),
+        user: mockUser.publicMetadata.user as string,
       };
 
       const mockUpdatedFolder = {
@@ -187,7 +186,7 @@ describe('FoldersController', () => {
     });
 
     it('should throw error if folder not found', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = '507f191e810c19729de860ee'.toString();
       const updateDto: UpdateFolderDto = {
         name: 'Updated Folder',
       };
@@ -202,11 +201,11 @@ describe('FoldersController', () => {
 
   describe('remove', () => {
     it('should remove a folder', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = '507f191e810c19729de860ee'.toString();
       const mockFolder = {
         _id: id,
         name: 'Folder to Delete',
-        user: new Types.ObjectId(mockUser.publicMetadata.user as string),
+        user: mockUser.publicMetadata.user as string,
       };
 
       foldersService.findOne.mockResolvedValue(mockFolder);
@@ -220,7 +219,7 @@ describe('FoldersController', () => {
     });
 
     it('should throw error if folder not found', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = '507f191e810c19729de860ee'.toString();
 
       foldersService.findOne.mockResolvedValue(null);
 
@@ -230,11 +229,11 @@ describe('FoldersController', () => {
     });
 
     it('should throw error if user does not own the folder', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = '507f191e810c19729de860ee'.toString();
       const mockFolder = {
         _id: id,
         name: 'Folder',
-        user: new Types.ObjectId(), // Different user
+        user: '507f191e810c19729de860ee', // Different user
       };
 
       foldersService.findOne.mockResolvedValue(mockFolder);

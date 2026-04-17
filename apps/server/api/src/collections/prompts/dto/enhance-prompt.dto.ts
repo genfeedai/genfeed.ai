@@ -1,18 +1,17 @@
 import { PromptCategory } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsMongoId, IsOptional, IsString } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class EnhancePromptDto {
   @IsMongoId()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly organization?: Types.ObjectId;
+  readonly organization?: string;
 
   @IsMongoId()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly brand?: Types.ObjectId;
+  readonly brand?: string;
 
   @IsString()
   @ApiProperty({ required: true })

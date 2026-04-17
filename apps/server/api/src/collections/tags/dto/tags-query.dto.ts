@@ -2,7 +2,6 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { TagCategory } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsMongoId, IsOptional, IsString } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class TagsQueryDto extends BaseQueryDto {
   @IsEnum(TagCategory)
@@ -29,7 +28,7 @@ export class TagsQueryDto extends BaseQueryDto {
     description: 'Filter by brand ID',
     required: false,
   })
-  readonly brand?: Types.ObjectId;
+  readonly brand?: string;
 
   @IsString()
   @IsOptional()

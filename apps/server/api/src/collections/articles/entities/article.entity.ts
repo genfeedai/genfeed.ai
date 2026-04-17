@@ -5,14 +5,13 @@ import type {
   ArticleScope,
   ArticleStatus,
 } from '@genfeedai/enums';
-import type { Types } from 'mongoose';
 
 export class ArticleEntity extends BaseEntity implements Article {
-  user!: Types.ObjectId;
-  organization!: Types.ObjectId;
-  brand!: Types.ObjectId;
-  banner?: Types.ObjectId;
-  tags!: Types.ObjectId[];
+  user!: string;
+  organization!: string;
+  brand!: string;
+  banner?: string;
+  tags!: string[];
 
   label!: string;
   description?: string;

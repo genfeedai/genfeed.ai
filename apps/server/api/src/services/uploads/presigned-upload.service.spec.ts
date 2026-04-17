@@ -16,7 +16,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 // Mock Clerk utilities
 vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({

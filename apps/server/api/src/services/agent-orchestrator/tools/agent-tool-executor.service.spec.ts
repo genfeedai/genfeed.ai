@@ -12,7 +12,6 @@ import { PostStatus } from '@genfeedai/enums';
 import { AgentToolName } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Effect } from 'effect';
-import { Types } from 'mongoose';
 
 const CREATE_LIVESTREAM_BOT_TOOL = 'create_livestream_bot' as AgentToolName;
 const MANAGE_LIVESTREAM_BOT_TOOL = 'manage_livestream_bot' as AgentToolName;

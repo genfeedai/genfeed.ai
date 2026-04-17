@@ -38,7 +38,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('activities')
@@ -65,7 +64,7 @@ export class ActivitiesController {
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: { isDeleted },
       },
@@ -96,8 +95,8 @@ export class ActivitiesController {
     const activity = await this.activitiesService.findOne({
       _id: activityId,
       $or: [
-        { user: new Types.ObjectId(publicMetadata.user) },
-        { organization: new Types.ObjectId(publicMetadata.organization) },
+        { user: publicMetadata.user },
+        { organization: publicMetadata.organization },
       ],
     });
 

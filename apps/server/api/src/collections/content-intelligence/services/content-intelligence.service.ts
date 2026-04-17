@@ -2,18 +2,12 @@ import {
   AddCreatorDto,
   ScrapeConfigDto,
 } from '@api/collections/content-intelligence/dto/add-creator.dto';
-import {
-  CreatorAnalysis,
-  type CreatorAnalysisDocument,
-} from '@api/collections/content-intelligence/schemas/creator-analysis.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { CreatorAnalysisDocument } from '@api/collections/content-intelligence/schemas/creator-analysis.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { CreatorAnalysisStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class ContentIntelligenceService extends BaseService<
@@ -22,16 +16,15 @@ export class ContentIntelligenceService extends BaseService<
   Partial<AddCreatorDto>
 > {
   constructor(
-    @InjectModel(CreatorAnalysis.name, DB_CONNECTIONS.CLOUD)
-    model: AggregatePaginateModel<CreatorAnalysisDocument>,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    super(prisma, 'creatorAnalysis', logger);
   }
 
   addCreator(
-    organizationId: Types.ObjectId,
-    userId: Types.ObjectId,
+    organizationId: string,
+    userId: string,
     dto: AddCreatorDto,
   ): Promise<CreatorAnalysisDocument> {
     const scrapeConfig: ScrapeConfigDto = {
@@ -45,7 +38,7 @@ export class ContentIntelligenceService extends BaseService<
       displayName: dto.displayName,
       handle: dto.handle,
       niche: dto.niche,
-      organization: organizationId,
+      organizationId,
       platform: dto.platform,
       profileUrl: dto.profileUrl,
       scrapeConfig,
@@ -57,26 +50,26 @@ export class ContentIntelligenceService extends BaseService<
   }
 
   findByHandle(
-    organizationId: Types.ObjectId,
+    organizationId: string,
     platform: string,
     handle: string,
   ): Promise<CreatorAnalysisDocument | null> {
     return this.findOne({
       handle,
       isDeleted: false,
-      organization: organizationId,
+      organizationId,
       platform,
     });
   }
 
   findByOrganization(
-    organizationId: Types.ObjectId,
+    organizationId: string,
   ): Promise<CreatorAnalysisDocument[]> {
-    return this.findAllByOrganization(organizationId.toString());
+    return this.findAllByOrganization(organizationId);
   }
 
   updateStatus(
-    id: Types.ObjectId | string,
+    id: string,
     status: CreatorAnalysisStatus,
     errorMessage?: string,
   ): Promise<CreatorAnalysisDocument> {
@@ -91,7 +84,7 @@ export class ContentIntelligenceService extends BaseService<
   }
 
   updateMetrics(
-    id: Types.ObjectId | string,
+    id: string,
     metrics: Record<string, unknown>,
     postsScraped: number,
     patternsExtracted: number,
@@ -104,7 +97,7 @@ export class ContentIntelligenceService extends BaseService<
   }
 
   updateCreatorProfile(
-    id: Types.ObjectId | string,
+    id: string,
     profileData: {
       displayName?: string;
       avatarUrl?: string;

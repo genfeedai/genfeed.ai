@@ -11,7 +11,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable()

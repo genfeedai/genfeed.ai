@@ -1,7 +1,6 @@
 import { CreateTrainingDto } from '@api/collections/trainings/dto/create-training.dto';
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import { IsBoolean, IsMongoId, IsOptional, IsString } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class UpdateTrainingDto extends PartialType(CreateTrainingDto) {
   @IsOptional()
@@ -14,7 +13,7 @@ export class UpdateTrainingDto extends PartialType(CreateTrainingDto) {
     description: 'Brand ID to associate with the training',
     required: false,
   })
-  readonly brand?: Types.ObjectId;
+  readonly brand?: string;
 
   @IsBoolean()
   @IsOptional()

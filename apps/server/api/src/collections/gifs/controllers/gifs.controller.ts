@@ -39,7 +39,11 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 @AutoSwagger()
 @Controller('gifs')
@@ -70,9 +74,9 @@ export class GifsController {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
     const scope = { $ne: null };
-    const brand = new Types.ObjectId(publicMetadata.brand);
+    const brand = publicMetadata.brand;
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           $and: [
@@ -85,7 +89,7 @@ export class GifsController {
                       category: IngredientCategory.GIF,
                       isDeleted,
                       scope,
-                      user: new Types.ObjectId(publicMetadata.user),
+                      user: publicMetadata.user,
                     },
                   ],
                 },
@@ -187,7 +191,7 @@ export class GifsController {
       query.folder,
     );
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           $and: [
@@ -197,11 +201,11 @@ export class GifsController {
                   $and: [
                     {
                       $or: [
-                        { user: new Types.ObjectId(publicMetadata.user) },
+                        { user: publicMetadata.user },
                         {
-                          organization: new Types.ObjectId(
+                          organization: 
                             publicMetadata.organization,
-                          ),
+                          ,
                         },
                       ],
                       brand,
@@ -371,7 +375,7 @@ export class GifsController {
                           {
                             $eq: [
                               '$user',
-                              new Types.ObjectId(publicMetadata.user),
+                              publicMetadata.user,
                             ],
                           },
                         ],
@@ -455,9 +459,9 @@ export class GifsController {
     }
 
     const vote = await this.votesService.findOne({
-      entity: new Types.ObjectId(gifId),
+      entity: gifId,
       entityModel: ActivityEntityModel.INGREDIENT,
-      user: new Types.ObjectId(publicMetadata.user),
+      user: publicMetadata.user,
     });
 
     data.hasVoted = !!vote;

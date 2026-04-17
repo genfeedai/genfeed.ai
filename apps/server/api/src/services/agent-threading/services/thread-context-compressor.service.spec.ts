@@ -7,7 +7,6 @@ import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatc
 import { LoggerService } from '@libs/logger/logger.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 import { ThreadContextCompressorService } from './thread-context-compressor.service';
 

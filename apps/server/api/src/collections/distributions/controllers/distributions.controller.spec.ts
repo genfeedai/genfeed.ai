@@ -5,7 +5,6 @@ import {
   PublishStatus,
 } from '@genfeedai/enums';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock serializers to avoid real serialization in unit tests
@@ -22,13 +21,13 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_req, _serializer, data) => data),
 }));
 
-const ORG_ID = new Types.ObjectId().toString();
-const USER_ID = new Types.ObjectId().toString();
+const ORG_ID = '507f191e810c19729de860ee'.toString();
+const USER_ID = '507f191e810c19729de860ee'.toString();
 
 function createMockUser() {
   return {
     publicMetadata: {
-      brand: new Types.ObjectId().toString(),
+      brand: '507f191e810c19729de860ee'.toString(),
       organization: ORG_ID,
       user: USER_ID,
     },
@@ -38,7 +37,7 @@ function createMockUser() {
 function createMocks() {
   const distributionsService = {
     cancelScheduled: vi.fn().mockResolvedValue({
-      _id: new Types.ObjectId(),
+      _id: '507f191e810c19729de860ee',
       status: PublishStatus.CANCELLED,
     }),
     findByOrganization: vi.fn().mockResolvedValue({
@@ -46,17 +45,17 @@ function createMocks() {
       total: 0,
     }),
     findOneByOrganization: vi.fn().mockResolvedValue({
-      _id: new Types.ObjectId(),
+      _id: '507f191e810c19729de860ee',
       platform: DistributionPlatform.TELEGRAM,
     }),
   };
 
   const telegramDistributionService = {
     schedule: vi.fn().mockResolvedValue({
-      distributionId: new Types.ObjectId().toString(),
+      distributionId: '507f191e810c19729de860ee'.toString(),
     }),
     sendImmediate: vi.fn().mockResolvedValue({
-      distributionId: new Types.ObjectId().toString(),
+      distributionId: '507f191e810c19729de860ee'.toString(),
       telegramMessageId: '42',
     }),
   };
@@ -154,7 +153,7 @@ describe('DistributionsController', () => {
   describe('findOne', () => {
     it('should query with organization isolation', async () => {
       const user = createMockUser();
-      const id = new Types.ObjectId().toString();
+      const id = '507f191e810c19729de860ee'.toString();
 
       await controller.findOne(mockReq, id, user as never);
 
@@ -167,7 +166,7 @@ describe('DistributionsController', () => {
   describe('cancel', () => {
     it('should cancel with organization isolation', async () => {
       const user = createMockUser();
-      const id = new Types.ObjectId().toString();
+      const id = '507f191e810c19729de860ee'.toString();
 
       await controller.cancel(mockReq, id, user as never);
 

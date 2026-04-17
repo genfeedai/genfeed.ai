@@ -7,7 +7,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Queue } from 'bullmq';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class WebhookClientService {

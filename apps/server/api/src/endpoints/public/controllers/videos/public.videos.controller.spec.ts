@@ -27,7 +27,6 @@ import type {
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from 'express';
-import { Types } from 'mongoose';
 
 const mockRequest = {
   originalUrl: '/api/public/videos',
@@ -83,11 +82,11 @@ describe('PublicVideosController', () => {
     );
     const aggregateArg = mockVideosService.findAll.mock.calls[0][0] as Array<{
       $match?: {
-        brand?: Types.ObjectId;
+        brand?: string;
       };
     }>;
     const matchStage = aggregateArg[0];
-    expect(matchStage.$match?.brand).toEqual(new Types.ObjectId(brandId));
+    expect(matchStage.$match?.brand).toEqual(brandId);
   });
 
   it('should pass tag filter as regex when provided', async () => {

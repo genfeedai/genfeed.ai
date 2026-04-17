@@ -19,7 +19,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 /** Supported social platforms for AI influencer posts */
 export type AiInfluencerPlatform =

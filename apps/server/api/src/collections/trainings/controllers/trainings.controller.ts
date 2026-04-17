@@ -59,7 +59,6 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @AutoSwagger()
 @ApiTags('trainings')
@@ -89,7 +88,7 @@ export class TrainingsController extends BaseCRUDController<
    * Build virtual fields pipeline stages (totalSources, totalGeneratedImages)
    * Shared between findAll and findOne
    */
-  private buildVirtualFieldsStages(): PipelineStage[] {
+  private buildVirtualFieldsStages(): Record<string, unknown>[] {
     return [
       {
         $lookup: {
@@ -139,7 +138,7 @@ export class TrainingsController extends BaseCRUDController<
   public buildFindAllPipeline(
     user: User,
     query: TrainingsQueryDto,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const publicMetadata = getPublicMetadata(user);
     const adminFilter = CollectionFilterUtil.buildAdminFilter(
       publicMetadata,
@@ -148,15 +147,15 @@ export class TrainingsController extends BaseCRUDController<
 
     // Build ownership $or conditions (used when adminFilter is null)
     const ownershipOr = [
-      { user: new Types.ObjectId(publicMetadata.user) },
-      { brand: new Types.ObjectId(publicMetadata.brand) },
+      { user: publicMetadata.user },
+      { brand: publicMetadata.brand },
       {
         brand: null,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       },
     ];
 
-    const pipeline: PipelineStage[] = [
+    const pipeline: Record<string, unknown>[] = [
       {
         $match: {
           ...(adminFilter ?? { $or: ownershipOr }),
@@ -182,11 +181,8 @@ export class TrainingsController extends BaseCRUDController<
   /**
    * Build pipeline for findOne with virtual fields
    */
-  public buildFindOnePipeline(id: string): PipelineStage[] {
-    return [
-      { $match: { _id: new Types.ObjectId(id) } },
-      ...this.buildVirtualFieldsStages(),
-    ];
+  public buildFindOnePipeline(id: string): Record<string, unknown>[] {
+    return [{ $match: { _id: id } }, ...this.buildVirtualFieldsStages()];
   }
 
   /**
@@ -199,7 +195,7 @@ export class TrainingsController extends BaseCRUDController<
     @CurrentUser() _user: User,
     @Param('trainingId') trainingId: string,
   ): Promise<JsonApiSingleResponse> {
-    if (!Types.ObjectId.isValid(trainingId)) {
+    if (!/^[0-9a-f]{24}$/i.test(trainingId)) {
       throw new HttpException(
         {
           detail: `Training with ID ${trainingId} not found`,
@@ -306,7 +302,7 @@ export class TrainingsController extends BaseCRUDController<
         );
       }
 
-      const sourceIds = sources.map((source) => new Types.ObjectId(source));
+      const sourceIds = sources.map((source) => source);
 
       const sourceResult = await this.ingredientsService.findAll(
         [
@@ -316,9 +312,9 @@ export class TrainingsController extends BaseCRUDController<
                 $in: sourceIds,
               },
               $or: [
-                { user: new Types.ObjectId(publicMetadata.user) },
+                { user: publicMetadata.user },
                 {
-                  organization: new Types.ObjectId(publicMetadata.organization),
+                  organization: publicMetadata.organization,
                 },
               ],
               category: IngredientCategory.IMAGE,
@@ -375,22 +371,20 @@ export class TrainingsController extends BaseCRUDController<
 
       const training = await this.trainingsService.create(
         new TrainingEntity({
-          brand: publicMetadata.brand
-            ? new Types.ObjectId(publicMetadata.brand)
-            : undefined,
+          brand: publicMetadata.brand ? publicMetadata.brand : undefined,
           category: createDto.category || 'subject',
           description: createDto.description || '',
           label: createDto.label || 'Custom Model',
           model:
             resolvedModel || this.configService.get('REPLICATE_MODELS_TRAINER'),
-          organization: new Types.ObjectId(publicMetadata.organization),
+          organization: publicMetadata.organization,
           provider: createDto.provider || 'replicate',
           seed: createDto.seed ? Number(createDto.seed) : -1,
           sources: sourceImages.map((img: { _id: unknown }) => img._id),
           status: IngredientStatus.PROCESSING,
           steps: createDto.steps ? Number(createDto.steps) : 1000,
           trigger: createDto.trigger || 'TOK',
-          user: new Types.ObjectId(publicMetadata.user),
+          user: publicMetadata.user,
         }),
       );
 
@@ -409,7 +403,7 @@ export class TrainingsController extends BaseCRUDController<
           // @ts-expect-error TS2345
           this.ingredientsService.patch(img._id, {
             category: IngredientCategory.SOURCE,
-            training: training._id as Types.ObjectId,
+            training: training._id as string,
           }),
         ),
       );

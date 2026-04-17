@@ -10,7 +10,6 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class ImageEditDto {
   @IsString()
@@ -133,7 +132,7 @@ export class ImageEditDto {
     description: 'Account ID for the image',
     required: false,
   })
-  readonly brand?: Types.ObjectId;
+  readonly brand?: string;
 
   @IsMongoId()
   @IsOptional()
@@ -141,5 +140,5 @@ export class ImageEditDto {
     description: 'Organization ID for the image',
     required: false,
   })
-  readonly organization?: Types.ObjectId;
+  readonly organization?: string;
 }

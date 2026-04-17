@@ -45,7 +45,6 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @ApiTags('Tasks')
 @AutoSwagger()
@@ -78,7 +77,7 @@ export class TasksController extends BaseCRUDController<
     const organizationId = publicMetadata.organization;
 
     const org = await this.organizationsService.findOne({
-      _id: new Types.ObjectId(organizationId),
+      _id: organizationId,
       isDeleted: false,
     });
 
@@ -102,11 +101,11 @@ export class TasksController extends BaseCRUDController<
     const doc = await this.tasksService.create({
       ...createDto,
       identifier,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       taskNumber,
     } as CreateTaskDto & {
       identifier: string;
-      organization: Types.ObjectId;
+      organization: string;
       taskNumber: number;
     });
 
@@ -135,9 +134,7 @@ export class TasksController extends BaseCRUDController<
 
         this.workspaceTaskQueueService
           .enqueue({
-            brandId: (
-              createDto.brand as Types.ObjectId | undefined
-            )?.toString(),
+            brandId: (createDto.brand as string | undefined)?.toString(),
             heygenAvatarId: extended.heygenAvatarId,
             heygenVoiceId: extended.heygenVoiceId,
             organizationId,
@@ -162,11 +159,11 @@ export class TasksController extends BaseCRUDController<
   public override buildFindAllPipeline(
     user: User,
     query: TaskQueryDto,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     };
 
     if (query.status) {
@@ -186,7 +183,7 @@ export class TasksController extends BaseCRUDController<
     }
 
     if (query.parentId) {
-      match.parentId = new Types.ObjectId(query.parentId);
+      match.parentId = query.parentId;
     }
 
     if (query.projectId) {
@@ -226,9 +223,8 @@ export class TasksController extends BaseCRUDController<
   ): boolean {
     const publicMetadata = getPublicMetadata(user);
     const entityOrganizationId =
-      (
-        entity.organization as unknown as { _id?: Types.ObjectId }
-      )?._id?.toString() || entity.organization?.toString();
+      (entity.organization as unknown as { _id?: string })?._id?.toString() ||
+      entity.organization?.toString();
 
     return entityOrganizationId === publicMetadata.organization;
   }
@@ -288,7 +284,7 @@ export class TasksController extends BaseCRUDController<
     // When a task is marked done/cancelled, check if parent's children are all complete
     if (updateDto.status === 'done' || updateDto.status === 'cancelled') {
       const task = await this.tasksService.findOne({
-        _id: new Types.ObjectId(id),
+        _id: id,
         isDeleted: false,
       });
 
@@ -437,7 +433,7 @@ export class TasksController extends BaseCRUDController<
   async openPlanThread(@CurrentUser() user: User, @Param('id') id: string) {
     const { organization, user: metadataUserId } = getPublicMetadata(user);
 
-    if (!metadataUserId || !Types.ObjectId.isValid(metadataUserId)) {
+    if (!metadataUserId || !/^[0-9a-f]{24}$/i.test(metadataUserId)) {
       throw new UnauthorizedException(
         'Missing workspace user context. Please sign in again.',
       );
@@ -480,7 +476,7 @@ export class TasksController extends BaseCRUDController<
   ) {
     const { organization, user: metadataUserId } = getPublicMetadata(user);
 
-    if (!metadataUserId || !Types.ObjectId.isValid(metadataUserId)) {
+    if (!metadataUserId || !/^[0-9a-f]{24}$/i.test(metadataUserId)) {
       throw new UnauthorizedException(
         'Missing workspace user context. Please sign in again.',
       );
@@ -501,7 +497,7 @@ export class TasksController extends BaseCRUDController<
             request?: string;
           };
           return this.workspaceTaskQueueService!.enqueue({
-            brandId: (task.brand as Types.ObjectId | undefined)?.toString(),
+            brandId: (task.brand as string | undefined)?.toString(),
             organizationId: organization,
             outputType: taskExt.outputType,
             platforms: taskExt.platforms,

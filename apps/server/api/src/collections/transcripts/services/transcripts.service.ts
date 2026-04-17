@@ -1,21 +1,14 @@
 import { CreateTranscriptDto } from '@api/collections/transcripts/dto/create-transcript.dto';
 import { UpdateTranscriptDto } from '@api/collections/transcripts/dto/update-transcript.dto';
-import {
-  Transcript,
-  type TranscriptDocument,
-} from '@api/collections/transcripts/schemas/transcript.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { TranscriptDocument } from '@api/collections/transcripts/schemas/transcript.schema';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { TranscriptStatus } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { type PipelineStage, Types } from 'mongoose';
 
 @Injectable()
 export class TranscriptsService extends BaseService<
@@ -26,37 +19,11 @@ export class TranscriptsService extends BaseService<
   private readonly constructorName = this.constructor.name;
 
   constructor(
-    @InjectModel(Transcript.name, DB_CONNECTIONS.CLOUD)
-    protected readonly model: AggregatePaginateModel<TranscriptDocument>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     @Optional() private readonly fileQueueService?: FileQueueService,
   ) {
-    super(model, logger);
-  }
-
-  /**
-   * Get context-aware population options
-   */
-  protected getPopulationForContext(
-    context: 'list' | 'detail' | 'minimal' | 'create' = 'minimal',
-  ): PopulateOption[] {
-    switch (context) {
-      case 'list':
-        return [
-          PopulatePatterns.userMinimal,
-          { path: 'article', select: '_id label slug status' },
-        ];
-      case 'detail':
-        return [
-          PopulatePatterns.userMinimal,
-          PopulatePatterns.organizationMinimal,
-          { path: 'article', select: '_id label slug content status category' },
-        ];
-      case 'create':
-        return [PopulatePatterns.userMinimal];
-      default:
-        return [PopulatePatterns.userId];
-    }
+    super(prisma, 'transcript', logger);
   }
 
   /**
@@ -89,27 +56,30 @@ export class TranscriptsService extends BaseService<
       createTranscriptDto,
     });
 
-    // Extract YouTube ID
     const youtubeId = this.extractYoutubeId(createTranscriptDto.youtubeUrl);
 
-    // Create transcript document
-    const transcript = await this.model.create({
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-      status: TranscriptStatus.PENDING,
-      transcriptText: '',
-      user: new Types.ObjectId(userId),
-      youtubeId,
-      youtubeUrl: createTranscriptDto.youtubeUrl,
-    });
+    const transcript = (await this.delegate.create({
+      data: {
+        isDeleted: false,
+        organizationId,
+        status: TranscriptStatus.PENDING,
+        transcriptText: '',
+        userId,
+        youtubeId,
+        youtubeUrl: createTranscriptDto.youtubeUrl,
+      },
+    })) as unknown as TranscriptDocument;
 
-    // Queue YouTube download job
     if (this.fileQueueService) {
       await this.fileQueueService.processFile({
-        ingredientId: transcript._id.toString(),
+        ingredientId:
+          transcript.id ??
+          (transcript as Record<string, unknown>)._id?.toString(),
         organizationId,
         params: {
-          transcriptId: transcript._id.toString(),
+          transcriptId:
+            transcript.id ??
+            (transcript as Record<string, unknown>)._id?.toString(),
           youtubeId,
           youtubeUrl: createTranscriptDto.youtubeUrl,
         },
@@ -134,32 +104,32 @@ export class TranscriptsService extends BaseService<
     page: number;
     totalPages: number;
   }> {
-    const pipeline: PipelineStage[] = [
-      {
-        $match: {
+    const skip = (page - 1) * limit;
+
+    const [docs, totalDocs] = await Promise.all([
+      this.delegate.findMany({
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+        where: {
           isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
+          organizationId,
         },
-      },
-      {
-        $sort: { createdAt: -1 },
-      },
-    ];
+      }),
+      this.delegate.count({
+        where: {
+          isDeleted: false,
+          organizationId,
+        },
+      }),
+    ]);
 
-    const result = await this.model.aggregatePaginate(
-      this.model.aggregate(pipeline),
-      {
-        limit,
-        page,
-      },
-    );
-
-    return result as unknown as {
-      docs: TranscriptDocument[];
-      totalDocs: number;
-      limit: number;
-      page: number;
-      totalPages: number;
+    return {
+      docs: docs as unknown as TranscriptDocument[],
+      limit,
+      page,
+      totalDocs,
+      totalPages: Math.ceil(totalDocs / limit),
     };
   }
 
@@ -169,21 +139,21 @@ export class TranscriptsService extends BaseService<
     status: TranscriptStatus,
     error?: string,
   ): Promise<TranscriptDocument> {
-    const updateData: UpdateTranscriptDto = { status };
-
+    const updateData: Record<string, unknown> = { status };
     if (error) {
       updateData.error = error;
     }
 
-    const transcript = await this.model
-      .findByIdAndUpdate(transcriptId, updateData, { returnDocument: 'after' })
-      .exec();
+    const transcript = await this.delegate.update({
+      data: updateData,
+      where: { id: transcriptId },
+    });
 
     if (!transcript) {
       throw new Error(`Transcript ${transcriptId} not found`);
     }
 
-    return transcript;
+    return transcript as unknown as TranscriptDocument;
   }
 
   @HandleErrors('update transcript text', 'transcripts')
@@ -192,7 +162,7 @@ export class TranscriptsService extends BaseService<
     transcriptText: string,
     language?: string,
   ): Promise<TranscriptDocument> {
-    const updateData: UpdateTranscriptDto = {
+    const updateData: Record<string, unknown> = {
       status: TranscriptStatus.GENERATING_ARTICLE,
       transcriptText,
     };
@@ -201,15 +171,16 @@ export class TranscriptsService extends BaseService<
       updateData.language = language;
     }
 
-    const transcript = await this.model
-      .findByIdAndUpdate(transcriptId, updateData, { returnDocument: 'after' })
-      .exec();
+    const transcript = await this.delegate.update({
+      data: updateData,
+      where: { id: transcriptId },
+    });
 
     if (!transcript) {
       throw new Error(`Transcript ${transcriptId} not found`);
     }
 
-    return transcript;
+    return transcript as unknown as TranscriptDocument;
   }
 
   @HandleErrors('link article to transcript', 'transcripts')
@@ -217,37 +188,35 @@ export class TranscriptsService extends BaseService<
     transcriptId: string,
     articleId: string,
   ): Promise<TranscriptDocument> {
-    const transcript = await this.model
-      .findByIdAndUpdate(
-        transcriptId,
-        {
-          article: new Types.ObjectId(articleId),
-          status: TranscriptStatus.GENERATED,
-        },
-        { returnDocument: 'after' },
-      )
-      .exec();
+    const transcript = await this.delegate.update({
+      data: {
+        articleId,
+        status: TranscriptStatus.GENERATED,
+      },
+      where: { id: transcriptId },
+    });
 
     if (!transcript) {
       throw new Error(`Transcript ${transcriptId} not found`);
     }
 
-    return transcript;
+    return transcript as unknown as TranscriptDocument;
   }
 
   @HandleErrors('update transcript', 'transcripts')
   async updateOne(
-    filter: unknown,
+    filter: Record<string, unknown>,
     updateData: UpdateTranscriptDto,
   ): Promise<TranscriptDocument> {
-    const transcript = await this.model
-      .findOneAndUpdate(filter, updateData, { returnDocument: 'after' })
-      .exec();
+    const transcript = await this.delegate.update({
+      data: updateData as Record<string, unknown>,
+      where: filter,
+    });
 
     if (!transcript) {
       throw new Error('Transcript not found');
     }
 
-    return transcript;
+    return transcript as unknown as TranscriptDocument;
   }
 }

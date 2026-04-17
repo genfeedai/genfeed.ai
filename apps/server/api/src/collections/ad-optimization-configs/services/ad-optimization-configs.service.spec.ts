@@ -3,7 +3,6 @@ import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 import { AdOptimizationConfigsService } from './ad-optimization-configs.service';
 

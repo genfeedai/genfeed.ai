@@ -1,16 +1,14 @@
 import { CreateCustomerInstanceDto } from '@api/collections/customer-instances/dto/create-customer-instance.dto';
 import { UpdateCustomerInstanceDto } from '@api/collections/customer-instances/dto/update-customer-instance.dto';
-import {
+import type {
   CustomerInstance,
-  type CustomerInstanceDocument,
-  type CustomerInstanceRole,
+  CustomerInstanceDocument,
+  CustomerInstanceRole,
 } from '@api/collections/customer-instances/schemas/customer-instance.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class CustomerInstancesService extends BaseService<
@@ -19,11 +17,10 @@ export class CustomerInstancesService extends BaseService<
   UpdateCustomerInstanceDto
 > {
   constructor(
-    @InjectModel(CustomerInstance.name, DB_CONNECTIONS.CLOUD)
-    protected readonly model: AggregatePaginateModel<CustomerInstanceDocument>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    super(prisma, 'customerInstance', logger);
   }
 
   /**
@@ -34,22 +31,22 @@ export class CustomerInstancesService extends BaseService<
     organizationId: string,
     role: CustomerInstanceRole,
   ): Promise<CustomerInstance | null> {
-    return this.model
-      .findOne({
+    return this.delegate.findFirst({
+      where: {
         isDeleted: false,
         organizationId,
-        role: { $in: [role, 'full'] },
+        role: { in: [role, 'full'] },
         status: 'running',
         tier: 'dedicated',
-      })
-      .sort({ lastStartedAt: -1, createdAt: -1 })
-      .exec();
+      },
+      orderBy: [{ lastStartedAt: 'desc' }, { createdAt: 'desc' }],
+    }) as Promise<CustomerInstance | null>;
   }
 
   findAllByOrg(organizationId: string): Promise<CustomerInstance[]> {
-    return this.model
-      .find({ isDeleted: false, organizationId })
-      .sort({ createdAt: -1 })
-      .exec();
+    return this.delegate.findMany({
+      where: { isDeleted: false, organizationId },
+      orderBy: { createdAt: 'desc' },
+    }) as Promise<CustomerInstance[]>;
   }
 }

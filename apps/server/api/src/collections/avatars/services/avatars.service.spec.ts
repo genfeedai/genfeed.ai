@@ -6,7 +6,6 @@ import { createMockModel } from '@api/shared/testing/mock-model.factory';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockLogger() {

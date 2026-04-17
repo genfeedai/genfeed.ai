@@ -1,7 +1,6 @@
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsMongoId, IsOptional, IsString } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CaptionsQueryDto extends BaseQueryDto {
   @ApiProperty({
@@ -10,7 +9,7 @@ export class CaptionsQueryDto extends BaseQueryDto {
   })
   @IsOptional()
   @IsMongoId()
-  brand?: Types.ObjectId;
+  brand?: string;
 
   @ApiProperty({
     description: 'Filter captions by language (e.g., en, es, fr)',

@@ -6,7 +6,6 @@ import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { OAuth2Client } from 'google-auth-library';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class YoutubeAuthService {

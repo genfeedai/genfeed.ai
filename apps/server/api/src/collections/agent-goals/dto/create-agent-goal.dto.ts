@@ -13,23 +13,22 @@ import {
   IsString,
   Min,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreateAgentGoalDto {
   @IsMongoId()
   @IsOptional()
   @ApiProperty({ description: 'Organization ID', required: false })
-  organization?: Types.ObjectId;
+  organization?: string;
 
   @IsMongoId()
   @IsOptional()
   @ApiProperty({ description: 'User ID', required: false })
-  user?: Types.ObjectId;
+  user?: string;
 
   @IsMongoId()
   @IsOptional()
   @ApiProperty({ description: 'Brand ID', required: false })
-  brand?: Types.ObjectId;
+  brand?: string;
 
   @IsString()
   @ApiProperty({ description: 'Goal label' })

@@ -39,7 +39,11 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 @AutoSwagger()
 @Controller('elements/blacklists')
@@ -73,7 +77,7 @@ export class ElementsBlacklistsController extends BaseCRUDController<
   public buildFindAllPipeline(
     user: User,
     query: BlacklistsQueryDto,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const publicMetadata = getPublicMetadata(user);
     const adminFilter = CollectionFilterUtil.buildAdminFilter(
       publicMetadata,
@@ -87,12 +91,12 @@ export class ElementsBlacklistsController extends BaseCRUDController<
 
     if (publicMetadata.organization) {
       orConditions.push({
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       });
     }
 
     if (publicMetadata.user) {
-      orConditions.push({ user: new Types.ObjectId(publicMetadata.user) });
+      orConditions.push({ user: publicMetadata.user });
     }
 
     // Build conditions array for $and
@@ -140,7 +144,7 @@ export class ElementsBlacklistsController extends BaseCRUDController<
 
     // Add organization if not super admin
     if (!getIsSuperAdmin(user) && publicMetadata.organization) {
-      enriched.organization = new Types.ObjectId(publicMetadata.organization);
+      enriched.organization = publicMetadata.organization;
     }
 
     // Do NOT add user field - Blacklist schema doesn't have it
@@ -157,7 +161,7 @@ export class ElementsBlacklistsController extends BaseCRUDController<
 
     // Only add organization if it's being updated
     if (enriched.organization) {
-      enriched.organization = new Types.ObjectId(enriched.organization);
+      enriched.organization = enriched.organization;
     }
 
     // Do NOT add user field - Blacklist schema doesn't have it
@@ -224,7 +228,7 @@ export class ElementsBlacklistsController extends BaseCRUDController<
 
     // Check ownership before update - don't populate 'user' field since blacklists don't have it
     const existing = await this.blacklistsService.findOne(
-      { _id: new Types.ObjectId(blacklistId) },
+      { _id: blacklistId },
       [], // No population needed for ownership check
     );
 

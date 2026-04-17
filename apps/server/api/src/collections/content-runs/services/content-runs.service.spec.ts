@@ -6,7 +6,6 @@ import { ContentRunSource, ContentRunStatus } from '@genfeedai/enums';
 import type { CreateContentRunInput } from '@genfeedai/interfaces';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('ContentRunsService', () => {

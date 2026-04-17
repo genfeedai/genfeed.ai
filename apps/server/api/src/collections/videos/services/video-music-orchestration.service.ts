@@ -47,7 +47,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 export interface OrchestrationContext {
   brandId: string;

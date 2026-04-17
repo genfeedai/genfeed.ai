@@ -55,7 +55,6 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @AutoSwagger()
 @ApiTags('clip-projects')
@@ -115,7 +114,7 @@ export class ClipProjectsController {
       name:
         dto.name ??
         `YouTube Clip Factory — ${new Date().toISOString().slice(0, 10)}`,
-      organization: new Types.ObjectId(orgId),
+      organization: orgId,
       settings: {
         addCaptions: true,
         aspectRatio: '9:16',
@@ -125,7 +124,7 @@ export class ClipProjectsController {
         minDuration: 15,
       },
       sourceVideoUrl: dto.youtubeUrl,
-      user: new Types.ObjectId(userId),
+      user: userId,
     });
 
     const projectId = String(project._id);
@@ -172,7 +171,7 @@ export class ClipProjectsController {
       language: dto.language ?? 'en',
       name:
         dto.name ?? `Clip Analysis — ${new Date().toISOString().slice(0, 10)}`,
-      organization: new Types.ObjectId(orgId),
+      organization: orgId,
       settings: {
         addCaptions: true,
         aspectRatio: '9:16',
@@ -183,7 +182,7 @@ export class ClipProjectsController {
       },
       sourceVideoUrl: dto.youtubeUrl,
       status: 'pending',
-      user: new Types.ObjectId(userId),
+      user: userId,
     });
 
     const projectId = String(project._id);
@@ -217,7 +216,7 @@ export class ClipProjectsController {
     const project = await this.clipProjectsService.findOne({
       _id: projectId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!project) {
@@ -251,7 +250,7 @@ export class ClipProjectsController {
     const project = await this.clipProjectsService.findOne({
       _id: projectId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!project) {
@@ -286,7 +285,7 @@ export class ClipProjectsController {
     const project = await this.clipProjectsService.findOne({
       _id: projectId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!project) {
@@ -369,8 +368,8 @@ export class ClipProjectsController {
 
     const data: ClipProjectDocument = await this.clipProjectsService.create({
       ...createDto,
-      organization: new Types.ObjectId(publicMetadata.organization),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: publicMetadata.organization,
+      user: publicMetadata.user,
     });
 
     return serializeSingle(request, ClipProjectSerializer, data);
@@ -390,11 +389,11 @@ export class ClipProjectsController {
       ...QueryDefaultsUtil.getPaginationDefaults(query),
     };
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           isDeleted: false,
-          organization: new Types.ObjectId(publicMetadata.organization),
+          organization: publicMetadata.organization,
         },
       },
       {
@@ -421,7 +420,7 @@ export class ClipProjectsController {
     const data = await this.clipProjectsService.findOne({
       _id: id,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!data) {
@@ -444,7 +443,7 @@ export class ClipProjectsController {
     const existing = await this.clipProjectsService.findOne({
       _id: id,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!existing) {

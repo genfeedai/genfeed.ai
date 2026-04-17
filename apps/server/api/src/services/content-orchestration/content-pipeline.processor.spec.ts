@@ -3,7 +3,6 @@ import { ContentPipelineProcessor } from '@api/services/content-orchestration/co
 import { ImageTaskModel } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 // Mock the BullMQ decorators
 vi.mock('@nestjs/bullmq', () => ({

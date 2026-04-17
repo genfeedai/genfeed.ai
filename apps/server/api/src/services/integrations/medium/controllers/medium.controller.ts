@@ -32,7 +32,6 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('services/medium')

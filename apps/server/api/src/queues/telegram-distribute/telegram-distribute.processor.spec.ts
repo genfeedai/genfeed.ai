@@ -1,6 +1,5 @@
 import { TelegramDistributeProcessor } from '@api/queues/telegram-distribute/telegram-distribute.processor';
 import { DistributionPlatform } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMocks() {
@@ -32,8 +31,8 @@ describe('TelegramDistributeProcessor', () => {
 
   describe('process', () => {
     it('should call processScheduled with scoped payload', async () => {
-      const distributionId = new Types.ObjectId().toString();
-      const organizationId = new Types.ObjectId().toString();
+      const distributionId = '507f191e810c19729de860ee'.toString();
+      const organizationId = '507f191e810c19729de860ee'.toString();
       const job = {
         data: {
           distributionId,
@@ -57,8 +56,8 @@ describe('TelegramDistributeProcessor', () => {
     });
 
     it('should propagate errors from processScheduled', async () => {
-      const distributionId = new Types.ObjectId().toString();
-      const organizationId = new Types.ObjectId().toString();
+      const distributionId = '507f191e810c19729de860ee'.toString();
+      const organizationId = '507f191e810c19729de860ee'.toString();
       const job = {
         data: {
           distributionId,
@@ -78,8 +77,8 @@ describe('TelegramDistributeProcessor', () => {
     });
 
     it('should log start and completion messages', async () => {
-      const distributionId = new Types.ObjectId().toString();
-      const organizationId = new Types.ObjectId().toString();
+      const distributionId = '507f191e810c19729de860ee'.toString();
+      const organizationId = '507f191e810c19729de860ee'.toString();
       const job = {
         data: {
           distributionId,
@@ -98,8 +97,8 @@ describe('TelegramDistributeProcessor', () => {
     });
 
     it('should pass all job data fields to processScheduled', async () => {
-      const distributionId = new Types.ObjectId().toString();
-      const organizationId = new Types.ObjectId().toString();
+      const distributionId = '507f191e810c19729de860ee'.toString();
+      const organizationId = '507f191e810c19729de860ee'.toString();
       const platform = DistributionPlatform.TELEGRAM;
       const job = {
         data: { distributionId, organizationId, platform },
@@ -116,8 +115,8 @@ describe('TelegramDistributeProcessor', () => {
     it('should update progress to 10 before processing and 100 after', async () => {
       const job = {
         data: {
-          distributionId: new Types.ObjectId().toString(),
-          organizationId: new Types.ObjectId().toString(),
+          distributionId: '507f191e810c19729de860ee'.toString(),
+          organizationId: '507f191e810c19729de860ee'.toString(),
           platform: DistributionPlatform.TELEGRAM,
         },
         updateProgress: vi.fn(),

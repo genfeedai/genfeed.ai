@@ -1,6 +1,5 @@
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { NotFoundException } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 describe('PersonasService', () => {
   describe('assignMembers', () => {

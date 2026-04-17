@@ -8,7 +8,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Job } from 'bullmq';
-import { Types } from 'mongoose';
 
 import {
   type ReplyBotPollingJobData,
@@ -46,11 +45,11 @@ describe('ReplyBotPollingProcessor', () => {
   let loggerService: vi.Mocked<LoggerService>;
   let circuitExecute: ReturnType<typeof vi.fn>;
 
-  const orgId = new Types.ObjectId().toString();
-  const credentialId = new Types.ObjectId().toString();
+  const orgId = '507f191e810c19729de860ee'.toString();
+  const credentialId = '507f191e810c19729de860ee'.toString();
 
   const mockCredential = {
-    _id: new Types.ObjectId(),
+    _id: '507f191e810c19729de860ee',
     accessToken: 'access-token',
     accessTokenSecret: 'access-secret',
     externalId: 'ext-123',

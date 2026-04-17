@@ -19,7 +19,6 @@ import {
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 // =============================================================================
 // VISUAL BUILDER DTOs
@@ -252,7 +251,7 @@ export class CreateWorkflowDto extends LabeledCreateDto {
     description: 'The user ID who created this workflow',
     required: false,
   })
-  readonly user?: Types.ObjectId;
+  readonly user?: string;
 
   @IsMongoId()
   @IsOptional()
@@ -260,7 +259,7 @@ export class CreateWorkflowDto extends LabeledCreateDto {
     description: 'The organization ID that owns this workflow',
     required: false,
   })
-  readonly organization?: Types.ObjectId;
+  readonly organization?: string;
 
   @IsArray()
   @IsOptional()
@@ -268,7 +267,7 @@ export class CreateWorkflowDto extends LabeledCreateDto {
     description: 'Tags for categorizing the workflow',
     required: false,
   })
-  readonly tags?: Types.ObjectId[];
+  readonly tags?: string[];
 
   @IsString()
   @ApiProperty({ description: 'Name of the workflow' })
@@ -303,7 +302,7 @@ export class CreateWorkflowDto extends LabeledCreateDto {
     description: 'Source asset that triggered the workflow',
     required: false,
   })
-  readonly sourceAsset?: Types.ObjectId;
+  readonly sourceAsset?: string;
 
   @IsArray()
   @ValidateNested({ each: true })

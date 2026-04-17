@@ -8,7 +8,6 @@ import { TagResolutionService } from '@api/shared/services/tag-resolution/tag-re
 import { PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 // Mock googleapis
 const mockVideosInsert = vi.fn();

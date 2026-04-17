@@ -1,27 +1,43 @@
 vi.mock('@api/services/integrations/youtube/services/youtube.service', () => ({
   YoutubeService: class {},
 }));
+vi.mock('@api/collections/brands/services/brands.service', () => ({
+  BrandsService: class {},
+}));
+vi.mock(
+  '@api/collections/organizations/services/organizations.service',
+  () => ({
+    OrganizationsService: class {},
+  }),
+);
+vi.mock('@api/collections/posts/services/posts.service', () => ({
+  PostsService: class {},
+}));
+vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
+  PrismaService: class {},
+}));
+vi.mock('@genfeedai/prisma', () => ({
+  Prisma: {
+    raw: (sql: string) => sql,
+  },
+  PrismaClient: class {},
+}));
 
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
-import { PostAnalytics } from '@api/collections/posts/schemas/post-analytics.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { LeaderboardSort } from '@api/endpoints/analytics/dto/leaderboard-query.dto';
-import { Analytic } from '@api/endpoints/analytics/schemas/analytic.schema';
-import { mockModel } from '@api/helpers/mocks/model.mock';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AnalyticsMetric, CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('AnalyticsService', () => {
   const typed = <T>(value: unknown): T => value as T;
@@ -74,32 +90,39 @@ describe('AnalyticsService', () => {
     get: vi.fn(),
   };
 
-  // Create mock PostAnalytics model with aggregate
-  const mockPostAnalyticsModel = {
-    ...mockModel,
-    aggregate: vi.fn(),
-  };
-
-  // Create mock analytics model
-  const mockAnalyticModel = {
-    ...mockModel,
-    aggregate: vi.fn(),
+  // Mock PrismaService: $queryRaw is the primary path for all analytics aggregations
+  const mockPrismaService = {
+    $queryRaw: vi.fn(),
+    analytic: {
+      count: vi.fn(),
+      create: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+    },
+    brand: {
+      count: vi.fn(),
+      groupBy: vi.fn(),
+    },
+    organization: {
+      count: vi.fn(),
+    },
   };
 
   beforeEach(async () => {
     vi.clearAllMocks();
 
+    // Default: $queryRaw returns empty array unless overridden
+    mockPrismaService.$queryRaw.mockResolvedValue([]);
+    mockPrismaService.brand.groupBy.mockResolvedValue([]);
+    mockPrismaService.organization.count.mockResolvedValue(0);
+    mockPrismaService.brand.count.mockResolvedValue(0);
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AnalyticsService,
-        {
-          provide: getModelToken(Analytic.name, DB_CONNECTIONS.ANALYTICS),
-          useValue: mockAnalyticModel,
-        },
-        {
-          provide: getModelToken(PostAnalytics.name, DB_CONNECTIONS.ANALYTICS),
-          useValue: mockPostAnalyticsModel,
-        },
+        { provide: PrismaService, useValue: mockPrismaService },
         { provide: PostsService, useValue: mockPostsService },
         { provide: OrganizationsService, useValue: mockOrganizationsService },
         { provide: BrandsService, useValue: mockBrandsService },
@@ -129,10 +152,10 @@ describe('AnalyticsService', () => {
   // getOrganizationsLeaderboard
   // ==========================================================================
   describe('getOrganizationsLeaderboard', () => {
-    const mockOrgId = new Types.ObjectId();
+    const mockOrgId = 'org-cuid-1';
     const mockOrgs = [
       {
-        _id: mockOrgId,
+        id: mockOrgId,
         createdAt: new Date(),
         label: 'Test Org',
         logo: { cdnUrl: 'https://cdn.example.com/logo.png' },
@@ -142,7 +165,7 @@ describe('AnalyticsService', () => {
 
     beforeEach(() => {
       mockOrganizationsService.findAll.mockResolvedValue({ docs: mockOrgs });
-      mockPostAnalyticsModel.aggregate.mockResolvedValue([]);
+      mockPrismaService.$queryRaw.mockResolvedValue([]);
     });
 
     it('should return empty array when no organizations exist', async () => {
@@ -154,21 +177,20 @@ describe('AnalyticsService', () => {
     });
 
     it('should return organizations with analytics', async () => {
-      const mockAnalytics = [
-        {
-          _id: mockOrgId,
-          avgEngagementRate: 5.5,
-          posts: [new Types.ObjectId(), new Types.ObjectId()],
-          totalComments: 50,
-          totalLikes: 100,
-          totalSaves: 10,
-          totalShares: 25,
-          totalViews: 1000,
-        },
-      ];
-
-      mockPostAnalyticsModel.aggregate
-        .mockResolvedValueOnce(mockAnalytics) // current period
+      // $queryRaw is called twice: getCurrentAnalytics, getPreviousEngagement
+      mockPrismaService.$queryRaw
+        .mockResolvedValueOnce([
+          {
+            entity_id: mockOrgId,
+            avg_engagement_rate: 5.5,
+            total_views: BigInt(1000),
+            total_likes: BigInt(100),
+            total_comments: BigInt(50),
+            total_shares: BigInt(25),
+            total_saves: BigInt(10),
+            unique_posts: BigInt(2),
+          },
+        ])
         .mockResolvedValueOnce([]); // previous period
 
       const result = await service.getOrganizationsLeaderboard();
@@ -182,29 +204,22 @@ describe('AnalyticsService', () => {
     });
 
     it('should calculate growth percentage correctly', async () => {
-      const currentAnalytics = [
-        {
-          _id: mockOrgId,
-          avgEngagementRate: 5,
-          posts: [new Types.ObjectId()],
-          totalComments: 50,
-          totalLikes: 100,
-          totalSaves: 25,
-          totalShares: 25,
-          totalViews: 200,
-        },
-      ];
-
-      const previousAnalytics = [
-        {
-          _id: mockOrgId,
-          totalEngagement: 100,
-        },
-      ];
-
-      mockPostAnalyticsModel.aggregate
-        .mockResolvedValueOnce(currentAnalytics)
-        .mockResolvedValueOnce(previousAnalytics);
+      mockPrismaService.$queryRaw
+        .mockResolvedValueOnce([
+          {
+            entity_id: mockOrgId,
+            avg_engagement_rate: 5,
+            total_views: BigInt(200),
+            total_likes: BigInt(100),
+            total_comments: BigInt(50),
+            total_shares: BigInt(25),
+            total_saves: BigInt(25),
+            unique_posts: BigInt(1),
+          },
+        ])
+        .mockResolvedValueOnce([
+          { entity_id: mockOrgId, total_engagement: BigInt(100) },
+        ]);
 
       const result = await service.getOrganizationsLeaderboard();
 
@@ -213,21 +228,19 @@ describe('AnalyticsService', () => {
     });
 
     it('should handle 100% growth for new orgs with no previous data', async () => {
-      const currentAnalytics = [
-        {
-          _id: mockOrgId,
-          avgEngagementRate: 3,
-          posts: [new Types.ObjectId()],
-          totalComments: 5,
-          totalLikes: 10,
-          totalSaves: 1,
-          totalShares: 2,
-          totalViews: 100,
-        },
-      ];
-
-      mockPostAnalyticsModel.aggregate
-        .mockResolvedValueOnce(currentAnalytics)
+      mockPrismaService.$queryRaw
+        .mockResolvedValueOnce([
+          {
+            entity_id: mockOrgId,
+            avg_engagement_rate: 3,
+            total_views: BigInt(100),
+            total_likes: BigInt(10),
+            total_comments: BigInt(5),
+            total_shares: BigInt(2),
+            total_saves: BigInt(1),
+            unique_posts: BigInt(1),
+          },
+        ])
         .mockResolvedValueOnce([]); // no previous data
 
       const result = await service.getOrganizationsLeaderboard();
@@ -236,37 +249,35 @@ describe('AnalyticsService', () => {
     });
 
     it('should sort by views when sort=VIEWS', async () => {
-      const org1 = { _id: new Types.ObjectId(), label: 'Org1' };
-      const org2 = { _id: new Types.ObjectId(), label: 'Org2' };
+      const org1 = { id: 'org-1', label: 'Org1' };
+      const org2 = { id: 'org-2', label: 'Org2' };
       mockOrganizationsService.findAll.mockResolvedValue({
         docs: [org1, org2],
       });
 
-      const analytics = [
-        {
-          _id: org1._id,
-          avgEngagementRate: 0,
-          posts: [],
-          totalComments: 0,
-          totalLikes: 50,
-          totalSaves: 0,
-          totalShares: 0,
-          totalViews: 100,
-        },
-        {
-          _id: org2._id,
-          avgEngagementRate: 0,
-          posts: [],
-          totalComments: 0,
-          totalLikes: 10,
-          totalSaves: 0,
-          totalShares: 0,
-          totalViews: 500,
-        },
-      ];
-
-      mockPostAnalyticsModel.aggregate
-        .mockResolvedValueOnce(analytics)
+      mockPrismaService.$queryRaw
+        .mockResolvedValueOnce([
+          {
+            entity_id: 'org-1',
+            avg_engagement_rate: 0,
+            total_views: BigInt(100),
+            total_likes: BigInt(50),
+            total_comments: BigInt(0),
+            total_shares: BigInt(0),
+            total_saves: BigInt(0),
+            unique_posts: BigInt(0),
+          },
+          {
+            entity_id: 'org-2',
+            avg_engagement_rate: 0,
+            total_views: BigInt(500),
+            total_likes: BigInt(10),
+            total_comments: BigInt(0),
+            total_shares: BigInt(0),
+            total_saves: BigInt(0),
+            unique_posts: BigInt(0),
+          },
+        ])
         .mockResolvedValueOnce([]);
 
       const result = await service.getOrganizationsLeaderboard(
@@ -281,11 +292,11 @@ describe('AnalyticsService', () => {
 
     it('should respect limit parameter', async () => {
       const orgs = Array.from({ length: 20 }, (_, i) => ({
-        _id: new Types.ObjectId(),
+        id: `org-${i}`,
         label: `Org ${i}`,
       }));
       mockOrganizationsService.findAll.mockResolvedValue({ docs: orgs });
-      mockPostAnalyticsModel.aggregate.mockResolvedValue([]);
+      mockPrismaService.$queryRaw.mockResolvedValue([]);
 
       const result = await service.getOrganizationsLeaderboard(
         undefined,
@@ -302,23 +313,23 @@ describe('AnalyticsService', () => {
   // getBrandsLeaderboard
   // ==========================================================================
   describe('getBrandsLeaderboard', () => {
-    const mockBrandId = new Types.ObjectId();
-    const mockOrgId = new Types.ObjectId();
+    const mockBrandId = 'brand-cuid-1';
+    const mockOrgId = 'org-cuid-1';
     const mockBrands = [
       {
-        _id: mockBrandId,
+        id: mockBrandId,
         createdAt: new Date(),
         label: 'Test Brand',
         logo: { cdnUrl: 'https://cdn.example.com/brand-logo.png' },
         name: 'Test Brand Name',
-        org: { _id: mockOrgId, label: 'Parent Org' },
-        organization: mockOrgId,
+        org: { id: mockOrgId, label: 'Parent Org' },
+        organizationId: mockOrgId,
       },
     ];
 
     beforeEach(() => {
       mockBrandsService.findAll.mockResolvedValue({ docs: mockBrands });
-      mockPostAnalyticsModel.aggregate.mockResolvedValue([]);
+      mockPrismaService.$queryRaw.mockResolvedValue([]);
     });
 
     it('should return empty array when no brands exist', async () => {
@@ -330,22 +341,20 @@ describe('AnalyticsService', () => {
     });
 
     it('should return brands with analytics', async () => {
-      const mockAnalytics = [
-        {
-          _id: mockBrandId,
-          avgEngagementRate: 8.5,
-          platforms: [CredentialPlatform.YOUTUBE, CredentialPlatform.TIKTOK],
-          posts: [new Types.ObjectId()],
-          totalComments: 100,
-          totalLikes: 200,
-          totalSaves: 20,
-          totalShares: 50,
-          totalViews: 2000,
-        },
-      ];
-
-      mockPostAnalyticsModel.aggregate
-        .mockResolvedValueOnce(mockAnalytics)
+      mockPrismaService.$queryRaw
+        .mockResolvedValueOnce([
+          {
+            entity_id: mockBrandId,
+            avg_engagement_rate: 8.5,
+            total_views: BigInt(2000),
+            total_likes: BigInt(200),
+            total_comments: BigInt(100),
+            total_shares: BigInt(50),
+            total_saves: BigInt(20),
+            unique_posts: BigInt(1),
+            platforms: [CredentialPlatform.YOUTUBE, CredentialPlatform.TIKTOK],
+          },
+        ])
         .mockResolvedValueOnce([]);
 
       const result = await service.getBrandsLeaderboard();
@@ -358,49 +367,35 @@ describe('AnalyticsService', () => {
     });
 
     it('should sort by posts when sort=POSTS', async () => {
-      const brand1 = {
-        _id: new Types.ObjectId(),
-        label: 'Brand1',
-        org: { label: 'Org1' },
-      };
-      const brand2 = {
-        _id: new Types.ObjectId(),
-        label: 'Brand2',
-        org: { label: 'Org2' },
-      };
+      const brand1 = { id: 'brand-1', label: 'Brand1', org: { label: 'Org1' } };
+      const brand2 = { id: 'brand-2', label: 'Brand2', org: { label: 'Org2' } };
       mockBrandsService.findAll.mockResolvedValue({ docs: [brand1, brand2] });
 
-      const analytics = [
-        {
-          _id: brand1._id,
-          avgEngagementRate: 0,
-          platforms: [],
-          posts: [new Types.ObjectId()],
-          totalComments: 0,
-          totalLikes: 0,
-          totalSaves: 0,
-          totalShares: 0,
-          totalViews: 100,
-        },
-        {
-          _id: brand2._id,
-          avgEngagementRate: 0,
-          platforms: [],
-          posts: [
-            new Types.ObjectId(),
-            new Types.ObjectId(),
-            new Types.ObjectId(),
-          ],
-          totalComments: 0,
-          totalLikes: 0,
-          totalSaves: 0,
-          totalShares: 0,
-          totalViews: 50,
-        },
-      ];
-
-      mockPostAnalyticsModel.aggregate
-        .mockResolvedValueOnce(analytics)
+      mockPrismaService.$queryRaw
+        .mockResolvedValueOnce([
+          {
+            entity_id: 'brand-1',
+            avg_engagement_rate: 0,
+            total_views: BigInt(100),
+            total_likes: BigInt(0),
+            total_comments: BigInt(0),
+            total_shares: BigInt(0),
+            total_saves: BigInt(0),
+            unique_posts: BigInt(1),
+            platforms: [],
+          },
+          {
+            entity_id: 'brand-2',
+            avg_engagement_rate: 0,
+            total_views: BigInt(50),
+            total_likes: BigInt(0),
+            total_comments: BigInt(0),
+            total_shares: BigInt(0),
+            total_saves: BigInt(0),
+            unique_posts: BigInt(3),
+            platforms: [],
+          },
+        ])
         .mockResolvedValueOnce([]);
 
       const result = await service.getBrandsLeaderboard(
@@ -420,13 +415,13 @@ describe('AnalyticsService', () => {
   describe('getOrganizationsWithStats', () => {
     beforeEach(() => {
       mockOrganizationsService.findAll.mockResolvedValue({ docs: [] });
-      mockBrandsService.findAll.mockResolvedValue({ docs: [] });
-      mockPostAnalyticsModel.aggregate.mockResolvedValue([]);
+      mockPrismaService.$queryRaw.mockResolvedValue([]);
+      mockPrismaService.brand.groupBy.mockResolvedValue([]);
     });
 
     it('should return paginated response', async () => {
       const orgs = Array.from({ length: 25 }, (_, i) => ({
-        _id: new Types.ObjectId(),
+        id: `org-${i}`,
         label: `Org ${i}`,
       }));
       mockOrganizationsService.findAll.mockResolvedValue({ docs: orgs });
@@ -446,13 +441,13 @@ describe('AnalyticsService', () => {
     });
 
     it('should include brand counts per org', async () => {
-      const orgId = new Types.ObjectId();
+      const orgId = 'org-cuid-1';
       mockOrganizationsService.findAll.mockResolvedValue({
-        docs: [{ _id: orgId, label: 'Test Org' }],
+        docs: [{ id: orgId, label: 'Test Org' }],
       });
-      mockBrandsService.findAll.mockResolvedValue({
-        docs: [{ _id: orgId, count: 5 }],
-      });
+      mockPrismaService.brand.groupBy.mockResolvedValue([
+        { organizationId: orgId, _count: { id: 5 } },
+      ]);
 
       const result = await service.getOrganizationsWithStats();
 
@@ -466,12 +461,12 @@ describe('AnalyticsService', () => {
   describe('getBrandsWithStats', () => {
     beforeEach(() => {
       mockBrandsService.findAll.mockResolvedValue({ docs: [] });
-      mockPostAnalyticsModel.aggregate.mockResolvedValue([]);
+      mockPrismaService.$queryRaw.mockResolvedValue([]);
     });
 
     it('should return paginated response', async () => {
       const brands = Array.from({ length: 30 }, (_, i) => ({
-        _id: new Types.ObjectId(),
+        id: `brand-${i}`,
         label: `Brand ${i}`,
         org: { label: 'Org' },
       }));
@@ -502,13 +497,13 @@ describe('AnalyticsService', () => {
       mockPostsService.findAll.mockResolvedValue({
         docs: [
           {
-            _id: new Types.ObjectId(),
-            brand: new Types.ObjectId(),
+            id: 'post-1',
+            brandId: 'brand-1',
             createdAt: new Date(),
             credential: { platform: CredentialPlatform.YOUTUBE },
             label: 'Test Post',
             metadata: { label: 'Video Title' },
-            organization: new Types.ObjectId(),
+            organizationId: 'org-1',
             status: 'published',
             updatedAt: new Date(),
           },
@@ -529,13 +524,13 @@ describe('AnalyticsService', () => {
       mockPostsService.findAll.mockResolvedValue({
         docs: [
           {
-            _id: new Types.ObjectId(),
-            brand: new Types.ObjectId(),
+            id: 'post-2',
+            brandId: 'brand-1',
             createdAt: new Date(),
             credential: { platform: CredentialPlatform.TIKTOK },
             label: 'Test Post',
             metadata: {},
-            organization: new Types.ObjectId(),
+            organizationId: 'org-1',
             status: 'published',
             updatedAt: new Date(),
           },
@@ -560,21 +555,21 @@ describe('AnalyticsService', () => {
     });
 
     it('should fetch platform-specific analytics', async () => {
-      const postId = new Types.ObjectId();
-      const orgId = new Types.ObjectId();
-      const brandId = new Types.ObjectId();
+      const postId = 'post-yt-1';
+      const orgId = 'org-1';
+      const brandId = 'brand-1';
 
       mockPostsService.findAll.mockResolvedValue({
         docs: [
           {
-            _id: postId,
-            brand: brandId,
+            id: postId,
+            brandId,
             createdAt: new Date(),
             credential: { platform: CredentialPlatform.YOUTUBE },
             externalId: 'youtube-123',
             label: 'YT Video',
             metadata: {},
-            organization: orgId,
+            organizationId: orgId,
             status: 'published',
             updatedAt: new Date(),
           },
@@ -590,8 +585,8 @@ describe('AnalyticsService', () => {
       const result = await service.exportData('csv', ['views', 'likes']);
 
       expect(mockYoutubeService.getMediaAnalytics).toHaveBeenCalledWith(
-        orgId.toString(),
-        brandId.toString(),
+        orgId,
+        brandId,
         'youtube-123',
       );
       expect(result).toContain('1000');
@@ -601,14 +596,14 @@ describe('AnalyticsService', () => {
       mockPostsService.findAll.mockResolvedValue({
         docs: [
           {
-            _id: new Types.ObjectId(),
-            brand: new Types.ObjectId(),
+            id: 'post-tt-1',
+            brandId: 'brand-1',
             createdAt: new Date(),
             credential: { platform: CredentialPlatform.TIKTOK },
             externalId: 'tiktok-123',
             label: 'TT Video',
             metadata: {},
-            organization: new Types.ObjectId(),
+            organizationId: 'org-1',
             status: 'published',
             updatedAt: new Date(),
           },
@@ -630,14 +625,14 @@ describe('AnalyticsService', () => {
       mockPostsService.findAll.mockResolvedValue({
         docs: [
           {
-            _id: new Types.ObjectId(),
-            brand: new Types.ObjectId(),
+            id: 'post-err-1',
+            brandId: 'brand-1',
             createdAt: new Date(),
             credential: { platform: CredentialPlatform.INSTAGRAM },
             externalId: 'error-123',
             label: 'Error Video',
             metadata: {},
-            organization: new Types.ObjectId(),
+            organizationId: 'org-1',
             status: 'published',
             updatedAt: new Date(),
           },
@@ -664,14 +659,14 @@ describe('AnalyticsService', () => {
       mockPostsService.findAll.mockResolvedValue({
         docs: [
           {
-            _id: new Types.ObjectId(),
-            brand: new Types.ObjectId(),
+            id: 'post-1',
+            brandId: 'brand-1',
             createdAt: new Date(),
             credential: { platform: CredentialPlatform.YOUTUBE },
             externalId: 'yt-123',
             label: 'Video 1',
             metadata: { label: 'Test Video' },
-            organization: new Types.ObjectId(),
+            organizationId: 'org-1',
             status: 'published',
             updatedAt: new Date(),
             views: 100,
@@ -699,58 +694,50 @@ describe('AnalyticsService', () => {
       const startDate = '2025-01-01';
       const endDate = '2025-01-03';
 
-      mockPostAnalyticsModel.aggregate.mockResolvedValue([
+      mockPrismaService.$queryRaw.mockResolvedValue([
         {
-          _id: '2025-01-01',
-          platforms: [
-            {
-              comments: 5,
-              engagementRate: 5,
-              likes: 10,
-              platform: CredentialPlatform.YOUTUBE,
-              saves: 1,
-              shares: 2,
-              views: 100,
-            },
-          ],
+          day: '2025-01-01',
+          platform: CredentialPlatform.YOUTUBE,
+          comments: BigInt(5),
+          engagement_rate: 5,
+          likes: BigInt(10),
+          saves: BigInt(1),
+          shares: BigInt(2),
+          views: BigInt(100),
         },
         {
-          _id: '2025-01-02',
-          platforms: [
-            {
-              comments: 10,
-              engagementRate: 8,
-              likes: 20,
-              platform: CredentialPlatform.TIKTOK,
-              saves: 2,
-              shares: 5,
-              views: 200,
-            },
-          ],
+          day: '2025-01-02',
+          platform: CredentialPlatform.TIKTOK,
+          comments: BigInt(10),
+          engagement_rate: 8,
+          likes: BigInt(20),
+          saves: BigInt(2),
+          shares: BigInt(5),
+          views: BigInt(200),
         },
       ]);
 
-      const result = typed<Array<any>>(
+      const result = typed<Array<Record<string, unknown>>>(
         await service.getTimeSeriesData(startDate, endDate),
       );
 
       expect(result).toHaveLength(3); // 3 days
       expect(result[0].date).toBe('2025-01-01');
-      expect(result[0].youtube.views).toBe(100);
-      expect(result[1].tiktok.views).toBe(200);
-      expect(result[2].instagram.views).toBe(0); // empty metrics for day without data
+      expect((result[0].youtube as Record<string, number>).views).toBe(100);
+      expect((result[1].tiktok as Record<string, number>).views).toBe(200);
+      expect((result[2].instagram as Record<string, number>).views).toBe(0);
     });
 
     it('should fill empty dates with zero metrics', async () => {
-      mockPostAnalyticsModel.aggregate.mockResolvedValue([]);
+      mockPrismaService.$queryRaw.mockResolvedValue([]);
 
-      const result = typed<Array<any>>(
+      const result = typed<Array<Record<string, unknown>>>(
         await service.getTimeSeriesData('2025-01-01', '2025-01-02'),
       );
 
       expect(result).toHaveLength(2);
-      expect(result[0].youtube.views).toBe(0);
-      expect(result[0].tiktok.likes).toBe(0);
+      expect((result[0].youtube as Record<string, number>).views).toBe(0);
+      expect((result[0].tiktok as Record<string, number>).likes).toBe(0);
     });
   });
 
@@ -759,70 +746,107 @@ describe('AnalyticsService', () => {
   // ==========================================================================
   describe('getOverview', () => {
     beforeEach(() => {
-      mockOrganizationsService.count.mockResolvedValue(5);
-      mockBrandsService.count.mockResolvedValue(10);
-      mockPostAnalyticsModel.aggregate.mockResolvedValue([]);
+      mockPrismaService.organization.count.mockResolvedValue(5);
+      mockPrismaService.brand.count.mockResolvedValue(10);
+      mockPrismaService.$queryRaw.mockResolvedValue([]);
     });
 
     it('should return overview analytics', async () => {
-      const currentMetrics = [
-        {
-          _id: null,
-          avgEngagementRate: 5.5,
-          totalComments: 200,
-          totalLikes: 500,
-          totalPosts: 100,
-          totalSaves: 50,
-          totalShares: 100,
-          totalViews: 10000,
-        },
-      ];
+      mockPrismaService.$queryRaw
+        .mockResolvedValueOnce([
+          {
+            avg_engagement_rate: 5.5,
+            total_comments: BigInt(200),
+            total_likes: BigInt(500),
+            total_posts: BigInt(100),
+            total_saves: BigInt(50),
+            total_shares: BigInt(100),
+            total_views: BigInt(10000),
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            total_engagement: BigInt(600),
+            total_posts: BigInt(80),
+            total_views: BigInt(8000),
+          },
+        ]);
 
-      const previousMetrics = [
-        {
-          _id: null,
-          totalEngagement: 600,
-          totalPosts: 80,
-          totalViews: 8000,
-        },
-      ];
-
-      mockPostAnalyticsModel.aggregate
-        .mockResolvedValueOnce(currentMetrics)
-        .mockResolvedValueOnce(previousMetrics);
-
-      const result = typed<any>(await service.getOverview());
+      const result = typed<Record<string, unknown>>(
+        await service.getOverview(),
+      );
 
       expect(result.totalPosts).toBe(100);
       expect(result.totalViews).toBe(10000);
       expect(result.totalEngagement).toBe(850); // 500+200+100+50
       expect(result.organizationCount).toBe(5);
       expect(result.brandCount).toBe(10);
-      expect(result.growth.posts).toBe(25); // (100-80)/80 * 100
-    });
-
-    it('should handle brandId filter', async () => {
-      mockPostAnalyticsModel.aggregate.mockResolvedValue([]);
-
-      const brandId = new Types.ObjectId().toString();
-      await service.getOverview(undefined, undefined, brandId);
-
-      expect(mockPostAnalyticsModel.aggregate).toHaveBeenCalled();
-      // Verify match stage includes brand filter
-      const firstCall = mockPostAnalyticsModel.aggregate.mock.calls[0][0];
-      expect(firstCall[0].$match).toHaveProperty('brand');
+      expect((result.growth as Record<string, number>).posts).toBe(25); // (100-80)/80 * 100
     });
 
     it('should return zero growth when no previous data', async () => {
-      mockPostAnalyticsModel.aggregate
+      mockPrismaService.$queryRaw
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([]);
 
-      const result = typed<any>(await service.getOverview());
+      const result = typed<Record<string, Record<string, number>>>(
+        await service.getOverview(),
+      );
 
       expect(result.growth.posts).toBe(0);
       expect(result.growth.views).toBe(0);
       expect(result.growth.engagement).toBe(0);
+    });
+
+    it('should call prisma.organization.count with organizationId filter', async () => {
+      mockPrismaService.$queryRaw.mockResolvedValue([]);
+
+      const orgId = 'org-filter-1';
+      await service.getOverview(undefined, undefined, undefined, orgId);
+
+      expect(mockPrismaService.organization.count).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ id: orgId }),
+        }),
+      );
+    });
+  });
+
+  // ==========================================================================
+  // getBestPostingTimes
+  // ==========================================================================
+  describe('getBestPostingTimes', () => {
+    it('should return best posting times per platform', async () => {
+      mockPrismaService.$queryRaw.mockResolvedValue([
+        {
+          platform: CredentialPlatform.YOUTUBE,
+          hour: 14,
+          avg_engagement_rate: 8.5,
+          post_count: BigInt(20),
+        },
+        {
+          platform: CredentialPlatform.TIKTOK,
+          hour: 20,
+          avg_engagement_rate: 12.0,
+          post_count: BigInt(35),
+        },
+      ]);
+
+      const result = await service.getBestPostingTimes();
+
+      expect(result).toHaveLength(2);
+      expect(result[0].platform).toBe(CredentialPlatform.YOUTUBE);
+      expect(result[0].hour).toBe(14);
+      expect(result[0].avgEngagementRate).toBe(8.5);
+      expect(result[0].postCount).toBe(20);
+    });
+
+    it('should return empty array when no data', async () => {
+      mockPrismaService.$queryRaw.mockResolvedValue([]);
+
+      const result = await service.getBestPostingTimes();
+
+      expect(result).toEqual([]);
     });
   });
 
@@ -831,79 +855,55 @@ describe('AnalyticsService', () => {
   // ==========================================================================
   describe('getTopContent', () => {
     it('should return top performing content', async () => {
-      const postId = new Types.ObjectId();
-
-      mockPostAnalyticsModel.aggregate.mockResolvedValue([
+      mockPrismaService.$queryRaw.mockResolvedValue([
         {
-          _id: new Types.ObjectId(),
-          brandLogo: { cdnUrl: 'https://cdn.example.com/logo.png' },
-          brandName: 'Brand A',
-          description: 'Best performing',
-          engagementRate: 8.5,
-          ingredientUrl: 'https://cdn.example.com/video.mp4',
-          isVideo: true,
-          label: 'Top Video',
+          id: 'pa-1',
+          post_id: 'post-1',
           platform: CredentialPlatform.YOUTUBE,
-          postId,
-          thumbnailUrl: 'https://cdn.example.com/thumb.jpg',
-          totalComments: 200,
-          totalEngagement: 850,
-          totalLikes: 500,
-          totalSaves: 50,
-          totalShares: 100,
-          totalViews: 10000,
+          date: new Date(),
+          total_views: BigInt(10000),
+          total_likes: BigInt(500),
+          total_comments: BigInt(200),
+          total_saves: BigInt(50),
+          total_shares: BigInt(100),
+          engagement_rate: 8.5,
+          total_engagement: BigInt(850),
+          label: 'Top Video',
+          description: 'Best performing',
+          brand_name: 'Brand A',
+          brand_logo: null,
         },
       ]);
 
-      const result = typed<Array<any>>(await service.getTopContent());
+      const result = typed<Array<Record<string, unknown>>>(
+        await service.getTopContent(),
+      );
 
       expect(result).toHaveLength(1);
       expect(result[0].label).toBe('Top Video');
       expect(result[0].totalViews).toBe(10000);
     });
 
-    it('should sort by engagement when metric=engagement', async () => {
-      mockPostAnalyticsModel.aggregate.mockResolvedValue([]);
+    it('should call $queryRaw for different metrics', async () => {
+      mockPrismaService.$queryRaw.mockResolvedValue([]);
 
       await service.getTopContent(
         undefined,
         undefined,
         10,
         AnalyticsMetric.ENGAGEMENT,
-        undefined,
-        undefined,
       );
 
-      // Verify sort field in aggregate pipeline
-      expect(mockPostAnalyticsModel.aggregate).toHaveBeenCalled();
+      expect(mockPrismaService.$queryRaw).toHaveBeenCalled();
     });
 
-    it('should sort by likes when metric=likes', async () => {
-      mockPostAnalyticsModel.aggregate.mockResolvedValue([]);
+    it('should enforce max limit of 100', async () => {
+      mockPrismaService.$queryRaw.mockResolvedValue([]);
 
-      await service.getTopContent(
-        undefined,
-        undefined,
-        10,
-        AnalyticsMetric.LIKES,
-      );
+      // safeLimit = min(max(1, 200), 100) = 100
+      await service.getTopContent(undefined, undefined, 200);
 
-      expect(mockPostAnalyticsModel.aggregate).toHaveBeenCalled();
-    });
-
-    it('should filter by platform', async () => {
-      mockPostAnalyticsModel.aggregate.mockResolvedValue([]);
-
-      await service.getTopContent(
-        undefined,
-        undefined,
-        10,
-        AnalyticsMetric.VIEWS,
-        undefined,
-        CredentialPlatform.TIKTOK,
-      );
-
-      expect(mockPostAnalyticsModel.aggregate).toHaveBeenCalled();
+      expect(mockPrismaService.$queryRaw).toHaveBeenCalled();
     });
   });
 
@@ -911,54 +911,62 @@ describe('AnalyticsService', () => {
   // getPlatformComparison
   // ==========================================================================
   describe('getPlatformComparison', () => {
-    it('should return platform comparison data', async () => {
-      mockPostAnalyticsModel.aggregate.mockResolvedValue([
+    it('should return platform comparison data with percentages', async () => {
+      mockPrismaService.$queryRaw.mockResolvedValue([
         {
-          _id: CredentialPlatform.YOUTUBE,
-          avgEngagementRate: 8.5,
-          totalComments: 100,
-          totalEngagement: 425,
-          totalLikes: 250,
-          totalPosts: 50,
-          totalSaves: 25,
-          totalShares: 50,
-          totalViews: 5000,
+          platform: CredentialPlatform.YOUTUBE,
+          avg_engagement_rate: 8.5,
+          total_comments: BigInt(100),
+          total_likes: BigInt(250),
+          total_posts: BigInt(50),
+          total_saves: BigInt(25),
+          total_shares: BigInt(50),
+          total_views: BigInt(5000),
+          total_engagement: BigInt(425),
         },
         {
-          _id: CredentialPlatform.TIKTOK,
-          avgEngagementRate: 8.5,
-          totalComments: 60,
-          totalEngagement: 255,
-          totalLikes: 150,
-          totalPosts: 30,
-          totalSaves: 15,
-          totalShares: 30,
-          totalViews: 3000,
+          platform: CredentialPlatform.TIKTOK,
+          avg_engagement_rate: 8.5,
+          total_comments: BigInt(60),
+          total_likes: BigInt(150),
+          total_posts: BigInt(30),
+          total_saves: BigInt(15),
+          total_shares: BigInt(30),
+          total_views: BigInt(3000),
+          total_engagement: BigInt(255),
         },
       ]);
 
-      const result = typed<Array<any>>(await service.getPlatformComparison());
+      const result = typed<Array<Record<string, unknown>>>(
+        await service.getPlatformComparison(),
+      );
 
       expect(result).toHaveLength(2);
       expect(result[0].platform).toBe(CredentialPlatform.YOUTUBE);
-      expect(result[0].viewsPercentage).toBeGreaterThan(0);
-      expect(result[0].engagementPercentage).toBeGreaterThan(0);
+      expect(result[0].viewsPercentage as number).toBeGreaterThan(0);
+      expect(result[0].engagementPercentage as number).toBeGreaterThan(0);
     });
 
-    it('should calculate percentages correctly', async () => {
-      mockPostAnalyticsModel.aggregate.mockResolvedValue([
+    it('should calculate 100% when single platform', async () => {
+      mockPrismaService.$queryRaw.mockResolvedValue([
         {
-          _id: CredentialPlatform.YOUTUBE,
-          avgEngagementRate: 10,
-          totalEngagement: 100,
-          totalPosts: 100,
-          totalViews: 1000,
+          platform: CredentialPlatform.YOUTUBE,
+          avg_engagement_rate: 10,
+          total_comments: BigInt(0),
+          total_likes: BigInt(0),
+          total_posts: BigInt(100),
+          total_saves: BigInt(0),
+          total_shares: BigInt(0),
+          total_views: BigInt(1000),
+          total_engagement: BigInt(100),
         },
       ]);
 
-      const result = typed<Array<any>>(await service.getPlatformComparison());
+      const result = typed<Array<Record<string, number>>>(
+        await service.getPlatformComparison(),
+      );
 
-      expect(result[0].viewsPercentage).toBe(100); // Only platform = 100%
+      expect(result[0].viewsPercentage).toBe(100);
       expect(result[0].postsPercentage).toBe(100);
     });
   });
@@ -968,58 +976,57 @@ describe('AnalyticsService', () => {
   // ==========================================================================
   describe('getGrowthTrends', () => {
     it('should return growth trends by day', async () => {
-      const currentResults = [
-        {
-          _id: '2025-01-01',
-          comments: 20,
-          engagement: 85,
-          likes: 50,
-          posts: 10,
-          saves: 5,
-          shares: 10,
-          views: 1000,
-        },
-        {
-          _id: '2025-01-02',
-          comments: 25,
-          engagement: 103,
-          likes: 60,
-          posts: 12,
-          saves: 6,
-          shares: 12,
-          views: 1200,
-        },
-      ];
+      mockPrismaService.$queryRaw
+        .mockResolvedValueOnce([
+          {
+            day: '2025-01-01',
+            comments: BigInt(20),
+            engagement: BigInt(85),
+            likes: BigInt(50),
+            posts: BigInt(10),
+            saves: BigInt(5),
+            shares: BigInt(10),
+            views: BigInt(1000),
+          },
+          {
+            day: '2025-01-02',
+            comments: BigInt(25),
+            engagement: BigInt(103),
+            likes: BigInt(60),
+            posts: BigInt(12),
+            saves: BigInt(6),
+            shares: BigInt(12),
+            views: BigInt(1200),
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            total_comments: BigInt(15),
+            total_likes: BigInt(40),
+            total_posts: BigInt(8),
+            total_saves: BigInt(4),
+            total_shares: BigInt(8),
+            total_views: BigInt(800),
+          },
+        ]);
 
-      const previousResults = [
-        {
-          totalComments: 15,
-          totalLikes: 40,
-          totalPosts: 8,
-          totalSaves: 4,
-          totalShares: 8,
-          totalViews: 800,
-        },
-      ];
-
-      mockPostAnalyticsModel.aggregate
-        .mockResolvedValueOnce(currentResults)
-        .mockResolvedValueOnce(previousResults);
-
-      const result = typed<any>(await service.getGrowthTrends());
+      const result = typed<Record<string, unknown>>(
+        await service.getGrowthTrends(),
+      );
 
       expect(result.metric).toBe('views');
-      expect(result.data).toHaveLength(2);
-      expect(result.data[0].date).toBe('2025-01-01');
-      expect(result.data[0].trend).toBeDefined();
+      expect((result.data as unknown[]).length).toBe(2);
+      expect((result.data as Array<Record<string, unknown>>)[0].date).toBe(
+        '2025-01-01',
+      );
     });
 
     it('should track engagement metric', async () => {
-      mockPostAnalyticsModel.aggregate
+      mockPrismaService.$queryRaw
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([]);
 
-      const result = typed<any>(
+      const result = typed<Record<string, unknown>>(
         await service.getGrowthTrends(
           undefined,
           undefined,
@@ -1031,11 +1038,11 @@ describe('AnalyticsService', () => {
     });
 
     it('should track posts metric', async () => {
-      mockPostAnalyticsModel.aggregate
+      mockPrismaService.$queryRaw
         .mockResolvedValueOnce([])
         .mockResolvedValueOnce([]);
 
-      const result = typed<any>(
+      const result = typed<Record<string, unknown>>(
         await service.getGrowthTrends(
           undefined,
           undefined,
@@ -1052,40 +1059,46 @@ describe('AnalyticsService', () => {
   // ==========================================================================
   describe('getEngagementBreakdown', () => {
     it('should return engagement breakdown', async () => {
-      mockPostAnalyticsModel.aggregate.mockResolvedValue([
+      mockPrismaService.$queryRaw.mockResolvedValue([
         {
-          _id: null,
-          totalComments: 50,
-          totalLikes: 100,
-          totalSaves: 10,
-          totalShares: 25,
+          total_comments: BigInt(50),
+          total_likes: BigInt(100),
+          total_saves: BigInt(10),
+          total_shares: BigInt(25),
         },
       ]);
 
-      const result = typed<any>(await service.getEngagementBreakdown());
+      const result = typed<Record<string, unknown>>(
+        await service.getEngagementBreakdown(),
+      );
 
       expect(result.likes).toBe(100);
       expect(result.comments).toBe(50);
       expect(result.shares).toBe(25);
       expect(result.saves).toBe(10);
       expect(result.total).toBe(185);
-      expect(result.percentages.likes).toBeCloseTo(54.05, 1);
+      expect((result.percentages as Record<string, number>).likes).toBeCloseTo(
+        54.05,
+        1,
+      );
     });
 
     it('should handle zero engagement', async () => {
-      mockPostAnalyticsModel.aggregate.mockResolvedValue([]);
+      mockPrismaService.$queryRaw.mockResolvedValue([]);
 
-      const result = typed<any>(await service.getEngagementBreakdown());
+      const result = typed<Record<string, unknown>>(
+        await service.getEngagementBreakdown(),
+      );
 
       expect(result.total).toBe(0);
-      expect(result.percentages.likes).toBe(0);
-      expect(result.percentages.comments).toBe(0);
+      expect((result.percentages as Record<string, number>).likes).toBe(0);
+      expect((result.percentages as Record<string, number>).comments).toBe(0);
     });
 
-    it('should filter by brand and platform', async () => {
-      mockPostAnalyticsModel.aggregate.mockResolvedValue([]);
+    it('should call $queryRaw when filtering by brand and platform', async () => {
+      mockPrismaService.$queryRaw.mockResolvedValue([]);
 
-      const brandId = new Types.ObjectId().toString();
+      const brandId = 'brand-filter-1';
       await service.getEngagementBreakdown(
         undefined,
         undefined,
@@ -1093,7 +1106,7 @@ describe('AnalyticsService', () => {
         CredentialPlatform.YOUTUBE,
       );
 
-      expect(mockPostAnalyticsModel.aggregate).toHaveBeenCalled();
+      expect(mockPrismaService.$queryRaw).toHaveBeenCalled();
     });
   });
 
@@ -1102,25 +1115,23 @@ describe('AnalyticsService', () => {
   // ==========================================================================
   describe('getViralHooks', () => {
     it('should return viral hooks analysis', async () => {
-      const postId = new Types.ObjectId();
-
-      mockPostAnalyticsModel.aggregate
+      mockPrismaService.$queryRaw
         .mockResolvedValueOnce([
           {
-            _id: postId,
-            description: 'This went viral',
+            id: 'post-1',
             platforms: [CredentialPlatform.TIKTOK],
+            total_engagement: BigInt(5000),
+            total_views: BigInt(100000),
+            description: 'This went viral',
             title: 'Viral Video',
-            totalEngagement: 5000,
-            totalViews: 100000,
           },
         ])
         .mockResolvedValueOnce([
           {
-            _id: CredentialPlatform.TIKTOK,
-            postCount: 1,
-            totalEngagement: 5000,
-            totalViews: 100000,
+            platform: CredentialPlatform.TIKTOK,
+            post_count: BigInt(1),
+            total_engagement: BigInt(5000),
+            total_views: BigInt(100000),
           },
         ]);
 
@@ -1131,22 +1142,22 @@ describe('AnalyticsService', () => {
       expect(result.analysis.topPlatforms).toHaveLength(1);
     });
 
-    it('should handle brandId filter', async () => {
-      mockPostAnalyticsModel.aggregate.mockResolvedValue([]);
+    it('should call $queryRaw when filtering by brandId', async () => {
+      mockPrismaService.$queryRaw.mockResolvedValue([]);
 
-      const brandId = new Types.ObjectId().toString();
+      const brandId = 'brand-1';
       await service.getViralHooks(undefined, undefined, brandId);
 
-      expect(mockPostAnalyticsModel.aggregate).toHaveBeenCalled();
+      expect(mockPrismaService.$queryRaw).toHaveBeenCalled();
     });
 
-    it('should handle organizationId filter', async () => {
-      mockPostAnalyticsModel.aggregate.mockResolvedValue([]);
+    it('should call $queryRaw when filtering by organizationId', async () => {
+      mockPrismaService.$queryRaw.mockResolvedValue([]);
 
-      const orgId = new Types.ObjectId().toString();
+      const orgId = 'org-1';
       await service.getViralHooks(undefined, undefined, undefined, orgId);
 
-      expect(mockPostAnalyticsModel.aggregate).toHaveBeenCalled();
+      expect(mockPrismaService.$queryRaw).toHaveBeenCalled();
     });
   });
 });

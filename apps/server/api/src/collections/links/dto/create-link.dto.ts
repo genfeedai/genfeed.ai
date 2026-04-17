@@ -1,7 +1,6 @@
 import { LinkCategory } from '@genfeedai/enums';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEnum, IsMongoId, IsString, IsUrl } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreateLinkDto {
   @IsMongoId()
@@ -9,7 +8,7 @@ export class CreateLinkDto {
     description: 'The brand ID this link belongs to',
     required: true,
   })
-  readonly brand!: Types.ObjectId;
+  readonly brand!: string;
 
   @IsString()
   @ApiProperty({ description: 'The display name of the link', required: true })

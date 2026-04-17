@@ -11,13 +11,12 @@ import {
   IsString,
   ValidateIf,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreateMetadataDto {
   @IsMongoId()
   @IsOptional()
   @ApiProperty({ required: false })
-  readonly prompt?: Types.ObjectId;
+  readonly prompt?: string;
 
   @IsString()
   @IsOptional()
@@ -114,5 +113,5 @@ export class CreateMetadataDto {
   readonly hasAudio?: boolean;
 
   @IsOptional()
-  readonly tags?: Types.ObjectId[];
+  readonly tags?: string[];
 }

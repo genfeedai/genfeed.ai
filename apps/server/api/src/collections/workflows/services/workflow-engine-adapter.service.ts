@@ -75,7 +75,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable, Optional } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 /**
  * Shape of workflow document passed to convertToExecutableWorkflow.

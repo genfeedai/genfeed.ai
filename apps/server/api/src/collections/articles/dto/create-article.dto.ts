@@ -10,7 +10,6 @@ import {
   Matches,
   MaxLength,
 } from 'class-validator';
-import type { Types } from 'mongoose';
 
 export class CreateArticleDto {
   @ApiProperty({
@@ -76,7 +75,7 @@ export class CreateArticleDto {
   @IsOptional()
   @IsArray()
   @IsMongoId({ each: true })
-  tags?: Types.ObjectId[];
+  tags?: string[];
 
   @ApiProperty({
     description: 'Banner image ID',
@@ -84,7 +83,7 @@ export class CreateArticleDto {
   })
   @IsOptional()
   @IsMongoId()
-  banner?: Types.ObjectId;
+  banner?: string;
 
   @ApiProperty({
     description: 'Article access scope',

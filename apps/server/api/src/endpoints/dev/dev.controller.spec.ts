@@ -4,7 +4,6 @@ import { DevController } from '@api/endpoints/dev/dev.controller';
 import type { NotificationsService } from '@api/services/notifications/notifications.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 describe('DevController', () => {
   let controller: DevController;
@@ -66,16 +65,16 @@ describe('DevController', () => {
 
   it('throws NOT_FOUND when ingredient does not exist', async () => {
     ingredientsService.findOne.mockResolvedValue(null);
-    const ingredientId = new Types.ObjectId().toString();
+    const ingredientId = '507f191e810c19729de860ee'.toString();
     await expect(controller.debugDiscordCard({ ingredientId })).rejects.toThrow(
       HttpException,
     );
   });
 
   it('sends Discord notification for valid ingredient', async () => {
-    const ingredientId = new Types.ObjectId().toString();
+    const ingredientId = '507f191e810c19729de860ee'.toString();
     ingredientsService.findOne.mockResolvedValue({
-      _id: new Types.ObjectId(ingredientId),
+      _id: ingredientId,
       category: 'image',
       metadata: { width: 1024 },
       prompt: 'a sunset',
@@ -94,9 +93,9 @@ describe('DevController', () => {
   });
 
   it('builds correct CDN URL', async () => {
-    const ingredientId = new Types.ObjectId().toString();
+    const ingredientId = '507f191e810c19729de860ee'.toString();
     ingredientsService.findOne.mockResolvedValue({
-      _id: new Types.ObjectId(ingredientId),
+      _id: ingredientId,
       category: 'video',
       metadata: {},
       prompt: 'a test',
@@ -109,9 +108,9 @@ describe('DevController', () => {
   });
 
   it('logs start and completion', async () => {
-    const ingredientId = new Types.ObjectId().toString();
+    const ingredientId = '507f191e810c19729de860ee'.toString();
     ingredientsService.findOne.mockResolvedValue({
-      _id: new Types.ObjectId(ingredientId),
+      _id: ingredientId,
       category: 'image',
       metadata: {},
       prompt: 'test',
@@ -122,9 +121,9 @@ describe('DevController', () => {
   });
 
   it('logs error and wraps when sendNotification fails', async () => {
-    const ingredientId = new Types.ObjectId().toString();
+    const ingredientId = '507f191e810c19729de860ee'.toString();
     ingredientsService.findOne.mockResolvedValue({
-      _id: new Types.ObjectId(ingredientId),
+      _id: ingredientId,
       category: 'image',
       metadata: {},
       prompt: 'test',

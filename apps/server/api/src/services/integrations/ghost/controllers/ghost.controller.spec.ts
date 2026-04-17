@@ -13,7 +13,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 import { GhostController } from './ghost.controller';
 
 vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({

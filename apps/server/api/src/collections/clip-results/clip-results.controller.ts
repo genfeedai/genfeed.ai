@@ -30,7 +30,6 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('clip-results')
@@ -54,8 +53,8 @@ export class ClipResultsController {
 
     const data: ClipResultDocument = await this.clipResultsService.create({
       ...createClipResultDto,
-      organization: new Types.ObjectId(publicMetadata.organization),
-      user: new Types.ObjectId(publicMetadata.user),
+      organization: publicMetadata.organization,
+      user: publicMetadata.user,
     } as CreateClipResultDto);
 
     return serializeSingle(request, ClipResultSerializer, data);
@@ -119,7 +118,7 @@ export class ClipResultsController {
     const data = await this.clipResultsService.findOne({
       _id: id,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!data) {
@@ -142,7 +141,7 @@ export class ClipResultsController {
     const existing = await this.clipResultsService.findOne({
       _id: id,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!existing) {

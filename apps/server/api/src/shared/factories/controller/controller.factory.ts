@@ -1,6 +1,3 @@
-import { ConfigModule } from '@api/config/config.module';
-import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { BaseCRUDController } from '@api/shared/controllers/base-crud/base-crud.controller';
 import { createUserScopedService } from '@api/shared/factories/service/service.factory';
@@ -9,8 +6,8 @@ import type { User } from '@clerk/backend';
 import type { IJsonApiSerializer, PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Module, Type } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
-import type { PipelineStage, Schema } from 'mongoose';
+
+type PipelineStage = Record<string, unknown>;
 
 /**
  * Controller factory configuration
@@ -227,7 +224,6 @@ export function createExtendedController<
 export interface ModuleFactoryConfig<T, CreateDto, UpdateDto> {
   name: string;
   schemaName: string;
-  schema: Schema;
   entity: Type<T>;
   createDto: Type<CreateDto>;
   updateDto: Type<UpdateDto>;
@@ -267,13 +263,6 @@ export function createCRUDModule<T, CreateDto, UpdateDto>(
     useOptimizedPopulation: true,
   });
 
-  // Validate ConfigModule is defined
-  if (!ConfigModule) {
-    throw new Error(
-      `createCRUDModule: ConfigModule from @api/config/config.module is undefined for module: ${config.name}`,
-    );
-  }
-
   // Validate config.imports doesn't contain undefined values
   const importsArray = config.imports || [];
   const invalidImports = importsArray.filter((imp) => imp == null);
@@ -286,24 +275,7 @@ export function createCRUDModule<T, CreateDto, UpdateDto>(
   @Module({
     controllers: [ControllerClass],
     exports: [ServiceClass, ...(config.exports || [])],
-    imports: [
-      MongooseModule.forFeatureAsync(
-        [
-          {
-            imports: [ConfigModule],
-            inject: [ConfigService],
-            name: config.schemaName,
-            useFactory: () => {
-              const schema = config.schema;
-              schema.plugin(require('mongoose-aggregate-paginate-v2'));
-              return schema;
-            },
-          },
-        ],
-        DB_CONNECTIONS.CLOUD,
-      ),
-      ...importsArray,
-    ],
+    imports: [...importsArray],
     providers: [ServiceClass],
   })
   class FactoryModule {}

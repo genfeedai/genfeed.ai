@@ -27,7 +27,6 @@ import { OrganizationCategory } from '@genfeedai/enums';
 import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 export interface UserSetupResult {
   organization: OrganizationEntity;

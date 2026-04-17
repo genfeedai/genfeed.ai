@@ -2,17 +2,16 @@ import { LinksController } from '@api/collections/links/controllers/links.contro
 import { LinksService } from '@api/collections/links/services/links.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 
 describe('LinksController', () => {
   let controller: LinksController;
   let linksService: Record<string, ReturnType<typeof vi.fn>>;
   let cacheService: Record<string, ReturnType<typeof vi.fn>>;
 
-  const userId = new Types.ObjectId().toString();
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
-  const linkId = new Types.ObjectId().toString();
+  const userId = '507f191e810c19729de860ee'.toString();
+  const orgId = '507f191e810c19729de860ee'.toString();
+  const brandId = '507f191e810c19729de860ee'.toString();
+  const linkId = '507f191e810c19729de860ee'.toString();
 
   const mockUser = {
     id: 'clerk_user_123',
@@ -96,7 +95,7 @@ describe('LinksController', () => {
 
   describe('enrichUpdateDto', () => {
     it('should convert brand string to ObjectId when present', async () => {
-      const newBrandId = new Types.ObjectId().toString();
+      const newBrandId = '507f191e810c19729de860ee'.toString();
       const dto = { brand: newBrandId, label: 'Updated' };
       const result = await controller.enrichUpdateDto(dto as never);
 
@@ -122,21 +121,21 @@ describe('LinksController', () => {
 
   describe('canUserModifyEntity', () => {
     it('should return true when entity brand matches user brand', () => {
-      const entity = { brand: { _id: new Types.ObjectId(brandId) } };
+      const entity = { brand: { _id: brandId } };
       const result = controller.canUserModifyEntity(mockUser, entity);
 
       expect(result).toBe(true);
     });
 
     it('should return false when entity brand does not match user brand', () => {
-      const entity = { brand: { _id: new Types.ObjectId() } };
+      const entity = { brand: { _id: '507f191e810c19729de860ee' } };
       const result = controller.canUserModifyEntity(mockUser, entity);
 
       expect(result).toBe(false);
     });
 
     it('should handle brand as string ObjectId', () => {
-      const entity = { brand: new Types.ObjectId(brandId) };
+      const entity = { brand: brandId };
       const result = controller.canUserModifyEntity(mockUser, entity);
 
       expect(result).toBe(true);
@@ -146,7 +145,7 @@ describe('LinksController', () => {
   describe('create', () => {
     it('should create a link and invalidate cache', async () => {
       linksService.create.mockResolvedValue({
-        _id: new Types.ObjectId(linkId),
+        _id: linkId,
         category: 'social',
         label: 'Twitter',
         url: 'https://x.com/test',
@@ -173,8 +172,8 @@ describe('LinksController', () => {
   describe('patch', () => {
     it('should update a link and invalidate cache', async () => {
       const existingLink = {
-        _id: new Types.ObjectId(linkId),
-        brand: { _id: new Types.ObjectId(brandId) },
+        _id: linkId,
+        brand: { _id: brandId },
         label: 'Old',
       };
       linksService.findOne.mockResolvedValue(existingLink);
@@ -197,8 +196,8 @@ describe('LinksController', () => {
   describe('remove', () => {
     it('should remove a link and invalidate cache', async () => {
       const existingLink = {
-        _id: new Types.ObjectId(linkId),
-        brand: { _id: new Types.ObjectId(brandId) },
+        _id: linkId,
+        brand: { _id: brandId },
         isDeleted: false,
       };
       linksService.findOne.mockResolvedValue(existingLink);

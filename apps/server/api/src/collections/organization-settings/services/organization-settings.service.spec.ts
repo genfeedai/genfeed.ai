@@ -6,7 +6,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { ModuleRef } from '@nestjs/core';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('OrganizationSettingsService', () => {
   let service: OrganizationSettingsService;

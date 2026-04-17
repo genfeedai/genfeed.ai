@@ -2,7 +2,6 @@ import type { CreateElementBlacklistDto } from '@api/collections/elements/blackl
 import { ElementsBlacklistsService } from '@api/collections/elements/blacklists/services/blacklists.service';
 import { createMockModel } from '@api/shared/testing/mock-model.factory';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 
 const mockLoggerService = {
   debug: vi.fn(),

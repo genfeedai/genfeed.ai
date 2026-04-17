@@ -29,7 +29,6 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @ApiTags('Monitored Accounts')
 @AutoSwagger()
@@ -58,7 +57,7 @@ export class MonitoredAccountsController extends BaseCRUDController<
   public buildFindAllPipeline(
     user: User,
     query: MonitoredAccountsQueryDto,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: query.isDeleted ?? false,
@@ -68,18 +67,18 @@ export class MonitoredAccountsController extends BaseCRUDController<
     const organizationId =
       query.organization || publicMetadata.organization?.toString();
     if (organizationId) {
-      match.organization = new Types.ObjectId(organizationId);
+      match.organization = organizationId;
     }
 
     if (query.brand) {
-      match.brand = new Types.ObjectId(query.brand);
+      match.brand = query.brand;
     } else if (publicMetadata.brand) {
-      match.brand = new Types.ObjectId(publicMetadata.brand);
+      match.brand = publicMetadata.brand;
     }
 
     // Filter by bot config if provided
     if (query.botConfig) {
-      match.botConfig = new Types.ObjectId(query.botConfig);
+      match.botConfig = query.botConfig;
     }
 
     // Filter by active status if provided
@@ -87,7 +86,7 @@ export class MonitoredAccountsController extends BaseCRUDController<
       match.isActive = query.isActive;
     }
 
-    const pipeline: PipelineStage[] = [
+    const pipeline: Record<string, unknown>[] = [
       { $match: match },
       { $sort: handleQuerySort(query.sort) },
     ];
@@ -146,12 +145,10 @@ export class MonitoredAccountsController extends BaseCRUDController<
   ) {
     const publicMetadata = getPublicMetadata(user);
     const data = await this.monitoredAccountsService.findOne({
-      ...(publicMetadata.brand
-        ? { brand: new Types.ObjectId(publicMetadata.brand) }
-        : {}),
-      _id: new Types.ObjectId(id),
+      ...(publicMetadata.brand ? { brand: publicMetadata.brand } : {}),
+      _id: id,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     return serializeSingle(request, MonitoredAccountSerializer, data);

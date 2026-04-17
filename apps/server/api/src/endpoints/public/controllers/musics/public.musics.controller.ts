@@ -25,7 +25,11 @@ import type {
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from 'express';
-import { isValidObjectId, type PipelineStage } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 @AutoSwagger()
 @Public()
@@ -75,7 +79,7 @@ export class PublicMusicsController {
       matchQuery['metadata.tags'] = { $options: 'i', $regex: tag };
     }
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       { $match: matchQuery },
       {
         $lookup: {

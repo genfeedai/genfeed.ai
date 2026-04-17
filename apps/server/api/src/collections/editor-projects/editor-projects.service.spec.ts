@@ -5,11 +5,10 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { ConflictException, NotFoundException } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 import { EditorProjectsService } from './editor-projects.service';
 
-const makeId = () => new Types.ObjectId();
+const makeId = () => '507f191e810c19729de860ee';
 const orgId = makeId();
 const projectId = makeId();
 const videoId = makeId();
@@ -115,7 +114,7 @@ describe('EditorProjectsService', () => {
       await service.markAsRendering(projectId.toString(), orgId.toString());
       expect(model.findOneAndUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
-          organization: new Types.ObjectId(orgId.toString()),
+          organization: orgId.toString(),
         }),
         expect.any(Object),
         expect.any(Object),
@@ -138,7 +137,7 @@ describe('EditorProjectsService', () => {
       expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
         projectId.toString(),
         {
-          renderedVideo: new Types.ObjectId(videoId.toString()),
+          renderedVideo: videoId.toString(),
           status: EditorProjectStatus.COMPLETED,
         },
         expect.objectContaining({ returnDocument: 'after' }),

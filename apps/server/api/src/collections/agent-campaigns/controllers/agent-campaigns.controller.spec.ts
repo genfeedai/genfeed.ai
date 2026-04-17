@@ -5,7 +5,6 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { ClerkGuard } from '@api/helpers/guards/clerk/clerk.guard';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('AgentCampaignsController', () => {
   let controller: AgentCampaignsController;
@@ -148,9 +147,9 @@ describe('AgentCampaignsController', () => {
       expect(pipeline).toHaveLength(2);
       expect(pipeline[0]).toEqual({
         $match: {
-          brand: new Types.ObjectId('507f1f77bcf86cd799439013'),
+          brand: '507f1f77bcf86cd799439013',
           isDeleted: false,
-          organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
+          organization: '507f1f77bcf86cd799439012',
         },
       });
     });
@@ -164,9 +163,9 @@ describe('AgentCampaignsController', () => {
 
       expect(pipeline[0]).toEqual({
         $match: {
-          brand: new Types.ObjectId('507f1f77bcf86cd799439013'),
+          brand: '507f1f77bcf86cd799439013',
           isDeleted: false,
-          organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
+          organization: '507f1f77bcf86cd799439012',
           status: 'active',
         },
       });
@@ -188,7 +187,7 @@ describe('AgentCampaignsController', () => {
       expect(pipeline[0]).toEqual({
         $match: {
           isDeleted: false,
-          organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
+          organization: '507f1f77bcf86cd799439012',
         },
       });
     });

@@ -9,7 +9,6 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreateCredentialVerifyDto {
   @IsString()
@@ -34,21 +33,21 @@ export class CreateCredentialVerifyDto {
 
   @IsString()
   @ApiProperty({ required: false })
-  readonly brand?: Types.ObjectId;
+  readonly brand?: string;
 }
 
 export class CreateCredentialDto {
   @IsMongoId()
   @ApiProperty({ required: true })
-  readonly user!: Types.ObjectId;
+  readonly user!: string;
 
   @IsMongoId()
   @ApiProperty({ required: true })
-  readonly brand!: Types.ObjectId;
+  readonly brand!: string;
 
   @IsMongoId()
   @ApiProperty({ required: true })
-  readonly organization!: Types.ObjectId;
+  readonly organization!: string;
 
   @ApiProperty({
     enum: CredentialPlatform,
@@ -127,7 +126,7 @@ export class CreateCredentialDto {
     required: false,
     type: [Types.ObjectId],
   })
-  readonly tags?: Types.ObjectId[];
+  readonly tags?: string[];
 
   @IsBoolean()
   @ApiProperty({ required: false })

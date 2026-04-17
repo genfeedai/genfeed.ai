@@ -1,9 +1,8 @@
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 type TagLabelDocument = {
-  _id: Types.ObjectId;
+  _id: string;
   category?: string;
   isActive?: boolean;
   isDeleted?: boolean;
@@ -15,9 +14,9 @@ export class TagResolutionService {
   constructor(private readonly tagsService: TagsService) {}
 
   /**
-   * Resolve ObjectId[] tags to their label strings
+   * Resolve string[] tag IDs to their label strings
    */
-  async resolveTagLabels(tagIds: Types.ObjectId[]): Promise<string[]> {
+  async resolveTagLabels(tagIds: string[]): Promise<string[]> {
     if (!tagIds || tagIds.length === 0) {
       return [];
     }
@@ -48,9 +47,9 @@ export class TagResolutionService {
   }
 
   /**
-   * Resolve a single tag ObjectId to its label string
+   * Resolve a single tag string ID to its label string
    */
-  async resolveTagLabel(tagId: Types.ObjectId): Promise<string | null> {
+  async resolveTagLabel(tagId: string): Promise<string | null> {
     if (!tagId) {
       return null;
     }

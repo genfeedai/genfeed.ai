@@ -35,7 +35,6 @@ import type { IReplyBotCredentialData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 /**
  * Result of processing bots for an organization

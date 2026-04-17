@@ -301,7 +301,9 @@ export default function OrganizationIdentityDefaultsCard() {
             variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >
-            {brandSlug ? 'Browse Avatar Library' : 'Select a Brand to Browse Avatars'}
+            {brandSlug
+              ? 'Browse Avatar Library'
+              : 'Select a Brand to Browse Avatars'}
           </Button>
           <Button
             onClick={() => router.push(voiceLibraryHref)}
@@ -309,7 +311,9 @@ export default function OrganizationIdentityDefaultsCard() {
             variant={ButtonVariant.SECONDARY}
             withWrapper={false}
           >
-            {brandSlug ? 'Browse Voice Library' : 'Select a Brand to Browse Voices'}
+            {brandSlug
+              ? 'Browse Voice Library'
+              : 'Select a Brand to Browse Voices'}
           </Button>
         </div>
       </div>

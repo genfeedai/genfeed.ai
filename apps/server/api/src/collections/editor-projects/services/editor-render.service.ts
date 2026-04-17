@@ -27,7 +27,6 @@ import {
   NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 interface RenderResult {
   jobId: string;

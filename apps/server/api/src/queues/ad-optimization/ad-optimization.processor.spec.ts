@@ -6,11 +6,10 @@ import { AdOptimizationProcessor } from '@api/queues/ad-optimization/ad-optimiza
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
 import type { Job } from 'bullmq';
-import { Types } from 'mongoose';
 import { vi } from 'vitest';
 
-const ORG_ID = new Types.ObjectId().toString();
-const CONFIG_ID = new Types.ObjectId().toString();
+const ORG_ID = '507f191e810c19729de860ee'.toString();
+const CONFIG_ID = '507f191e810c19729de860ee'.toString();
 const RUN_ID = 'run_001';
 
 function buildJob(data: {

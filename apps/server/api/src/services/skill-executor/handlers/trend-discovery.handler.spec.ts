@@ -1,7 +1,6 @@
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { TrendDiscoveryHandler } from '@api/services/skill-executor/handlers/trend-discovery.handler';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('TrendDiscoveryHandler', () => {

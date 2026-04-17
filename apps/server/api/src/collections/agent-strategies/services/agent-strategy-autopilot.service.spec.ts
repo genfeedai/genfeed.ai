@@ -1,5 +1,4 @@
 import { AgentStrategyAutopilotService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.service';
-import { Types } from 'mongoose';
 
 describe('AgentStrategyAutopilotService', () => {
   const strategyId = new Types.ObjectId();

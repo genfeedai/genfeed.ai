@@ -8,7 +8,6 @@ import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import { Types } from 'mongoose';
 
 export interface QuotaCheckResult {
   allowed: boolean;

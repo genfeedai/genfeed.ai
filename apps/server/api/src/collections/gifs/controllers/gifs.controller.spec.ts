@@ -67,7 +67,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('GifsController', () => {
   let controller: GifsController;
@@ -80,7 +79,7 @@ describe('GifsController', () => {
 
   const mockRequest = {} as unknown as Request;
   const mockUser = { id: 'clerk_user_1' } as unknown as User;
-  const gifId = new Types.ObjectId().toString();
+  const gifId = '507f191e810c19729de860ee'.toString();
 
   const mockGif = {
     _id: gifId,
@@ -231,7 +230,9 @@ describe('GifsController', () => {
     });
 
     it('should set hasVoted to true when vote exists', async () => {
-      votesService.findOne.mockResolvedValueOnce({ _id: new Types.ObjectId() });
+      votesService.findOne.mockResolvedValueOnce({
+        _id: '507f191e810c19729de860ee',
+      });
       const result = await controller.findOne(mockRequest, gifId, mockUser);
       expect(result.hasVoted).toBe(true);
     });

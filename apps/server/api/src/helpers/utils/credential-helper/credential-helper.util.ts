@@ -2,7 +2,6 @@ import type { CredentialDocument } from '@api/collections/credentials/schemas/cr
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { CredentialPlatform } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 
 export interface CredentialWithToken {
   credential: CredentialDocument;
@@ -32,9 +31,9 @@ export class CredentialHelper {
     const { organizationId, brandId, platform } = options;
 
     const credential = await credentialsService.findOne({
-      brand: new Types.ObjectId(brandId),
+      brand: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       platform,
     });
 
@@ -65,9 +64,9 @@ export class CredentialHelper {
     const { organizationId, brandId, platform } = options;
 
     const credential = await credentialsService.findOne({
-      brand: new Types.ObjectId(brandId),
+      brand: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       platform,
     });
 
@@ -85,9 +84,9 @@ export class CredentialHelper {
     const { organizationId, brandId, platform } = options;
 
     return {
-      brand: new Types.ObjectId(brandId),
+      brand: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       platform,
     };
   }

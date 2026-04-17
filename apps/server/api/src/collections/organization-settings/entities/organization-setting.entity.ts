@@ -1,13 +1,12 @@
 import { OrganizationSetting } from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
-import { Types } from 'mongoose';
 
 // @ts-expect-error - implements via BaseEntity + explicit fields
 export class OrganizationSettingEntity
   extends BaseEntity
   implements OrganizationSetting
 {
-  declare readonly organization: Types.ObjectId;
+  declare readonly organization: string;
 
   declare readonly isWhitelabelEnabled: boolean;
   declare readonly isVoiceControlEnabled: boolean;
@@ -39,7 +38,7 @@ export class OrganizationSettingEntity
   declare readonly quotaTwitter: number;
   declare readonly quotaInstagram: number;
 
-  declare readonly enabledModels: Types.ObjectId[];
+  declare readonly enabledModels: string[];
 
   declare readonly subscriptionTier: string | undefined;
 
@@ -48,8 +47,8 @@ export class OrganizationSettingEntity
   declare readonly isByokEnabled: boolean;
   declare readonly byokOpenrouterApiKey: string | undefined;
   declare readonly defaultAvatarPhotoUrl: string | undefined;
-  declare readonly defaultAvatarIngredientId: Types.ObjectId | undefined;
-  declare readonly defaultVoiceId: Types.ObjectId | undefined;
+  declare readonly defaultAvatarIngredientId: string | undefined;
+  declare readonly defaultVoiceId: string | undefined;
   declare readonly defaultVoiceProvider: string | undefined;
   declare readonly defaultModel: string | undefined;
   declare readonly defaultModelReview: string | undefined;

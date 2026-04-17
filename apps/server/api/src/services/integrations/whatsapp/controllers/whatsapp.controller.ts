@@ -12,7 +12,6 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('services/whatsapp')

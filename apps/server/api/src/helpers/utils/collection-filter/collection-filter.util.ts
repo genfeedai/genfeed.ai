@@ -1,5 +1,9 @@
 import { AssetScope } from '@genfeedai/enums';
-import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 /**
  * CollectionFilterUtil - Utility for building consistent collection query filters
@@ -18,7 +22,7 @@ import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
  * const searchStages = CollectionFilterUtil.buildSearchFilter(query.search, ['metadata.label', 'metadata.description']);
  *
  * // Use in aggregation pipeline
- * const aggregate: PipelineStage[] = [
+ * const aggregate: Record<string, unknown>[] = [
  *   { $match: { brand, scope, status, ...ownershipFilter } },
  *   ...searchStages,
  *   { $sort: { ... } }
@@ -46,8 +50,8 @@ export class CollectionFilterUtil {
   static buildAdminFilter(
     publicMetadata: { isSuperAdmin?: boolean },
     query: {
-      organization?: string | Types.ObjectId;
-      brand?: string | Types.ObjectId;
+      organization?: string;
+      brand?: string;
     },
   ): Record<string, unknown> | null {
     if (!publicMetadata.isSuperAdmin) {
@@ -64,11 +68,11 @@ export class CollectionFilterUtil {
     const filter: Record<string, unknown> = {};
 
     if (hasOrg) {
-      filter.organization = new Types.ObjectId(String(query.organization));
+      filter.organization = String(query.organization);
     }
 
     if (hasBrand) {
-      filter.brand = new Types.ObjectId(String(query.brand));
+      filter.brand = String(query.brand);
     }
 
     return filter;
@@ -106,18 +110,16 @@ export class CollectionFilterUtil {
     brand: unknown,
     publicMetadata?: { brand?: string },
     defaultTo: 'user' | 'exists' | 'none' = 'user',
-  ): Types.ObjectId | Record<string, unknown> {
+  ): string | Record<string, unknown> {
     if (isValidObjectId(brand)) {
       // @ts-expect-error TS2769
-      return new Types.ObjectId(brand);
+      return brand;
     }
 
     // Handle default behavior based on defaultTo parameter
     switch (defaultTo) {
       case 'user':
-        return publicMetadata?.brand
-          ? new Types.ObjectId(publicMetadata.brand)
-          : { $exists: true };
+        return publicMetadata?.brand ? publicMetadata.brand : { $exists: true };
 
       case 'exists':
         return { $exists: true };
@@ -179,7 +181,7 @@ export class CollectionFilterUtil {
   static buildSearchFilter(
     search?: string,
     fields: string[] = ['metadata.label', 'metadata.description'],
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     if (!search || search.trim() === '') {
       return [];
     }
@@ -234,15 +236,15 @@ export class CollectionFilterUtil {
 
     if (includeUser && publicMetadata.user) {
       conditions.push({
-        [fieldNames.user!]: new Types.ObjectId(publicMetadata.user),
+        [fieldNames.user!]: publicMetadata.user,
       });
     }
 
     if (includeOrganization && publicMetadata.organization) {
       conditions.push({
-        [fieldNames.organization!]: new Types.ObjectId(
+        [fieldNames.organization!]: 
           publicMetadata.organization,
-        ),
+        ,
       });
     }
 
@@ -449,8 +451,8 @@ export class CollectionFilterUtil {
    */
   static conditionalStages(
     condition: boolean,
-    stages: PipelineStage[],
-  ): PipelineStage[] {
+    stages: Record<string, unknown>[],
+  ): Record<string, unknown>[] {
     return condition ? stages : [];
   }
 

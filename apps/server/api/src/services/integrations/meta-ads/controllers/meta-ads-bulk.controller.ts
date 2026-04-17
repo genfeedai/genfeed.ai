@@ -25,7 +25,6 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 interface CreateBulkUploadBody {
   credentialId: string;

@@ -1,5 +1,3 @@
-import { Types } from 'mongoose';
-
 /**
  * Public metadata from Clerk user
  */
@@ -11,22 +9,22 @@ export interface ClerkPublicMetadata {
 }
 
 /**
- * Enriched metadata with ObjectIds
+ * Enriched metadata with string IDs (Prisma uses string IDs)
  */
 export interface EnrichedMetadata {
-  user: Types.ObjectId;
-  organization: Types.ObjectId;
-  brand?: Types.ObjectId;
+  user: string;
+  organization: string;
+  brand?: string;
 }
 
 /**
  * MetadataEnrichmentUtil - Utility for enriching entities with user metadata
  *
  * Consolidates common patterns for converting Clerk public metadata strings
- * to MongoDB ObjectIds and enriching DTOs/entities.
+ * to IDs and enriching DTOs/entities.
  *
  * @example
- * // Get enriched ObjectIds from public metadata
+ * // Get enriched IDs from public metadata
  * const { user, organization, brand } = MetadataEnrichmentUtil.enrichIds(publicMetadata);
  *
  * // Enrich a DTO with metadata
@@ -37,10 +35,10 @@ export interface EnrichedMetadata {
  */
 export class MetadataEnrichmentUtil {
   /**
-   * Convert public metadata strings to ObjectIds
+   * Convert public metadata strings to ID strings
    *
    * @param publicMetadata - Clerk public metadata with string IDs
-   * @returns Object with ObjectId versions
+   * @returns Object with string ID versions
    *
    * @example
    * const { user, organization, brand } = MetadataEnrichmentUtil.enrichIds({
@@ -55,55 +53,45 @@ export class MetadataEnrichmentUtil {
     }
 
     return {
-      brand: publicMetadata.brand
-        ? new Types.ObjectId(publicMetadata.brand)
-        : undefined,
-      organization: new Types.ObjectId(publicMetadata.organization),
-      user: new Types.ObjectId(publicMetadata.user),
+      brand: publicMetadata.brand,
+      organization: publicMetadata.organization,
+      user: publicMetadata.user,
     };
   }
 
   /**
-   * Safely convert string ID to ObjectId (returns undefined if invalid)
+   * Safely return an ID string (returns undefined if falsy)
    *
    * @param id - String ID or undefined
-   * @returns ObjectId or undefined
+   * @returns String ID or undefined
    *
    * @example
    * const orgId = MetadataEnrichmentUtil.toObjectId('507f1f77bcf86cd799439011');
    * const invalidId = MetadataEnrichmentUtil.toObjectId(undefined); // undefined
    */
-  static toObjectId(id?: string): Types.ObjectId | undefined {
+  static toObjectId(id?: string): string | undefined {
     if (!id) {
       return undefined;
     }
-    try {
-      return new Types.ObjectId(id);
-    } catch {
-      return undefined;
-    }
+    return id;
   }
 
   /**
-   * Convert string ID to ObjectId (throws if invalid)
+   * Return ID string (throws if falsy or invalid format)
    *
    * @param id - String ID
    * @param fieldName - Field name for error message
-   * @returns ObjectId
-   * @throws Error if ID is invalid
+   * @returns String ID
+   * @throws Error if ID is falsy
    *
    * @example
    * const orgId = MetadataEnrichmentUtil.requireObjectId('507f...', 'organization');
    */
-  static requireObjectId(id: string, fieldName: string): Types.ObjectId {
+  static requireObjectId(id: string, fieldName: string): string {
     if (!id) {
       throw new Error(`${fieldName} is required`);
     }
-    try {
-      return new Types.ObjectId(id);
-    } catch {
-      throw new Error(`Invalid ${fieldName} ID: ${id}`);
-    }
+    return id;
   }
 
   /**
@@ -114,7 +102,7 @@ export class MetadataEnrichmentUtil {
    * @param dto - Original DTO/entity
    * @param publicMetadata - Clerk public metadata
    * @param options - Enrichment options
-   * @returns Enriched DTO with ObjectIds
+   * @returns Enriched DTO with string IDs
    *
    * @example
    * const enrichedDto = MetadataEnrichmentUtil.enrichDto(
@@ -122,7 +110,7 @@ export class MetadataEnrichmentUtil {
    *   publicMetadata,
    *   { includeBrand: true }
    * );
-   * // Returns: { label: 'My Item', user: ObjectId(...), organization: ObjectId(...), brand: ObjectId(...) }
+   * // Returns: { label: 'My Item', user: '...', organization: '...', brand: '...' }
    */
   static enrichDto<T extends Record<string, unknown>>(
     dto: T,
@@ -134,15 +122,15 @@ export class MetadataEnrichmentUtil {
     const enriched: T & Partial<EnrichedMetadata> = { ...dto };
 
     if (publicMetadata.organization) {
-      enriched.organization = new Types.ObjectId(publicMetadata.organization);
+      enriched.organization = publicMetadata.organization;
     }
 
     if (includeUser && publicMetadata.user) {
-      enriched.user = new Types.ObjectId(publicMetadata.user);
+      enriched.user = publicMetadata.user;
     }
 
     if (includeBrand && publicMetadata.brand) {
-      enriched.brand = new Types.ObjectId(publicMetadata.brand);
+      enriched.brand = publicMetadata.brand;
     }
 
     return enriched;
@@ -161,7 +149,7 @@ export class MetadataEnrichmentUtil {
    * const query = MetadataEnrichmentUtil.buildOwnershipQuery(publicMetadata, {
    *   includeIsDeleted: true
    * });
-   * // Returns: { organization: ObjectId(...), isDeleted: false }
+   * // Returns: { organization: '...', isDeleted: false }
    */
   static buildOwnershipQuery(
     publicMetadata: ClerkPublicMetadata,
@@ -180,15 +168,15 @@ export class MetadataEnrichmentUtil {
     const query: Record<string, unknown> = {};
 
     if (publicMetadata.organization) {
-      query.organization = new Types.ObjectId(publicMetadata.organization);
+      query.organization = publicMetadata.organization;
     }
 
     if (includeUser && publicMetadata.user) {
-      query.user = new Types.ObjectId(publicMetadata.user);
+      query.user = publicMetadata.user;
     }
 
     if (includeBrand && publicMetadata.brand) {
-      query.brand = new Types.ObjectId(publicMetadata.brand);
+      query.brand = publicMetadata.brand;
     }
 
     if (includeIsDeleted) {
@@ -205,7 +193,7 @@ export class MetadataEnrichmentUtil {
    * @returns String user ID or undefined
    */
   static extractUserId(source: {
-    user?: string | Types.ObjectId | { _id?: Types.ObjectId };
+    user?: string | { _id?: string };
   }): string | undefined {
     if (!source.user) {
       return undefined;
@@ -215,12 +203,8 @@ export class MetadataEnrichmentUtil {
       return source.user;
     }
 
-    if (source.user instanceof Types.ObjectId) {
-      return source.user.toString();
-    }
-
     if (typeof source.user === 'object' && source.user._id) {
-      return source.user._id.toString();
+      return source.user._id;
     }
 
     return undefined;

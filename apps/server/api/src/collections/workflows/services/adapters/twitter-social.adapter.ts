@@ -12,7 +12,6 @@ import type {
 } from '@genfeedai/workflow-engine';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 /**
  * Twitter Social Adapter

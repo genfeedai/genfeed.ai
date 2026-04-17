@@ -1,6 +1,5 @@
 import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
 import { ArticleStatus } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 
 describe('ArticleFilterUtil', () => {
   afterEach(() => {
@@ -39,7 +38,7 @@ describe('ArticleFilterUtil', () => {
 
   describe('buildTagFilter', () => {
     it('returns ObjectId for valid tag', () => {
-      const tagId = new Types.ObjectId().toHexString();
+      const tagId = '507f191e810c19729de860ee'.toHexString();
       const filter = ArticleFilterUtil.buildTagFilter(tagId);
       expect(filter.tags.toHexString()).toBe(tagId);
     });
@@ -74,7 +73,7 @@ describe('ArticleFilterUtil', () => {
 
   describe('buildArticlePipeline', () => {
     it('composes pipeline with filters, lookups, and sorting', () => {
-      const tag = new Types.ObjectId().toHexString();
+      const tag = '507f191e810c19729de860ee'.toHexString();
       const pipeline = ArticleFilterUtil.buildArticlePipeline(
         {
           category: 'blog',
@@ -87,7 +86,7 @@ describe('ArticleFilterUtil', () => {
         },
         {
           isDeleted: false,
-          organization: new Types.ObjectId(),
+          organization: '507f191e810c19729de860ee',
         },
       );
 

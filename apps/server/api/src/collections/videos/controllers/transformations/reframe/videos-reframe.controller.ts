@@ -58,7 +58,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { isValidObjectId, Types } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 @AutoSwagger()
 @Controller('videos')
@@ -101,9 +105,9 @@ export class VideosReframeController {
     const publicMetadata = getPublicMetadata(user);
     const parent = await this.videosService.findOne(
       {
-        _id: new Types.ObjectId(videoId),
+        _id: videoId,
         category: IngredientCategory.VIDEO,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
       },
       [PopulatePatterns.metadataFull],
     );
@@ -160,17 +164,17 @@ export class VideosReframeController {
     const promptData = await this.promptsService.create(
       new PromptEntity({
         brand: isValidObjectId(parent.brand)
-          ? new Types.ObjectId(parent.brand)
-          : new Types.ObjectId(publicMetadata.brand),
+          ? parent.brand
+          : publicMetadata.brand,
         category: PromptCategory.MODELS_PROMPT_VIDEO,
         model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         original:
           typeof promptText === 'string'
             ? promptText
             : promptText?.toString() || '',
         status: PromptStatus.PROCESSING,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
       }),
     );
 
@@ -178,25 +182,25 @@ export class VideosReframeController {
       await this.sharedService.saveDocuments(user, {
         ...createVideoDto,
         brand: isValidObjectId(parent.brand)
-          ? new Types.ObjectId(parent.brand)
-          : new Types.ObjectId(publicMetadata.brand),
+          ? parent.brand
+          : publicMetadata.brand,
         category: IngredientCategory.VIDEO,
         duration: parentMetadata.duration,
         extension: MetadataExtension.MP4,
         height: targetHeight,
         model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
         organization: isValidObjectId(parent.organization)
-          ? new Types.ObjectId(parent.organization)
-          : new Types.ObjectId(publicMetadata.organization),
+          ? parent.organization
+          : publicMetadata.organization,
         parent: parent._id,
-        prompt: new Types.ObjectId(promptData._id),
+        prompt: promptData._id,
         status: IngredientStatus.PROCESSING,
         transformations: [TransformationCategory.REFRAMED],
         width: targetWidth,
       });
 
     await this.videosService.patch(ingredientData._id, {
-      prompt: new Types.ObjectId(promptData._id),
+      prompt: promptData._id,
     });
 
     const websocketUrl = WebSocketPaths.video(ingredientData._id);
@@ -205,14 +209,14 @@ export class VideosReframeController {
     const activity = await this.activitiesService.create(
       new ActivityEntity({
         brand: isValidObjectId(parent.brand)
-          ? new Types.ObjectId(parent.brand)
-          : new Types.ObjectId(publicMetadata.brand),
+          ? parent.brand
+          : publicMetadata.brand,
         entityId: ingredientData._id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.VIDEO_REFRAME_PROCESSING,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         source: ActivitySource.VIDEO_REFRAME,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
         value: JSON.stringify({
           ingredientId: ingredientData._id.toString(),
           model: MODEL_KEYS.REPLICATE_LUMA_REFRAME_VIDEO,
@@ -292,7 +296,7 @@ export class VideosReframeController {
           metadataData._id,
           new MetadataEntity({
             externalId: generationId,
-            prompt: new Types.ObjectId(promptData._id),
+            prompt: promptData._id,
           }),
         );
       } else {

@@ -11,16 +11,15 @@ import { AssetCategory, AssetParent } from '@genfeedai/enums';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('AssetsController', () => {
   let controller: AssetsController;
   let service: AssetsService;
 
-  const mockUserId = new Types.ObjectId();
-  const mockOrgId = new Types.ObjectId();
-  const mockBrandId = new Types.ObjectId();
-  const mockAssetId = new Types.ObjectId();
+  const mockUserId = '507f191e810c19729de860ee';
+  const mockOrgId = '507f191e810c19729de860ee';
+  const mockBrandId = '507f191e810c19729de860ee';
+  const mockAssetId = '507f191e810c19729de860ee';
 
   const mockUser = {
     id: 'user_123',

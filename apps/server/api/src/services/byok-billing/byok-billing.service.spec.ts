@@ -4,7 +4,6 @@ import type { ConfigService } from '@api/config/config.service';
 import { ByokBillingService } from '@api/services/byok-billing/byok-billing.service';
 import type { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 
 const orgId = new Types.ObjectId().toString();
 

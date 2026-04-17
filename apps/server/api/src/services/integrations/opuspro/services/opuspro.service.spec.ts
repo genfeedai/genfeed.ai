@@ -5,7 +5,6 @@ import { ApiKeyCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { of } from 'rxjs';
 
 vi.mock('@libs/utils/caller/caller.util', () => ({

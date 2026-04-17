@@ -3,7 +3,6 @@ import { ImageTaskModel } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('ContentPipelineQueueService', () => {
   let service: ContentPipelineQueueService;

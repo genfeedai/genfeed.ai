@@ -8,7 +8,6 @@ import { SharedService } from '@api/shared/services/shared/shared.service';
 import { BotCommandType, IngredientCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 import { BotGenerationService } from './bot-generation.service';
 

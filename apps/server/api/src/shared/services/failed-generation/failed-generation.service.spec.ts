@@ -10,7 +10,6 @@ import {
   IngredientStatus,
 } from '@genfeedai/enums';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('FailedGenerationService', () => {
   let service: FailedGenerationService;

@@ -10,7 +10,6 @@ import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/enums';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeCollection: vi.fn((_, __, { docs }) => docs),
@@ -18,7 +17,7 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 }));
 
 const mockIntegration: OrgIntegration = {
-  _id: '507f1f77bcf86cd799439011' as unknown as Types.ObjectId,
+  _id: '507f1f77bcf86cd799439011' as unknown as string,
   config: {
     allowedUserIds: ['123', '456'],
     defaultWorkflow: 'wf-1',
@@ -26,7 +25,7 @@ const mockIntegration: OrgIntegration = {
   createdAt: new Date('2024-01-01'),
   encryptedToken: 'encrypted-token',
   isDeleted: false,
-  organization: '507f1f77bcf86cd799439012' as unknown as Types.ObjectId,
+  organization: '507f1f77bcf86cd799439012' as unknown as string,
   platform: IntegrationPlatform.TELEGRAM,
   status: IntegrationStatus.ACTIVE,
   updatedAt: new Date('2024-01-01'),

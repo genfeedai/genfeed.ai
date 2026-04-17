@@ -2,7 +2,6 @@ import { TagsController } from '@api/collections/tags/controllers/tags.controlle
 import type { TagsQueryDto } from '@api/collections/tags/dto/tags-query.dto';
 import { TagsService } from '@api/collections/tags/services/tags.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 
 describe('TagsController', () => {
   let controller: TagsController;
@@ -15,9 +14,9 @@ describe('TagsController', () => {
     warn: vi.fn(),
   };
 
-  const userId = new Types.ObjectId().toString();
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
+  const userId = '507f191e810c19729de860ee'.toString();
+  const orgId = '507f191e810c19729de860ee'.toString();
+  const brandId = '507f191e810c19729de860ee'.toString();
 
   const mockUser = {
     id: 'clerk_user_123',
@@ -84,7 +83,7 @@ describe('TagsController', () => {
 
     it('should filter by brand when provided', () => {
       const query = {
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         isDeleted: false,
       } as unknown as TagsQueryDto;
       const pipeline = controller.buildFindAllPipeline(mockUser, query);

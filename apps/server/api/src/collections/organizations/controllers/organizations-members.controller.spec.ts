@@ -28,7 +28,6 @@ import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('OrganizationsMembersController', () => {
   let controller: OrganizationsMembersController;
@@ -36,18 +35,18 @@ describe('OrganizationsMembersController', () => {
   let organizationsService: OrganizationsService;
 
   const mockMember = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439011'),
+    _id: '507f1f77bcf86cd799439011',
     createdAt: new Date(),
     isActive: true,
     isDeleted: false,
-    organization: new Types.ObjectId('507f1f77bcf86cd799439013'),
-    role: new Types.ObjectId('507f1f77bcf86cd799439014'),
+    organization: '507f1f77bcf86cd799439013',
+    role: '507f1f77bcf86cd799439014',
     updatedAt: new Date(),
-    user: new Types.ObjectId('507f1f77bcf86cd799439012'),
+    user: '507f1f77bcf86cd799439012',
   };
 
   const mockOrganization = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439013'),
+    _id: '507f1f77bcf86cd799439013',
     isDeleted: false,
     name: 'Test Organization',
   };
@@ -85,7 +84,7 @@ describe('OrganizationsMembersController', () => {
 
   const mockUsersService = {
     create: vi.fn().mockResolvedValue({
-      _id: new Types.ObjectId('507f1f77bcf86cd799439012'),
+      _id: '507f1f77bcf86cd799439012',
     }),
     findOne: vi.fn(),
   };
@@ -218,7 +217,7 @@ describe('OrganizationsMembersController', () => {
       mockClerkService.getUserByEmail.mockResolvedValue(null);
       mockUsersService.findOne.mockResolvedValue(null);
       mockRolesService.findOne.mockResolvedValue({
-        _id: new Types.ObjectId('507f1f77bcf86cd799439014'),
+        _id: '507f1f77bcf86cd799439014',
         key: 'user',
       });
       mockMembersService.create.mockResolvedValue(mockMember);

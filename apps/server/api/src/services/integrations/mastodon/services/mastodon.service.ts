@@ -7,7 +7,6 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpService } from '@nestjs/axios';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import FormData from 'form-data';
-import { Types } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 
 interface MastodonAppRegistration {

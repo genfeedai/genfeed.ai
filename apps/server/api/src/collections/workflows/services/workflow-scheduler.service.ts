@@ -9,7 +9,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
 import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
-import { Types } from 'mongoose';
 
 interface ScheduledWorkflow {
   workflowId: string;

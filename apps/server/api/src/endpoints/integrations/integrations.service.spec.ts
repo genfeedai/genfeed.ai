@@ -7,17 +7,16 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 const mockSave = vi.fn();
 
 const makeDoc = (overrides: Record<string, unknown> = {}) => {
   const doc = {
-    _id: new Types.ObjectId(),
+    _id: '507f191e810c19729de860ee',
     config: {},
     encryptedToken: 'enc-token',
     isDeleted: false,
-    organization: new Types.ObjectId(),
+    organization: '507f191e810c19729de860ee',
     platform: IntegrationPlatform.DISCORD,
     save: mockSave,
     status: 'active',
@@ -45,7 +44,7 @@ describe('IntegrationsService', () => {
   };
   let redisService: { publish: ReturnType<typeof vi.fn> };
 
-  const orgId = new Types.ObjectId().toString();
+  const orgId = '507f191e810c19729de860ee'.toString();
 
   beforeEach(async () => {
     mockSave.mockReset();
@@ -171,7 +170,7 @@ describe('IntegrationsService', () => {
         exec: vi.fn().mockResolvedValue(null),
       });
       await expect(
-        service.findOne(orgId, new Types.ObjectId().toString()),
+        service.findOne(orgId, '507f191e810c19729de860ee'.toString()),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -193,7 +192,7 @@ describe('IntegrationsService', () => {
         null,
       );
       await expect(
-        service.remove(orgId, new Types.ObjectId().toString()),
+        service.remove(orgId, '507f191e810c19729de860ee'.toString()),
       ).rejects.toThrow(NotFoundException);
     });
 

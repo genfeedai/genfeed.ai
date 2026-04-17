@@ -6,7 +6,6 @@ import { YoutubeOAuth2Util } from '@api/shared/utils/youtube-oauth/youtube-oauth
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 // Mock external utils
 vi.mock('@api/shared/utils/encryption/encryption.util', () => ({

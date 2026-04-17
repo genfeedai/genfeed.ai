@@ -1,12 +1,11 @@
 import { Tag } from '@api/collections/tags/schemas/tag.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { TagCategory } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 
 export class TagEntity extends BaseEntity implements Tag {
-  declare readonly user?: Types.ObjectId;
-  declare readonly organization?: Types.ObjectId;
-  declare readonly brand?: Types.ObjectId;
+  declare readonly user?: string;
+  declare readonly organization?: string;
+  declare readonly brand?: string;
 
   declare readonly category: TagCategory;
 

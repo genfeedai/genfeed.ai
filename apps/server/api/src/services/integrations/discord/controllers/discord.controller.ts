@@ -9,7 +9,6 @@ import {
   HttpStatus,
   Post,
 } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 @Controller('services/discord')
 export class DiscordController {

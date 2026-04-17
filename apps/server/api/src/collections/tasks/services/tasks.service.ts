@@ -20,7 +20,6 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 /**
  * Valid status transitions for task lifecycle.

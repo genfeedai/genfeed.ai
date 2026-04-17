@@ -8,15 +8,14 @@ import {
 } from '@api/collections/evaluations/schemas/evaluation.schema';
 import { BaseEntity } from '@api/shared/entities/base/base.entity';
 import { EvaluationType, IngredientCategory, Status } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 
 export class EvaluationEntity extends BaseEntity implements Evaluation {
-  organization!: Types.ObjectId;
-  user!: Types.ObjectId;
-  brand!: Types.ObjectId;
+  organization!: string;
+  user!: string;
+  brand!: string;
 
   contentType!: IngredientCategory | 'article';
-  content!: Types.ObjectId;
+  content!: string;
   evaluationType!: EvaluationType;
   status!: Status;
   overallScore?: number;

@@ -29,7 +29,6 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 import { TwitterApi, type TwitterApiOAuth2Init } from 'twitter-api-v2';
 
 @AutoSwagger()

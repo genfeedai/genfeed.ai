@@ -41,7 +41,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('videos')
@@ -93,11 +92,11 @@ export class VideosUploadController {
 
     const { ingredientData, metadataData } =
       await this.sharedService.saveDocuments(user, {
-        brand: new Types.ObjectId(publicMetadata.brand),
+        brand: publicMetadata.brand,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,
         label: validatedFile.originalname,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         scope: AssetScope.USER,
         status: IngredientStatus.PROCESSING,
       });

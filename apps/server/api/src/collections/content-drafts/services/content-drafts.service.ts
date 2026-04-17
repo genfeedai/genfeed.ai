@@ -1,20 +1,16 @@
 import { CreateContentDraftDto } from '@api/collections/content-drafts/dto/create-content-draft.dto';
 import { UpdateContentDraftDto } from '@api/collections/content-drafts/dto/update-content-draft.dto';
 import {
-  ContentDraft,
   type ContentDraftDocument,
   ContentDraftStatus,
 } from '@api/collections/content-drafts/schemas/content-draft.schema';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ContentDraftInput } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class ContentDraftsService extends BaseService<
@@ -23,12 +19,11 @@ export class ContentDraftsService extends BaseService<
   UpdateContentDraftDto
 > {
   constructor(
-    @InjectModel(ContentDraft.name, DB_CONNECTIONS.CLOUD)
-    protected readonly model: AggregatePaginateModel<ContentDraftDocument>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     private readonly trendReferenceCorpusService: TrendReferenceCorpusService,
   ) {
-    super(model, logger);
+    super(prisma, 'contentDraft', logger);
   }
 
   listByBrand(
@@ -36,12 +31,14 @@ export class ContentDraftsService extends BaseService<
     brandId: string,
     status?: ContentDraftStatus,
   ): Promise<ContentDraftDocument[]> {
-    return this.find({
-      brand: new Types.ObjectId(brandId),
-      ...(status ? { status } : {}),
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-    });
+    return this.delegate.findMany({
+      where: {
+        brandId,
+        ...(status ? { status } : {}),
+        isDeleted: false,
+        organizationId,
+      },
+    }) as Promise<ContentDraftDocument[]>;
   }
 
   async createFromSkillExecution(
@@ -51,26 +48,24 @@ export class ContentDraftsService extends BaseService<
     runId: string,
     drafts: ContentDraftInput[],
   ): Promise<ContentDraftDocument[]> {
-    const orgObjectId = new Types.ObjectId(organizationId);
-    const brandObjectId = new Types.ObjectId(brandId);
-    const runObjectId = new Types.ObjectId(runId);
-
     const created = await Promise.all(
       drafts.map((draft) =>
-        this.model.create({
-          brand: brandObjectId,
-          confidence: draft.confidence,
-          content: draft.content,
-          contentRunId: runObjectId,
-          generatedBy: skillSlug,
-          isDeleted: false,
-          mediaUrls: draft.mediaUrls ?? [],
-          metadata: draft.metadata ?? {},
-          organization: orgObjectId,
-          platforms: draft.platforms ?? [],
-          skillSlug,
-          status: ContentDraftStatus.PENDING,
-          type: draft.type,
+        this.delegate.create({
+          data: {
+            brandId,
+            confidence: draft.confidence,
+            content: draft.content,
+            contentRunId: runId,
+            generatedBy: skillSlug,
+            isDeleted: false,
+            mediaUrls: draft.mediaUrls ?? [],
+            metadata: (draft.metadata ?? {}) as Record<string, unknown>,
+            organizationId,
+            platforms: draft.platforms ?? [],
+            skillSlug,
+            status: ContentDraftStatus.PENDING,
+            type: draft.type,
+          } as Record<string, unknown>,
         }),
       ),
     );
@@ -79,7 +74,7 @@ export class ContentDraftsService extends BaseService<
       created.map((draft, index) =>
         this.trendReferenceCorpusService.recordDraftRemixLineage({
           brandId,
-          contentDraftId: String(draft._id),
+          contentDraftId: (draft as Record<string, unknown>).id as string,
           draftType: drafts[index]?.type,
           generatedBy: skillSlug,
           metadata: drafts[index]?.metadata,
@@ -90,7 +85,7 @@ export class ContentDraftsService extends BaseService<
       ),
     );
 
-    return created;
+    return created as ContentDraftDocument[];
   }
 
   /**
@@ -98,8 +93,8 @@ export class ContentDraftsService extends BaseService<
    * Bypasses DTO validation since data is programmatically constructed.
    */
   async createFromContentEngine(input: {
-    organization: Types.ObjectId;
-    brand: Types.ObjectId;
+    organizationId: string;
+    brandId: string;
     skillSlug: string;
     type: string;
     content: string;
@@ -111,20 +106,22 @@ export class ContentDraftsService extends BaseService<
     metadata?: Record<string, unknown>;
     confidence?: number;
   }): Promise<ContentDraftDocument> {
-    const createdDraft = await this.model.create(input);
+    const createdDraft = await this.delegate.create({
+      data: input as Record<string, unknown>,
+    });
 
     await this.trendReferenceCorpusService.recordDraftRemixLineage({
-      brandId: String(input.brand),
-      contentDraftId: String(createdDraft._id),
+      brandId: input.brandId,
+      contentDraftId: (createdDraft as Record<string, unknown>).id as string,
       draftType: input.type,
       generatedBy: input.generatedBy,
       metadata: input.metadata,
-      organizationId: String(input.organization),
+      organizationId: input.organizationId,
       platforms: input.platforms ?? [],
       prompt: input.content,
     });
 
-    return createdDraft;
+    return createdDraft as ContentDraftDocument;
   }
 
   async approve(
@@ -132,26 +129,23 @@ export class ContentDraftsService extends BaseService<
     organizationId: string,
     userId: string,
   ): Promise<ContentDraftDocument> {
-    const updated = await this.model.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      {
-        $set: {
-          approvedBy: new Types.ObjectId(userId),
-          status: ContentDraftStatus.APPROVED,
-        },
-      },
-      { new: true },
-    );
+    const existing = await this.delegate.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    });
 
-    if (!updated) {
+    if (!existing) {
       throw new NotFoundException('ContentDraft', id);
     }
 
-    return updated;
+    const updated = await this.delegate.update({
+      where: { id },
+      data: {
+        approvedBy: userId,
+        status: ContentDraftStatus.APPROVED,
+      },
+    });
+
+    return updated as ContentDraftDocument;
   }
 
   async reject(
@@ -159,30 +153,33 @@ export class ContentDraftsService extends BaseService<
     organizationId: string,
     reason?: string,
   ): Promise<ContentDraftDocument> {
-    const metadataUpdate = reason
-      ? { metadata: { rejectionReason: reason } }
-      : undefined;
+    const existing = await this.delegate.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    });
 
-    const updated = await this.model.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      {
-        $set: {
-          status: ContentDraftStatus.REJECTED,
-          ...(metadataUpdate ?? {}),
-        },
-      },
-      { new: true },
-    );
-
-    if (!updated) {
+    if (!existing) {
       throw new NotFoundException('ContentDraft', id);
     }
 
-    return updated;
+    const updateData: Record<string, unknown> = {
+      status: ContentDraftStatus.REJECTED,
+    };
+
+    if (reason) {
+      const currentMeta =
+        ((existing as Record<string, unknown>).metadata as Record<
+          string,
+          unknown
+        >) ?? {};
+      updateData.metadata = { ...currentMeta, rejectionReason: reason };
+    }
+
+    const updated = await this.delegate.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return updated as ContentDraftDocument;
   }
 
   async bulkApprove(
@@ -194,21 +191,19 @@ export class ContentDraftsService extends BaseService<
       return { modifiedCount: 0 };
     }
 
-    const result = await this.model.updateMany(
-      {
-        _id: { $in: ids.map((id) => new Types.ObjectId(id)) },
+    const result = (await this.delegate.updateMany({
+      where: {
+        id: { in: ids },
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organizationId,
       },
-      {
-        $set: {
-          approvedBy: new Types.ObjectId(userId),
-          status: ContentDraftStatus.APPROVED,
-        },
+      data: {
+        approvedBy: userId,
+        status: ContentDraftStatus.APPROVED,
       },
-    );
+    })) as { count: number };
 
-    return { modifiedCount: result.modifiedCount };
+    return { modifiedCount: result.count };
   }
 
   async editDraft(
@@ -216,23 +211,20 @@ export class ContentDraftsService extends BaseService<
     organizationId: string,
     content: string,
   ): Promise<ContentDraftDocument> {
-    const updated = await this.model.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      {
-        $set: { content },
-      },
-      { new: true },
-    );
+    const existing = await this.delegate.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    });
 
-    if (!updated) {
+    if (!existing) {
       throw new NotFoundException('ContentDraft', id);
     }
 
-    return updated;
+    const updated = await this.delegate.update({
+      where: { id },
+      data: { content },
+    });
+
+    return updated as ContentDraftDocument;
   }
 
   async autoPublishAboveThreshold(
@@ -240,21 +232,17 @@ export class ContentDraftsService extends BaseService<
     brandId: string,
     threshold: number,
   ): Promise<{ modifiedCount: number }> {
-    const result = await this.model.updateMany(
-      {
-        brand: new Types.ObjectId(brandId),
-        confidence: { $gte: threshold },
+    const result = (await this.delegate.updateMany({
+      where: {
+        brandId,
+        confidence: { gte: threshold },
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organizationId,
         status: ContentDraftStatus.PENDING,
       },
-      {
-        $set: {
-          status: ContentDraftStatus.APPROVED,
-        },
-      },
-    );
+      data: { status: ContentDraftStatus.APPROVED },
+    })) as { count: number };
 
-    return { modifiedCount: result.modifiedCount };
+    return { modifiedCount: result.count };
   }
 }

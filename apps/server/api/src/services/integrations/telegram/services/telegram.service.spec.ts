@@ -16,7 +16,6 @@ import { TelegramAuthUtil } from '@api/shared/utils/telegram-auth/telegram-auth.
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('TelegramService', () => {
   let service: TelegramService;

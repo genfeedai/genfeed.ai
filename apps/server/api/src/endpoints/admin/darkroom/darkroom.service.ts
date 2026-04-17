@@ -57,7 +57,6 @@ import {
 } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
 import axios from 'axios';
-import type { Types } from 'mongoose';
 
 interface EC2InstanceStatus {
   instanceId: string;
@@ -154,9 +153,9 @@ export class DarkroomService {
    */
   createCharacter(
     data: Partial<PersonaDocument> & {
-      user: Types.ObjectId;
-      organization: Types.ObjectId;
-      brand: Types.ObjectId;
+      user: string;
+      organization: string;
+      brand: string;
     },
   ): Promise<PersonaDocument> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
@@ -1821,9 +1820,9 @@ export class DarkroomService {
   }
 
   private async createDarkroomIngestAsset(params: {
-    organizationId: Types.ObjectId;
-    brandId: Types.ObjectId;
-    userId: Types.ObjectId;
+    organizationId: string;
+    brandId: string;
+    userId: string;
     persona: PersonaDocument;
     sourcePlatform: ContentIntelligencePlatform;
     postId: string;

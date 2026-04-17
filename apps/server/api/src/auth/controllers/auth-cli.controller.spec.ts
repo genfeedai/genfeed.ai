@@ -1,10 +1,9 @@
 import { AuthCliController } from '@api/auth/controllers/auth-cli.controller';
 import type { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import type { User } from '@clerk/backend';
-import { Types } from 'mongoose';
 
-const userId = new Types.ObjectId().toString();
-const orgId = new Types.ObjectId().toString();
+const userId = '507f191e810c19729de860ee'.toString();
+const orgId = '507f191e810c19729de860ee'.toString();
 
 const makeUser = (overrides: Record<string, unknown> = {}): User =>
   ({
@@ -83,9 +82,9 @@ describe('AuthCliController', () => {
         | undefined;
 
       expect(pipeline?.[0]?.$match?.organization).toBeDefined();
-      expect(
-        (pipeline?.[0]?.$match?.organization as Types.ObjectId).toString(),
-      ).toBe(orgId);
+      expect((pipeline?.[0]?.$match?.organization as string).toString()).toBe(
+        orgId,
+      );
     });
 
     it('should include admin scope for superAdmin users', async () => {
@@ -123,7 +122,7 @@ describe('AuthCliController', () => {
 
     it('should revoke existing CLI keys before creating new one', async () => {
       const controller = buildController();
-      const existingKey = { _id: new Types.ObjectId() };
+      const existingKey = { _id: '507f191e810c19729de860ee' };
       vi.mocked(mockApiKeysService.findAll).mockResolvedValue({
         docs: [existingKey],
       } as never);

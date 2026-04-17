@@ -1,5 +1,4 @@
 import { IngredientCategory } from '@genfeedai/enums';
-import type { PipelineStage } from 'mongoose';
 
 /**
  * TrainingFilterUtil - Utility for building training-specific query filters and lookups
@@ -22,7 +21,7 @@ import type { PipelineStage } from 'mongoose';
  * });
  *
  * // Use in aggregation pipeline
- * const pipeline: PipelineStage[] = [
+ * const pipeline: Record<string, unknown>[] = [
  *   { $match: { ...baseMatch } },
  *   sourceLookup,
  *   generatedLookup,
@@ -58,7 +57,7 @@ export class TrainingFilterUtil {
     userIdVar: string;
     as?: string;
     category?: IngredientCategory;
-  }): PipelineStage {
+  }): Record<string, unknown> {
     const {
       sourceIdsVar,
       userIdVar,
@@ -125,7 +124,7 @@ export class TrainingFilterUtil {
     metadataIdsVar: string;
     as?: string;
     category?: IngredientCategory;
-  }): PipelineStage {
+  }): Record<string, unknown> {
     const {
       metadataIdsVar,
       as = 'generatedImages',

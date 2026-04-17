@@ -10,7 +10,6 @@ import { BrandMemorySyncService } from '@api/services/brand-memory/brand-memory-
 import { LoggerService } from '@libs/logger/logger.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { vi } from 'vitest';
 
 describe('AnalyticsSyncService', () => {

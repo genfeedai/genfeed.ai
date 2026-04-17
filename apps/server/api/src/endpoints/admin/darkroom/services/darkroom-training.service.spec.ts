@@ -5,9 +5,9 @@ vi.mock('axios', () => ({
   },
 }));
 
+import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { TrainingsService } from '@api/collections/trainings/services/trainings.service';
-import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { ConfigService } from '@api/config/config.service';
 import { DarkroomTrainingService } from '@api/endpoints/admin/darkroom/services/darkroom-training.service';
 import { LoraStatus, TrainingStage, TrainingStatus } from '@genfeedai/enums';

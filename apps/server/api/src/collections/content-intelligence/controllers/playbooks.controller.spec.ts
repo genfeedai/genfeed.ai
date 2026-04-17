@@ -12,7 +12,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('PlaybooksController', () => {
   let controller: PlaybooksController;
@@ -32,9 +31,9 @@ describe('PlaybooksController', () => {
   } as Request;
 
   const mockPlaybook = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439015'),
+    _id: '507f1f77bcf86cd799439015',
     name: 'Test Playbook',
-    organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
+    organization: '507f1f77bcf86cd799439012',
   };
 
   const mockPlaybookBuilderService = {
@@ -127,8 +126,8 @@ describe('PlaybooksController', () => {
       } as any);
 
       expect(mockPlaybookBuilderService.createPlaybook).toHaveBeenCalledWith(
-        new Types.ObjectId('507f1f77bcf86cd799439012'),
-        new Types.ObjectId('507f1f77bcf86cd799439011'),
+        '507f1f77bcf86cd799439012',
+        '507f1f77bcf86cd799439011',
         expect.any(Object),
       );
     });

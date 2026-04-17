@@ -1,7 +1,6 @@
 import { NewslettersService } from '@api/collections/newsletters/services/newsletters.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('NewslettersService', () => {

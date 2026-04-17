@@ -3,7 +3,6 @@ import { ClipResult } from '@api/collections/clip-results/schemas/clip-result.sc
 import { LoggerService } from '@libs/logger/logger.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('ClipResultsService', () => {
   let service: ClipResultsService;
@@ -55,7 +54,7 @@ describe('ClipResultsService', () => {
 
   describe('findByProject', () => {
     it('should find results by project sorted by viralityScore', async () => {
-      const projectId = new Types.ObjectId().toString();
+      const projectId = '507f191e810c19729de860ee'.toString();
       await service.findByProject(projectId);
       expect(model.find).toHaveBeenCalledWith(
         expect.objectContaining({ isDeleted: false }),
@@ -63,11 +62,11 @@ describe('ClipResultsService', () => {
     });
 
     it('should filter by project ObjectId', async () => {
-      const projectId = new Types.ObjectId().toString();
+      const projectId = '507f191e810c19729de860ee'.toString();
       await service.findByProject(projectId);
       expect(model.find).toHaveBeenCalledWith(
         expect.objectContaining({
-          project: new Types.ObjectId(projectId),
+          project: projectId,
         }),
       );
     });
@@ -78,7 +77,7 @@ describe('ClipResultsService', () => {
       });
       model.find = vi.fn().mockReturnValue({ sort: sortMock });
 
-      await service.findByProject(new Types.ObjectId().toString());
+      await service.findByProject('507f191e810c19729de860ee'.toString());
       expect(sortMock).toHaveBeenCalledWith({ viralityScore: -1 });
     });
 
@@ -89,7 +88,7 @@ describe('ClipResultsService', () => {
       model.find = vi.fn().mockReturnValue({ sort: sortMock });
 
       const result = await service.findByProject(
-        new Types.ObjectId().toString(),
+        '507f191e810c19729de860ee'.toString(),
       );
       expect(result).toEqual([]);
     });
@@ -105,7 +104,7 @@ describe('ClipResultsService', () => {
       model.find = vi.fn().mockReturnValue({ sort: sortMock });
 
       const result = await service.findByProject(
-        new Types.ObjectId().toString(),
+        '507f191e810c19729de860ee'.toString(),
       );
       expect(result).toHaveLength(2);
       expect(result[0].viralityScore).toBe(90);

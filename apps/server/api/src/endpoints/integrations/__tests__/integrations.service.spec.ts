@@ -9,7 +9,6 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 // Valid 24-char hex ObjectIds for use as orgId / integrationId params
 const ORG_ID_1 = '507f1f77bcf86cd799439001';
@@ -25,7 +24,7 @@ const mockCryptoService = {
 
 // Mock document factory
 const createMockDocument = (data: Record<string, unknown>) => {
-  const docId = new Types.ObjectId();
+  const docId = '507f191e810c19729de860ee';
   const doc = {
     ...data,
     _id: docId,
@@ -47,7 +46,7 @@ describe('IntegrationsService', () => {
   let eventEmitter: any;
 
   const mockIntegration = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439011'),
+    _id: '507f1f77bcf86cd799439011',
     config: {
       allowedUserIds: ['123456', '789012'],
       defaultWorkflow: 'wf-image-gen',
@@ -55,7 +54,7 @@ describe('IntegrationsService', () => {
     createdAt: new Date('2024-01-01'),
     encryptedToken: 'encrypted-token-data',
     isDeleted: false,
-    organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
+    organization: '507f1f77bcf86cd799439012',
     platform: IntegrationPlatform.TELEGRAM,
     save: vi.fn(),
     status: IntegrationStatus.ACTIVE,
@@ -132,7 +131,7 @@ describe('IntegrationsService', () => {
       );
       expect(model.findOne).toHaveBeenCalledWith({
         isDeleted: false,
-        organization: new Types.ObjectId(ORG_ID_1),
+        organization: ORG_ID_1,
         platform: IntegrationPlatform.TELEGRAM,
       });
 
@@ -167,7 +166,7 @@ describe('IntegrationsService', () => {
 
       expect(model.findOne).toHaveBeenCalledWith({
         isDeleted: false,
-        organization: new Types.ObjectId(ORG_ID_2),
+        organization: ORG_ID_2,
         platform: 'slack',
       });
 
@@ -214,7 +213,7 @@ describe('IntegrationsService', () => {
 
       expect(model.find).toHaveBeenCalledWith({
         isDeleted: false,
-        organization: new Types.ObjectId(ORG_ID_1),
+        organization: ORG_ID_1,
       });
 
       expect(result).toHaveLength(1);
@@ -248,9 +247,9 @@ describe('IntegrationsService', () => {
       const result = await service.findOne(ORG_ID_1, INTEGRATION_ID);
 
       expect(model.findOne).toHaveBeenCalledWith({
-        _id: new Types.ObjectId(INTEGRATION_ID),
+        _id: INTEGRATION_ID,
         isDeleted: false,
-        organization: new Types.ObjectId(ORG_ID_1),
+        organization: ORG_ID_1,
       });
 
       expect(result.encryptedToken).toBe('***MASKED***');
@@ -335,9 +334,9 @@ describe('IntegrationsService', () => {
       const result = await service.update(ORG_ID_1, INTEGRATION_ID, updateDto);
 
       expect(model.findOne).toHaveBeenCalledWith({
-        _id: new Types.ObjectId(INTEGRATION_ID),
+        _id: INTEGRATION_ID,
         isDeleted: false,
-        organization: new Types.ObjectId(ORG_ID_1),
+        organization: ORG_ID_1,
       });
 
       expect(mockIntegration.save).toHaveBeenCalled();
@@ -424,9 +423,9 @@ describe('IntegrationsService', () => {
       await service.remove(ORG_ID_1, INTEGRATION_ID);
 
       expect(model.findOne).toHaveBeenCalledWith({
-        _id: new Types.ObjectId(INTEGRATION_ID),
+        _id: INTEGRATION_ID,
         isDeleted: false,
-        organization: new Types.ObjectId(ORG_ID_1),
+        organization: ORG_ID_1,
       });
 
       expect(mockIntegration.isDeleted).toBe(true);

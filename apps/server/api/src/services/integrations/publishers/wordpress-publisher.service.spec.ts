@@ -8,7 +8,6 @@ import { WordpressPublisherService } from '@api/services/integrations/publishers
 import { WordpressService } from '@api/services/integrations/wordpress/services/wordpress.service';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/shared/utils/encryption/encryption.util', () => ({

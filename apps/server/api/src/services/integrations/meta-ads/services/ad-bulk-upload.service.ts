@@ -5,7 +5,6 @@ import { QueueService } from '@api/queues/core/queue.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 export interface CreateBulkUploadInput {
   organizationId: string;

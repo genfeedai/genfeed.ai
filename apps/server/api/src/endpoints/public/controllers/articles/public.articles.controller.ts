@@ -21,7 +21,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Controller, Get, Param, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { type PipelineStage } from 'mongoose';
 
 @AutoSwagger()
 @Public()
@@ -91,7 +90,7 @@ export class PublicArticlesController {
       matchQuery.brand = brand;
     }
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       { $match: matchQuery },
       // Populate tags
       {

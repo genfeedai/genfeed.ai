@@ -15,7 +15,6 @@ import {
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 export interface GeneratedContent {
   content: string;

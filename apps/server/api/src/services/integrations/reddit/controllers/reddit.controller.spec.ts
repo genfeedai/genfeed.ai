@@ -24,7 +24,6 @@ import { HttpService } from '@nestjs/axios';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 import { of } from 'rxjs';
 
 describe('RedditController', () => {

@@ -1,26 +1,22 @@
 import { randomUUID } from 'node:crypto';
 
-import {
-  Bot,
-  type BotDocument,
-  type BotLivestreamMessageTemplate,
-  type BotTarget,
+import type {
+  BotDocument,
+  BotLivestreamMessageTemplate,
+  BotTarget,
 } from '@api/collections/bots/schemas/bot.schema';
-import {
-  LivestreamBotSession,
-  type LivestreamBotSessionDocument,
-  type LivestreamDeliveryRecord,
-  type LivestreamPlatformState,
-  type LivestreamTranscriptChunk,
+import type {
+  LivestreamBotSessionDocument,
+  LivestreamDeliveryRecord,
+  LivestreamPlatformState,
+  LivestreamTranscriptChunk,
 } from '@api/collections/bots/schemas/livestream-bot-session.schema';
 import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BotPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { Cron } from '@nestjs/schedule';
 
 import { BotsLivestreamDeliveryService } from './bots-livestream-delivery.service';
@@ -65,10 +61,7 @@ function isLivestreamPlatform(
 @Injectable()
 export class BotsLivestreamService {
   constructor(
-    @InjectModel(LivestreamBotSession.name, DB_CONNECTIONS.CLOUD)
-    private readonly sessionModel: AggregatePaginateModel<LivestreamBotSessionDocument>,
-    @InjectModel(Bot.name, DB_CONNECTIONS.CLOUD)
-    private readonly botModel: AggregatePaginateModel<BotDocument>,
+    private readonly prisma: PrismaService,
     private readonly deliveryService: BotsLivestreamDeliveryService,
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
@@ -79,89 +72,124 @@ export class BotsLivestreamService {
   async getOrCreateSession(
     bot: BotDocument,
   ): Promise<LivestreamBotSessionDocument> {
-    const existingSession = await this.sessionModel
-      .findOne({
-        bot: bot._id,
+    const botId = String(bot.id ?? (bot as Record<string, unknown>)._id);
+    const organizationId = String(
+      (bot as Record<string, unknown>).organizationId ??
+        (bot as Record<string, unknown>).organization,
+    );
+
+    const existingSession = await this.prisma.livestreamBotSession.findFirst({
+      where: {
+        botId,
         isDeleted: false,
-        organization: bot.organization,
-      })
-      .exec();
+        organizationId,
+      },
+    });
 
     if (existingSession) {
+      const session =
+        existingSession as unknown as LivestreamBotSessionDocument;
       let hasUpdates = false;
       const nextPlatformStates = this.buildPlatformStates(bot);
 
       if (
-        (existingSession.platformStates?.length ?? 0) === 0 &&
+        (!session.platformStates || session.platformStates.length === 0) &&
         nextPlatformStates.length > 0
       ) {
-        existingSession.platformStates = nextPlatformStates;
+        session.platformStates = nextPlatformStates;
         hasUpdates = true;
       }
 
-      if (!existingSession.context) {
-        existingSession.context = {
-          source: 'none',
-        };
+      if (!session.context) {
+        session.context = { source: 'none' };
         hasUpdates = true;
       }
 
       if (hasUpdates) {
-        await existingSession.save();
+        await this.prisma.livestreamBotSession.update({
+          where: { id: existingSession.id },
+          data: {
+            platformStates: session.platformStates as unknown as Record<
+              string,
+              unknown
+            >[],
+            context: session.context as unknown as Record<string, unknown>,
+          },
+        });
       }
 
-      return existingSession;
+      return session;
     }
 
-    const session = new this.sessionModel({
-      bot: bot._id,
-      brand: bot.brand,
-      context: {
-        source: 'none',
+    const brandId = String(
+      (bot as Record<string, unknown>).brandId ??
+        (bot as Record<string, unknown>).brand,
+    );
+    const userId = String(
+      (bot as Record<string, unknown>).userId ??
+        (bot as Record<string, unknown>).user,
+    );
+
+    const created = await this.prisma.livestreamBotSession.create({
+      data: {
+        botId,
+        brandId,
+        context: { source: 'none' } as unknown as Record<string, unknown>,
+        deliveryHistory: [],
+        isDeleted: false,
+        organizationId,
+        platformStates: this.buildPlatformStates(bot) as unknown as Record<
+          string,
+          unknown
+        >[],
+        status: 'stopped',
+        transcriptChunks: [],
+        userId,
       },
-      deliveryHistory: [],
-      organization: bot.organization,
-      platformStates: this.buildPlatformStates(bot),
-      status: 'stopped',
-      transcriptChunks: [],
-      user: bot.user,
     });
 
-    return await session.save();
+    return created as unknown as LivestreamBotSessionDocument;
   }
 
   async startSession(bot: BotDocument): Promise<LivestreamBotSessionDocument> {
     const session = await this.getOrCreateSession(bot);
-    session.status = 'active';
-    session.startedAt = new Date();
-    session.pausedAt = undefined;
-    session.stoppedAt = undefined;
-    await session.save();
-    return session;
+    const updated = await this.prisma.livestreamBotSession.update({
+      where: { id: (session as Record<string, unknown>).id as string },
+      data: {
+        status: 'active',
+        startedAt: new Date(),
+        pausedAt: null,
+        stoppedAt: null,
+      },
+    });
+    return updated as unknown as LivestreamBotSessionDocument;
   }
 
   async stopSession(bot: BotDocument): Promise<LivestreamBotSessionDocument> {
     const session = await this.getOrCreateSession(bot);
-    session.status = 'stopped';
-    session.stoppedAt = new Date();
-    await session.save();
-    return session;
+    const updated = await this.prisma.livestreamBotSession.update({
+      where: { id: (session as Record<string, unknown>).id as string },
+      data: { status: 'stopped', stoppedAt: new Date() },
+    });
+    return updated as unknown as LivestreamBotSessionDocument;
   }
 
   async pauseSession(bot: BotDocument): Promise<LivestreamBotSessionDocument> {
     const session = await this.getOrCreateSession(bot);
-    session.status = 'paused';
-    session.pausedAt = new Date();
-    await session.save();
-    return session;
+    const updated = await this.prisma.livestreamBotSession.update({
+      where: { id: (session as Record<string, unknown>).id as string },
+      data: { status: 'paused', pausedAt: new Date() },
+    });
+    return updated as unknown as LivestreamBotSessionDocument;
   }
 
   async resumeSession(bot: BotDocument): Promise<LivestreamBotSessionDocument> {
     const session = await this.getOrCreateSession(bot);
-    session.status = 'active';
-    session.pausedAt = undefined;
-    await session.save();
-    return session;
+    const updated = await this.prisma.livestreamBotSession.update({
+      where: { id: (session as Record<string, unknown>).id as string },
+      data: { status: 'active', pausedAt: null },
+    });
+    return updated as unknown as LivestreamBotSessionDocument;
   }
 
   async listDeliveryHistory(
@@ -194,7 +222,14 @@ export class BotsLivestreamService {
     };
 
     await this.refreshResolvedContext(bot, session, now);
-    return await session.save();
+
+    const updated = await this.prisma.livestreamBotSession.update({
+      where: { id: (session as Record<string, unknown>).id as string },
+      data: {
+        context: session.context as unknown as Record<string, unknown>,
+      },
+    });
+    return updated as unknown as LivestreamBotSessionDocument;
   }
 
   async ingestTranscriptChunk(
@@ -228,7 +263,19 @@ export class BotsLivestreamService {
     };
 
     await this.refreshResolvedContext(bot, session, now);
-    return await session.save();
+
+    const updated = await this.prisma.livestreamBotSession.update({
+      where: { id: (session as Record<string, unknown>).id as string },
+      data: {
+        transcriptChunks: transcriptChunks as unknown as Record<
+          string,
+          unknown
+        >[],
+        lastTranscriptAt: now,
+        context: session.context as unknown as Record<string, unknown>,
+      },
+    });
+    return updated as unknown as LivestreamBotSessionDocument;
   }
 
   async sendNow(
@@ -267,28 +314,31 @@ export class BotsLivestreamService {
       return;
     }
 
-    const sessions = await this.sessionModel
-      .find({
-        isDeleted: false,
-        status: 'active',
-      })
-      .exec();
+    const sessions = await this.prisma.livestreamBotSession.findMany({
+      where: { isDeleted: false, status: 'active' },
+    });
 
     for (const session of sessions) {
       try {
-        const bot = await this.botModel
-          .findOne({
-            _id: session.bot,
+        const sessionDoc =
+          session as unknown as LivestreamBotSessionDocument & {
+            botId: string;
+            organizationId: string;
+          };
+
+        const bot = await this.prisma.bot.findFirst({
+          where: {
+            id: sessionDoc.botId,
             isDeleted: false,
-            organization: session.organization,
-          })
-          .exec();
+            organizationId: sessionDoc.organizationId,
+          },
+        });
 
         if (!bot) {
           continue;
         }
 
-        await this.processSession(bot, session);
+        await this.processSession(bot as unknown as BotDocument, sessionDoc);
       } catch (error) {
         this.loggerService.error('Failed to process livestream session', error);
       }
@@ -357,6 +407,7 @@ export class BotsLivestreamService {
     message: string,
     type: LivestreamMessageType,
   ): Promise<void> {
+    const sessionId = (session as Record<string, unknown>).id as string;
     const now = new Date();
 
     try {
@@ -379,7 +430,19 @@ export class BotsLivestreamService {
         type,
       });
 
-      await session.save();
+      await this.prisma.livestreamBotSession.update({
+        where: { id: sessionId },
+        data: {
+          platformStates: session.platformStates as unknown as Record<
+            string,
+            unknown
+          >[],
+          deliveryHistory: session.deliveryHistory as unknown as Record<
+            string,
+            unknown
+          >[],
+        },
+      });
     } catch (error) {
       const platformState = this.ensurePlatformState(session, platform);
       platformState.lastError = (error as Error).message;
@@ -395,7 +458,19 @@ export class BotsLivestreamService {
         type,
       });
 
-      await session.save();
+      await this.prisma.livestreamBotSession.update({
+        where: { id: sessionId },
+        data: {
+          platformStates: session.platformStates as unknown as Record<
+            string,
+            unknown
+          >[],
+          deliveryHistory: session.deliveryHistory as unknown as Record<
+            string,
+            unknown
+          >[],
+        },
+      });
       throw error;
     }
   }

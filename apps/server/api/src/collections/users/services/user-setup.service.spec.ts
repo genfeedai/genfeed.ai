@@ -10,7 +10,6 @@ import { UserSetupService } from '@api/collections/users/services/user-setup.ser
 import { OrganizationCategory } from '@genfeedai/enums';
 import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 
 describe('UserSetupService', () => {
   let service: UserSetupService;

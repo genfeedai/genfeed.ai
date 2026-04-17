@@ -6,7 +6,6 @@ import {
 } from '@api/services/integrations/telegram/services/telegram.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('TelegramController', () => {
   let controller: TelegramController;

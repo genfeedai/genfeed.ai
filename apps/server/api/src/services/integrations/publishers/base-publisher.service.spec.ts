@@ -14,7 +14,6 @@ import type {
 } from '@api/services/integrations/publishers/interfaces/publisher.interface';
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 
 // ─── Concrete subclass for testing abstract base ──────────────────────────────
 

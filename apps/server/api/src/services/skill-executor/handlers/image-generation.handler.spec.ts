@@ -5,7 +5,6 @@ import { ReplicateService } from '@api/services/integrations/replicate/replicate
 import { ImageGenerationHandler } from '@api/services/skill-executor/handlers/image-generation.handler';
 import { ImageTaskModel } from '@genfeedai/enums';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('ImageGenerationHandler', () => {

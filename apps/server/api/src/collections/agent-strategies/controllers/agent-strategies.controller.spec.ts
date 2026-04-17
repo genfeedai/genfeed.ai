@@ -5,7 +5,6 @@ import { AgentStrategyReportsService } from '@api/collections/agent-strategies/s
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('AgentStrategiesController', () => {
   let controller: AgentStrategiesController;
@@ -68,7 +67,7 @@ describe('AgentStrategiesController', () => {
     it('should build pipeline with filters', () => {
       const user = {
         id: 'user-123',
-        publicMetadata: { organization: new Types.ObjectId().toString() },
+        publicMetadata: { organization: '507f191e810c19729de860ee'.toString() },
       } as never;
       const query = { isDeleted: false } as never;
       const pipeline = controller.buildFindAllPipeline(user, query);
@@ -76,7 +75,7 @@ describe('AgentStrategiesController', () => {
     });
 
     it('should include $match with organization from user metadata', () => {
-      const orgId = new Types.ObjectId().toString();
+      const orgId = '507f191e810c19729de860ee'.toString();
       const user = {
         id: 'user-123',
         publicMetadata: { organization: orgId },
@@ -84,13 +83,13 @@ describe('AgentStrategiesController', () => {
       const query = { isDeleted: false } as never;
       const pipeline = controller.buildFindAllPipeline(user, query);
       const matchStage = pipeline[0] as { $match: Record<string, unknown> };
-      expect(matchStage.$match.organization).toEqual(new Types.ObjectId(orgId));
+      expect(matchStage.$match.organization).toEqual(orgId);
     });
 
     it('should filter by platform when provided', () => {
       const user = {
         id: 'user-123',
-        publicMetadata: { organization: new Types.ObjectId().toString() },
+        publicMetadata: { organization: '507f191e810c19729de860ee'.toString() },
       } as never;
       const query = { isDeleted: false, platform: 'instagram' } as never;
       const pipeline = controller.buildFindAllPipeline(user, query);
@@ -101,7 +100,7 @@ describe('AgentStrategiesController', () => {
     it('should include $sort stage', () => {
       const user = {
         id: 'user-123',
-        publicMetadata: { organization: new Types.ObjectId().toString() },
+        publicMetadata: { organization: '507f191e810c19729de860ee'.toString() },
       } as never;
       const query = { isDeleted: false } as never;
       const pipeline = controller.buildFindAllPipeline(user, query);
@@ -112,7 +111,7 @@ describe('AgentStrategiesController', () => {
 
   describe('canUserModifyEntity', () => {
     it('should return true when organization matches', () => {
-      const orgId = new Types.ObjectId();
+      const orgId = '507f191e810c19729de860ee';
       const user = {
         id: 'user-123',
         publicMetadata: { organization: orgId.toString() },
@@ -124,10 +123,10 @@ describe('AgentStrategiesController', () => {
     it('should return false when organization does not match and not super admin', () => {
       const user = {
         id: 'user-123',
-        publicMetadata: { organization: new Types.ObjectId().toString() },
+        publicMetadata: { organization: '507f191e810c19729de860ee'.toString() },
       } as never;
       const entity = {
-        organization: new Types.ObjectId(),
+        organization: '507f191e810c19729de860ee',
       } as never;
       expect(controller.canUserModifyEntity(user, entity)).toBe(false);
     });
@@ -146,7 +145,7 @@ describe('AgentStrategiesController', () => {
 
       await controller.listOpportunities('strategy-id', {
         id: 'user-123',
-        publicMetadata: { organization: new Types.ObjectId().toString() },
+        publicMetadata: { organization: '507f191e810c19729de860ee'.toString() },
       } as never);
 
       expect(autopilot.listStrategyOpportunities).toHaveBeenCalled();

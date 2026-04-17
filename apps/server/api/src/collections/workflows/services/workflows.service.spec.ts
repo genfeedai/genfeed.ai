@@ -15,7 +15,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 // Valid 24-char hex strings for ObjectId construction
 const TEST_WORKFLOW_ID = '507f1f77bcf86cd799439011';

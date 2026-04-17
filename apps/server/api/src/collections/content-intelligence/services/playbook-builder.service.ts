@@ -2,23 +2,17 @@ import {
   CreatePlaybookDto,
   UpdatePlaybookDto,
 } from '@api/collections/content-intelligence/dto/create-playbook.dto';
-import { ContentPatternDocument } from '@api/collections/content-intelligence/schemas/content-pattern.schema';
-import {
-  PatternPlaybook,
-  type PatternPlaybookDocument,
-} from '@api/collections/content-intelligence/schemas/pattern-playbook.schema';
+import type { ContentPatternDocument } from '@api/collections/content-intelligence/schemas/content-pattern.schema';
+import type { PatternPlaybookDocument } from '@api/collections/content-intelligence/schemas/pattern-playbook.schema';
 import { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import {
   ContentIntelligencePlatform,
   ContentPatternType,
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class PlaybookBuilderService extends BaseService<
@@ -27,17 +21,16 @@ export class PlaybookBuilderService extends BaseService<
   UpdatePlaybookDto
 > {
   constructor(
-    @InjectModel(PatternPlaybook.name, DB_CONNECTIONS.CLOUD)
-    model: AggregatePaginateModel<PatternPlaybookDocument>,
+    public readonly prisma: PrismaService,
     private readonly patternStoreService: PatternStoreService,
-    logger: LoggerService,
+    public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    super(prisma, 'patternPlaybook', logger);
   }
 
   createPlaybook(
-    organizationId: Types.ObjectId,
-    userId: Types.ObjectId,
+    organizationId: string,
+    userId: string,
     dto: CreatePlaybookDto,
   ): Promise<PatternPlaybookDocument> {
     const playbookData = {
@@ -53,7 +46,7 @@ export class PlaybookBuilderService extends BaseService<
       isActive: true,
       name: dto.name,
       niche: dto.niche,
-      organization: organizationId,
+      organizationId,
       patternsCount: 0,
       platform: dto.platform,
       sourceCreators: dto.sourceCreators ?? [],
@@ -63,20 +56,20 @@ export class PlaybookBuilderService extends BaseService<
   }
 
   async buildInsights(
-    playbookId: Types.ObjectId | string,
-    organizationId: Types.ObjectId,
+    playbookId: string,
+    organizationId: string,
   ): Promise<PatternPlaybookDocument> {
     const playbook = await this.findOne({
-      _id: new Types.ObjectId(playbookId.toString()),
+      id: playbookId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId,
     });
     if (!playbook) {
       throw new Error('Playbook not found');
     }
 
     const patterns = await this.patternStoreService.findByOrganization(
-      playbook.organization,
+      playbook.organizationId,
       {
         platform:
           playbook.platform === 'all'
@@ -236,20 +229,20 @@ export class PlaybookBuilderService extends BaseService<
   }
 
   findByOrganization(
-    organizationId: Types.ObjectId,
+    organizationId: string,
   ): Promise<PatternPlaybookDocument[]> {
-    return this.findAllByOrganization(organizationId.toString());
+    return this.findAllByOrganization(organizationId);
   }
 
   async addCreatorToPlaybook(
-    playbookId: Types.ObjectId | string,
-    creatorId: Types.ObjectId,
-    organizationId: Types.ObjectId,
+    playbookId: string,
+    creatorId: string,
+    organizationId: string,
   ): Promise<PatternPlaybookDocument> {
     const playbook = await this.findOne({
-      _id: new Types.ObjectId(playbookId.toString()),
+      id: playbookId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId,
     });
     if (!playbook) {
       throw new Error('Playbook not found');
@@ -262,21 +255,21 @@ export class PlaybookBuilderService extends BaseService<
   }
 
   async removeCreatorFromPlaybook(
-    playbookId: Types.ObjectId | string,
-    creatorId: Types.ObjectId,
-    organizationId: Types.ObjectId,
+    playbookId: string,
+    creatorId: string,
+    organizationId: string,
   ): Promise<PatternPlaybookDocument> {
     const playbook = await this.findOne({
-      _id: new Types.ObjectId(playbookId.toString()),
+      id: playbookId,
       isDeleted: false,
-      organization: organizationId,
+      organizationId,
     });
     if (!playbook) {
       throw new Error('Playbook not found');
     }
 
     const sourceCreators = playbook.sourceCreators.filter(
-      (id) => id.toString() !== creatorId.toString(),
+      (id: string) => id.toString() !== creatorId.toString(),
     );
     return this.patch(playbookId, {
       sourceCreators,

@@ -1,5 +1,9 @@
 import { ArticleStatus } from '@genfeedai/enums';
-import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 /**
  * ArticleFilterUtil - Utility for building article-specific query filters
@@ -18,7 +22,7 @@ import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
  * const searchStages = ArticleFilterUtil.buildContentSearchFilter(query.search);
  *
  * // Use in aggregation pipeline
- * const pipeline: PipelineStage[] = [
+ * const pipeline: Record<string, unknown>[] = [
  *   { $match: { ...baseMatch, ...tagFilter } },
  *   ...statusStages,
  *   ...searchStages,
@@ -58,7 +62,7 @@ export class ArticleFilterUtil {
    */
   static buildArticleStatusFilter(
     status?: ArticleStatus | ArticleStatus[],
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     if (!status) {
       return [];
     }
@@ -112,7 +116,7 @@ export class ArticleFilterUtil {
    * ArticleFilterUtil.buildCategoryFilter(undefined)
    * // Returns: []
    */
-  static buildCategoryFilter(category?: string): PipelineStage[] {
+  static buildCategoryFilter(category?: string): Record<string, unknown>[] {
     if (!category) {
       return [];
     }
@@ -148,7 +152,7 @@ export class ArticleFilterUtil {
       return {};
     }
 
-    return { tags: new Types.ObjectId(tagId) };
+    return { tags: tagId };
   }
 
   /**
@@ -176,7 +180,7 @@ export class ArticleFilterUtil {
    * ArticleFilterUtil.buildContentSearchFilter(undefined)
    * // Returns: []
    */
-  static buildContentSearchFilter(search?: string): PipelineStage[] {
+  static buildContentSearchFilter(search?: string): Record<string, unknown>[] {
     if (!search || search.trim() === '') {
       return [];
     }
@@ -215,7 +219,9 @@ export class ArticleFilterUtil {
    * ArticleFilterUtil.buildTagPopulation(['description', 'slug'])
    * // Returns: [{ $lookup: { from: 'tags', pipeline: [{ $project: { ..., description: 1, slug: 1 } }] } }]
    */
-  static buildTagPopulation(includeFields: string[] = []): PipelineStage[] {
+  static buildTagPopulation(
+    includeFields: string[] = [],
+  ): Record<string, unknown>[] {
     const projection: Record<string, number> = {
       _id: 1,
       backgroundColor: 1,
@@ -275,10 +281,10 @@ export class ArticleFilterUtil {
       sortOrder?: 'asc' | 'desc';
     },
     baseMatch: Record<string, unknown>,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const tagFilter = ArticleFilterUtil.buildTagFilter(query.tag);
 
-    const pipeline: PipelineStage[] = [
+    const pipeline: Record<string, unknown>[] = [
       {
         $match: {
           ...baseMatch,

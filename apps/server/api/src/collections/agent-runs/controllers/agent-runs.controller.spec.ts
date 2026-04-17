@@ -12,7 +12,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('AgentRunsController', () => {
   let controller: AgentRunsController;
@@ -81,7 +80,7 @@ describe('AgentRunsController', () => {
       expect(pipeline[0]).toEqual({
         $match: {
           isDeleted: false,
-          organization: new Types.ObjectId('507f1f77bcf86cd799439012'),
+          organization: '507f1f77bcf86cd799439012',
         },
       });
     });

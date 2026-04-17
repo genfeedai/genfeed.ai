@@ -15,7 +15,6 @@ import type { User } from '@clerk/backend';
 import { TagSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Controller } from '@nestjs/common';
-import { type PipelineStage, Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('tags')
@@ -42,7 +41,7 @@ export class TagsController extends BaseCRUDController<
   public buildFindAllPipeline(
     user: User,
     query: TagsQueryDto,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const publicMetadata = getPublicMetadata(user);
 
     // Build OR conditions: global items OR user's org items OR user's items
@@ -52,18 +51,18 @@ export class TagsController extends BaseCRUDController<
 
     if (publicMetadata.organization) {
       orConditions.push({
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       });
     }
 
     if (publicMetadata.user) {
-      orConditions.push({ user: new Types.ObjectId(publicMetadata.user) });
+      orConditions.push({ user: publicMetadata.user });
     }
 
     const matchConditions: unknown = {
       isDeleted: query.isDeleted ?? false,
       ...(query.category && { category: query.category }),
-      ...(query.brand && { brand: new Types.ObjectId(query.brand) }),
+      ...(query.brand && { brand: query.brand }),
       $or: orConditions,
     };
 

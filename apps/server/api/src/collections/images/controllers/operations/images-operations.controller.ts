@@ -96,7 +96,12 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { isValidObjectId, Types } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
+
 import sharp from 'sharp';
 
 @AutoSwagger()
@@ -177,9 +182,9 @@ export class ImagesOperationsController {
 
     const brandId = createImageDto.brand || publicMetadata.brand;
     const brand = await this.brandsService.findOne({
-      _id: new Types.ObjectId(brandId),
+      _id: brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!brand) {
@@ -195,7 +200,7 @@ export class ImagesOperationsController {
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
         isDeleted: false,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       },
     );
 
@@ -260,9 +265,7 @@ export class ImagesOperationsController {
 
     // Validate resolved model against org (catches default-resolution bypassing ModelsGuard)
     if (request.context?.organizationId) {
-      const authenticatedOrgId = new Types.ObjectId(
-        request.context.organizationId,
-      );
+      const authenticatedOrgId = request.context.organizationId;
       await this.modelRegistrationService.validateModelForOrg(
         model,
         authenticatedOrgId,
@@ -390,17 +393,17 @@ export class ImagesOperationsController {
     const promptData = await this.promptsService.create(
       new PromptEntity({
         brand: isValidObjectId(createImageDto.brand)
-          ? new Types.ObjectId(createImageDto.brand)
-          : new Types.ObjectId(publicMetadata.brand),
+          ? createImageDto.brand
+          : publicMetadata.brand,
         category: PromptCategory.MODELS_PROMPT_IMAGE,
         model: createImageDto.model as string,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         original:
           typeof promptOriginal === 'string'
             ? promptOriginal
             : promptOriginal?.toString() || '',
         status: PromptStatus.PROCESSING,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
       }),
     );
 
@@ -446,16 +449,16 @@ export class ImagesOperationsController {
     const { metadataData, ingredientData } =
       await this.sharedService.saveDocuments(user, {
         ...createImageDto,
-        brand: new Types.ObjectId(brand._id),
+        brand: brand._id,
         category: IngredientCategory.IMAGE,
         extension: MetadataExtension.JPEG,
         height,
         model,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         parent: isValidObjectId(createImageDto.parent)
-          ? new Types.ObjectId(createImageDto.parent)
+          ? createImageDto.parent
           : undefined,
-        prompt: new Types.ObjectId(promptData._id),
+        prompt: promptData._id,
         // Template tracking
         promptTemplate: imageTemplateUsed,
         style,
@@ -464,19 +467,19 @@ export class ImagesOperationsController {
       });
 
     await this.imagesService.patch(ingredientData._id, {
-      prompt: new Types.ObjectId(promptData._id),
+      prompt: promptData._id,
     });
 
     // Create activity for image generation start (after ingredientData is available)
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: new Types.ObjectId(brand._id),
+        brand: brand._id,
         entityId: ingredientData._id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.IMAGE_PROCESSING,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         source: ActivitySource.IMAGE_GENERATION,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
         value: JSON.stringify({
           ingredientId: ingredientData._id.toString(),
           model,
@@ -527,14 +530,14 @@ export class ImagesOperationsController {
             metadataData._id,
             new MetadataEntity({
               height: uploadMeta.height,
-              prompt: new Types.ObjectId(promptData._id),
+              prompt: promptData._id,
               size: uploadMeta.size,
               width: uploadMeta.width,
             }),
           ),
           this.imagesService.patch(ingredientData._id, {
             cdnUrl: uploadMeta.publicUrl,
-            prompt: new Types.ObjectId(promptData._id),
+            prompt: promptData._id,
             s3Key: uploadMeta.s3Key,
             status: IngredientStatus.GENERATED,
           }),
@@ -613,7 +616,7 @@ export class ImagesOperationsController {
             metadataData._id,
             new MetadataEntity({
               externalId: generationId,
-              prompt: new Types.ObjectId(promptData._id),
+              prompt: promptData._id,
             }),
           );
 
@@ -713,7 +716,7 @@ export class ImagesOperationsController {
           metadataData._id,
           new MetadataEntity({
             externalId: falResult.url,
-            prompt: new Types.ObjectId(promptData._id),
+            prompt: promptData._id,
           }),
         );
 
@@ -723,13 +726,13 @@ export class ImagesOperationsController {
             ingredientData: additionalIngredient,
           } = await this.sharedService.saveDocuments(user, {
             ...createImageDto,
-            brand: new Types.ObjectId(brand._id),
+            brand: brand._id,
             category: IngredientCategory.IMAGE,
             extension: MetadataExtension.JPG,
             model,
-            organization: new Types.ObjectId(publicMetadata.organization),
+            organization: publicMetadata.organization,
             parent: ingredientData.parent,
-            prompt: new Types.ObjectId(promptData._id),
+            prompt: promptData._id,
             status: IngredientStatus.PROCESSING,
           });
 
@@ -743,23 +746,23 @@ export class ImagesOperationsController {
               additionalMetadata._id,
               new MetadataEntity({
                 externalId: additionalResult.url,
-                prompt: new Types.ObjectId(promptData._id),
+                prompt: promptData._id,
               }),
             ),
             this.imagesService.patch(additionalIngredient._id, {
-              prompt: new Types.ObjectId(promptData._id),
+              prompt: promptData._id,
             }),
           ]);
 
           const additionalActivity = await this.activitiesService.create(
             new ActivityEntity({
-              brand: new Types.ObjectId(brand._id),
+              brand: brand._id,
               entityId: additionalIngredient._id,
               entityModel: ActivityEntityModel.INGREDIENT,
               key: ActivityKey.IMAGE_PROCESSING,
-              organization: new Types.ObjectId(publicMetadata.organization),
+              organization: publicMetadata.organization,
               source: ActivitySource.IMAGE_GENERATION,
-              user: new Types.ObjectId(publicMetadata.user),
+              user: publicMetadata.user,
               value: JSON.stringify({
                 ingredientId: additionalIngredient._id.toString(),
                 model,
@@ -972,13 +975,13 @@ export class ImagesOperationsController {
               Array.from({ length: outputs - 1 }, () => {
                 return this.sharedService.saveDocuments(user, {
                   ...createImageDto,
-                  brand: new Types.ObjectId(brand._id),
+                  brand: brand._id,
                   category: IngredientCategory.IMAGE,
                   extension: MetadataExtension.JPG,
                   model,
-                  organization: new Types.ObjectId(publicMetadata.organization),
+                  organization: publicMetadata.organization,
                   parent: ingredientData.parent,
-                  prompt: new Types.ObjectId(promptData._id),
+                  prompt: promptData._id,
                   status: IngredientStatus.PROCESSING,
                 });
               }),
@@ -1000,7 +1003,7 @@ export class ImagesOperationsController {
                       }),
                     ),
                     this.imagesService.patch(addIngredient._id, {
-                      prompt: new Types.ObjectId(promptData._id),
+                      prompt: promptData._id,
                     }),
                   ];
                 },
@@ -1013,15 +1016,15 @@ export class ImagesOperationsController {
                 this.activitiesService
                   .create(
                     new ActivityEntity({
-                      brand: new Types.ObjectId(brand._id),
+                      brand: brand._id,
                       entityId: addIngredient._id,
                       entityModel: ActivityEntityModel.INGREDIENT,
                       key: ActivityKey.IMAGE_PROCESSING,
-                      organization: new Types.ObjectId(
+                      organization: 
                         publicMetadata.organization,
-                      ),
+                      ,
                       source: ActivitySource.IMAGE_GENERATION,
-                      user: new Types.ObjectId(publicMetadata.user),
+                      user: publicMetadata.user,
                       value: JSON.stringify({
                         ingredientId: addIngredient._id.toString(),
                         model,
@@ -1074,13 +1077,13 @@ export class ImagesOperationsController {
                 ingredientData: additionalIngredient,
               } = await this.sharedService.saveDocuments(user, {
                 ...createImageDto,
-                brand: new Types.ObjectId(brand._id),
+                brand: brand._id,
                 category: IngredientCategory.IMAGE,
                 extension: MetadataExtension.JPG,
                 model,
-                organization: new Types.ObjectId(publicMetadata.organization),
+                organization: publicMetadata.organization,
                 parent: ingredientData.parent,
-                prompt: new Types.ObjectId(promptData._id),
+                prompt: promptData._id,
                 status: IngredientStatus.PROCESSING,
               });
 
@@ -1099,20 +1102,20 @@ export class ImagesOperationsController {
                   }),
                 ),
                 this.imagesService.patch(additionalIngredient._id, {
-                  prompt: new Types.ObjectId(promptData._id),
+                  prompt: promptData._id,
                 }),
               ]);
 
               // Create activity for this additional output (non-batch path)
               const additionalActivity = await this.activitiesService.create(
                 new ActivityEntity({
-                  brand: new Types.ObjectId(brand._id),
+                  brand: brand._id,
                   entityId: additionalIngredient._id,
                   entityModel: ActivityEntityModel.INGREDIENT,
                   key: ActivityKey.IMAGE_PROCESSING,
-                  organization: new Types.ObjectId(publicMetadata.organization),
+                  organization: publicMetadata.organization,
                   source: ActivitySource.IMAGE_GENERATION,
-                  user: new Types.ObjectId(publicMetadata.user),
+                  user: publicMetadata.user,
                   value: JSON.stringify({
                     ingredientId: additionalIngredient._id.toString(),
                     model,
@@ -1286,9 +1289,9 @@ export class ImagesOperationsController {
     // Fetch the source image with metadata populated
     const sourceImage = await this.imagesService.findOne(
       {
-        _id: new Types.ObjectId(id),
+        _id: id,
         isDeleted: false,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       },
       [PopulatePatterns.metadataFull],
     );
@@ -1318,7 +1321,7 @@ export class ImagesOperationsController {
         : {}),
       ...(sourceMetadata?.prompt
         ? // @ts-expect-error TS2769
-          { prompt: new Types.ObjectId(sourceMetadata.prompt) }
+          { prompt: sourceMetadata.prompt }
         : {}),
       ...(sourceMetadata?.assistant
         ? { assistant: sourceMetadata.assistant }
@@ -1359,7 +1362,7 @@ export class ImagesOperationsController {
       category: TagCategory.INGREDIENT,
       isDeleted: false,
       key: TagKey.SPLITTED,
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!splittedTag) {
@@ -1367,7 +1370,7 @@ export class ImagesOperationsController {
         category: TagCategory.INGREDIENT,
         key: TagKey.SPLITTED,
         label: 'Splitted',
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       } as unknown as CreateTagDto);
     }
 
@@ -1388,14 +1391,14 @@ export class ImagesOperationsController {
         category: IngredientCategory.IMAGE,
         extension: metadataFields.extension || MetadataExtension.JPEG,
         label: `Frame ${i + 1}`,
-        organization: new Types.ObjectId(publicMetadata.organization),
-        parent: new Types.ObjectId(id),
+        organization: publicMetadata.organization,
+        parent: id,
         status: IngredientStatus.GENERATED,
         // Preserve metadata fields from source image
         ...metadataFields,
         height: frameHeight,
         // Add "splitted" tag
-        tags: [new Types.ObjectId(splittedTag._id)],
+        tags: [splittedTag._id],
         // Set frame-specific dimensions from actual buffer metadata
         width: frameWidth,
       });
@@ -1428,9 +1431,9 @@ export class ImagesOperationsController {
       new ActivityEntity({
         brand: sourceImage.brand,
         key: ActivityKey.IMAGE_GENERATED,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
         source: ActivitySource.IMAGE_GENERATION,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
         value: JSON.stringify({
           frameCount: frameResults.length,
           frameIds: frameResults.map((f) => f.id),

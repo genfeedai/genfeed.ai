@@ -25,7 +25,6 @@ import {
   Query,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 const VALID_PLATFORMS: AdsPlatform[] = ['meta', 'google', 'tiktok'];
 

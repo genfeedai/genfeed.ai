@@ -25,7 +25,6 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 interface AnalyticsOverview {
   avgEngagementRate?: number;

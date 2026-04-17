@@ -11,7 +11,6 @@ import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatc
 import { ContentPlanItemType, ContentPlanStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 interface LlmPlanItem {
   topic: string;

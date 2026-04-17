@@ -5,7 +5,6 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { LoggerService } from '@libs/logger/logger.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('ContentSchedulesService', () => {

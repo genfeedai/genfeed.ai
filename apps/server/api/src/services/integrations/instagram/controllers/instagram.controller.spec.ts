@@ -26,7 +26,6 @@ import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 import { of, throwError } from 'rxjs';
 
 describe('InstagramController', () => {

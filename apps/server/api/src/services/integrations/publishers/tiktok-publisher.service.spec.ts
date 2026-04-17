@@ -16,7 +16,6 @@ import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok
 import { CredentialPlatform, PostCategory, PostStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('TikTokPublisherService', () => {
   let service: TikTokPublisherService;

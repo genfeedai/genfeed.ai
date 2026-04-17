@@ -1,14 +1,11 @@
 import { CreateBookmarkDto } from '@api/collections/bookmarks/dto/create-bookmark.dto';
 import { UpdateBookmarkDto } from '@api/collections/bookmarks/dto/update-bookmark.dto';
-import { Bookmark } from '@api/collections/bookmarks/schemas/bookmark.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { Bookmark } from '@api/collections/bookmarks/schemas/bookmark.schema';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class BookmarksService extends BaseService<
@@ -17,11 +14,10 @@ export class BookmarksService extends BaseService<
   UpdateBookmarkDto
 > {
   constructor(
-    @InjectModel(Bookmark.name, DB_CONNECTIONS.CLOUD)
-    protected readonly model: AggregatePaginateModel<Bookmark>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    super(prisma, 'bookmark', logger);
   }
 
   /**
@@ -29,29 +25,43 @@ export class BookmarksService extends BaseService<
    */
   @HandleErrors('add generated ingredient', 'bookmarks')
   async addGeneratedIngredient(
-    bookmarkId: string | Types.ObjectId,
-    ingredientId: string | Types.ObjectId,
+    bookmarkId: string,
+    ingredientId: string,
   ): Promise<Bookmark | null> {
     this.logOperation('addGeneratedIngredient', 'started', {
       bookmarkId,
       ingredientId,
     });
 
-    const result = await this.model.findByIdAndUpdate(
-      bookmarkId,
-      {
-        $addToSet: { generatedIngredients: ingredientId },
-        $set: { processedAt: new Date() },
-      },
-      { returnDocument: 'after' },
+    const bookmark = await this.delegate.findFirst({
+      where: { id: bookmarkId, isDeleted: false },
+    });
+
+    if (!bookmark) {
+      return null;
+    }
+
+    const currentIngredients =
+      ((bookmark as Record<string, unknown>)
+        .generatedIngredients as string[]) ?? [];
+    const updatedIngredients = Array.from(
+      new Set([...currentIngredients, ingredientId]),
     );
+
+    const result = await this.delegate.update({
+      where: { id: bookmarkId },
+      data: {
+        generatedIngredients: updatedIngredients,
+        processedAt: new Date(),
+      } as Record<string, unknown>,
+    });
 
     this.logOperation('addGeneratedIngredient', 'completed', {
       bookmarkId,
       ingredientId,
     });
 
-    return result;
+    return result as Bookmark;
   }
 
   extractMetadata(_url: string): Record<string, string | number> {

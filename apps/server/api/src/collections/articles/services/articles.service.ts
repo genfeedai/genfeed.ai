@@ -9,7 +9,7 @@ import {
 } from '@api/collections/articles/dto/generate-articles.dto';
 import { UpdateArticleDto } from '@api/collections/articles/dto/update-article.dto';
 import {
-  Article,
+  type Article,
   type ArticleDocument,
 } from '@api/collections/articles/schemas/article.schema';
 import { ArticleAnalyticsService } from '@api/collections/articles/services/article-analytics.service';
@@ -31,7 +31,6 @@ import { PromptsService } from '@api/collections/prompts/services/prompts.servic
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
@@ -45,10 +44,10 @@ import { CacheService } from '@api/services/cache/services/cache.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { AggregationCacheUtil } from '@api/shared/utils/aggregation-cache/aggregation-cache.util';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import {
   ActivitySource,
   ArticleCategory,
@@ -62,8 +61,6 @@ import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, NotFoundException, Optional } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { type PipelineStage, Types } from 'mongoose';
 
 @Injectable()
 export class ArticlesService extends BaseService<
@@ -75,8 +72,7 @@ export class ArticlesService extends BaseService<
   private static readonly TEXT_MAX_OVERDRAFT_CREDITS = 5;
 
   constructor(
-    @InjectModel(Article.name, DB_CONNECTIONS.CLOUD)
-    protected readonly model: AggregatePaginateModel<ArticleDocument>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     private readonly configService: ConfigService,
 
@@ -99,7 +95,7 @@ export class ArticlesService extends BaseService<
     @Optional() private readonly creditsUtilsService?: CreditsUtilsService,
     @Optional() private readonly modelsService?: ModelsService,
   ) {
-    super(model, logger, undefined, cacheService);
+    super(prisma, 'article', logger, undefined, cacheService);
   }
 
   /**
@@ -192,7 +188,7 @@ export class ArticlesService extends BaseService<
     );
 
     // Link transcript to article
-    await this.linkTranscriptToArticle(transcriptId, article._id.toString());
+    await this.linkTranscriptToArticle(transcriptId, article.id);
 
     return article;
   }
@@ -319,32 +315,14 @@ export class ArticlesService extends BaseService<
   }
 
   /**
-   * Get context-aware population options to prevent over-fetching
-   * @param context - The context determining which fields to populate
+   * Get context-aware population options to prevent over-fetching.
+   * NOTE: With Prisma, population is replaced by explicit include queries.
+   * This method is kept for signature compatibility but returns empty array.
    */
   protected getPopulationForContext(
-    context: 'list' | 'detail' | 'minimal' | 'create' = 'minimal',
+    _context: 'list' | 'detail' | 'minimal' | 'create' = 'minimal',
   ): PopulateOption[] {
-    switch (context) {
-      case 'list':
-        // For list views — user/org are in auth DB (cross-DB), populate only same-DB refs
-        return [
-          PopulatePatterns.brandMinimal,
-          { path: 'tags', select: '_id label' },
-        ];
-      case 'detail':
-        // For detail views — user/org are in auth DB (cross-DB), populate only same-DB refs
-        return [
-          PopulatePatterns.brandMinimal,
-          { path: 'tags', select: '_id label' },
-        ];
-      case 'create':
-        // After creation, return essential fields — brand is same-DB
-        return [PopulatePatterns.brandMinimal];
-      default:
-        // Minimal population for basic operations
-        return [PopulatePatterns.brandId];
-    }
+    return [];
   }
 
   @HandleErrors('create article', 'articles')
@@ -356,28 +334,25 @@ export class ArticlesService extends BaseService<
   ): Promise<ArticleDocument> {
     this.logger.debug(`${this.constructorName} create`, { createArticleDto });
 
-    // Validate ObjectId parameters
-    if (!userId || !Types.ObjectId.isValid(userId)) {
+    // Validate id parameters
+    if (!userId || userId.trim() === '') {
       throw new Error('Invalid userId');
     }
-    if (!organizationId || !Types.ObjectId.isValid(organizationId)) {
+    if (!organizationId || organizationId.trim() === '') {
       throw new Error('Invalid organizationId');
     }
-    if (!brandId || !Types.ObjectId.isValid(brandId)) {
+    if (!brandId || brandId.trim() === '') {
       throw new Error('Invalid brandId');
     }
 
     const articleData = {
       ...createArticleDto,
-      brand: new Types.ObjectId(brandId),
-      organization: new Types.ObjectId(organizationId),
-      user: new Types.ObjectId(userId),
+      brandId,
+      organizationId,
+      userId,
     };
 
-    const result = await super.create(
-      articleData,
-      this.getPopulationForContext('create'),
-    );
+    const result = await super.create(articleData);
 
     // Explicitly invalidate cache after create - invalidate ALL possible tags
     if (this.cacheService) {
@@ -400,7 +375,7 @@ export class ArticlesService extends BaseService<
     }
 
     this.logger.debug(`${this.constructorName} create success`, {
-      id: result._id,
+      id: result.id,
     });
     return result;
   }
@@ -414,36 +389,33 @@ export class ArticlesService extends BaseService<
   ): Promise<ArticleDocument> {
     this.logger.debug(`${this.constructorName} findOne`, { id });
 
-    // Validate ObjectId parameters
-    if (!userId || !Types.ObjectId.isValid(userId)) {
+    // Validate id parameters
+    if (!userId || userId.trim() === '') {
       throw new Error('Invalid userId');
     }
 
-    if (!organizationId || !Types.ObjectId.isValid(organizationId)) {
+    if (!organizationId || organizationId.trim() === '') {
       throw new Error('Invalid organizationId');
     }
 
-    if (!brandId || !Types.ObjectId.isValid(brandId)) {
+    if (!brandId || brandId.trim() === '') {
       throw new Error('Invalid brandId');
     }
 
-    const result = await super.findOne(
-      {
-        _id: id,
-        brand: brandId,
-        isDeleted: false,
-        organization: organizationId,
-        user: userId,
-      },
-      this.getPopulationForContext('detail'),
-    );
+    const result = await super.findOne({
+      id,
+      brandId,
+      isDeleted: false,
+      organizationId,
+      userId,
+    });
 
     if (!result) {
       throw new NotFoundException('Article not found');
     }
 
     this.logger.debug(`${this.constructorName} findOne success`, {
-      id: result._id,
+      id: result.id,
     });
 
     return result;
@@ -455,22 +427,21 @@ export class ArticlesService extends BaseService<
     organizationId: string,
     brandId: string,
   ): Promise<Article> {
-    const article = await this.model
-      .findOne({
-        brand: brandId,
+    const article = await this.delegate.findFirst({
+      where: {
+        brandId,
         isDeleted: false,
-        organization: organizationId,
+        organizationId,
         slug,
-        user: userId,
-      })
-      .populate('tags', 'label backgroundColor textColor')
-      .exec();
+        userId,
+      },
+    });
 
     if (!article) {
       throw new NotFoundException('Article not found');
     }
 
-    return article;
+    return article as unknown as Article;
   }
 
   async update(
@@ -486,16 +457,16 @@ export class ArticlesService extends BaseService<
         updateArticleDto,
       });
 
-      // Validate ObjectId parameters
-      if (!userId || !Types.ObjectId.isValid(userId)) {
+      // Validate id parameters
+      if (!userId || userId.trim() === '') {
         throw new Error('Invalid userId');
       }
 
-      if (!organizationId || !Types.ObjectId.isValid(organizationId)) {
+      if (!organizationId || organizationId.trim() === '') {
         throw new Error('Invalid organizationId');
       }
 
-      if (!brandId || !Types.ObjectId.isValid(brandId)) {
+      if (!brandId || brandId.trim() === '') {
         throw new Error('Invalid brandId');
       }
 
@@ -505,11 +476,8 @@ export class ArticlesService extends BaseService<
       if (updateArticleDto.status === ArticleStatus.PUBLIC) {
         // Find and verify ownership
         const currentArticle = await this.findOne({
-          _id: new Types.ObjectId(id),
-          $or: [
-            { user: new Types.ObjectId(userId) },
-            { organization: new Types.ObjectId(organizationId) },
-          ],
+          id,
+          OR: [{ userId }, { organizationId }],
           isDeleted: false,
         });
 
@@ -533,18 +501,14 @@ export class ArticlesService extends BaseService<
         }
       }
 
-      const result = await super.patch(
-        id,
-        updateData,
-        this.getPopulationForContext('detail'),
-      );
+      const result = await super.patch(id, updateData);
 
       // Verify the article belongs to the user/organization (ownership already checked in controller)
       if (
         !result ||
         result.isDeleted ||
-        (result.user._id.toString() !== userId &&
-          result.organization._id.toString() !== organizationId)
+        (result.userId?.toString() !== userId &&
+          result.organizationId?.toString() !== organizationId)
       ) {
         throw new NotFoundException('Article not found');
       }
@@ -575,7 +539,7 @@ export class ArticlesService extends BaseService<
       }
 
       this.logger.debug(`${this.constructorName} update success`, {
-        id: result._id,
+        id: result.id,
       });
 
       // Send Discord notification if article was just published
@@ -588,7 +552,7 @@ export class ArticlesService extends BaseService<
         try {
           const organizationSettings =
             await this.organizationSettingsService.findOne({
-              organization: new Types.ObjectId(organizationId),
+              organizationId,
             });
 
           if (organizationSettings?.isNotificationsDiscordEnabled) {
@@ -608,7 +572,7 @@ export class ArticlesService extends BaseService<
             this.logger.log(
               `${this.constructorName} sent Discord notification for published article`,
               {
-                articleId: result._id,
+                articleId: result.id,
                 slug: result.slug,
               },
             );
@@ -618,7 +582,7 @@ export class ArticlesService extends BaseService<
           this.logger.error(
             `${this.constructorName} failed to send Discord notification`,
             {
-              articleId: result._id,
+              articleId: result.id,
               error,
             },
           );
@@ -645,28 +609,25 @@ export class ArticlesService extends BaseService<
     try {
       this.logger.debug(`${this.constructorName} remove`, { id });
 
-      // Validate ObjectId parameters
-      if (!userId || !Types.ObjectId.isValid(userId)) {
+      // Validate id parameters
+      if (!userId || userId.trim() === '') {
         throw new Error('Invalid userId');
       }
-      if (!organizationId || !Types.ObjectId.isValid(organizationId)) {
+      if (!organizationId || organizationId.trim() === '') {
         throw new Error('Invalid organizationId');
       }
-      if (!brandId || !Types.ObjectId.isValid(brandId)) {
+      if (!brandId || brandId.trim() === '') {
         throw new Error('Invalid brandId');
       }
 
       // First verify the article exists and belongs to the user
-      const article = await super.findOne(
-        {
-          _id: id,
-          brand: brandId,
-          isDeleted: false,
-          organization: organizationId,
-          user: userId,
-        },
-        [],
-      );
+      const article = await super.findOne({
+        id,
+        brandId,
+        isDeleted: false,
+        organizationId,
+        userId,
+      });
 
       if (!article) {
         throw new NotFoundException('Article not found');
@@ -718,43 +679,39 @@ export class ArticlesService extends BaseService<
       sortOrder = 'desc',
     } = query;
 
-    const filter: Record<string, unknown> = {
+    const where: Record<string, unknown> = {
       isDeleted: false,
-      publishedAt: { $exists: true },
+      publishedAt: { not: null },
       status: ArticleStatus.PUBLIC,
     };
 
     if (search) {
-      filter.$or = [
-        { label: { $options: 'i', $regex: search } },
-        { summary: { $options: 'i', $regex: search } },
-        { content: { $options: 'i', $regex: search } },
+      where.OR = [
+        { label: { contains: search, mode: 'insensitive' } },
+        { summary: { contains: search, mode: 'insensitive' } },
+        { content: { contains: search, mode: 'insensitive' } },
       ];
     }
 
     if (category) {
-      filter.category = category;
+      where.category = category;
     }
 
     if (tag) {
-      filter.tags = new Types.ObjectId(tag);
+      where.tagId = tag;
     }
 
-    const sort: Record<string, 1 | -1> = {};
-    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
-
+    const orderBy = { [sortBy]: sortOrder } as Record<string, string>;
     const skip = (page - 1) * limit;
 
     const [articles, total] = await Promise.all([
-      this.model
-        .find(filter)
-        .populate('tags', 'label backgroundColor textColor')
-        .sort(sort)
-        .skip(skip)
-        .limit(limit)
-        .lean()
-        .exec(),
-      this.model.countDocuments(filter),
+      this.delegate.findMany({
+        where,
+        orderBy,
+        skip,
+        take: limit,
+      }),
+      this.delegate.count({ where }),
     ]);
 
     // Application-level join for cross-DB refs (user + organization live in auth DB)
@@ -773,7 +730,7 @@ export class ArticlesService extends BaseService<
     slug: string,
     isPreview: boolean = false,
   ): Promise<Article | null> {
-    let query: Record<string, unknown> = {
+    const where: Record<string, unknown> = {
       isDeleted: false,
       slug,
     };
@@ -781,55 +738,18 @@ export class ArticlesService extends BaseService<
     // In preview mode, allow any status/scope
     // In normal mode, only show published articles (PUBLISHED = public)
     if (!isPreview) {
-      query = {
-        ...query,
-        publishedAt: { $exists: true },
-        status: ArticleStatus.PUBLIC,
-      };
+      where.publishedAt = { not: null };
+      where.status = ArticleStatus.PUBLIC;
     }
 
-    const article: ArticleDocument | null = await this.model
-      .findOne<ArticleDocument>(query)
-      .populate('tags', 'label backgroundColor textColor')
-      .populate(
-        'brand',
-        'handle label description website logo banner credentials',
-      )
-      .exec();
+    const article = await this.delegate.findFirst({ where });
 
     if (!article) {
       return null;
     }
 
-    // Populate banner only if it's a valid ObjectId (not empty string)
-    // Empty strings cause CastError when Mongoose tries to cast to ObjectId
-    const bannerValue = article.banner as unknown as
-      | Types.ObjectId
-      | string
-      | null;
-    const isValidBanner =
-      bannerValue &&
-      (bannerValue instanceof Types.ObjectId ||
-        (typeof bannerValue === 'string' &&
-          bannerValue !== '' &&
-          Types.ObjectId.isValid(bannerValue)));
-
-    if (isValidBanner) {
-      await article.populate({
-        path: 'banner',
-        select: '_id category parent parentModel',
-      });
-    } else if (
-      !bannerValue ||
-      bannerValue === '' ||
-      (typeof bannerValue === 'string' && !Types.ObjectId.isValid(bannerValue))
-    ) {
-      // Clean up empty string or invalid banner values
-      article.banner = null as unknown as Types.ObjectId;
-    }
-
     // Application-level join for cross-DB refs (user + organization live in auth DB)
-    const articleObj = article.toObject ? article.toObject() : article;
+    const articleObj = { ...article } as Record<string, unknown>;
     await this.hydrateUserAndOrganization([articleObj]);
 
     return articleObj as unknown as Article;
@@ -883,7 +803,7 @@ export class ArticlesService extends BaseService<
     ) {
       try {
         await this.generatePromptFromArticle(
-          articles[0]._id.toString(),
+          articles[0].id,
           userId,
           organizationId,
           brandId,
@@ -891,7 +811,7 @@ export class ArticlesService extends BaseService<
       } catch (error: unknown) {
         this.logger.error(
           `${this.constructorName} failed to generate header image prompt for X Article`,
-          { articleId: articles[0]._id, error },
+          { articleId: articles[0].id, error },
         );
       }
     }
@@ -930,11 +850,8 @@ export class ArticlesService extends BaseService<
     }
 
     const article = await this.findOne({
-      _id: new Types.ObjectId(articleId),
-      $or: [
-        { user: new Types.ObjectId(userId) },
-        { organization: new Types.ObjectId(organizationId) },
-      ],
+      id: articleId,
+      OR: [{ userId }, { organizationId }],
       isDeleted: false,
     });
 
@@ -966,7 +883,7 @@ export class ArticlesService extends BaseService<
 
     const settings = await this.organizationSettingsService.findOne({
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     });
 
     return {
@@ -996,11 +913,8 @@ export class ArticlesService extends BaseService<
 
     // Get the existing article
     const article = await this.findOne({
-      _id: new Types.ObjectId(articleId),
-      $or: [
-        { user: new Types.ObjectId(userId) },
-        { organization: new Types.ObjectId(organizationId) },
-      ],
+      id: articleId,
+      OR: [{ userId }, { organizationId }],
       isDeleted: false,
     });
 
@@ -1034,7 +948,7 @@ export class ArticlesService extends BaseService<
     organizationId: string,
     brandId: string,
   ): Promise<{
-    articleId: Types.ObjectId;
+    articleId: string;
     totalVersions: number;
     prompts: unknown[];
   }> {
@@ -1055,41 +969,31 @@ export class ArticlesService extends BaseService<
 
       if (!this.promptsService) {
         return {
-          articleId: article._id,
+          articleId: article.id,
           prompts: [],
           totalVersions: 0,
         };
       }
 
-      // Get all prompts for this article
-      const aggregate: PipelineStage[] = [
-        {
-          $match: {
-            article: new Types.ObjectId(articleId),
-            brand: new Types.ObjectId(brandId),
-            isDeleted: false,
-            organization: new Types.ObjectId(organizationId),
-            user: new Types.ObjectId(userId),
-          },
-        },
-        {
-          $sort: { createdAt: 1 }, // Oldest first (chronological order)
-        },
-      ];
-
-      const promptsResult = await this.promptsService.findAll(aggregate, {
+      // Get all prompts for this article - TODO: migrate findAll pipeline to Prisma
+      const promptsResult = await this.promptsService.findAll([], {
         pagination: false,
       });
-      const prompts = promptsResult.docs;
+      const prompts = promptsResult.docs.filter(
+        (p: Record<string, unknown>) =>
+          p.articleId === articleId &&
+          p.brandId === brandId &&
+          p.organizationId === organizationId &&
+          p.userId === userId,
+      );
 
       return {
-        articleId: article._id,
-        prompts: prompts.map((p, index) => ({
-          id: p._id,
+        articleId: article.id,
+        prompts: prompts.map((p: Record<string, unknown>, index: number) => ({
+          id: p.id,
           prompt: p.original,
           result: p.enhanced,
           version: index + 1,
-          // createdAt: p.createdAt,
         })),
         totalVersions: prompts.length,
       };
@@ -1133,10 +1037,10 @@ export class ArticlesService extends BaseService<
 
       // Get the prompt
       const prompt = await this.promptsService.findOne({
-        _id: promptId,
-        article: new Types.ObjectId(articleId),
+        id: promptId,
+        articleId,
         isDeleted: false,
-        user: new Types.ObjectId(userId),
+        userId,
       });
 
       if (!prompt) {
@@ -1181,17 +1085,11 @@ export class ArticlesService extends BaseService<
         promptId,
       });
 
-      const updatedArticle = await this.findOne(
-        {
-          _id: new Types.ObjectId(articleId),
-          $or: [
-            { user: new Types.ObjectId(userId) },
-            { organization: new Types.ObjectId(organizationId) },
-          ],
-          isDeleted: false,
-        },
-        this.getPopulationForContext('detail'),
-      );
+      const updatedArticle = await this.findOne({
+        id: articleId,
+        OR: [{ userId }, { organizationId }],
+        isDeleted: false,
+      });
 
       if (!updatedArticle) {
         throw new NotFoundException('Article not found');
@@ -1226,11 +1124,8 @@ export class ArticlesService extends BaseService<
 
     // Get article
     const article = await this.findOne({
-      _id: new Types.ObjectId(articleId),
-      $or: [
-        { user: new Types.ObjectId(userId) },
-        { organization: new Types.ObjectId(organizationId) },
-      ],
+      id: articleId,
+      OR: [{ userId }, { organizationId }],
       isDeleted: false,
     });
 
@@ -1503,11 +1398,8 @@ export class ArticlesService extends BaseService<
 
     // Find the original article
     const originalArticle = await this.findOne({
-      _id: new Types.ObjectId(originalArticleId),
-      $or: [
-        { user: new Types.ObjectId(userId) },
-        { organization: new Types.ObjectId(organizationId) },
-      ],
+      id: originalArticleId,
+      OR: [{ userId }, { organizationId }],
       isDeleted: false,
     });
 
@@ -1552,7 +1444,7 @@ export class ArticlesService extends BaseService<
 
     this.logger.log(`${url} remix created`, {
       originalArticleId,
-      remixArticleId: remixArticle._id,
+      remixArticleId: remixArticle.id,
     });
 
     return remixArticle;
@@ -1570,72 +1462,54 @@ export class ArticlesService extends BaseService<
     }
 
     const userIds = [
-      ...new Set(docs.map((d) => d.user?.toString()).filter(Boolean)),
-    ];
+      ...new Set(
+        docs.map((d) => (d.userId ?? d.user)?.toString()).filter(Boolean),
+      ),
+    ] as string[];
     const orgIds = [
-      ...new Set(docs.map((d) => d.organization?.toString()).filter(Boolean)),
-    ];
+      ...new Set(
+        docs
+          .map((d) => (d.organizationId ?? d.organization)?.toString())
+          .filter(Boolean),
+      ),
+    ] as string[];
 
     const [users, orgs] = await Promise.all([
       this.usersService && userIds.length > 0
         ? this.usersService
-            .findAll(
-              [
-                {
-                  $match: {
-                    _id: {
-                      $in: userIds.map((id) => new Types.ObjectId(id)),
-                    },
-                  },
-                },
-                {
-                  $project: {
-                    _id: 1,
-                    email: 1,
-                    firstName: 1,
-                    handle: 1,
-                    lastName: 1,
-                  },
-                },
-              ],
-              { pagination: false },
+            .findAll([], { pagination: false })
+            .then((result) =>
+              result.docs.filter((u: Record<string, unknown>) =>
+                userIds.includes(String(u.id ?? u._id)),
+              ),
             )
-            .then((result) => result.docs)
         : Promise.resolve([]),
       this.organizationsService && orgIds.length > 0
         ? this.organizationsService
-            .findAll(
-              [
-                {
-                  $match: {
-                    _id: {
-                      $in: orgIds.map((id) => new Types.ObjectId(id)),
-                    },
-                  },
-                },
-                { $project: { _id: 1, label: 1 } },
-              ],
-              { pagination: false },
+            .findAll([], { pagination: false })
+            .then((result) =>
+              result.docs.filter((o: Record<string, unknown>) =>
+                orgIds.includes(String(o.id ?? o._id)),
+              ),
             )
-            .then((result) => result.docs)
         : Promise.resolve([]),
     ]);
 
     const usersMap = new Map(
-      users.map((u: { _id: Types.ObjectId }) => [u._id.toString(), u]),
+      users.map((u: Record<string, unknown>) => [String(u.id ?? u._id), u]),
     );
     const orgsMap = new Map(
-      orgs.map((o: { _id: Types.ObjectId }) => [o._id.toString(), o]),
+      orgs.map((o: Record<string, unknown>) => [String(o.id ?? o._id), o]),
     );
 
     for (const doc of docs) {
-      const userId = doc.user?.toString();
-      const orgId = doc.organization?.toString();
-      if (userId && usersMap.has(userId)) {
-        doc.user = usersMap.get(userId);
+      const docUserId = (doc.userId ?? doc.user)?.toString();
+      const docOrgId = (doc.organizationId ?? doc.organization)?.toString();
+      if (docUserId && usersMap.has(docUserId)) {
+        doc.user = usersMap.get(docUserId);
       }
-      if (orgId && orgsMap.has(orgId)) {
-        doc.organization = orgsMap.get(orgId);
+      if (docOrgId && orgsMap.has(docOrgId)) {
+        doc.organization = orgsMap.get(docOrgId);
       }
     }
   }

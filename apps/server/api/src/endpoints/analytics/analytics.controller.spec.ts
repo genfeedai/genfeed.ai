@@ -10,8 +10,8 @@ import { SubscriptionsService } from '@api/collections/subscriptions/services/su
 import { UsersService } from '@api/collections/users/services/users.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { AnalyticsController } from '@api/endpoints/analytics/analytics.controller';
-import { BusinessAnalyticsService } from '@api/endpoints/analytics/business-analytics.service';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
+import { BusinessAnalyticsService } from '@api/endpoints/analytics/business-analytics.service';
 import {
   AdminBrandsQueryDto,
   AdminOrgsQueryDto,

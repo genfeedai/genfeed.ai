@@ -9,11 +9,10 @@ import type { ClerkService } from '@api/services/integrations/clerk/clerk.servic
 import type { User } from '@clerk/backend';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { Types } from 'mongoose';
 
-const userId = new Types.ObjectId().toString();
-const orgId = new Types.ObjectId().toString();
-const brandId = new Types.ObjectId().toString();
+const userId = '507f191e810c19729de860ee'.toString();
+const orgId = '507f191e810c19729de860ee'.toString();
+const brandId = '507f191e810c19729de860ee'.toString();
 
 const makeUser = (overrides: Record<string, unknown> = {}): User =>
   ({
@@ -126,7 +125,7 @@ describe('OrganizationsController — multi-org endpoints', () => {
 
     it('returns org list with id, label, isActive, and brand', async () => {
       const controller = buildController();
-      const memberOrgId = new Types.ObjectId();
+      const memberOrgId = '507f191e810c19729de860ee';
 
       vi.mocked(mockMembersService.find).mockResolvedValue([
         { organization: memberOrgId } as never,
@@ -137,7 +136,7 @@ describe('OrganizationsController — multi-org endpoints', () => {
         orgDoc as never,
       );
 
-      const brandDoc = { _id: new Types.ObjectId(), label: 'My Brand' };
+      const brandDoc = { _id: '507f191e810c19729de860ee', label: 'My Brand' };
       vi.mocked(mockBrandsService.findOne).mockResolvedValue(brandDoc as never);
 
       const user = makeUser({ organization: memberOrgId.toString() });
@@ -154,7 +153,7 @@ describe('OrganizationsController — multi-org endpoints', () => {
 
     it('sets isActive false for orgs that are not the current active org', async () => {
       const controller = buildController();
-      const otherOrgId = new Types.ObjectId();
+      const otherOrgId = '507f191e810c19729de860ee';
 
       vi.mocked(mockMembersService.find).mockResolvedValue([
         { organization: otherOrgId } as never,
@@ -205,10 +204,10 @@ describe('OrganizationsController — multi-org endpoints', () => {
       const controller = buildController();
       vi.mocked(mockMembersService.findOne).mockResolvedValue(null);
 
-      const brandDoc = { _id: new Types.ObjectId(), label: 'SA Brand' };
+      const brandDoc = { _id: '507f191e810c19729de860ee', label: 'SA Brand' };
       vi.mocked(mockBrandsService.findOne).mockResolvedValue(brandDoc as never);
 
-      const orgDoc = { _id: new Types.ObjectId(orgId), label: 'SA Org' };
+      const orgDoc = { _id: orgId, label: 'SA Org' };
       vi.mocked(mockOrganizationsService.findOne).mockResolvedValue(
         orgDoc as never,
       );
@@ -228,7 +227,7 @@ describe('OrganizationsController — multi-org endpoints', () => {
 
     it('throws 404 when no brand found for org', async () => {
       const controller = buildController();
-      const memberDoc = { _id: new Types.ObjectId() };
+      const memberDoc = { _id: '507f191e810c19729de860ee' };
       vi.mocked(mockMembersService.findOne).mockResolvedValue(
         memberDoc as never,
       );
@@ -249,9 +248,9 @@ describe('OrganizationsController — multi-org endpoints', () => {
 
     it('updates Clerk metadata and returns org + brand on success', async () => {
       const controller = buildController();
-      const memberDoc = { _id: new Types.ObjectId() };
-      const brandDoc = { _id: new Types.ObjectId(), label: 'Brand X' };
-      const orgDoc = { _id: new Types.ObjectId(orgId), label: 'Org X' };
+      const memberDoc = { _id: '507f191e810c19729de860ee' };
+      const brandDoc = { _id: '507f191e810c19729de860ee', label: 'Brand X' };
+      const orgDoc = { _id: orgId, label: 'Org X' };
 
       vi.mocked(mockMembersService.findOne).mockResolvedValue(
         memberDoc as never,
@@ -330,10 +329,10 @@ describe('OrganizationsController — multi-org endpoints', () => {
     it('creates org, settings, brand, member, and updates Clerk', async () => {
       const controller = buildController();
 
-      const userDoc = { _id: new Types.ObjectId(userId) };
-      const orgDoc = { _id: new Types.ObjectId(), label: 'New Org' };
-      const brandDoc = { _id: new Types.ObjectId(), label: 'New Org' };
-      const roleDoc = { _id: new Types.ObjectId(), key: 'admin' };
+      const userDoc = { _id: userId };
+      const orgDoc = { _id: '507f191e810c19729de860ee', label: 'New Org' };
+      const brandDoc = { _id: '507f191e810c19729de860ee', label: 'New Org' };
+      const roleDoc = { _id: '507f191e810c19729de860ee', key: 'admin' };
 
       vi.mocked(mockUsersService.findOne).mockResolvedValue(userDoc as never);
       vi.mocked(mockOrganizationsService.create).mockResolvedValue(

@@ -4,7 +4,6 @@ import { AgentThreadsService } from '@api/collections/agent-threads/services/age
 import { UsersService } from '@api/collections/users/services/users.service';
 import type { User } from '@clerk/backend';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 
 vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   ErrorResponse: {
@@ -34,8 +33,8 @@ describe('AgentThreadsController', () => {
   const mockUser = {
     id: 'clerk_123',
     publicMetadata: {
-      organization: new Types.ObjectId().toString(),
-      user: new Types.ObjectId().toString(),
+      organization: '507f191e810c19729de860ee'.toString(),
+      user: '507f191e810c19729de860ee'.toString(),
     },
   } as unknown as User;
 
@@ -130,7 +129,7 @@ describe('AgentThreadsController', () => {
     });
 
     it('should resolve mongo user id from users collection when metadata id is invalid', async () => {
-      const resolvedMongoUserId = new Types.ObjectId().toString();
+      const resolvedMongoUserId = '507f191e810c19729de860ee'.toString();
       usersService.findOne.mockResolvedValueOnce({ _id: resolvedMongoUserId });
       service.getUserThreads.mockResolvedValue([]);
 

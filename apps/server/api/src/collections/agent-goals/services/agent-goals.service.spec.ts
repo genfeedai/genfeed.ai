@@ -4,7 +4,6 @@ import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('AgentGoalsService', () => {
   let service: AgentGoalsService;

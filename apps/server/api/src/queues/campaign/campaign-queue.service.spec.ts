@@ -3,7 +3,6 @@ import { CampaignStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CampaignQueueService } from './campaign-queue.service';
@@ -15,8 +14,8 @@ vi.mock('@libs/utils/caller/caller.util', () => ({
 }));
 
 const makeCampaign = (overrides = {}) => ({
-  _id: new Types.ObjectId(),
-  organization: new Types.ObjectId(),
+  _id: '507f191e810c19729de860ee',
+  organization: '507f191e810c19729de860ee',
   status: CampaignStatus.ACTIVE,
   ...overrides,
 });

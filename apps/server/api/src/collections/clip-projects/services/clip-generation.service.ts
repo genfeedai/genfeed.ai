@@ -4,7 +4,6 @@ import { AvatarVideoService } from '@api/services/avatar-video/avatar-video.serv
 import { AvatarVideoProviderName } from '@api/services/avatar-video/avatar-video-provider.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 /**
  * A single highlight as produced by the HighlightDetectorService in the clips

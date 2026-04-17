@@ -6,7 +6,6 @@ import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatc
 import { ContentPlanItemType, ContentPlanStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 const mockOrgId = new Types.ObjectId().toHexString();
 const mockBrandId = new Types.ObjectId().toHexString();

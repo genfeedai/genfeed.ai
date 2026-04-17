@@ -3,7 +3,6 @@ import { LeonardoaiWebhookService } from '@api/endpoints/webhooks/leonardoai/web
 import type { LeonardoAIWebhookPayload } from '@libs/interfaces/webhook-payload.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createMockDeps() {
@@ -69,7 +68,7 @@ describe('LeonardoaiWebhookService', () => {
   });
 
   it('should return early when metadata not found', async () => {
-    const metadataId = new Types.ObjectId().toHexString();
+    const metadataId = '507f191e810c19729de860ee'.toHexString();
     const body = {
       customId: metadataId,
       data: null,
@@ -89,7 +88,7 @@ describe('LeonardoaiWebhookService', () => {
   });
 
   it('should store first image URL on COMPLETE with images', async () => {
-    const metadataId = new Types.ObjectId().toHexString();
+    const metadataId = '507f191e810c19729de860ee'.toHexString();
     const body = {
       customId: metadataId,
       data: null,
@@ -115,7 +114,7 @@ describe('LeonardoaiWebhookService', () => {
   });
 
   it('should stringify images array when first image has no url', async () => {
-    const metadataId = new Types.ObjectId().toHexString();
+    const metadataId = '507f191e810c19729de860ee'.toHexString();
     const images = [{ id: 'img-1' }];
     const body = {
       customId: metadataId,
@@ -139,7 +138,7 @@ describe('LeonardoaiWebhookService', () => {
   });
 
   it('should set error on FAILED status', async () => {
-    const metadataId = new Types.ObjectId().toHexString();
+    const metadataId = '507f191e810c19729de860ee'.toHexString();
     const body = {
       customId: metadataId,
       data: null,
@@ -161,7 +160,7 @@ describe('LeonardoaiWebhookService', () => {
   });
 
   it('should patch with empty object for non-COMPLETE non-FAILED status', async () => {
-    const metadataId = new Types.ObjectId().toHexString();
+    const metadataId = '507f191e810c19729de860ee'.toHexString();
     const body = {
       customId: metadataId,
       data: null,
@@ -178,7 +177,7 @@ describe('LeonardoaiWebhookService', () => {
   });
 
   it('should look up metadata with correct filter', async () => {
-    const metadataId = new Types.ObjectId().toHexString();
+    const metadataId = '507f191e810c19729de860ee'.toHexString();
     const body = {
       customId: metadataId,
       data: null,
@@ -197,7 +196,7 @@ describe('LeonardoaiWebhookService', () => {
   });
 
   it('should log completion with generationId, metadataId, and status', async () => {
-    const metadataId = new Types.ObjectId().toHexString();
+    const metadataId = '507f191e810c19729de860ee'.toHexString();
     const body = {
       customId: metadataId,
       data: null,

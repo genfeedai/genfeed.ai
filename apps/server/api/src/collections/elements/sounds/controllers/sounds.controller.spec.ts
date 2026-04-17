@@ -10,7 +10,6 @@ import { SoundCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 const createBaseQuery = (partial: Partial<BaseQueryDto> = {}): BaseQueryDto =>
   ({
@@ -22,11 +21,11 @@ const createBaseQuery = (partial: Partial<BaseQueryDto> = {}): BaseQueryDto =>
     ...partial,
   }) as BaseQueryDto;
 
-const asMatchStage = (stage: PipelineStage) =>
-  stage as PipelineStage.Match & { $match: Record<string, unknown> };
+const asMatchStage = (stage: Record<string, unknown>) =>
+  stage as Record<string, unknown> & { $match: Record<string, unknown> };
 
-const asSortStage = (stage: PipelineStage) =>
-  stage as PipelineStage.Sort & { $sort: Record<string, unknown> };
+const asSortStage = (stage: Record<string, unknown>) =>
+  stage as Record<string, unknown> & { $sort: Record<string, unknown> };
 
 vi.mock('@genfeedai/helpers', async () => ({
   ...(await vi.importActual('@genfeedai/helpers')),
@@ -53,17 +52,17 @@ describe('ElementsSoundsController', () => {
   const mockUser = {
     id: 'user-123',
     publicMetadata: {
-      brand: new Types.ObjectId().toString(),
-      organization: new Types.ObjectId().toString(),
-      user: new Types.ObjectId().toString(),
+      brand: '507f191e810c19729de860ee'.toString(),
+      organization: '507f191e810c19729de860ee'.toString(),
+      user: '507f191e810c19729de860ee'.toString(),
     } as IClerkPublicMetadata,
   } as unknown as User;
 
   const mockUserWithoutOrg = {
     id: 'user-456',
     publicMetadata: {
-      brand: new Types.ObjectId().toString(),
-      user: new Types.ObjectId().toString(),
+      brand: '507f191e810c19729de860ee'.toString(),
+      user: '507f191e810c19729de860ee'.toString(),
     } as IClerkPublicMetadata,
   } as unknown as User;
 
@@ -115,7 +114,7 @@ describe('ElementsSoundsController', () => {
 
   describe('findOne', () => {
     it('should return a sound by id', async () => {
-      const soundId = new Types.ObjectId().toString();
+      const soundId = '507f191e810c19729de860ee'.toString();
       const mockSound = {
         _id: soundId,
         isActive: true,
@@ -142,7 +141,7 @@ describe('ElementsSoundsController', () => {
     });
 
     it('should handle sound not found', async () => {
-      const soundId = new Types.ObjectId().toString();
+      const soundId = '507f191e810c19729de860ee'.toString();
       soundsService.findOne.mockResolvedValueOnce(null);
 
       await expect(
@@ -162,7 +161,7 @@ describe('ElementsSoundsController', () => {
       } as unknown as CreateElementSoundDto;
 
       const mockCreatedSound = {
-        _id: new Types.ObjectId().toString(),
+        _id: '507f191e810c19729de860ee'.toString(),
         ...createDto,
         isActive: true,
         isDefault: false,
@@ -190,7 +189,7 @@ describe('ElementsSoundsController', () => {
       } as unknown as CreateElementSoundDto;
 
       const mockCreatedSound = {
-        _id: new Types.ObjectId().toString(),
+        _id: '507f191e810c19729de860ee'.toString(),
         ...createDto,
         isActive: true,
         isDefault: false,
@@ -212,7 +211,7 @@ describe('ElementsSoundsController', () => {
 
   describe('update', () => {
     it('should update an existing sound', async () => {
-      const soundId = new Types.ObjectId().toString();
+      const soundId = '507f191e810c19729de860ee'.toString();
       const updateDto: UpdateElementSoundDto = {
         duration: 240,
         name: 'Updated Sound',
@@ -250,7 +249,7 @@ describe('ElementsSoundsController', () => {
       );
 
       expect(soundsService.findOne).toHaveBeenCalledWith(
-        { _id: new Types.ObjectId(soundId) },
+        { _id: soundId },
         expect.anything(),
       );
       expect(soundsService.patch).toHaveBeenCalled();
@@ -258,7 +257,7 @@ describe('ElementsSoundsController', () => {
     });
 
     it('should throw error when sound not found', async () => {
-      const soundId = new Types.ObjectId().toString();
+      const soundId = '507f191e810c19729de860ee'.toString();
       const updateDto: UpdateElementSoundDto = {
         name: 'Updated',
       } as unknown as UpdateElementSoundDto;
@@ -273,7 +272,7 @@ describe('ElementsSoundsController', () => {
 
   describe('remove', () => {
     it('should delete a sound', async () => {
-      const soundId = new Types.ObjectId().toString();
+      const soundId = '507f191e810c19729de860ee'.toString();
       const mockSound = {
         _id: soundId,
         isActive: true,
@@ -299,7 +298,7 @@ describe('ElementsSoundsController', () => {
     });
 
     it('should return error when sound not found', async () => {
-      const soundId = new Types.ObjectId().toString();
+      const soundId = '507f191e810c19729de860ee'.toString();
 
       soundsService.findOne.mockResolvedValueOnce(null);
 
@@ -379,7 +378,7 @@ describe('ElementsSoundsController', () => {
         user: { $exists: false },
       });
       expect(orConditions[1].organization).toEqual(
-        new Types.ObjectId(mockUser.publicMetadata.organization as string),
+        mockUser.publicMetadata.organization as string,
       );
     });
   });
@@ -520,7 +519,7 @@ describe('ElementsSoundsController', () => {
     });
 
     it('should serialize single sound', async () => {
-      const soundId = new Types.ObjectId().toString();
+      const soundId = '507f191e810c19729de860ee'.toString();
       const mockSound = {
         _id: soundId,
         isActive: true,
@@ -529,7 +528,7 @@ describe('ElementsSoundsController', () => {
         key: 'sound-1',
         label: 'Sound 1',
         name: 'Sound 1',
-        organization: new Types.ObjectId(),
+        organization: '507f191e810c19729de860ee',
         type: SoundCategory.MUSIC,
       };
       soundsService.findOne.mockResolvedValueOnce(

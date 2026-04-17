@@ -1,5 +1,4 @@
 import { AnalyticsMetric } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 import { describe, expect, it, vi } from 'vitest';
 
 import { ContentEngineService } from './content-engine.service';

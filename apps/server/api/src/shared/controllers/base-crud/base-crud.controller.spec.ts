@@ -8,7 +8,10 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, Injectable } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
+
+const MOCK_USER_ID = '507f1f77bcf86cd799439011';
+const MOCK_ORG_ID = '507f1f77bcf86cd799439012';
+const MOCK_BRAND_ID = '507f1f77bcf86cd799439013';
 
 // Mock concrete implementation for testing
 @Injectable()
@@ -23,7 +26,7 @@ class TestController extends BaseCRUDController<
       {
         $match: {
           isDeleted: query.isDeleted ?? false,
-          user: new Types.ObjectId(user.publicMetadata.user as string),
+          user: user.publicMetadata.user as string,
         },
       },
     ];
@@ -55,9 +58,9 @@ describe('BaseCRUDController', () => {
   const mockUser = {
     id: 'user-123',
     publicMetadata: {
-      brand: new Types.ObjectId().toString(),
-      organization: new Types.ObjectId().toString(),
-      user: new Types.ObjectId().toString(),
+      brand: MOCK_BRAND_ID,
+      organization: MOCK_ORG_ID,
+      user: MOCK_USER_ID,
     } as IClerkPublicMetadata,
   } as unknown as User;
 
@@ -152,7 +155,7 @@ describe('BaseCRUDController', () => {
           expect.objectContaining({
             $match: expect.objectContaining({
               isDeleted: false,
-              user: new Types.ObjectId(mockUser.publicMetadata.user as string),
+              user: MOCK_USER_ID,
             }),
           }),
         ]),
@@ -219,7 +222,7 @@ describe('BaseCRUDController', () => {
 
   describe('findOne', () => {
     it('should return entity by valid ID', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = '507f1f77bcf86cd799439014';
       const mockEntity = {
         _id: id,
         name: 'Test Entity',
@@ -248,7 +251,7 @@ describe('BaseCRUDController', () => {
     });
 
     it('should throw not found when entity does not exist', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = '507f1f77bcf86cd799439015';
       service.findOne.mockResolvedValue(null);
 
       await expect(
@@ -265,7 +268,7 @@ describe('BaseCRUDController', () => {
       };
 
       const mockCreatedEntity = {
-        _id: new Types.ObjectId(),
+        _id: '507f1f77bcf86cd799439016',
         ...createDto,
         createdAt: new Date(),
         user: mockUser.publicMetadata.user,
@@ -278,8 +281,8 @@ describe('BaseCRUDController', () => {
       expect(service.create).toHaveBeenCalledWith(
         expect.objectContaining({
           ...createDto,
-          brand: expect.any(Types.ObjectId),
-          user: expect.any(Types.ObjectId),
+          brand: expect.any(String),
+          user: expect.any(String),
         }),
         controller.getPopulateFields(),
       );
@@ -289,7 +292,7 @@ describe('BaseCRUDController', () => {
     it('should handle organization in metadata', async () => {
       const createDto = { name: 'New Entity' };
       const mockCreatedEntity = {
-        _id: new Types.ObjectId(),
+        _id: '507f1f77bcf86cd799439017',
         ...createDto,
         organization: mockUser.publicMetadata.organization,
       };
@@ -300,7 +303,7 @@ describe('BaseCRUDController', () => {
 
       expect(service.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          organization: expect.any(Types.ObjectId),
+          organization: expect.any(String),
         }),
         expect.any(Array),
       );
@@ -309,7 +312,7 @@ describe('BaseCRUDController', () => {
 
   describe('patch', () => {
     it('should update entity when user owns it', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = '507f1f77bcf86cd799439018';
       const updateDto = {
         description: 'Updated description',
         name: 'Updated Name',
@@ -317,7 +320,7 @@ describe('BaseCRUDController', () => {
 
       const existingEntity = {
         _id: id,
-        user: new Types.ObjectId(mockUser.publicMetadata.user as string),
+        user: MOCK_USER_ID,
       };
 
       const updatedEntity = {
@@ -336,7 +339,7 @@ describe('BaseCRUDController', () => {
       );
 
       expect(service.findOne).toHaveBeenCalledWith(
-        { _id: new Types.ObjectId(id) },
+        { _id: id },
         controller.getPopulateForOwnershipCheck(),
       );
       expect(service.patch).toHaveBeenCalledWith(
@@ -344,7 +347,7 @@ describe('BaseCRUDController', () => {
         expect.objectContaining({
           description: 'Updated description',
           name: 'Updated Name',
-          user: expect.any(Types.ObjectId),
+          user: expect.any(String),
         }),
         controller.getPopulateFields(),
       );
@@ -365,12 +368,12 @@ describe('BaseCRUDController', () => {
 
   describe('remove', () => {
     it('should soft delete entity when user owns it', async () => {
-      const id = new Types.ObjectId().toString();
+      const id = '507f1f77bcf86cd799439019';
       const mockDeletedEntity = {
         _id: id,
         isDeleted: true,
         name: 'Deleted Entity',
-        user: new Types.ObjectId(mockUser.publicMetadata.user as string),
+        user: MOCK_USER_ID,
       };
 
       service.findOne.mockResolvedValue(mockDeletedEntity);
@@ -403,7 +406,7 @@ describe('BaseCRUDController', () => {
         {
           $match: {
             isDeleted: false,
-            user: new Types.ObjectId(mockUser.publicMetadata.user as string),
+            user: MOCK_USER_ID,
           },
         },
       ]);

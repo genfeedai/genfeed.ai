@@ -12,7 +12,6 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreatePostDto {
   @IsArray()
@@ -25,7 +24,7 @@ export class CreatePostDto {
     required: true,
     type: [String],
   })
-  readonly ingredients!: Types.ObjectId[];
+  readonly ingredients!: string[];
 
   @ApiProperty({
     description:
@@ -41,7 +40,7 @@ export class CreatePostDto {
     description: 'The credential ID (platform account) to use for publishing',
     required: true,
   })
-  readonly credential!: Types.ObjectId;
+  readonly credential!: string;
 
   @ApiProperty({
     description: 'The title/label of the post',
@@ -83,7 +82,7 @@ export class CreatePostDto {
   })
   @IsOptional()
   @IsArray()
-  readonly tags?: Types.ObjectId[];
+  readonly tags?: string[];
 
   @ApiProperty({
     description: 'When the post is scheduled to be posted',
@@ -207,7 +206,7 @@ export class CreatePostDto {
   })
   @IsOptional()
   @IsMongoId()
-  readonly parent?: Types.ObjectId;
+  readonly parent?: string;
 
   @ApiProperty({
     description: 'Position/order within thread',
@@ -251,7 +250,7 @@ export class CreatePostDto {
   })
   @IsOptional()
   @IsMongoId()
-  readonly contentRunId?: Types.ObjectId;
+  readonly contentRunId?: string;
 
   @ApiProperty({
     description: 'Originating variant ID inside the content run',

@@ -1,7 +1,6 @@
 import { AuthBootstrapService } from '@api/auth/services/auth-bootstrap.service';
 import type { AccessBootstrapCachePayload } from '@api/common/services/access-bootstrap-cache.service';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@genfeedai/enums', () => ({

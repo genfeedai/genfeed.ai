@@ -1,4 +1,3 @@
-import { Types } from 'mongoose';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -66,8 +65,8 @@ describe('resolveEffectiveBrandAgentConfig', () => {
   });
 
   it('preserves brand and organization identity defaults as separate sources', () => {
-    const brandVoiceId = new Types.ObjectId();
-    const organizationVoiceId = new Types.ObjectId();
+    const brandVoiceId = '507f191e810c19729de860ee';
+    const organizationVoiceId = '507f191e810c19729de860ee';
 
     const result = resolveEffectiveBrandAgentConfig({
       brand: {
@@ -77,7 +76,7 @@ describe('resolveEffectiveBrandAgentConfig', () => {
         },
       } as never,
       organizationSettings: {
-        defaultAvatarIngredientId: new Types.ObjectId(),
+        defaultAvatarIngredientId: '507f191e810c19729de860ee',
         defaultVoiceId: organizationVoiceId,
       } as never,
     });
@@ -127,7 +126,7 @@ describe('resolveEffectiveAgentExecutionConfig', () => {
   });
 
   it('lets strategy-level overrides win over inherited org policy', () => {
-    const strategyBrandId = new Types.ObjectId();
+    const strategyBrandId = '507f191e810c19729de860ee';
 
     const result = resolveEffectiveAgentExecutionConfig({
       organizationSettings: {
@@ -158,7 +157,7 @@ describe('resolveEffectiveAgentExecutionConfig', () => {
 
 describe('resolveEffectiveAgentRuntimeConfig', () => {
   it('returns one merged runtime config surface for brand and execution concerns', () => {
-    const strategyBrandId = new Types.ObjectId();
+    const strategyBrandId = '507f191e810c19729de860ee';
 
     const result = resolveEffectiveAgentRuntimeConfig({
       brand: {

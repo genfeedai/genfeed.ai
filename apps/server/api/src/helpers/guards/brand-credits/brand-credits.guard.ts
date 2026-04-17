@@ -14,7 +14,6 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class BrandCreditsGuard extends CreditsGuard implements CanActivate {
@@ -47,7 +46,7 @@ export class BrandCreditsGuard extends CreditsGuard implements CanActivate {
     const publicMetadata: IClerkPublicMetadata = user.publicMetadata;
 
     const settings = await this.organizationSettingsService.findOne({
-      organization: new Types.ObjectId(publicMetadata.organization),
+      organization: publicMetadata.organization,
     });
 
     if (!settings) {
@@ -59,7 +58,7 @@ export class BrandCreditsGuard extends CreditsGuard implements CanActivate {
         {
           $match: {
             isDeleted: false,
-            organization: new Types.ObjectId(publicMetadata.organization),
+            organization: publicMetadata.organization,
           },
         },
       ],

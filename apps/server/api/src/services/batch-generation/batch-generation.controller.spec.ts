@@ -5,7 +5,6 @@ import { BatchGenerationService } from '@api/services/batch-generation/batch-gen
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({
   getPublicMetadata: vi.fn(() => ({

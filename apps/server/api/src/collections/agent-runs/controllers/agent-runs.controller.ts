@@ -39,7 +39,6 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @ApiTags('Agent Runs')
 @AutoSwagger()
@@ -65,7 +64,7 @@ export class AgentRunsController extends BaseCRUDController<
   public buildFindAllPipeline(
     user: User,
     query: AgentRunsQueryDto,
-  ): PipelineStage[] {
+  ): Record<string, unknown>[] {
     const publicMetadata = getPublicMetadata(user);
     const match: Record<string, unknown> = {
       isDeleted: false,
@@ -73,7 +72,7 @@ export class AgentRunsController extends BaseCRUDController<
 
     const organizationId = publicMetadata.organization?.toString();
     if (organizationId) {
-      match.organization = new Types.ObjectId(organizationId);
+      match.organization = organizationId;
     }
 
     if (query.historyOnly) {
@@ -85,7 +84,7 @@ export class AgentRunsController extends BaseCRUDController<
     }
 
     if (query.strategy) {
-      match.strategy = new Types.ObjectId(query.strategy);
+      match.strategy = query.strategy;
     }
 
     if (query.trigger) {
@@ -126,7 +125,7 @@ export class AgentRunsController extends BaseCRUDController<
       }
     }
 
-    const pipeline: PipelineStage[] = [{ $match: match }];
+    const pipeline: Record<string, unknown>[] = [{ $match: match }];
 
     if (query.sortMode === 'model') {
       pipeline.push({
@@ -170,9 +169,8 @@ export class AgentRunsController extends BaseCRUDController<
     const publicMetadata = getPublicMetadata(user);
 
     const entityOrganizationId =
-      (
-        entity.organization as unknown as { _id: Types.ObjectId }
-      )?._id?.toString() || entity.organization?.toString();
+      (entity.organization as unknown as { _id: string })?._id?.toString() ||
+      entity.organization?.toString();
 
     if (
       entityOrganizationId &&
@@ -250,7 +248,7 @@ export class AgentRunsController extends BaseCRUDController<
     }
 
     const threadId =
-      (run.thread as unknown as { _id?: Types.ObjectId })?._id?.toString() ??
+      (run.thread as unknown as { _id?: string })?._id?.toString() ??
       run.thread?.toString();
 
     if (threadId) {

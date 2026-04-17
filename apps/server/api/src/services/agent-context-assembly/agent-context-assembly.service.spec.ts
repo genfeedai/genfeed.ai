@@ -7,7 +7,6 @@ import { AgentContextAssemblyService } from '@api/services/agent-context-assembl
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PatternMatcherService } from '@api/services/pattern-matcher/pattern-matcher.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AgentContextAssemblyService', () => {

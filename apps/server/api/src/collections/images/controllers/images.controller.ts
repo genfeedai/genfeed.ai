@@ -37,7 +37,11 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
+
+const OBJECT_ID_REGEX = /^[0-9a-f]{24}$/i;
+function isValidObjectId(id: unknown): id is string {
+  return typeof id === 'string' && OBJECT_ID_REGEX.test(id);
+}
 
 @AutoSwagger()
 @Controller('images')
@@ -67,9 +71,9 @@ export class ImagesController {
     const publicMetadata = getPublicMetadata(user);
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(false);
     const scope = { $ne: null };
-    const brand = new Types.ObjectId(publicMetadata.brand);
+    const brand = publicMetadata.brand;
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           $and: [
@@ -84,7 +88,7 @@ export class ImagesController {
                       scope,
                       // Exclude training source images by default
                       training: { $exists: false },
-                      user: new Types.ObjectId(publicMetadata.user),
+                      user: publicMetadata.user,
                     },
                   ],
                 },
@@ -178,7 +182,7 @@ export class ImagesController {
     );
 
     // const references = isValidObjectId(query.references)
-    //   ? new Types.ObjectId(query.references)
+    //   ? query.references
     //   : { $exists: true };
 
     // Use IngredientFilterUtil to build ingredient-specific filters
@@ -198,7 +202,7 @@ export class ImagesController {
     const isPublicFilter =
       query.isPublic !== undefined ? { isPublic: query.isPublic } : {};
 
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           $and: [
@@ -211,11 +215,11 @@ export class ImagesController {
                         // User's own ingredients (when not filtering by isPublic)
                         ...(query.isPublic === undefined
                           ? [
-                              { user: new Types.ObjectId(publicMetadata.user) },
+                              { user: publicMetadata.user },
                               {
-                                organization: new Types.ObjectId(
+                                organization: 
                                   publicMetadata.organization,
-                                ),
+                                ,
                               },
                             ]
                           : []),
@@ -224,9 +228,9 @@ export class ImagesController {
                           ? [
                               {
                                 isPublic: true,
-                                organization: new Types.ObjectId(
+                                organization: 
                                   publicMetadata.organization,
-                                ),
+                                ,
                               },
                             ]
                           : []),
@@ -407,7 +411,7 @@ export class ImagesController {
                           {
                             $eq: [
                               '$user',
-                              new Types.ObjectId(publicMetadata.user),
+                              publicMetadata.user,
                             ],
                           },
                         ],
@@ -479,12 +483,12 @@ export class ImagesController {
     const publicMetadata = getPublicMetadata(user);
 
     // Build aggregation pipeline to fetch image with evaluation
-    const pipeline: PipelineStage[] = [
+    const pipeline: Record<string, unknown>[] = [
       {
         $match: {
-          _id: new Types.ObjectId(imageId),
+          _id: imageId,
           isDeleted: false,
-          organization: new Types.ObjectId(publicMetadata.organization),
+          organization: publicMetadata.organization,
         },
       },
       // Lookup latest COMPLETED evaluation for this image (full document)
@@ -534,7 +538,7 @@ export class ImagesController {
       {
         _id: imageId,
         isDeleted: false,
-        organization: new Types.ObjectId(publicMetadata.organization),
+        organization: publicMetadata.organization,
       },
       [
         PopulatePatterns.metadataFull,
@@ -555,10 +559,10 @@ export class ImagesController {
     };
 
     const vote = await this.votesService.findOne({
-      entity: new Types.ObjectId(imageId),
+      entity: imageId,
       entityModel: ActivityEntityModel.INGREDIENT,
       isDeleted: false,
-      user: new Types.ObjectId(publicMetadata.user),
+      user: publicMetadata.user,
     });
 
     mergedData.hasVoted = !!vote;

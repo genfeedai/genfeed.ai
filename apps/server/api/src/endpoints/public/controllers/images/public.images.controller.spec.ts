@@ -14,7 +14,6 @@ import type {
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from 'express';
-import { Types } from 'mongoose';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnNotFound: vi.fn((type, id) => ({
@@ -164,7 +163,7 @@ describe('PublicImagesController', () => {
     });
 
     it('should filter by account when provided', async () => {
-      const brandId = new Types.ObjectId().toString();
+      const brandId = '507f191e810c19729de860ee'.toString();
       const mockImages = {
         docs: [],
         totalDocs: 0,
@@ -183,7 +182,7 @@ describe('PublicImagesController', () => {
         expect.arrayContaining([
           expect.objectContaining({
             $match: expect.objectContaining({
-              brand: new Types.ObjectId(brandId),
+              brand: brandId,
             }),
           }),
         ]),
@@ -248,7 +247,7 @@ describe('PublicImagesController', () => {
 
   describe('getImageMetadata', () => {
     it('should return a public image by id', async () => {
-      const imageId = new Types.ObjectId().toString();
+      const imageId = '507f191e810c19729de860ee'.toString();
       const mockImage = {
         _id: imageId,
         category: IngredientCategory.IMAGE,
@@ -292,7 +291,7 @@ describe('PublicImagesController', () => {
     });
 
     it('should return 404 when image not found', async () => {
-      const imageId = new Types.ObjectId().toString();
+      const imageId = '507f191e810c19729de860ee'.toString();
 
       imagesService.findOne.mockResolvedValue(null);
 
@@ -312,7 +311,7 @@ describe('PublicImagesController', () => {
 
   describe('getImage (image.jpg download)', () => {
     it('should stream a public image', async () => {
-      const imageId = new Types.ObjectId().toString();
+      const imageId = '507f191e810c19729de860ee'.toString();
       const mockImage = {
         _id: imageId,
         category: IngredientCategory.IMAGE,
@@ -343,7 +342,7 @@ describe('PublicImagesController', () => {
     });
 
     it('should return 404 for non-existent image', async () => {
-      const imageId = new Types.ObjectId().toString();
+      const imageId = '507f191e810c19729de860ee'.toString();
 
       imagesService.findOne.mockResolvedValue(null);
 
@@ -356,7 +355,7 @@ describe('PublicImagesController', () => {
     });
 
     it('should return 404 when S3 file not found', async () => {
-      const imageId = new Types.ObjectId().toString();
+      const imageId = '507f191e810c19729de860ee'.toString();
       const mockImage = {
         _id: imageId,
         category: IngredientCategory.IMAGE,

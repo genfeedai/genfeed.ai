@@ -15,7 +15,6 @@ import {
   Post,
   Req,
 } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 interface GenerateAndPublishDto {
   brandId: string;

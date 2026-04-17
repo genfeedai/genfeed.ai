@@ -59,7 +59,6 @@ import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 const mockBuildReferenceImageUrls = vi.mocked(buildReferenceImageUrls);
 
@@ -78,29 +77,29 @@ describe('BatchInterpolationController', () => {
   } as unknown as User;
 
   const mockModel = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439020'),
+    _id: '507f1f77bcf86cd799439020',
     category: 'video',
     cost: 5,
     key: 'kling-2.1',
   };
 
   const mockBrand = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439014'),
+    _id: '507f1f77bcf86cd799439014',
     organization: '507f1f77bcf86cd799439013',
   };
 
-  const mockPrompt = { _id: new Types.ObjectId('507f1f77bcf86cd799439030') };
+  const mockPrompt = { _id: '507f1f77bcf86cd799439030' };
 
   const mockIngredientData = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439040'),
+    _id: '507f1f77bcf86cd799439040',
   };
 
   const mockMetadataData = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439050'),
+    _id: '507f1f77bcf86cd799439050',
   };
 
   const mockActivity = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439060'),
+    _id: '507f1f77bcf86cd799439060',
   };
 
   const mockPairs = [

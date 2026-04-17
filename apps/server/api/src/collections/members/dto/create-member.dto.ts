@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsArray, IsBoolean, IsMongoId, IsOptional } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreateMemberDto {
   @IsMongoId()
@@ -8,21 +7,21 @@ export class CreateMemberDto {
     description: 'The organization ID this member belongs to',
     required: true,
   })
-  readonly organization!: Types.ObjectId;
+  readonly organization!: string;
 
   @IsMongoId()
   @ApiProperty({
     description: 'The user ID of this member',
     required: true,
   })
-  readonly user!: Types.ObjectId;
+  readonly user!: string;
 
   @IsMongoId()
   @ApiProperty({
     description: 'The role ID assigned to this member',
     required: true,
   })
-  readonly role!: Types.ObjectId;
+  readonly role!: string;
 
   @IsOptional()
   @IsArray()
@@ -33,7 +32,7 @@ export class CreateMemberDto {
     required: false,
     type: [String],
   })
-  readonly brands?: Types.ObjectId[];
+  readonly brands?: string[];
 
   @IsOptional()
   @IsBoolean()

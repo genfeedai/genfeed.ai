@@ -15,7 +15,6 @@ import { TranscriptStatus } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('TranscriptsController', () => {
   let controller: TranscriptsController;
@@ -24,31 +23,31 @@ describe('TranscriptsController', () => {
   const mockUser = {
     id: 'user-123',
     publicMetadata: {
-      brand: new Types.ObjectId().toString(),
+      brand: '507f191e810c19729de860ee'.toString(),
       isSuperAdmin: false,
-      organization: new Types.ObjectId().toString(),
-      user: new Types.ObjectId().toString(),
+      organization: '507f191e810c19729de860ee'.toString(),
+      user: '507f191e810c19729de860ee'.toString(),
     } as IClerkPublicMetadata,
   } as unknown as User;
 
   const mockUserWithoutOrg = {
     id: 'user-456',
     publicMetadata: {
-      brand: new Types.ObjectId().toString(),
+      brand: '507f191e810c19729de860ee'.toString(),
       isSuperAdmin: false,
-      user: new Types.ObjectId().toString(),
+      user: '507f191e810c19729de860ee'.toString(),
     } as IClerkPublicMetadata,
   } as unknown as User;
 
   const mockReq = {} as Request;
 
   const mockTranscript = {
-    _id: new Types.ObjectId(),
+    _id: '507f191e810c19729de860ee',
     isDeleted: false,
-    organization: new Types.ObjectId(),
+    organization: '507f191e810c19729de860ee',
     status: TranscriptStatus.PENDING,
     transcriptText: 'Test transcript',
-    user: new Types.ObjectId(),
+    user: '507f191e810c19729de860ee',
     youtubeId: 'dQw4w9WgXcQ',
     youtubeUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
   };
@@ -172,7 +171,7 @@ describe('TranscriptsController', () => {
 
   describe('findOne', () => {
     it('should return a transcript by id', async () => {
-      const transcriptId = new Types.ObjectId().toString();
+      const transcriptId = '507f191e810c19729de860ee'.toString();
       transcriptsService.findOne.mockResolvedValue(
         mockTranscript as unknown as TranscriptEntity,
       );
@@ -188,7 +187,7 @@ describe('TranscriptsController', () => {
     });
 
     it('should return null when transcript not found (controller returns null)', async () => {
-      const transcriptId = new Types.ObjectId().toString();
+      const transcriptId = '507f191e810c19729de860ee'.toString();
       transcriptsService.findOne.mockResolvedValue(null);
 
       const result = await controller.findOne(mockReq, transcriptId, mockUser);
@@ -198,7 +197,7 @@ describe('TranscriptsController', () => {
     });
 
     it('should throw error when organization ID is missing', async () => {
-      const transcriptId = new Types.ObjectId().toString();
+      const transcriptId = '507f191e810c19729de860ee'.toString();
 
       await expect(
         controller.findOne(mockReq, transcriptId, mockUserWithoutOrg),
@@ -208,7 +207,7 @@ describe('TranscriptsController', () => {
 
   describe('update', () => {
     it('should update transcript', async () => {
-      const transcriptId = new Types.ObjectId().toString();
+      const transcriptId = '507f191e810c19729de860ee'.toString();
       const updateDto = { transcriptText: 'Updated text' };
 
       transcriptsService.updateOne.mockResolvedValue({
@@ -228,7 +227,7 @@ describe('TranscriptsController', () => {
     });
 
     it('should throw error when organization ID is missing', async () => {
-      const transcriptId = new Types.ObjectId().toString();
+      const transcriptId = '507f191e810c19729de860ee'.toString();
       const updateDto = { transcriptText: 'Updated text' };
 
       await expect(

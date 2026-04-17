@@ -2,7 +2,6 @@ import type { CreateElementMoodDto } from '@api/collections/elements/moods/dto/c
 import { ElementsMoodsService } from '@api/collections/elements/moods/services/moods.service';
 import { createMockModel } from '@api/shared/testing/mock-model.factory';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 
 const mockLoggerService = {
   debug: vi.fn(),

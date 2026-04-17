@@ -20,7 +20,6 @@ import { SkillReceipt } from '@api/skills-pro/schemas/skill-receipt.schema';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import Stripe from 'stripe';
 
 describe('StripeWebhookService', () => {
@@ -37,9 +36,9 @@ describe('StripeWebhookService', () => {
   let usersService: vi.Mocked<UsersService>;
   let loggerService: { error: vi.Mock; log: vi.Mock; warn: vi.Mock };
 
-  const organizationId = new Types.ObjectId();
-  const userId = new Types.ObjectId();
-  const contentId = new Types.ObjectId().toString();
+  const organizationId = '507f191e810c19729de860ee';
+  const userId = '507f191e810c19729de860ee';
+  const contentId = '507f191e810c19729de860ee'.toString();
 
   const mockSubscription = {
     cancel_at_period_end: false,
@@ -322,7 +321,7 @@ describe('StripeWebhookService', () => {
     ).mockResolvedValue(109900);
     vi.mocked(apiKeysService.findOne).mockResolvedValue(null);
     vi.mocked(apiKeysService.createWithKey).mockResolvedValue({
-      apiKey: { _id: new Types.ObjectId() } as never,
+      apiKey: { _id: '507f191e810c19729de860ee' } as never,
       plainKey: 'gf_test_managed',
     });
 
@@ -331,7 +330,7 @@ describe('StripeWebhookService', () => {
     } as never);
 
     vi.mocked(brandsService.findOne).mockResolvedValue({
-      _id: new Types.ObjectId(),
+      _id: '507f191e810c19729de860ee',
     } as never);
 
     await service.handleCheckoutCompleted(

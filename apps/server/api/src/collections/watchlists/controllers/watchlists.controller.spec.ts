@@ -1,16 +1,15 @@
 import { WatchlistsController } from '@api/collections/watchlists/controllers/watchlists.controller';
 import { WatchlistsService } from '@api/collections/watchlists/services/watchlists.service';
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 describe('WatchlistsController', () => {
   let controller: WatchlistsController;
   let watchlistsService: Record<string, ReturnType<typeof vi.fn>>;
 
-  const userId = new Types.ObjectId().toString();
-  const orgId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
-  const watchlistId = new Types.ObjectId().toString();
+  const userId = '507f191e810c19729de860ee'.toString();
+  const orgId = '507f191e810c19729de860ee'.toString();
+  const brandId = '507f191e810c19729de860ee'.toString();
+  const watchlistId = '507f191e810c19729de860ee'.toString();
 
   const mockUser = {
     id: 'clerk_user_123',
@@ -51,7 +50,11 @@ describe('WatchlistsController', () => {
   describe('findAll', () => {
     it('should return watchlist items for the current brand', async () => {
       const items = [
-        { _id: new Types.ObjectId(), handle: 'creator1', platform: 'tiktok' },
+        {
+          _id: '507f191e810c19729de860ee',
+          handle: 'creator1',
+          platform: 'tiktok',
+        },
       ];
       watchlistsService.findAllByAccount.mockResolvedValue(items);
 
@@ -80,7 +83,7 @@ describe('WatchlistsController', () => {
   describe('findOne', () => {
     it('should return a single watchlist item when found', async () => {
       const item = {
-        _id: new Types.ObjectId(watchlistId),
+        _id: watchlistId,
         handle: 'creator1',
         platform: 'tiktok',
       };
@@ -95,7 +98,7 @@ describe('WatchlistsController', () => {
       watchlistsService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.findOne(mockRequest, new Types.ObjectId().toString()),
+        controller.findOne(mockRequest, '507f191e810c19729de860ee'.toString()),
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -110,7 +113,7 @@ describe('WatchlistsController', () => {
         platform: 'tiktok',
         user: userId,
       };
-      const created = { _id: new Types.ObjectId(), ...dto };
+      const created = { _id: '507f191e810c19729de860ee', ...dto };
       watchlistsService.create.mockResolvedValue(created);
 
       const result = await controller.create(
@@ -125,7 +128,7 @@ describe('WatchlistsController', () => {
 
     it('should throw ConflictException when creator already exists', async () => {
       watchlistsService.findByHandle.mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         handle: 'existing',
       });
 
@@ -149,7 +152,7 @@ describe('WatchlistsController', () => {
         platform: 'tiktok',
       } as Record<string, unknown>;
       watchlistsService.create.mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         ...dto,
       });
 
@@ -168,7 +171,7 @@ describe('WatchlistsController', () => {
     it('should create a watchlist item with minimal data', async () => {
       const dto = { handle: 'fastcreator', platform: 'instagram' };
       watchlistsService.create.mockResolvedValue({
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         ...dto,
         label: '@fastcreator',
       });
@@ -185,7 +188,7 @@ describe('WatchlistsController', () => {
 
     it('should return existing item instead of error for duplicates', async () => {
       const existing = {
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         handle: 'dupcreator',
         platform: 'tiktok',
       };
@@ -206,7 +209,7 @@ describe('WatchlistsController', () => {
   describe('update', () => {
     it('should update a watchlist item', async () => {
       const existing = {
-        _id: new Types.ObjectId(watchlistId),
+        _id: watchlistId,
         brand: brandId,
         handle: 'creator1',
         platform: 'tiktok',
@@ -231,7 +234,7 @@ describe('WatchlistsController', () => {
       watchlistsService.findOne.mockResolvedValue(null);
 
       await expect(
-        controller.update(mockRequest, new Types.ObjectId().toString(), {
+        controller.update(mockRequest, '507f191e810c19729de860ee'.toString(), {
           notes: 'X',
         } as never),
       ).rejects.toThrow(NotFoundException);
@@ -239,14 +242,14 @@ describe('WatchlistsController', () => {
 
     it('should throw ConflictException when handle update causes duplicate', async () => {
       const existing = {
-        _id: new Types.ObjectId(watchlistId),
+        _id: watchlistId,
         brand: brandId,
         handle: 'creator1',
         platform: 'tiktok',
       };
       watchlistsService.findOne.mockResolvedValue(existing);
       watchlistsService.findByHandle.mockResolvedValue({
-        _id: new Types.ObjectId(), // different ID = duplicate
+        _id: '507f191e810c19729de860ee', // different ID = duplicate
         handle: 'creator2',
       });
 

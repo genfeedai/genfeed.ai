@@ -14,7 +14,6 @@ import {
   IsUrl,
   MaxLength,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class CreateBookmarkDto {
   @ApiProperty({
@@ -23,7 +22,7 @@ export class CreateBookmarkDto {
   })
   @IsOptional()
   @IsMongoId()
-  folder?: Types.ObjectId;
+  folder?: string;
 
   @ApiProperty({
     description: 'Array of tag IDs',
@@ -33,7 +32,7 @@ export class CreateBookmarkDto {
   @IsOptional()
   @IsArray()
   @IsMongoId({ each: true })
-  tags?: Types.ObjectId[];
+  tags?: string[];
 
   @ApiProperty({
     description: 'Brand ID associated with the bookmark',
@@ -41,7 +40,7 @@ export class CreateBookmarkDto {
   })
   @IsOptional()
   @IsMongoId()
-  brand?: Types.ObjectId;
+  brand?: string;
 
   @ApiProperty({
     description: 'Category of bookmark',

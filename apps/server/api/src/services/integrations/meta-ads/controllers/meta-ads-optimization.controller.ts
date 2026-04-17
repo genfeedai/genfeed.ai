@@ -30,7 +30,6 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('services/meta-ads/optimization')

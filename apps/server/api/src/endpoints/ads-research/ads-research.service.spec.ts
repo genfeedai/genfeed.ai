@@ -7,7 +7,6 @@ import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service
 import { WorkflowStatus, WorkflowTrigger } from '@genfeedai/enums';
 import { BadRequestException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('AdsResearchService', () => {
   let service: AdsResearchService;
@@ -17,18 +16,18 @@ describe('AdsResearchService', () => {
   let adsGatewayService: vi.Mocked<AdsGatewayService>;
   let workflowsService: vi.Mocked<WorkflowsService>;
 
-  const orgId = new Types.ObjectId().toString();
-  const userId = new Types.ObjectId().toString();
-  const credentialId = new Types.ObjectId().toString();
+  const orgId = '507f191e810c19729de860ee'.toString();
+  const userId = '507f191e810c19729de860ee'.toString();
+  const credentialId = '507f191e810c19729de860ee'.toString();
 
   const mockCredential = {
-    _id: new Types.ObjectId(credentialId),
+    _id: credentialId,
     accessToken: 'tok-abc',
     isDeleted: false,
   };
 
   const mockAdPerformance = {
-    _id: new Types.ObjectId(),
+    _id: '507f191e810c19729de860ee',
     adPlatform: 'meta',
     bodyText: 'Great ad body',
     campaignName: 'Top Campaign',
@@ -49,7 +48,7 @@ describe('AdsResearchService', () => {
   };
 
   const mockPattern = {
-    _id: new Types.ObjectId(),
+    _id: '507f191e810c19729de860ee',
     avgPerformanceScore: 85,
     description: 'Pattern desc',
     examples: [{ text: 'ex1' }, { text: 'ex2' }],

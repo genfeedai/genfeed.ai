@@ -15,7 +15,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 vi.mock('@sentry/nestjs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@sentry/nestjs')>();

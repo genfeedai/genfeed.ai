@@ -1,6 +1,5 @@
 import { ActivityUpdateService } from '@api/endpoints/webhooks/services/activity-update.service';
 import { ActivityKey, IngredientCategory } from '@genfeedai/enums';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('ActivityUpdateService', () => {

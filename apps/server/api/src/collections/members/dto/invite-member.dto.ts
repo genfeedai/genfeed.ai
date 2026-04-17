@@ -1,6 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsMongoId, IsOptional, IsString } from 'class-validator';
-import { Types } from 'mongoose';
 
 export class InviteMemberDto {
   @IsEmail()
@@ -20,5 +19,5 @@ export class InviteMemberDto {
   @IsOptional()
   @IsMongoId()
   @ApiProperty({ required: false })
-  readonly role?: Types.ObjectId;
+  readonly role?: string;
 }

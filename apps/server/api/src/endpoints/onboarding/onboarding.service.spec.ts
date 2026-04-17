@@ -1,12 +1,11 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ---------------------------------------------------------------------------
 // Helpers / value objects
 // ---------------------------------------------------------------------------
 
-const makeObjectId = () => new Types.ObjectId();
+const makeObjectId = () => '507f191e810c19729de860ee';
 
 const mockUser = (orgId: string, userId: string) =>
   ({

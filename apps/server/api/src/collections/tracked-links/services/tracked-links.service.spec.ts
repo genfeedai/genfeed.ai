@@ -4,7 +4,6 @@ import { TrackedLinksService } from '@api/collections/tracked-links/services/tra
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 // Mock nanoid
 vi.mock('nanoid', () => ({

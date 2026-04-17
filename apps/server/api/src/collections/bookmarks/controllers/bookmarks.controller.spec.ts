@@ -10,18 +10,17 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 describe('BookmarksController', () => {
   let controller: BookmarksController;
   let bookmarksService: BookmarksService;
 
-  const mockUserId = new Types.ObjectId('507f1f77bcf86cd799439012');
-  const mockOrgId = new Types.ObjectId('507f1f77bcf86cd799439013');
-  const mockBrandId = new Types.ObjectId('507f1f77bcf86cd799439014');
+  const mockUserId = '507f1f77bcf86cd799439012';
+  const mockOrgId = '507f1f77bcf86cd799439013';
+  const mockBrandId = '507f1f77bcf86cd799439014';
 
   const mockBookmark = {
-    _id: new Types.ObjectId('507f1f77bcf86cd799439011'),
+    _id: '507f1f77bcf86cd799439011',
     brand: mockBrandId,
     category: BookmarkCategory.URL,
     content: 'Test content',
@@ -112,11 +111,11 @@ describe('BookmarksController', () => {
       expect(bookmarksService.create).toHaveBeenCalledWith(
         expect.objectContaining({
           ...createDto,
-          organization: new Types.ObjectId(
+          organization: 
             mockUser.publicMetadata.organization,
-          ),
+          ,
           savedAt: expect.any(Date),
-          user: new Types.ObjectId(mockUser.publicMetadata.user),
+          user: mockUser.publicMetadata.user,
         }),
       );
       expect(result).toBeDefined();
@@ -240,8 +239,8 @@ describe('BookmarksController', () => {
 
       expect(bookmarksService.findOne).toHaveBeenCalledWith({
         _id: bookmarkId,
-        organization: new Types.ObjectId(mockUser.publicMetadata.organization),
-        user: new Types.ObjectId(mockUser.publicMetadata.user),
+        organization: mockUser.publicMetadata.organization,
+        user: mockUser.publicMetadata.user,
       });
       expect(result).toBeDefined();
     });

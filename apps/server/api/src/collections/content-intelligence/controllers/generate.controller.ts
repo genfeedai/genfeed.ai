@@ -9,7 +9,6 @@ import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Body, Controller, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('content-intelligence/generate')
@@ -27,7 +26,7 @@ export class GenerateController {
     @Body() dto: GenerateContentDto,
   ): Promise<JsonApiCollectionResponse> {
     const publicMetadata = getPublicMetadata(user);
-    const organizationId = new Types.ObjectId(publicMetadata.organization);
+    const organizationId = publicMetadata.organization;
 
     const results = await this.contentGeneratorService.generateContent(
       organizationId,

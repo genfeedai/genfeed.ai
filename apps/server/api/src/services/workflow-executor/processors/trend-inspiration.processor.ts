@@ -18,7 +18,6 @@ import { NotificationsService } from '@api/services/notifications/notifications.
 import { ActivitySource } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 export interface TrendVideoInspirationInput {
   trendId?: string;

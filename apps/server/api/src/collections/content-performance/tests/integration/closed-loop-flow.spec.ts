@@ -11,7 +11,6 @@ import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 /**
  * Integration test: Full closed-loop flow
@@ -24,18 +23,18 @@ describe('Closed-Loop Flow (Integration)', () => {
   let attributionService: AttributionService;
   let performanceSummaryService: PerformanceSummaryService;
 
-  const orgId = new Types.ObjectId().toString();
-  const userId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
-  const postId = new Types.ObjectId().toString();
-  const workflowExecutionId = new Types.ObjectId().toString();
+  const orgId = '507f191e810c19729de860ee'.toString();
+  const userId = '507f191e810c19729de860ee'.toString();
+  const brandId = '507f191e810c19729de860ee'.toString();
+  const postId = '507f191e810c19729de860ee'.toString();
+  const workflowExecutionId = '507f191e810c19729de860ee'.toString();
   const generationId = 'gen-closed-loop-001';
 
   // ─── Mock data returned by aggregation pipelines ───────────────────
 
   const mockPerformanceDoc = {
-    _id: new Types.ObjectId(),
-    brand: new Types.ObjectId(brandId),
+    _id: '507f191e810c19729de860ee',
+    brand: brandId,
     clicks: 50,
     comments: 150,
     contentType: 'image',
@@ -47,19 +46,19 @@ describe('Closed-Loop Flow (Integration)', () => {
     isDeleted: false,
     likes: 800,
     measuredAt: new Date('2026-02-10'),
-    organization: new Types.ObjectId(orgId),
+    organization: orgId,
     performanceScore: 85,
     platform: 'instagram',
-    post: new Types.ObjectId(postId),
+    post: postId,
     promptUsed: 'Create a carousel about productivity hacks',
     revenue: 0,
     saves: 300,
     shares: 200,
     source: PerformanceSource.API,
     updatedAt: new Date(),
-    user: new Types.ObjectId(userId),
+    user: userId,
     views: 10000,
-    workflowExecutionId: new Types.ObjectId(workflowExecutionId),
+    workflowExecutionId: workflowExecutionId,
   };
 
   const mockAttributionResult = {
@@ -71,12 +70,12 @@ describe('Closed-Loop Flow (Integration)', () => {
     totalEngagements: 1450,
     totalRecords: 1,
     totalViews: 10000,
-    workflowExecutionId: new Types.ObjectId(workflowExecutionId),
+    workflowExecutionId: workflowExecutionId,
   };
 
   const mockTopPerformers = [
     {
-      _id: new Types.ObjectId(postId),
+      _id: postId,
       avgEngagementRate: 15.0,
       comments: 150,
       description:
@@ -100,7 +99,7 @@ describe('Closed-Loop Flow (Integration)', () => {
 
   const mockPromptPerformance = [
     {
-      _id: new Types.ObjectId(postId),
+      _id: postId,
       avgEngagementRate: 15.0,
       description: 'Create a carousel about productivity hacks',
       label: 'Productivity hacks',
@@ -227,7 +226,7 @@ describe('Closed-Loop Flow (Integration)', () => {
 
   describe('Step 2: Record performance metrics', () => {
     it('should compute performanceScore and engagementRate automatically', async () => {
-      const mockDoc = { _id: new Types.ObjectId() };
+      const mockDoc = { _id: '507f191e810c19729de860ee' };
       mockSave.mockResolvedValue(mockDoc);
 
       await contentPerformanceService.createPerformance(
@@ -393,7 +392,7 @@ describe('Closed-Loop Flow (Integration)', () => {
           totalEngagements: 1450,
           totalRecords: 3,
           totalViews: 30000,
-          workflowExecutionId: new Types.ObjectId(workflowExecutionId),
+          workflowExecutionId: workflowExecutionId,
         },
         {
           _id: 'gen-low-perf-002',
@@ -404,7 +403,7 @@ describe('Closed-Loop Flow (Integration)', () => {
           totalEngagements: 100,
           totalRecords: 2,
           totalViews: 5000,
-          workflowExecutionId: new Types.ObjectId(),
+          workflowExecutionId: '507f191e810c19729de860ee',
         },
       ];
 
@@ -442,7 +441,7 @@ describe('Closed-Loop Flow (Integration)', () => {
               { ...mockPerformanceDoc, performanceScore: 85 },
               {
                 ...mockPerformanceDoc,
-                _id: new Types.ObjectId(),
+                _id: '507f191e810c19729de860ee',
                 generationId: 'gen-also-good-003',
                 hookUsed: 'The morning routine nobody talks about',
                 performanceScore: 78,

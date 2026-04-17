@@ -34,7 +34,6 @@ import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Controller, Param, Post, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('videos')
@@ -65,7 +64,7 @@ export class VideosEffectsController {
 
     const video = await this.videosService.findOne({
       _id: videoId,
-      user: new Types.ObjectId(publicMetadata.user),
+      user: publicMetadata.user,
     });
 
     if (!video) {
@@ -74,11 +73,11 @@ export class VideosEffectsController {
 
     const { metadataData, ingredientData } =
       await this.sharedService.saveDocuments(user, {
-        brand: new Types.ObjectId(video.brand || video.brand),
+        brand: video.brand || video.brand,
         category: IngredientCategory.VIDEO,
         extension: MetadataExtension.MP4,
-        organization: new Types.ObjectId(video.organization),
-        parent: new Types.ObjectId(videoId),
+        organization: video.organization,
+        parent: videoId,
         status: IngredientStatus.PROCESSING,
       });
 
@@ -148,7 +147,7 @@ export class VideosEffectsController {
 
     const video = await this.videosService.findOne({
       _id: videoId,
-      user: new Types.ObjectId(publicMetadata.user),
+      user: publicMetadata.user,
     });
 
     if (!video) {
@@ -158,11 +157,11 @@ export class VideosEffectsController {
     try {
       const { metadataData, ingredientData } =
         await this.sharedService.saveDocuments(user, {
-          brand: new Types.ObjectId(video.brand || video.brand),
+          brand: video.brand || video.brand,
           category: IngredientCategory.VIDEO,
           extension: MetadataExtension.MP4,
-          organization: new Types.ObjectId(video.organization),
-          parent: new Types.ObjectId(videoId),
+          organization: video.organization,
+          parent: videoId,
           status: IngredientStatus.PROCESSING,
         });
 

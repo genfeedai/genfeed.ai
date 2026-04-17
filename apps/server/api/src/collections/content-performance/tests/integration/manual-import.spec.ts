@@ -8,7 +8,6 @@ import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 /**
  * Integration test: Manual data import
@@ -19,9 +18,9 @@ import { Types } from 'mongoose';
 describe('Manual Import (Integration)', () => {
   let service: ContentPerformanceService;
 
-  const orgId = new Types.ObjectId().toString();
-  const userId = new Types.ObjectId().toString();
-  const brandId = new Types.ObjectId().toString();
+  const orgId = '507f191e810c19729de860ee'.toString();
+  const userId = '507f191e810c19729de860ee'.toString();
+  const brandId = '507f191e810c19729de860ee'.toString();
 
   const mockBrandFindOne = vi.fn().mockResolvedValue({ _id: 'brand-id' });
   const mockSave = vi.fn();
@@ -126,14 +125,14 @@ describe('Manual Import (Integration)', () => {
       ];
 
       const insertedDocs = entries.map((e, i) => ({
-        _id: new Types.ObjectId(),
+        _id: '507f191e810c19729de860ee',
         ...e,
-        brand: new Types.ObjectId(brandId),
+        brand: brandId,
         engagementRate: 10 + i * 2,
-        organization: new Types.ObjectId(orgId),
+        organization: orgId,
         performanceScore: 50 + i * 10,
         source: PerformanceSource.MANUAL,
-        user: new Types.ObjectId(userId),
+        user: userId,
       }));
 
       mockModel.insertMany.mockResolvedValue(insertedDocs);
@@ -197,8 +196,8 @@ describe('Manual Import (Integration)', () => {
   describe('Single manual entry', () => {
     it('should create a single performance record via createPerformance', async () => {
       const mockDoc = {
-        _id: new Types.ObjectId(),
-        brand: new Types.ObjectId(brandId),
+        _id: '507f191e810c19729de860ee',
+        brand: brandId,
         views: 3000,
       };
       mockSave.mockResolvedValue(mockDoc);
@@ -299,7 +298,7 @@ describe('Manual Import (Integration)', () => {
     it('should return manually imported records when queried', async () => {
       const importedRecords = [
         {
-          _id: new Types.ObjectId(),
+          _id: '507f191e810c19729de860ee',
           isDeleted: false,
           likes: 400,
           performanceScore: 80,
@@ -308,7 +307,7 @@ describe('Manual Import (Integration)', () => {
           views: 5000,
         },
         {
-          _id: new Types.ObjectId(),
+          _id: '507f191e810c19729de860ee',
           isDeleted: false,
           likes: 1500,
           performanceScore: 90,
@@ -333,7 +332,7 @@ describe('Manual Import (Integration)', () => {
     it('should include manual entries in top performers', async () => {
       const topRecords = [
         {
-          _id: new Types.ObjectId(),
+          _id: '507f191e810c19729de860ee',
           performanceScore: 95,
           source: PerformanceSource.MANUAL,
           views: 50000,

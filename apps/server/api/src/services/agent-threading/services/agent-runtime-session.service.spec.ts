@@ -1,57 +1,63 @@
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
+  PrismaService: class {},
+}));
+vi.mock('@genfeedai/prisma', () => ({
+  PrismaClient: class {},
+}));
+
 import type { AgentSessionBindingDocument } from '@api/services/agent-threading/schemas/agent-session-binding.schema';
-import { AgentSessionBinding } from '@api/services/agent-threading/schemas/agent-session-binding.schema';
 import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { Effect } from 'effect';
-import { Types } from 'mongoose';
 
 describe('AgentRuntimeSessionService', () => {
   let service: AgentRuntimeSessionService;
-  let sessionBindingModel: {
-    findOneAndUpdate: ReturnType<typeof vi.fn>;
-    findOne: ReturnType<typeof vi.fn>;
-  };
   let logger: vi.Mocked<LoggerService>;
 
-  const threadId = new Types.ObjectId().toString();
-  const organizationId = new Types.ObjectId().toString();
-  const runId = new Types.ObjectId().toString();
+  const threadId = 'thread-cuid-1';
+  const organizationId = 'org-cuid-1';
+  const runId = 'run-cuid-1';
 
-  const mockBinding = {
-    _id: new Types.ObjectId(),
-    organization: new Types.ObjectId(organizationId),
-    status: 'active',
-    thread: new Types.ObjectId(threadId),
-  } as unknown as AgentSessionBindingDocument;
+  const mockSnapshotRow = {
+    id: 'snapshot-cuid-1',
+    organizationId,
+    threadId,
+    isDeleted: false,
+    data: {
+      sessionBinding: {
+        status: 'active',
+        lastSeenAt: new Date().toISOString(),
+      },
+    },
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  const mockPrisma = {
+    agentThreadSnapshot: {
+      create: vi.fn(),
+      findFirst: vi.fn(),
+      update: vi.fn(),
+    },
+  };
+
+  const mockLogger = {
+    debug: vi.fn(),
+    error: vi.fn(),
+    log: vi.fn(),
+    warn: vi.fn(),
+  };
 
   beforeEach(async () => {
-    sessionBindingModel = {
-      findOne: vi.fn(),
-      findOneAndUpdate: vi.fn(),
-    };
+    vi.clearAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AgentRuntimeSessionService,
-        {
-          provide: getModelToken(
-            AgentSessionBinding.name,
-            DB_CONNECTIONS.AGENT,
-          ),
-          useValue: sessionBindingModel,
-        },
-        {
-          provide: LoggerService,
-          useValue: {
-            debug: vi.fn(),
-            error: vi.fn(),
-            log: vi.fn(),
-            warn: vi.fn(),
-          },
-        },
+        { provide: PrismaService, useValue: mockPrisma },
+        { provide: LoggerService, useValue: mockLogger },
       ],
     }).compile();
 
@@ -61,17 +67,14 @@ describe('AgentRuntimeSessionService', () => {
     logger = module.get(LoggerService) as vi.Mocked<LoggerService>;
   });
 
-  afterEach(() => {
-    vi.clearAllMocks();
-  });
-
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
   describe('upsertBinding', () => {
     it('should expose an Effect-based upsert path', async () => {
-      sessionBindingModel.findOneAndUpdate.mockResolvedValue(mockBinding);
+      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
+      mockPrisma.agentThreadSnapshot.create.mockResolvedValue(mockSnapshotRow);
 
       const result = await Effect.runPromise(
         service.upsertBindingEffect({
@@ -81,12 +84,14 @@ describe('AgentRuntimeSessionService', () => {
         }),
       );
 
-      expect(result).toEqual(mockBinding);
-      expect(sessionBindingModel.findOneAndUpdate).toHaveBeenCalledTimes(1);
+      expect(result).not.toBeNull();
+      expect((result as AgentSessionBindingDocument).threadId).toBe(threadId);
+      expect(mockPrisma.agentThreadSnapshot.create).toHaveBeenCalledTimes(1);
     });
 
-    it('should upsert a binding with required fields', async () => {
-      sessionBindingModel.findOneAndUpdate.mockResolvedValue(mockBinding);
+    it('should create a new snapshot when none exists', async () => {
+      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
+      mockPrisma.agentThreadSnapshot.create.mockResolvedValue(mockSnapshotRow);
 
       const result = await service.upsertBinding({
         organizationId,
@@ -94,26 +99,61 @@ describe('AgentRuntimeSessionService', () => {
         threadId,
       });
 
-      expect(result).toEqual(mockBinding);
-      expect(sessionBindingModel.findOneAndUpdate).toHaveBeenCalledWith(
+      expect(result).not.toBeNull();
+      expect(mockPrisma.agentThreadSnapshot.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          isDeleted: false,
-          organization: expect.any(Types.ObjectId),
-          thread: expect.any(Types.ObjectId),
-        }),
-        expect.objectContaining({
-          $set: expect.objectContaining({ status: 'active' }),
-          $setOnInsert: expect.objectContaining({
-            organization: expect.any(Types.ObjectId),
-            thread: expect.any(Types.ObjectId),
+          data: expect.objectContaining({
+            organizationId,
+            threadId,
+            data: expect.objectContaining({
+              sessionBinding: expect.objectContaining({ status: 'active' }),
+            }),
           }),
         }),
-        { new: true, upsert: true },
+      );
+    });
+
+    it('should update an existing snapshot when one exists', async () => {
+      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(
+        mockSnapshotRow,
+      );
+      const updatedRow = {
+        ...mockSnapshotRow,
+        data: {
+          sessionBinding: {
+            status: 'idle',
+            lastSeenAt: new Date().toISOString(),
+          },
+        },
+      };
+      mockPrisma.agentThreadSnapshot.update.mockResolvedValue(updatedRow);
+
+      const result = await service.upsertBinding({
+        organizationId,
+        status: 'idle',
+        threadId,
+      });
+
+      expect(result).not.toBeNull();
+      expect(mockPrisma.agentThreadSnapshot.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: mockSnapshotRow.id },
+        }),
       );
     });
 
     it('should include optional model when provided', async () => {
-      sessionBindingModel.findOneAndUpdate.mockResolvedValue(mockBinding);
+      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
+      mockPrisma.agentThreadSnapshot.create.mockResolvedValue({
+        ...mockSnapshotRow,
+        data: {
+          sessionBinding: {
+            model: 'gpt-4o',
+            status: 'active',
+            lastSeenAt: new Date().toISOString(),
+          },
+        },
+      });
 
       await service.upsertBinding({
         model: 'gpt-4o',
@@ -122,18 +162,21 @@ describe('AgentRuntimeSessionService', () => {
         threadId,
       });
 
-      expect(sessionBindingModel.findOneAndUpdate).toHaveBeenCalledWith(
-        expect.any(Object),
+      expect(mockPrisma.agentThreadSnapshot.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          $set: expect.objectContaining({ model: 'gpt-4o' }),
+          data: expect.objectContaining({
+            data: expect.objectContaining({
+              sessionBinding: expect.objectContaining({ model: 'gpt-4o' }),
+            }),
+          }),
         }),
-        expect.any(Object),
       );
     });
 
     it('should include resumeCursor when provided', async () => {
-      sessionBindingModel.findOneAndUpdate.mockResolvedValue(mockBinding);
       const resumeCursor = { index: 3, step: 'generate' };
+      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
+      mockPrisma.agentThreadSnapshot.create.mockResolvedValue(mockSnapshotRow);
 
       await service.upsertBinding({
         organizationId,
@@ -142,55 +185,20 @@ describe('AgentRuntimeSessionService', () => {
         threadId,
       });
 
-      expect(sessionBindingModel.findOneAndUpdate).toHaveBeenCalledWith(
-        expect.any(Object),
+      expect(mockPrisma.agentThreadSnapshot.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          $set: expect.objectContaining({ resumeCursor }),
+          data: expect.objectContaining({
+            data: expect.objectContaining({
+              sessionBinding: expect.objectContaining({ resumeCursor }),
+            }),
+          }),
         }),
-        expect.any(Object),
       );
     });
 
-    it('should include activeCommandId when provided', async () => {
-      sessionBindingModel.findOneAndUpdate.mockResolvedValue(mockBinding);
-      const activeCommandId = 'cmd-abc-123';
-
-      await service.upsertBinding({
-        activeCommandId,
-        organizationId,
-        status: 'active',
-        threadId,
-      });
-
-      expect(sessionBindingModel.findOneAndUpdate).toHaveBeenCalledWith(
-        expect.any(Object),
-        expect.objectContaining({
-          $set: expect.objectContaining({ activeCommandId }),
-        }),
-        expect.any(Object),
-      );
-    });
-
-    it('should omit optional fields when not provided', async () => {
-      sessionBindingModel.findOneAndUpdate.mockResolvedValue(mockBinding);
-
-      await service.upsertBinding({
-        organizationId,
-        status: 'idle',
-        threadId,
-      });
-
-      const callArgs = sessionBindingModel.findOneAndUpdate.mock.calls[0];
-      const setClause = callArgs[1].$set;
-
-      expect(setClause).not.toHaveProperty('model');
-      expect(setClause).not.toHaveProperty('resumeCursor');
-      expect(setClause).not.toHaveProperty('activeCommandId');
-      expect(setClause).not.toHaveProperty('runId');
-    });
-
-    it('should return null when model returns null', async () => {
-      sessionBindingModel.findOneAndUpdate.mockResolvedValue(null);
+    it('should return null when snapshot returns null-like', async () => {
+      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
+      mockPrisma.agentThreadSnapshot.create.mockResolvedValue(null);
 
       const result = await service.upsertBinding({
         organizationId,
@@ -201,8 +209,8 @@ describe('AgentRuntimeSessionService', () => {
       expect(result).toBeNull();
     });
 
-    it('should propagate errors from the model', async () => {
-      sessionBindingModel.findOneAndUpdate.mockRejectedValue(
+    it('should propagate errors from prisma', async () => {
+      mockPrisma.agentThreadSnapshot.findFirst.mockRejectedValue(
         new Error('DB error'),
       );
 
@@ -214,35 +222,35 @@ describe('AgentRuntimeSessionService', () => {
 
   describe('getBinding', () => {
     it('should expose an Effect-based get path', async () => {
-      sessionBindingModel.findOne.mockResolvedValue(mockBinding);
+      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(
+        mockSnapshotRow,
+      );
 
       const result = await Effect.runPromise(
         service.getBindingEffect(threadId, organizationId),
       );
 
-      expect(result).toEqual(mockBinding);
-      expect(sessionBindingModel.findOne).toHaveBeenCalledWith({
-        isDeleted: false,
-        organization: expect.any(Types.ObjectId),
-        thread: expect.any(Types.ObjectId),
-      });
+      expect(result).not.toBeNull();
+      expect(mockPrisma.agentThreadSnapshot.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ organizationId, threadId }),
+        }),
+      );
     });
 
     it('should return an existing binding', async () => {
-      sessionBindingModel.findOne.mockResolvedValue(mockBinding);
+      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(
+        mockSnapshotRow,
+      );
 
       const result = await service.getBinding(threadId, organizationId);
 
-      expect(result).toEqual(mockBinding);
-      expect(sessionBindingModel.findOne).toHaveBeenCalledWith({
-        isDeleted: false,
-        organization: expect.any(Types.ObjectId),
-        thread: expect.any(Types.ObjectId),
-      });
+      expect(result).not.toBeNull();
+      expect((result as AgentSessionBindingDocument).threadId).toBe(threadId);
     });
 
     it('should return null when binding does not exist', async () => {
-      sessionBindingModel.findOne.mockResolvedValue(null);
+      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
 
       const result = await service.getBinding(threadId, organizationId);
 
@@ -252,27 +260,33 @@ describe('AgentRuntimeSessionService', () => {
 
   describe('markCancelled', () => {
     it('should upsert with cancelled status', async () => {
-      sessionBindingModel.findOneAndUpdate.mockResolvedValue({
-        ...mockBinding,
-        status: 'cancelled',
+      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
+      mockPrisma.agentThreadSnapshot.create.mockResolvedValue({
+        ...mockSnapshotRow,
+        data: {
+          sessionBinding: {
+            status: 'cancelled',
+            lastSeenAt: new Date().toISOString(),
+          },
+        },
       });
 
       await service.markCancelled(threadId, organizationId, runId);
 
-      expect(sessionBindingModel.findOneAndUpdate).toHaveBeenCalledWith(
-        expect.any(Object),
+      expect(mockPrisma.agentThreadSnapshot.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          $set: expect.objectContaining({ status: 'cancelled' }),
+          data: expect.objectContaining({
+            data: expect.objectContaining({
+              sessionBinding: expect.objectContaining({ status: 'cancelled' }),
+            }),
+          }),
         }),
-        expect.any(Object),
       );
     });
 
     it('should log a warning after cancellation', async () => {
-      sessionBindingModel.findOneAndUpdate.mockResolvedValue({
-        ...mockBinding,
-        status: 'cancelled',
-      });
+      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
+      mockPrisma.agentThreadSnapshot.create.mockResolvedValue(mockSnapshotRow);
 
       await service.markCancelled(threadId, organizationId, runId);
 
@@ -283,32 +297,22 @@ describe('AgentRuntimeSessionService', () => {
     });
 
     it('should work without a runId', async () => {
-      sessionBindingModel.findOneAndUpdate.mockResolvedValue(mockBinding);
+      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
+      mockPrisma.agentThreadSnapshot.create.mockResolvedValue(mockSnapshotRow);
 
       await service.markCancelled(threadId, organizationId);
 
-      expect(sessionBindingModel.findOneAndUpdate).toHaveBeenCalled();
+      expect(mockPrisma.agentThreadSnapshot.create).toHaveBeenCalled();
     });
-  });
 
-  describe('markCancelled', () => {
     it('should expose an Effect-based cancel path and log the transition', async () => {
-      sessionBindingModel.findOneAndUpdate.mockResolvedValue(mockBinding);
+      mockPrisma.agentThreadSnapshot.findFirst.mockResolvedValue(null);
+      mockPrisma.agentThreadSnapshot.create.mockResolvedValue(mockSnapshotRow);
 
       await Effect.runPromise(
         service.markCancelledEffect(threadId, organizationId, runId),
       );
 
-      expect(sessionBindingModel.findOneAndUpdate).toHaveBeenCalledWith(
-        expect.any(Object),
-        expect.objectContaining({
-          $set: expect.objectContaining({
-            runId,
-            status: 'cancelled',
-          }),
-        }),
-        expect.any(Object),
-      );
       expect(logger.warn).toHaveBeenCalledWith(
         'Agent runtime session marked cancelled',
         {

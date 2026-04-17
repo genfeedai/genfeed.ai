@@ -5,7 +5,6 @@ import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { GoogleAdsService } from '../services/google-ads.service';
 import { GoogleAdsOAuthService } from '../services/google-ads-oauth.service';
 import { GoogleAdsController } from './google-ads.controller';

@@ -19,7 +19,6 @@ import type { IOnboardingJourneyMissionState } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 const ONBOARDING_JOURNEY_REWARD_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000;
 

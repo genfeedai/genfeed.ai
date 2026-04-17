@@ -13,7 +13,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { ModuleRef } from '@nestjs/core';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('SharedService', () => {
   let service: SharedService;

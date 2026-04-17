@@ -1,18 +1,13 @@
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import {
   fromPromiseEffect,
   runEffectPromise,
 } from '@api/helpers/utils/effect/effect.util';
-import {
-  AgentSessionBinding,
-  type AgentSessionBindingDocument,
-} from '@api/services/agent-threading/schemas/agent-session-binding.schema';
+import type { AgentSessionBindingDocument } from '@api/services/agent-threading/schemas/agent-session-binding.schema';
 import { AgentSessionBindingStatus } from '@api/services/agent-threading/types/agent-thread.types';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { Effect } from 'effect';
-import { type Model, Types } from 'mongoose';
 
 export interface UpsertRuntimeSessionBindingParams {
   threadId: string;
@@ -25,11 +20,40 @@ export interface UpsertRuntimeSessionBindingParams {
   metadata?: Record<string, unknown>;
 }
 
+/**
+ * Adapts a raw Prisma AgentThreadSnapshot row into the shape expected by callers
+ * that previously consumed AgentSessionBindingDocument.
+ *
+ * AgentSessionBinding data is stored in AgentThreadSnapshot.data.sessionBinding Json field.
+ */
+function toSessionBindingDocument(
+  snapshot: Record<string, unknown> | null | undefined,
+): AgentSessionBindingDocument | null {
+  if (!snapshot) return null;
+  const data = (snapshot.data as Record<string, unknown>) ?? {};
+  const sb = (data.sessionBinding as Record<string, unknown>) ?? {};
+  return {
+    _id: snapshot.id as string,
+    organizationId: snapshot.organizationId as string,
+    threadId: snapshot.threadId as string,
+    organization:
+      snapshot.organizationId as unknown as import('mongoose').Types.ObjectId,
+    thread: snapshot.threadId as unknown as import('mongoose').Types.ObjectId,
+    runId: sb.runId as string | undefined,
+    model: sb.model as string | undefined,
+    status: (sb.status as AgentSessionBindingStatus) ?? 'idle',
+    resumeCursor: sb.resumeCursor as Record<string, unknown> | undefined,
+    activeCommandId: sb.activeCommandId as string | undefined,
+    lastSeenAt: sb.lastSeenAt as string | undefined,
+    metadata: sb.metadata as Record<string, unknown> | undefined,
+    isDeleted: false,
+  } as unknown as AgentSessionBindingDocument;
+}
+
 @Injectable()
 export class AgentRuntimeSessionService {
   constructor(
-    @InjectModel(AgentSessionBinding.name, DB_CONNECTIONS.AGENT)
-    private readonly sessionBindingModel: Model<AgentSessionBindingDocument>,
+    private readonly prisma: PrismaService,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -38,38 +62,65 @@ export class AgentRuntimeSessionService {
   ): Effect.Effect<AgentSessionBindingDocument | null, unknown> {
     const nowIso = new Date().toISOString();
 
-    return fromPromiseEffect(() =>
-      this.sessionBindingModel.findOneAndUpdate(
-        {
+    return fromPromiseEffect(async () => {
+      // Session binding is stored inside AgentThreadSnapshot.data.sessionBinding
+      const sessionBindingPatch: Record<string, unknown> = {
+        lastSeenAt: nowIso,
+        status: params.status,
+      };
+      if (params.activeCommandId) {
+        sessionBindingPatch.activeCommandId = params.activeCommandId;
+      }
+      if (params.metadata) {
+        sessionBindingPatch.metadata = params.metadata;
+      }
+      if (params.model) {
+        sessionBindingPatch.model = params.model;
+      }
+      if (params.resumeCursor) {
+        sessionBindingPatch.resumeCursor = params.resumeCursor;
+      }
+      if (params.runId) {
+        sessionBindingPatch.runId = params.runId;
+      }
+
+      const existing = await this.prisma.agentThreadSnapshot.findFirst({
+        where: {
           isDeleted: false,
-          organization: new Types.ObjectId(params.organizationId),
-          thread: new Types.ObjectId(params.threadId),
+          organizationId: params.organizationId,
+          threadId: params.threadId,
         },
-        {
-          $set: {
-            ...(params.activeCommandId
-              ? { activeCommandId: params.activeCommandId }
-              : {}),
-            lastSeenAt: nowIso,
-            ...(params.metadata ? { metadata: params.metadata } : {}),
-            ...(params.model ? { model: params.model } : {}),
-            ...(params.resumeCursor
-              ? { resumeCursor: params.resumeCursor }
-              : {}),
-            ...(params.runId ? { runId: params.runId } : {}),
-            status: params.status,
+      });
+
+      let snapshot: Record<string, unknown> | null = null;
+
+      if (existing) {
+        const existingData = (existing.data as Record<string, unknown>) ?? {};
+        const updatedData = {
+          ...existingData,
+          sessionBinding: {
+            ...((existingData.sessionBinding as Record<string, unknown>) ?? {}),
+            ...sessionBindingPatch,
           },
-          $setOnInsert: {
-            organization: new Types.ObjectId(params.organizationId),
-            thread: new Types.ObjectId(params.threadId),
+        };
+
+        snapshot = (await this.prisma.agentThreadSnapshot.update({
+          where: { id: existing.id },
+          data: { data: updatedData, updatedAt: new Date() },
+        })) as unknown as Record<string, unknown>;
+      } else {
+        snapshot = (await this.prisma.agentThreadSnapshot.create({
+          data: {
+            organizationId: params.organizationId,
+            threadId: params.threadId,
+            data: { sessionBinding: sessionBindingPatch },
+            isDeleted: false,
           },
-        },
-        {
-          new: true,
-          upsert: true,
-        },
-      ),
-    );
+        })) as unknown as Record<string, unknown>;
+      }
+
+      return toSessionBindingDocument(snapshot);
+    });
   }
 
   async upsertBinding(
@@ -82,13 +133,19 @@ export class AgentRuntimeSessionService {
     threadId: string,
     organizationId: string,
   ): Effect.Effect<AgentSessionBindingDocument | null, unknown> {
-    return fromPromiseEffect(() =>
-      this.sessionBindingModel.findOne({
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-        thread: new Types.ObjectId(threadId),
-      }),
-    );
+    return fromPromiseEffect(async () => {
+      const snapshot = await this.prisma.agentThreadSnapshot.findFirst({
+        where: {
+          isDeleted: false,
+          organizationId,
+          threadId,
+        },
+      });
+
+      return toSessionBindingDocument(
+        snapshot as unknown as Record<string, unknown> | null,
+      );
+    });
   }
 
   async getBinding(

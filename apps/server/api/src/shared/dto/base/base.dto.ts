@@ -7,7 +7,6 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
-import { Types } from 'mongoose';
 
 export abstract class BaseCreateDto {
   @IsMongoId()
@@ -25,14 +24,14 @@ export abstract class OrganizationalCreateDto extends BaseCreateDto {
     description: 'The user ID who created this resource',
     required: true,
   })
-  readonly user!: Types.ObjectId;
+  readonly user!: string;
 
   @IsMongoId()
   @ApiProperty({
     description: 'The organization ID that owns this resource',
     required: true,
   })
-  readonly organization!: Types.ObjectId;
+  readonly organization!: string;
 }
 
 export abstract class StatusCreateDto extends OrganizationalCreateDto {
@@ -92,7 +91,7 @@ export abstract class OrganizationalUpdateDto extends BaseUpdateDto {
     description: 'The user ID who owns this resource',
     required: false,
   })
-  readonly user?: Types.ObjectId;
+  readonly user?: string;
 
   @IsMongoId()
   @IsOptional()
@@ -100,7 +99,7 @@ export abstract class OrganizationalUpdateDto extends BaseUpdateDto {
     description: 'The organization ID that owns this resource',
     required: false,
   })
-  readonly organization?: Types.ObjectId;
+  readonly organization?: string;
 }
 
 export abstract class StatusUpdateDto extends OrganizationalUpdateDto {

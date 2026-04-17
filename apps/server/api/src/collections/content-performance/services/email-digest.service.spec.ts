@@ -5,7 +5,6 @@ import { NotificationsService } from '@api/services/notifications/notifications.
 import { LoggerService } from '@libs/logger/logger.service';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test } from '@nestjs/testing';
-import { Types } from 'mongoose';
 import { vi } from 'vitest';
 
 describe('EmailDigestService', () => {

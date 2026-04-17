@@ -25,7 +25,6 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 /**
  * Shopify Integration Controller
@@ -110,14 +109,14 @@ export class ShopifyController {
     // Create API key with Shopify-specific scopes
     // @ts-expect-error TS2345
     const { plainKey, apiKey } = await this.apiKeysService.createWithKey({
-      brand: brand._id as Types.ObjectId,
+      brand: brand._id as string,
       description: 'Auto-provisioned API key for Shopify integration',
       metadata: {
         shopDomain: dto.shopDomain,
         source: 'shopify',
       },
       name: `Shopify - ${dto.shopDomain}`,
-      organization: organization._id as Types.ObjectId,
+      organization: organization._id as string,
       rateLimit: 100, // Higher rate limit for Shopify apps
       scopes: [
         ApiKeyScope.IMAGES_READ,
@@ -127,7 +126,7 @@ export class ShopifyController {
         ApiKeyScope.CREDITS_READ,
         ApiKeyScope.POSTS_CREATE,
       ],
-      user: user._id as Types.ObjectId,
+      user: user._id as string,
     } as unknown as Record<string, unknown>);
 
     this.logger.log(`${url} - Account provisioned successfully`, {

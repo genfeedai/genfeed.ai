@@ -4,7 +4,6 @@ import type { ClipResultDocument } from '@api/collections/clip-results/schemas/c
 import type { User } from '@clerk/backend';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/helpers/utils/clerk/clerk.util', () => ({

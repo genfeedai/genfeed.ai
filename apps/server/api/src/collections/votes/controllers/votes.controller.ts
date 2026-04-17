@@ -20,7 +20,6 @@ import {
   Req,
 } from '@nestjs/common';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('votes')
@@ -42,7 +41,7 @@ export class VotesController {
 
       if (
         !createVoteDto.entity ||
-        !Types.ObjectId.isValid(createVoteDto.entity)
+        !/^[0-9a-f]{24}$/i.test(createVoteDto.entity)
       ) {
         throw new BadRequestException('Invalid entity id');
       }
@@ -50,8 +49,8 @@ export class VotesController {
       const vote = await this.votesService.create(
         new VoteEntity({
           ...createVoteDto,
-          entity: new Types.ObjectId(createVoteDto.entity),
-          user: new Types.ObjectId(publicMetadata.user),
+          entity: createVoteDto.entity,
+          user: publicMetadata.user,
         }),
       );
 
@@ -67,7 +66,7 @@ export class VotesController {
     @Param('entityId') entityId: string,
     @CurrentUser() user: User,
   ): Promise<void> {
-    if (!Types.ObjectId.isValid(entityId)) {
+    if (!/^[0-9a-f]{24}$/i.test(entityId)) {
       throw new BadRequestException('Invalid entity id');
     }
 
@@ -75,9 +74,9 @@ export class VotesController {
 
     await this.votesService.patchAll(
       {
-        entity: new Types.ObjectId(entityId),
+        entity: entityId,
         isDeleted: false,
-        user: new Types.ObjectId(publicMetadata.user),
+        user: publicMetadata.user,
       },
       { $set: { isDeleted: true } },
     );

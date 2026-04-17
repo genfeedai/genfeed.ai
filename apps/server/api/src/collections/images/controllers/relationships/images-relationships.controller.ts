@@ -16,7 +16,6 @@ import type { JsonApiCollectionResponse } from '@genfeedai/interfaces';
 import { ImageSerializer } from '@genfeedai/serializers';
 import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('images')
@@ -37,11 +36,11 @@ export class ImagesRelationshipsController {
     };
 
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
-    const aggregate: PipelineStage[] = [
+    const aggregate: Record<string, unknown>[] = [
       {
         $match: {
           isDeleted,
-          parent: new Types.ObjectId(imageId),
+          parent: imageId,
         },
       },
       {

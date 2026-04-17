@@ -9,13 +9,12 @@ import type { ByokService } from '@api/services/byok/byok.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { Types } from 'mongoose';
 
-const orgId = new Types.ObjectId().toString();
+const orgId = '507f191e810c19729de860ee'.toString();
 
 const createContext = (): ExecutionContext => {
   const req: Record<string, unknown> = {
-    params: { id: new Types.ObjectId().toString() },
+    params: { id: '507f191e810c19729de860ee'.toString() },
     user: { publicMetadata: { organization: orgId } },
   };
   return {
@@ -80,7 +79,7 @@ describe('BrandCreditsGuard', () => {
       .mockResolvedValue(true);
 
     organizationSettingsService.findOne.mockResolvedValue({
-      _id: new Types.ObjectId(),
+      _id: '507f191e810c19729de860ee',
       brandsLimit: 2,
     });
     brandsService.findAll.mockResolvedValue({ docs: [1, 2] });
@@ -96,7 +95,7 @@ describe('BrandCreditsGuard', () => {
   it('sets brandsLimit on the request when at limit', async () => {
     vi.spyOn(CreditsGuard.prototype, 'canActivate').mockResolvedValue(true);
 
-    const settingsId = new Types.ObjectId();
+    const settingsId = '507f191e810c19729de860ee';
     organizationSettingsService.findOne.mockResolvedValue({
       _id: settingsId,
       brandsLimit: 1,

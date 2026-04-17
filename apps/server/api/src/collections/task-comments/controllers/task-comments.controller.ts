@@ -20,7 +20,6 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
-import { Types } from 'mongoose';
 
 @ApiTags('Task Comments')
 @AutoSwagger()
@@ -55,12 +54,12 @@ export class TaskCommentsController {
     const doc = await this.taskCommentsService.create({
       ...createDto,
       authorUserId: publicMetadata.user,
-      organization: new Types.ObjectId(publicMetadata.organization),
-      task: new Types.ObjectId(taskId),
+      organization: publicMetadata.organization,
+      task: taskId,
     } as CreateTaskCommentDto & {
       authorUserId: string;
-      task: Types.ObjectId;
-      organization: Types.ObjectId;
+      task: string;
+      organization: string;
     });
 
     return serializeSingle(request, TaskCommentSerializer, doc);
@@ -73,9 +72,9 @@ export class TaskCommentsController {
   ) {
     const { organization } = getPublicMetadata(user);
     const comment = await this.taskCommentsService.findOne({
-      _id: new Types.ObjectId(commentId),
+      _id: commentId,
       isDeleted: false,
-      organization: new Types.ObjectId(organization),
+      organization: organization,
     });
 
     if (!comment) {

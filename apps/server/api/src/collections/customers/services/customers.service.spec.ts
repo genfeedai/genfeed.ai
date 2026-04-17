@@ -1,6 +1,5 @@
 import { CustomersService } from '@api/collections/customers/services/customers.service';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { Types } from 'mongoose';
 
 describe('CustomersService', () => {
   let service: CustomersService;

@@ -12,7 +12,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { Types } from 'mongoose';
 
 export interface AdOptimizationJobData {
   organizationId: string;
@@ -219,7 +218,7 @@ export class AdOptimizationProcessor extends WorkerHost {
         configSnapshot: this.snapshotConfig(config),
         durationMs,
         errors,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         recommendationsGenerated: insertedCount,
         runDate: new Date(),
         runId,
@@ -239,7 +238,7 @@ export class AdOptimizationProcessor extends WorkerHost {
         adsAnalyzed: 0,
         durationMs,
         errors,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
         recommendationsGenerated: 0,
         runDate: new Date(),
         runId,
@@ -320,7 +319,7 @@ export class AdOptimizationProcessor extends WorkerHost {
         roas: ad.avgRoas,
         spend: ad.totalSpend,
       },
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       reason,
       recommendationType: type,
       runDate: new Date(),

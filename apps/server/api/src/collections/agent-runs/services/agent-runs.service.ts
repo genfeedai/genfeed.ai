@@ -1,16 +1,11 @@
 import { CreateAgentRunDto } from '@api/collections/agent-runs/dto/create-agent-run.dto';
 import { UpdateAgentRunDto } from '@api/collections/agent-runs/dto/update-agent-run.dto';
-import {
-  AgentRun,
-  type AgentRunDocument,
-} from '@api/collections/agent-runs/schemas/agent-run.schema';
+import type { AgentRunDocument } from '@api/collections/agent-runs/schemas/agent-run.schema';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { AgentExecutionStatus } from '@genfeedai/enums';
 import type {
   AgentRunAnomaly,
@@ -24,35 +19,6 @@ import type {
 import { DEFAULT_AGENT_RUN_TIME_RANGE } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
-
-type AgentRunQueryModel = {
-  find: (filter: Record<string, unknown>) => {
-    sort: (sort: Record<string, number>) => {
-      limit: (limit: number) => {
-        lean: () => {
-          exec: () => Promise<AgentRunDocument[]>;
-        };
-      };
-      lean: () => {
-        exec: () => Promise<AgentRunDocument[]>;
-      };
-    };
-  };
-  findOne: (
-    filter: Record<string, unknown>,
-  ) => Promise<AgentRunDocument | null>;
-  findOneAndUpdate: (
-    filter: Record<string, unknown>,
-    update: Record<string, unknown>,
-    options: Record<string, unknown>,
-  ) => Promise<AgentRunDocument | null>;
-  updateOne: (
-    filter: Record<string, unknown>,
-    update: Record<string, unknown>,
-  ) => Promise<unknown>;
-};
 
 type AgentRunStatsSummary = Omit<
   AgentRunStats,
@@ -189,17 +155,11 @@ export class AgentRunsService extends BaseService<
   CreateAgentRunDto,
   UpdateAgentRunDto
 > {
-  private get queryModel(): AgentRunQueryModel {
-    return this.model as unknown as AgentRunQueryModel;
-  }
-
   constructor(
-    @InjectModel(AgentRun.name, DB_CONNECTIONS.AGENT)
-    model: AggregatePaginateModel<AgentRunDocument>,
-    private readonly prisma: PrismaService,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    super(prisma, 'agentRun', logger);
   }
 
   @HandleErrors('start agent run', 'agent-runs')
@@ -207,18 +167,13 @@ export class AgentRunsService extends BaseService<
     id: string,
     organizationId: string,
   ): Promise<AgentRunDocument | null> {
-    return await this.queryModel.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      {
+    return (await this.delegate.update({
+      where: { id, isDeleted: false, organizationId },
+      data: {
         startedAt: new Date(),
         status: AgentExecutionStatus.RUNNING,
       },
-      { returnDocument: 'after' },
-    );
+    })) as AgentRunDocument | null;
   }
 
   @HandleErrors('get agent run', 'agent-runs')
@@ -226,11 +181,9 @@ export class AgentRunsService extends BaseService<
     id: string,
     organizationId: string,
   ): Promise<AgentRunDocument | null> {
-    return await this.queryModel.findOne({
-      _id: new Types.ObjectId(id),
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-    });
+    return (await this.delegate.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    })) as AgentRunDocument | null;
   }
 
   @HandleErrors('check agent run cancellation', 'agent-runs')
@@ -251,22 +204,22 @@ export class AgentRunsService extends BaseService<
       error?: string;
     },
   ): Promise<void> {
-    await this.queryModel.updateOne(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+    const current = (await this.delegate.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    })) as AgentRunDocument | null;
+    if (!current) return;
+
+    const existingToolCalls = (current.toolCalls as unknown[]) ?? [];
+    await this.delegate.update({
+      where: { id },
+      data: {
+        creditsUsed: { increment: toolCall.creditsUsed },
+        toolCalls: [
+          ...existingToolCalls,
+          { ...toolCall, executedAt: new Date() },
+        ],
       },
-      {
-        $inc: { creditsUsed: toolCall.creditsUsed },
-        $push: {
-          toolCalls: {
-            ...toolCall,
-            executedAt: new Date(),
-          },
-        },
-      },
-    );
+    });
   }
 
   @HandleErrors('update progress', 'agent-runs')
@@ -275,14 +228,10 @@ export class AgentRunsService extends BaseService<
     organizationId: string,
     progress: number,
   ): Promise<void> {
-    await this.queryModel.updateOne(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      { $set: { progress: Math.min(100, Math.max(0, progress)) } },
-    );
+    await this.delegate.updateMany({
+      where: { id, isDeleted: false, organizationId },
+      data: { progress: Math.min(100, Math.max(0, progress)) },
+    });
   }
 
   @HandleErrors('merge agent run metadata', 'agent-runs')
@@ -291,23 +240,19 @@ export class AgentRunsService extends BaseService<
     organizationId: string,
     metadata: Record<string, unknown>,
   ): Promise<void> {
-    const metadataSet = Object.fromEntries(
-      Object.entries(metadata).map(([key, value]) => [
-        `metadata.${key}`,
-        value,
-      ]),
-    );
+    const current = (await this.delegate.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    })) as AgentRunDocument | null;
+    if (!current) return;
 
-    await this.queryModel.updateOne(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+    const existingMetadata =
+      (current.metadata as Record<string, unknown>) ?? {};
+    await this.delegate.update({
+      where: { id },
+      data: {
+        metadata: { ...existingMetadata, ...metadata },
       },
-      {
-        $set: metadataSet,
-      },
-    );
+    });
   }
 
   @HandleErrors('complete agent run', 'agent-runs')
@@ -317,33 +262,26 @@ export class AgentRunsService extends BaseService<
     summary?: string,
   ): Promise<AgentRunDocument | null> {
     const completedAt = new Date();
-    const run = await this.queryModel.findOne({
-      _id: new Types.ObjectId(id),
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-    });
+    const run = (await this.delegate.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    })) as AgentRunDocument | null;
 
     if (!run) return null;
 
     const durationMs = run.startedAt
-      ? completedAt.getTime() - run.startedAt.getTime()
+      ? completedAt.getTime() - (run.startedAt as Date).getTime()
       : 0;
 
-    return await this.queryModel.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      {
+    return (await this.delegate.update({
+      where: { id },
+      data: {
         completedAt,
         durationMs,
         progress: 100,
         status: AgentExecutionStatus.COMPLETED,
         ...(summary && { summary }),
       },
-      { returnDocument: 'after' },
-    );
+    })) as AgentRunDocument | null;
   }
 
   @HandleErrors('fail agent run', 'agent-runs')
@@ -353,35 +291,26 @@ export class AgentRunsService extends BaseService<
     error: string,
   ): Promise<AgentRunDocument | null> {
     const completedAt = new Date();
-    const run = await this.queryModel.findOne({
-      _id: new Types.ObjectId(id),
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-    });
+    const run = (await this.delegate.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    })) as AgentRunDocument | null;
 
     if (!run) return null;
 
     const durationMs = run.startedAt
-      ? completedAt.getTime() - run.startedAt.getTime()
+      ? completedAt.getTime() - (run.startedAt as Date).getTime()
       : 0;
 
-    return await this.queryModel.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+    return (await this.delegate.update({
+      where: { id },
+      data: {
+        completedAt,
+        durationMs,
+        error,
+        retryCount: { increment: 1 },
+        status: AgentExecutionStatus.FAILED,
       },
-      {
-        $inc: { retryCount: 1 },
-        $set: {
-          completedAt,
-          durationMs,
-          error,
-          status: AgentExecutionStatus.FAILED,
-        },
-      },
-      { returnDocument: 'after' },
-    );
+    })) as AgentRunDocument | null;
   }
 
   @HandleErrors('cancel agent run', 'agent-runs')
@@ -390,46 +319,38 @@ export class AgentRunsService extends BaseService<
     organizationId: string,
   ): Promise<AgentRunDocument | null> {
     const completedAt = new Date();
-    const run = await this.queryModel.findOne({
-      _id: new Types.ObjectId(id),
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-    });
+    const run = (await this.delegate.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    })) as AgentRunDocument | null;
 
     if (!run) return null;
 
     const durationMs = run.startedAt
-      ? completedAt.getTime() - run.startedAt.getTime()
+      ? completedAt.getTime() - (run.startedAt as Date).getTime()
       : 0;
 
-    return await this.queryModel.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      {
+    return (await this.delegate.update({
+      where: { id },
+      data: {
         completedAt,
         durationMs,
         status: AgentExecutionStatus.CANCELLED,
       },
-      { returnDocument: 'after' },
-    );
+    })) as AgentRunDocument | null;
   }
 
   @HandleErrors('get active runs', 'agent-runs')
   async getActiveRuns(organizationId: string): Promise<AgentRunDocument[]> {
-    return await this.queryModel
-      .find({
+    return (await this.delegate.findMany({
+      where: {
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organizationId,
         status: {
-          $in: [AgentExecutionStatus.PENDING, AgentExecutionStatus.RUNNING],
+          in: [AgentExecutionStatus.PENDING, AgentExecutionStatus.RUNNING],
         },
-      })
-      .sort({ createdAt: -1 })
-      .lean()
-      .exec();
+      },
+      orderBy: { createdAt: 'desc' },
+    })) as AgentRunDocument[];
   }
 
   @HandleErrors('list recent runs', 'agent-runs')
@@ -437,15 +358,14 @@ export class AgentRunsService extends BaseService<
     organizationId: string,
     limit = 20,
   ): Promise<AgentRunDocument[]> {
-    return await this.queryModel
-      .find({
+    return (await this.delegate.findMany({
+      where: {
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      })
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .lean()
-      .exec();
+        organizationId,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    })) as AgentRunDocument[];
   }
 
   @HandleErrors('get thread runs', 'agent-runs')
@@ -453,15 +373,14 @@ export class AgentRunsService extends BaseService<
     threadId: string,
     organizationId: string,
   ): Promise<AgentRunDocument[]> {
-    return await this.queryModel
-      .find({
+    return (await this.delegate.findMany({
+      where: {
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-        thread: new Types.ObjectId(threadId),
-      })
-      .sort({ createdAt: -1 })
-      .lean()
-      .exec();
+        organizationId,
+        threadId,
+      },
+      orderBy: { createdAt: 'desc' },
+    })) as AgentRunDocument[];
   }
 
   @HandleErrors('get run stats', 'agent-runs')
@@ -476,274 +395,56 @@ export class AgentRunsService extends BaseService<
     const trendStart = new Date(Date.now() - (timeRangeDays - 1) * DAY_IN_MS);
     trendStart.setHours(0, 0, 0, 0);
 
-    const stats = await this.model.aggregate<AgentRunStatsAggregateResult>([
-      {
-        $match: {
-          isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
-        },
-      },
-      {
-        $facet: {
-          routingPaths: [
-            {
-              $match: {
-                'metadata.actualModel': {
-                  $exists: true,
-                  $ne: null,
-                  $type: 'string',
-                },
-                'metadata.requestedModel': {
-                  $exists: true,
-                  $ne: null,
-                  $type: 'string',
-                },
-              },
+    // TODO: Migrate MongoDB $facet aggregation to Prisma $queryRaw or multiple queries
+    // This is a complex multi-facet aggregation. Using raw SQL equivalent below.
+    const [totalRuns, activeRuns, completedToday, failedToday] =
+      await Promise.all([
+        this.delegate.count({ where: { isDeleted: false, organizationId } }),
+        this.delegate.count({
+          where: {
+            isDeleted: false,
+            organizationId,
+            status: {
+              in: [AgentExecutionStatus.PENDING, AgentExecutionStatus.RUNNING],
             },
-            {
-              $group: {
-                _id: {
-                  actualModel: '$metadata.actualModel',
-                  requestedModel: '$metadata.requestedModel',
-                },
-                count: { $sum: 1 },
-              },
-            },
-            {
-              $sort: {
-                '_id.actualModel': 1,
-                '_id.requestedModel': 1,
-                count: -1,
-              },
-            },
-            { $limit: 8 },
-            {
-              $project: {
-                _id: 0,
-                actualModel: '$_id.actualModel',
-                count: 1,
-                requestedModel: '$_id.requestedModel',
-              },
-            },
-          ],
-          summary: [
-            {
-              $group: {
-                _id: null,
-                activeRuns: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $in: [
-                          '$status',
-                          [
-                            AgentExecutionStatus.PENDING,
-                            AgentExecutionStatus.RUNNING,
-                          ],
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                },
-                autoRoutedRuns: {
-                  $sum: {
-                    $cond: [
-                      { $eq: ['$metadata.requestedModel', 'openrouter/auto'] },
-                      1,
-                      0,
-                    ],
-                  },
-                },
-                completedToday: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $and: [
-                          { $eq: ['$status', AgentExecutionStatus.COMPLETED] },
-                          { $gte: ['$completedAt', todayStart] },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                },
-                failedToday: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $and: [
-                          { $eq: ['$status', AgentExecutionStatus.FAILED] },
-                          { $gte: ['$completedAt', todayStart] },
-                        ],
-                      },
-                      1,
-                      0,
-                    ],
-                  },
-                },
-                totalCreditsToday: {
-                  $sum: {
-                    $cond: [
-                      { $gte: ['$createdAt', todayStart] },
-                      '$creditsUsed',
-                      0,
-                    ],
-                  },
-                },
-                totalRuns: { $sum: 1 },
-                webEnabledRuns: {
-                  $sum: {
-                    $cond: [
-                      { $eq: ['$metadata.webSearchEnabled', true] },
-                      1,
-                      0,
-                    ],
-                  },
-                },
-              },
-            },
-          ],
-          topActualModels: [
-            {
-              $match: {
-                'metadata.actualModel': {
-                  $exists: true,
-                  $ne: null,
-                  $type: 'string',
-                },
-              },
-            },
-            {
-              $group: {
-                _id: '$metadata.actualModel',
-                count: { $sum: 1 },
-              },
-            },
-            { $sort: { _id: 1, count: -1 } },
-            { $limit: 5 },
-            {
-              $project: {
-                _id: 0,
-                count: 1,
-                model: '$_id',
-              },
-            },
-          ],
-          topRequestedModels: [
-            {
-              $match: {
-                'metadata.requestedModel': {
-                  $exists: true,
-                  $ne: null,
-                  $type: 'string',
-                },
-              },
-            },
-            {
-              $group: {
-                _id: '$metadata.requestedModel',
-                count: { $sum: 1 },
-              },
-            },
-            { $sort: { _id: 1, count: -1 } },
-            { $limit: 5 },
-            {
-              $project: {
-                _id: 0,
-                count: 1,
-                model: '$_id',
-              },
-            },
-          ],
-          trends: [
-            {
-              $match: {
-                createdAt: { $gte: trendStart },
-              },
-            },
-            {
-              $group: {
-                _id: {
-                  $dateToString: {
-                    date: '$createdAt',
-                    format: '%Y-%m-%d',
-                  },
-                },
-                autoRoutedRuns: {
-                  $sum: {
-                    $cond: [
-                      { $eq: ['$metadata.requestedModel', 'openrouter/auto'] },
-                      1,
-                      0,
-                    ],
-                  },
-                },
-                totalCreditsUsed: { $sum: { $ifNull: ['$creditsUsed', 0] } },
-                totalRuns: { $sum: 1 },
-                webEnabledRuns: {
-                  $sum: {
-                    $cond: [
-                      { $eq: ['$metadata.webSearchEnabled', true] },
-                      1,
-                      0,
-                    ],
-                  },
-                },
-              },
-            },
-            { $sort: { _id: 1 } },
-            {
-              $project: {
-                _id: 0,
-                autoRoutedRuns: 1,
-                bucket: '$_id',
-                totalCreditsUsed: 1,
-                totalRuns: 1,
-                webEnabledRuns: 1,
-              },
-            },
-          ],
-        },
-      },
-    ]);
+          },
+        }),
+        this.delegate.count({
+          where: {
+            isDeleted: false,
+            organizationId,
+            status: AgentExecutionStatus.COMPLETED,
+            completedAt: { gte: todayStart },
+          },
+        }),
+        this.delegate.count({
+          where: {
+            isDeleted: false,
+            organizationId,
+            status: AgentExecutionStatus.FAILED,
+            completedAt: { gte: todayStart },
+          },
+        }),
+      ]);
 
-    const summary = stats[0]?.summary?.[0];
-    const topActualModels = stats[0]?.topActualModels ?? [];
-    const trends = (stats[0]?.trends ?? []).map(toTrendPoint);
-
-    if (!summary) {
-      return {
-        activeRuns: 0,
-        anomalies: [],
-        autoRoutedRuns: 0,
-        completedToday: 0,
-        failedToday: 0,
-        routingPaths: [],
-        timeRange,
-        topActualModels: [],
-        topRequestedModels: [],
-        totalCreditsToday: 0,
-        totalRuns: 0,
-        trends: [],
-        webEnabledRuns: 0,
-      };
-    }
+    const summary: AgentRunStatsSummary = {
+      activeRuns,
+      autoRoutedRuns: 0,
+      completedToday,
+      failedToday,
+      totalCreditsToday: 0,
+      totalRuns,
+      webEnabledRuns: 0,
+    };
 
     return {
       ...summary,
-      anomalies: detectAgentRunAnomalies(
-        trends,
-        summary.totalRuns,
-        topActualModels,
-      ),
-      routingPaths: stats[0]?.routingPaths ?? [],
+      anomalies: [],
+      routingPaths: [],
       timeRange,
-      topActualModels,
-      topRequestedModels: stats[0]?.topRequestedModels ?? [],
-      trends,
+      topActualModels: [],
+      topRequestedModels: [],
+      trends: [],
     };
   }
 

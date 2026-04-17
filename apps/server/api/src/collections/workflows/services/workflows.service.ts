@@ -49,7 +49,6 @@ import {
   NotFoundException,
   Optional,
 } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class WorkflowsService extends BaseService<

@@ -29,7 +29,6 @@ import type { AgentRunStats } from '@genfeedai/types';
 import { Injectable } from '@nestjs/common';
 import { toPlainJson } from '@serializers/helpers/plain-json.helper';
 import axios from 'axios';
-import { Types } from 'mongoose';
 
 export interface AuthBootstrapRequest extends RequestWithContext {}
 
@@ -202,7 +201,7 @@ export class AuthBootstrapService {
       (candidate) => String(candidate._id) === brandId,
     );
     const resolvedBrandId = brandId
-      ? matchedBrand?._id?.toString() ?? brands[0]?._id?.toString() ?? brandId
+      ? (matchedBrand?._id?.toString() ?? brands[0]?._id?.toString() ?? brandId)
       : '';
 
     return {
