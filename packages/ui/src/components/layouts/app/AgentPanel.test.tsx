@@ -89,6 +89,7 @@ describe('AgentPanel', () => {
         balance: 123,
         modelCosts: {},
       }),
+      getInstallReadinessEffect: vi.fn().mockResolvedValue(null),
     } as unknown as AgentApiService;
 
     render(<AgentPanel apiService={apiService} />);
@@ -110,6 +111,7 @@ describe('AgentPanel', () => {
         balance: 123,
         modelCosts: {},
       }),
+      getInstallReadinessEffect: vi.fn().mockResolvedValue(null),
     } as unknown as AgentApiService;
 
     render(<AgentPanel apiService={apiService} />);

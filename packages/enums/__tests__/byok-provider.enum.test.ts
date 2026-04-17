@@ -3,8 +3,8 @@ import { ByokProvider } from '../src/byok-provider.enum';
 
 describe('byok-provider.enum', () => {
   describe('ByokProvider', () => {
-    it('should have 11 members', () => {
-      expect(Object.values(ByokProvider)).toHaveLength(11);
+    it('should have 12 members', () => {
+      expect(Object.values(ByokProvider)).toHaveLength(12);
     });
 
     it('should have correct values', () => {
@@ -19,6 +19,7 @@ describe('byok-provider.enum', () => {
       expect(ByokProvider.KLINGAI).toBe('klingai');
       expect(ByokProvider.LEONARDOAI).toBe('leonardoai');
       expect(ByokProvider.HIGGSFIELD).toBe('higgsfield');
+      expect(ByokProvider.APIFY).toBe('apify');
     });
   });
 });

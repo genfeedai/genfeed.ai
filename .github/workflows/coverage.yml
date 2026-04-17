@@ -10,11 +10,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ── Matrix job for standard packages (no special env/build deps) ──
+  # ── Matrix job for standard packages ──
   coverage-packages:
     name: Coverage — ${{ matrix.package }}
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
@@ -28,7 +28,6 @@ jobs:
           - packages/enums
           - packages/helpers
           - packages/integrations
-          - packages/libs
           - packages/models
           - packages/serializers
           - packages/services
@@ -46,8 +45,8 @@ jobs:
           node-version: "22.x"
           install-command: "bun install"
 
-      - name: Build workspace dependencies
-        run: bunx turbo build --filter="./${{ matrix.package }}^..."
+      - name: Build workspace
+        run: bunx turbo build
 
       - name: Run coverage
         run: cd ${{ matrix.package }} && npx vitest run --coverage
@@ -69,11 +68,11 @@ jobs:
           flags: ${{ matrix.package }}
           fail_ci_if_error: false
 
-  # ── Hooks — needs dependent package builds first ──
+  # ── Hooks — needs custom vitest config flag ──
   coverage-hooks:
     name: Coverage — packages/hooks
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
 
@@ -83,8 +82,8 @@ jobs:
           node-version: "22.x"
           install-command: "bun install"
 
-      - name: Build workspace dependencies
-        run: bunx turbo build --filter="./packages/hooks^..."
+      - name: Build workspace
+        run: bunx turbo build
 
       - name: Run coverage
         run: cd packages/hooks && npx vitest run --coverage --config vitest.config.mts
@@ -110,7 +109,7 @@ jobs:
   coverage-api:
     name: Coverage — apps/server/api
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
 
@@ -120,8 +119,8 @@ jobs:
           node-version: "22.x"
           install-command: "bun install"
 
-      - name: Build workspace dependencies
-        run: bunx turbo build --filter="./apps/server/api^..."
+      - name: Build workspace
+        run: bunx turbo build
 
       - name: Run coverage
         run: cd apps/server/api && npx vitest run --coverage

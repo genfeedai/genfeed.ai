@@ -8,8 +8,8 @@ import {
 
 describe('activity.enum', () => {
   describe('ActivitySource', () => {
-    it('should have 33 members', () => {
-      expect(Object.values(ActivitySource)).toHaveLength(33);
+    it('should have 34 members', () => {
+      expect(Object.values(ActivitySource)).toHaveLength(34);
     });
 
     it('should have correct values', () => {
@@ -50,12 +50,13 @@ describe('activity.enum', () => {
       expect(ActivitySource.SOCIAL_INTEGRATION).toBe('integration-social');
       expect(ActivitySource.WEB).toBe('web');
       expect(ActivitySource.BOT_GENERATION).toBe('bot-generate');
+      expect(ActivitySource.VOICE_GENERATION).toBe('voice-generate');
     });
   });
 
   describe('ActivityKey', () => {
-    it('should have 47 members', () => {
-      expect(Object.values(ActivityKey)).toHaveLength(47);
+    it('should have 50 members', () => {
+      expect(Object.values(ActivityKey)).toHaveLength(50);
     });
 
     it('should have correct values', () => {
@@ -131,6 +132,9 @@ describe('activity.enum', () => {
         'prompt-enhance-completed',
       );
       expect(ActivityKey.PROMPT_ENHANCE_FAILED).toBe('prompt-enhance-failed');
+      expect(ActivityKey.VOICE_PROCESSING).toBe('voice-processing');
+      expect(ActivityKey.VOICE_GENERATED).toBe('voice-generated');
+      expect(ActivityKey.VOICE_FAILED).toBe('voice-failed');
       expect(ActivityKey.PROMPT_REMIX_PROCESSING).toBe(
         'prompt-remix-processing',
       );

@@ -9,14 +9,15 @@ import {
 
 describe('bot.enum', () => {
   describe('BotCategory', () => {
-    it('should have 5 members', () => {
-      expect(Object.values(BotCategory)).toHaveLength(5);
+    it('should have 6 members', () => {
+      expect(Object.values(BotCategory)).toHaveLength(6);
     });
 
     it('should have correct values', () => {
       expect(BotCategory.CHAT).toBe('chat');
       expect(BotCategory.COMMENT).toBe('comment');
       expect(BotCategory.ENGAGEMENT).toBe('engagement');
+      expect(BotCategory.LIVESTREAM_CHAT).toBe('livestream_chat');
       expect(BotCategory.MONITORING).toBe('monitoring');
       expect(BotCategory.PUBLISHING).toBe('publishing');
     });
