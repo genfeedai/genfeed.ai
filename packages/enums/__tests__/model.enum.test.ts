@@ -11,8 +11,8 @@ import {
 
 describe('model.enum', () => {
   describe('ModelKey', () => {
-    it('should have 83 members', () => {
-      expect(Object.values(MODEL_KEYS)).toHaveLength(83);
+    it('should have 88 members', () => {
+      expect(Object.values(MODEL_KEYS)).toHaveLength(88);
     });
 
     it('should have correct values', () => {
@@ -268,13 +268,14 @@ describe('model.enum', () => {
   });
 
   describe('PricingType', () => {
-    it('should have 3 members', () => {
-      expect(Object.values(PricingType)).toHaveLength(3);
+    it('should have 4 members', () => {
+      expect(Object.values(PricingType)).toHaveLength(4);
     });
 
     it('should have correct values', () => {
       expect(PricingType.FLAT).toBe('flat');
       expect(PricingType.PER_MEGAPIXEL).toBe('per-megapixel');
+      expect(PricingType.PER_REQUEST).toBe('per-request');
       expect(PricingType.PER_SECOND).toBe('per-second');
     });
   });
