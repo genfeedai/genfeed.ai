@@ -1,20 +1,21 @@
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
-import { BaseService } from '@api/shared/services/base/base.service';
-import type { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
-import type { PipelineStage, Types } from 'mongoose';
+
+// Mock @genfeedai/prisma before importing BaseService so the module resolves cleanly in test env
+vi.mock('@genfeedai/prisma', () => ({ PrismaClient: class {} }));
+
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { BaseService } from '@api/shared/services/base/base.service';
 
 describe('BaseService', () => {
   type TestDocument = Record<string, unknown>;
-  type MockAggregateModel = AggregatePaginateModel<TestDocument> &
-    ReturnType<typeof vi.fn> &
-    Record<string, ReturnType<typeof vi.fn>>;
 
   class TestService extends BaseService<TestDocument> {}
 
   let service: TestService;
-  let model: MockAggregateModel;
+  let prisma: PrismaService;
+  let delegate: Record<string, ReturnType<typeof vi.fn>>;
   let logger: LoggerService;
 
   beforeEach(() => {
@@ -25,507 +26,410 @@ describe('BaseService', () => {
       warn: vi.fn(),
     } as Partial<LoggerService> as LoggerService;
 
-    model = vi.fn().mockImplementation(function (data: TestDocument) {
-      return { ...data, save: vi.fn() };
-    }) as unknown as MockAggregateModel;
-    model.collection = {
-      name: 'test-collection',
-    } as MockAggregateModel['collection'];
-    model.modelName = 'TestModel';
-    model.findById = vi.fn().mockReturnValue({
-      exec: vi.fn(),
-      populate: vi.fn().mockReturnThis(),
-    });
-    model.aggregate = vi.fn().mockReturnThis();
-    model.aggregatePaginate = vi.fn();
-    model.findOne = vi.fn().mockReturnValue({
-      exec: vi.fn(),
-      populate: vi.fn().mockReturnThis(),
-    });
-    model.findByIdAndUpdate = vi.fn().mockReturnValue({
-      exec: vi.fn(),
-      populate: vi.fn().mockReturnThis(),
-    });
-    model.updateMany = vi.fn().mockReturnValue({ exec: vi.fn() });
+    delegate = {
+      findMany: vi.fn(),
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+      delete: vi.fn(),
+      count: vi.fn(),
+    };
 
-    service = new TestService(model, logger, undefined, undefined);
+    // PrismaService with a dynamic delegate accessible via modelName key
+    prisma = {
+      testModel: delegate,
+    } as unknown as PrismaService;
+
+    service = new TestService(prisma, 'testModel', logger);
   });
 
   it('should be defined', () => {
     expect(service).toBeDefined();
   });
 
-  it('creates a document and returns the saved entity', async () => {
-    const saveMock = vi.fn().mockResolvedValue({ _id: '1' });
-    model.mockImplementation(function () {
-      return { save: saveMock };
-    });
-    const execMock = vi.fn().mockResolvedValue('found');
-    model.findById = vi.fn().mockReturnValue({
-      exec: execMock,
-      populate: vi.fn().mockReturnThis(),
-    });
-
-    const result = await service.create({ foo: 'bar' }, [{ path: 'p' }]);
-
-    expect(saveMock).toHaveBeenCalled();
-    expect(model.findById).toHaveBeenCalledWith('1');
-    expect(execMock).toHaveBeenCalled();
-    expect(result).toBe('found');
+  it('collectionName returns the modelName', () => {
+    // @ts-expect-error accessing protected getter
+    expect(service.collectionName).toBe('testModel');
   });
 
-  it('aggregates and paginates results', async () => {
-    model.aggregate = vi.fn().mockReturnValue('agg');
-    model.aggregatePaginate = vi.fn().mockResolvedValue('paginated');
+  describe('create', () => {
+    it('creates a document and returns the created entity', async () => {
+      const created = { id: 'id_1', foo: 'bar' };
+      delegate.create.mockResolvedValue(created);
 
-    const pipeline = [{ $match: { a: 1 } }];
-    const result = await service.findAll(pipeline, { limit: 1 });
+      const result = await service.create({ foo: 'bar' });
 
-    expect(model.aggregate).toHaveBeenCalledWith(pipeline);
-    expect(model.aggregatePaginate).toHaveBeenCalledWith('agg', { limit: 1 });
-    expect(result).toBe('paginated');
-  });
-
-  it('finds a single document', async () => {
-    const execMock = vi.fn().mockResolvedValue('doc');
-    const populateMock = vi.fn().mockReturnValue({ exec: execMock });
-    model.findOne = vi.fn().mockReturnValue({ populate: populateMock });
-
-    const result = await service.findOne({ a: 1 }, ['pop']);
-
-    expect(model.findOne).toHaveBeenCalledWith({ a: 1 });
-    expect(populateMock).toHaveBeenCalledWith([
-      { path: 'pop', select: '_id label handle' },
-    ]);
-    expect(result).toBe('doc');
-  });
-
-  it('patches a document', async () => {
-    const execMock = vi.fn().mockResolvedValue('patched');
-    const populateMock = vi.fn().mockReturnValue({ exec: execMock });
-    model.findByIdAndUpdate = vi
-      .fn()
-      .mockReturnValue({ populate: populateMock });
-
-    const result = await service.patch('id', { foo: 'bar' }, ['pop']);
-
-    expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
-      'id',
-      { $set: { foo: 'bar' } },
-      { returnDocument: 'after' },
-    );
-    expect(populateMock).toHaveBeenCalledWith([
-      { path: 'pop', select: '_id label handle' },
-    ]);
-    expect(result).toBe('patched');
-  });
-
-  it('patches multiple documents', async () => {
-    const execMock = vi.fn().mockResolvedValue({ modifiedCount: 1 });
-    model.updateMany = vi.fn().mockReturnValue({ exec: execMock });
-
-    const result = await service.patchAll({ a: 1 }, { b: 2 });
-
-    expect(model.updateMany).toHaveBeenCalledWith({ a: 1 }, { b: 2 });
-    expect(result).toEqual({ modifiedCount: 1 });
-  });
-
-  it('soft deletes a document', async () => {
-    const execMock = vi.fn().mockResolvedValue('removed');
-    model.findByIdAndUpdate = vi.fn().mockReturnValue({ exec: execMock });
-
-    const result = await service.remove('id');
-
-    expect(model.findByIdAndUpdate).toHaveBeenCalledWith(
-      'id',
-      { isDeleted: true },
-      { returnDocument: 'after' },
-    );
-    expect(result).toBe('removed');
-  });
-
-  describe('Error Handling', () => {
-    describe('create', () => {
-      it('should throw ValidationException when createDto is null/undefined', async () => {
-        await expect(
-          service.create(null as unknown as TestDocument),
-        ).rejects.toThrow(ValidationException);
-        await expect(
-          service.create(undefined as unknown as TestDocument),
-        ).rejects.toThrow(ValidationException);
-
-        expect(logger.error).toHaveBeenCalledWith(
-          'Failed to create document',
-          expect.objectContaining({
-            error: expect.any(ValidationException),
-          }),
-        );
+      expect(delegate.create).toHaveBeenCalledWith({
+        data: { foo: 'bar' },
       });
-
-      it('should throw NotFoundException when created document is not found after save', async () => {
-        const saveMock = vi.fn().mockResolvedValue({ _id: '1' });
-        model.mockImplementation(function () {
-          return { save: saveMock };
-        });
-        model.findById = vi.fn().mockReturnValue({
-          exec: vi.fn().mockResolvedValue(null), // Document not found
-          populate: vi.fn().mockReturnThis(),
-        });
-
-        await expect(service.create({ foo: 'bar' }, ['path'])).rejects.toThrow(
-          NotFoundException,
-        );
-
-        expect(logger.error).toHaveBeenCalledWith(
-          'Failed to create document',
-          expect.objectContaining({
-            error: expect.any(NotFoundException),
-          }),
-        );
-      });
-
-      it('should handle database errors during save', async () => {
-        const dbError = new Error('Database connection failed');
-        const saveMock = vi.fn().mockRejectedValue(dbError);
-        model.mockImplementation(function () {
-          return { save: saveMock };
-        });
-
-        await expect(service.create({ foo: 'bar' })).rejects.toThrow(dbError);
-
-        expect(logger.error).toHaveBeenCalledWith(
-          'Failed to create document',
-          expect.objectContaining({
-            createDto: { foo: 'bar' },
-            error: dbError,
-          }),
-        );
-      });
-
-      it('should handle database errors during populate', async () => {
-        const saveMock = vi.fn().mockResolvedValue({ _id: '1' });
-        model.mockImplementation(function () {
-          return { save: saveMock };
-        });
-        const dbError = new Error('Population failed');
-        model.findById = vi.fn().mockReturnValue({
-          exec: vi.fn().mockRejectedValue(dbError),
-          populate: vi.fn().mockReturnThis(),
-        });
-
-        await expect(service.create({ foo: 'bar' }, ['path'])).rejects.toThrow(
-          dbError,
-        );
-      });
+      expect(result).toEqual(created);
     });
 
-    describe('findAll', () => {
-      it('should throw ValidationException when aggregate is not an array', async () => {
-        await expect(
-          service.findAll(null as unknown as PipelineStage[], { limit: 1 }),
-        ).rejects.toThrow(ValidationException);
+    it('creates a document with include when populate is provided', async () => {
+      const created = { id: 'id_1', foo: 'bar', user: { id: 'u1' } };
+      delegate.create.mockResolvedValue(created);
 
-        await expect(
-          service.findAll('not an array' as unknown as PipelineStage[], {
-            limit: 1,
-          }),
-        ).rejects.toThrow(ValidationException);
+      const result = await service.create({ foo: 'bar' }, ['user']);
 
-        expect(logger.error).toHaveBeenCalledWith(
-          'Failed to find documents',
-          expect.objectContaining({
-            error: expect.any(ValidationException),
-          }),
-        );
+      expect(delegate.create).toHaveBeenCalledWith({
+        data: { foo: 'bar' },
+        include: { user: true },
       });
-
-      it('should handle database errors during aggregation', async () => {
-        const dbError = new Error('Aggregation failed');
-        model.aggregate = vi.fn().mockReturnValue('agg');
-        model.aggregatePaginate = vi.fn().mockRejectedValue(dbError);
-
-        const pipeline = [{ $match: { a: 1 } }];
-        await expect(
-          service.findAll(pipeline, { limit: 1 }, false),
-        ).rejects.toThrow(dbError);
-
-        expect(logger.error).toHaveBeenCalledWith(
-          'Failed to find documents',
-          expect.objectContaining({
-            aggregate: pipeline,
-            error: dbError,
-          }),
-        );
-      });
-
-      it('should handle errors during direct aggregation (pagination: false)', async () => {
-        const dbError = new Error('Direct aggregation failed');
-        model.aggregate = vi.fn().mockReturnValue({
-          exec: vi.fn().mockRejectedValue(dbError),
-        });
-
-        const pipeline = [{ $match: { a: 1 } }];
-        await expect(
-          service.findAll(pipeline, { pagination: false }),
-        ).rejects.toThrow(dbError);
-      });
+      expect(result).toEqual(created);
     });
 
-    describe('findOne', () => {
-      it('should throw ValidationException when params is null/undefined/invalid', async () => {
-        await expect(
-          service.findOne(null as unknown as Record<string, unknown>),
-        ).rejects.toThrow(ValidationException);
-        await expect(
-          service.findOne(undefined as unknown as Record<string, unknown>),
-        ).rejects.toThrow(ValidationException);
-        await expect(
-          service.findOne(
-            'not an object' as unknown as Record<string, unknown>,
-          ),
-        ).rejects.toThrow(ValidationException);
-
-        expect(logger.error).toHaveBeenCalledWith(
-          'Failed to find document',
-          expect.objectContaining({
-            error: expect.any(ValidationException),
-          }),
-        );
-      });
-
-      it('should handle database errors during findOne', async () => {
-        const dbError = new Error('Database query failed');
-        model.findOne = vi.fn().mockReturnValue({
-          exec: vi.fn().mockRejectedValue(dbError),
-          populate: vi.fn().mockReturnThis(),
-        });
-
-        await expect(service.findOne({ _id: '123' })).rejects.toThrow(dbError);
-
-        expect(logger.error).toHaveBeenCalledWith(
-          'Failed to find document',
-          expect.objectContaining({
-            error: dbError,
-            params: { _id: '123' },
-          }),
-        );
-      });
-    });
-
-    describe('patch', () => {
-      it('should throw ValidationException when id is null/undefined', async () => {
-        await expect(
-          service.patch(null as unknown as Types.ObjectId, { foo: 'bar' }),
-        ).rejects.toThrow(ValidationException);
-        await expect(
-          service.patch(undefined as unknown as Types.ObjectId, { foo: 'bar' }),
-        ).rejects.toThrow(ValidationException);
-
-        expect(logger.error).toHaveBeenCalledWith(
-          'Failed to update document',
-          expect.objectContaining({
-            error: expect.any(ValidationException),
-          }),
-        );
-      });
-
-      it('should throw ValidationException when updateDto is null/undefined/invalid', async () => {
-        await expect(
-          service.patch('123', null as unknown as Record<string, unknown>),
-        ).rejects.toThrow(ValidationException);
-        await expect(
-          service.patch('123', undefined as unknown as Record<string, unknown>),
-        ).rejects.toThrow(ValidationException);
-        await expect(
-          service.patch(
-            '123',
-            'not an object' as unknown as Record<string, unknown>,
-          ),
-        ).rejects.toThrow(ValidationException);
-      });
-
-      it('should handle database errors during patch', async () => {
-        const dbError = new Error('Update failed');
-        model.findByIdAndUpdate = vi.fn().mockReturnValue({
-          exec: vi.fn().mockRejectedValue(dbError),
-          populate: vi.fn().mockReturnThis(),
-        });
-
-        await expect(service.patch('123', { foo: 'bar' })).rejects.toThrow(
-          dbError,
-        );
-
-        expect(logger.error).toHaveBeenCalledWith(
-          'Failed to update document',
-          expect.objectContaining({
-            error: dbError,
-            id: '123',
-            updateDto: { foo: 'bar' },
-          }),
-        );
-      });
-    });
-
-    describe('patchAll', () => {
-      it('should throw ValidationException when filter is null/undefined/invalid', async () => {
-        await expect(
-          service.patchAll(null as unknown as Record<string, unknown>, {
-            foo: 'bar',
-          }),
-        ).rejects.toThrow(ValidationException);
-        await expect(
-          service.patchAll(undefined as unknown as Record<string, unknown>, {
-            foo: 'bar',
-          }),
-        ).rejects.toThrow(ValidationException);
-        await expect(
-          service.patchAll(
-            'not an object' as unknown as Record<string, unknown>,
-            { foo: 'bar' },
-          ),
-        ).rejects.toThrow(ValidationException);
-      });
-
-      it('should throw ValidationException when update is null/undefined/invalid', async () => {
-        await expect(
-          service.patchAll(
-            { _id: '123' },
-            null as unknown as Record<string, unknown>,
-          ),
-        ).rejects.toThrow(ValidationException);
-        await expect(
-          service.patchAll(
-            { _id: '123' },
-            undefined as unknown as Record<string, unknown>,
-          ),
-        ).rejects.toThrow(ValidationException);
-        await expect(
-          service.patchAll(
-            { _id: '123' },
-            'not an object' as unknown as Record<string, unknown>,
-          ),
-        ).rejects.toThrow(ValidationException);
-      });
-
-      it('should handle database errors during bulk update', async () => {
-        const dbError = new Error('Bulk update failed');
-        model.updateMany = vi.fn().mockReturnValue({
-          exec: vi.fn().mockRejectedValue(dbError),
-        });
-
-        await expect(
-          service.patchAll({ user: '123' }, { status: 'updated' }),
-        ).rejects.toThrow(dbError);
-
-        expect(logger.error).toHaveBeenCalledWith(
-          'Failed to bulk update documents',
-          expect.objectContaining({
-            error: dbError,
-            filter: { user: '123' },
-            update: { status: 'updated' },
-          }),
-        );
-      });
-    });
-
-    describe('remove', () => {
-      it('should throw ValidationException when id is null/undefined', async () => {
-        await expect(service.remove(null as unknown as string)).rejects.toThrow(
-          ValidationException,
-        );
-        await expect(
-          service.remove(undefined as unknown as string),
-        ).rejects.toThrow(ValidationException);
-
-        expect(logger.error).toHaveBeenCalledWith(
-          'Failed to soft delete document',
-          expect.objectContaining({
-            error: expect.any(ValidationException),
-          }),
-        );
-      });
-
-      it('should handle database errors during soft delete', async () => {
-        const dbError = new Error('Soft delete failed');
-        model.findByIdAndUpdate = vi.fn().mockReturnValue({
-          exec: vi.fn().mockRejectedValue(dbError),
-        });
-
-        await expect(service.remove('123')).rejects.toThrow(dbError);
-
-        expect(logger.error).toHaveBeenCalledWith(
-          'Failed to soft delete document',
-          expect.objectContaining({
-            error: dbError,
-            id: '123',
-          }),
-        );
-      });
-    });
-  });
-
-  describe('Logging', () => {
-    it('should log successful operations with debug level', async () => {
-      const saveMock = vi.fn().mockResolvedValue({ _id: '1' });
-      model.mockImplementation(function () {
-        return { save: saveMock };
-      });
-      model.findById = vi.fn().mockReturnValue({
-        exec: vi.fn().mockResolvedValue({ _id: '1', foo: 'bar' }),
-        populate: vi.fn().mockReturnThis(),
-      });
-
-      await service.create({ foo: 'bar' });
-
-      expect(logger.debug).toHaveBeenCalledWith(
-        'Creating new document',
-        expect.objectContaining({
-          createDto: { foo: 'bar' },
-        }),
-      );
-      expect(logger.debug).toHaveBeenCalledWith(
-        'Document created successfully',
-        { id: '1' },
-      );
-    });
-
-    it('should not throw when logger is not provided', async () => {
-      const serviceWithoutLogger = new TestService(model);
-      const saveMock = vi.fn().mockResolvedValue({ _id: '1' });
-      model.mockImplementation(function () {
-        return { save: saveMock };
-      });
-
-      // Should not throw even without logger
+    it('throws ValidationException when createDto is null', async () => {
       await expect(
-        serviceWithoutLogger.create({ foo: 'bar' }),
-      ).resolves.toBeDefined();
+        service.create(null as unknown as TestDocument),
+      ).rejects.toThrow(ValidationException);
     });
-  });
 
-  describe('Data Sanitization', () => {
-    it('should not expose sensitive data in error logs', async () => {
-      const sensitiveData = {
-        apiKey: 'key-123-secret',
-        password: 'secret123',
-        token: 'auth-token',
-      };
+    it('throws ValidationException when createDto is undefined', async () => {
+      await expect(
+        service.create(undefined as unknown as TestDocument),
+      ).rejects.toThrow(ValidationException);
+    });
 
-      const dbError = new Error('Database error');
-      const saveMock = vi.fn().mockRejectedValue(dbError);
-      model.mockImplementation(function () {
-        return { save: saveMock };
-      });
+    it('propagates database errors', async () => {
+      const dbError = new Error('DB connection failed');
+      delegate.create.mockRejectedValue(dbError);
 
-      await expect(service.create(sensitiveData)).rejects.toThrow(dbError);
-
-      // Verify error is logged with the data, but we expect the service to handle this appropriately
+      await expect(service.create({ foo: 'bar' })).rejects.toThrow(dbError);
       expect(logger.error).toHaveBeenCalledWith(
         'Failed to create document',
+        expect.objectContaining({ error: dbError }),
+      );
+    });
+  });
+
+  describe('findAll', () => {
+    it('returns paginated results', async () => {
+      delegate.findMany.mockResolvedValue([{ id: '1' }]);
+      delegate.count.mockResolvedValue(1);
+
+      const result = await service.findAll([], { page: 1, limit: 10 });
+
+      expect(result.docs).toHaveLength(1);
+      expect(result.totalDocs).toBe(1);
+      expect(result.page).toBe(1);
+      expect(result.totalPages).toBe(1);
+      expect(result.hasNextPage).toBe(false);
+    });
+
+    it('returns all docs without pagination when pagination: false', async () => {
+      delegate.findMany.mockResolvedValue([{ id: '1' }, { id: '2' }]);
+
+      const result = await service.findAll([], { pagination: false });
+
+      expect(result.docs).toHaveLength(2);
+      expect(result.totalDocs).toBe(2);
+      expect(result.totalPages).toBe(1);
+      expect(delegate.count).not.toHaveBeenCalled();
+    });
+
+    it('computes hasNextPage / prevPage correctly', async () => {
+      delegate.findMany.mockResolvedValue(
+        Array.from({ length: 10 }, (_, i) => ({ id: String(i) })),
+      );
+      delegate.count.mockResolvedValue(25);
+
+      const result = await service.findAll([], { page: 2, limit: 10 });
+
+      expect(result.hasNextPage).toBe(true);
+      expect(result.hasPrevPage).toBe(true);
+      expect(result.nextPage).toBe(3);
+      expect(result.prevPage).toBe(1);
+    });
+  });
+
+  describe('find', () => {
+    it('calls findMany with processed params', async () => {
+      delegate.findMany.mockResolvedValue([{ id: '1' }]);
+
+      const result = await service.find({ status: 'active' });
+
+      expect(delegate.findMany).toHaveBeenCalledWith({
+        where: { status: 'active' },
+      });
+      expect(result).toHaveLength(1);
+    });
+  });
+
+  describe('findOne', () => {
+    it('returns a document when found', async () => {
+      const doc = { id: 'id_1' };
+      delegate.findFirst.mockResolvedValue(doc);
+
+      const result = await service.findOne({ id: 'id_1' });
+
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: { id: 'id_1' },
+      });
+      expect(result).toEqual(doc);
+    });
+
+    it('returns null when not found', async () => {
+      delegate.findFirst.mockResolvedValue(null);
+      const result = await service.findOne({ id: 'missing' });
+      expect(result).toBeNull();
+    });
+
+    it('passes include to findFirst when populate is provided', async () => {
+      delegate.findFirst.mockResolvedValue({ id: '1', brand: {} });
+      await service.findOne({ id: '1' }, ['brand']);
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: { id: '1' },
+        include: { brand: true },
+      });
+    });
+
+    it('throws ValidationException when params is null', async () => {
+      await expect(
+        service.findOne(null as unknown as Record<string, unknown>),
+      ).rejects.toThrow(ValidationException);
+    });
+
+    it('converts _id to id in params', async () => {
+      delegate.findFirst.mockResolvedValue(null);
+      await service.findOne({ _id: 'abc123' });
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: { id: 'abc123' },
+      });
+    });
+  });
+
+  describe('patch', () => {
+    it('updates a document by id', async () => {
+      const updated = { id: 'id_1', foo: 'updated' };
+      delegate.update.mockResolvedValue(updated);
+
+      const result = await service.patch('id_1', { foo: 'updated' });
+
+      expect(delegate.update).toHaveBeenCalledWith({
+        where: { id: 'id_1' },
+        data: { foo: 'updated' },
+      });
+      expect(result).toEqual(updated);
+    });
+
+    it('flattens $set/$unset operators into plain data', async () => {
+      delegate.update.mockResolvedValue({ id: 'id_1' });
+
+      await service.patch('id_1', {
+        $set: { name: 'NewName' },
+        $unset: { oldField: '' },
+      });
+
+      expect(delegate.update).toHaveBeenCalledWith({
+        where: { id: 'id_1' },
+        data: { name: 'NewName', oldField: null },
+      });
+    });
+
+    it('throws ValidationException when id is falsy', async () => {
+      await expect(
+        service.patch('' as unknown as string, { foo: 'bar' }),
+      ).rejects.toThrow(ValidationException);
+    });
+
+    it('throws ValidationException when updateDto is null', async () => {
+      await expect(
+        service.patch('id_1', null as unknown as Record<string, unknown>),
+      ).rejects.toThrow(ValidationException);
+    });
+  });
+
+  describe('patchAll', () => {
+    it('bulk updates matching documents', async () => {
+      delegate.updateMany.mockResolvedValue({ count: 3 });
+
+      const result = await service.patchAll(
+        { status: 'old' },
+        { status: 'new' },
+      );
+
+      expect(delegate.updateMany).toHaveBeenCalledWith({
+        where: { status: 'old' },
+        data: { status: 'new' },
+      });
+      expect(result).toEqual({ modifiedCount: 3 });
+    });
+
+    it('flattens $set operator in update arg', async () => {
+      delegate.updateMany.mockResolvedValue({ count: 2 });
+
+      await service.patchAll(
+        { isDeleted: false },
+        { $set: { archived: true } },
+      );
+
+      expect(delegate.updateMany).toHaveBeenCalledWith({
+        where: { isDeleted: false },
+        data: { archived: true },
+      });
+    });
+
+    it('throws ValidationException when filter is null', async () => {
+      await expect(
+        service.patchAll(null as unknown as Record<string, unknown>, {}),
+      ).rejects.toThrow(ValidationException);
+    });
+
+    it('throws ValidationException when update is null', async () => {
+      await expect(
+        service.patchAll({}, null as unknown as Record<string, unknown>),
+      ).rejects.toThrow(ValidationException);
+    });
+  });
+
+  describe('remove', () => {
+    it('soft deletes a document by setting isDeleted: true', async () => {
+      const deleted = { id: 'id_1', isDeleted: true };
+      delegate.update.mockResolvedValue(deleted);
+
+      const result = await service.remove('id_1');
+
+      expect(delegate.update).toHaveBeenCalledWith({
+        where: { id: 'id_1' },
+        data: { isDeleted: true },
+      });
+      expect(result).toEqual(deleted);
+    });
+
+    it('throws ValidationException when id is falsy', async () => {
+      await expect(service.remove(null as unknown as string)).rejects.toThrow(
+        ValidationException,
+      );
+    });
+  });
+
+  describe('processSearchParams', () => {
+    it('remaps _id to id', () => {
+      const result = service.processSearchParams({
+        _id: 'abc123',
+        status: 'ok',
+      });
+      expect(result).toEqual({ id: 'abc123', status: 'ok' });
+    });
+
+    it('passes through other fields unchanged', () => {
+      const result = service.processSearchParams({
+        organizationId: 'org1',
+        type: 'post',
+      });
+      expect(result).toEqual({ organizationId: 'org1', type: 'post' });
+    });
+  });
+
+  describe('findAllByOrganization', () => {
+    it('queries with organizationId and isDeleted filters', async () => {
+      delegate.findMany.mockResolvedValue([]);
+
+      await service.findAllByOrganization('org1');
+
+      expect(delegate.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          createDto: sensitiveData,
-          error: dbError,
+          where: expect.objectContaining({
+            organizationId: 'org1',
+            isDeleted: false,
+          }),
         }),
+      );
+    });
+
+    it('applies additional filters', async () => {
+      delegate.findMany.mockResolvedValue([]);
+
+      await service.findAllByOrganization('org1', { status: 'active' });
+
+      expect(delegate.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            organizationId: 'org1',
+            isDeleted: false,
+            status: 'active',
+          }),
+        }),
+      );
+    });
+  });
+
+  describe('updateEntityFlag', () => {
+    it('updates a boolean flag with org isolation check', async () => {
+      delegate.findFirst.mockResolvedValue({ id: 'id_1' });
+      delegate.update.mockResolvedValue({ id: 'id_1', isRead: true });
+
+      const result = await service.updateEntityFlag(
+        'id_1',
+        'org_1',
+        'isRead' as keyof TestDocument & string,
+        true,
+      );
+
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        where: { id: 'id_1', organizationId: 'org_1', isDeleted: false },
+        select: { id: true },
+      });
+      expect(delegate.update).toHaveBeenCalledWith({
+        where: { id: 'id_1' },
+        data: { isRead: true },
+      });
+      expect(result).toEqual({ id: 'id_1', isRead: true });
+    });
+
+    it('returns null when document not found or not in org', async () => {
+      delegate.findFirst.mockResolvedValue(null);
+
+      const result = await service.updateEntityFlag(
+        'id_missing',
+        'org_1',
+        'isRead' as keyof TestDocument & string,
+      );
+
+      expect(result).toBeNull();
+      expect(delegate.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('bulkUpdateEntityFlag', () => {
+    it('updates flag on multiple IDs with org isolation', async () => {
+      delegate.updateMany.mockResolvedValue({ count: 2 });
+
+      const result = await service.bulkUpdateEntityFlag(
+        ['id_1', 'id_2'],
+        'org_1',
+        'isArchived' as keyof TestDocument & string,
+        true,
+      );
+
+      expect(delegate.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: { in: ['id_1', 'id_2'] },
+          organizationId: 'org_1',
+          isDeleted: false,
+        },
+        data: { isArchived: true },
+      });
+      expect(result).toEqual({ modifiedCount: 2 });
+    });
+  });
+
+  describe('logOperation', () => {
+    it('logs error for failed operations', () => {
+      service.logOperation('test', 'failed', 'error detail');
+      expect(logger.error).toHaveBeenCalledWith(
+        'TestService test failed',
+        'error detail',
+      );
+    });
+
+    it('logs info for started/completed operations', () => {
+      service.logOperation('test', 'started');
+      expect(logger.log).toHaveBeenCalledWith(
+        'TestService test started',
+        undefined,
       );
     });
   });

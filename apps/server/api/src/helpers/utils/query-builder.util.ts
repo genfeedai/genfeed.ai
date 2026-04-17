@@ -1,32 +1,7 @@
-import { Types } from 'mongoose';
-
-const OBJECT_ID_FIELDS = new Set([
-  '_id',
-  'id',
-  'user',
-  'brand',
-  'organization',
-  'parent',
-  'metadata',
-  'asset',
-  'credential',
-  'activity',
-  'ingredient',
-  'room',
-]);
-
-function normalizeMongoFilterValue(field: string, value: unknown): unknown {
-  if (typeof value === 'string' && OBJECT_ID_FIELDS.has(field)) {
-    return Types.ObjectId.isValid(value) ? new Types.ObjectId(value) : value;
-  }
-
-  return value;
-}
-
 /**
- * QueryBuilder - Utility for building MongoDB queries with common patterns
+ * QueryBuilder - Utility for building Prisma where-clause objects with common patterns.
  *
- * Eliminates duplicate query building code across services
+ * Eliminates duplicate query building code across services.
  *
  * @example
  * const query = new QueryBuilder(organizationId)
@@ -39,17 +14,14 @@ function normalizeMongoFilterValue(field: string, value: unknown): unknown {
 export class QueryBuilder {
   private query: Record<string, unknown> = {};
 
-  constructor(organization?: string | Types.ObjectId) {
+  constructor(organizationId?: string) {
     this.query = {
       isDeleted: false,
     };
-    // Only add organization filter if provided
-    // If undefined, query will match both org-specific and global templates
-    if (organization != null) {
-      this.query.organization = normalizeMongoFilterValue(
-        'organization',
-        organization,
-      );
+    // Only add organizationId filter if provided.
+    // If undefined, query will match both org-specific and global templates.
+    if (organizationId != null) {
+      this.query.organizationId = organizationId;
     }
   }
 
@@ -58,44 +30,44 @@ export class QueryBuilder {
    */
   addFilter(field: string, value: unknown): this {
     if (value != null && value !== '') {
-      this.query[field] = normalizeMongoFilterValue(field, value);
+      this.query[field] = value;
     }
     return this;
   }
 
   /**
-   * Add an $in filter for arrays (only if array has items)
+   * Add an `in` filter for arrays (only if array has items)
    */
   addInFilter(field: string, values?: unknown[]): this {
     if (values && values.length > 0) {
-      this.query[field] = {
-        $in: values.map((value) => normalizeMongoFilterValue(field, value)),
-      };
+      this.query[field] = { in: values };
     }
     return this;
   }
 
   /**
-   * Add a text search filter
+   * Add a text search filter using Prisma `contains` (case-insensitive).
+   * Note: requires a text-searchable string field. Defaults to searching a `content` field.
+   * Override with `addCustom` for model-specific text search needs.
    */
-  addTextSearch(searchTerm?: string): this {
+  addTextSearch(searchTerm?: string, field: string = 'content'): this {
     if (searchTerm) {
-      this.query.$text = { $search: searchTerm };
+      this.query[field] = { contains: searchTerm, mode: 'insensitive' };
     }
     return this;
   }
 
   /**
-   * Add a date range filter
+   * Add a date range filter using Prisma `gte`/`lte`.
    */
   addDateRange(field: string, startDate?: Date, endDate?: Date): this {
     if (startDate || endDate) {
-      const range: { $gte?: Date; $lte?: Date } = {};
+      const range: { gte?: Date; lte?: Date } = {};
       if (startDate) {
-        range.$gte = startDate;
+        range.gte = startDate;
       }
       if (endDate) {
-        range.$lte = endDate;
+        range.lte = endDate;
       }
       this.query[field] = range;
     }
@@ -113,11 +85,11 @@ export class QueryBuilder {
   }
 
   /**
-   * Add a regex filter for partial matching
+   * Add a regex/contains filter for partial matching (case-insensitive)
    */
-  addRegexFilter(field: string, pattern: string, options: string = 'i'): this {
+  addRegexFilter(field: string, pattern: string): this {
     if (pattern) {
-      this.query[field] = { $options: options, $regex: pattern };
+      this.query[field] = { contains: pattern, mode: 'insensitive' };
     }
     return this;
   }
@@ -149,12 +121,11 @@ export class QueryBuilder {
    * Get a copy of the current query
    */
   clone(): QueryBuilder {
-    const organization = this.query.organization;
-    const builder = new QueryBuilder(
-      typeof organization === 'string' || organization instanceof Types.ObjectId
-        ? organization
-        : undefined,
-    );
+    const orgId =
+      typeof this.query.organizationId === 'string'
+        ? this.query.organizationId
+        : undefined;
+    const builder = new QueryBuilder(orgId);
     builder.query = { ...this.query };
     return builder;
   }
@@ -163,12 +134,12 @@ export class QueryBuilder {
    * Reset the query to base state
    */
   reset(): this {
-    const org = this.query.organization;
+    const org = this.query.organizationId;
     this.query = {
       isDeleted: false,
     };
     if (org !== undefined) {
-      this.query.organization = org;
+      this.query.organizationId = org;
     }
     return this;
   }

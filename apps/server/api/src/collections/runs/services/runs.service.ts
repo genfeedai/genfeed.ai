@@ -36,8 +36,7 @@ export class RunsService extends BaseService<
     private readonly notificationsPublisher: NotificationsPublisherService,
     private readonly runsMeteringService: RunsMeteringService,
   ) {
-    // TODO: remove model arg after BaseService Prisma migration
-    super(undefined as never, logger);
+    super(prisma, 'run', logger);
   }
 
   private runId(run: Pick<RunDocument, '_id'>): string {

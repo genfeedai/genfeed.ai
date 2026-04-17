@@ -4,26 +4,21 @@ import { IngredientEntity } from '@api/collections/ingredients/entities/ingredie
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { UpdatePostDto } from '@api/collections/posts/dto/update-post.dto';
-import {
-  Post,
-  type PostDocument,
-} from '@api/collections/posts/schemas/post.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import { TimezoneUtil } from '@api/shared/utils/timezone/timezone.util';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { CredentialPlatform, PostStatus } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import type { IOnboardingJourneyMissionState } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 
 const ONBOARDING_JOURNEY_REWARD_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000;
@@ -35,9 +30,7 @@ export class PostsService extends BaseService<
   UpdatePostDto
 > {
   constructor(
-    @InjectModel(Post.name, DB_CONNECTIONS.CLOUD)
-    protected readonly model: AggregatePaginateModel<PostDocument>,
-
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     @Optional() public readonly cacheService?: CacheService,
     @Optional() private readonly fileQueueService?: FileQueueService,
@@ -45,7 +38,7 @@ export class PostsService extends BaseService<
     private readonly organizationSettingsService?: OrganizationSettingsService,
     @Optional() private readonly creditsUtilsService?: CreditsUtilsService,
   ) {
-    super(model, logger, undefined, cacheService);
+    super(prisma, 'post', logger, undefined, cacheService);
   }
 
   create(
@@ -119,12 +112,6 @@ export class PostsService extends BaseService<
 
   /**
    * Batch find posts by IDs with organization isolation.
-   * More efficient than individual findOne calls in a loop (N+1 problem).
-   *
-   * @param ids - Array of post IDs to find
-   * @param organizationId - Organization ID for tenant isolation
-   * @param populate - Population options
-   * @returns Array of found posts (may be fewer than requested if some don't exist)
    */
   async findByIds(
     ids: (string | Types.ObjectId)[],
@@ -138,34 +125,28 @@ export class PostsService extends BaseService<
       return [];
     }
 
-    const objectIds = ids.map((id) =>
-      id instanceof Types.ObjectId ? id : new Types.ObjectId(id),
-    );
-    const orgObjectId =
-      organizationId instanceof Types.ObjectId
-        ? organizationId
-        : new Types.ObjectId(organizationId);
+    const stringIds = ids.map((id) => String(id));
+    const orgId = String(organizationId);
 
     this.logger.debug('findByIds', {
       count: ids.length,
-      organizationId: orgObjectId.toString(),
+      organizationId: orgId,
     });
 
-    const result = await this.model
-      .find({
-        _id: { $in: objectIds },
+    const results = await this.prisma.post.findMany({
+      where: {
+        id: { in: stringIds },
         isDeleted: false,
-        organization: orgObjectId,
-      })
-      .populate(populate as unknown as PopulateOption[])
-      .exec();
+        organizationId: orgId,
+      },
+    });
 
     this.logger.debug('findByIds success', {
-      found: result.length,
+      found: results.length,
       requested: ids.length,
     });
 
-    return result;
+    return results as unknown as PostDocument[];
   }
 
   async patch(
@@ -232,25 +213,22 @@ export class PostsService extends BaseService<
     if (dto.status === PostStatus.SCHEDULED) {
       if (currentPost && !currentPost.parent) {
         // Find all children and update them to SCHEDULED
-        const updateResult = await this.model.updateMany(
-          {
+        const updateResult = await this.prisma.post.updateMany({
+          data: {
+            status: PostStatus.SCHEDULED,
+            ...(normalizedDto.scheduledDate && {
+              scheduledDate: normalizedDto.scheduledDate as Date,
+            }),
+          } as never,
+          where: {
             isDeleted: false,
-            parent: new Types.ObjectId(id),
-            status: { $ne: PostStatus.PUBLIC }, // Don't update already published children
+            parentId: id,
+            status: { not: PostStatus.PUBLIC },
           },
-          {
-            $set: {
-              status: PostStatus.SCHEDULED,
-              // Optionally inherit scheduledDate from parent if provided
-              ...(normalizedDto.scheduledDate && {
-                scheduledDate: normalizedDto.scheduledDate,
-              }),
-            },
-          },
-        );
+        });
 
         this.logger.log(`Auto-scheduled children for parent post ${id}`, {
-          childrenUpdated: updateResult.modifiedCount,
+          childrenUpdated: updateResult.count,
           parentId: id,
           status: PostStatus.SCHEDULED,
         });
@@ -285,7 +263,7 @@ export class PostsService extends BaseService<
 
     const settings = await this.organizationSettingsService.findOne({
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!settings?._id) {
@@ -347,7 +325,6 @@ export class PostsService extends BaseService<
 
   /**
    * Handle YouTube post upload for all statuses (UNLISTED, PUBLIC, PRIVATE, SCHEDULED)
-   * Enqueues the upload job and returns immediately
    */
   @HandleErrors('handle YouTube post', 'posts')
   async handleYoutubePost(post: PostDocument): Promise<void> {
@@ -360,7 +337,6 @@ export class PostsService extends BaseService<
     }
 
     const credential = post.credential as unknown as CredentialEntity;
-    // YouTube only supports single video uploads, use the first ingredient
     const ingredient = (
       post.ingredients as Types.ObjectId[]
     )[0] as unknown as IngredientEntity;
@@ -374,13 +350,15 @@ export class PostsService extends BaseService<
 
     // Save original status before changing to PROCESSING
     const originalStatus = post.status;
-    const postId: string = (post._id as Types.ObjectId).toString();
+    const postId: string = String(
+      (post._id as Types.ObjectId | undefined) ??
+        (post as unknown as { id: string }).id,
+    );
 
     await this.patch(postId, {
       status: PostStatus.PROCESSING,
     });
 
-    // Enqueue YouTube upload job with original status so it can be restored on completion
     try {
       const user = post.user as unknown as { clerkId?: string };
       const clerkUserId: string | undefined =
@@ -396,7 +374,7 @@ export class PostsService extends BaseService<
         postId,
         room: clerkUserId ? getUserRoomName(clerkUserId) : undefined,
         scheduledDate: post.scheduledDate,
-        status: originalStatus, // Send original status so completion handler can restore it
+        status: originalStatus,
         tags:
           (post.tags as unknown as ({ name?: string } | string)[])?.map(
             (tag) =>
@@ -414,7 +392,6 @@ export class PostsService extends BaseService<
         (error as Error)?.stack,
       );
 
-      // Revert status to FAILED
       await this.patch(postId, {
         status: PostStatus.FAILED,
       });
@@ -426,8 +403,8 @@ export class PostsService extends BaseService<
   /**
    * Count posts matching filter
    */
-  count(filter: Record<string, unknown>): Promise<number> {
-    return this.model.countDocuments(filter);
+  async count(filter: Record<string, unknown>): Promise<number> {
+    return this.prisma.post.count({ where: filter as never });
   }
 
   /**
@@ -461,23 +438,20 @@ export class PostsService extends BaseService<
     const rootPostDto = {
       ...rootPostWithoutParent,
       order: 0,
-      parent: undefined, // Root post has no parent
+      parent: undefined,
     };
 
     const rootPost = await this.create(rootPostDto, populate);
     createdPosts.push(rootPost);
     const rootPostId = rootPost._id as Types.ObjectId;
 
-    // Create remaining posts sequentially, all children point to the root post (flat structure)
-    // This allows simple queries to find all thread children
-    // Order determines the sequence when publishing
     for (let i = 1; i < threadPosts.length; i++) {
       const { parent: _parent, ...postWithoutParent } = threadPosts[i];
 
       const postDto = {
         ...postWithoutParent,
         order: i,
-        parent: new Types.ObjectId(rootPostId), // All subsequent posts point to the root post
+        parent: new Types.ObjectId(rootPostId),
       };
 
       const createdPost = await this.create(postDto, populate);
@@ -489,11 +463,6 @@ export class PostsService extends BaseService<
 
   /**
    * Get all children of a post.
-   *
-   * @param parentId - Parent post ID
-   * @param populate - Population options
-   * @param limit - Maximum number of children to return (default: 100, max: 500)
-   * @returns Array of child posts
    */
   @HandleErrors('get post children', 'posts')
   async getChildren(
@@ -506,30 +475,19 @@ export class PostsService extends BaseService<
     ],
     limit: number = 100,
   ): Promise<PostDocument[]> {
-    // Convert parentId to ObjectId to ensure proper matching
-    const parentObjectId = new Types.ObjectId(parentId);
-    // Enforce maximum limit to prevent DOS
     const safeLimit = Math.min(limit, 500);
 
-    const children = await this.model
-      .find({ isDeleted: false, parent: parentObjectId })
-      .populate(populate as unknown as PopulateOption[])
-      .sort({ order: 1 })
-      .limit(safeLimit)
-      .exec();
+    const children = await this.prisma.post.findMany({
+      orderBy: { order: 'asc' },
+      take: safeLimit,
+      where: { isDeleted: false, parentId },
+    });
 
-    return children;
+    return children as unknown as PostDocument[];
   }
 
   /**
-   * Find the root post of a thread (traverse up to find post with no parent).
-   * Includes cycle detection and depth limit to prevent infinite loops.
-   *
-   * @param postId - Starting post ID
-   * @param populate - Population options
-   * @param maxDepth - Maximum traversal depth (default: 100)
-   * @returns Root post or null if not found
-   * @throws Error if circular reference or max depth exceeded
+   * Find the root post of a thread.
    */
   @HandleErrors('find root post', 'posts')
   async findRootPost(
@@ -542,17 +500,14 @@ export class PostsService extends BaseService<
       return null;
     }
 
-    // Track visited IDs to detect cycles
     const visited = new Set<string>();
     visited.add(current._id.toString());
 
     let depth = 0;
 
-    // Traverse up until we find a post with no parent (the root)
     while (current.parent) {
       depth++;
 
-      // Check depth limit
       if (depth > maxDepth) {
         this.logger.error('Max depth exceeded in findRootPost', {
           depth,
@@ -566,7 +521,6 @@ export class PostsService extends BaseService<
 
       const parentId = current.parent.toString();
 
-      // Check for circular reference
       if (visited.has(parentId)) {
         this.logger.error('Circular reference detected in post hierarchy', {
           currentId: current._id.toString(),
@@ -593,8 +547,6 @@ export class PostsService extends BaseService<
 
   /**
    * Add a reply to an existing post (thread reply)
-   * Reply is always attached to the ROOT post of the thread (flat structure)
-   * This allows simple queries to find all thread children
    */
   @HandleErrors('add thread reply', 'posts')
   async addThreadReply(
@@ -612,13 +564,11 @@ export class PostsService extends BaseService<
       PopulatePatterns.brandMinimal,
     ],
   ): Promise<PostDocument> {
-    // Verify parent exists
     const parentPost = await this.findOne({ _id: parentId });
     if (!parentPost) {
       throw new Error(`Parent post with ID ${parentId} not found`);
     }
 
-    // Find the root post of the thread (flat structure - all children point to root)
     const rootPost = await this.findRootPost(parentId);
     if (!rootPost) {
       throw new Error(
@@ -628,18 +578,15 @@ export class PostsService extends BaseService<
 
     const rootPostId = rootPost._id.toString();
 
-    // Order is based on total children of root, not the immediate parent
-    const childrenCount = await this.model.countDocuments({
-      isDeleted: false,
-      parent: rootPostId,
+    const childrenCount = await this.prisma.post.count({
+      where: { isDeleted: false, parentId: rootPostId },
     });
 
     const { parent, ...dtoWithoutParent } = dto;
 
-    // Create reply with parent pointing to ROOT post
     const replyDto = {
       ...dtoWithoutParent,
-      order: childrenCount + 1, // +1 because root post is order 0
+      order: childrenCount + 1,
       parent: new Types.ObjectId(rootPostId),
     };
 
@@ -648,8 +595,6 @@ export class PostsService extends BaseService<
 
   /**
    * Create a remix version of an existing post for A/B testing
-   * Copies all properties except description (which is provided by user)
-   * Stores reference to original post for KPI comparison
    */
   @HandleErrors('create remix post', 'posts')
   async createRemix(
@@ -668,13 +613,11 @@ export class PostsService extends BaseService<
       PopulatePatterns.brandMinimal,
     ],
   ): Promise<PostDocument> {
-    // Find the original post
     const originalPost = await this.findOne({ _id: originalPostId }, populate);
     if (!originalPost) {
       throw new Error(`Original post with ID ${originalPostId} not found`);
     }
 
-    // Extract ingredient IDs from populated data
     const ingredientIds = (
       originalPost.ingredients as unknown as ({ _id?: string } | string)[]
     )?.map((ing) => {
@@ -684,7 +627,6 @@ export class PostsService extends BaseService<
       return new Types.ObjectId(String(ing));
     });
 
-    // Extract credential ID from populated data
     const populatedCredential = originalPost.credential as unknown as {
       _id?: string | Types.ObjectId;
     };
@@ -694,7 +636,6 @@ export class PostsService extends BaseService<
         ? originalPost.credential
         : new Types.ObjectId(String(originalPost.credential));
 
-    // Create the remix post with copied data
     const remixDto = {
       brand: dto.brand,
       category: originalPost.category,
@@ -705,9 +646,9 @@ export class PostsService extends BaseService<
       isShareToFeedSelected: originalPost.isShareToFeedSelected,
       label: dto.label || `Remix: ${originalPost.label || 'Untitled'}`,
       organization: dto.organization,
-      originalPost: new Types.ObjectId(originalPostId), // Link to original for KPI comparison
+      originalPost: new Types.ObjectId(originalPostId),
       platform: originalPost.platform,
-      status: PostStatus.DRAFT, // Always start as draft for safety
+      status: PostStatus.DRAFT,
       tags: originalPost.tags,
       timezone: originalPost.timezone || 'UTC',
       user: dto.user,
@@ -726,12 +667,6 @@ export class PostsService extends BaseService<
 
   /**
    * Get all posts in a thread (from root to leaves).
-   * Includes safeguards against excessive thread sizes.
-   *
-   * @param postId - Starting post ID
-   * @param populate - Population options
-   * @param maxPosts - Maximum posts to return (default: 500)
-   * @returns Array of all posts in the thread
    */
   @HandleErrors('get full thread', 'posts')
   async getFullThread(
@@ -749,13 +684,11 @@ export class PostsService extends BaseService<
       return [];
     }
 
-    // Use findRootPost which has cycle detection built in
     const rootPost = await this.findRootPost(postId, populate);
     if (!rootPost) {
-      return [post]; // Return just the original post if root not found
+      return [post];
     }
 
-    // Get all descendants from root with safeguards
     const allPosts: PostDocument[] = [rootPost];
     const queue: PostDocument[] = [rootPost];
     const visited = new Set<string>();
@@ -767,27 +700,30 @@ export class PostsService extends BaseService<
         continue;
       }
 
-      const children = await this.model
-        .find({ isDeleted: false, parent: current._id })
-        .populate(populate as unknown as PopulateOption[])
-        .sort({ order: 1 })
-        .limit(maxPosts - allPosts.length) // Limit remaining capacity
-        .exec();
+      const currentId = String(
+        (current._id as Types.ObjectId | undefined) ??
+          (current as unknown as { id: string }).id,
+      );
+
+      const children = await this.prisma.post.findMany({
+        orderBy: { order: 'asc' },
+        take: maxPosts - allPosts.length,
+        where: { isDeleted: false, parentId: currentId },
+      });
 
       for (const child of children) {
-        const childId = child._id.toString();
-        // Skip if already visited (cycle detection)
+        const childId = String(child.id);
         if (visited.has(childId)) {
           this.logger.warn('Cycle detected in thread traversal', {
             childId,
-            parentId: current._id.toString(),
+            parentId: currentId,
           });
           continue;
         }
 
         visited.add(childId);
-        allPosts.push(child);
-        queue.push(child);
+        allPosts.push(child as unknown as PostDocument);
+        queue.push(child as unknown as PostDocument);
 
         if (allPosts.length >= maxPosts) {
           this.logger.warn('Max posts limit reached in getFullThread', {
@@ -804,7 +740,6 @@ export class PostsService extends BaseService<
 
   /**
    * Override remove to implement cascade soft deletion
-   * When a parent post is deleted, all its children are also soft deleted
    */
   @HandleErrors('remove post with cascade', 'posts')
   async remove(id: string): Promise<PostDocument | null> {
@@ -814,48 +749,40 @@ export class PostsService extends BaseService<
 
     this.logger.log('Soft deleting post with cascade deletion', { id });
 
-    // First, find the post to check if it exists and if it has children
     const post = await this.findOne({ _id: id });
     if (!post) {
       this.logger.warn(`Post ${id} not found for deletion`);
       return null;
     }
 
-    const postId = new Types.ObjectId(id);
+    // Cascade soft delete all children
+    const childrenUpdateResult = await this.prisma.post.updateMany({
+      data: { isDeleted: true } as never,
+      where: { isDeleted: false, parentId: id },
+    });
 
-    // Soft delete all children posts (cascade deletion)
-    const childrenUpdateResult = await this.model.updateMany(
-      {
-        isDeleted: false, // Only delete children that aren't already deleted
-        parent: postId,
-      },
-      {
-        $set: { isDeleted: true },
-      },
-    );
-
-    if (childrenUpdateResult.modifiedCount > 0) {
+    if (childrenUpdateResult.count > 0) {
       this.logger.log(
-        `Cascade soft deleted ${childrenUpdateResult.modifiedCount} child posts`,
+        `Cascade soft deleted ${childrenUpdateResult.count} child posts`,
         {
-          childrenDeleted: childrenUpdateResult.modifiedCount,
+          childrenDeleted: childrenUpdateResult.count,
           parentId: id,
         },
       );
     }
 
     // Soft delete the parent post
-    const result = await this.model
-      .findByIdAndUpdate(id, { isDeleted: true }, { returnDocument: 'after' })
-      .exec();
+    const result = await this.prisma.post.update({
+      data: { isDeleted: true } as never,
+      where: { id },
+    });
 
     if (result) {
       this.logger.log('Post soft deleted successfully', {
-        childrenDeleted: childrenUpdateResult.modifiedCount,
+        childrenDeleted: childrenUpdateResult.count,
         id,
       });
 
-      // Invalidate cache
       if (this.cacheService) {
         const collectionName = this.collectionName;
         await this.cacheService.invalidateByTags([
@@ -869,6 +796,6 @@ export class PostsService extends BaseService<
       this.logger.warn(`Post ${id} not found for deletion`);
     }
 
-    return result;
+    return result as unknown as PostDocument | null;
   }
 }

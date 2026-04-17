@@ -1,20 +1,16 @@
+import type { BatchWorkflowJobDocument } from '@api/collections/workflows/schemas/batch-workflow-job.schema';
 import {
-  BatchWorkflowItem,
   type BatchWorkflowItemOutputSummary,
   BatchWorkflowItemStatus,
-  BatchWorkflowJob,
-  type BatchWorkflowJobDocument,
   BatchWorkflowJobStatus,
 } from '@api/collections/workflows/schemas/batch-workflow-job.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
 
 // =============================================================================
 // TYPES
@@ -43,8 +39,7 @@ export class BatchWorkflowService {
   private readonly logContext = 'BatchWorkflowService';
 
   constructor(
-    @InjectModel(BatchWorkflowJob.name, DB_CONNECTIONS.CLOUD)
-    private readonly batchJobModel: Model<BatchWorkflowJobDocument>,
+    private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -64,40 +59,44 @@ export class BatchWorkflowService {
       throw new BadRequestException('Maximum 100 items per batch');
     }
 
-    const items: Partial<BatchWorkflowItem>[] = ingredientIds.map((id) => ({
-      ingredientId: new Types.ObjectId(id),
+    const items = ingredientIds.map((id) => ({
+      ingredientId: id,
       status: BatchWorkflowItemStatus.PENDING,
     }));
 
-    const job = await this.batchJobModel.create({
-      completedCount: 0,
-      failedCount: 0,
-      items,
-      organization: new Types.ObjectId(organizationId),
-      status: BatchWorkflowJobStatus.PENDING,
-      totalCount: ingredientIds.length,
-      user: new Types.ObjectId(userId),
-      workflowId: new Types.ObjectId(workflowId),
+    const job = await this.prisma.batchWorkflowJob.create({
+      data: {
+        completedCount: 0,
+        failedCount: 0,
+        items: items as never,
+        organizationId,
+        status: BatchWorkflowJobStatus.PENDING,
+        totalCount: ingredientIds.length,
+        userId,
+        workflowId,
+      } as never,
     });
 
     this.logger.log(`${this.logContext} created batch job`, {
-      batchJobId: job._id.toString(),
+      batchJobId: job.id,
       itemCount: ingredientIds.length,
       workflowId,
     });
 
-    return job;
+    return job as unknown as BatchWorkflowJobDocument;
   }
 
   /**
    * Get a batch job by ID.
    */
   async getBatchJob(batchJobId: string): Promise<BatchWorkflowJobDocument> {
-    const job = await this.batchJobModel.findById(batchJobId).exec();
+    const job = await this.prisma.batchWorkflowJob.findFirst({
+      where: { id: batchJobId },
+    });
     if (!job) {
       throw new NotFoundException(`Batch job ${batchJobId} not found`);
     }
-    return job;
+    return job as unknown as BatchWorkflowJobDocument;
   }
 
   /**
@@ -107,17 +106,14 @@ export class BatchWorkflowService {
     batchJobId: string,
     organizationId: string,
   ): Promise<BatchWorkflowJobDocument> {
-    const job = await this.batchJobModel
-      .findOne({
-        _id: new Types.ObjectId(batchJobId),
-        organization: new Types.ObjectId(organizationId),
-      })
-      .exec();
+    const job = await this.prisma.batchWorkflowJob.findFirst({
+      where: { id: batchJobId, organizationId },
+    });
 
     if (!job) {
       throw new NotFoundException(`Batch job ${batchJobId} not found`);
     }
-    return job;
+    return job as unknown as BatchWorkflowJobDocument;
   }
 
   /**
@@ -128,40 +124,51 @@ export class BatchWorkflowService {
     limit = 20,
     offset = 0,
   ): Promise<BatchWorkflowJobDocument[]> {
-    return this.batchJobModel
-      .find({ organization: new Types.ObjectId(organizationId) })
-      .sort({ createdAt: -1 })
-      .skip(offset)
-      .limit(limit)
-      .exec();
+    const jobs = await this.prisma.batchWorkflowJob.findMany({
+      orderBy: { createdAt: 'desc' },
+      skip: offset,
+      take: limit,
+      where: { organizationId },
+    });
+    return jobs as unknown as BatchWorkflowJobDocument[];
   }
 
   /**
    * Mark the batch job as processing.
    */
   async markProcessing(batchJobId: string): Promise<void> {
-    await this.batchJobModel.updateOne(
-      { _id: new Types.ObjectId(batchJobId) },
-      { $set: { status: BatchWorkflowJobStatus.PROCESSING } },
-    );
+    await this.prisma.batchWorkflowJob.update({
+      data: { status: BatchWorkflowJobStatus.PROCESSING } as never,
+      where: { id: batchJobId },
+    });
   }
 
   /**
    * Mark an individual item as processing.
+   * Reads the current items array, updates the matching item in-memory, writes back.
    */
   async markItemProcessing(batchJobId: string, itemId: string): Promise<void> {
-    await this.batchJobModel.updateOne(
-      {
-        _id: new Types.ObjectId(batchJobId),
-        'items._id': new Types.ObjectId(itemId),
-      },
-      {
-        $set: {
-          'items.$.startedAt': new Date(),
-          'items.$.status': BatchWorkflowItemStatus.PROCESSING,
-        },
-      },
+    const job = await this.prisma.batchWorkflowJob.findFirst({
+      where: { id: batchJobId },
+    });
+    if (!job) return;
+
+    const jobDoc = job as unknown as Record<string, unknown>;
+    const items = (jobDoc.items as Array<Record<string, unknown>>) ?? [];
+    const updatedItems = items.map((item) =>
+      item.id === itemId || item._id?.toString() === itemId
+        ? {
+            ...item,
+            startedAt: new Date(),
+            status: BatchWorkflowItemStatus.PROCESSING,
+          }
+        : item,
     );
+
+    await this.prisma.batchWorkflowJob.update({
+      data: { items: updatedItems as never } as never,
+      where: { id: batchJobId },
+    });
   }
 
   /**
@@ -172,36 +179,41 @@ export class BatchWorkflowService {
     itemId: string,
     completion: BatchWorkflowItemCompletionInput = {},
   ): Promise<void> {
-    const updateFields: Record<string, unknown> = {
-      'items.$.completedAt': new Date(),
-      'items.$.status': BatchWorkflowItemStatus.COMPLETED,
-    };
+    const job = await this.prisma.batchWorkflowJob.findFirst({
+      where: { id: batchJobId },
+    });
+    if (!job) return;
 
-    if (completion.executionId) {
-      updateFields['items.$.executionId'] = completion.executionId;
-    }
-    if (completion.outputIngredientId) {
-      updateFields['items.$.outputIngredientId'] = new Types.ObjectId(
-        completion.outputIngredientId,
-      );
-    }
-    if (completion.outputCategory) {
-      updateFields['items.$.outputCategory'] = completion.outputCategory;
-    }
-    if (completion.outputSummary) {
-      updateFields['items.$.outputSummary'] = completion.outputSummary;
-    }
+    const jobDoc = job as unknown as Record<string, unknown>;
+    const items = (jobDoc.items as Array<Record<string, unknown>>) ?? [];
+    const updatedItems = items.map((item) => {
+      if (item.id !== itemId && item._id?.toString() !== itemId) return item;
+      return {
+        ...item,
+        completedAt: new Date(),
+        ...(completion.executionId
+          ? { executionId: completion.executionId }
+          : {}),
+        ...(completion.outputIngredientId
+          ? { outputIngredientId: completion.outputIngredientId }
+          : {}),
+        ...(completion.outputCategory
+          ? { outputCategory: completion.outputCategory }
+          : {}),
+        ...(completion.outputSummary
+          ? { outputSummary: completion.outputSummary }
+          : {}),
+        status: BatchWorkflowItemStatus.COMPLETED,
+      };
+    });
 
-    await this.batchJobModel.updateOne(
-      {
-        _id: new Types.ObjectId(batchJobId),
-        'items._id': new Types.ObjectId(itemId),
-      },
-      {
-        $inc: { completedCount: 1 },
-        $set: updateFields,
-      },
-    );
+    await this.prisma.batchWorkflowJob.update({
+      data: {
+        completedCount: { increment: 1 },
+        items: updatedItems as never,
+      } as never,
+      where: { id: batchJobId },
+    });
 
     await this.checkAndFinalizeJob(batchJobId);
   }
@@ -214,20 +226,31 @@ export class BatchWorkflowService {
     itemId: string,
     error: string,
   ): Promise<void> {
-    await this.batchJobModel.updateOne(
-      {
-        _id: new Types.ObjectId(batchJobId),
-        'items._id': new Types.ObjectId(itemId),
-      },
-      {
-        $inc: { failedCount: 1 },
-        $set: {
-          'items.$.completedAt': new Date(),
-          'items.$.error': error,
-          'items.$.status': BatchWorkflowItemStatus.FAILED,
-        },
-      },
+    const job = await this.prisma.batchWorkflowJob.findFirst({
+      where: { id: batchJobId },
+    });
+    if (!job) return;
+
+    const jobDoc = job as unknown as Record<string, unknown>;
+    const items = (jobDoc.items as Array<Record<string, unknown>>) ?? [];
+    const updatedItems = items.map((item) =>
+      item.id === itemId || item._id?.toString() === itemId
+        ? {
+            ...item,
+            completedAt: new Date(),
+            error,
+            status: BatchWorkflowItemStatus.FAILED,
+          }
+        : item,
     );
+
+    await this.prisma.batchWorkflowJob.update({
+      data: {
+        failedCount: { increment: 1 },
+        items: updatedItems as never,
+      } as never,
+      where: { id: batchJobId },
+    });
 
     await this.checkAndFinalizeJob(batchJobId);
   }
@@ -236,27 +259,32 @@ export class BatchWorkflowService {
    * Check if all items are done and finalize the job status.
    */
   private async checkAndFinalizeJob(batchJobId: string): Promise<void> {
-    const job = await this.batchJobModel.findById(batchJobId).exec();
-    if (!job) {
-      return;
-    }
+    const job = await this.prisma.batchWorkflowJob.findFirst({
+      where: { id: batchJobId },
+    });
+    if (!job) return;
 
-    const processed = job.completedCount + job.failedCount;
-    if (processed >= job.totalCount) {
+    const jobDoc = job as unknown as Record<string, unknown>;
+    const completedCount = (jobDoc.completedCount as number) ?? 0;
+    const failedCount = (jobDoc.failedCount as number) ?? 0;
+    const totalCount = (jobDoc.totalCount as number) ?? 0;
+
+    const processed = completedCount + failedCount;
+    if (processed >= totalCount) {
       const finalStatus =
-        job.failedCount > 0 && job.completedCount === 0
+        failedCount > 0 && completedCount === 0
           ? BatchWorkflowJobStatus.FAILED
           : BatchWorkflowJobStatus.COMPLETED;
 
-      await this.batchJobModel.updateOne(
-        { _id: new Types.ObjectId(batchJobId) },
-        { $set: { status: finalStatus } },
-      );
+      await this.prisma.batchWorkflowJob.update({
+        data: { status: finalStatus } as never,
+        where: { id: batchJobId },
+      });
 
       this.logger.log(`${this.logContext} batch job finalized`, {
         batchJobId,
-        completedCount: job.completedCount,
-        failedCount: job.failedCount,
+        completedCount,
+        failedCount,
         status: finalStatus,
       });
     }

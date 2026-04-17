@@ -3,18 +3,15 @@ import type {
   TrendData,
   TrendPreferencesFilter,
 } from '@api/collections/trends/interfaces/trend.interfaces';
-import { Trend } from '@api/collections/trends/schemas/trend.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { TrendFilteringService } from '@api/collections/trends/services/modules/trend-filtering.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
-import { TrendFilteringService } from './trend-filtering.service';
 
 const makeTrend = (overrides: Partial<TrendEntity> = {}): TrendEntity =>
   ({
-    _id: new Types.ObjectId(),
     growthRate: 20,
+    id: 'trend-id-1',
     mentions: 1000,
     metadata: { hashtags: [] },
     platform: 'tiktok',
@@ -25,23 +22,21 @@ const makeTrend = (overrides: Partial<TrendEntity> = {}): TrendEntity =>
 
 describe('TrendFilteringService', () => {
   let service: TrendFilteringService;
-  let trendModel: { find: ReturnType<typeof vi.fn> };
+  let prisma: { trend: { findMany: ReturnType<typeof vi.fn> } };
 
   beforeEach(async () => {
-    const mockFind = vi.fn();
-    const mockQuery = {
-      lean: vi.fn().mockResolvedValue([]),
-      limit: vi.fn().mockReturnThis(),
-      sort: vi.fn().mockReturnThis(),
+    prisma = {
+      trend: {
+        findMany: vi.fn().mockResolvedValue([]),
+      },
     };
-    mockFind.mockReturnValue(mockQuery);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TrendFilteringService,
         {
-          provide: getModelToken(Trend.name, DB_CONNECTIONS.CLOUD),
-          useValue: { find: mockFind },
+          provide: PrismaService,
+          useValue: prisma,
         },
         {
           provide: LoggerService,
@@ -56,7 +51,6 @@ describe('TrendFilteringService', () => {
     }).compile();
 
     service = module.get<TrendFilteringService>(TrendFilteringService);
-    trendModel = module.get(getModelToken(Trend.name, DB_CONNECTIONS.CLOUD));
   });
 
   afterEach(() => {
@@ -71,7 +65,6 @@ describe('TrendFilteringService', () => {
 
   describe('calculateViralityScore', () => {
     it('should return 0 for zero-value trend', () => {
-      // Use a date >30min ago so recency decays to 0
       const oldDate = new Date(Date.now() - 60 * 60 * 1000).toISOString();
       const trend: TrendData = {
         createdAt: oldDate,
@@ -83,7 +76,7 @@ describe('TrendFilteringService', () => {
 
     it('should cap at 100 for extreme values', () => {
       const trend: TrendData = {
-        createdAt: new Date().toISOString(), // brand-new
+        createdAt: new Date().toISOString(),
         growthRate: 999,
         mentions: 100_000_000,
       } as TrendData;
@@ -91,10 +84,6 @@ describe('TrendFilteringService', () => {
     });
 
     it('should weight mentions at 0.5, growthRate at 0.3, recency at 0.2', () => {
-      // mentions = 5M → normalised = 50 → contribution = 25
-      // growthRate = 100 → contribution = 30
-      // brand-new → recency = 100 → contribution = 20
-      // total = 75
       const trend: TrendData = {
         createdAt: new Date().toISOString(),
         growthRate: 100,
@@ -118,7 +107,6 @@ describe('TrendFilteringService', () => {
         growthRate: 0,
         mentions: 0,
       } as TrendData;
-      // recency = 100 * 0.2 = 20
       expect(service.calculateViralityScore(trend)).toBe(20);
     });
   });
@@ -228,47 +216,48 @@ describe('TrendFilteringService', () => {
     it('should return empty array when topic has no meaningful keywords', async () => {
       const result = await service.getRelatedTrends('in on at', 'tiktok');
       expect(result).toEqual([]);
-      expect(trendModel.find).not.toHaveBeenCalled();
+      expect(prisma.trend.findMany).not.toHaveBeenCalled();
     });
 
-    it('should query with platform exclusion and org filter when organizationId is provided', async () => {
-      const mockLean = vi.fn().mockResolvedValue([]);
-      const mockLimit = vi.fn().mockReturnValue({ lean: mockLean });
-      const mockSort = vi.fn().mockReturnValue({ limit: mockLimit });
-      trendModel.find.mockReturnValue({ sort: mockSort });
+    it('should call prisma.trend.findMany with platform exclusion', async () => {
+      prisma.trend.findMany.mockResolvedValue([]);
 
       await service.getRelatedTrends(
         'ai content creator',
         'instagram',
-        new Types.ObjectId().toHexString(),
+        'org-1',
       );
 
-      expect(trendModel.find).toHaveBeenCalledWith(
+      expect(prisma.trend.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          $or: expect.any(Array),
-          isCurrent: true,
-          isDeleted: false,
-          platform: { $ne: 'instagram' },
+          where: expect.objectContaining({
+            platform: expect.objectContaining({ not: 'instagram' }),
+          }),
         }),
       );
     });
 
     it('should map documents to TrendEntity instances', async () => {
       const rawDoc = {
-        _id: new Types.ObjectId(),
-        platform: 'tiktok',
-        topic: 'ai news',
-        viralityScore: 70,
+        createdAt: new Date(),
+        data: {
+          isCurrent: true,
+          platform: 'tiktok',
+          topic: 'ai news',
+          viralityScore: 70,
+        },
+        id: 'trend-xyz',
+        isDeleted: false,
+        organizationId: null,
+        updatedAt: new Date(),
       };
-      const mockLean = vi.fn().mockResolvedValue([rawDoc]);
-      const mockLimit = vi.fn().mockReturnValue({ lean: mockLean });
-      const mockSort = vi.fn().mockReturnValue({ limit: mockLimit });
-      trendModel.find.mockReturnValue({ sort: mockSort });
+      prisma.trend.findMany.mockResolvedValue([rawDoc]);
 
       const results = await service.getRelatedTrends(
         'ai technology',
         'instagram',
       );
+
       expect(results).toHaveLength(1);
       expect(results[0]).toBeInstanceOf(TrendEntity);
     });

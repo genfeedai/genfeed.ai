@@ -1,17 +1,11 @@
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
-import {
-  Workflow,
-  type WorkflowDocument,
-} from '@api/collections/workflows/schemas/workflow.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { Cron } from '@nestjs/schedule';
-import { Model } from 'mongoose';
 
 /** Threshold in days before a succeeded model can be auto-deprecated */
 const SUCCESSOR_MATURITY_DAYS = 30;
@@ -35,6 +29,14 @@ interface DeprecationResult {
   evaluated: number;
 }
 
+type WorkflowStep = {
+  config?: {
+    model?: string;
+  };
+};
+
+type WorkflowNodes = WorkflowStep[];
+
 @Injectable()
 export class CronModelDeprecationService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -42,8 +44,7 @@ export class CronModelDeprecationService {
   constructor(
     private readonly logger: LoggerService,
     private readonly modelsService: ModelsService,
-    @InjectModel(Workflow.name, DB_CONNECTIONS.CLOUD)
-    private readonly workflowModel: Model<WorkflowDocument>,
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
@@ -217,9 +218,6 @@ export class CronModelDeprecationService {
     modelKey: string,
     category: string,
   ): Promise<number> {
-    const lookbackDate = new Date();
-    lookbackDate.setDate(lookbackDate.getDate() - USAGE_LOOKBACK_DAYS);
-
     try {
       // Get all active models in the same category to find their keys
       const categoryModels = await this.modelsService.find({
@@ -227,20 +225,14 @@ export class CronModelDeprecationService {
         isDeleted: false,
       });
 
-      const categoryModelKeys = categoryModels.map((m: ModelDocument) => m.key);
-
-      if (categoryModelKeys.length === 0) {
+      if (categoryModels.length === 0) {
         return 0;
       }
 
-      // Count total usage across all models in this category
       const totalCategoryUsage = await this.modelsService.count({
         isDeleted: false,
       });
 
-      // Use a simple ratio: count models with this key vs total models
-      // This is a proxy since we don't have direct access to the ingredients model here.
-      // The actual usage check queries the models service for a rough count.
       const result = await this.modelsService.findAll(
         [
           {
@@ -285,16 +277,27 @@ export class CronModelDeprecationService {
   /**
    * Check if a model key is referenced in any active (non-deleted, non-completed) workflows.
    * Workflows reference model keys in their step configs via `steps.config.model`.
+   * Since Prisma cannot query JSON deeply, we fetch active workflows and filter in-memory.
    */
   private async isModelInActiveWorkflows(modelKey: string): Promise<boolean> {
     try {
-      const count = await this.workflowModel.countDocuments({
-        isDeleted: false,
-        status: { $in: [WorkflowStatus.ACTIVE, WorkflowStatus.RUNNING] },
-        'steps.config.model': modelKey,
+      const activeStatuses = [
+        WorkflowStatus.ACTIVE as never,
+        WorkflowStatus.RUNNING as never,
+      ];
+
+      const workflows = await this.prisma.workflow.findMany({
+        select: { nodes: true },
+        where: {
+          isDeleted: false,
+          status: { in: activeStatuses },
+        },
       });
 
-      return count > 0;
+      return workflows.some((wf) => {
+        const steps = (wf.nodes as WorkflowNodes) ?? [];
+        return steps.some((step) => step.config?.model === modelKey);
+      });
     } catch (error: unknown) {
       this.logger.error(
         `${this.constructorName} isModelInActiveWorkflows failed`,

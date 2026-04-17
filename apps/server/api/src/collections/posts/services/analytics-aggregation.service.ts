@@ -2,29 +2,13 @@ import {
   ViralHookPlatformMetricsEntity,
   ViralHookSummaryEntity,
 } from '@api/collections/posts/entities/viral-hooks.entity';
-import {
-  PostAnalytics,
-  type PostAnalyticsDocument,
-} from '@api/collections/posts/schemas/post-analytics.schema';
+import type { PostAnalyticsDocument } from '@api/collections/posts/schemas/post-analytics.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AnalyticsMetric } from '@genfeedai/enums';
-import type {
-  IAnalyticsMatchStage,
-  IPlatformComparisonProjectedResult,
-  ITimeSeriesGroupedByDateResult,
-  ITimeSeriesProjectedResult,
-  ITopContentProjectedResult,
-  IViralHookAggResult,
-  IViralHookPlatformAggResult,
-} from '@genfeedai/interfaces';
+import type { IViralHookPlatformAggResult } from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { type PipelineStage, Types } from 'mongoose';
-
-type PostAnalyticsModel = AggregatePaginateModel<PostAnalyticsDocument>;
 
 export interface Timeframe {
   startDate: Date;
@@ -143,15 +127,12 @@ export interface EngagementBreakdown {
 @Injectable()
 export class AnalyticsAggregationService {
   constructor(
-    @InjectModel(PostAnalytics.name, DB_CONNECTIONS.ANALYTICS)
-    private readonly postAnalyticsModel: PostAnalyticsModel,
-
+    private readonly prisma: PrismaService,
     private readonly postsService: PostsService,
   ) {}
 
   /**
    * Parse date range with validation
-   * Uses DateRangeUtil helper with default D-7 to D-1
    */
   private parseDateRange(
     startDateInput?: Date | string,
@@ -176,117 +157,119 @@ export class AnalyticsAggregationService {
       previousEndDate,
     } = this.parseDateRange(startDate, endDate);
 
-    const matchFilter: IAnalyticsMatchStage = {
-      date: { $gte: parsedStartDate, $lte: parsedEndDate },
+    const where: Record<string, unknown> = {
+      date: { gte: parsedStartDate, lte: parsedEndDate },
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     };
 
     if (brandId) {
-      matchFilter.brand = new Types.ObjectId(brandId);
+      where.brandId = brandId;
     }
 
-    const currentMetrics = await this.postAnalyticsModel.aggregate([
-      { $match: matchFilter },
-      {
-        $group: {
-          _id: null,
-          avgEngagementRate: { $avg: '$engagementRate' },
-          platforms: { $addToSet: '$platform' },
-          totalComments: { $sum: '$totalComments' },
-          totalLikes: { $sum: '$totalLikes' },
-          totalSaves: { $sum: '$totalSaves' },
-          totalShares: { $sum: '$totalShares' },
-          totalViews: { $sum: '$totalViews' },
-        },
-      },
-    ]);
+    const docs = await this.prisma.postAnalytics.findMany({
+      where: where as never,
+    });
 
-    const previousMatchFilter: IAnalyticsMatchStage = { ...matchFilter };
-    previousMatchFilter.date = {
-      $gte: previousStartDate,
-      $lte: previousEndDate,
-    };
+    const docTyped = docs as unknown as Array<{
+      platform: string;
+      engagementRate: number;
+      totalComments: number;
+      totalLikes: number;
+      totalSaves: number;
+      totalShares: number;
+      totalViews: number;
+    }>;
 
-    const previousMetrics = await this.postAnalyticsModel.aggregate([
-      { $match: previousMatchFilter },
-      {
-        $group: {
-          _id: null,
-          totalEngagement: {
-            $sum: { $add: ['$totalLikes', '$totalComments', '$totalShares'] },
-          },
-          totalViews: { $sum: '$totalViews' },
-        },
-      },
-    ]);
+    // Aggregate in-memory
+    let totalViews = 0;
+    let totalLikes = 0;
+    let totalComments = 0;
+    let totalSaves = 0;
+    let totalShares = 0;
+    let engagementRateSum = 0;
+    const platformSet = new Set<string>();
+    const platformViews = new Map<string, number>();
 
-    const postMatch: IAnalyticsMatchStage = {
+    for (const doc of docTyped) {
+      totalViews += doc.totalViews;
+      totalLikes += doc.totalLikes;
+      totalComments += doc.totalComments;
+      totalSaves += doc.totalSaves;
+      totalShares += doc.totalShares;
+      engagementRateSum += doc.engagementRate;
+      platformSet.add(doc.platform);
+      platformViews.set(
+        doc.platform,
+        (platformViews.get(doc.platform) || 0) + doc.totalViews,
+      );
+    }
+
+    // Previous period
+    const prevWhere: Record<string, unknown> = {
+      date: { gte: previousStartDate, lte: previousEndDate },
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     };
-    if (brandId) {
-      postMatch.brand = new Types.ObjectId(brandId);
+    if (brandId) prevWhere.brandId = brandId;
+
+    const prevDocs = await this.prisma.postAnalytics.findMany({
+      where: prevWhere as never,
+    });
+
+    const prevTyped = prevDocs as unknown as Array<{
+      totalViews: number;
+      totalLikes: number;
+      totalComments: number;
+      totalShares: number;
+    }>;
+
+    let prevViews = 0;
+    let prevEngagement = 0;
+    for (const doc of prevTyped) {
+      prevViews += doc.totalViews;
+      prevEngagement += doc.totalLikes + doc.totalComments + doc.totalShares;
     }
 
-    const postCount = await this.postsService.count(
-      postMatch as unknown as Record<string, unknown>,
-    );
+    const postCount = await this.postsService.count({
+      isDeleted: false,
+      organizationId,
+      ...(brandId ? { brandId } : {}),
+    });
 
-    const platformMetrics = await this.postAnalyticsModel.aggregate([
-      { $match: matchFilter },
-      {
-        $group: {
-          _id: '$platform',
-          totalViews: { $sum: '$totalViews' },
-        },
-      },
-      { $sort: { totalViews: -1 } },
-      { $limit: 1 },
-    ]);
-
-    const current = currentMetrics[0] || {
-      avgEngagementRate: 0,
-      platforms: [],
-      totalComments: 0,
-      totalLikes: 0,
-      totalSaves: 0,
-      totalShares: 0,
-      totalViews: 0,
-    };
-
-    const previous = previousMetrics[0] || {
-      totalEngagement: 0,
-      totalViews: 0,
-    };
-
-    const totalEngagement =
-      current.totalLikes + current.totalComments + current.totalShares;
+    const totalEngagement = totalLikes + totalComments + totalShares;
+    const avgEngagementRate =
+      docTyped.length > 0 ? engagementRateSum / docTyped.length : 0;
 
     const viewsGrowth =
-      previous.totalViews > 0
-        ? ((current.totalViews - previous.totalViews) / previous.totalViews) *
-          100
+      prevViews > 0 ? ((totalViews - prevViews) / prevViews) * 100 : 0;
+    const engagementGrowth =
+      prevEngagement > 0
+        ? ((totalEngagement - prevEngagement) / prevEngagement) * 100
         : 0;
 
-    const previousEngagement = previous.totalEngagement || 0;
-    const engagementGrowth =
-      previousEngagement > 0
-        ? ((totalEngagement - previousEngagement) / previousEngagement) * 100
-        : 0;
+    // Best performing platform
+    let bestPlatform = 'N/A';
+    let maxViews = 0;
+    for (const [platform, views] of platformViews.entries()) {
+      if (views > maxViews) {
+        maxViews = views;
+        bestPlatform = platform;
+      }
+    }
 
     return {
-      activePlatforms: current.platforms || [],
-      avgEngagementRate: current.avgEngagementRate || 0,
-      bestPerformingPlatform: platformMetrics[0]?._id || 'N/A',
+      activePlatforms: Array.from(platformSet),
+      avgEngagementRate,
+      bestPerformingPlatform: bestPlatform,
       engagementGrowth,
-      totalComments: current.totalComments,
+      totalComments,
       totalEngagement,
-      totalLikes: current.totalLikes,
+      totalLikes,
       totalPosts: postCount,
-      totalSaves: current.totalSaves,
-      totalShares: current.totalShares,
-      totalViews: current.totalViews,
+      totalSaves,
+      totalShares,
+      totalViews,
       viewsGrowth,
     };
   }
@@ -301,63 +284,99 @@ export class AnalyticsAggregationService {
     endDate: Date,
     groupBy: 'day' | 'week' = 'day',
   ): Promise<TimeSeriesDataPoint[]> {
-    const matchFilter: IAnalyticsMatchStage = {
-      date: { $gte: startDate, $lte: endDate },
+    const where: Record<string, unknown> = {
+      date: { gte: startDate, lte: endDate },
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     };
 
     if (brandId) {
-      matchFilter.brand = new Types.ObjectId(brandId);
+      where.brandId = brandId;
     }
 
-    const groupFormat = groupBy === 'week' ? '%Y-%W' : '%Y-%m-%d';
+    const docs = await this.prisma.postAnalytics.findMany({
+      orderBy: { date: 'asc' },
+      where: where as never,
+    });
 
-    const pipeline: PipelineStage[] = [
-      { $match: matchFilter },
+    const docTyped = docs as unknown as Array<{
+      date: Date;
+      platform: string;
+      engagementRate: number;
+      totalComments: number;
+      totalLikes: number;
+      totalSaves: number;
+      totalShares: number;
+      totalViews: number;
+    }>;
+
+    // Group by date
+    const grouped = new Map<
+      string,
       {
-        $group: {
-          _id: {
-            $dateToString: {
-              date: '$date',
-              format: groupFormat,
-            },
-          },
-          comments: { $sum: '$totalComments' },
-          engagementRate: { $avg: '$engagementRate' },
-          likes: { $sum: '$totalLikes' },
-          saves: { $sum: '$totalSaves' },
-          shares: { $sum: '$totalShares' },
-          views: { $sum: '$totalViews' },
-        },
-      },
-      {
-        $project: {
-          comments: 1,
-          date: '$_id',
-          engagementRate: { $ifNull: ['$engagementRate', 0] },
-          likes: 1,
-          saves: 1,
-          shares: 1,
-          totalEngagement: { $add: ['$likes', '$comments', '$shares'] },
-          views: 1,
-        },
-      },
-      { $sort: { date: 1 } },
-    ];
+        comments: number;
+        engagementRates: number[];
+        likes: number;
+        saves: number;
+        shares: number;
+        views: number;
+      }
+    >();
 
-    const results = await this.postAnalyticsModel.aggregate(pipeline);
+    for (const doc of docTyped) {
+      let dateKey: string;
+      if (groupBy === 'week') {
+        const d = new Date(doc.date);
+        const year = d.getFullYear();
+        const oneJan = new Date(year, 0, 1);
+        const days = Math.floor(
+          (d.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000),
+        );
+        const week = Math.ceil((days + oneJan.getDay() + 1) / 7);
+        dateKey = `${year}-${String(week).padStart(2, '0')}`;
+      } else {
+        dateKey = new Date(doc.date).toISOString().split('T')[0];
+      }
 
-    return results.map((item: ITimeSeriesProjectedResult) => ({
-      comments: item.comments,
-      date: item.date,
-      engagementRate: item.engagementRate,
-      likes: item.likes,
-      saves: item.saves,
-      shares: item.shares,
-      totalEngagement: item.totalEngagement,
-      views: item.views,
-    }));
+      const existing = grouped.get(dateKey);
+      if (existing) {
+        existing.views += doc.totalViews;
+        existing.likes += doc.totalLikes;
+        existing.comments += doc.totalComments;
+        existing.shares += doc.totalShares;
+        existing.saves += doc.totalSaves;
+        existing.engagementRates.push(doc.engagementRate);
+      } else {
+        grouped.set(dateKey, {
+          comments: doc.totalComments,
+          engagementRates: [doc.engagementRate],
+          likes: doc.totalLikes,
+          saves: doc.totalSaves,
+          shares: doc.totalShares,
+          views: doc.totalViews,
+        });
+      }
+    }
+
+    return Array.from(grouped.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([date, data]) => {
+        const engagementRate =
+          data.engagementRates.length > 0
+            ? data.engagementRates.reduce((a, b) => a + b, 0) /
+              data.engagementRates.length
+            : 0;
+        return {
+          comments: data.comments,
+          date,
+          engagementRate,
+          likes: data.likes,
+          saves: data.saves,
+          shares: data.shares,
+          totalEngagement: data.likes + data.comments + data.shares,
+          views: data.views,
+        };
+      });
   }
 
   /**
@@ -377,7 +396,6 @@ export class AnalyticsAggregationService {
         dates.push(current.toISOString().split('T')[0]);
         current.setDate(current.getDate() + 1);
       } else {
-        // For week grouping, use ISO week format
         const year = current.getFullYear();
         const oneJan = new Date(year, 0, 1);
         const numberOfDays = Math.floor(
@@ -394,7 +412,6 @@ export class AnalyticsAggregationService {
 
   /**
    * Calculate growth percentage between current and previous values
-   * Returns 100 if there's current value but no previous, 0 if both are 0
    */
   private calculateGrowthPercentage(current: number, previous: number): number {
     if (previous > 0) {
@@ -432,80 +449,77 @@ export class AnalyticsAggregationService {
       endDateInput,
     );
 
-    const matchFilter: IAnalyticsMatchStage = {
-      date: { $gte: startDate, $lte: endDate },
+    const where: Record<string, unknown> = {
+      date: { gte: startDate, lte: endDate },
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     };
 
     if (brandId) {
-      matchFilter.brand = new Types.ObjectId(brandId);
+      where.brandId = brandId;
     }
 
-    const groupFormat = groupBy === 'week' ? '%Y-%W' : '%Y-%m-%d';
+    const docs = await this.prisma.postAnalytics.findMany({
+      where: where as never,
+    });
 
-    const pipeline: PipelineStage[] = [
-      { $match: matchFilter },
-      {
-        $group: {
-          _id: {
-            date: {
-              $dateToString: {
-                date: '$date',
-                format: groupFormat,
-              },
-            },
-            platform: '$platform',
-          },
-          comments: { $sum: '$totalComments' },
-          engagementRate: { $avg: '$engagementRate' },
-          likes: { $sum: '$totalLikes' },
-          saves: { $sum: '$totalSaves' },
-          shares: { $sum: '$totalShares' },
-          views: { $sum: '$totalViews' },
-        },
-      },
-      {
-        $group: {
-          _id: '$_id.date',
-          platforms: {
-            $push: {
-              comments: '$comments',
-              engagementRate: { $ifNull: ['$engagementRate', 0] },
-              likes: '$likes',
-              platform: '$_id.platform',
-              saves: '$saves',
-              shares: '$shares',
-              views: '$views',
-            },
-          },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ];
+    const docTyped = docs as unknown as Array<{
+      date: Date;
+      platform: string;
+      engagementRate: number;
+      totalComments: number;
+      totalLikes: number;
+      totalSaves: number;
+      totalShares: number;
+      totalViews: number;
+    }>;
 
-    const results = await this.postAnalyticsModel.aggregate(pipeline);
-
-    // Generate date scaffolding
-    const allDates = this.generateDateScaffolding(startDate, endDate, groupBy);
-
+    // Group by date+platform in-memory
     const dataMap = new Map<string, Map<string, PlatformMetrics>>();
-    for (const item of results as ITimeSeriesGroupedByDateResult[]) {
-      const platformsMap = new Map<string, PlatformMetrics>();
-      for (const p of item.platforms) {
-        platformsMap.set(p.platform, {
-          comments: p.comments,
-          engagementRate: p.engagementRate,
-          likes: p.likes,
-          saves: p.saves,
-          shares: p.shares,
-          views: p.views,
+
+    for (const doc of docTyped) {
+      let dateKey: string;
+      if (groupBy === 'week') {
+        const d = new Date(doc.date);
+        const year = d.getFullYear();
+        const oneJan = new Date(year, 0, 1);
+        const days = Math.floor(
+          (d.getTime() - oneJan.getTime()) / (24 * 60 * 60 * 1000),
+        );
+        const week = Math.ceil((days + oneJan.getDay() + 1) / 7);
+        dateKey = `${year}-${String(week).padStart(2, '0')}`;
+      } else {
+        dateKey = new Date(doc.date).toISOString().split('T')[0];
+      }
+
+      if (!dataMap.has(dateKey)) {
+        dataMap.set(dateKey, new Map());
+      }
+
+      const platformMap = dataMap.get(dateKey)!;
+      const existing = platformMap.get(doc.platform);
+      if (existing) {
+        existing.views += doc.totalViews;
+        existing.likes += doc.totalLikes;
+        existing.comments += doc.totalComments;
+        existing.shares += doc.totalShares;
+        existing.saves += doc.totalSaves;
+        existing.engagementRate =
+          (existing.engagementRate + doc.engagementRate) / 2;
+      } else {
+        platformMap.set(doc.platform, {
+          comments: doc.totalComments,
+          engagementRate: doc.engagementRate,
+          likes: doc.totalLikes,
+          saves: doc.totalSaves,
+          shares: doc.totalShares,
+          views: doc.totalViews,
         });
       }
-      dataMap.set(item._id, platformsMap);
     }
 
-    // Build response with all dates and platforms
+    const allDates = this.generateDateScaffolding(startDate, endDate, groupBy);
+
     return allDates.map((date) => {
       const platformData =
         dataMap.get(date) || new Map<string, PlatformMetrics>();
@@ -545,69 +559,90 @@ export class AnalyticsAggregationService {
       endDateInput,
     );
 
-    const matchFilter: IAnalyticsMatchStage = {
-      date: { $gte: startDate, $lte: endDate },
+    const where: Record<string, unknown> = {
+      date: { gte: startDate, lte: endDate },
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     };
 
     if (brandId) {
-      matchFilter.brand = new Types.ObjectId(brandId);
+      where.brandId = brandId;
     }
 
-    const pipeline: PipelineStage[] = [
-      { $match: matchFilter },
-      {
-        $group: {
-          _id: '$platform',
-          comments: { $sum: '$totalComments' },
-          engagementRate: { $avg: '$engagementRate' },
-          likes: { $sum: '$totalLikes' },
-          posts: { $addToSet: '$post' },
-          saves: { $sum: '$totalSaves' },
-          shares: { $sum: '$totalShares' },
-          views: { $sum: '$totalViews' },
-        },
-      },
-      {
-        $project: {
-          comments: 1,
-          engagementRate: { $ifNull: ['$engagementRate', 0] },
-          likes: 1,
-          platform: '$_id',
-          postCount: { $size: '$posts' },
-          saves: 1,
-          shares: 1,
-          views: 1,
-        },
-      },
-      {
-        $addFields: {
-          avgViewsPerPost: {
-            $cond: [
-              { $gt: [{ $size: '$posts' }, 0] },
-              { $divide: ['$views', { $size: '$posts' }] },
-              0,
-            ],
-          },
-        },
-      },
-      { $sort: { views: -1 } },
-    ];
+    const docs = await this.prisma.postAnalytics.findMany({
+      where: where as never,
+    });
 
-    const results = await this.postAnalyticsModel.aggregate(pipeline);
+    const docTyped = docs as unknown as Array<{
+      platform: string;
+      postId: string;
+      engagementRate: number;
+      totalComments: number;
+      totalLikes: number;
+      totalSaves: number;
+      totalShares: number;
+      totalViews: number;
+    }>;
 
-    return results.map((item: IPlatformComparisonProjectedResult) => ({
-      avgViewsPerPost: item.avgViewsPerPost,
-      comments: item.comments,
-      engagementRate: item.engagementRate,
-      likes: item.likes,
-      platform: item.platform,
-      postCount: item.postCount,
-      saves: item.saves,
-      shares: item.shares,
-      views: item.views,
-    }));
+    // Group by platform in-memory
+    const platformMap = new Map<
+      string,
+      {
+        comments: number;
+        engagementRates: number[];
+        likes: number;
+        postIds: Set<string>;
+        saves: number;
+        shares: number;
+        views: number;
+      }
+    >();
+
+    for (const doc of docTyped) {
+      const existing = platformMap.get(doc.platform);
+      if (existing) {
+        existing.views += doc.totalViews;
+        existing.likes += doc.totalLikes;
+        existing.comments += doc.totalComments;
+        existing.shares += doc.totalShares;
+        existing.saves += doc.totalSaves;
+        existing.engagementRates.push(doc.engagementRate);
+        existing.postIds.add(doc.postId);
+      } else {
+        platformMap.set(doc.platform, {
+          comments: doc.totalComments,
+          engagementRates: [doc.engagementRate],
+          likes: doc.totalLikes,
+          postIds: new Set([doc.postId]),
+          saves: doc.totalSaves,
+          shares: doc.totalShares,
+          views: doc.totalViews,
+        });
+      }
+    }
+
+    return Array.from(platformMap.entries())
+      .map(([platform, data]) => {
+        const postCount = data.postIds.size;
+        const avgEngagementRate =
+          data.engagementRates.length > 0
+            ? data.engagementRates.reduce((a, b) => a + b, 0) /
+              data.engagementRates.length
+            : 0;
+
+        return {
+          avgViewsPerPost: postCount > 0 ? data.views / postCount : 0,
+          comments: data.comments,
+          engagementRate: avgEngagementRate,
+          likes: data.likes,
+          platform,
+          postCount,
+          saves: data.saves,
+          shares: data.shares,
+          views: data.views,
+        };
+      })
+      .sort((a, b) => b.views - a.views);
   }
 
   /**
@@ -628,86 +663,134 @@ export class AnalyticsAggregationService {
       endDateInput,
     );
 
-    const matchFilter: IAnalyticsMatchStage = {
-      date: { $gte: startDate, $lte: endDate },
+    const where: Record<string, unknown> = {
+      date: { gte: startDate, lte: endDate },
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     };
 
     if (brandId) {
-      matchFilter.brand = new Types.ObjectId(brandId);
+      where.brandId = brandId;
     }
 
-    const pipeline: PipelineStage[] = [
-      { $match: matchFilter },
-      {
-        $group: {
-          _id: '$post',
-          comments: { $max: '$totalComments' },
-          engagementRate: { $avg: '$engagementRate' },
-          ingredientId: { $first: { $arrayElemAt: ['$ingredients', 0] } },
-          likes: { $max: '$totalLikes' },
-          platform: { $first: '$platform' },
-          postId: { $first: '$post' },
-          shares: { $max: '$totalShares' },
-          views: { $max: '$totalViews' },
-        },
-      },
-      {
-        $addFields: {
-          totalEngagement: { $add: ['$likes', '$comments', '$shares'] },
-        },
-      },
-      {
-        $sort:
-          metric === AnalyticsMetric.ENGAGEMENT
-            ? { totalEngagement: -1 }
-            : { views: -1 },
-      },
-      { $limit: limit },
-      {
-        $lookup: {
-          as: 'post',
-          foreignField: '_id',
-          from: 'posts',
-          localField: 'postId',
-        },
-      },
-      { $unwind: { path: '$post', preserveNullAndEmptyArrays: true } },
-      {
-        $project: {
-          comments: 1,
-          description: '$post.description',
-          engagementRate: { $ifNull: ['$engagementRate', 0] },
-          ingredientId: { $toString: '$ingredientId' },
-          likes: 1,
-          platform: 1,
-          postId: { $toString: '$_id' },
-          publishDate: '$post.publicationDate',
-          shares: 1,
-          title: '$post.label',
-          url: '$post.url',
-          views: 1,
-        },
-      },
-    ];
+    const docs = await this.prisma.postAnalytics.findMany({
+      where: where as never,
+    });
 
-    const results = await this.postAnalyticsModel.aggregate(pipeline);
+    const docTyped = docs as unknown as Array<{
+      postId: string;
+      platform: string;
+      engagementRate: number;
+      totalComments: number;
+      totalLikes: number;
+      totalSaves: number;
+      totalShares: number;
+      totalViews: number;
+    }>;
 
-    return results.map((item: ITopContentProjectedResult) => ({
-      comments: item.comments,
-      description: item.description || '',
-      engagementRate: item.engagementRate,
-      ingredientId: item.ingredientId,
-      likes: item.likes,
-      platform: item.platform,
-      postId: item.postId,
-      publishDate: item.publishDate,
-      shares: item.shares,
-      title: item.title || 'Untitled',
-      url: item.url,
-      views: item.views,
-    }));
+    // Group by postId in-memory
+    const postMap = new Map<
+      string,
+      {
+        comments: number;
+        engagementRates: number[];
+        likes: number;
+        platform: string;
+        shares: number;
+        views: number;
+      }
+    >();
+
+    for (const doc of docTyped) {
+      const existing = postMap.get(doc.postId);
+      if (existing) {
+        existing.views = Math.max(existing.views, doc.totalViews);
+        existing.likes = Math.max(existing.likes, doc.totalLikes);
+        existing.comments = Math.max(existing.comments, doc.totalComments);
+        existing.shares = Math.max(existing.shares, doc.totalShares);
+        existing.engagementRates.push(doc.engagementRate);
+      } else {
+        postMap.set(doc.postId, {
+          comments: doc.totalComments,
+          engagementRates: [doc.engagementRate],
+          likes: doc.totalLikes,
+          platform: doc.platform,
+          shares: doc.totalShares,
+          views: doc.totalViews,
+        });
+      }
+    }
+
+    const scored = Array.from(postMap.entries()).map(([postId, data]) => {
+      const avgEngagementRate =
+        data.engagementRates.length > 0
+          ? data.engagementRates.reduce((a, b) => a + b, 0) /
+            data.engagementRates.length
+          : 0;
+      const totalEngagement = data.likes + data.comments + data.shares;
+
+      return {
+        avgEngagementRate,
+        comments: data.comments,
+        likes: data.likes,
+        platform: data.platform,
+        postId,
+        shares: data.shares,
+        totalEngagement,
+        views: data.views,
+      };
+    });
+
+    // Sort by metric
+    const sorted =
+      metric === AnalyticsMetric.ENGAGEMENT
+        ? scored.sort((a, b) => b.totalEngagement - a.totalEngagement)
+        : scored.sort((a, b) => b.views - a.views);
+
+    const topScored = sorted.slice(0, limit);
+
+    // Fetch post details
+    const postIds = topScored.map((s) => s.postId);
+    const posts = await this.prisma.post.findMany({
+      select: {
+        description: true,
+        id: true,
+        label: true,
+        publicationDate: true,
+        url: true,
+      },
+      where: { id: { in: postIds } },
+    });
+
+    const postMap2 = new Map(
+      (
+        posts as unknown as Array<{
+          id: string;
+          description?: string;
+          label?: string;
+          publicationDate?: Date;
+          url?: string;
+        }>
+      ).map((p) => [p.id, p]),
+    );
+
+    return topScored.map((item) => {
+      const post = postMap2.get(item.postId);
+      return {
+        comments: item.comments,
+        description: post?.description || '',
+        engagementRate: item.avgEngagementRate,
+        ingredientId: '',
+        likes: item.likes,
+        platform: item.platform,
+        postId: item.postId,
+        publishDate: post?.publicationDate || new Date(),
+        shares: item.shares,
+        title: post?.label || 'Untitled',
+        url: post?.url,
+        views: item.views,
+      };
+    });
   }
 
   /**
@@ -722,108 +805,100 @@ export class AnalyticsAggregationService {
     const { startDate, endDate, previousStartDate, previousEndDate } =
       this.parseDateRange(startDateInput, endDateInput);
 
-    const matchFilter: IAnalyticsMatchStage = {
-      date: { $gte: startDate, $lte: endDate },
+    const where: Record<string, unknown> = {
+      date: { gte: startDate, lte: endDate },
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     };
 
-    if (brandId) {
-      matchFilter.brand = new Types.ObjectId(brandId);
+    if (brandId) where.brandId = brandId;
+
+    const prevWhere: Record<string, unknown> = {
+      date: { gte: previousStartDate, lte: previousEndDate },
+      isDeleted: false,
+      organizationId,
+    };
+
+    if (brandId) prevWhere.brandId = brandId;
+
+    const [docs, prevDocs] = await Promise.all([
+      this.prisma.postAnalytics.findMany({ where: where as never }),
+      this.prisma.postAnalytics.findMany({ where: prevWhere as never }),
+    ]);
+
+    const typed = docs as unknown as Array<{
+      date: Date;
+      totalViews: number;
+      totalLikes: number;
+      totalComments: number;
+      totalShares: number;
+    }>;
+    const prevTyped = prevDocs as unknown as Array<{
+      totalViews: number;
+      totalLikes: number;
+      totalComments: number;
+      totalShares: number;
+    }>;
+
+    let totalViews = 0;
+    let totalEngagement = 0;
+    const viewsByDate = new Map<string, number>();
+
+    for (const doc of typed) {
+      totalViews += doc.totalViews;
+      totalEngagement += doc.totalLikes + doc.totalComments + doc.totalShares;
+
+      const dateKey = new Date(doc.date).toISOString().split('T')[0];
+      viewsByDate.set(
+        dateKey,
+        (viewsByDate.get(dateKey) || 0) + doc.totalViews,
+      );
     }
 
-    const previousMatchFilter: IAnalyticsMatchStage = { ...matchFilter };
-    previousMatchFilter.date = {
-      $gte: previousStartDate,
-      $lte: previousEndDate,
-    };
-
-    // Current period
-    const currentMetrics = await this.postAnalyticsModel.aggregate([
-      { $match: matchFilter },
-      {
-        $group: {
-          _id: null,
-          totalEngagement: {
-            $sum: { $add: ['$totalLikes', '$totalComments', '$totalShares'] },
-          },
-          totalViews: { $sum: '$totalViews' },
-        },
-      },
-    ]);
-
-    // Previous period
-    const previousMetrics = await this.postAnalyticsModel.aggregate([
-      { $match: previousMatchFilter },
-      {
-        $group: {
-          _id: null,
-          totalEngagement: {
-            $sum: { $add: ['$totalLikes', '$totalComments', '$totalShares'] },
-          },
-          totalViews: { $sum: '$totalViews' },
-        },
-      },
-    ]);
+    let prevViews = 0;
+    let prevEngagement = 0;
+    for (const doc of prevTyped) {
+      prevViews += doc.totalViews;
+      prevEngagement += doc.totalLikes + doc.totalComments + doc.totalShares;
+    }
 
     // Best day
-    const bestDayResult = await this.postAnalyticsModel.aggregate([
-      { $match: matchFilter },
-      {
-        $group: {
-          _id: {
-            $dateToString: { date: '$date', format: '%Y-%m-%d' },
-          },
-          views: { $sum: '$totalViews' },
-        },
-      },
-      { $sort: { views: -1 } },
-      { $limit: 1 },
-    ]);
+    let bestDate = 'N/A';
+    let bestViews = 0;
+    for (const [date, views] of viewsByDate.entries()) {
+      if (views > bestViews) {
+        bestViews = views;
+        bestDate = date;
+      }
+    }
 
-    const current = currentMetrics[0] || { totalEngagement: 0, totalViews: 0 };
-    const previous = previousMetrics[0] || {
-      totalEngagement: 0,
-      totalViews: 0,
-    };
+    const viewsGrowth = totalViews - prevViews;
+    const viewsGrowthPct = prevViews > 0 ? (viewsGrowth / prevViews) * 100 : 0;
+    const engGrowth = totalEngagement - prevEngagement;
+    const engGrowthPct =
+      prevEngagement > 0 ? (engGrowth / prevEngagement) * 100 : 0;
 
-    const viewsGrowth = current.totalViews - previous.totalViews;
-    const viewsGrowthPercentage =
-      previous.totalViews > 0 ? (viewsGrowth / previous.totalViews) * 100 : 0;
-
-    const engagementGrowth = current.totalEngagement - previous.totalEngagement;
-    const engagementGrowthPercentage =
-      previous.totalEngagement > 0
-        ? (engagementGrowth / previous.totalEngagement) * 100
-        : 0;
-
-    const bestDay = bestDayResult[0] || { _id: 'N/A', views: 0 };
-
-    // Determine trending direction
     let trendingDirection: 'up' | 'down' | 'stable' = 'stable';
-    if (viewsGrowthPercentage > 5) {
+    if (viewsGrowthPct > 5) {
       trendingDirection = 'up';
-    } else if (viewsGrowthPercentage < -5) {
+    } else if (viewsGrowthPct < -5) {
       trendingDirection = 'down';
     }
 
     return {
-      bestDay: {
-        date: bestDay._id,
-        views: bestDay.views,
-      },
+      bestDay: { date: bestDate, views: bestViews },
       engagement: {
-        current: current.totalEngagement,
-        growth: engagementGrowth,
-        growthPercentage: engagementGrowthPercentage,
-        previous: previous.totalEngagement,
+        current: totalEngagement,
+        growth: engGrowth,
+        growthPercentage: engGrowthPct,
+        previous: prevEngagement,
       },
       trendingDirection,
       views: {
-        current: current.totalViews,
+        current: totalViews,
         growth: viewsGrowth,
-        growthPercentage: viewsGrowthPercentage,
-        previous: previous.totalViews,
+        growthPercentage: viewsGrowthPct,
+        previous: prevViews,
       },
     };
   }
@@ -842,42 +917,48 @@ export class AnalyticsAggregationService {
       endDateInput,
     );
 
-    const matchFilter: IAnalyticsMatchStage = {
-      date: { $gte: startDate, $lte: endDate },
+    const where: Record<string, unknown> = {
+      date: { gte: startDate, lte: endDate },
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     };
 
-    if (brandId) {
-      matchFilter.brand = new Types.ObjectId(brandId);
+    if (brandId) where.brandId = brandId;
+
+    const docs = await this.prisma.postAnalytics.findMany({
+      where: where as never,
+    });
+
+    const typed = docs as unknown as Array<{
+      totalComments: number;
+      totalLikes: number;
+      totalSaves: number;
+      totalShares: number;
+    }>;
+
+    let likes = 0;
+    let comments = 0;
+    let shares = 0;
+    let saves = 0;
+
+    for (const doc of typed) {
+      likes += doc.totalLikes;
+      comments += doc.totalComments;
+      shares += doc.totalShares;
+      saves += doc.totalSaves;
     }
 
-    const result = await this.postAnalyticsModel.aggregate([
-      { $match: matchFilter },
-      {
-        $group: {
-          _id: null,
-          comments: { $sum: '$totalComments' },
-          likes: { $sum: '$totalLikes' },
-          saves: { $sum: '$totalSaves' },
-          shares: { $sum: '$totalShares' },
-        },
-      },
-    ]);
-
-    const data = result[0] || { comments: 0, likes: 0, saves: 0, shares: 0 };
-
-    const total = data.likes + data.comments + data.shares + data.saves;
+    const total = likes + comments + shares + saves;
 
     return {
-      comments: data.comments,
-      commentsPercentage: total > 0 ? (data.comments / total) * 100 : 0,
-      likes: data.likes,
-      likesPercentage: total > 0 ? (data.likes / total) * 100 : 0,
-      saves: data.saves,
-      savesPercentage: total > 0 ? (data.saves / total) * 100 : 0,
-      shares: data.shares,
-      sharesPercentage: total > 0 ? (data.shares / total) * 100 : 0,
+      comments,
+      commentsPercentage: total > 0 ? (comments / total) * 100 : 0,
+      likes,
+      likesPercentage: total > 0 ? (likes / total) * 100 : 0,
+      saves,
+      savesPercentage: total > 0 ? (saves / total) * 100 : 0,
+      shares,
+      sharesPercentage: total > 0 ? (shares / total) * 100 : 0,
       total,
     };
   }
@@ -893,140 +974,167 @@ export class AnalyticsAggregationService {
       endDateInput,
     );
 
-    const matchFilter: IAnalyticsMatchStage = {
-      date: { $gte: startDate, $lte: endDate },
-      organization: new Types.ObjectId(organizationId),
+    const where: Record<string, unknown> = {
+      date: { gte: startDate, lte: endDate },
+      organizationId,
     };
 
-    if (brandId) {
-      matchFilter.brand = new Types.ObjectId(brandId);
+    if (brandId) where.brandId = brandId;
+
+    const docs = await this.prisma.postAnalytics.findMany({
+      where: where as never,
+    });
+
+    const typed = docs as unknown as Array<{
+      postId: string;
+      platform: string;
+      engagementRate: number;
+      totalComments: number;
+      totalLikes: number;
+      totalSaves: number;
+      totalShares: number;
+      totalViews: number;
+    }>;
+
+    // Group by postId then platform in-memory
+    const postPlatformMap = new Map<
+      string,
+      Map<
+        string,
+        {
+          comments: number;
+          engagementRates: number[];
+          likes: number;
+          saves: number;
+          shares: number;
+          views: number;
+        }
+      >
+    >();
+
+    for (const doc of typed) {
+      if (!postPlatformMap.has(doc.postId)) {
+        postPlatformMap.set(doc.postId, new Map());
+      }
+
+      const platformMap = postPlatformMap.get(doc.postId)!;
+      const existing = platformMap.get(doc.platform);
+
+      if (existing) {
+        existing.views = Math.max(existing.views, doc.totalViews);
+        existing.likes = Math.max(existing.likes, doc.totalLikes);
+        existing.comments = Math.max(existing.comments, doc.totalComments);
+        existing.shares = Math.max(existing.shares, doc.totalShares);
+        existing.saves = Math.max(existing.saves, doc.totalSaves);
+        existing.engagementRates.push(doc.engagementRate);
+      } else {
+        platformMap.set(doc.platform, {
+          comments: doc.totalComments,
+          engagementRates: [doc.engagementRate],
+          likes: doc.totalLikes,
+          saves: doc.totalSaves,
+          shares: doc.totalShares,
+          views: doc.totalViews,
+        });
+      }
     }
 
-    const pipeline: PipelineStage[] = [
-      { $match: matchFilter },
-      {
-        $group: {
-          _id: { platform: '$platform', post: '$post' },
-          engagementRate: { $avg: '$engagementRate' },
-          totalComments: { $max: '$totalComments' },
-          totalLikes: { $max: '$totalLikes' },
-          totalSaves: { $max: '$totalSaves' },
-          totalShares: { $max: '$totalShares' },
-          totalViews: { $max: '$totalViews' },
-        },
-      },
-      {
-        $group: {
-          _id: '$_id.post',
-          platforms: {
-            $push: {
-              comments: '$totalComments',
-              engagementRate: '$engagementRate',
-              likes: '$totalLikes',
-              platform: '$_id.platform',
-              saves: '$totalSaves',
-              shares: '$totalShares',
-              views: '$totalViews',
-            },
-          },
-          totalViews: { $sum: '$totalViews' },
-        },
-      },
-      { $sort: { totalViews: -1 } },
-      { $limit: 25 },
-      {
-        $lookup: {
-          as: 'post',
-          foreignField: '_id',
-          from: 'posts',
-          localField: '_id',
-        },
-      },
-      { $unwind: { path: '$post', preserveNullAndEmptyArrays: true } },
-      {
-        $project: {
-          _id: 1,
-          platforms: 1,
-          post: {
-            createdAt: '$post.createdAt',
-            description: '$post.description',
-            label: '$post.label',
-            publicationDate: '$post.publicationDate',
-            url: '$post.url',
-          },
-          totalViews: 1,
-        },
-      },
-    ];
+    // Sort posts by total views, take top 25
+    const ranked = Array.from(postPlatformMap.entries())
+      .map(([postId, platforms]) => {
+        const totalViews = Array.from(platforms.values()).reduce(
+          (sum, p) => sum + p.views,
+          0,
+        );
+        return { platforms, postId, totalViews };
+      })
+      .sort((a, b) => b.totalViews - a.totalViews)
+      .slice(0, 25);
 
-    const aggregated = await this.postAnalyticsModel.aggregate(pipeline);
+    // Fetch post details
+    const postIds = ranked.map((r) => r.postId);
+    const posts = await this.prisma.post.findMany({
+      select: {
+        createdAt: true,
+        description: true,
+        id: true,
+        label: true,
+        publicationDate: true,
+        url: true,
+      },
+      where: { id: { in: postIds } },
+    });
+
+    const postsById = new Map(
+      (
+        posts as unknown as Array<{
+          id: string;
+          createdAt?: Date;
+          description?: string;
+          label?: string;
+          publicationDate?: Date;
+          url?: string;
+        }>
+      ).map((p) => [p.id, p]),
+    );
 
     const toIsoString = (value?: Date | string | null): string => {
-      if (!value) {
-        return new Date().toISOString();
-      }
-
-      if (value instanceof Date) {
-        return value.toISOString();
-      }
-
+      if (!value) return new Date().toISOString();
+      if (value instanceof Date) return value.toISOString();
       const parsed = new Date(value);
       return Number.isNaN(parsed.getTime())
         ? new Date().toISOString()
         : parsed.toISOString();
     };
 
-    const videos = (aggregated as IViralHookAggResult[]).map((item) => {
-      const platforms = (item.platforms ?? []).map(
-        (platform: IViralHookPlatformAggResult) => {
-          const views = platform.views ?? 0;
-          const likes = platform.likes ?? 0;
-          const comments = platform.comments ?? 0;
-          const shares = platform.shares ?? 0;
-          const saves = platform.saves ?? 0;
-          const engagementRate = platform.engagementRate ?? 0;
+    const videos = ranked.map((item) => {
+      const post = postsById.get(item.postId);
+      const platforms = Array.from(item.platforms.entries()).map(
+        ([platform, data]) => {
+          const avgEngagementRate =
+            data.engagementRates.length > 0
+              ? data.engagementRates.reduce((a, b) => a + b, 0) /
+                data.engagementRates.length
+              : 0;
           const viralScore = Math.min(
             100,
-            Math.round(engagementRate * 5 + views / 1000),
+            Math.round(avgEngagementRate * 5 + data.views / 1000),
           );
 
           return {
             avgWatchTime: 0,
-            comments,
+            comments: data.comments,
             completionRate: 0,
-            engagementRate,
-            likes,
-            platform: (platform.platform ?? 'unknown').toLowerCase(),
-            saves,
-            shares,
-            views,
+            engagementRate: avgEngagementRate,
+            likes: data.likes,
+            platform: platform.toLowerCase(),
+            saves: data.saves,
+            shares: data.shares,
+            views: data.views,
             viralScore,
           };
         },
       );
 
       const publishDate =
-        item.post?.publicationDate ?? item.post?.createdAt ?? new Date();
+        post?.publicationDate ?? post?.createdAt ?? new Date();
 
       return {
         analysisNotes: undefined,
         creator: 'Unknown Creator',
         duration: 0,
         hooks: [],
-        id: item._id?.toString() ?? '',
+        id: item.postId,
         platforms,
         thumbnail: undefined,
-        title: item.post?.label ?? item.post?.description ?? 'Untitled Video',
+        title: post?.label ?? post?.description ?? 'Untitled Video',
         totalTimeTracked: 0,
         uploadDate: toIsoString(publishDate),
       };
     });
 
     const totalVideos = videos.length;
-    const totalTimeTracked = videos.reduce(
-      (total, video) => total + (video.totalTimeTracked ?? 0),
-      0,
-    );
+    const totalTimeTracked = 0;
 
     const platformStats = new Map<
       string,
@@ -1079,7 +1187,6 @@ export class AnalyticsAggregationService {
 
   /**
    * Get platform-level analytics (all posts for a specific platform)
-   * Extends getOverviewMetrics with platform filtering
    */
   async getPlatformAnalytics(
     organizationId: string,
@@ -1095,104 +1202,90 @@ export class AnalyticsAggregationService {
       previousEndDate,
     } = this.parseDateRange(startDate, endDate);
 
-    const matchFilter: IAnalyticsMatchStage = {
-      date: { $gte: parsedStartDate, $lte: parsedEndDate },
+    const where: Record<string, unknown> = {
+      date: { gte: parsedStartDate, lte: parsedEndDate },
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-      platform: platform,
+      organizationId,
+      platform,
     };
 
-    if (brandId) {
-      matchFilter.brand = new Types.ObjectId(brandId);
-    }
+    if (brandId) where.brandId = brandId;
 
-    const currentMetrics = await this.postAnalyticsModel.aggregate([
-      { $match: matchFilter },
-      {
-        $group: {
-          _id: null,
-          avgEngagementRate: { $avg: '$engagementRate' },
-          totalComments: { $sum: '$totalComments' },
-          totalLikes: { $sum: '$totalLikes' },
-          totalSaves: { $sum: '$totalSaves' },
-          totalShares: { $sum: '$totalShares' },
-          totalViews: { $sum: '$totalViews' },
-        },
-      },
+    const prevWhere: Record<string, unknown> = {
+      date: { gte: previousStartDate, lte: previousEndDate },
+      isDeleted: false,
+      organizationId,
+      platform,
+    };
+
+    if (brandId) prevWhere.brandId = brandId;
+
+    const [docs, prevDocs] = await Promise.all([
+      this.prisma.postAnalytics.findMany({ where: where as never }),
+      this.prisma.postAnalytics.findMany({ where: prevWhere as never }),
     ]);
 
-    const previousMatchFilter: IAnalyticsMatchStage = { ...matchFilter };
-    previousMatchFilter.date = {
-      $gte: previousStartDate,
-      $lte: previousEndDate,
-    };
+    const typed = docs as unknown as Array<{
+      postId: string;
+      engagementRate: number;
+      totalComments: number;
+      totalLikes: number;
+      totalSaves: number;
+      totalShares: number;
+      totalViews: number;
+    }>;
 
-    const previousMetrics = await this.postAnalyticsModel.aggregate([
-      { $match: previousMatchFilter },
-      {
-        $group: {
-          _id: null,
-          totalEngagement: {
-            $sum: { $add: ['$totalLikes', '$totalComments', '$totalShares'] },
-          },
-          totalViews: { $sum: '$totalViews' },
-        },
-      },
-    ]);
+    const prevTyped = prevDocs as unknown as Array<{
+      totalViews: number;
+      totalLikes: number;
+      totalComments: number;
+      totalShares: number;
+    }>;
 
-    // Get publication count
-    const postMatch: IAnalyticsMatchStage = {
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-    };
-    if (brandId) {
-      postMatch.brand = new Types.ObjectId(brandId);
+    let totalViews = 0;
+    let totalLikes = 0;
+    let totalComments = 0;
+    let totalSaves = 0;
+    let totalShares = 0;
+    let engRateSum = 0;
+    const postIds = new Set<string>();
+
+    for (const doc of typed) {
+      totalViews += doc.totalViews;
+      totalLikes += doc.totalLikes;
+      totalComments += doc.totalComments;
+      totalSaves += doc.totalSaves;
+      totalShares += doc.totalShares;
+      engRateSum += doc.engagementRate;
+      postIds.add(doc.postId);
     }
 
-    // Count distinct posts for this platform
-    const totalPosts = await this.postAnalyticsModel
-      .distinct('post', {
-        ...matchFilter,
-      })
-      .then((posts) => posts.length);
+    let prevViews = 0;
+    let prevEngagement = 0;
+    for (const doc of prevTyped) {
+      prevViews += doc.totalViews;
+      prevEngagement += doc.totalLikes + doc.totalComments + doc.totalShares;
+    }
 
-    const current = currentMetrics[0] || {
-      avgEngagementRate: 0,
-      totalComments: 0,
-      totalLikes: 0,
-      totalSaves: 0,
-      totalShares: 0,
-      totalViews: 0,
-    };
-
-    const previous = previousMetrics[0] || {
-      totalEngagement: 0,
-      totalViews: 0,
-    };
-
-    const currentEngagement =
-      current.totalLikes + current.totalComments + current.totalShares;
-    const previousEngagement = previous.totalEngagement || 0;
+    const totalEngagement = totalLikes + totalComments + totalShares;
+    const avgEngagementRate = typed.length > 0 ? engRateSum / typed.length : 0;
 
     return {
       activePlatforms: [platform],
-      avgEngagementRate: current.avgEngagementRate || 0,
+      avgEngagementRate,
       bestPerformingPlatform: platform,
       engagementGrowth: this.calculateGrowthPercentage(
-        currentEngagement,
-        previousEngagement,
+        totalEngagement,
+        prevEngagement,
       ),
-      totalComments: current.totalComments,
-      totalEngagement: currentEngagement,
-      totalLikes: current.totalLikes,
-      totalPosts,
-      totalSaves: current.totalSaves,
-      totalShares: current.totalShares,
-      totalViews: current.totalViews,
-      viewsGrowth: this.calculateGrowthPercentage(
-        current.totalViews,
-        previous.totalViews,
-      ),
+      totalComments,
+      totalEngagement,
+      totalLikes,
+      totalPosts: postIds.size,
+      totalSaves,
+      totalShares,
+      totalViews,
+      viewsGrowth: this.calculateGrowthPercentage(totalViews, prevViews),
     };
   }
 }

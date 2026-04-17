@@ -1,16 +1,9 @@
-import {
-  Music,
-  type MusicDocument,
-} from '@api/collections/musics/schemas/music.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/elevenlabs.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { ByokProvider, MusicTaskModel } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
 
 export interface GenerateMusicConfig {
   model: MusicTaskModel;
@@ -44,8 +37,6 @@ export interface GenerateMusicResult {
 @Injectable()
 export class GenerateMusicTask {
   constructor(
-    @InjectModel(Music.name, DB_CONNECTIONS.CLOUD)
-    private readonly musicModel: Model<MusicDocument>,
     private readonly replicateService: ReplicateService,
     private readonly elevenlabsService: ElevenLabsService,
     private readonly byokService: ByokService,
@@ -101,36 +92,10 @@ export class GenerateMusicTask {
           throw new Error(`Unsupported model: ${config.model}`);
       }
 
-      // Save generated music to database
-      const music = new this.musicModel({
-        duration: config.duration || 30,
-        genre: config.genre,
-        isDeleted: false,
-        metadata: {
-          bpm: config.bpm,
-          generatedBy: 'workflow',
-          instruments: config.instruments,
-          key: config.key,
-          model: config.model,
-          prompt: config.prompt,
-          style: config.style,
-        },
-        model: config.model,
-        mood: config.mood,
-        organization: new Types.ObjectId(organizationId),
-        prompt: config.prompt,
-        tempo: config.tempo,
-        title: this.generateTitle(config),
-        url: generatedUrl,
-        user: new Types.ObjectId(userId),
-      });
-
-      await music.save();
-
       const generationTime = Date.now() - startTime;
 
       this.logger.log(
-        `Music generated successfully: ${music._id} in ${generationTime}ms`,
+        `Music generated successfully in ${generationTime}ms`,
         'GenerateMusicTask',
       );
 
@@ -141,7 +106,7 @@ export class GenerateMusicTask {
           model: config.model,
           prompt: config.prompt,
         },
-        musicId: (music._id as Types.ObjectId).toString(),
+        musicId: generatedUrl,
         success: true,
       };
     } catch (error: unknown) {

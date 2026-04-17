@@ -1,15 +1,8 @@
-import {
-  Activity,
-  type ActivityDocument,
-} from '@api/collections/activities/schemas/activity.schema';
+import type { ActivityDocument } from '@api/collections/activities/schemas/activity.schema';
 import { CreditsUtilsService as CreditsUtilsServiceToken } from '@api/collections/credits/services/credits.utils.service';
-import {
-  Streak,
-  type StreakDocument,
-} from '@api/collections/streaks/schemas/streak.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { StreakDocument } from '@api/collections/streaks/schemas/streak.schema';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivityKey } from '@genfeedai/enums';
 import {
   IStreakCalendarResponse,
@@ -26,8 +19,6 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 const QUALIFYING_ACTIVITY_KEYS = new Set<ActivityKey>([
   ActivityKey.ARTICLE_GENERATED,
@@ -78,10 +69,7 @@ function toTypeLabel(key: ActivityKey): string {
 @Injectable()
 export class StreaksService {
   constructor(
-    @InjectModel(Streak.name, DB_CONNECTIONS.CLOUD)
-    private readonly model: AggregatePaginateModel<StreakDocument>,
-    @InjectModel(Activity.name, DB_CONNECTIONS.CLOUD)
-    private readonly activityModel: AggregatePaginateModel<ActivityDocument>,
+    private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     @Inject(forwardRef(() => CreditsUtilsServiceToken))
     private readonly creditsUtilsService: CreditsUtilsServiceContract,
@@ -96,13 +84,10 @@ export class StreaksService {
     userId: string,
     organizationId: string,
   ): Promise<StreakDocument | null> {
-    return this.model
-      .findOne({
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-        user: new Types.ObjectId(userId),
-      })
-      .exec();
+    const result = await this.prisma.streak.findFirst({
+      where: { isDeleted: false, organizationId, userId },
+    });
+    return result as unknown as StreakDocument | null;
   }
 
   async getStreakSummary(
@@ -172,22 +157,29 @@ export class StreaksService {
 
     let streak = await this.getStreak(userId, organizationId);
 
+    let streakData: Record<string, unknown>;
+
     if (!streak) {
-      streak = await this.model.create({
-        currentStreak: 1,
-        lastActivityDate: today,
-        lastBrokenAt: null,
-        lastBrokenStreak: null,
-        lastFreezeUsedAt: null,
-        longestStreak: 1,
-        milestoneHistory: [],
-        milestones: [],
-        organization: new Types.ObjectId(organizationId),
-        streakFreezes: 0,
-        streakStartDate: today,
-        totalContentDays: 1,
-        user: new Types.ObjectId(userId),
+      const created = await this.prisma.streak.create({
+        data: {
+          currentStreak: 1,
+          isDeleted: false,
+          lastActivityDate: today,
+          lastBrokenAt: null,
+          lastBrokenStreak: null,
+          lastFreezeUsedAt: null,
+          longestStreak: 1,
+          milestoneHistory: [],
+          milestones: [],
+          organizationId,
+          streakFreezes: 0,
+          streakStartDate: today,
+          totalContentDays: 1,
+          userId,
+        } as never,
       });
+      streakData = { ...created };
+      streak = created as unknown as StreakDocument;
     } else {
       const lastActivityDate = streak.lastActivityDate
         ? startOfUtcDay(new Date(streak.lastActivityDate))
@@ -197,46 +189,84 @@ export class StreaksService {
         return { newMilestones: [], streak };
       }
 
+      let newCurrentStreak = streak.currentStreak;
+      let newStreakStartDate = streak.streakStartDate;
+
       if (
         lastActivityDate &&
         lastActivityDate.getTime() === yesterday.getTime()
       ) {
-        streak.currentStreak += 1;
+        newCurrentStreak += 1;
       } else {
-        streak.currentStreak = 1;
-        streak.streakStartDate = today;
+        newCurrentStreak = 1;
+        newStreakStartDate = today;
       }
 
-      streak.lastActivityDate = today;
-      streak.totalContentDays += 1;
-      streak.longestStreak = Math.max(
-        streak.longestStreak,
-        streak.currentStreak,
+      const newTotalContentDays = streak.totalContentDays + 1;
+      const newLongestStreak = Math.max(streak.longestStreak, newCurrentStreak);
+
+      // Determine new milestones
+      const newMilestonesLocal = STREAK_MILESTONES.filter(
+        (milestone) =>
+          newCurrentStreak >= milestone.days &&
+          !(streak.milestones ?? []).includes(milestone.days),
       );
+
+      const updatedMilestones = [
+        ...(streak.milestones ?? []),
+        ...newMilestonesLocal.map((m) => m.days),
+      ];
+      const updatedMilestoneHistory = [
+        ...(streak.milestoneHistory ?? []),
+        ...newMilestonesLocal.map((m) => ({
+          achievedAt: today,
+          milestone: m.days,
+          reward: m.rewardLabel,
+        })),
+      ];
+      const extraFreezes = newMilestonesLocal.filter(
+        (m) => m.days === 7,
+      ).length;
+      const newStreakFreezes = streak.streakFreezes + extraFreezes;
+
+      const updated = await this.prisma.streak.update({
+        data: {
+          currentStreak: newCurrentStreak,
+          lastActivityDate: today,
+          longestStreak: newLongestStreak,
+          milestoneHistory: updatedMilestoneHistory as never,
+          milestones: updatedMilestones,
+          streakFreezes: newStreakFreezes,
+          streakStartDate: newStreakStartDate,
+          totalContentDays: newTotalContentDays,
+        } as never,
+        where: { id: String(streak._id) },
+      });
+
+      streak = updated as unknown as StreakDocument;
+      streakData = { ...updated };
+
+      const newMilestones = newMilestonesLocal;
+
+      await this.handleMilestoneRewards(
+        streak,
+        organizationId,
+        userId,
+        newMilestones,
+      );
+
+      return {
+        newMilestones: newMilestones.map((milestone) => milestone.days),
+        streak,
+      };
     }
 
     const newMilestones = STREAK_MILESTONES.filter(
       (milestone) =>
-        streak.currentStreak >= milestone.days &&
-        !streak.milestones.includes(milestone.days),
+        (streakData.currentStreak as number) >= milestone.days &&
+        !((streakData.milestones as number[]) ?? []).includes(milestone.days),
     );
 
-    if (newMilestones.length > 0) {
-      for (const milestone of newMilestones) {
-        streak.milestones.push(milestone.days);
-        streak.milestoneHistory.push({
-          achievedAt: today,
-          milestone: milestone.days,
-          reward: milestone.rewardLabel,
-        });
-
-        if (milestone.days === 7) {
-          streak.streakFreezes += 1;
-        }
-      }
-    }
-
-    await streak.save();
     await this.handleMilestoneRewards(
       streak,
       organizationId,
@@ -264,10 +294,15 @@ export class StreaksService {
       throw new BadRequestException('No streak freezes available.');
     }
 
-    streak.streakFreezes -= 1;
-    streak.lastActivityDate = startOfUtcDay(new Date());
-    streak.lastFreezeUsedAt = new Date();
-    await streak.save();
+    const updated = await this.prisma.streak.update({
+      data: {
+        lastActivityDate: startOfUtcDay(new Date()),
+        lastFreezeUsedAt: new Date(),
+        streakFreezes: { decrement: 1 },
+      } as never,
+      where: { id: String(streak._id) },
+    });
+    streak = updated as unknown as StreakDocument;
 
     await this.sendDiscordNotification(
       'streak_freeze_used',
@@ -287,13 +322,13 @@ export class StreaksService {
     const today = startOfUtcDay(referenceDate);
     const yesterday = addUtcDays(today, -1);
 
-    const atRiskStreaks = await this.model
-      .find({
-        currentStreak: { $gte: 3 },
+    const atRiskStreaks = await this.prisma.streak.findMany({
+      where: {
+        currentStreak: { gte: 3 },
         isDeleted: false,
         lastActivityDate: yesterday,
-      })
-      .exec();
+      } as never,
+    });
 
     for (const streak of atRiskStreaks) {
       await this.sendDiscordNotification(
@@ -304,47 +339,76 @@ export class StreaksService {
       );
     }
 
-    const staleStreaks = await this.model
-      .find({
-        currentStreak: { $gt: 0 },
+    const staleStreaks = await this.prisma.streak.findMany({
+      where: {
+        currentStreak: { gt: 0 },
         isDeleted: false,
-        lastActivityDate: { $lt: yesterday },
-      })
-      .exec();
+        lastActivityDate: { lt: yesterday },
+      } as never,
+    });
 
     let broken = 0;
     let frozen = 0;
 
     for (const streak of staleStreaks) {
-      if (streak.streakFreezes > 0) {
-        streak.streakFreezes -= 1;
-        streak.lastActivityDate = yesterday;
-        streak.lastFreezeUsedAt = today;
-        await streak.save();
+      const streakId = String(
+        (streak as Record<string, unknown>).id ??
+          (streak as Record<string, unknown>)._id,
+      );
+      const streakOrg = String(
+        (streak as Record<string, unknown>).organizationId ??
+          (streak as Record<string, unknown>).organization ??
+          '',
+      );
+      const streakUser = String(
+        (streak as Record<string, unknown>).userId ??
+          (streak as Record<string, unknown>).user ??
+          '',
+      );
+      const streakFreezes = Number(
+        (streak as Record<string, unknown>).streakFreezes ?? 0,
+      );
+      const streakCurrentStreak = Number(
+        (streak as Record<string, unknown>).currentStreak ?? 0,
+      );
+
+      if (streakFreezes > 0) {
+        await this.prisma.streak.update({
+          data: {
+            lastActivityDate: yesterday,
+            lastFreezeUsedAt: today,
+            streakFreezes: { decrement: 1 },
+          } as never,
+          where: { id: streakId },
+        });
         frozen += 1;
 
         await this.sendDiscordNotification(
           'streak_freeze_used',
-          `A streak freeze protected a ${streak.currentStreak}-day streak.`,
-          String(streak.organization),
-          String(streak.user),
+          `A streak freeze protected a ${streakCurrentStreak}-day streak.`,
+          streakOrg,
+          streakUser,
         );
         continue;
       }
 
-      const brokenStreakLength = streak.currentStreak;
-      streak.lastBrokenAt = today;
-      streak.lastBrokenStreak = brokenStreakLength;
-      streak.currentStreak = 0;
-      streak.streakStartDate = null;
-      await streak.save();
+      const brokenStreakLength = streakCurrentStreak;
+      await this.prisma.streak.update({
+        data: {
+          currentStreak: 0,
+          lastBrokenAt: today,
+          lastBrokenStreak: brokenStreakLength,
+          streakStartDate: null,
+        } as never,
+        where: { id: streakId },
+      });
       broken += 1;
 
       await this.sendDiscordNotification(
         'streak_broken',
         `A ${brokenStreakLength}-day streak was broken. Start a new one today.`,
-        String(streak.organization),
-        String(streak.user),
+        streakOrg,
+        streakUser,
       );
     }
 
@@ -364,20 +428,19 @@ export class StreaksService {
     const rangeEnd = to ? startOfUtcDay(to) : startOfUtcDay(new Date());
     const rangeStart = from ? startOfUtcDay(from) : addUtcDays(rangeEnd, -89);
 
-    const docs = await this.activityModel
-      .find({
+    const docs = await this.prisma.activity.findMany({
+      select: { createdAt: true, key: true },
+      where: {
         createdAt: {
-          $gte: rangeStart,
-          $lt: addUtcDays(rangeEnd, 1),
+          gte: rangeStart,
+          lt: addUtcDays(rangeEnd, 1),
         },
         isDeleted: false,
-        key: { $in: Array.from(QUALIFYING_ACTIVITY_KEYS) },
-        organization: new Types.ObjectId(organizationId),
-        user: new Types.ObjectId(userId),
-      })
-      .select(['createdAt', 'key'])
-      .lean()
-      .exec();
+        key: { in: Array.from(QUALIFYING_ACTIVITY_KEYS) },
+        organizationId,
+        userId,
+      } as never,
+    });
 
     const days: IStreakCalendarResponse['days'] = {};
 

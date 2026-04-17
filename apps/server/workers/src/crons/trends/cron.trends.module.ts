@@ -1,8 +1,4 @@
 import {
-  Setting,
-  SettingSchema,
-} from '@api/collections/settings/schemas/setting.schema';
-import {
   Trend,
   TrendSchema,
 } from '@api/collections/trends/schemas/trend.schema';
@@ -33,19 +29,6 @@ import mongooseAggregatePaginate from 'mongoose-aggregate-paginate-v2';
         },
       ],
       DB_CONNECTIONS.CLOUD,
-    ),
-    MongooseModule.forFeatureAsync(
-      [
-        {
-          name: Setting.name,
-          useFactory: () => {
-            const schema = SettingSchema;
-            schema.plugin(mongooseAggregatePaginate);
-            return schema;
-          },
-        },
-      ],
-      DB_CONNECTIONS.AUTH,
     ),
   ],
   providers: [CronTrendsService, CronTrendSummaryNotificationsService],

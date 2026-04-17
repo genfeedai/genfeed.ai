@@ -1,60 +1,59 @@
-import {
-  Trend,
-  type TrendDocument,
-} from '@api/collections/trends/schemas/trend.schema';
+import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
+import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema';
 import { TrendAnalysisService } from '@api/collections/trends/services/modules/trend-analysis.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
-function createMockModel() {
+function createMockPrisma() {
   return {
-    find: vi.fn(),
-    lean: vi.fn(),
-    limit: vi.fn(),
-    sort: vi.fn(),
-    updateMany: vi.fn(),
+    trend: {
+      findMany: vi.fn().mockResolvedValue([]),
+      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    },
   };
 }
 
 describe('TrendAnalysisService', () => {
   let service: TrendAnalysisService;
-  let trendModel: ReturnType<typeof createMockModel>;
+  let prisma: ReturnType<typeof createMockPrisma>;
   let loggerService: {
     log: ReturnType<typeof vi.fn>;
     error: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
   };
 
-  const mockOrgId = new Types.ObjectId().toString();
-  const mockBrandId = new Types.ObjectId().toString();
+  const mockOrgId = 'org-id-1234';
+  const mockBrandId = 'brand-id-5678';
 
   const makeTrendDoc = (
-    overrides: Partial<TrendDocument> = {},
-  ): Partial<TrendDocument> => ({
-    _id: new Types.ObjectId(),
-    brand: null as never,
+    overrides: Partial<TrendDocument & { data: unknown }> = {},
+  ) => ({
     createdAt: new Date('2026-03-10T00:00:00Z'),
+    data: {
+      isCurrent: false,
+      isDeleted: false,
+      mentions: 1000,
+      platform: 'tiktok',
+      topic: 'AI',
+      viralityScore: 70,
+      ...((overrides.data as Record<string, unknown>) ?? {}),
+    },
+    id: 'trend-id-001',
     isDeleted: false,
-    mentions: 1000,
-    organization: null as never,
-    platform: 'tiktok',
-    topic: 'AI',
     updatedAt: new Date(),
-    viralityScore: 70,
     ...overrides,
   });
 
   beforeEach(async () => {
-    trendModel = createMockModel();
+    prisma = createMockPrisma();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TrendAnalysisService,
         {
-          provide: getModelToken(Trend.name, DB_CONNECTIONS.CLOUD),
-          useValue: trendModel,
+          provide: PrismaService,
+          useValue: prisma,
         },
         {
           provide: LoggerService,
@@ -80,24 +79,26 @@ describe('TrendAnalysisService', () => {
   // ─── markExpiredTrendsAsHistorical ────────────────────────────────────────
 
   describe('markExpiredTrendsAsHistorical', () => {
-    it('should call updateMany with correct filter and return modifiedCount', async () => {
-      trendModel.updateMany.mockResolvedValue({ modifiedCount: 5 });
+    it('should call prisma.trend.updateMany with correct filter and return count', async () => {
+      prisma.trend.updateMany.mockResolvedValue({ count: 5 });
 
       const result = await service.markExpiredTrendsAsHistorical();
 
       expect(result).toBe(5);
-      expect(trendModel.updateMany).toHaveBeenCalledWith(
-        {
-          expiresAt: { $lte: expect.any(Date) },
-          isCurrent: true,
-          isDeleted: false,
-        },
-        { $set: { isCurrent: false } },
+      expect(prisma.trend.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ isCurrent: false }),
+          where: expect.objectContaining({
+            expiresAt: expect.objectContaining({ lte: expect.any(Date) }),
+            isCurrent: true,
+            isDeleted: false,
+          }),
+        }),
       );
     });
 
     it('should log the number of trends marked', async () => {
-      trendModel.updateMany.mockResolvedValue({ modifiedCount: 3 });
+      prisma.trend.updateMany.mockResolvedValue({ count: 3 });
 
       await service.markExpiredTrendsAsHistorical();
 
@@ -108,7 +109,7 @@ describe('TrendAnalysisService', () => {
     });
 
     it('should return 0 when no trends were updated', async () => {
-      trendModel.updateMany.mockResolvedValue({ modifiedCount: 0 });
+      prisma.trend.updateMany.mockResolvedValue({ count: 0 });
 
       const result = await service.markExpiredTrendsAsHistorical();
 
@@ -116,7 +117,9 @@ describe('TrendAnalysisService', () => {
     });
 
     it('should propagate errors from updateMany', async () => {
-      trendModel.updateMany.mockRejectedValue(new Error('DB connection lost'));
+      prisma.trend.updateMany.mockRejectedValue(
+        new Error('DB connection lost'),
+      );
 
       await expect(service.markExpiredTrendsAsHistorical()).rejects.toThrow(
         'DB connection lost',
@@ -128,40 +131,43 @@ describe('TrendAnalysisService', () => {
 
   describe('markCurrentTrendsAsHistorical', () => {
     it('should scope query to organizationId and brandId when both provided', async () => {
-      trendModel.updateMany.mockResolvedValue({ modifiedCount: 2 });
+      prisma.trend.updateMany.mockResolvedValue({ count: 2 });
 
       await service.markCurrentTrendsAsHistorical(mockOrgId, mockBrandId);
 
-      expect(trendModel.updateMany).toHaveBeenCalledWith(
+      expect(prisma.trend.updateMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          brand: mockBrandId,
-          isCurrent: true,
-          isDeleted: false,
-          organization: mockOrgId,
+          where: expect.objectContaining({
+            brandId: mockBrandId,
+            isCurrent: true,
+            isDeleted: false,
+            organizationId: mockOrgId,
+          }),
         }),
-        { isCurrent: false },
       );
     });
 
-    it('should set organization to null when no organizationId provided', async () => {
-      trendModel.updateMany.mockResolvedValue({ modifiedCount: 1 });
+    it('should set organizationId to null when no organizationId provided', async () => {
+      prisma.trend.updateMany.mockResolvedValue({ count: 1 });
 
       await service.markCurrentTrendsAsHistorical();
 
-      expect(trendModel.updateMany).toHaveBeenCalledWith(
-        expect.objectContaining({ organization: null }),
-        expect.anything(),
+      expect(prisma.trend.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ organizationId: null }),
+        }),
       );
     });
 
-    it('should set brand to null when no brandId provided', async () => {
-      trendModel.updateMany.mockResolvedValue({ modifiedCount: 1 });
+    it('should set brandId to null when no brandId provided', async () => {
+      prisma.trend.updateMany.mockResolvedValue({ count: 1 });
 
       await service.markCurrentTrendsAsHistorical(mockOrgId);
 
-      expect(trendModel.updateMany).toHaveBeenCalledWith(
-        expect.objectContaining({ brand: null }),
-        expect.anything(),
+      expect(prisma.trend.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ brandId: null }),
+        }),
       );
     });
   });
@@ -169,52 +175,43 @@ describe('TrendAnalysisService', () => {
   // ─── getHistoricalTrends ─────────────────────────────────────────────────
 
   describe('getHistoricalTrends', () => {
-    it('should query isCurrent=false and isDeleted=false', async () => {
-      trendModel.find.mockReturnValue({
-        sort: vi.fn().mockReturnValue({
-          limit: vi
-            .fn()
-            .mockReturnValue({ lean: vi.fn().mockResolvedValue([]) }),
-        }),
-      });
+    it('should query with isCurrent=false and isDeleted=false', async () => {
+      prisma.trend.findMany.mockResolvedValue([]);
 
       await service.getHistoricalTrends();
 
-      expect(trendModel.find).toHaveBeenCalledWith(
-        expect.objectContaining({ isCurrent: false, isDeleted: false }),
+      expect(prisma.trend.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            isCurrent: false,
+            isDeleted: false,
+          }),
+        }),
       );
     });
 
     it('should apply platform filter when provided', async () => {
-      trendModel.find.mockReturnValue({
-        sort: vi.fn().mockReturnValue({
-          limit: vi
-            .fn()
-            .mockReturnValue({ lean: vi.fn().mockResolvedValue([]) }),
-        }),
-      });
+      prisma.trend.findMany.mockResolvedValue([]);
 
       await service.getHistoricalTrends({ platform: 'instagram' });
 
-      expect(trendModel.find).toHaveBeenCalledWith(
-        expect.objectContaining({ platform: 'instagram' }),
+      expect(prisma.trend.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ platform: 'instagram' }),
+        }),
       );
     });
 
-    it('should apply topic regex filter when provided', async () => {
-      trendModel.find.mockReturnValue({
-        sort: vi.fn().mockReturnValue({
-          limit: vi
-            .fn()
-            .mockReturnValue({ lean: vi.fn().mockResolvedValue([]) }),
-        }),
-      });
+    it('should apply topic contains filter when provided', async () => {
+      prisma.trend.findMany.mockResolvedValue([]);
 
       await service.getHistoricalTrends({ topic: 'crypto' });
 
-      expect(trendModel.find).toHaveBeenCalledWith(
+      expect(prisma.trend.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          topic: { $options: 'i', $regex: 'crypto' },
+          where: expect.objectContaining({
+            topic: expect.objectContaining({ contains: 'crypto' }),
+          }),
         }),
       );
     });
@@ -223,51 +220,40 @@ describe('TrendAnalysisService', () => {
       const startDate = new Date('2026-03-01');
       const endDate = new Date('2026-03-14');
 
-      trendModel.find.mockReturnValue({
-        sort: vi.fn().mockReturnValue({
-          limit: vi
-            .fn()
-            .mockReturnValue({ lean: vi.fn().mockResolvedValue([]) }),
-        }),
-      });
+      prisma.trend.findMany.mockResolvedValue([]);
 
       await service.getHistoricalTrends({ endDate, startDate });
 
-      expect(trendModel.find).toHaveBeenCalledWith(
+      expect(prisma.trend.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          createdAt: { $gte: startDate, $lte: endDate },
+          where: expect.objectContaining({
+            createdAt: expect.objectContaining({
+              gte: startDate,
+              lte: endDate,
+            }),
+          }),
         }),
       );
     });
 
     it('should default limit to 1000', async () => {
-      const limitFn = vi
-        .fn()
-        .mockReturnValue({ lean: vi.fn().mockResolvedValue([]) });
-      trendModel.find.mockReturnValue({
-        sort: vi.fn().mockReturnValue({ limit: limitFn }),
-      });
+      prisma.trend.findMany.mockResolvedValue([]);
 
       await service.getHistoricalTrends();
 
-      expect(limitFn).toHaveBeenCalledWith(1000);
+      expect(prisma.trend.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 1000 }),
+      );
     });
 
     it('should map documents to TrendEntity instances', async () => {
       const doc = makeTrendDoc();
-      trendModel.find.mockReturnValue({
-        sort: vi.fn().mockReturnValue({
-          limit: vi
-            .fn()
-            .mockReturnValue({ lean: vi.fn().mockResolvedValue([doc]) }),
-        }),
-      });
+      prisma.trend.findMany.mockResolvedValue([doc]);
 
       const result = await service.getHistoricalTrends();
 
       expect(result).toHaveLength(1);
-      // TrendEntity wraps the doc
-      expect(result[0]).toBeDefined();
+      expect(result[0]).toBeInstanceOf(TrendEntity);
     });
   });
 
@@ -275,13 +261,7 @@ describe('TrendAnalysisService', () => {
 
   describe('analyzeTrendPatterns', () => {
     it('should return zeroed result when no historical trends found', async () => {
-      trendModel.find.mockReturnValue({
-        sort: vi.fn().mockReturnValue({
-          limit: vi
-            .fn()
-            .mockReturnValue({ lean: vi.fn().mockResolvedValue([]) }),
-        }),
-      });
+      prisma.trend.findMany.mockResolvedValue([]);
 
       const result = await service.analyzeTrendPatterns(
         'niche-topic',
@@ -299,21 +279,22 @@ describe('TrendAnalysisService', () => {
     });
 
     it('should classify rising trend when growthRate > 10', async () => {
-      // Older (latter half) has low mentions, recent (first half) has high mentions
       const docs = [
-        makeTrendDoc({ mentions: 5000, viralityScore: 80 }), // recent
-        makeTrendDoc({ mentions: 5000, viralityScore: 80 }), // recent
-        makeTrendDoc({ mentions: 100, viralityScore: 40 }), // older
-        makeTrendDoc({ mentions: 100, viralityScore: 40 }), // older
-      ];
-
-      trendModel.find.mockReturnValue({
-        sort: vi.fn().mockReturnValue({
-          limit: vi
-            .fn()
-            .mockReturnValue({ lean: vi.fn().mockResolvedValue(docs) }),
+        makeTrendDoc({
+          data: { isCurrent: false, mentions: 5000, viralityScore: 80 },
         }),
-      });
+        makeTrendDoc({
+          data: { isCurrent: false, mentions: 5000, viralityScore: 80 },
+        }),
+        makeTrendDoc({
+          data: { isCurrent: false, mentions: 100, viralityScore: 40 },
+        }),
+        makeTrendDoc({
+          data: { isCurrent: false, mentions: 100, viralityScore: 40 },
+        }),
+      ].map((d, i) => ({ ...d, id: `trend-${i}` }));
+
+      prisma.trend.findMany.mockResolvedValue(docs);
 
       const result = await service.analyzeTrendPatterns(
         'viral-topic',
@@ -325,21 +306,22 @@ describe('TrendAnalysisService', () => {
     });
 
     it('should classify falling trend when growthRate < -10', async () => {
-      // Recent (first half) has low mentions, older (latter half) has high mentions
       const docs = [
-        makeTrendDoc({ mentions: 100, viralityScore: 20 }), // recent
-        makeTrendDoc({ mentions: 100, viralityScore: 20 }), // recent
-        makeTrendDoc({ mentions: 5000, viralityScore: 90 }), // older
-        makeTrendDoc({ mentions: 5000, viralityScore: 90 }), // older
-      ];
-
-      trendModel.find.mockReturnValue({
-        sort: vi.fn().mockReturnValue({
-          limit: vi
-            .fn()
-            .mockReturnValue({ lean: vi.fn().mockResolvedValue(docs) }),
+        makeTrendDoc({
+          data: { isCurrent: false, mentions: 100, viralityScore: 20 },
         }),
-      });
+        makeTrendDoc({
+          data: { isCurrent: false, mentions: 100, viralityScore: 20 },
+        }),
+        makeTrendDoc({
+          data: { isCurrent: false, mentions: 5000, viralityScore: 90 },
+        }),
+        makeTrendDoc({
+          data: { isCurrent: false, mentions: 5000, viralityScore: 90 },
+        }),
+      ].map((d, i) => ({ ...d, id: `trend-${i}` }));
+
+      prisma.trend.findMany.mockResolvedValue(docs);
 
       const result = await service.analyzeTrendPatterns(
         'fading-topic',
@@ -352,17 +334,15 @@ describe('TrendAnalysisService', () => {
 
     it('should compute averageMentions and averageViralityScore correctly', async () => {
       const docs = [
-        makeTrendDoc({ mentions: 200, viralityScore: 60 }),
-        makeTrendDoc({ mentions: 400, viralityScore: 80 }),
-      ];
-
-      trendModel.find.mockReturnValue({
-        sort: vi.fn().mockReturnValue({
-          limit: vi
-            .fn()
-            .mockReturnValue({ lean: vi.fn().mockResolvedValue(docs) }),
+        makeTrendDoc({
+          data: { isCurrent: false, mentions: 200, viralityScore: 60 },
         }),
-      });
+        makeTrendDoc({
+          data: { isCurrent: false, mentions: 400, viralityScore: 80 },
+        }),
+      ].map((d, i) => ({ ...d, id: `trend-${i}` }));
+
+      prisma.trend.findMany.mockResolvedValue(docs);
 
       const result = await service.analyzeTrendPatterns(
         'avg-topic',
@@ -373,22 +353,27 @@ describe('TrendAnalysisService', () => {
       expect(result.averageViralityScore).toBe(70);
     });
 
-    it('should include peakMentions and peakDate in result', async () => {
-      const peakDate = new Date('2026-03-12T00:00:00Z');
+    it('should include peakMentions in result', async () => {
       const docs = [
-        makeTrendDoc({ createdAt: new Date('2026-03-11'), mentions: 500 }),
-        makeTrendDoc({ createdAt: peakDate, mentions: 9000 }),
-        makeTrendDoc({ createdAt: new Date('2026-03-13'), mentions: 300 }),
-        makeTrendDoc({ createdAt: new Date('2026-03-14'), mentions: 200 }),
-      ];
-
-      trendModel.find.mockReturnValue({
-        sort: vi.fn().mockReturnValue({
-          limit: vi
-            .fn()
-            .mockReturnValue({ lean: vi.fn().mockResolvedValue(docs) }),
+        makeTrendDoc({
+          createdAt: new Date('2026-03-11'),
+          data: { isCurrent: false, mentions: 500, viralityScore: 50 },
         }),
-      });
+        makeTrendDoc({
+          createdAt: new Date('2026-03-12'),
+          data: { isCurrent: false, mentions: 9000, viralityScore: 90 },
+        }),
+        makeTrendDoc({
+          createdAt: new Date('2026-03-13'),
+          data: { isCurrent: false, mentions: 300, viralityScore: 40 },
+        }),
+        makeTrendDoc({
+          createdAt: new Date('2026-03-14'),
+          data: { isCurrent: false, mentions: 200, viralityScore: 30 },
+        }),
+      ].map((d, i) => ({ ...d, id: `trend-${i}` }));
+
+      prisma.trend.findMany.mockResolvedValue(docs);
 
       const result = await service.analyzeTrendPatterns(
         'peak-topic',

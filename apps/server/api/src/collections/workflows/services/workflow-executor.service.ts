@@ -1,11 +1,8 @@
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
-import {
-  Workflow,
-  type WorkflowDocument,
-} from '@api/collections/workflows/schemas/workflow.schema';
+import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   WorkflowExecutionStatus,
   WorkflowExecutionTrigger,
@@ -28,8 +25,6 @@ import {
   NotFoundException,
   Optional,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
 
 // =============================================================================
 // TYPES
@@ -169,8 +164,7 @@ export class WorkflowExecutorService {
   private readonly logContext = 'WorkflowExecutorService';
 
   constructor(
-    @InjectModel(Workflow.name, DB_CONNECTIONS.CLOUD)
-    private readonly workflowModel: Model<WorkflowDocument>,
+    private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly engineAdapter: WorkflowEngineAdapterService,
     private readonly executionsService: WorkflowExecutionsService,
@@ -212,7 +206,12 @@ export class WorkflowExecutorService {
     this.logger.log(
       `${this.logContext} found ${matchingWorkflows.length} matching workflow(s)`,
       {
-        workflowIds: matchingWorkflows.map((w) => w._id.toString()),
+        workflowIds: matchingWorkflows.map((w) =>
+          String(
+            (w as unknown as Record<string, unknown>)._id ??
+              (w as unknown as { id: string }).id,
+          ),
+        ),
       },
     );
 
@@ -223,7 +222,10 @@ export class WorkflowExecutorService {
         const result = await this.executeTriggeredWorkflow(workflow, event);
         results.push(result);
       } catch (error) {
-        const workflowId = workflow._id.toString();
+        const workflowId = String(
+          (workflow as unknown as Record<string, unknown>)._id ??
+            (workflow as unknown as { id: string }).id,
+        );
         this.logger.error(
           `${this.logContext} workflow execution failed`,
           error,
@@ -269,10 +271,8 @@ export class WorkflowExecutorService {
     metadata?: Record<string, unknown>,
     trigger: WorkflowExecutionTrigger = WorkflowExecutionTrigger.MANUAL,
   ): Promise<WorkflowExecutionResult> {
-    const workflowDoc = await this.workflowModel.findOne({
-      _id: workflowId,
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+    const workflowDoc = await this.prisma.workflow.findFirst({
+      where: { id: workflowId, isDeleted: false, organizationId },
     });
 
     if (!workflowDoc) {
@@ -305,18 +305,14 @@ export class WorkflowExecutorService {
     const execution = await this.executionsService.findOne({
       _id: executionId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-      workflow: new Types.ObjectId(workflowId),
     });
 
     if (!execution) {
       throw new NotFoundException(`Execution ${executionId} not found`);
     }
 
-    const workflowDoc = await this.workflowModel.findOne({
-      _id: workflowId,
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+    const workflowDoc = await this.prisma.workflow.findFirst({
+      where: { id: workflowId, isDeleted: false, organizationId },
     });
 
     if (!workflowDoc) {
@@ -379,15 +375,13 @@ export class WorkflowExecutorService {
         executionId,
         rejectionMessage,
       );
-      await this.workflowModel.updateOne(
-        { _id: workflowId },
-        {
-          $set: {
-            completedAt: approvedAt,
-            status: WorkflowStatus.FAILED,
-          },
-        },
-      );
+      await this.prisma.workflow.update({
+        data: {
+          completedAt: approvedAt,
+          status: WorkflowStatus.FAILED,
+        } as never,
+        where: { id: workflowId },
+      });
 
       return {
         approvedAt: approvedAtIso,
@@ -466,15 +460,13 @@ export class WorkflowExecutorService {
 
     if (remainingNodeIds.length === 0) {
       await this.executionsService.completeExecution(executionId);
-      await this.workflowModel.updateOne(
-        { _id: workflowId },
-        {
-          $set: {
-            completedAt: approvedAt,
-            status: WorkflowStatus.COMPLETED,
-          },
-        },
-      );
+      await this.prisma.workflow.update({
+        data: {
+          completedAt: approvedAt,
+          status: WorkflowStatus.COMPLETED,
+        } as never,
+        where: { id: workflowId },
+      });
 
       return {
         approvedAt: approvedAtIso,
@@ -582,21 +574,19 @@ export class WorkflowExecutorService {
         }
       }
 
-      await this.workflowModel.updateOne(
-        { _id: workflowId },
-        {
-          $set: {
-            completedAt:
-              finalStatus === WorkflowExecutionStatus.COMPLETED
-                ? new Date()
-                : approvedAt,
-            status:
-              finalStatus === WorkflowExecutionStatus.COMPLETED
-                ? WorkflowStatus.COMPLETED
-                : WorkflowStatus.FAILED,
-          },
-        },
-      );
+      await this.prisma.workflow.update({
+        data: {
+          completedAt:
+            finalStatus === WorkflowExecutionStatus.COMPLETED
+              ? new Date()
+              : approvedAt,
+          status:
+            finalStatus === WorkflowExecutionStatus.COMPLETED
+              ? WorkflowStatus.COMPLETED
+              : WorkflowStatus.FAILED,
+        } as never,
+        where: { id: workflowId },
+      });
     }
 
     return {
@@ -614,7 +604,10 @@ export class WorkflowExecutorService {
     trigger: WorkflowExecutionTrigger,
     metadata?: Record<string, unknown>,
   ): Promise<WorkflowExecutionResult> {
-    const workflowId = workflowDoc._id.toString();
+    const workflowId = String(
+      (workflowDoc as unknown as Record<string, unknown>)._id ??
+        (workflowDoc as unknown as { id: string }).id,
+    );
     const startedAt = new Date();
 
     let executableWorkflow =
@@ -650,11 +643,14 @@ export class WorkflowExecutorService {
           eta: initialEta,
         },
         trigger,
-        workflow: new Types.ObjectId(workflowId),
+        workflow: workflowId as never,
       },
     );
 
-    const executionId = execution._id.toString();
+    const executionId = String(
+      (execution as unknown as Record<string, unknown>)._id ??
+        (execution as unknown as { id: string }).id,
+    );
 
     try {
       // Mark execution as running
@@ -670,16 +666,14 @@ export class WorkflowExecutorService {
       });
 
       // Update workflow status
-      await this.workflowModel.updateOne(
-        { _id: workflowId },
-        {
-          $inc: { executionCount: 1 },
-          $set: {
-            lastExecutedAt: new Date(),
-            status: WorkflowStatus.RUNNING,
-          },
-        },
-      );
+      await this.prisma.workflow.update({
+        data: {
+          executionCount: { increment: 1 },
+          lastExecutedAt: new Date(),
+          status: WorkflowStatus.RUNNING,
+        } as never,
+        where: { id: workflowId },
+      });
 
       await this.emitEvent(workflowId, 'started', {
         executionId,
@@ -736,18 +730,16 @@ export class WorkflowExecutorService {
         }
 
         // Update workflow status
-        await this.workflowModel.updateOne(
-          { _id: workflowId },
-          {
-            $set: {
-              completedAt: new Date(),
-              status:
-                finalStatus === WorkflowExecutionStatus.COMPLETED
-                  ? WorkflowStatus.COMPLETED
-                  : WorkflowStatus.FAILED,
-            },
-          },
-        );
+        await this.prisma.workflow.update({
+          data: {
+            completedAt: new Date(),
+            status:
+              finalStatus === WorkflowExecutionStatus.COMPLETED
+                ? WorkflowStatus.COMPLETED
+                : WorkflowStatus.FAILED,
+          } as never,
+          where: { id: workflowId },
+        });
 
         await this.emitEvent(
           workflowId,
@@ -814,10 +806,10 @@ export class WorkflowExecutorService {
         errorMessage,
       );
 
-      await this.workflowModel.updateOne(
-        { _id: workflowId },
-        { $set: { status: WorkflowStatus.FAILED } },
-      );
+      await this.prisma.workflow.update({
+        data: { status: WorkflowStatus.FAILED } as never,
+        where: { id: workflowId },
+      });
 
       await this.emitEvent(workflowId, 'error', {
         error: errorMessage,
@@ -863,9 +855,8 @@ export class WorkflowExecutorService {
       workflowId,
     });
 
-    const workflowDoc = await this.workflowModel.findOne({
-      _id: workflowId,
-      isDeleted: false,
+    const workflowDoc = await this.prisma.workflow.findFirst({
+      where: { id: workflowId, isDeleted: false },
     });
 
     if (!workflowDoc) {
@@ -905,7 +896,7 @@ export class WorkflowExecutorService {
       triggerEvent.data,
     );
     const existingExecution = await this.executionsService.findOne({
-      _id: executionId,
+      id: executionId,
       isDeleted: false,
     });
     const baselineEstimatedDurationMs =
@@ -1026,18 +1017,16 @@ export class WorkflowExecutorService {
         }
       }
 
-      await this.workflowModel.updateOne(
-        { _id: workflowId },
-        {
-          $set: {
-            completedAt: new Date(),
-            status:
-              finalStatus === WorkflowExecutionStatus.COMPLETED
-                ? WorkflowStatus.COMPLETED
-                : WorkflowStatus.FAILED,
-          },
-        },
-      );
+      await this.prisma.workflow.update({
+        data: {
+          completedAt: new Date(),
+          status:
+            finalStatus === WorkflowExecutionStatus.COMPLETED
+              ? WorkflowStatus.COMPLETED
+              : WorkflowStatus.FAILED,
+        } as never,
+        where: { id: workflowId },
+      });
 
       if (typeof this.websocketService?.publishWorkflowStatus === 'function') {
         await this.websocketService.publishWorkflowStatus(
@@ -1737,14 +1726,13 @@ export class WorkflowExecutorService {
     const executorNodeType = EVENT_TYPE_TO_NODE_TYPE[event.type] ?? event.type;
 
     // Query for published workflows in this organization
-    const workflows = await this.workflowModel
-      .find({
+    const workflows = await this.prisma.workflow.findMany({
+      where: {
         isDeleted: false,
         lifecycle: WorkflowLifecycle.PUBLISHED,
-        organization: new Types.ObjectId(event.organizationId),
-      })
-      .lean()
-      .exec();
+        organizationId: event.organizationId,
+      },
+    });
 
     // Filter by trigger node match
     return (workflows as WorkflowDocument[]).filter((workflow) => {

@@ -18,13 +18,8 @@ import { ModelsModule } from '@api/collections/models/models.module';
 import { MonitoredAccountsModule } from '@api/collections/monitored-accounts/monitored-accounts.module';
 import { ProcessedTweetsModule } from '@api/collections/processed-tweets/processed-tweets.module';
 import { ReplyBotConfigsModule } from '@api/collections/reply-bot-configs/reply-bot-configs.module';
-import {
-  ReplyBotConfig,
-  ReplyBotConfigSchema,
-} from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { ConfigModule } from '@api/config/config.module';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { ApifyModule } from '@api/services/integrations/apify/apify.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
@@ -36,7 +31,6 @@ import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation
 import { SocialMonitorService } from '@api/services/reply-bot/social-monitor.service';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
   exports: [
@@ -53,12 +47,6 @@ import { MongooseModule } from '@nestjs/mongoose';
     // Configuration
     ConfigModule,
     LoggerModule,
-
-    // Database models needed by rate limit service
-    MongooseModule.forFeature(
-      [{ name: ReplyBotConfig.name, schema: ReplyBotConfigSchema }],
-      DB_CONNECTIONS.CLOUD,
-    ),
 
     BotActivitiesModule,
     CreditsModule,

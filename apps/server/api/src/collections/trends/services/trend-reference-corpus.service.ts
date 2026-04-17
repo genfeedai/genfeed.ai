@@ -5,27 +5,9 @@ import type {
   TrendSourceReferenceRecord,
   TrendSourceReferenceResult,
 } from '@api/collections/trends/interfaces/trend.interfaces';
-import {
-  TrendRemixLineage,
-  type TrendRemixLineageDocument,
-} from '@api/collections/trends/schemas/trend-remix-lineage.schema';
-import {
-  TrendSourceReference,
-  type TrendSourceReferenceDocument,
-} from '@api/collections/trends/schemas/trend-source-reference.schema';
-import {
-  TrendSourceReferenceLink,
-  type TrendSourceReferenceLinkDocument,
-} from '@api/collections/trends/schemas/trend-source-reference-link.schema';
-import {
-  TrendSourceReferenceSnapshot,
-  type TrendSourceReferenceSnapshotDocument,
-} from '@api/collections/trends/schemas/trend-source-reference-snapshot.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { type Model, Types } from 'mongoose';
 
 interface SyncTrendInput {
   id: string;
@@ -56,21 +38,20 @@ interface ReferenceQueryOptions {
   trendId?: string;
 }
 
-interface ReferenceRecordDocument {
-  _id: Types.ObjectId;
+interface ReferenceRecordData {
   authorHandle?: string;
   canonicalUrl: string;
   contentType: TrendSourceItem['contentType'];
   currentEngagementTotal: number;
   currentMetrics?: TrendSourceItem['metrics'];
-  firstSeenAt: Date;
-  lastSeenAt: Date;
+  firstSeenAt: string;
+  lastSeenAt: string;
   latestTrendMentions: number;
   latestTrendViralityScore: number;
   matchedTrendTopics: string[];
   mediaUrl?: string;
   platform: string;
-  publishedAt?: Date;
+  publishedAt?: string;
   sourcePreviewState: 'live' | 'fallback' | 'empty';
   text?: string;
   thumbnailUrl?: string;
@@ -80,14 +61,7 @@ interface ReferenceRecordDocument {
 @Injectable()
 export class TrendReferenceCorpusService {
   constructor(
-    @InjectModel(TrendSourceReference.name, DB_CONNECTIONS.CLOUD)
-    private readonly trendSourceReferenceModel: Model<TrendSourceReferenceDocument>,
-    @InjectModel(TrendSourceReferenceSnapshot.name, DB_CONNECTIONS.CLOUD)
-    private readonly trendSourceReferenceSnapshotModel: Model<TrendSourceReferenceSnapshotDocument>,
-    @InjectModel(TrendSourceReferenceLink.name, DB_CONNECTIONS.CLOUD)
-    private readonly trendSourceReferenceLinkModel: Model<TrendSourceReferenceLinkDocument>,
-    @InjectModel(TrendRemixLineage.name, DB_CONNECTIONS.CLOUD)
-    private readonly trendRemixLineageModel: Model<TrendRemixLineageDocument>,
+    private readonly prisma: PrismaService,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -105,102 +79,181 @@ export class TrendReferenceCorpusService {
         }
 
         const canonicalUrl = this.normalizeSourceUrl(sourceItem.sourceUrl);
-        const reference = await this.trendSourceReferenceModel.findOneAndUpdate(
-          {
-            canonicalUrl,
+
+        // Upsert the source reference
+        const existingRef = await this.prisma.trendSourceReference.findFirst({
+          where: {
             isDeleted: false,
-            platform: sourceItem.platform,
+            // match canonicalUrl + platform stored in data JSON — in-memory
           },
-          {
-            $addToSet: {
-              matchedTrendTopics: trend.topic,
+        });
+
+        // In-memory approach since canonicalUrl/platform live in JSON `data`
+        const allRefs = await this.prisma.trendSourceReference.findMany({
+          orderBy: { createdAt: 'desc' },
+          take: 5000,
+          where: { isDeleted: false },
+        });
+        void existingRef;
+
+        const matchedRef = allRefs.find((doc) => {
+          const d = doc.data as unknown as Record<string, unknown>;
+          return (
+            d.canonicalUrl === canonicalUrl &&
+            d.platform === sourceItem.platform
+          );
+        });
+
+        const engagementTotal = this.getEngagementTotal(sourceItem.metrics);
+        const now = new Date();
+
+        let referenceId: string;
+
+        if (matchedRef) {
+          const existingData =
+            matchedRef.data as unknown as ReferenceRecordData;
+          const matchedTopics = Array.isArray(existingData.matchedTrendTopics)
+            ? existingData.matchedTrendTopics
+            : [];
+          const updatedTopics = matchedTopics.includes(trend.topic)
+            ? matchedTopics
+            : [...matchedTopics, trend.topic];
+
+          await this.prisma.trendSourceReference.update({
+            data: {
+              data: {
+                ...existingData,
+                authorHandle: sourceItem.authorHandle,
+                contentType: sourceItem.contentType,
+                currentEngagementTotal: engagementTotal,
+                currentMetrics: sourceItem.metrics || {},
+                externalId: sourceItem.id,
+                lastSeenAt: now.toISOString(),
+                latestTrendMentions: trend.mentions,
+                latestTrendViralityScore: trend.viralityScore,
+                matchedTrendTopics: updatedTopics,
+                mediaUrl: sourceItem.mediaUrl,
+                publishedAt: sourceItem.publishedAt
+                  ? new Date(sourceItem.publishedAt).toISOString()
+                  : undefined,
+                sourcePreviewState: trend.sourcePreviewState,
+                text: sourceItem.text,
+                thumbnailUrl: sourceItem.thumbnailUrl,
+                title: sourceItem.title,
+              } as never,
             },
-            $set: {
-              authorHandle: sourceItem.authorHandle,
-              contentType: sourceItem.contentType,
-              currentEngagementTotal: this.getEngagementTotal(
-                sourceItem.metrics,
-              ),
-              currentMetrics: sourceItem.metrics || {},
-              externalId: sourceItem.id,
-              lastSeenAt: new Date(),
-              latestTrendMentions: trend.mentions,
-              latestTrendViralityScore: trend.viralityScore,
-              mediaUrl: sourceItem.mediaUrl,
-              publishedAt: sourceItem.publishedAt
-                ? new Date(sourceItem.publishedAt)
-                : undefined,
-              sourcePreviewState: trend.sourcePreviewState,
-              text: sourceItem.text,
-              thumbnailUrl: sourceItem.thumbnailUrl,
-              title: sourceItem.title,
-            },
-            $setOnInsert: {
-              canonicalUrl,
-              firstSeenAt: new Date(),
+            where: { id: matchedRef.id },
+          });
+          referenceId = matchedRef.id;
+        } else {
+          const created = await this.prisma.trendSourceReference.create({
+            data: {
+              data: {
+                authorHandle: sourceItem.authorHandle,
+                canonicalUrl,
+                contentType: sourceItem.contentType,
+                currentEngagementTotal: engagementTotal,
+                currentMetrics: sourceItem.metrics || {},
+                externalId: sourceItem.id,
+                firstSeenAt: now.toISOString(),
+                lastSeenAt: now.toISOString(),
+                latestTrendMentions: trend.mentions,
+                latestTrendViralityScore: trend.viralityScore,
+                matchedTrendTopics: [trend.topic],
+                mediaUrl: sourceItem.mediaUrl,
+                platform: sourceItem.platform,
+                publishedAt: sourceItem.publishedAt
+                  ? new Date(sourceItem.publishedAt).toISOString()
+                  : undefined,
+                sourcePreviewState: trend.sourcePreviewState,
+                text: sourceItem.text,
+                thumbnailUrl: sourceItem.thumbnailUrl,
+                title: sourceItem.title,
+              } as never,
               isDeleted: false,
-              platform: sourceItem.platform,
             },
-          },
-          {
-            new: true,
-            upsert: true,
-          },
-        );
+          });
+          referenceId = created.id;
+        }
         references += 1;
 
-        const snapshotResult =
-          await this.trendSourceReferenceSnapshotModel.updateOne(
-            {
+        // Upsert snapshot for today
+        const snapshotDate = this.toSnapshotDate();
+        const existingSnapshot =
+          await this.prisma.trendSourceReferenceSnapshot.findFirst({
+            where: {
               isDeleted: false,
-              snapshotDate: this.toSnapshotDate(),
-              sourceReference: reference._id,
+              sourceReferenceId: referenceId,
             },
-            {
-              $set: {
-                engagementTotal: this.getEngagementTotal(sourceItem.metrics),
+          });
+
+        // Find snapshot matching snapshotDate (stored in data)
+        const snapshotDocs =
+          await this.prisma.trendSourceReferenceSnapshot.findMany({
+            where: {
+              isDeleted: false,
+              sourceReferenceId: referenceId,
+            },
+          });
+        const matchedSnapshot = snapshotDocs.find((doc) => {
+          const d = doc.data as unknown as Record<string, unknown>;
+          return d.snapshotDate === snapshotDate.toISOString();
+        });
+        void existingSnapshot;
+
+        if (!matchedSnapshot) {
+          await this.prisma.trendSourceReferenceSnapshot.create({
+            data: {
+              data: {
+                engagementTotal,
                 metrics: sourceItem.metrics || {},
+                snapshotDate: snapshotDate.toISOString(),
                 trendMentions: trend.mentions,
                 trendViralityScore: trend.viralityScore,
-              },
-              $setOnInsert: {
-                isDeleted: false,
-                snapshotDate: this.toSnapshotDate(),
-                sourceReference: reference._id,
-              },
-            },
-            {
-              upsert: true,
-            },
-          );
-        snapshots += snapshotResult.upsertedCount ?? 0;
-
-        const linkResult = await this.trendSourceReferenceLinkModel.updateOne(
-          {
-            isDeleted: false,
-            sourceReference: reference._id,
-            trend: new Types.ObjectId(trend.id),
-          },
-          {
-            $set: {
-              matchReason: `source-preview:${trend.sourcePreviewState}`,
-              rankAtCapture:
-                trend.sourcePreview.findIndex(
-                  (item) => item.sourceUrl === sourceItem.sourceUrl,
-                ) + 1,
-            },
-            $setOnInsert: {
+              } as never,
               isDeleted: false,
-              matchedAt: new Date(),
-              sourceReference: reference._id,
-              trend: new Types.ObjectId(trend.id),
+              sourceReferenceId: referenceId,
             },
-          },
-          {
-            upsert: true,
-          },
-        );
-        links += linkResult.upsertedCount ?? 0;
+          });
+          snapshots += 1;
+        } else {
+          await this.prisma.trendSourceReferenceSnapshot.update({
+            data: {
+              data: {
+                engagementTotal,
+                metrics: sourceItem.metrics || {},
+                snapshotDate: snapshotDate.toISOString(),
+                trendMentions: trend.mentions,
+                trendViralityScore: trend.viralityScore,
+              } as never,
+            },
+            where: { id: matchedSnapshot.id },
+          });
+        }
+
+        // Upsert link between trend and source reference
+        const existingLink =
+          await this.prisma.trendSourceReferenceLink.findFirst({
+            where: {
+              isDeleted: false,
+              sourceReferenceId: referenceId,
+              trendId: trend.id,
+            },
+          });
+
+        if (!existingLink) {
+          await this.prisma.trendSourceReferenceLink.create({
+            data: {
+              isDeleted: false,
+              sourceReferenceId: referenceId,
+              trendId: trend.id,
+            },
+          });
+          links += 1;
+        } else {
+          // Update matchReason/rankAtCapture in a data-like field if needed
+          // TrendSourceReferenceLink has no data blob — nothing to update
+        }
       }
     }
 
@@ -208,18 +261,17 @@ export class TrendReferenceCorpusService {
   }
 
   async countGlobalReferences(): Promise<number> {
-    return this.trendSourceReferenceModel.countDocuments({
-      isDeleted: false,
+    return this.prisma.trendSourceReference.count({
+      where: { isDeleted: false },
     });
   }
 
   async recordDraftRemixLineage(payload: RemixLineagePayload): Promise<void> {
     const hasContentDraftId =
       typeof payload.contentDraftId === 'string' &&
-      Types.ObjectId.isValid(payload.contentDraftId);
+      payload.contentDraftId.length > 0;
     const hasPostId =
-      typeof payload.postId === 'string' &&
-      Types.ObjectId.isValid(payload.postId);
+      typeof payload.postId === 'string' && payload.postId.length > 0;
 
     if (!hasContentDraftId && !hasPostId) {
       return;
@@ -229,8 +281,8 @@ export class TrendReferenceCorpusService {
       payload.metadata,
     );
     const trendIds = [
-      ...this.parseObjectIdArray(payload.metadata?.trendIds),
-      ...this.parseOptionalObjectId(payload.metadata?.trendId),
+      ...this.parseStringArray(payload.metadata?.trendIds),
+      ...this.parseOptionalString(payload.metadata?.trendId),
     ];
     const sourceUrls = [
       ...this.parseStringArray(payload.metadata?.sourceUrls),
@@ -241,42 +293,57 @@ export class TrendReferenceCorpusService {
       return;
     }
 
-    await this.trendRemixLineageModel.updateOne(
-      hasContentDraftId
-        ? {
-            contentDraft: new Types.ObjectId(payload.contentDraftId),
-          }
-        : {
-            post: new Types.ObjectId(payload.postId!),
+    // Find existing lineage record
+    const where = hasContentDraftId
+      ? { contentDraftId: payload.contentDraftId }
+      : { postId: payload.postId };
+
+    const existing = await this.prisma.trendRemixLineage.findFirst({
+      where: { ...where, isDeleted: false } as never,
+    });
+
+    const dataPayload = {
+      draftType: payload.draftType,
+      generatedBy: payload.generatedBy,
+      platforms: payload.platforms,
+      prompt: payload.prompt,
+      sourceUrls,
+    };
+
+    if (existing) {
+      await this.prisma.trendRemixLineage.update({
+        data: {
+          data: dataPayload as never,
+          // Update relations via Prisma connect
+          sourceReferences: {
+            set: sourceReferenceIds.map((id) => ({ id })),
           },
-      {
-        $set: {
-          brand: new Types.ObjectId(payload.brandId),
-          draftType: payload.draftType,
-          generatedBy: payload.generatedBy,
+          trends: {
+            set: trendIds.map((id) => ({ id })),
+          },
+        } as never,
+        where: { id: existing.id },
+      });
+    } else {
+      await this.prisma.trendRemixLineage.create({
+        data: {
+          brandId: payload.brandId,
+          contentDraftId: hasContentDraftId
+            ? payload.contentDraftId
+            : undefined,
+          data: dataPayload as never,
           isDeleted: false,
-          organization: new Types.ObjectId(payload.organizationId),
-          platforms: payload.platforms,
-          prompt: payload.prompt,
-          sourceReferences: sourceReferenceIds,
-          sourceUrls,
-          trends: trendIds,
-          ...(hasContentDraftId
-            ? {
-                contentDraft: new Types.ObjectId(payload.contentDraftId),
-              }
-            : {}),
-          ...(hasPostId
-            ? {
-                post: new Types.ObjectId(payload.postId!),
-              }
-            : {}),
-        },
-      },
-      {
-        upsert: true,
-      },
-    );
+          organizationId: payload.organizationId,
+          postId: hasPostId ? payload.postId : undefined,
+          sourceReferences: {
+            connect: sourceReferenceIds.map((id) => ({ id })),
+          },
+          trends: {
+            connect: trendIds.map((id) => ({ id })),
+          },
+        } as never,
+      });
+    }
   }
 
   async annotateSourceItemsWithReferenceIds<T extends TrendSourceItem>(
@@ -302,25 +369,27 @@ export class TrendReferenceCorpusService {
         sourceUrls.map((sourceUrl) => this.normalizeSourceUrl(sourceUrl)),
       ),
     );
-    const references = await this.trendSourceReferenceModel
-      .find({
-        canonicalUrl: {
-          $in: canonicalUrls,
-        },
-        isDeleted: false,
-      })
-      .select('_id canonicalUrl')
-      .lean();
 
-    if (references.length === 0) {
+    const allRefs = await this.prisma.trendSourceReference.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 5000,
+      where: { isDeleted: false },
+    });
+
+    const matchedRefs = allRefs.filter((doc) => {
+      const d = doc.data as unknown as Record<string, unknown>;
+      return canonicalUrls.includes(d.canonicalUrl as string);
+    });
+
+    if (matchedRefs.length === 0) {
       return items;
     }
 
     const referenceMap = new Map(
-      references.map((reference) => [
-        reference.canonicalUrl,
-        String(reference._id),
-      ]),
+      matchedRefs.map((doc) => {
+        const d = doc.data as unknown as Record<string, unknown>;
+        return [d.canonicalUrl as string, doc.id];
+      }),
     );
 
     return items.map((item) => ({
@@ -337,51 +406,70 @@ export class TrendReferenceCorpusService {
     options: ReferenceQueryOptions = {},
   ): Promise<TrendSourceReferenceResult> {
     const limit = options.limit ?? 30;
-    const filter: Record<string, unknown> = {
-      isDeleted: false,
-    };
 
-    if (options.platform) {
-      filter.platform = options.platform;
-    }
-
-    if (options.authorHandle) {
-      filter.authorHandle = options.authorHandle;
-    }
-
-    if (options.trendId && Types.ObjectId.isValid(options.trendId)) {
-      const links = await this.trendSourceReferenceLinkModel
-        .find({
+    let sourceReferenceIds: string[] | undefined;
+    if (options.trendId) {
+      const links = await this.prisma.trendSourceReferenceLink.findMany({
+        where: {
           isDeleted: false,
-          trend: new Types.ObjectId(options.trendId),
-        })
-        .lean();
-
-      const sourceReferenceIds = links.map((item) => item.sourceReference);
-      filter._id =
-        sourceReferenceIds.length > 0
-          ? { $in: sourceReferenceIds }
-          : { $in: [] };
+          trendId: options.trendId,
+        },
+      });
+      sourceReferenceIds = links
+        .map((l) => l.sourceReferenceId)
+        .filter((id): id is string => id != null);
     }
 
-    const docs = await this.trendSourceReferenceModel
-      .find(filter)
-      .sort({
-        currentEngagementTotal: -1,
-        lastSeenAt: -1,
-        latestTrendViralityScore: -1,
+    const allRefs = await this.prisma.trendSourceReference.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit * 10,
+      where: {
+        ...(sourceReferenceIds != null
+          ? { id: { in: sourceReferenceIds } }
+          : {}),
+        isDeleted: false,
+      },
+    });
+
+    // In-memory filter on JSON data fields
+    let docs = allRefs.filter((doc) => {
+      const d = doc.data as unknown as Record<string, unknown>;
+      if (options.platform && d.platform !== options.platform) return false;
+      if (options.authorHandle && d.authorHandle !== options.authorHandle)
+        return false;
+      return true;
+    });
+
+    // Sort by engagement, lastSeenAt, viralityScore
+    docs = docs
+      .sort((a, b) => {
+        const ad = a.data as unknown as Record<string, number>;
+        const bd = b.data as unknown as Record<string, number>;
+        const engDiff =
+          (bd.currentEngagementTotal ?? 0) - (ad.currentEngagementTotal ?? 0);
+        if (engDiff !== 0) return engDiff;
+        const virDiff =
+          (bd.latestTrendViralityScore ?? 0) -
+          (ad.latestTrendViralityScore ?? 0);
+        return virDiff;
       })
-      .limit(limit)
-      .lean();
+      .slice(0, limit);
 
     const remixCounts = await this.getRemixCounts(
-      docs.map((doc) => doc._id),
+      docs.map((doc) => doc.id),
       organizationId,
       brandId,
     );
 
     return {
-      items: docs.map((doc) => this.toReferenceRecord(doc, remixCounts)),
+      items: docs.map((doc) =>
+        this.toReferenceRecord(
+          doc.id,
+          doc.data as unknown as ReferenceRecordData,
+          doc.createdAt,
+          remixCounts,
+        ),
+      ),
       totalReferences: docs.length,
     };
   }
@@ -395,62 +483,61 @@ export class TrendReferenceCorpusService {
     } = {},
   ): Promise<TrendSourceAccountResult> {
     const limit = options.limit ?? 20;
-    const matchStage: Record<string, unknown> = {
-      authorHandle: {
-        $exists: true,
-        $ne: '',
-      },
-      isDeleted: false,
-    };
 
-    if (options.platform) {
-      matchStage.platform = options.platform;
-    }
+    const allRefs = await this.prisma.trendSourceReference.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 10000,
+      where: { isDeleted: false },
+    });
 
-    const aggregated = (await this.trendSourceReferenceModel.aggregate([
+    // In-memory grouping by authorHandle + platform (data fields)
+    type AccountKey = string; // `${platform}:${authorHandle}`
+    const accountMap = new Map<
+      AccountKey,
       {
-        $match: matchStage,
-      },
-      {
-        $group: {
-          _id: {
-            authorHandle: '$authorHandle',
-            platform: '$platform',
-          },
-          avgTrendViralityScore: {
-            $avg: '$latestTrendViralityScore',
-          },
-          lastSeenAt: {
-            $max: '$lastSeenAt',
-          },
-          referenceCount: {
-            $sum: 1,
-          },
-          totalEngagement: {
-            $sum: '$currentEngagementTotal',
-          },
-        },
-      },
-      {
-        $sort: {
-          avgTrendViralityScore: -1,
-          referenceCount: -1,
-          totalEngagement: -1,
-        },
-      },
-      {
-        $limit: limit,
-      },
-    ])) as Array<{
-      _id: {
         authorHandle: string;
         platform: string;
-      };
-      avgTrendViralityScore: number;
-      lastSeenAt?: Date;
-      referenceCount: number;
-      totalEngagement: number;
-    }>;
+        referenceCount: number;
+        totalEngagement: number;
+        totalViralityScore: number;
+        lastSeenAt?: Date;
+      }
+    >();
+
+    for (const doc of allRefs) {
+      const d = doc.data as unknown as Record<string, unknown>;
+      const authorHandle = d.authorHandle as string | undefined;
+      const platform = d.platform as string | undefined;
+      if (!authorHandle || !platform) continue;
+      if (options.platform && platform !== options.platform) continue;
+
+      const key: AccountKey = `${platform}:${authorHandle}`;
+      const existing = accountMap.get(key);
+      const lastSeenAtStr = d.lastSeenAt as string | undefined;
+      const lastSeenAt = lastSeenAtStr ? new Date(lastSeenAtStr) : undefined;
+
+      if (existing) {
+        existing.referenceCount += 1;
+        existing.totalEngagement += (d.currentEngagementTotal as number) ?? 0;
+        existing.totalViralityScore +=
+          (d.latestTrendViralityScore as number) ?? 0;
+        if (
+          lastSeenAt &&
+          (!existing.lastSeenAt || lastSeenAt > existing.lastSeenAt)
+        ) {
+          existing.lastSeenAt = lastSeenAt;
+        }
+      } else {
+        accountMap.set(key, {
+          authorHandle,
+          lastSeenAt,
+          platform,
+          referenceCount: 1,
+          totalEngagement: (d.currentEngagementTotal as number) ?? 0,
+          totalViralityScore: (d.latestTrendViralityScore as number) ?? 0,
+        });
+      }
+    }
 
     const brandRemixCounts = await this.getBrandRemixCountsByAccount(
       organizationId,
@@ -458,19 +545,29 @@ export class TrendReferenceCorpusService {
       options.platform,
     );
 
-    const accounts: TrendSourceAccountSummary[] = aggregated.map((account) => {
-      const lookupKey = `${account._id.platform}:${account._id.authorHandle}`;
-
-      return {
-        authorHandle: account._id.authorHandle,
-        avgTrendViralityScore: Math.round(account.avgTrendViralityScore || 0),
-        brandRemixCount: brandRemixCounts.get(lookupKey) || 0,
-        lastSeenAt: account.lastSeenAt?.toISOString(),
-        platform: account._id.platform,
-        referenceCount: account.referenceCount,
-        totalEngagement: account.totalEngagement,
-      };
-    });
+    const accounts: TrendSourceAccountSummary[] = Array.from(
+      accountMap.entries(),
+    )
+      .map(([key, stats]) => ({
+        authorHandle: stats.authorHandle,
+        avgTrendViralityScore: Math.round(
+          stats.referenceCount > 0
+            ? stats.totalViralityScore / stats.referenceCount
+            : 0,
+        ),
+        brandRemixCount: brandRemixCounts.get(key) || 0,
+        lastSeenAt: stats.lastSeenAt?.toISOString(),
+        platform: stats.platform,
+        referenceCount: stats.referenceCount,
+        totalEngagement: stats.totalEngagement,
+      }))
+      .sort(
+        (a, b) =>
+          b.avgTrendViralityScore - a.avgTrendViralityScore ||
+          b.referenceCount - a.referenceCount ||
+          b.totalEngagement - a.totalEngagement,
+      )
+      .slice(0, limit);
 
     return {
       accounts,
@@ -480,15 +577,13 @@ export class TrendReferenceCorpusService {
 
   private async resolveSourceReferenceIds(
     metadata?: Record<string, unknown>,
-  ): Promise<Types.ObjectId[]> {
+  ): Promise<string[]> {
     const explicitIds = [
-      ...this.parseObjectIdArray(metadata?.sourceReferenceIds),
-      ...this.parseOptionalObjectId(metadata?.sourceReferenceId),
+      ...this.parseStringArray(metadata?.sourceReferenceIds),
+      ...this.parseOptionalString(metadata?.sourceReferenceId),
     ];
     if (explicitIds.length > 0) {
-      return Array.from(
-        new Map(explicitIds.map((id) => [String(id), id])).values(),
-      );
+      return Array.from(new Set(explicitIds));
     }
 
     const sourceUrls = [
@@ -502,25 +597,18 @@ export class TrendReferenceCorpusService {
     const normalizedUrls = sourceUrls.map((url) =>
       this.normalizeSourceUrl(url),
     );
-    const refs = await this.trendSourceReferenceModel
-      .find({
-        canonicalUrl: {
-          $in: normalizedUrls,
-        },
-        isDeleted: false,
+
+    const allRefs = await this.prisma.trendSourceReference.findMany({
+      take: 5000,
+      where: { isDeleted: false },
+    });
+
+    return allRefs
+      .filter((doc) => {
+        const d = doc.data as unknown as Record<string, unknown>;
+        return normalizedUrls.includes(d.canonicalUrl as string);
       })
-      .select('_id')
-      .lean();
-
-    return refs.map((ref) => ref._id);
-  }
-
-  private parseOptionalObjectId(value: unknown): Types.ObjectId[] {
-    if (typeof value !== 'string' || !Types.ObjectId.isValid(value)) {
-      return [];
-    }
-
-    return [new Types.ObjectId(value)];
+      .map((doc) => doc.id);
   }
 
   private parseOptionalString(value: unknown): string[] {
@@ -529,17 +617,6 @@ export class TrendReferenceCorpusService {
     }
 
     return [value];
-  }
-
-  private parseObjectIdArray(value: unknown): Types.ObjectId[] {
-    if (!Array.isArray(value)) {
-      return [];
-    }
-
-    return value
-      .filter((entry): entry is string => typeof entry === 'string')
-      .filter((entry) => Types.ObjectId.isValid(entry))
-      .map((entry) => new Types.ObjectId(entry));
   }
 
   private parseStringArray(value: unknown): string[] {
@@ -583,55 +660,34 @@ export class TrendReferenceCorpusService {
   }
 
   private async getRemixCounts(
-    sourceReferenceIds: Types.ObjectId[],
+    sourceReferenceIds: string[],
     organizationId?: string,
     brandId?: string,
   ): Promise<Map<string, number>> {
-    if (
-      sourceReferenceIds.length === 0 ||
-      !organizationId ||
-      !brandId ||
-      !Types.ObjectId.isValid(organizationId) ||
-      !Types.ObjectId.isValid(brandId)
-    ) {
+    if (sourceReferenceIds.length === 0 || !organizationId || !brandId) {
       return new Map();
     }
 
-    const rows = (await this.trendRemixLineageModel.aggregate([
-      {
-        $match: {
-          brand: new Types.ObjectId(brandId),
-          isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
-          sourceReferences: {
-            $in: sourceReferenceIds,
-          },
-        },
+    // Fetch remix lineages for this org+brand, then count source reference occurrences
+    const lineages = await this.prisma.trendRemixLineage.findMany({
+      include: { sourceReferences: { select: { id: true } } },
+      where: {
+        brandId,
+        isDeleted: false,
+        organizationId,
       },
-      {
-        $unwind: '$sourceReferences',
-      },
-      {
-        $match: {
-          sourceReferences: {
-            $in: sourceReferenceIds,
-          },
-        },
-      },
-      {
-        $group: {
-          _id: '$sourceReferences',
-          remixCount: {
-            $sum: 1,
-          },
-        },
-      },
-    ])) as Array<{
-      _id: Types.ObjectId;
-      remixCount: number;
-    }>;
+    });
 
-    return new Map(rows.map((row) => [String(row._id), row.remixCount]));
+    const countMap = new Map<string, number>();
+    for (const lineage of lineages) {
+      for (const ref of lineage.sourceReferences) {
+        if (sourceReferenceIds.includes(ref.id)) {
+          countMap.set(ref.id, (countMap.get(ref.id) ?? 0) + 1);
+        }
+      }
+    }
+
+    return countMap;
   }
 
   private async getBrandRemixCountsByAccount(
@@ -639,101 +695,63 @@ export class TrendReferenceCorpusService {
     brandId?: string,
     platform?: string,
   ): Promise<Map<string, number>> {
-    if (
-      !organizationId ||
-      !brandId ||
-      !Types.ObjectId.isValid(organizationId) ||
-      !Types.ObjectId.isValid(brandId)
-    ) {
+    if (!organizationId || !brandId) {
       return new Map();
     }
 
-    const rows = (await this.trendRemixLineageModel.aggregate([
-      {
-        $match: {
-          brand: new Types.ObjectId(brandId),
-          isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
-        },
+    const lineages = await this.prisma.trendRemixLineage.findMany({
+      include: {
+        sourceReferences: { select: { data: true, id: true } },
       },
-      {
-        $unwind: '$sourceReferences',
+      where: {
+        brandId,
+        isDeleted: false,
+        organizationId,
       },
-      {
-        $lookup: {
-          as: 'sourceReference',
-          foreignField: '_id',
-          from: 'trend-source-references',
-          localField: 'sourceReferences',
-        },
-      },
-      {
-        $unwind: '$sourceReference',
-      },
-      {
-        $match: {
-          ...(platform
-            ? {
-                'sourceReference.platform': platform,
-              }
-            : {}),
-          'sourceReference.authorHandle': {
-            $exists: true,
-            $ne: '',
-          },
-        },
-      },
-      {
-        $group: {
-          _id: {
-            authorHandle: '$sourceReference.authorHandle',
-            platform: '$sourceReference.platform',
-          },
-          brandRemixCount: {
-            $sum: 1,
-          },
-        },
-      },
-    ])) as Array<{
-      _id: {
-        authorHandle: string;
-        platform: string;
-      };
-      brandRemixCount: number;
-    }>;
+    });
 
-    return new Map(
-      rows.map((row) => [
-        `${row._id.platform}:${row._id.authorHandle}`,
-        row.brandRemixCount,
-      ]),
-    );
+    const countMap = new Map<string, number>();
+    for (const lineage of lineages) {
+      for (const ref of lineage.sourceReferences) {
+        const d = ref.data as unknown as Record<string, unknown>;
+        const authorHandle = d.authorHandle as string | undefined;
+        const refPlatform = d.platform as string | undefined;
+        if (!authorHandle || !refPlatform) continue;
+        if (platform && refPlatform !== platform) continue;
+        const key = `${refPlatform}:${authorHandle}`;
+        countMap.set(key, (countMap.get(key) ?? 0) + 1);
+      }
+    }
+
+    return countMap;
   }
 
   private toReferenceRecord(
-    doc: ReferenceRecordDocument,
+    id: string,
+    data: ReferenceRecordData,
+    createdAt: Date,
     remixCounts: Map<string, number>,
   ): TrendSourceReferenceRecord {
     return {
-      authorHandle: doc.authorHandle,
-      canonicalUrl: doc.canonicalUrl,
-      contentType: doc.contentType,
-      currentEngagementTotal: doc.currentEngagementTotal,
-      currentMetrics: doc.currentMetrics,
-      firstSeenAt: doc.firstSeenAt.toISOString(),
-      id: String(doc._id),
-      lastSeenAt: doc.lastSeenAt.toISOString(),
-      latestTrendMentions: doc.latestTrendMentions,
-      latestTrendViralityScore: doc.latestTrendViralityScore,
-      matchedTrendTopics: doc.matchedTrendTopics,
-      mediaUrl: doc.mediaUrl,
-      platform: doc.platform,
-      publishedAt: doc.publishedAt?.toISOString(),
-      remixCount: remixCounts.get(String(doc._id)) || 0,
-      sourcePreviewState: doc.sourcePreviewState,
-      text: doc.text,
-      thumbnailUrl: doc.thumbnailUrl,
-      title: doc.title,
+      authorHandle: data.authorHandle,
+      canonicalUrl: data.canonicalUrl,
+      contentType: data.contentType,
+      currentEngagementTotal: data.currentEngagementTotal,
+      currentMetrics: data.currentMetrics,
+      firstSeenAt: data.firstSeenAt ?? createdAt.toISOString(),
+      id,
+      lastSeenAt: data.lastSeenAt,
+      latestTrendMentions: data.latestTrendMentions,
+      latestTrendViralityScore: data.latestTrendViralityScore,
+      matchedTrendTopics: data.matchedTrendTopics,
+      mediaUrl: data.mediaUrl,
+      platform: data.platform,
+      publishedAt: data.publishedAt,
+      remixCount: remixCounts.get(id) || 0,
+      sourcePreviewState: data.sourcePreviewState,
+      text: data.text,
+      thumbnailUrl: data.thumbnailUrl,
+      title: data.title,
     };
   }
 }

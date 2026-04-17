@@ -3,85 +3,96 @@ import { NotFoundException } from '@api/helpers/exceptions/http/not-found.except
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { QueryBuilder } from '@api/helpers/utils/query-builder.util';
 import { CacheService } from '@api/services/cache/services/cache.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AggregationCacheUtil } from '@api/shared/utils/aggregation-cache/aggregation-cache.util';
-import { PopulateBuilder } from '@api/shared/utils/populate/populate.util';
-import type {
-  AggregatePaginateModel,
-  AggregatePaginateResult,
-} from '@api/types/mongoose-aggregate-paginate-v2';
+import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
-import { type PipelineStage, Types } from 'mongoose';
 
 /**
- * Common fields present on all Mongoose documents managed by BaseService.
- * All document types passed as T should extend this shape.
+ * Common fields present on all documents managed by BaseService.
+ * Prisma entities use string `id` (cuid/uuid) instead of ObjectId `_id`.
  */
 export interface BaseDocument {
-  _id: Types.ObjectId;
+  id: string;
   isDeleted?: boolean;
-  organization?: Types.ObjectId;
+  organizationId?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
 /**
- * MongoDB filter type for query operations.
- * Uses Record<string, unknown> because BaseService builds dynamic queries
- * (e.g., processSearchParams converts string IDs to ObjectId at runtime).
- * This is intentionally loose to support MongoDB query operators ($in, $or, etc.).
+ * Filter type for Prisma where clauses.
  */
-type MongoFilter = Record<string, unknown>;
+type PrismaFilter = Record<string, unknown>;
 
 /**
- * MongoDB update type for update operations.
- * Supports both direct field updates and MongoDB update operators ($set, $unset, $push, etc.).
+ * Update type for Prisma data clauses.
  */
-type MongoUpdate = Record<string, unknown>;
+type PrismaUpdate = Record<string, unknown>;
 
 /**
- * Type-safe model cast for Mongoose query methods.
- *
- * Mongoose 9's FilterQuery<T> and UpdateQuery<T> require concrete types,
- * but BaseService operates on generic T with dynamic query construction.
- * This type provides a single, documented cast point rather than scattering
- * `as unknown` casts throughout the codebase.
- *
- * All query methods cast `this.model` through this type to pass MongoFilter
- * and MongoUpdate objects that include runtime-constructed fields like
- * ObjectId conversions and MongoDB operators.
+ * Dynamic Prisma delegate type.
+ * Covers the subset of Prisma client methods used by BaseService.
+ * Using `any` here is intentional — Prisma generates concrete types per model,
+ * but BaseService operates generically across all models via `prisma[modelName]`.
  */
-type QueryableModel = AggregatePaginateModel<MongoFilter>;
+type PrismaDelegate = {
+  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
+  findMany: (args?: any) => Promise<any[]>;
+  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
+  findFirst: (args?: any) => Promise<any>;
+  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
+  findUnique: (args?: any) => Promise<any>;
+  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
+  create: (args: any) => Promise<any>;
+  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
+  update: (args: any) => Promise<any>;
+  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
+  updateMany: (args: any) => Promise<any>;
+  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
+  delete: (args: any) => Promise<any>;
+  // biome-ignore lint/suspicious/noExplicitAny: dynamic delegate, concrete types per model
+  count: (args?: any) => Promise<number>;
+};
 
 /**
- * BaseService - Abstract base class for all services extending Mongoose models
+ * Convert a populate array (string | PopulateOption) into a Prisma `include` object.
  *
- * ## Update Methods:
+ * Populate strings map directly to Prisma relation names.
+ * PopulateOption `select` field is ignored here — Prisma `include` includes full relations
+ * by default. Field-level selection within a relation requires a nested `select`, which
+ * callers that need it should override directly using Prisma APIs.
+ */
+function populateToInclude(
+  populate: (string | PopulateOption)[],
+): Record<string, boolean> | undefined {
+  if (!populate.length) return undefined;
+  return Object.fromEntries(
+    populate.map((p) => [typeof p === 'string' ? p : p.path, true]),
+  );
+}
+
+/**
+ * BaseService — Abstract base class for all services backed by Prisma models.
  *
- * - `patch(id, data)` - For updates with $set/$unset. Auto-wraps in $set, invalidates cache.
- *   ```ts
- *   await this.patch(id, { name: 'New Name', status: 'active' });
- *   await this.patch(id, { $set: { status: 'active' }, $unset: { oldField: '' } });
- *   ```
+ * ## Constructor
+ * ```ts
+ * constructor(prisma: PrismaService, 'modelName', logger, configService?, cacheService?)
+ * ```
+ * `modelName` must match the Prisma model name in camelCase (e.g. `'post'`, `'brand'`, `'user'`).
  *
- * - `patchAll(filter, update)` - For bulk updates. Returns { modifiedCount }.
- *   ```ts
- *   await this.patchAll({ status: 'pending' }, { $set: { status: 'processed' } });
- *   ```
+ * ## Update Methods
+ * - `patch(id, data)` — Updates a single document by ID. Auto-invalidates cache.
+ * - `patchAll(filter, update)` — Bulk update. Returns `{ modifiedCount }`.
  *
- * ## ID Handling:
- *
- * - `findOne()` uses `processSearchParams()` which auto-converts string IDs to ObjectId
- *   for these fields: _id, id, user, brand, organization, parent, metadata, asset, credential, activity, ingredient
- * - `patch()` accepts both string and ObjectId - Mongoose handles conversion
- * - For aggregation pipelines and $or queries, use explicit `new Types.ObjectId(id)`
- *
- * ## DO NOT use raw model.updateOne():
- * - Bypasses cache invalidation
- * - No return value (just modifiedCount)
- * - Use `patch()` or `patchAll()` instead
+ * ## findAll / aggregation
+ * The `findAll` method previously accepted MongoDB aggregation pipelines. In the Prisma
+ * migration it accepts `AggregationOptions` (page, limit, sort) and builds a simple
+ * `findMany` + `count` query. Services that require complex aggregations should call
+ * `this.prisma[this.modelName].findMany(...)` directly.
  */
 @Injectable()
 export abstract class BaseService<
@@ -90,18 +101,28 @@ export abstract class BaseService<
   UpdateDto = Partial<CreateDto>,
 > {
   constructor(
-    protected readonly model: AggregatePaginateModel<T>,
-
+    protected readonly prisma: PrismaService,
+    protected readonly modelName: string,
     public readonly logger?: LoggerService,
     public readonly baseConfigService?: ConfigService,
     @Optional() protected readonly cacheService?: CacheService,
   ) {}
 
   /**
-   * Get the collection name from the model for logging and cache invalidation
+   * Returns the model name — used for logging and cache tag generation.
+   * Replaces the old `this.model.collection.name` getter.
    */
   protected get collectionName(): string {
-    return this.model.collection.name;
+    return this.modelName;
+  }
+
+  /**
+   * Returns the typed Prisma delegate for this service's model.
+   */
+  protected get delegate(): PrismaDelegate {
+    return (this.prisma as unknown as Record<string, PrismaDelegate>)[
+      this.modelName
+    ];
   }
 
   public logOperation(
@@ -117,14 +138,6 @@ export abstract class BaseService<
     }
   }
 
-  protected optimizePopulate(
-    populate: (string | PopulateOption)[] = [],
-  ): PopulateOption[] {
-    return populate.map((field) =>
-      typeof field === 'string' ? PopulateBuilder.minimal(field) : field,
-    );
-  }
-
   async create(
     createDto: CreateDto,
     populate: (string | PopulateOption)[] = [],
@@ -137,34 +150,17 @@ export abstract class BaseService<
       this.logger?.debug('Creating new document', {
         collectionName: this.collectionName,
         createDto,
-        modelName: this.model.modelName,
+        modelName: this.modelName,
       });
 
-      const doc = new this.model(createDto as Partial<T>);
-      const saved = await doc.save();
-      const savedId = (saved as unknown as BaseDocument)._id;
+      const include = populateToInclude(populate);
+      const doc = await this.delegate.create({
+        data: createDto,
+        ...(include ? { include } : {}),
+      });
 
-      // Optimize: Only populate if explicitly requested, otherwise return saved document
-      if (populate.length === 0) {
-        this.logger?.debug('Document created successfully', { id: savedId });
-        return saved as T;
-      }
+      this.logger?.debug('Document created successfully', { id: doc.id });
 
-      const result = await this.model
-        .findById(savedId)
-        .populate(this.optimizePopulate(populate))
-        .exec();
-
-      this.logger?.debug('Document created successfully', { id: savedId });
-
-      if (!result) {
-        throw new NotFoundException('Document', savedId.toString());
-      }
-
-      // Invalidate collection cache after create.
-      // Bust the collection name tag (matches @Cache({ tags: [collectionName] }))
-      // as well as aggregation-specific tags. patch() and remove() already do this;
-      // create() was only busting agg tags, missing the HTTP-level cache (fixes #433).
       if (this.cacheService) {
         await this.cacheService.invalidateByTags([
           this.collectionName,
@@ -174,71 +170,110 @@ export abstract class BaseService<
         ]);
       }
 
-      return result;
+      return doc as T;
     } catch (error: unknown) {
       this.logger?.error('Failed to create document', { createDto, error });
       throw error;
     }
   }
 
+  /**
+   * Find documents with pagination.
+   *
+   * Previously accepted MongoDB aggregation pipelines. Now accepts an options object.
+   * Services that require raw aggregation should override this method or call
+   * `this.prisma.$queryRaw` / `this.delegate.findMany(...)` directly.
+   *
+   * The first parameter `_pipeline` is kept for API compatibility with callers that pass
+   * a MongoDB pipeline array — it is ignored. Pass `{}` or `[]` when calling from
+   * migrated code.
+   */
   async findAll(
-    aggregate: PipelineStage[],
+    _pipeline: unknown,
     options: AggregationOptions,
-    enableCache: boolean = false, // Disable cache by default - causing too many issues
+    enableCache: boolean = false,
   ): Promise<AggregatePaginateResult<T>> {
     try {
-      if (!Array.isArray(aggregate)) {
-        throw new ValidationException('Aggregate pipeline must be an array');
+      const page = options.page ?? 1;
+      const limit = options.limit ?? 20;
+      const skip = (page - 1) * limit;
+      const orderBy = options.sort
+        ? Object.entries(options.sort).reduce<Record<string, string>>(
+            (acc, [key, dir]) => {
+              acc[key] = dir === 1 ? 'asc' : 'desc';
+              return acc;
+            },
+            {},
+          )
+        : { createdAt: 'desc' };
+
+      const where = { isDeleted: false };
+
+      const cacheKey =
+        enableCache && this.cacheService
+          ? AggregationCacheUtil.generateCacheKey(
+              this.collectionName,
+              [],
+              options,
+            )
+          : null;
+
+      if (cacheKey && this.cacheService) {
+        const cached =
+          await this.cacheService.get<AggregatePaginateResult<T>>(cacheKey);
+        if (cached !== null) return cached;
       }
 
-      this.logger?.debug('Finding documents with aggregation', {
-        aggregate,
-        cacheEnabled: enableCache && !!this.cacheService,
-        options,
-      });
+      const isPaginated = options.pagination !== false;
 
-      let result: AggregatePaginateResult<T>;
+      if (!isPaginated) {
+        const docs = (await this.delegate.findMany({ where, orderBy })) as T[];
+        const result: AggregatePaginateResult<T> = {
+          docs,
+          hasNextPage: false,
+          hasPrevPage: false,
+          limit: docs.length,
+          nextPage: null,
+          page: 1,
+          pagingCounter: 1,
+          prevPage: null,
+          totalDocs: docs.length,
+          totalPages: 1,
+        };
+        return result;
+      }
 
-      if (
-        enableCache &&
-        this.cacheService &&
-        AggregationCacheUtil.isCacheable(aggregate) &&
-        options.pagination !== false // Skip cache for non-paginated queries for now
-      ) {
-        result = (await AggregationCacheUtil.executePaginatedWithCache(
-          this.model,
-          aggregate,
-          options,
-          this.cacheService,
-          {
-            tags: [`collection:${this.collectionName}`],
-            ttl: 300, // 5 minutes default
-          },
-        )) as AggregatePaginateResult<T>;
-      } else {
-        if (options.pagination === false) {
-          const agg = this.model.aggregate(aggregate);
-          const docs = await agg.exec();
-          result = {
-            docs,
-            hasNextPage: false,
-            hasPrevPage: false,
-            limit: docs.length,
-            nextPage: null,
-            page: 1,
-            pagingCounter: 1,
-            prevPage: null,
-            totalDocs: docs.length,
-            totalPages: 1,
-          } as AggregatePaginateResult<T>;
-        } else {
-          const agg = this.model.aggregate(aggregate);
-          result = await this.model.aggregatePaginate(agg, options);
-        }
+      const [docs, totalDocs] = await Promise.all([
+        this.delegate.findMany({ where, orderBy, skip, take: limit }),
+        this.delegate.count({ where }),
+      ]);
+
+      const totalPages = Math.ceil(totalDocs / limit);
+      const result: AggregatePaginateResult<T> = {
+        docs: docs as T[],
+        hasNextPage: page * limit < totalDocs,
+        hasPrevPage: page > 1,
+        limit,
+        nextPage: page * limit < totalDocs ? page + 1 : null,
+        page,
+        pagingCounter: (page - 1) * limit + 1,
+        prevPage: page > 1 ? page - 1 : null,
+        totalDocs,
+        totalPages,
+      };
+
+      if (cacheKey && this.cacheService) {
+        await this.cacheService.set(cacheKey, result, {
+          tags: [
+            `collection:${this.collectionName}`,
+            `agg:${this.collectionName}`,
+            'agg:paginated',
+          ],
+          ttl: 300,
+        });
       }
 
       this.logger?.debug('Documents found successfully', {
-        cached: enableCache && !!this.cacheService,
         limit: result.limit,
         page: result.page,
         totalDocs: result.totalDocs,
@@ -246,29 +281,25 @@ export abstract class BaseService<
 
       return result;
     } catch (error: unknown) {
-      this.logger?.error('Failed to find documents', {
-        aggregate,
-        error,
-        options,
-      });
+      this.logger?.error('Failed to find documents', { error, options });
       throw error;
     }
   }
 
   async find(
-    params: MongoFilter,
+    params: PrismaFilter,
     populate: (string | PopulateOption)[] = [],
   ): Promise<T[]> {
-    const processedParams = this.processSearchParams(params);
-    return (this.model as QueryableModel)
-      .find(processedParams)
-      .populate(populate)
-      .lean()
-      .exec() as Promise<T[]>;
+    const where = this.processSearchParams(params);
+    const include = populateToInclude(populate);
+    return this.delegate.findMany({
+      where,
+      ...(include ? { include } : {}),
+    }) as Promise<T[]>;
   }
 
   async findOne(
-    params: MongoFilter,
+    params: PrismaFilter,
     populate: (string | PopulateOption)[] = [],
   ): Promise<T | null> {
     try {
@@ -278,39 +309,21 @@ export abstract class BaseService<
 
       this.logger?.debug('Finding document', { params, populate });
 
-      // Convert string IDs to ObjectId for MongoDB queries
-      const processedParams = this.processSearchParams(params);
+      const where = this.processSearchParams(params);
+      const include = populateToInclude(populate);
 
-      if (populate.length > 0) {
-        const result = await (this.model as QueryableModel)
-          .findOne(processedParams)
-          .populate(this.optimizePopulate(populate))
-          .exec();
-
-        if (result) {
-          this.logger?.debug('Document found successfully', {
-            id: (result as BaseDocument)._id,
-          });
-        } else {
-          this.logger?.debug('Document not found', { params: processedParams });
-        }
-
-        return result as T | null;
-      }
-
-      const result = await (this.model as QueryableModel)
-        .findOne(processedParams)
-        .exec();
+      const result = await this.delegate.findFirst({
+        where,
+        ...(include ? { include } : {}),
+      });
 
       if (result) {
-        this.logger?.debug('Document found successfully', {
-          id: (result as BaseDocument)._id,
-        });
+        this.logger?.debug('Document found successfully', { id: result.id });
       } else {
-        this.logger?.debug('Document not found', { params: processedParams });
+        this.logger?.debug('Document not found', { params: where });
       }
 
-      return result as T | null;
+      return (result as T) ?? null;
     } catch (error: unknown) {
       this.logger?.error('Failed to find document', {
         error,
@@ -322,11 +335,8 @@ export abstract class BaseService<
   }
 
   async patch(
-    id: Types.ObjectId | string,
-    updateDto:
-      | Partial<UpdateDto>
-      | { $set?: Partial<UpdateDto>; $unset?: Record<string, string> }
-      | Record<string, unknown>,
+    id: string,
+    updateDto: Partial<UpdateDto> | PrismaUpdate,
     populate: (string | PopulateOption)[] = [],
   ): Promise<T> {
     try {
@@ -340,18 +350,28 @@ export abstract class BaseService<
 
       this.logger?.debug('Updating document', { id, populate, updateDto });
 
-      const updateOperation =
-        '$set' in updateDto || '$unset' in updateDto
-          ? (updateDto as {
-              $set?: Partial<UpdateDto>;
-              $unset?: Record<string, string>;
-            })
-          : { $set: updateDto };
+      // Flatten legacy $set/$unset operators into plain Prisma data.
+      // Prisma does not use MongoDB operators — field values are set directly.
+      let data: PrismaUpdate;
+      if ('$set' in updateDto || '$unset' in updateDto) {
+        const setFields = (updateDto as { $set?: PrismaUpdate }).$set ?? {};
+        // $unset fields are nulled out in Prisma (no equivalent of MongoDB $unset)
+        const unsetFields = Object.fromEntries(
+          Object.keys(
+            (updateDto as { $unset?: Record<string, string> }).$unset ?? {},
+          ).map((k) => [k, null]),
+        );
+        data = { ...setFields, ...unsetFields };
+      } else {
+        data = updateDto as PrismaUpdate;
+      }
 
-      const result = await (this.model as QueryableModel)
-        .findByIdAndUpdate(id, updateOperation, { returnDocument: 'after' })
-        .populate(this.optimizePopulate(populate))
-        .exec();
+      const include = populateToInclude(populate);
+      const result = await this.delegate.update({
+        where: { id },
+        data,
+        ...(include ? { include } : {}),
+      });
 
       if (result) {
         this.logger?.debug('Document updated successfully', { id });
@@ -381,8 +401,8 @@ export abstract class BaseService<
   }
 
   async patchAll(
-    filter: MongoFilter,
-    update: MongoUpdate,
+    filter: PrismaFilter,
+    update: PrismaUpdate,
   ): Promise<{ modifiedCount: number }> {
     try {
       if (!filter || typeof filter !== 'object') {
@@ -395,24 +415,26 @@ export abstract class BaseService<
 
       this.logger?.debug('Bulk updating documents', { filter, update });
 
-      const result = await (this.model as QueryableModel)
-        .updateMany(filter, update)
-        .exec();
+      // Flatten $set operator if present (legacy MongoDB update syntax)
+      const data = '$set' in update ? (update.$set as PrismaUpdate) : update;
 
-      this.logger?.debug('Bulk update completed', {
-        matchedCount: result.matchedCount,
-        modifiedCount: result.modifiedCount,
+      const result = await this.delegate.updateMany({
+        where: filter,
+        data,
       });
 
-      // Invalidate collection cache after bulk update
-      if (this.cacheService && result.modifiedCount > 0) {
+      this.logger?.debug('Bulk update completed', {
+        modifiedCount: result.count,
+      });
+
+      if (this.cacheService && result.count > 0) {
         await AggregationCacheUtil.invalidateCollectionCache(
           this.cacheService,
           this.collectionName,
         );
       }
 
-      return { modifiedCount: result.modifiedCount };
+      return { modifiedCount: result.count };
     } catch (error: unknown) {
       this.logger?.error('Failed to bulk update documents', {
         error,
@@ -431,9 +453,10 @@ export abstract class BaseService<
 
       this.logger?.debug('Soft deleting document', { id });
 
-      const result = await (this.model as QueryableModel)
-        .findByIdAndUpdate(id, { isDeleted: true }, { returnDocument: 'after' })
-        .exec();
+      const result = await this.delegate.update({
+        where: { id },
+        data: { isDeleted: true },
+      });
 
       if (result) {
         this.logger?.debug('Document soft deleted successfully', { id });
@@ -450,7 +473,7 @@ export abstract class BaseService<
         this.logger?.debug('Document not found for deletion', { id });
       }
 
-      return result as T | null;
+      return (result as T) ?? null;
     } catch (error: unknown) {
       this.logger?.error('Failed to soft delete document', { error, id });
       throw error;
@@ -458,59 +481,36 @@ export abstract class BaseService<
   }
 
   /**
-   * Process search parameters to convert string IDs to ObjectId where needed
+   * Process search parameters for Prisma where clauses.
+   * Converts `_id` → `id` (Prisma uses `id`, not `_id`).
+   * Strips ObjectId conversion — Prisma uses string IDs natively.
    */
-  public processSearchParams(params: MongoFilter): MongoFilter {
-    const processed = { ...params };
+  public processSearchParams(params: PrismaFilter): PrismaFilter {
+    const processed: PrismaFilter = {};
 
-    // Fields that should be converted to ObjectId
-    const objectIdFields = [
-      '_id',
-      'id',
-      'user',
-      'brand',
-      'organization',
-      'parent',
-      'metadata',
-      'asset',
-      'credential',
-      'activity',
-      'ingredient',
-    ];
-
-    for (const [key, value] of Object.entries(processed)) {
-      if (
-        objectIdFields.includes(key) &&
-        typeof value === 'string' &&
-        Types.ObjectId.isValid(value)
-      ) {
-        processed[key] = new Types.ObjectId(value);
-      }
+    for (const [key, value] of Object.entries(params)) {
+      // Remap MongoDB _id field to Prisma id field
+      const prismaKey = key === '_id' ? 'id' : key;
+      processed[prismaKey] = value;
     }
 
     return processed;
   }
 
   /**
-   * Find one document with organization isolation
-   * Automatically includes organization and isDeleted filters
-   *
-   * @example
-   * const item = await this.findOneWithOrganization(id, organizationId);
+   * Find one document with organization isolation.
+   * Automatically includes `organizationId` and `isDeleted: false` filters.
    */
   protected async findOneWithOrganization(
     id: string,
     organizationId: string,
     populate: PopulateOption[] = [],
   ): Promise<T> {
-    const item = await (this.model as QueryableModel)
-      .findOne({
-        _id: id,
-        isDeleted: false,
-        organizationId,
-      })
-      .populate(this.optimizePopulate(populate))
-      .lean();
+    const include = populateToInclude(populate);
+    const item = await this.delegate.findFirst({
+      where: { id, organizationId, isDeleted: false },
+      ...(include ? { include } : {}),
+    });
 
     if (!item) {
       throw new NotFoundException(`${this.constructor.name} not found`);
@@ -520,15 +520,12 @@ export abstract class BaseService<
   }
 
   /**
-   * Find all documents for an organization with optional filters
-   * Automatically includes organization and isDeleted filters
-   *
-   * @example
-   * const items = await this.findAllByOrganization(organizationId, { isActive: true });
+   * Find all documents for an organization with optional filters.
+   * Automatically includes `organizationId` and `isDeleted: false` filters.
    */
   async findAllByOrganization(
     organizationId: string,
-    filters?: MongoFilter,
+    filters?: PrismaFilter,
     sort: Record<string, 1 | -1> = { createdAt: -1 },
     populate: PopulateOption[] = [],
   ): Promise<T[]> {
@@ -547,22 +544,25 @@ export abstract class BaseService<
     }
 
     const query = queryBuilder.build();
+    const include = populateToInclude(populate);
 
-    return (await (this.model as QueryableModel)
-      .find(query)
-      .sort(sort)
-      .populate(this.optimizePopulate(populate))
-      .lean()) as T[];
+    const orderBy = Object.entries(sort).reduce<Record<string, string>>(
+      (acc, [key, dir]) => {
+        acc[key] = dir === 1 ? 'asc' : 'desc';
+        return acc;
+      },
+      {},
+    );
+
+    return this.delegate.findMany({
+      where: query,
+      orderBy,
+      ...(include ? { include } : {}),
+    }) as Promise<T[]>;
   }
 
   /**
-   * Create a QueryBuilder instance for building complex queries
-   *
-   * @example
-   * const query = this.createQueryBuilder(organizationId)
-   *   .addFilter('status', 'active')
-   *   .addInFilter('categories', ['tech', 'news'])
-   *   .build();
+   * Create a QueryBuilder instance for building complex queries.
    */
   protected createQueryBuilder(organizationId: string): QueryBuilder {
     return new QueryBuilder(organizationId);
@@ -571,22 +571,6 @@ export abstract class BaseService<
   /**
    * Update a single boolean flag on an entity with organization isolation.
    * Common pattern for markAsRead, markAsDismissed, markAsArchived, etc.
-   *
-   * @param id - Document ID
-   * @param organizationId - Organization ID for tenant isolation
-   * @param field - The boolean field to update
-   * @param value - The new value (default: true)
-   * @returns The updated document or null if not found
-   *
-   * @example
-   * // Mark as read
-   * await this.updateEntityFlag(id, organizationId, 'isRead', true);
-   *
-   * // Mark as dismissed
-   * await this.updateEntityFlag(id, organizationId, 'isDismissed', true);
-   *
-   * // Mark as archived
-   * await this.updateEntityFlag(id, organizationId, 'isArchived', true);
    */
   async updateEntityFlag(
     id: string,
@@ -602,21 +586,23 @@ export abstract class BaseService<
         value,
       });
 
-      const result = await (this.model as QueryableModel).findOneAndUpdate(
-        {
-          _id: new Types.ObjectId(id),
-          isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
-        },
-        { $set: { [field]: value } },
-        { returnDocument: 'after' },
-      );
+      // Verify ownership first, then update
+      const existing = await this.delegate.findFirst({
+        where: { id, organizationId, isDeleted: false },
+        select: { id: true },
+      });
 
-      if (result) {
-        this.logger?.debug(`${field} flag updated successfully`, { id });
-      } else {
+      if (!existing) {
         this.logger?.debug('Document not found for flag update', { id });
+        return null;
       }
+
+      const result = await this.delegate.update({
+        where: { id },
+        data: { [field]: value },
+      });
+
+      this.logger?.debug(`${field} flag updated successfully`, { id });
 
       return result as T | null;
     } catch (error: unknown) {
@@ -632,16 +618,6 @@ export abstract class BaseService<
 
   /**
    * Bulk update a boolean flag on multiple entities with organization isolation.
-   *
-   * @param ids - Array of document IDs
-   * @param organizationId - Organization ID for tenant isolation
-   * @param field - The boolean field to update
-   * @param value - The new value (default: true)
-   * @returns Object with modifiedCount
-   *
-   * @example
-   * // Mark multiple as read
-   * await this.bulkUpdateEntityFlag(ids, organizationId, 'isRead', true);
    */
   async bulkUpdateEntityFlag(
     ids: string[],
@@ -657,22 +633,20 @@ export abstract class BaseService<
         value,
       });
 
-      const objectIds = ids.map((id) => new Types.ObjectId(id));
-
-      const result = await (this.model as QueryableModel).updateMany(
-        {
-          _id: { $in: objectIds },
+      const result = await this.delegate.updateMany({
+        where: {
+          id: { in: ids },
+          organizationId,
           isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
         },
-        { $set: { [field]: value } },
-      );
-
-      this.logger?.debug(`Bulk ${field} flag update completed`, {
-        modifiedCount: result.modifiedCount,
+        data: { [field]: value },
       });
 
-      return { modifiedCount: result.modifiedCount };
+      this.logger?.debug(`Bulk ${field} flag update completed`, {
+        modifiedCount: result.count,
+      });
+
+      return { modifiedCount: result.count };
     } catch (error: unknown) {
       this.logger?.error(`Failed to bulk update ${field} flag`, {
         count: ids.length,

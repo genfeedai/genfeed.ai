@@ -1,8 +1,6 @@
-import type { Types } from 'mongoose';
-
 /**
  * Analytics aggregation result interfaces
- * Used for type-safe MongoDB aggregation results in analytics services
+ * Used for type-safe aggregation results in analytics services
  */
 
 export interface IEntityAnalyticsStats {
@@ -14,24 +12,24 @@ export interface IEntityAnalyticsStats {
 }
 
 export interface IAggregatedAnalyticsResult {
-  _id: Types.ObjectId | string;
+  _id: string;
   avgEngagementRate: number;
   totalLikes: number;
   totalComments: number;
   totalShares: number;
   totalSaves: number;
   totalViews: number;
-  posts: (Types.ObjectId | string)[];
+  posts: string[];
   platforms?: string[];
 }
 
 export interface IAggregatedEngagementResult {
-  _id: Types.ObjectId | string;
+  _id: string;
   totalEngagement: number;
 }
 
 export interface IOrganizationWithStats {
-  _id: Types.ObjectId | string;
+  _id: string;
   name: string;
   label?: string;
   logo?: string;
@@ -45,11 +43,11 @@ export interface IOrganizationWithStats {
 }
 
 export interface IBrandWithStats {
-  _id: Types.ObjectId | string;
+  _id: string;
   name: string;
   label?: string;
   logo?: string;
-  organization: Types.ObjectId | string;
+  organization: string;
   isActive?: boolean;
   totalPosts: number;
   totalViews: number;
@@ -86,7 +84,7 @@ export interface IPlatformAggregationResult {
 }
 
 export interface IPostCountAggregationResult {
-  _id: Types.ObjectId | string;
+  _id: string;
   count: number;
 }
 
@@ -114,8 +112,8 @@ export interface ILeaderboardEntry {
 }
 
 export interface IAnalyticsMatchStage {
-  organization?: Types.ObjectId | string;
-  brand?: Types.ObjectId | string;
+  organization?: string;
+  brand?: string;
   date?: {
     $gte?: Date;
     $lte?: Date;
@@ -214,7 +212,7 @@ export interface IViralHookPlatformAggResult {
 
 /** Result of getViralHooksSummary pipeline after $project */
 export interface IViralHookAggResult {
-  _id: Types.ObjectId;
+  _id: string;
   platforms: IViralHookPlatformAggResult[];
   post: {
     createdAt: Date;

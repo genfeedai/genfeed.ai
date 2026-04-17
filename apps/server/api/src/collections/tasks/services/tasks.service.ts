@@ -121,8 +121,7 @@ export class TasksService extends BaseService<
     private readonly taskCountersService: TaskCountersService,
     private readonly organizationsService: OrganizationsService,
   ) {
-    // TODO: remove model arg after BaseService Prisma migration
-    super(undefined as never, logger);
+    super(prisma, 'task', logger);
   }
 
   private get rawModel() {

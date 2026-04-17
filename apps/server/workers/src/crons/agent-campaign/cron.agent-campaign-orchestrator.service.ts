@@ -1,20 +1,26 @@
-import {
-  AgentCampaign,
-  type AgentCampaignDocument,
-} from '@api/collections/agent-campaigns/schemas/agent-campaign.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { CampaignMemoryQueueService } from '@api/services/agent-campaign/campaign-memory-queue.service';
 import { DEFAULT_TRIGGER_EVALUATION_INTERVAL_MINUTES } from '@api/services/agent-campaign/orchestrator.constants';
 import { OrchestratorQueueService } from '@api/services/agent-campaign/orchestrator-queue.service';
 import { TriggerEvaluatorQueueService } from '@api/services/agent-campaign/trigger-evaluator-queue.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Model } from 'mongoose';
+import type { AgentCampaign } from '@prisma/client';
 
 const MAX_CAMPAIGNS_PER_CYCLE = 20;
+
+type AgentCampaignConfig = {
+  orchestrationEnabled?: boolean;
+  status?: 'draft' | 'active' | 'paused' | 'completed';
+  nextOrchestratedAt?: string;
+  agents?: string[];
+};
+
+type AgentCampaignWithConfig = AgentCampaign & {
+  config: AgentCampaignConfig;
+};
 
 @Injectable()
 export class CronAgentCampaignOrchestratorService {
@@ -22,8 +28,7 @@ export class CronAgentCampaignOrchestratorService {
   private static readonly LOCK_TTL_SECONDS = 900;
 
   constructor(
-    @InjectModel(AgentCampaign.name, DB_CONNECTIONS.AGENT)
-    private readonly agentCampaignModel: Model<AgentCampaignDocument>,
+    private readonly prisma: PrismaService,
     private readonly campaignMemoryQueueService: CampaignMemoryQueueService,
     private readonly orchestratorQueueService: OrchestratorQueueService,
     private readonly triggerEvaluatorQueueService: TriggerEvaluatorQueueService,
@@ -55,16 +60,28 @@ export class CronAgentCampaignOrchestratorService {
       );
 
       const now = new Date();
-      const dueCampaigns = await this.agentCampaignModel
-        .find({
-          isDeleted: false,
-          nextOrchestratedAt: { $lte: now },
-          orchestrationEnabled: true,
-          status: 'active',
+
+      // Fetch non-deleted campaigns and filter in-memory for orchestration fields stored in config
+      const allCampaigns = (await this.prisma.agentCampaign.findMany({
+        orderBy: { updatedAt: 'asc' },
+        take: MAX_CAMPAIGNS_PER_CYCLE * 5,
+        where: { isDeleted: false },
+      })) as AgentCampaignWithConfig[];
+
+      const dueCampaigns = allCampaigns
+        .filter((c) => {
+          const cfg = (c.config ?? {}) as AgentCampaignConfig;
+          const nextOrchestratedAt = cfg.nextOrchestratedAt
+            ? new Date(cfg.nextOrchestratedAt)
+            : null;
+          return (
+            cfg.orchestrationEnabled === true &&
+            cfg.status === 'active' &&
+            nextOrchestratedAt !== null &&
+            nextOrchestratedAt <= now
+          );
         })
-        .sort({ nextOrchestratedAt: 1 })
-        .limit(MAX_CAMPAIGNS_PER_CYCLE)
-        .exec();
+        .slice(0, MAX_CAMPAIGNS_PER_CYCLE);
 
       this.logger.log(
         `Found ${dueCampaigns.length} campaigns due for orchestration`,
@@ -73,24 +90,29 @@ export class CronAgentCampaignOrchestratorService {
 
       for (const campaign of dueCampaigns) {
         try {
+          const cfg = (campaign.config ?? {}) as AgentCampaignConfig;
+          const scheduledAt = cfg.nextOrchestratedAt
+            ? new Date(cfg.nextOrchestratedAt)
+            : now;
+
           await this.orchestratorQueueService.queueCampaignRun({
-            campaignId: String(campaign._id),
-            organizationId: String(campaign.organization),
-            scheduledAt: campaign.nextOrchestratedAt,
-            userId: String(campaign.user),
+            campaignId: campaign.id,
+            organizationId: campaign.organizationId,
+            scheduledAt,
+            userId: campaign.userId,
           });
 
           await this.campaignMemoryQueueService.queueExtraction({
-            campaignId: String(campaign._id),
-            organizationId: String(campaign.organization),
-            scheduledAt: campaign.nextOrchestratedAt,
-            userId: String(campaign.user),
+            campaignId: campaign.id,
+            organizationId: campaign.organizationId,
+            scheduledAt,
+            userId: campaign.userId,
           });
         } catch (error: unknown) {
           const message =
             error instanceof Error ? error.message : 'Unknown error';
           this.logger.error(
-            `Campaign ${String(campaign._id)} orchestration queueing failed: ${message}`,
+            `Campaign ${campaign.id} orchestration queueing failed: ${message}`,
             'CronAgentCampaignOrchestratorService',
           );
         }
@@ -137,16 +159,24 @@ export class CronAgentCampaignOrchestratorService {
         'CronAgentCampaignOrchestratorService',
       );
 
-      const activeCampaigns = await this.agentCampaignModel
-        .find({
-          agents: { $exists: true, $ne: [] },
-          isDeleted: false,
-          orchestrationEnabled: true,
-          status: 'active',
+      // Fetch campaigns with agents relation to check for non-empty agents list
+      const allCampaigns = (await this.prisma.agentCampaign.findMany({
+        include: { agents: true },
+        orderBy: { updatedAt: 'desc' },
+        take: MAX_CAMPAIGNS_PER_CYCLE * 5,
+        where: { isDeleted: false },
+      })) as (AgentCampaignWithConfig & { agents: unknown[] })[];
+
+      const activeCampaigns = allCampaigns
+        .filter((c) => {
+          const cfg = (c.config ?? {}) as AgentCampaignConfig;
+          return (
+            cfg.orchestrationEnabled === true &&
+            cfg.status === 'active' &&
+            c.agents.length > 0
+          );
         })
-        .sort({ updatedAt: -1 })
-        .limit(MAX_CAMPAIGNS_PER_CYCLE)
-        .exec();
+        .slice(0, MAX_CAMPAIGNS_PER_CYCLE);
 
       this.logger.log(
         `Found ${activeCampaigns.length} campaigns eligible for trigger evaluation`,
@@ -156,15 +186,15 @@ export class CronAgentCampaignOrchestratorService {
       for (const campaign of activeCampaigns) {
         try {
           await this.triggerEvaluatorQueueService.queueCampaignEvaluation({
-            campaignId: String(campaign._id),
-            organizationId: String(campaign.organization),
-            userId: String(campaign.user),
+            campaignId: campaign.id,
+            organizationId: campaign.organizationId,
+            userId: campaign.userId,
           });
         } catch (error: unknown) {
           const message =
             error instanceof Error ? error.message : 'Unknown error';
           this.logger.error(
-            `Campaign ${String(campaign._id)} trigger evaluation queueing failed: ${message}`,
+            `Campaign ${campaign.id} trigger evaluation queueing failed: ${message}`,
             'CronAgentCampaignOrchestratorService',
           );
         }

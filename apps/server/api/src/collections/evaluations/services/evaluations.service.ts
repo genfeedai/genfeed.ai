@@ -90,8 +90,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     @Optional() private readonly articlesService?: ArticlesService,
     @Optional() private readonly postsService?: PostsService,
   ) {
-    // TODO: remove model arg after BaseService Prisma migration
-    super(undefined as never, logger);
+    super(prisma, 'evaluation', logger);
   }
 
   private async validateContentForEvaluation(

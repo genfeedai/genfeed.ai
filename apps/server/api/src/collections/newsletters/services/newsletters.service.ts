@@ -41,8 +41,7 @@ export class NewslettersService extends BaseService<
     private readonly openRouterService: OpenRouterService,
     private readonly brandsService: BrandsService,
   ) {
-    // TODO: remove model arg after BaseService Prisma migration
-    super(undefined as never, logger);
+    super(prisma, 'newsletter', logger);
   }
 
   buildListPipeline(

@@ -1,12 +1,8 @@
-import {
-  Persona,
-  type PersonaDocument,
-} from '@api/collections/personas/schemas/persona.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { ContentOrchestrationService } from '@api/services/content-orchestration/content-orchestration.service';
 import { ContentPipelineQueueService } from '@api/services/content-orchestration/content-pipeline-queue.service';
 import type { PipelineStep } from '@api/services/content-orchestration/pipeline.interfaces';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ImageTaskModel,
   MusicTaskModel,
@@ -16,11 +12,29 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Model } from 'mongoose';
+import type { Credential, Persona } from '@prisma/client';
 
 const MAX_PERSONAS_PER_CYCLE = 20;
+
+type PersonaContentStrategy = {
+  topics?: string[];
+  tone?: string;
+  frequency?: string;
+  platforms?: string[];
+  formats?: PersonaContentFormat[];
+};
+
+type PersonaConfig = {
+  contentStrategy?: PersonaContentStrategy;
+  profileImageUrl?: string;
+  lastAutopilotRunAt?: string;
+};
+
+type PersonaWithCredentials = Persona & {
+  credentials: Credential[];
+  config: PersonaConfig;
+};
 
 @Injectable()
 export class CronContentPipelineService {
@@ -28,8 +42,7 @@ export class CronContentPipelineService {
   private static readonly LOCK_TTL_SECONDS = 900; // 15 minutes
 
   constructor(
-    @InjectModel(Persona.name, DB_CONNECTIONS.CLOUD)
-    private readonly personaModel: Model<PersonaDocument>,
+    private readonly prisma: PrismaService,
     private readonly contentPipelineQueueService: ContentPipelineQueueService,
     private readonly cacheService: CacheService,
     private readonly logger: LoggerService,
@@ -59,15 +72,16 @@ export class CronContentPipelineService {
 
       const now = new Date();
 
-      const duePersonas = await this.personaModel
-        .find({
+      const duePersonas = (await this.prisma.persona.findMany({
+        include: { credentials: true },
+        take: MAX_PERSONAS_PER_CYCLE,
+        where: {
           isAutopilotEnabled: true,
           isDeleted: false,
-          nextAutopilotRunAt: { $lte: now },
-          status: PersonaStatus.ACTIVE,
-        })
-        .limit(MAX_PERSONAS_PER_CYCLE)
-        .exec();
+          nextAutopilotRunAt: { lte: now },
+          status: PersonaStatus.ACTIVE as never,
+        },
+      })) as PersonaWithCredentials[];
 
       this.logger.log(
         `Found ${duePersonas.length} personas due for autopilot`,
@@ -81,7 +95,7 @@ export class CronContentPipelineService {
           const message =
             error instanceof Error ? error.message : 'Unknown error';
           this.logger.error(
-            `Persona ${String(persona._id)} autopilot failed: ${message}`,
+            `Persona ${persona.id} autopilot failed: ${message}`,
             'CronContentPipelineService',
           );
         }
@@ -104,10 +118,11 @@ export class CronContentPipelineService {
   }
 
   private async processPersona(
-    persona: PersonaDocument,
+    persona: PersonaWithCredentials,
     now: Date,
   ): Promise<void> {
-    const personaId = String(persona._id);
+    const personaId = persona.id;
+    const config = (persona.config ?? {}) as PersonaConfig;
 
     if (!persona.credentials || persona.credentials.length === 0) {
       this.logger.debug(
@@ -118,7 +133,7 @@ export class CronContentPipelineService {
       return;
     }
 
-    if (!persona.profileImageUrl) {
+    if (!config.profileImageUrl) {
       this.logger.debug(
         `Persona ${personaId} has no profileImageUrl for I2V source, skipping`,
         'CronContentPipelineService',
@@ -131,14 +146,14 @@ export class CronContentPipelineService {
     const steps = this.buildStepsFromStrategy(persona, prompt);
 
     await this.contentPipelineQueueService.queueGenerateAndPublish({
-      brandId: persona.brand.toString(),
+      brandId: persona.brandId ?? '',
       idempotencyKey: `autopilot:${personaId}:${now.toISOString().slice(0, 13)}`,
-      organizationId: persona.organization.toString(),
+      organizationId: persona.organizationId,
       personaId,
-      platforms: persona.contentStrategy?.platforms,
+      platforms: config.contentStrategy?.platforms,
       prompt,
       steps,
-      userId: persona.user.toString(),
+      userId: persona.userId,
     });
 
     this.logger.log(
@@ -149,8 +164,9 @@ export class CronContentPipelineService {
     await this.scheduleNextRun(persona, now);
   }
 
-  private buildPromptFromStrategy(persona: PersonaDocument): string {
-    const strategy = persona.contentStrategy;
+  private buildPromptFromStrategy(persona: PersonaWithCredentials): string {
+    const config = (persona.config ?? {}) as PersonaConfig;
+    const strategy = config.contentStrategy;
     if (!strategy?.topics?.length) {
       return `Create engaging content for ${persona.label}`;
     }
@@ -163,10 +179,11 @@ export class CronContentPipelineService {
   }
 
   private buildStepsFromStrategy(
-    persona: PersonaDocument,
+    persona: PersonaWithCredentials,
     prompt: string,
   ): PipelineStep[] {
-    const formats = persona.contentStrategy?.formats ?? [];
+    const config = (persona.config ?? {}) as PersonaConfig;
+    const formats = config.contentStrategy?.formats ?? [];
 
     if (
       formats.includes(PersonaContentFormat.VIDEO) ||
@@ -174,7 +191,7 @@ export class CronContentPipelineService {
     ) {
       return [
         {
-          imageUrl: persona.profileImageUrl,
+          imageUrl: config.profileImageUrl,
           model: VideoTaskModel.KLINGAI,
           prompt,
           type: 'image-to-video',
@@ -203,20 +220,27 @@ export class CronContentPipelineService {
   }
 
   private async scheduleNextRun(
-    persona: PersonaDocument,
+    persona: PersonaWithCredentials,
     now: Date,
     updateLastRun = true,
   ): Promise<void> {
+    const config = (persona.config ?? {}) as PersonaConfig;
     const frequencyMs = ContentOrchestrationService.parseFrequencyToMs(
-      persona.contentStrategy?.frequency,
+      config.contentStrategy?.frequency,
     );
     const nextRun = new Date(now.getTime() + frequencyMs);
 
-    const $set: Record<string, unknown> = { nextAutopilotRunAt: nextRun };
-    if (updateLastRun) {
-      $set.lastAutopilotRunAt = now;
-    }
+    const updatedConfig: PersonaConfig = {
+      ...config,
+      ...(updateLastRun ? { lastAutopilotRunAt: now.toISOString() } : {}),
+    };
 
-    await this.personaModel.updateOne({ _id: persona._id }, { $set });
+    await this.prisma.persona.update({
+      data: {
+        config: updatedConfig as never,
+        nextAutopilotRunAt: nextRun,
+      },
+      where: { id: persona.id },
+    });
   }
 }

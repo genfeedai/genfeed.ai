@@ -1,18 +1,6 @@
 import { createHash } from 'node:crypto';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { AggregationOptions } from '@libs/interfaces/query.interface';
-import type { PipelineStage } from 'mongoose';
-
-type AggregationModelLike = {
-  aggregate: (pipeline: PipelineStage[]) => { exec: () => Promise<unknown[]> };
-  aggregatePaginate: (
-    aggregate: { exec: () => Promise<unknown[]> },
-    options: AggregationOptions,
-  ) => Promise<unknown>;
-  collection: {
-    name: string;
-  };
-};
 
 export interface AggregationCacheOptions {
   ttl?: number;
@@ -21,15 +9,17 @@ export interface AggregationCacheOptions {
 }
 
 /**
- * Utility class for caching MongoDB aggregation pipelines
+ * Utility class for caching paginated query results.
+ * Previously worked with Mongoose aggregate pipelines; now operates on plain
+ * collection names and pre-fetched result data.
  */
 export class AggregationCacheUtil {
   /**
-   * Generate a unique cache key for an aggregation pipeline
+   * Generate a unique cache key for a query / aggregation pipeline.
    */
   static generateCacheKey(
     collection: string,
-    pipeline: PipelineStage[],
+    pipeline: unknown[],
     options?: AggregationOptions,
   ): string {
     const hash = createHash('sha256');
@@ -42,77 +32,8 @@ export class AggregationCacheUtil {
   }
 
   /**
-   * Execute aggregation with caching
-   */
-  static async executeWithCache<T>(
-    model: AggregationModelLike,
-    pipeline: PipelineStage[],
-    cacheService: CacheService,
-    options: AggregationCacheOptions = {},
-  ): Promise<T[]> {
-    const collection = model.collection.name;
-    const cacheKey = AggregationCacheUtil.generateCacheKey(
-      options.namespace || collection,
-      pipeline,
-    );
-
-    // Try to get from cache
-    const cached = await cacheService.get<T[]>(cacheKey);
-    if (cached !== null) {
-      return cached;
-    }
-
-    // Execute aggregation
-    const result = (await model.aggregate(pipeline).exec()) as T[];
-
-    // Cache the result
-    await cacheService.set(cacheKey, result, {
-      tags: options.tags || [`agg:${collection}`],
-      ttl: options.ttl || 300, // Default 5 minutes
-    });
-
-    return result;
-  }
-
-  /**
-   * Execute paginated aggregation with caching
-   */
-  static async executePaginatedWithCache(
-    model: AggregationModelLike,
-    pipeline: PipelineStage[],
-    paginateOptions: AggregationOptions,
-    cacheService: CacheService,
-    options: AggregationCacheOptions = {},
-  ): Promise<unknown> {
-    const collection = model.collection.name;
-    const cacheKey = AggregationCacheUtil.generateCacheKey(
-      options.namespace || collection,
-      pipeline,
-      paginateOptions,
-    );
-
-    // Try to get from cache
-    const cached = await cacheService.get(cacheKey);
-    if (cached !== null) {
-      return cached;
-    }
-
-    // Execute paginated aggregation
-    const agg = model.aggregate(pipeline);
-    const result = await model.aggregatePaginate(agg, paginateOptions);
-
-    // Cache the result
-    await cacheService.set(cacheKey, result, {
-      tags: options.tags || [`agg:${collection}`, `agg:paginated`],
-      ttl: options.ttl || 300, // Default 5 minutes
-    });
-
-    return result;
-  }
-
-  /**
-   * Invalidate aggregation cache for a collection
-   * Invalidates both agg:collection and collection:collection tags
+   * Invalidate aggregation cache for a collection.
+   * Invalidates both `agg:{collection}` and `collection:{collection}` tags.
    */
   static async invalidateCollectionCache(
     cacheService: CacheService,
@@ -128,8 +49,7 @@ export class AggregationCacheUtil {
   }
 
   /**
-   * Invalidate all aggregation caches
-   * Invalidates both agg:paginated and all collection: tags
+   * Invalidate all aggregation caches.
    */
   static async invalidateAllAggregationCache(
     cacheService: CacheService,
@@ -138,9 +58,10 @@ export class AggregationCacheUtil {
   }
 
   /**
-   * Check if pipeline is cacheable (no user-specific or time-sensitive operations)
+   * Check if a pipeline is cacheable (no user-specific or time-sensitive operations).
+   * Kept for backward compatibility with callers that pass MongoDB pipeline arrays.
    */
-  static isCacheable(pipeline: PipelineStage[]): boolean {
+  static isCacheable(pipeline: unknown[]): boolean {
     const nonCacheableOperators = [
       '$currentDate',
       '$rand',
@@ -154,20 +75,5 @@ export class AggregationCacheUtil {
     return !nonCacheableOperators.some((operator) =>
       pipelineString.includes(operator),
     );
-  }
-
-  /**
-   * Extract filter criteria from pipeline for smart cache invalidation
-   */
-  static extractFilterCriteria(pipeline: PipelineStage[]): unknown {
-    const filters: Record<string, unknown> = {};
-
-    for (const stage of pipeline) {
-      if ('$match' in stage) {
-        Object.assign(filters, stage.$match);
-      }
-    }
-
-    return filters;
   }
 }

@@ -1,18 +1,12 @@
-import {
-  CreditTransactions,
-  type CreditTransactionsDocument,
-} from '@api/collections/credits/schemas/credit-transactions.schema';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ByokBillingStatus, CreditTransactionCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { type Model, Types } from 'mongoose';
 
 interface ByokInvoiceMetadata {
   billableCredits: string;
@@ -51,8 +45,7 @@ export class ByokBillingService {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
-    @InjectModel(CreditTransactions.name, DB_CONNECTIONS.AUTH)
-    private readonly creditTransactionsModel: Model<CreditTransactionsDocument>,
+    private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly stripeService: StripeService,
@@ -68,24 +61,20 @@ export class ByokBillingService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const result = await this.creditTransactionsModel.aggregate([
-        {
-          $match: {
-            category: CreditTransactionCategory.BYOK_USAGE,
-            createdAt: { $gte: startDate, $lte: endDate },
-            isDeleted: { $ne: true },
-            organization: new Types.ObjectId(organizationId),
-          },
+      const transactions = await this.prisma.creditTransaction.findMany({
+        select: { amount: true },
+        where: {
+          createdAt: { gte: startDate, lte: endDate },
+          isDeleted: false,
+          organizationId,
+          source: CreditTransactionCategory.BYOK_USAGE,
         },
-        {
-          $group: {
-            _id: null,
-            totalAmount: { $sum: { $abs: '$amount' } },
-          },
-        },
-      ]);
+      });
 
-      const totalUsage = result[0]?.totalAmount || 0;
+      const totalUsage = transactions.reduce(
+        (sum, t) => sum + Math.abs(t.amount),
+        0,
+      );
 
       this.loggerService.debug(`${url} aggregated`, {
         endDate,
@@ -125,7 +114,7 @@ export class ByokBillingService {
       // Get org settings for rollover and threshold override
       const orgSettings = await this.organizationSettingsService.findOne({
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
       });
 
       if (!orgSettings) {
@@ -378,7 +367,7 @@ export class ByokBillingService {
 
       const orgSettings = await this.organizationSettingsService.findOne({
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
       });
 
       const freeThreshold =

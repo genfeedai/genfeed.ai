@@ -1,19 +1,14 @@
-import {
-  Workflow,
-  type WorkflowDocument,
-} from '@api/collections/workflows/schemas/workflow.schema';
 import { InstagramSocialAdapter } from '@api/collections/workflows/services/adapters/instagram-social.adapter';
 import { TwitterSocialAdapter } from '@api/collections/workflows/services/adapters/twitter-social.adapter';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import type { TriggerEvent } from '@api/collections/workflows/services/workflow-executor.service';
 import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Model } from 'mongoose';
+import type { Workflow } from '@prisma/client';
 
 /**
  * Social trigger node types that require polling.
@@ -29,9 +24,22 @@ const SOCIAL_TRIGGER_TYPES = [
 
 type SocialTriggerType = (typeof SOCIAL_TRIGGER_TYPES)[number];
 
+type WorkflowNode = {
+  id: string;
+  type: string;
+  data: { config: Record<string, unknown> };
+};
+
+type WorkflowConfig = {
+  metadata?: {
+    pollState?: PollState;
+  };
+  [key: string]: unknown;
+};
+
 /**
  * Poll state stored per-workflow for tracking last seen event IDs.
- * Stored in workflow.metadata.pollState (schema uses flexible Object type).
+ * Stored in workflow.config.metadata.pollState.
  */
 interface PollState {
   /** Last seen event ID per trigger node */
@@ -45,13 +53,6 @@ interface PollState {
  *
  * Periodically checks social platform APIs for new events (mentions, likes,
  * reposts, followers, keywords, engagement) and triggers workflow executions.
- *
- * Architecture:
- * - Runs in workers service (ADR-W016: all crons in workers)
- * - Queries MongoDB for active workflows with social trigger nodes
- * - Calls Twitter/Instagram adapters to check for new events
- * - Queues workflow executions via BullMQ when events are detected
- * - Tracks last-seen event IDs in workflow metadata to avoid duplicates
  */
 @Injectable()
 export class SocialPollingService {
@@ -59,8 +60,7 @@ export class SocialPollingService {
   private isRunning = false;
 
   constructor(
-    @InjectModel(Workflow.name, DB_CONNECTIONS.CLOUD)
-    private readonly workflowModel: Model<WorkflowDocument>,
+    private readonly prisma: PrismaService,
     private readonly executionQueue: WorkflowExecutionQueueService,
     private readonly twitterAdapter: TwitterSocialAdapter,
     private readonly instagramAdapter: InstagramSocialAdapter,
@@ -110,7 +110,7 @@ export class SocialPollingService {
           }
         } catch (error) {
           this.logger.error(
-            `${this.logContext} failed to poll workflow ${workflow._id}`,
+            `${this.logContext} failed to poll workflow ${workflow.id}`,
             { error },
           );
         }
@@ -130,40 +130,44 @@ export class SocialPollingService {
   /**
    * Find all active workflows that contain social trigger nodes.
    */
-  private findWorkflowsWithSocialTriggers(): Promise<WorkflowDocument[]> {
-    return this.workflowModel
-      .find({
+  private async findWorkflowsWithSocialTriggers(): Promise<Workflow[]> {
+    const all = await this.prisma.workflow.findMany({
+      take: 200,
+      where: {
         isDeleted: false,
-        // Match workflows where at least one node has a social trigger type
-        'nodes.type': { $in: [...SOCIAL_TRIGGER_TYPES] },
-        organization: { $exists: true, $ne: null },
-        status: WorkflowStatus.ACTIVE,
-        user: { $exists: true, $ne: null },
-      })
-      .limit(100)
-      .exec();
+        status: WorkflowStatus.ACTIVE as never,
+      },
+    });
+
+    // Filter in-memory for social trigger nodes
+    return all.filter((w) => {
+      const nodes = (w.nodes as WorkflowNode[]) ?? [];
+      return nodes.some((n) =>
+        SOCIAL_TRIGGER_TYPES.includes(n.type as SocialTriggerType),
+      );
+    });
   }
 
   /**
    * Poll a single workflow's social triggers for new events.
    * Returns true if any trigger fired.
    */
-  private async pollWorkflow(workflow: WorkflowDocument): Promise<boolean> {
-    const pollState: PollState =
-      (workflow as unknown).metadata?.pollState || {};
+  private async pollWorkflow(workflow: Workflow): Promise<boolean> {
+    const wfConfig = (workflow.config as WorkflowConfig) ?? {};
+    const pollState: PollState = wfConfig.metadata?.pollState ?? {};
     let triggered = false;
 
-    // Find all social trigger nodes in this workflow
-    const triggerNodes = workflow.nodes.filter((n) =>
+    const nodes = (workflow.nodes as WorkflowNode[]) ?? [];
+    const triggerNodes = nodes.filter((n) =>
       SOCIAL_TRIGGER_TYPES.includes(n.type as SocialTriggerType),
     );
 
     for (const node of triggerNodes) {
       try {
-        if (!workflow.organization || !workflow.user) {
+        if (!workflow.organizationId || !workflow.userId) {
           this.logger.warn(
             `${this.logContext} skipping workflow with missing organization/user`,
-            { workflowId: workflow._id },
+            { workflowId: workflow.id },
           );
           continue;
         }
@@ -178,10 +182,10 @@ export class SocialPollingService {
           // Queue workflow execution
           const triggerEvent: TriggerEvent = {
             data: result.data,
-            organizationId: workflow.organization.toString(),
+            organizationId: workflow.organizationId,
             platform: result.platform,
             type: node.type,
-            userId: workflow.user.toString(),
+            userId: workflow.userId,
           };
 
           await this.executionQueue.queueTriggerEvent(triggerEvent);
@@ -191,13 +195,13 @@ export class SocialPollingService {
           pollState[node.id] = result.lastEventId;
 
           this.logger.log(
-            `${this.logContext} triggered ${node.type} for workflow ${workflow._id}`,
+            `${this.logContext} triggered ${node.type} for workflow ${workflow.id}`,
             { eventId: result.lastEventId, platform: result.platform },
           );
         }
       } catch (error) {
         this.logger.error(
-          `${this.logContext} trigger check failed for node ${node.id} in workflow ${workflow._id}`,
+          `${this.logContext} trigger check failed for node ${node.id} in workflow ${workflow.id}`,
           { error, nodeType: node.type },
         );
       }
@@ -205,21 +209,17 @@ export class SocialPollingService {
 
     // Persist updated poll state
     pollState.lastPolledAt = new Date().toISOString();
-    const query: {
-      _id: WorkflowDocument['_id'];
-      isDeleted: boolean;
-      organization?: WorkflowDocument['organization'];
-    } = {
-      _id: workflow._id,
-      isDeleted: false,
+    const updatedConfig: WorkflowConfig = {
+      ...wfConfig,
+      metadata: {
+        ...(wfConfig.metadata ?? {}),
+        pollState,
+      },
     };
 
-    if (workflow.organization) {
-      query.organization = workflow.organization;
-    }
-
-    await this.workflowModel.updateOne(query, {
-      $set: { 'metadata.pollState': pollState },
+    await this.prisma.workflow.update({
+      data: { config: updatedConfig as never },
+      where: { id: workflow.id },
     });
 
     return triggered;
@@ -230,12 +230,8 @@ export class SocialPollingService {
    * Returns event data if a new event was found, null otherwise.
    */
   private checkTrigger(
-    workflow: WorkflowDocument,
-    node: {
-      id: string;
-      type: string;
-      data: { config: Record<string, unknown> };
-    },
+    workflow: Workflow,
+    node: WorkflowNode,
     lastEventId: string | null,
   ): Promise<{
     data: Record<string, unknown>;
@@ -243,11 +239,8 @@ export class SocialPollingService {
     lastEventId: string;
   } | null> {
     const config = node.data?.config || {};
-    if (!workflow.organization) {
-      return Promise.resolve(null);
-    }
 
-    const orgId = workflow.organization.toString();
+    const orgId = workflow.organizationId;
     const platform = (config.platform as string) || 'twitter';
 
     switch (node.type as SocialTriggerType) {
@@ -269,7 +262,7 @@ export class SocialPollingService {
           lastEventId,
         );
       default:
-        return null;
+        return Promise.resolve(null);
     }
   }
 

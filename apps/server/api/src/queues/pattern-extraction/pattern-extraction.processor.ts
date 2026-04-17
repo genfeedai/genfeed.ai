@@ -1,21 +1,11 @@
-import {
-  AdPerformance,
-  type AdPerformanceDocument,
-} from '@api/collections/ad-performance/schemas/ad-performance.schema';
-import {
-  ContentPerformance,
-  type ContentPerformanceDocument,
-} from '@api/collections/content-performance/schemas/content-performance.schema';
 import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
 import { CreativePattern } from '@api/collections/creative-patterns/schemas/creative-pattern.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { PatternType } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import type { Job } from 'bullmq';
-import { type Model, Types } from 'mongoose';
 
 export interface PatternExtractionJobData {
   platform: string; // 'tiktok' | 'instagram' | 'facebook' | 'youtube' | 'google_ads' | 'all'
@@ -31,6 +21,22 @@ interface ClassifiedRecord {
   classifiedType: string;
   patternType: PatternType;
 }
+
+type AdPerformanceData = {
+  headlineText?: string;
+  bodyText?: string;
+  ctaText?: string;
+  adPlatform?: string;
+  industry?: string;
+  performanceScore?: number;
+};
+
+type ContentPerformanceData = {
+  hookUsed?: string;
+  promptUsed?: string;
+  platform?: string;
+  performanceScore?: number;
+};
 
 const MIN_ORGS_FOR_PUBLIC = 5;
 
@@ -90,10 +96,7 @@ export class PatternExtractionProcessor extends WorkerHost {
   private readonly constructorName = this.constructor.name;
 
   constructor(
-    @InjectModel(AdPerformance.name, DB_CONNECTIONS.CLOUD)
-    private readonly adPerformanceModel: Model<AdPerformanceDocument>,
-    @InjectModel(ContentPerformance.name, DB_CONNECTIONS.CLOUD)
-    private readonly contentPerformanceModel: Model<ContentPerformanceDocument>,
+    private readonly prisma: PrismaService,
     private readonly creativePatternsService: CreativePatternsService,
     private readonly logger: LoggerService,
   ) {
@@ -108,116 +111,114 @@ export class PatternExtractionProcessor extends WorkerHost {
     );
 
     try {
-      const platformFilter = platform === 'all' ? {} : { adPlatform: platform };
-      const contentPlatformFilter =
-        platform === 'all' ? {} : { platform: platform };
-
       // Query high-performing ad records
-      const adQuery: Record<string, unknown> = {
-        ...platformFilter,
-        isDeleted: false,
-        performanceScore: { $gte: 80 },
-      };
+      const adRecords = await this.prisma.adPerformance.findMany({
+        where: { isDeleted: false },
+      });
 
       // Query high-performing content records
-      const contentQuery: Record<string, unknown> = {
-        ...contentPlatformFilter,
-        isDeleted: false,
-        performanceScore: { $gte: 80 },
-      };
+      const contentRecords = await this.prisma.contentPerformance.findMany({
+        where: { isDeleted: false },
+      });
 
-      const [adRecords, contentRecords] = await Promise.all([
-        this.adPerformanceModel
-          .find(adQuery)
-          .select(
-            'headlineText bodyText ctaText adPlatform industry organization performanceScore',
-          )
-          .lean()
-          .exec(),
-        this.contentPerformanceModel
-          .find(contentQuery)
-          .select('hookUsed promptUsed platform organization performanceScore')
-          .lean()
-          .exec(),
-      ]);
+      // Filter in-memory for performance score and platform
+      const filteredAds = adRecords.filter((r) => {
+        const d = (r.data as AdPerformanceData) ?? {};
+        const score = d.performanceScore ?? 0;
+        if (score < 80) return false;
+        if (platform !== 'all' && d.adPlatform !== platform) return false;
+        return true;
+      });
+
+      const filteredContent = contentRecords.filter((r) => {
+        const d = (r.data as ContentPerformanceData) ?? {};
+        const score = d.performanceScore ?? 0;
+        if (score < 80) return false;
+        if (platform !== 'all' && d.platform !== platform) return false;
+        return true;
+      });
 
       this.logger.log(
-        `${this.constructorName} found ${adRecords.length} ad records and ${contentRecords.length} content records`,
+        `${this.constructorName} found ${filteredAds.length} ad records and ${filteredContent.length} content records`,
       );
 
       const classified: ClassifiedRecord[] = [];
 
       // Classify ad records
-      for (const ad of adRecords) {
-        const orgId = String(ad.organization);
-        const adPlatform = ad.adPlatform || platform;
+      for (const ad of filteredAds) {
+        const d = (ad.data as AdPerformanceData) ?? {};
+        const orgId = ad.organizationId;
+        const adPlatform = d.adPlatform || platform;
+        const score = d.performanceScore ?? 0;
 
-        if (ad.headlineText) {
+        if (d.headlineText) {
           classified.push({
-            classifiedType: classifyHook(ad.headlineText),
-            industry: ad.industry,
+            classifiedType: classifyHook(d.headlineText),
+            industry: d.industry,
             orgId,
             patternType: 'hook_formula',
             platform: adPlatform,
-            score: ad.performanceScore,
+            score,
             source: 'ad',
-            text: ad.headlineText,
+            text: d.headlineText,
           });
         }
 
-        if (ad.ctaText) {
+        if (d.ctaText) {
           classified.push({
-            classifiedType: classifyCta(ad.ctaText),
-            industry: ad.industry,
+            classifiedType: classifyCta(d.ctaText),
+            industry: d.industry,
             orgId,
             patternType: 'cta_formula',
             platform: adPlatform,
-            score: ad.performanceScore,
+            score,
             source: 'ad',
-            text: ad.ctaText,
+            text: d.ctaText,
           });
         }
 
-        if (ad.bodyText) {
+        if (d.bodyText) {
           classified.push({
-            classifiedType: classifyContentStructure(ad.bodyText),
-            industry: ad.industry,
+            classifiedType: classifyContentStructure(d.bodyText),
+            industry: d.industry,
             orgId,
             patternType: 'content_structure',
             platform: adPlatform,
-            score: ad.performanceScore,
+            score,
             source: 'ad',
-            text: ad.bodyText,
+            text: d.bodyText,
           });
         }
       }
 
       // Classify content performance records
-      for (const content of contentRecords) {
-        const orgId = String(content.organization);
-        const contentPlatform = content.platform || platform;
+      for (const content of filteredContent) {
+        const d = (content.data as ContentPerformanceData) ?? {};
+        const orgId = content.organizationId;
+        const contentPlatform = d.platform || platform;
+        const score = d.performanceScore ?? 0;
 
-        if (content.hookUsed) {
+        if (d.hookUsed) {
           classified.push({
-            classifiedType: classifyHook(content.hookUsed),
+            classifiedType: classifyHook(d.hookUsed),
             orgId,
             patternType: 'hook_formula',
             platform: contentPlatform,
-            score: content.performanceScore,
+            score,
             source: 'organic',
-            text: content.hookUsed,
+            text: d.hookUsed,
           });
         }
 
-        if (content.promptUsed) {
+        if (d.promptUsed) {
           classified.push({
-            classifiedType: classifyContentStructure(content.promptUsed),
+            classifiedType: classifyContentStructure(d.promptUsed),
             orgId,
             patternType: 'content_structure',
             platform: contentPlatform,
-            score: content.performanceScore,
+            score,
             source: 'organic',
-            text: content.promptUsed,
+            text: d.promptUsed,
           });
         }
       }
@@ -319,7 +320,7 @@ export class PatternExtractionProcessor extends WorkerHost {
             industry: industry || undefined,
             isDeleted: false,
             label: classifiedType.replace(/_/g, ' '),
-            organization: new Types.ObjectId(singleOrgId),
+            organization: singleOrgId as never,
             patternType: patternType as PatternType,
             platform: recordPlatform || undefined,
             sampleSize: orgRecords.length,

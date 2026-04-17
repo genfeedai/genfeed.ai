@@ -1,12 +1,9 @@
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Type } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import type { PipelineStage } from 'mongoose';
 
 /**
  * Service factory configuration
@@ -18,9 +15,9 @@ export interface ServiceFactoryConfig<TEntity, TCreateDto, TUpdateDto> {
   entity: Type<TEntity>;
 
   /**
-   * The schema name for InjectModel
+   * The Prisma model name (camelCase, e.g. 'post', 'brand', 'user')
    */
-  schemaName: string;
+  modelName: string;
 
   /**
    * Create DTO class
@@ -44,22 +41,18 @@ export interface ServiceFactoryConfig<TEntity, TCreateDto, TUpdateDto> {
 }
 
 /**
- * Factory function to create standardized services
- * Reduces boilerplate code for simple CRUD services
+ * Factory function to create standardized services backed by Prisma.
+ * Reduces boilerplate code for simple CRUD services.
  */
 export function createService<TEntity, TCreateDto, TUpdateDto>(
   config: ServiceFactoryConfig<TEntity, TCreateDto, TUpdateDto>,
 ): Type<BaseService<TEntity, TCreateDto, TUpdateDto>> {
-  // Create the service class dynamically
   class FactoryService extends BaseService<TEntity, TCreateDto, TUpdateDto> {
-    // All properties must be public for exported class types
-    // (no private/protected on constructor params)
     constructor(
-      @InjectModel(config.schemaName, DB_CONNECTIONS.CLOUD)
-      public model: AggregatePaginateModel<TEntity>,
-      public logger: LoggerService,
+      public readonly prisma: PrismaService,
+      public readonly logger: LoggerService,
     ) {
-      super(model, logger);
+      super(prisma, config.modelName, logger);
     }
 
     /**
@@ -138,33 +131,31 @@ export function createUserScopedService<TEntity, TCreateDto, TUpdateDto>(
 
   class UserScopedFactoryService extends BaseFactoryService {
     /**
-     * Find all with user/organization filtering
+     * Find all with user/organization filtering (paginated).
      */
     findAllForUser(
       userId: string,
       organizationId?: string,
-      aggregate: PipelineStage[] = [],
+      _pipeline: unknown[] = [],
       options: AggregationOptions = {},
     ): Promise<unknown> {
       const matchConditions: Record<string, unknown> = {
-        user: userId,
+        userId,
         ...config.additionalMatchConditions,
       };
 
       if (config.includeOrganization && organizationId) {
-        matchConditions.$or = [
-          { user: userId },
-          { organization: organizationId },
-        ];
-        delete matchConditions.user;
+        // Prisma OR: either userId OR organizationId
+        delete matchConditions.userId;
+        return this.delegate.findMany({
+          where: {
+            OR: [{ userId }, { organizationId }],
+            isDeleted: false,
+          },
+        });
       }
 
-      const pipeline: PipelineStage[] = [
-        { $match: matchConditions },
-        ...aggregate,
-      ];
-
-      return this.findAll(pipeline, options);
+      return this.findAll([], { ...options, ...matchConditions });
     }
 
     /**
@@ -175,18 +166,20 @@ export function createUserScopedService<TEntity, TCreateDto, TUpdateDto>(
       userId: string,
       organizationId?: string,
     ): Promise<boolean> {
-      const orConditions: Record<string, unknown>[] = [{ user: userId }];
+      const orConditions: Record<string, unknown>[] = [{ userId }];
 
       if (config.includeOrganization && organizationId) {
-        orConditions.push({ organization: organizationId });
+        orConditions.push({ organizationId });
       }
 
-      const conditions: Record<string, unknown> = {
-        _id: entityId,
-        $or: orConditions,
-      };
+      const entity = await this.delegate.findFirst({
+        where: {
+          id: entityId,
+          OR: orConditions,
+        },
+        select: { id: true },
+      });
 
-      const entity = await this.findOne(conditions);
       return entity !== null;
     }
   }
@@ -195,22 +188,21 @@ export function createUserScopedService<TEntity, TCreateDto, TUpdateDto>(
 }
 
 /**
- * Simplified factory for the most common use case
+ * Simplified factory for the most common use case.
  */
 export function createSimpleService<TEntity, TCreateDto, TUpdateDto>(
-  entityName: string,
+  modelName: string,
   defaultPopulate: string[] = [],
 ): Type<BaseService<TEntity, TCreateDto, TUpdateDto>> {
-  // Convert string arrays into PopulateOption shape.
   const populateOptions: PopulateOption[] = defaultPopulate.map((path) => ({
     path,
   }));
 
   return createService<TEntity, TCreateDto, TUpdateDto>({
-    createDto: Object as unknown as Type<TCreateDto>, // Will be overridden
+    createDto: Object as unknown as Type<TCreateDto>,
     defaultPopulate: populateOptions,
-    entity: Object as unknown as Type<TEntity>, // Will be overridden
-    schemaName: entityName,
-    updateDto: Object as unknown as Type<TUpdateDto>, // Will be overridden
+    entity: Object as unknown as Type<TEntity>,
+    modelName,
+    updateDto: Object as unknown as Type<TUpdateDto>,
   });
 }

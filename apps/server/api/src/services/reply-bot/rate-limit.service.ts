@@ -1,10 +1,7 @@
-import { ReplyBotConfig } from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
 
 export interface RateLimitCheck {
   allowed: boolean;
@@ -21,6 +18,21 @@ interface RateLimitCounter {
   lastDayReset: Date;
 }
 
+interface ReplyBotConfigData {
+  isActive?: boolean;
+  rateLimits?: {
+    maxRepliesPerHour?: number;
+    maxRepliesPerDay?: number;
+    cooldownMinutes?: number;
+  };
+  schedule?: {
+    enabled?: boolean;
+    activeDays?: string[];
+    activeHoursStart?: string;
+    activeHoursEnd?: string;
+  };
+}
+
 @Injectable()
 export class RateLimitService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -31,33 +43,36 @@ export class RateLimitService {
 
   constructor(
     private readonly loggerService: LoggerService,
-    @InjectModel(ReplyBotConfig.name, DB_CONNECTIONS.CLOUD)
-    private readonly replyBotConfigModel: Model<ReplyBotConfig>,
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
    * Check if a bot is within its rate limits
    */
   async checkRateLimit(
-    botConfigId: string | Types.ObjectId,
-    organizationId: string | Types.ObjectId,
+    botConfigId: string,
+    organizationId: string,
   ): Promise<RateLimitCheck> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
       // Get the bot config to check rate limits
-      const botConfig = await this.replyBotConfigModel.findOne({
-        _id: botConfigId,
-        isDeleted: false,
-        organization: organizationId,
+      const record = await this.prisma.replyBotConfig.findFirst({
+        where: {
+          id: botConfigId,
+          isDeleted: false,
+          organizationId,
+        },
       });
 
-      if (!botConfig) {
+      if (!record) {
         return {
           allowed: false,
           reason: 'Bot configuration not found',
         };
       }
+
+      const botConfig = (record.config ?? {}) as ReplyBotConfigData;
 
       if (!botConfig.isActive) {
         return {
@@ -67,12 +82,11 @@ export class RateLimitService {
       }
 
       // Get or initialize counter for this bot
-      const configIdStr = botConfigId.toString();
-      let counter = this.counters.get(configIdStr);
+      let counter = this.counters.get(botConfigId);
 
       if (!counter) {
         counter = this.initializeCounter();
-        this.counters.set(configIdStr, counter);
+        this.counters.set(botConfigId, counter);
       }
 
       // Reset counters if time periods have elapsed
@@ -126,13 +140,12 @@ export class RateLimitService {
   /**
    * Increment the rate limit counter after a successful action
    */
-  incrementCounter(botConfigId: string | Types.ObjectId): void {
-    const configIdStr = botConfigId.toString();
-    let counter = this.counters.get(configIdStr);
+  incrementCounter(botConfigId: string): void {
+    let counter = this.counters.get(botConfigId);
 
     if (!counter) {
       counter = this.initializeCounter();
-      this.counters.set(configIdStr, counter);
+      this.counters.set(botConfigId, counter);
     }
 
     // Reset counters if needed before incrementing
@@ -142,7 +155,7 @@ export class RateLimitService {
     counter.daily++;
 
     this.loggerService.log(`${this.constructorName} incrementCounter`, {
-      botConfigId: configIdStr,
+      botConfigId,
       daily: counter.daily,
       hourly: counter.hourly,
     });
@@ -152,8 +165,8 @@ export class RateLimitService {
    * Get current usage stats for a bot
    */
   async getUsageStats(
-    botConfigId: string | Types.ObjectId,
-    organizationId: string | Types.ObjectId,
+    botConfigId: string,
+    organizationId: string,
   ): Promise<{
     hourlyUsed: number;
     hourlyLimit: number;
@@ -165,22 +178,25 @@ export class RateLimitService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const botConfig = await this.replyBotConfigModel.findOne({
-        _id: botConfigId,
-        isDeleted: false,
-        organization: organizationId,
+      const record = await this.prisma.replyBotConfig.findFirst({
+        where: {
+          id: botConfigId,
+          isDeleted: false,
+          organizationId,
+        },
       });
 
-      if (!botConfig) {
+      if (!record) {
         return null;
       }
 
-      const configIdStr = botConfigId.toString();
-      let counter = this.counters.get(configIdStr);
+      const botConfig = (record.config ?? {}) as ReplyBotConfigData;
+
+      let counter = this.counters.get(botConfigId);
 
       if (!counter) {
         counter = this.initializeCounter();
-        this.counters.set(configIdStr, counter);
+        this.counters.set(botConfigId, counter);
       }
 
       this.resetCountersIfNeeded(counter);
@@ -209,7 +225,7 @@ export class RateLimitService {
   /**
    * Check if current time is within the bot's active schedule
    */
-  isWithinSchedule(botConfig: ReplyBotConfig): boolean {
+  isWithinSchedule(botConfig: ReplyBotConfigData): boolean {
     if (!botConfig.schedule?.enabled) {
       return true; // No schedule means always active
     }
@@ -264,19 +280,20 @@ export class RateLimitService {
    * Check cooldown between replies to same user
    */
   async checkCooldown(
-    botConfigId: string | Types.ObjectId,
+    botConfigId: string,
     _targetUserId: string,
     lastReplyTime: Date,
   ): Promise<{ allowed: boolean; remainingSeconds?: number }> {
-    const botConfig = await this.replyBotConfigModel.findById(botConfigId);
+    const record = await this.prisma.replyBotConfig.findFirst({
+      where: { id: botConfigId, isDeleted: false },
+    });
 
-    if (!botConfig) {
+    if (!record) {
       return { allowed: false };
     }
 
-    const cooldownMinutes =
-      (botConfig.rateLimits as unknown as unknown as Record<string, number>)
-        ?.cooldownMinutes || 60;
+    const botConfig = (record.config ?? {}) as ReplyBotConfigData;
+    const cooldownMinutes = botConfig.rateLimits?.cooldownMinutes ?? 60;
     const cooldownMs = cooldownMinutes * 60 * 1000;
     const timeSinceLastReply = Date.now() - lastReplyTime.getTime();
 
@@ -340,11 +357,10 @@ export class RateLimitService {
   /**
    * Clear counter for a specific bot
    */
-  clearBotCounter(botConfigId: string | Types.ObjectId): void {
-    const configIdStr = botConfigId.toString();
-    this.counters.delete(configIdStr);
+  clearBotCounter(botConfigId: string): void {
+    this.counters.delete(botConfigId);
     this.loggerService.log(`${this.constructorName} clearBotCounter`, {
-      botConfigId: configIdStr,
+      botConfigId,
     });
   }
 }

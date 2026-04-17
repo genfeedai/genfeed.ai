@@ -27,10 +27,6 @@ import {
   AgentThreadSnapshot,
   AgentThreadSnapshotSchema,
 } from '@api/services/agent-threading/schemas/agent-thread-snapshot.schema';
-import {
-  ThreadContextState,
-  ThreadContextStateSchema,
-} from '@api/services/agent-threading/schemas/thread-context-state.schema';
 import { AgentExecutionLaneService } from '@api/services/agent-threading/services/agent-execution-lane.service';
 import { AgentProfileResolverService } from '@api/services/agent-threading/services/agent-profile-resolver.service';
 import { AgentRuntimeSessionService } from '@api/services/agent-threading/services/agent-runtime-session.service';
@@ -91,12 +87,6 @@ import { MongooseModule } from '@nestjs/mongoose';
           inject: [ConfigService],
           name: AgentProfileSnapshot.name,
           useFactory: () => AgentProfileSnapshotSchema,
-        },
-        {
-          imports: [ConfigModule],
-          inject: [ConfigService],
-          name: ThreadContextState.name,
-          useFactory: () => ThreadContextStateSchema,
         },
       ],
       DB_CONNECTIONS.AGENT,

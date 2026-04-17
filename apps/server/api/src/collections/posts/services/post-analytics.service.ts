@@ -2,40 +2,18 @@ import { CredentialEntity } from '@api/collections/credentials/entities/credenti
 import { CreatePostAnalyticsDto } from '@api/collections/posts/dto/create-post-analytics.dto';
 import { PostAnalyticsEntity } from '@api/collections/posts/entities/post-analytics.entity';
 import { PostDocument } from '@api/collections/posts/schemas/post.schema';
-import {
-  PostAnalytics,
-  type PostAnalyticsDocument,
-} from '@api/collections/posts/schemas/post-analytics.schema';
+import type { PostAnalyticsDocument } from '@api/collections/posts/schemas/post-analytics.schema';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { PinterestService } from '@api/services/integrations/pinterest/services/pinterest.service';
 import { TiktokService } from '@api/services/integrations/tiktok/services/tiktok.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { CredentialPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { type PipelineStage, Types } from 'mongoose';
-
-// Shared grouping stages: summarize per platform taking the latest (max) totals,
-// and average engagement rate across snapshots.
-export const POST_ANALYTICS_PLATFORM_GROUP_PIPELINE: PipelineStage[] = [
-  {
-    $group: {
-      _id: '$platform',
-      avgEngagementRate: { $avg: '$engagementRate' },
-      totalComments: { $max: '$totalComments' },
-      totalLikes: { $max: '$totalLikes' },
-      totalSaves: { $max: '$totalSaves' },
-      totalShares: { $max: '$totalShares' },
-      totalViews: { $max: '$totalViews' },
-    },
-  },
-];
 
 @Injectable()
 export class PostAnalyticsService extends BaseService<
@@ -44,8 +22,7 @@ export class PostAnalyticsService extends BaseService<
   Partial<CreatePostAnalyticsDto>
 > {
   constructor(
-    @InjectModel(PostAnalytics.name, DB_CONNECTIONS.ANALYTICS)
-    protected readonly model: AggregatePaginateModel<PostAnalyticsDocument>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
 
     private readonly postsService: PostsService,
@@ -55,7 +32,7 @@ export class PostAnalyticsService extends BaseService<
     @Optional() private readonly youtubeService?: YoutubeService,
     @Optional() private readonly twitterService?: TwitterService,
   ) {
-    super(model, logger);
+    super(prisma, 'postAnalytics', logger);
   }
 
   async findOrCreateTodayAnalytics(
@@ -67,45 +44,35 @@ export class PostAnalyticsService extends BaseService<
     today.setHours(0, 0, 0, 0);
 
     try {
-      // Use findOneAndUpdate with upsert to avoid race conditions
-      const result = await this.model.findOneAndUpdate(
-        {
+      // Use upsert to avoid race conditions
+      const result = await this.prisma.postAnalytics.upsert({
+        create: {
+          ...data,
           date: today,
+          isDeleted: false,
           platform,
-          post: new Types.ObjectId(postId),
-        },
-        {
-          $setOnInsert: {
-            ...data,
-            date: today,
-            isDeleted: false,
-            platform,
-            post: new Types.ObjectId(postId),
-            totalComments: 0,
-            totalLikes: 0,
-            totalShares: 0,
-            totalViews: 0,
-          },
-        },
-        {
-          returnDocument: 'after',
-          setDefaultsOnInsert: true,
-          upsert: true,
-        },
-      );
+          postId,
+          totalComments: 0,
+          totalLikes: 0,
+          totalShares: 0,
+          totalViews: 0,
+        } as never,
+        update: {},
+        where: {
+          postId_platform_date: { date: today, platform, postId },
+        } as never,
+      });
 
-      return new PostAnalyticsEntity(result);
+      return new PostAnalyticsEntity(result as never);
     } catch (error: unknown) {
       // Handle duplicate key error in case of race condition
-      if ((error as { code?: number })?.code === 11000) {
-        const existing = await this.findOne({
-          date: today,
-          platform,
-          post: new Types.ObjectId(postId),
+      if ((error as { code?: string })?.code === 'P2002') {
+        const existing = await this.prisma.postAnalytics.findFirst({
+          where: { date: today, platform, postId },
         });
 
         if (existing) {
-          return new PostAnalyticsEntity(existing);
+          return new PostAnalyticsEntity(existing as never);
         }
       }
       throw error;
@@ -130,23 +97,20 @@ export class PostAnalyticsService extends BaseService<
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
-    const yesterdayAnalytics = await this.findOne({
-      date: yesterday,
-      platform,
-      post: new Types.ObjectId(postId),
+    const yesterdayAnalytics = await this.prisma.postAnalytics.findFirst({
+      where: { date: yesterday, platform, postId },
     });
+
+    const yDoc = yesterdayAnalytics as unknown as Record<string, number> | null;
 
     const increments = {
       totalCommentsIncrement:
-        metrics.totalComments - (yesterdayAnalytics?.totalComments || 0),
-      totalLikesIncrement:
-        metrics.totalLikes - (yesterdayAnalytics?.totalLikes || 0),
-      totalSavesIncrement:
-        (metrics.totalSaves || 0) - (yesterdayAnalytics?.totalSaves || 0),
+        metrics.totalComments - (yDoc?.totalComments || 0),
+      totalLikesIncrement: metrics.totalLikes - (yDoc?.totalLikes || 0),
+      totalSavesIncrement: (metrics.totalSaves || 0) - (yDoc?.totalSaves || 0),
       totalSharesIncrement:
-        (metrics.totalShares || 0) - (yesterdayAnalytics?.totalShares || 0),
-      totalViewsIncrement:
-        metrics.totalViews - (yesterdayAnalytics?.totalViews || 0),
+        (metrics.totalShares || 0) - (yDoc?.totalShares || 0),
+      totalViewsIncrement: metrics.totalViews - (yDoc?.totalViews || 0),
     };
 
     // Calculate engagement rate
@@ -166,34 +130,30 @@ export class PostAnalyticsService extends BaseService<
       return null;
     }
 
-    const filter = {
-      date: today,
-      platform,
-      post: new Types.ObjectId(postId),
-    };
-
-    const update = {
-      $set: {
+    const result = await this.prisma.postAnalytics.upsert({
+      create: {
+        brandId: String(post.brand),
+        date: today,
+        engagementRate,
+        isDeleted: false,
+        organizationId: String(post.organization),
+        platform,
+        postId,
+        userId: String(post.user),
         ...metrics,
         ...increments,
+      } as never,
+      update: {
         engagementRate,
-      },
-      $setOnInsert: {
-        brand: post.brand,
-        ingredients: post.ingredients,
-        organization: post.organization,
-        user: post.user,
-      },
-    };
+        ...metrics,
+        ...increments,
+      } as never,
+      where: {
+        postId_platform_date: { date: today, platform, postId },
+      } as never,
+    });
 
-    const result = await this.model
-      .findOneAndUpdate(filter, update, {
-        returnDocument: 'after',
-        upsert: true,
-      })
-      .exec();
-
-    return result ? new PostAnalyticsEntity(result) : null;
+    return result ? new PostAnalyticsEntity(result as never) : null;
   }
 
   async getPostAnalyticsSummary(postId: string): Promise<{
@@ -215,59 +175,109 @@ export class PostAnalyticsService extends BaseService<
       }
     >;
   }> {
-    const results = await this.model
-      .aggregate([
-        { $match: { post: new Types.ObjectId(postId) } },
-        ...POST_ANALYTICS_PLATFORM_GROUP_PIPELINE,
-      ])
-      .exec();
+    const allDocs = await this.prisma.postAnalytics.findMany({
+      where: { postId },
+    });
 
-    const platforms = results.reduce(
-      (acc, result) => {
-        acc[result._id] = {
-          engagementRate: result.avgEngagementRate,
-          totalComments: result.totalComments,
-          totalLikes: result.totalLikes,
-          totalSaves: result.totalSaves,
-          totalShares: result.totalShares,
-          totalViews: result.totalViews,
-        };
-        return acc;
-      },
-      {} as Record<
-        string,
-        {
-          engagementRate: number;
-          totalComments: number;
-          totalLikes: number;
-          totalSaves: number;
-          totalShares: number;
-          totalViews: number;
-        }
-      >,
-    );
+    const docs = allDocs as unknown as Array<{
+      platform: string;
+      engagementRate: number;
+      totalComments: number;
+      totalLikes: number;
+      totalSaves: number;
+      totalShares: number;
+      totalViews: number;
+    }>;
 
-    const totals = results.reduce(
-      (acc, result) => ({
-        comments: acc.comments + result.totalComments,
-        engagement: acc.engagement + result.avgEngagementRate,
-        likes: acc.likes + result.totalLikes,
-        saves: acc.saves + result.totalSaves,
-        shares: acc.shares + result.totalShares,
-        views: acc.views + result.totalViews,
-      }),
-      { comments: 0, engagement: 0, likes: 0, saves: 0, shares: 0, views: 0 },
-    );
+    // Group in-memory (replaces MongoDB $group aggregation)
+    const platformMap = new Map<
+      string,
+      {
+        engagementRates: number[];
+        comments: number;
+        likes: number;
+        saves: number;
+        shares: number;
+        views: number;
+      }
+    >();
+
+    for (const doc of docs) {
+      const existing = platformMap.get(doc.platform);
+      if (existing) {
+        // Take max values for totals
+        existing.views = Math.max(existing.views, doc.totalViews);
+        existing.likes = Math.max(existing.likes, doc.totalLikes);
+        existing.comments = Math.max(existing.comments, doc.totalComments);
+        existing.shares = Math.max(existing.shares, doc.totalShares);
+        existing.saves = Math.max(existing.saves, doc.totalSaves);
+        existing.engagementRates.push(doc.engagementRate);
+      } else {
+        platformMap.set(doc.platform, {
+          comments: doc.totalComments,
+          engagementRates: [doc.engagementRate],
+          likes: doc.totalLikes,
+          saves: doc.totalSaves,
+          shares: doc.totalShares,
+          views: doc.totalViews,
+        });
+      }
+    }
+
+    const platforms: Record<
+      string,
+      {
+        totalViews: number;
+        totalLikes: number;
+        totalComments: number;
+        totalShares: number;
+        totalSaves: number;
+        engagementRate: number;
+      }
+    > = {};
+
+    let totalViews = 0;
+    let totalLikes = 0;
+    let totalComments = 0;
+    let totalShares = 0;
+    let totalSaves = 0;
+    let totalEngagement = 0;
+
+    for (const [platform, data] of platformMap.entries()) {
+      const avgEngagementRate =
+        data.engagementRates.length > 0
+          ? data.engagementRates.reduce((a, b) => a + b, 0) /
+            data.engagementRates.length
+          : 0;
+
+      platforms[platform] = {
+        engagementRate: avgEngagementRate,
+        totalComments: data.comments,
+        totalLikes: data.likes,
+        totalSaves: data.saves,
+        totalShares: data.shares,
+        totalViews: data.views,
+      };
+
+      totalViews += data.views;
+      totalLikes += data.likes;
+      totalComments += data.comments;
+      totalShares += data.shares;
+      totalSaves += data.saves;
+      totalEngagement += avgEngagementRate;
+    }
+
+    const platformCount = platformMap.size;
 
     return {
       avgEngagementRate:
-        results.length > 0 ? totals.engagement / results.length : 0,
+        platformCount > 0 ? totalEngagement / platformCount : 0,
       platforms,
-      totalComments: totals.comments,
-      totalLikes: totals.likes,
-      totalSaves: totals.saves,
-      totalShares: totals.shares,
-      totalViews: totals.views,
+      totalComments,
+      totalLikes,
+      totalSaves,
+      totalShares,
+      totalViews,
     };
   }
 
@@ -277,27 +287,21 @@ export class PostAnalyticsService extends BaseService<
     endDate: Date,
     platform?: string,
   ): Promise<PostAnalyticsEntity[]> {
-    const match: Record<string, unknown> = {
-      date: {
-        $gte: startDate,
-        $lte: endDate,
-      },
-      post: new Types.ObjectId(postId),
+    const where: Record<string, unknown> = {
+      date: { gte: startDate, lte: endDate },
+      postId,
     };
 
     if (platform) {
-      match.platform = platform;
+      where.platform = platform;
     }
 
-    const pipeline: PipelineStage[] = [
-      { $match: match },
-      { $sort: { date: 1 } },
-    ];
+    const results = await this.prisma.postAnalytics.findMany({
+      orderBy: { date: 'asc' },
+      where: where as never,
+    });
 
-    const result = await this.model.aggregate(pipeline).exec();
-    return result.map(
-      (doc: Partial<PostAnalytics>) => new PostAnalyticsEntity(doc),
-    );
+    return results.map((doc) => new PostAnalyticsEntity(doc as never));
   }
 
   async trackPostAnalytics(
@@ -315,7 +319,6 @@ export class PostAnalyticsService extends BaseService<
         totalSaves: number;
       } | null = null;
 
-      // Only fetch analytics if we have an external ID
       const postId = post._id?.toString() || String(post._id);
       if (!post.externalId) {
         this.logger.warn(`${url} No external ID for post ${postId}`);
@@ -364,7 +367,6 @@ export class PostAnalyticsService extends BaseService<
       }
 
       if (analytics) {
-        // Validate required post fields
         if (
           !post._id ||
           !post.ingredients ||
@@ -377,18 +379,16 @@ export class PostAnalyticsService extends BaseService<
           return;
         }
 
-        // Create or update today's analytics
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
         await this.findOrCreateTodayAnalytics(postId, platform, {
-          brand: post.brand,
+          brandId: post.brand.toString(),
           date: today,
           engagementRate: 0,
-          ingredients: post.ingredients,
-          organization: post.organization,
+          organizationId: post.organization.toString(),
           platform,
-          post: new Types.ObjectId(post._id.toString()),
+          postId,
           totalComments: 0,
           totalCommentsIncrement: 0,
           totalLikes: 0,
@@ -399,8 +399,8 @@ export class PostAnalyticsService extends BaseService<
           totalSharesIncrement: 0,
           totalViews: 0,
           totalViewsIncrement: 0,
-          user: post.user,
-        });
+          userId: post.user.toString(),
+        } as never);
 
         await this.updateTodayAnalytics(postId, platform, analytics);
 
@@ -443,8 +443,8 @@ export class PostAnalyticsService extends BaseService<
       return {
         totalComments: stats.comments,
         totalLikes: stats.likes,
-        totalSaves: 0, // YouTube doesn't provide save count via API
-        totalShares: 0, // YouTube doesn't provide share count via API
+        totalSaves: 0,
+        totalShares: 0,
         totalViews: stats.views,
       };
     } catch (error: unknown) {
@@ -474,8 +474,8 @@ export class PostAnalyticsService extends BaseService<
       return {
         totalComments: stats.comments,
         totalLikes: stats.likes,
-        totalSaves: 0, // TikTok API may not provide saves
-        totalShares: 0, // TikTok API may not provide shares
+        totalSaves: 0,
+        totalShares: 0,
         totalViews: stats.views,
       };
     } catch (error: unknown) {
@@ -506,8 +506,8 @@ export class PostAnalyticsService extends BaseService<
       return {
         totalComments: stats.comments,
         totalLikes: stats.likes,
-        totalSaves: 0, // Would need additional API call for saves
-        totalShares: 0, // Instagram doesn't provide share count for posts
+        totalSaves: 0,
+        totalShares: 0,
         totalViews: stats.views,
       };
     } catch (error: unknown) {

@@ -261,142 +261,85 @@ export class BusinessAnalyticsService {
         now.getTime() - 14 * 24 * 60 * 60 * 1000,
       );
 
-      // Aggregate total consumed in 30d and 7d
-      const totals = await this.creditTransactionsModel.aggregate([
-        {
-          $match: {
-            category: CreditTransactionCategory.DEDUCT,
-            createdAt: { $gte: thirtyDaysAgo },
-            isDeleted: false,
-          },
+      // Fetch all deduct transactions in last 30 days and aggregate in memory
+      const allTransactions = await this.prisma.creditTransaction.findMany({
+        where: {
+          category: CreditTransactionCategory.DEDUCT,
+          createdAt: { gte: thirtyDaysAgo },
+          isDeleted: false,
         },
-        {
-          $group: {
-            _id: null,
-            total7d: {
-              $sum: {
-                $cond: [
-                  { $gte: ['$createdAt', sevenDaysAgo] },
-                  { $abs: '$amount' },
-                  0,
-                ],
-              },
-            },
-            total30d: { $sum: { $abs: '$amount' } },
-            totalWeek1: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $gte: ['$createdAt', fourteenDaysAgo] },
-                      { $lt: ['$createdAt', sevenDaysAgo] },
-                    ],
-                  },
-                  { $abs: '$amount' },
-                  0,
-                ],
-              },
-            },
-          },
-        },
-      ]);
+      });
 
-      const totalData = totals[0] || { total7d: 0, total30d: 0, totalWeek1: 0 };
-
-      // Daily series for last 30 days
-      const dailyAgg = await this.creditTransactionsModel.aggregate([
-        {
-          $match: {
-            category: CreditTransactionCategory.DEDUCT,
-            createdAt: { $gte: thirtyDaysAgo },
-            isDeleted: false,
-          },
-        },
-        {
-          $group: {
-            _id: {
-              $dateToString: { date: '$createdAt', format: '%Y-%m-%d' },
-            },
-            count: { $sum: 1 },
-            creditsConsumed: { $sum: { $abs: '$amount' } },
-          },
-        },
-        { $sort: { _id: 1 } },
-      ]);
-
+      let total7d = 0;
+      let total30d = 0;
+      let totalWeek1 = 0;
       const dailyMap = new Map<
         string,
         { creditsConsumed: number; count: number }
       >();
-      for (const entry of dailyAgg) {
-        dailyMap.set(entry._id, {
-          count: entry.count,
-          creditsConsumed: entry.creditsConsumed,
-        });
+      const sourceMap = new Map<string, { amount: number; count: number }>();
+      const orgMap = new Map<
+        string,
+        { creditsConsumed: number; transactionCount: number }
+      >();
+
+      for (const tx of allTransactions) {
+        const absAmount = Math.abs(tx.amount ?? 0);
+        const dateKey = tx.createdAt.toISOString().split('T')[0];
+        total30d += absAmount;
+        if (tx.createdAt >= sevenDaysAgo) {
+          total7d += absAmount;
+        }
+        if (tx.createdAt >= fourteenDaysAgo && tx.createdAt < sevenDaysAgo) {
+          totalWeek1 += absAmount;
+        }
+
+        const dailyEntry = dailyMap.get(dateKey) ?? {
+          count: 0,
+          creditsConsumed: 0,
+        };
+        dailyEntry.creditsConsumed += absAmount;
+        dailyEntry.count += 1;
+        dailyMap.set(dateKey, dailyEntry);
+
+        const source = (tx.source as string) ?? 'unknown';
+        const srcEntry = sourceMap.get(source) ?? { amount: 0, count: 0 };
+        srcEntry.amount += absAmount;
+        srcEntry.count += 1;
+        sourceMap.set(source, srcEntry);
+
+        const orgId = tx.organizationId ?? '';
+        if (orgId) {
+          const orgEntry = orgMap.get(orgId) ?? {
+            creditsConsumed: 0,
+            transactionCount: 0,
+          };
+          orgEntry.creditsConsumed += absAmount;
+          orgEntry.transactionCount += 1;
+          orgMap.set(orgId, orgEntry);
+        }
       }
+
+      const totalData = { total7d, total30d, totalWeek1 };
 
       const dailySeries: DailyCreditSeries[] = [];
       for (let i = 29; i >= 0; i--) {
         const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
         const key = d.toISOString().split('T')[0];
-        const entry = dailyMap.get(key) || { count: 0, creditsConsumed: 0 };
+        const entry = dailyMap.get(key) ?? { count: 0, creditsConsumed: 0 };
         dailySeries.push({ date: key, ...entry });
       }
 
       // By source
-      const bySource = await this.creditTransactionsModel.aggregate([
-        {
-          $match: {
-            category: CreditTransactionCategory.DEDUCT,
-            createdAt: { $gte: thirtyDaysAgo },
-            isDeleted: false,
-          },
-        },
-        {
-          $group: {
-            _id: { $ifNull: ['$source', 'unknown'] },
-            amount: { $sum: { $abs: '$amount' } },
-            count: { $sum: 1 },
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            amount: 1,
-            count: 1,
-            source: '$_id',
-          },
-        },
-        { $sort: { amount: -1 } },
-      ]);
+      const bySource = Array.from(sourceMap.entries())
+        .map(([source, data]) => ({ ...data, source }))
+        .sort((a, b) => b.amount - a.amount);
 
       // Top organizations by credit consumption
-      const topOrganizations = await this.creditTransactionsModel.aggregate([
-        {
-          $match: {
-            category: CreditTransactionCategory.DEDUCT,
-            createdAt: { $gte: thirtyDaysAgo },
-            isDeleted: false,
-          },
-        },
-        {
-          $group: {
-            _id: '$organization',
-            creditsConsumed: { $sum: { $abs: '$amount' } },
-            transactionCount: { $sum: 1 },
-          },
-        },
-        { $sort: { creditsConsumed: -1 } },
-        { $limit: 10 },
-        {
-          $project: {
-            _id: 0,
-            creditsConsumed: 1,
-            organizationId: { $toString: '$_id' },
-            transactionCount: 1,
-          },
-        },
-      ]);
+      const topOrganizations = Array.from(orgMap.entries())
+        .map(([organizationId, data]) => ({ ...data, organizationId }))
+        .sort((a, b) => b.creditsConsumed - a.creditsConsumed)
+        .slice(0, 10);
 
       // WoW growth
       const wowGrowth =
@@ -452,126 +395,78 @@ export class BusinessAnalyticsService {
         IngredientCategory.AVATAR,
       ];
 
-      // Totals for 30d, 7d, and week-over-week
-      const totals = await this.ingredientModel.aggregate([
-        {
-          $match: {
-            category: { $in: supportedCategories },
-            createdAt: { $gte: thirtyDaysAgo },
-            isDeleted: false,
-          },
+      // Fetch all matching ingredients in last 30 days and aggregate in memory
+      const allIngredients = await this.prisma.ingredient.findMany({
+        where: {
+          category: { in: supportedCategories as string[] },
+          createdAt: { gte: thirtyDaysAgo },
+          isDeleted: false,
         },
-        {
-          $group: {
-            _id: null,
-            total7d: {
-              $sum: {
-                $cond: [{ $gte: ['$createdAt', sevenDaysAgo] }, 1, 0],
-              },
-            },
-            total30d: { $sum: 1 },
-            totalWeek1: {
-              $sum: {
-                $cond: [
-                  {
-                    $and: [
-                      { $gte: ['$createdAt', fourteenDaysAgo] },
-                      { $lt: ['$createdAt', sevenDaysAgo] },
-                    ],
-                  },
-                  1,
-                  0,
-                ],
-              },
-            },
-          },
-        },
-      ]);
+      });
 
-      const totalData = totals[0] || { total7d: 0, total30d: 0, totalWeek1: 0 };
+      let ingredientTotal7d = 0;
+      let ingredientTotal30d = 0;
+      let ingredientTotalWeek1 = 0;
+      const ingredientDailyMap = new Map<string, number>();
+      const categoryMap = new Map<string, number>();
+      const ingredientOrgMap = new Map<string, number>();
 
-      // Daily series
-      const dailyAgg = await this.ingredientModel.aggregate([
-        {
-          $match: {
-            category: { $in: supportedCategories },
-            createdAt: { $gte: thirtyDaysAgo },
-            isDeleted: false,
-          },
-        },
-        {
-          $group: {
-            _id: {
-              $dateToString: { date: '$createdAt', format: '%Y-%m-%d' },
-            },
-            count: { $sum: 1 },
-          },
-        },
-        { $sort: { _id: 1 } },
-      ]);
+      for (const ingredient of allIngredients) {
+        const dateKey = ingredient.createdAt.toISOString().split('T')[0];
+        ingredientTotal30d += 1;
+        if (ingredient.createdAt >= sevenDaysAgo) {
+          ingredientTotal7d += 1;
+        }
+        if (
+          ingredient.createdAt >= fourteenDaysAgo &&
+          ingredient.createdAt < sevenDaysAgo
+        ) {
+          ingredientTotalWeek1 += 1;
+        }
 
-      const dailyMap = new Map<string, number>();
-      for (const entry of dailyAgg) {
-        dailyMap.set(entry._id, entry.count);
+        ingredientDailyMap.set(
+          dateKey,
+          (ingredientDailyMap.get(dateKey) ?? 0) + 1,
+        );
+
+        const cat = ingredient.category ?? 'unknown';
+        categoryMap.set(cat, (categoryMap.get(cat) ?? 0) + 1);
+
+        const orgId = ingredient.organizationId ?? '';
+        if (orgId) {
+          ingredientOrgMap.set(orgId, (ingredientOrgMap.get(orgId) ?? 0) + 1);
+        }
       }
+
+      const totalData = {
+        total30d: ingredientTotal30d,
+        total7d: ingredientTotal7d,
+        totalWeek1: ingredientTotalWeek1,
+      };
 
       const dailySeries: DailyIngredientSeries[] = [];
       for (let i = 29; i >= 0; i--) {
         const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
         const key = d.toISOString().split('T')[0];
-        dailySeries.push({ count: dailyMap.get(key) || 0, date: key });
+        dailySeries.push({
+          count: ingredientDailyMap.get(key) ?? 0,
+          date: key,
+        });
       }
 
       // By category
-      const byCategory = await this.ingredientModel.aggregate([
-        {
-          $match: {
-            category: { $in: supportedCategories },
-            createdAt: { $gte: thirtyDaysAgo },
-            isDeleted: false,
-          },
-        },
-        {
-          $group: {
-            _id: '$category',
-            count: { $sum: 1 },
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            category: '$_id',
-            count: 1,
-          },
-        },
-        { $sort: { count: -1 } },
-      ]);
+      const byCategory = Array.from(categoryMap.entries())
+        .map(([category, count]) => ({ category, count }))
+        .sort((a, b) => b.count - a.count);
 
       // Top organizations by ingredient generation
-      const topOrganizations = await this.ingredientModel.aggregate([
-        {
-          $match: {
-            category: { $in: supportedCategories },
-            createdAt: { $gte: thirtyDaysAgo },
-            isDeleted: false,
-          },
-        },
-        {
-          $group: {
-            _id: '$organization',
-            ingredientCount: { $sum: 1 },
-          },
-        },
-        { $sort: { ingredientCount: -1 } },
-        { $limit: 10 },
-        {
-          $project: {
-            _id: 0,
-            ingredientCount: 1,
-            organizationId: { $toString: '$_id' },
-          },
-        },
-      ]);
+      const topOrganizations = Array.from(ingredientOrgMap.entries())
+        .map(([organizationId, ingredientCount]) => ({
+          ingredientCount,
+          organizationId,
+        }))
+        .sort((a, b) => b.ingredientCount - a.ingredientCount)
+        .slice(0, 10);
 
       // WoW growth
       const wowGrowth =

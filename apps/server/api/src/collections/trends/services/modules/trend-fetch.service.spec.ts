@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 describe('TrendFetchService', () => {
   let service: TrendFetchService;
 
-  const mockTrendModel = vi.fn();
+  const mockPrisma = { trend: { create: vi.fn(), findMany: vi.fn() } };
   const mockLoggerService = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -39,7 +39,7 @@ describe('TrendFetchService', () => {
     mockLinkedInService.getTrends.mockResolvedValue([]);
 
     service = new TrendFetchService(
-      mockTrendModel as never,
+      mockPrisma as never,
       mockLoggerService as never,
       mockCacheService as never,
       mockApifyService as never,

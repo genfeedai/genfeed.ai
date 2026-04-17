@@ -4,11 +4,6 @@ import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import {
-  Post,
-  type PostDocument,
-} from '@api/collections/posts/schemas/post.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import type {
   AssembleContextParams,
   AssembledBrandContext,
@@ -17,10 +12,9 @@ import type {
 } from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { PatternMatcherService } from '@api/services/pattern-matcher/pattern-matcher.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
 
 const DEFAULT_LAYERS: Required<ContextLayers> = {
   brandGuidance: true,
@@ -46,8 +40,7 @@ export class AgentContextAssemblyService {
     private readonly brandsService: BrandsService,
     private readonly brandMemoryService: BrandMemoryService,
     private readonly contextsService: ContextsService,
-    @InjectModel(Post.name, DB_CONNECTIONS.CLOUD)
-    private readonly postModel: Model<PostDocument>,
+    private readonly prisma: PrismaService,
     private readonly cacheService: CacheService,
     private readonly loggerService: LoggerService,
     private readonly patternMatcherService: PatternMatcherService,
@@ -72,10 +65,10 @@ export class AgentContextAssemblyService {
       async () => {
         const filter: Record<string, unknown> = {
           isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
+          organization: organizationId,
         };
         if (params.brandId) {
-          filter._id = new Types.ObjectId(params.brandId);
+          filter._id = params.brandId;
         } else {
           filter.isSelected = true;
         }
@@ -95,7 +88,7 @@ export class AgentContextAssemblyService {
       async () =>
         this.organizationSettingsService.findOne({
           isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
+          organization: organizationId,
         }),
       { ttl: CACHE_TTL_BRAND },
     );
@@ -578,9 +571,9 @@ export class AgentContextAssemblyService {
 
     try {
       const credential = await this.credentialsService.findOne({
-        _id: new Types.ObjectId(credentialId),
+        _id: credentialId,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
       });
 
       if (!credential) return;
@@ -608,24 +601,18 @@ export class AgentContextAssemblyService {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - RECENT_POSTS_DAYS);
 
-    const filter: Record<string, unknown> = {
-      brand: new Types.ObjectId(brandId),
-      createdAt: { $gte: cutoff },
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-    };
-
-    if (platform) {
-      filter.platform = platform;
-    }
-
-    const posts = await this.postModel
-      .find(filter)
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .select('description platform createdAt')
-      .lean()
-      .exec();
+    const posts = await this.prisma.post.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true, description: true, platform: true },
+      take: limit,
+      where: {
+        brandId,
+        createdAt: { gte: cutoff },
+        isDeleted: false,
+        organizationId,
+        ...(platform ? { platform: platform as never } : {}),
+      },
+    });
 
     return posts
       .filter((p) => p.description)

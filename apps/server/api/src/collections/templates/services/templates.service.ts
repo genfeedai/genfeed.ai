@@ -6,28 +6,23 @@ import { CreateTemplateDto } from '@api/collections/templates/dto/create-templat
 import { SuggestTemplatesDto } from '@api/collections/templates/dto/suggest-templates.dto';
 import { UpdateTemplateDto } from '@api/collections/templates/dto/update-template.dto';
 import { UseTemplateDto } from '@api/collections/templates/dto/use-template.dto';
-import {
-  Template,
-  type TemplateDocument,
-} from '@api/collections/templates/schemas/template.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { TemplateDocument } from '@api/collections/templates/schemas/template.schema';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
-import { QueryBuilder } from '@api/helpers/utils/query-builder.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import Handlebars from 'handlebars';
-import { Model, Types } from 'mongoose';
+
+type Template = TemplateDocument;
 
 @Injectable()
 export class TemplatesService {
   constructor(
-    @InjectModel(Template.name, DB_CONNECTIONS.CLOUD)
-    private templateModel: Model<TemplateDocument>,
+    private readonly prisma: PrismaService,
     private readonly templateUsageService: TemplateUsageService,
     private readonly templateMetadataService: TemplateMetadataService,
     private readonly logger: LoggerService,
@@ -41,14 +36,10 @@ export class TemplatesService {
    * Register custom Handlebars helpers
    */
   private registerHandlebarsHelpers(): void {
-    // Helper to check if any of the provided values are truthy
-    // Usage: {{#ifAny mood camera}}...{{/ifAny}}
-    // Handlebars passes the resolved VALUES of mood and camera, not their names
     Handlebars.registerHelper('ifAny', function (...args: unknown[]) {
       const options = args[args.length - 1] as Handlebars.HelperOptions;
-      const values = args.slice(0, -1); // All args except the last are resolved values
+      const values = args.slice(0, -1);
 
-      // Check if any of the values are truthy
       for (const value of values) {
         if (value) {
           // @ts-expect-error TS2683
@@ -84,48 +75,50 @@ export class TemplatesService {
 
     // Validate key uniqueness for prompt templates
     if (dto.purpose === 'prompt' && dto.key) {
-      const existing = await this.templateModel.findOne({
-        isDeleted: false,
-        key: dto.key,
-        purpose: 'prompt',
+      const existing = await this.prisma.template.findFirst({
+        where: { isDeleted: false, key: dto.key, purpose: 'prompt' },
       });
       if (existing) {
         throw new Error(`Template with key "${dto.key}" already exists`);
       }
     }
 
-    const template = new this.templateModel({
-      ...dto,
-      createdBy: userId,
-      isActive: dto.isActive ?? (dto.purpose === 'prompt' ? true : undefined),
-      organization: organization || null,
-      variables,
-      version: dto.version ?? (dto.purpose === 'prompt' ? 1 : undefined),
+    const template = await this.prisma.template.create({
+      data: {
+        ...dto,
+        createdById: userId,
+        isActive: dto.isActive ?? (dto.purpose === 'prompt' ? true : undefined),
+        organizationId: organization || null,
+        variables: variables as never,
+        version: dto.version ?? (dto.purpose === 'prompt' ? 1 : undefined),
+      } as never,
     });
 
-    await template.save();
+    const templateId = template.id;
 
-    const metadata = await this.templateMetadataService.create(
-      (template._id as Types.ObjectId).toString(),
-      {
-        author: dto.metadata?.author,
-        compatiblePlatforms: dto.metadata?.compatiblePlatforms,
-        difficulty: dto.metadata?.difficulty,
-        estimatedTime: dto.metadata?.estimatedTime,
-        goals: dto.metadata?.goals,
-        license: dto.metadata?.license,
-        requiredFeatures: dto.metadata?.requiredFeatures,
-        version: dto.metadata?.version,
-      },
-    );
+    const metadata = await this.templateMetadataService.create(templateId, {
+      author: dto.metadata?.author,
+      compatiblePlatforms: dto.metadata?.compatiblePlatforms,
+      difficulty: dto.metadata?.difficulty,
+      estimatedTime: dto.metadata?.estimatedTime,
+      goals: dto.metadata?.goals,
+      license: dto.metadata?.license,
+      requiredFeatures: dto.metadata?.requiredFeatures,
+      version: dto.metadata?.version,
+    });
 
-    // @ts-expect-error TS2322
-    template.metadata = metadata._id.toString();
-    await template.save();
+    await this.prisma.template.update({
+      data: {
+        metadataId: String(
+          metadata._id ?? (metadata as Record<string, unknown>).id,
+        ),
+      } as never,
+      where: { id: templateId },
+    });
 
-    this.logger.debug('Template created', { templateId: template._id });
+    this.logger.debug('Template created', { templateId });
 
-    return template.toObject();
+    return template as unknown as Template;
   }
 
   /**
@@ -145,45 +138,62 @@ export class TemplatesService {
       search?: string;
     },
   ): Promise<Template[]> {
-    const queryBuilder = new QueryBuilder(organization);
+    const where: Record<string, unknown> = { isDeleted: false };
 
-    queryBuilder
-      .addFilter('purpose', filters?.purpose)
-      .addFilter('key', filters?.key)
-      .addFilter('category', filters?.category)
-      .addInFilter('categories', filters?.categories)
-      .addInFilter('industries', filters?.industries)
-      .addInFilter('platforms', filters?.platforms)
-      .addFilter('scope', filters?.scope)
-      .addBooleanFilter('isFeatured', filters?.isFeatured)
-      .addTextSearch(filters?.search);
+    if (organization != null) {
+      where.organizationId = organization;
+    }
 
-    const query = queryBuilder.build();
+    if (filters?.purpose) where.purpose = filters.purpose;
+    if (filters?.key) where.key = filters.key;
+    if (filters?.category) where.category = filters.category;
+    if (filters?.scope) where.scope = filters.scope;
+    if (filters?.isFeatured !== undefined)
+      where.isFeatured = filters.isFeatured;
+    if (filters?.categories?.length) {
+      where.categories = { hasSome: filters.categories };
+    }
+    if (filters?.industries?.length) {
+      where.industries = { hasSome: filters.industries };
+    }
+    if (filters?.platforms?.length) {
+      where.platforms = { hasSome: filters.platforms };
+    }
+    if (filters?.search) {
+      where.OR = [
+        { label: { contains: filters.search, mode: 'insensitive' } },
+        { description: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
 
-    return await this.templateModel
-      .find(query)
-      .populate('metadata')
-      .sort({ createdAt: -1 })
-      .lean();
+    const results = await this.prisma.template.findMany({
+      include: { metadata: true },
+      orderBy: { createdAt: 'desc' },
+      where: where as never,
+    });
+
+    return results as unknown as Template[];
   }
 
   /**
    * Find one template
    */
   async findOne(id: string, organization?: string): Promise<Template> {
-    const queryBuilder = new QueryBuilder(organization);
-    queryBuilder.addFilter('_id', id);
+    const where: Record<string, unknown> = { id, isDeleted: false };
+    if (organization) {
+      where.organizationId = organization;
+    }
 
-    const template = await this.templateModel
-      .findOne(queryBuilder.build())
-      .populate('metadata')
-      .lean();
+    const template = await this.prisma.template.findFirst({
+      include: { metadata: true },
+      where: where as never,
+    });
 
     if (!template) {
       throw new NotFoundException('Template not found');
     }
 
-    return template;
+    return template as unknown as Template;
   }
 
   /**
@@ -194,40 +204,48 @@ export class TemplatesService {
     dto: UpdateTemplateDto,
     organization?: string,
   ): Promise<Template> {
-    const query: Record<string, unknown> = { _id: id, isDeleted: false };
+    const where: Record<string, unknown> = { id, isDeleted: false };
     if (organization) {
-      query.organization = organization;
+      where.organizationId = organization;
     }
 
-    const template = await this.templateModel.findOneAndUpdate(
-      query,
-      { $set: dto },
-      { returnDocument: 'after' },
-    );
+    const existing = await this.prisma.template.findFirst({
+      where: where as never,
+    });
 
-    if (!template) {
+    if (!existing) {
       throw new NotFoundException('Template not found');
     }
 
-    return template.toObject();
+    const result = await this.prisma.template.update({
+      data: dto as never,
+      where: { id },
+    });
+
+    return result as unknown as Template;
   }
 
   /**
    * Delete template (soft delete)
    */
   async remove(id: string, organization?: string): Promise<void> {
-    const query: Record<string, unknown> = { _id: id, isDeleted: false };
+    const where: Record<string, unknown> = { id, isDeleted: false };
     if (organization) {
-      query.organization = organization;
+      where.organizationId = organization;
     }
 
-    const result = await this.templateModel.updateOne(query, {
-      $set: { isDeleted: true },
+    const existing = await this.prisma.template.findFirst({
+      where: where as never,
     });
 
-    if (result.matchedCount === 0) {
+    if (!existing) {
       throw new NotFoundException('Template not found');
     }
+
+    await this.prisma.template.update({
+      data: { isDeleted: true } as never,
+      where: { id },
+    });
   }
 
   /**
@@ -276,10 +294,10 @@ export class TemplatesService {
       );
 
       // Increment usage count
-      await this.templateModel.updateOne(
-        { _id: dto.templateId },
-        { $inc: { usageCount: 1 } },
-      );
+      await this.prisma.template.update({
+        data: { usageCount: { increment: 1 } } as never,
+        where: { id: dto.templateId },
+      });
 
       return {
         generatedContent,
@@ -346,16 +364,19 @@ export class TemplatesService {
     organization?: string,
     limit: number = 10,
   ): Promise<Template[]> {
-    const query: Record<string, unknown> = { isDeleted: false };
+    const where: Record<string, unknown> = { isDeleted: false };
     if (organization) {
-      query.organization = organization;
+      where.organizationId = organization;
     }
-    return await this.templateModel
-      .find(query)
-      .populate('metadata')
-      .sort({ rating: -1, usageCount: -1 })
-      .limit(limit)
-      .lean();
+
+    const results = await this.prisma.template.findMany({
+      include: { metadata: true },
+      orderBy: [{ rating: 'desc' }, { usageCount: 'desc' }],
+      take: limit,
+      where: where as never,
+    });
+
+    return results as unknown as Template[];
   }
 
   /**
@@ -368,33 +389,35 @@ export class TemplatesService {
   ): Promise<TemplateDocument | null> {
     // First, check for org-specific override
     if (organization) {
-      const orgPrompt = await this.templateModel
-        .findOne({
+      const orgPrompt = await this.prisma.template.findFirst({
+        include: { metadata: true },
+        where: {
           isActive: true,
           isDeleted: false,
           key,
-          organization: new Types.ObjectId(organization) as unknown as string,
+          organizationId: organization,
           purpose: 'prompt',
-        })
-        .populate('metadata')
-        .exec();
+        },
+      });
 
       if (orgPrompt) {
-        return orgPrompt;
+        return orgPrompt as unknown as TemplateDocument;
       }
     }
 
     // Fall back to global prompt (returns null if not found)
-    return this.templateModel
-      .findOne({
+    const globalPrompt = await this.prisma.template.findFirst({
+      include: { metadata: true },
+      where: {
         isActive: true,
         isDeleted: false,
         key,
-        organization: null,
+        organizationId: null,
         purpose: 'prompt',
-      })
-      .populate('metadata')
-      .exec();
+      },
+    });
+
+    return globalPrompt as unknown as TemplateDocument | null;
   }
 
   /**
@@ -409,7 +432,6 @@ export class TemplatesService {
       let rendered = compiledTemplate(variables);
 
       // Clean up multiple consecutive newlines (3+ newlines -> 2 newlines)
-      // This handles cases where {{#if}} blocks leave behind extra blank lines
       rendered = rendered.replace(/\n{3,}/g, '\n\n');
 
       // Trim any leading/trailing whitespace
@@ -442,7 +464,6 @@ export class TemplatesService {
 
   /**
    * Update prompt metadata (success rate, usage count)
-   * Now updates TemplateMetadata collection
    */
   async updateMetadata(
     key: string,
@@ -515,7 +536,7 @@ export class TemplatesService {
   }
 
   /**
-   * Private: Apply AI tweaks to generated content using Replicate GPT-5.2
+   * Private: Apply AI tweaks to generated content
    */
   private async applyAITweaks(
     content: string,

@@ -1,29 +1,18 @@
 import { CreateTrackedLinkDto } from '@api/collections/tracked-links/dto/create-tracked-link.dto';
 import { TrackClickDto } from '@api/collections/tracked-links/dto/track-click.dto';
-import {
-  LinkClick,
-  type LinkClickDocument,
-} from '@api/collections/tracked-links/schemas/link-click.schema';
-import {
-  TrackedLink,
-  type TrackedLinkDocument,
-} from '@api/collections/tracked-links/schemas/tracked-link.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { LinkClickDocument } from '@api/collections/tracked-links/schemas/link-click.schema';
+import type { TrackedLinkDocument } from '@api/collections/tracked-links/schemas/tracked-link.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 import { nanoid } from 'nanoid';
+
+type TrackedLink = TrackedLinkDocument;
 
 @Injectable()
 export class TrackedLinksService {
   private readonly logger = new Logger(TrackedLinksService.name);
 
-  constructor(
-    @InjectModel(TrackedLink.name, DB_CONNECTIONS.CLOUD)
-    private trackedLinkModel: Model<TrackedLinkDocument>,
-    @InjectModel(LinkClick.name, DB_CONNECTIONS.CLOUD)
-    private linkClickModel: Model<LinkClickDocument>,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * Generate tracking link with UTM parameters
@@ -40,9 +29,8 @@ export class TrackedLinksService {
     // so collisions across organizations would cause cross-contamination
     let attempts = 0;
     while (attempts < 5) {
-      const existing = await this.trackedLinkModel.findOne({
-        isDeleted: false,
-        shortCode,
+      const existing = await this.prisma.trackedLink.findFirst({
+        where: { isDeleted: false, shortCode },
       });
 
       if (!existing) {
@@ -78,38 +66,40 @@ export class TrackedLinksService {
     const shortUrl = `${baseUrl}/${shortCode}`;
 
     // Create tracked link
-    const trackedLink = await this.trackedLinkModel.create({
-      brand: dto.brandId,
-      campaignName: dto.campaignName,
-      content: dto.contentId,
-      contentType: dto.contentType,
-      customSlug: dto.customSlug,
-      isActive: true,
-      isDeleted: false,
-      organization: organizationId,
-      originalUrl: utmUrl,
-      platform: dto.platform,
-      shortCode,
-      shortUrl,
-      stats: {
-        totalClicks: 0,
-        uniqueClicks: 0,
-      },
-      utm: {
-        campaign: dto.campaignName || dto.utm?.campaign,
-        content: dto.contentId || dto.utm?.content,
-        medium: dto.utm?.medium || 'social',
-        source: dto.platform || dto.utm?.source || 'genfeed',
-        term: dto.utm?.term,
-      },
+    const trackedLink = await this.prisma.trackedLink.create({
+      data: {
+        brandId: dto.brandId,
+        campaignName: dto.campaignName,
+        contentId: dto.contentId,
+        contentType: dto.contentType,
+        customSlug: dto.customSlug,
+        isActive: true,
+        isDeleted: false,
+        organizationId,
+        originalUrl: utmUrl,
+        platform: dto.platform,
+        shortCode,
+        shortUrl,
+        stats: {
+          totalClicks: 0,
+          uniqueClicks: 0,
+        },
+        utm: {
+          campaign: dto.campaignName || dto.utm?.campaign,
+          content: dto.contentId || dto.utm?.content,
+          medium: dto.utm?.medium || 'social',
+          source: dto.platform || dto.utm?.source || 'genfeed',
+          term: dto.utm?.term,
+        },
+      } as never,
     });
 
     this.logger.log(`Tracking link generated: ${shortUrl}`, {
-      linkId: trackedLink._id,
+      linkId: trackedLink.id,
       organizationId,
     });
 
-    return trackedLink;
+    return trackedLink as unknown as TrackedLink;
   }
 
   /**
@@ -150,28 +140,25 @@ export class TrackedLinksService {
    * Get tracked link by ID
    */
   async getById(linkId: string, organizationId: string): Promise<TrackedLink> {
-    const link = await this.trackedLinkModel.findOne({
-      _id: linkId,
-      isDeleted: false,
-      organization: organizationId,
+    const link = await this.prisma.trackedLink.findFirst({
+      where: { id: linkId, isDeleted: false, organizationId },
     });
 
     if (!link) {
       throw new NotFoundException(`Tracked link not found: ${linkId}`);
     }
 
-    return link;
+    return link as unknown as TrackedLink;
   }
 
   /**
    * Get tracked link by short code (for redirect)
    */
   async getByShortCode(shortCode: string): Promise<TrackedLink | null> {
-    return await this.trackedLinkModel.findOne({
-      isActive: true,
-      isDeleted: false,
-      shortCode,
+    const result = await this.prisma.trackedLink.findFirst({
+      where: { isActive: true, isDeleted: false, shortCode },
     });
+    return result as unknown as TrackedLink | null;
   }
 
   /**
@@ -181,13 +168,11 @@ export class TrackedLinksService {
     contentId: string,
     organizationId: string,
   ): Promise<TrackedLink[]> {
-    return await this.trackedLinkModel
-      .find({
-        content: contentId,
-        isDeleted: false,
-        organization: organizationId,
-      })
-      .sort({ createdAt: -1 });
+    const results = await this.prisma.trackedLink.findMany({
+      orderBy: { createdAt: 'desc' },
+      where: { contentId, isDeleted: false, organizationId },
+    });
+    return results as unknown as TrackedLink[];
   }
 
   /**
@@ -201,22 +186,26 @@ export class TrackedLinksService {
       isActive?: boolean;
     },
   ): Promise<TrackedLink[]> {
-    const query: Record<string, unknown> = {
+    const where: Record<string, unknown> = {
       isDeleted: false,
-      organization: organizationId,
+      organizationId,
     };
 
     if (filters?.platform) {
-      query.platform = filters.platform;
+      where.platform = filters.platform;
     }
     if (filters?.campaignName) {
-      query.campaignName = filters.campaignName;
+      where.campaignName = filters.campaignName;
     }
     if (filters?.isActive !== undefined) {
-      query.isActive = filters.isActive;
+      where.isActive = filters.isActive;
     }
 
-    return await this.trackedLinkModel.find(query).sort({ createdAt: -1 });
+    const results = await this.prisma.trackedLink.findMany({
+      orderBy: { createdAt: 'desc' },
+      where: where as never,
+    });
+    return results as unknown as TrackedLink[];
   }
 
   /**
@@ -226,7 +215,9 @@ export class TrackedLinksService {
     dto: TrackClickDto,
     req?: { ip?: string; headers?: Record<string, string | undefined> },
   ): Promise<void> {
-    const link = await this.trackedLinkModel.findById(dto.linkId);
+    const link = await this.prisma.trackedLink.findFirst({
+      where: { id: dto.linkId },
+    });
 
     if (!link) {
       this.logger.warn(`Link not found for click tracking: ${dto.linkId}`);
@@ -235,9 +226,8 @@ export class TrackedLinksService {
 
     // Check if unique (first click from this session)
     const isUnique = dto.sessionId
-      ? !(await this.linkClickModel.exists({
-          linkId: dto.linkId,
-          sessionId: dto.sessionId,
+      ? !(await this.prisma.linkClick.findFirst({
+          where: { linkId: dto.linkId, sessionId: dto.sessionId },
         }))
       : false;
 
@@ -250,25 +240,39 @@ export class TrackedLinksService {
     const country = await this.getCountryFromIP(dto.ip || req?.ip);
 
     // Save click
-    await this.linkClickModel.create({
-      country,
-      device,
-      gaClientId: dto.gaClientId,
-      isUnique,
-      linkId: dto.linkId,
-      referrer: dto.referrer || req?.headers?.referer,
-      sessionId: dto.sessionId || 'unknown',
-      timestamp: new Date(),
-      userAgent: dto.userAgent || req?.headers?.['user-agent'],
+    await this.prisma.linkClick.create({
+      data: {
+        country,
+        device,
+        gaClientId: dto.gaClientId,
+        isUnique,
+        linkId: dto.linkId,
+        referrer: dto.referrer || req?.headers?.referer,
+        sessionId: dto.sessionId || 'unknown',
+        timestamp: new Date(),
+        userAgent: dto.userAgent || req?.headers?.['user-agent'],
+      } as never,
     });
 
-    // Update link stats
-    await this.trackedLinkModel.findByIdAndUpdate(dto.linkId, {
-      $inc: {
-        'stats.totalClicks': 1,
-        'stats.uniqueClicks': isUnique ? 1 : 0,
-      },
-      'stats.lastClickAt': new Date(),
+    // Update link stats — read current stats then update
+    const currentLink = await this.prisma.trackedLink.findFirst({
+      where: { id: dto.linkId },
+    });
+    const currentStats =
+      (currentLink?.stats as Record<string, unknown> | null) ?? {};
+    const currentTotal = (currentStats.totalClicks as number) ?? 0;
+    const currentUnique = (currentStats.uniqueClicks as number) ?? 0;
+
+    await this.prisma.trackedLink.update({
+      data: {
+        stats: {
+          ...currentStats,
+          lastClickAt: new Date(),
+          totalClicks: currentTotal + 1,
+          uniqueClicks: isUnique ? currentUnique + 1 : currentUnique,
+        },
+      } as never,
+      where: { id: dto.linkId },
     });
 
     this.logger.log(`Click tracked for link ${dto.linkId}`, {
@@ -303,14 +307,23 @@ export class TrackedLinksService {
     const link = await this.getById(linkId, organizationId);
 
     // Get all clicks for this link
-    const clicks = await this.linkClickModel.find({ linkId }).lean();
+    const clicks = await this.prisma.linkClick.findMany({
+      where: { linkId },
+    });
+
+    const clickDocs = clicks as unknown as Array<{
+      timestamp: Date;
+      country?: string;
+      device?: string;
+      referrer?: string;
+    }>;
 
     const clicksByDate: Record<string, number> = {};
     const clicksByCountry: Record<string, number> = {};
     const clicksByDevice: Record<string, number> = {};
     const clicksByReferrer: Record<string, number> = {};
 
-    clicks.forEach((click) => {
+    clickDocs.forEach((click) => {
       // By date
       const date = click.timestamp.toISOString().split('T')[0];
       clicksByDate[date] = (clicksByDate[date] || 0) + 1;
@@ -335,22 +348,26 @@ export class TrackedLinksService {
       }
     });
 
+    const linkDoc = link as unknown as Record<string, unknown> & {
+      stats: { totalClicks: number; uniqueClicks: number; lastClickAt?: Date };
+      createdAt: Date;
+    };
+
     return {
       clicksByCountry,
       clicksByDate,
       clicksByDevice,
       clicksByReferrer,
-      contentId: link.content?.toString(),
-      contentType: link.contentType,
-      // @ts-expect-error TS2339
-      createdAt: link.createdAt,
-      lastClickAt: link.stats.lastClickAt,
-      linkId: link._id.toString(),
-      platform: link.platform,
-      shortUrl: link.shortUrl,
-      totalClicks: link.stats.totalClicks,
-      uniqueClicks: link.stats.uniqueClicks,
-      url: link.originalUrl,
+      contentId: (linkDoc.contentId as string) ?? undefined,
+      contentType: linkDoc.contentType as string | undefined,
+      createdAt: linkDoc.createdAt,
+      lastClickAt: linkDoc.stats?.lastClickAt,
+      linkId: String(linkDoc.id ?? linkDoc._id),
+      platform: linkDoc.platform as string | undefined,
+      shortUrl: linkDoc.shortUrl as string,
+      totalClicks: linkDoc.stats?.totalClicks ?? 0,
+      uniqueClicks: linkDoc.stats?.uniqueClicks ?? 0,
+      url: linkDoc.originalUrl as string,
     };
   }
 
@@ -373,35 +390,50 @@ export class TrackedLinksService {
   }> {
     const links = await this.getContentLinks(contentId, organizationId);
 
-    const totalLinks = links.length;
-    const totalClicks = links.reduce(
+    const linkDocs = links as unknown as Array<{
+      id: string;
+      contentType?: string;
+      shortUrl: string;
+      stats: { totalClicks: number; uniqueClicks: number };
+    }>;
+
+    const totalLinks = linkDocs.length;
+    const totalClicks = linkDocs.reduce(
       (sum, link) => sum + link.stats.totalClicks,
       0,
     );
-    const uniqueClicks = links.reduce(
+    const uniqueClicks = linkDocs.reduce(
       (sum, link) => sum + link.stats.uniqueClicks,
       0,
     );
     const avgClicksPerLink = totalLinks > 0 ? totalClicks / totalLinks : 0;
 
     // Find top performing link
-    const topLink = links.reduce(
-      (best: TrackedLink | null, link: TrackedLink) => {
+    const topLink = linkDocs.reduce(
+      (
+        best: {
+          id: string;
+          shortUrl: string;
+          stats: { totalClicks: number };
+        } | null,
+        link,
+      ) => {
         return link.stats.totalClicks > (best?.stats.totalClicks || 0)
           ? link
           : best;
       },
-      null as TrackedLink | null,
+      null,
     );
 
     // Get clicks by date for trend
-    const linkIds = links.map((l) => (l as unknown as { _id: unknown })._id);
-    const clicks = await this.linkClickModel
-      .find({ linkId: { $in: linkIds } })
-      .lean();
+    const linkIds = linkDocs.map((l) => l.id);
+    const clicks = await this.prisma.linkClick.findMany({
+      where: { linkId: { in: linkIds } },
+    });
 
+    const clickDocs = clicks as unknown as Array<{ timestamp: Date }>;
     const clicksByDate: Record<string, number> = {};
-    clicks.forEach((click) => {
+    clickDocs.forEach((click) => {
       const date = click.timestamp.toISOString().split('T')[0];
       clicksByDate[date] = (clicksByDate[date] || 0) + 1;
     });
@@ -429,7 +461,7 @@ export class TrackedLinksService {
       clicksByDate,
       clickTrend,
       contentId,
-      contentType: links[0]?.contentType || 'unknown',
+      contentType: linkDocs[0]?.contentType || 'unknown',
       topLink: topLink
         ? {
             clicks: topLink.stats.totalClicks,
@@ -450,32 +482,39 @@ export class TrackedLinksService {
     organizationId: string,
     updates: Partial<TrackedLink>,
   ): Promise<TrackedLink> {
-    const link = await this.trackedLinkModel.findOneAndUpdate(
-      { _id: linkId, isDeleted: false, organization: organizationId },
-      updates,
-      { returnDocument: 'after' },
-    );
+    const existing = await this.prisma.trackedLink.findFirst({
+      where: { id: linkId, isDeleted: false, organizationId },
+    });
 
-    if (!link) {
+    if (!existing) {
       throw new NotFoundException(`Tracked link not found: ${linkId}`);
     }
 
+    const result = await this.prisma.trackedLink.update({
+      data: updates as never,
+      where: { id: linkId },
+    });
+
     this.logger.log(`Tracked link updated: ${linkId}`);
-    return link;
+    return result as unknown as TrackedLink;
   }
 
   /**
    * Delete tracked link (soft delete)
    */
   async delete(linkId: string, organizationId: string): Promise<void> {
-    const result = await this.trackedLinkModel.updateOne(
-      { _id: linkId, organization: organizationId },
-      { isDeleted: true },
-    );
+    const existing = await this.prisma.trackedLink.findFirst({
+      where: { id: linkId, organizationId },
+    });
 
-    if (result.matchedCount === 0) {
+    if (!existing) {
       throw new NotFoundException(`Tracked link not found: ${linkId}`);
     }
+
+    await this.prisma.trackedLink.update({
+      data: { isDeleted: true } as never,
+      where: { id: linkId },
+    });
 
     this.logger.log(`Tracked link deleted: ${linkId}`);
   }

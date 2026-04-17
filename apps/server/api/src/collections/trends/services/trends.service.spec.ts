@@ -2,14 +2,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { TrendEntity } from '@api/collections/trends/entities/trend.entity';
-import {
-  Trend,
-  type TrendDocument,
-} from '@api/collections/trends/schemas/trend.schema';
-import { TrendPreferences } from '@api/collections/trends/schemas/trend-preferences.schema';
-import { TrendingHashtag } from '@api/collections/trends/schemas/trending-hashtag.schema';
-import { TrendingSound } from '@api/collections/trends/schemas/trending-sound.schema';
-import { TrendingVideo } from '@api/collections/trends/schemas/trending-video.schema';
+import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema';
 import { TrendAnalysisService } from '@api/collections/trends/services/modules/trend-analysis.service';
 import { TrendContentIdeasService } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import { TrendFetchService } from '@api/collections/trends/services/modules/trend-fetch.service';
@@ -18,28 +11,61 @@ import { TrendVideoService } from '@api/collections/trends/services/modules/tren
 import { TrendPreferencesService } from '@api/collections/trends/services/trend-preferences.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { XaiService } from '@api/services/integrations/xai/services/xai.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('TrendsService', () => {
   let service: TrendsService;
   let trendContentIdeasService: TrendContentIdeasService;
-  let model: ReturnType<typeof createMockModel>;
+  let prisma: {
+    trend: {
+      findMany: ReturnType<typeof vi.fn>;
+      findFirst: ReturnType<typeof vi.fn>;
+      update: ReturnType<typeof vi.fn>;
+    };
+  };
   let loggerService: LoggerService;
 
-  const mockOrganizationId = new Types.ObjectId('507f1f77bcf86cd799439011');
-  const mockBrandId = new Types.ObjectId('507f1f77bcf86cd799439012');
+  const mockOrganizationId = '507f1f77bcf86cd799439011';
+  const mockBrandId = '507f1f77bcf86cd799439012';
 
+  // A Prisma-style trend doc (with data blob containing the rich fields)
+  const makePrismaTrendDoc = (
+    overrides: Partial<Record<string, unknown>> = {},
+  ) => ({
+    brandId: mockBrandId,
+    createdAt: new Date(),
+    data: {
+      expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+      growthRate: 85,
+      isCurrent: true,
+      isDeleted: false,
+      mentions: 1000000,
+      metadata: {
+        hashtags: ['#AI', '#tech'],
+        sampleContent: 'Sample content',
+        urls: [],
+      },
+      platform: 'tiktok',
+      requiresAuth: false,
+      topic: 'AI trends',
+      viralityScore: 75,
+      ...overrides,
+    },
+    id: 'trend-id-1',
+    isDeleted: false,
+    organizationId: mockOrganizationId,
+    updatedAt: new Date(),
+  });
+
+  // A TrendEntity-like object (flattened) for spy returns
   const mockTrend: Partial<TrendDocument> = {
-    _id: new Types.ObjectId(),
     createdAt: new Date(),
     expiresAt: new Date(Date.now() + 30 * 60 * 1000),
     growthRate: 85,
@@ -58,18 +84,12 @@ describe('TrendsService', () => {
   };
 
   beforeEach(async () => {
-    const mockModel = {
-      create: vi.fn(),
-      exec: vi.fn(),
-      find: vi.fn(),
-      findById: vi.fn(),
-      findByIdAndUpdate: vi.fn(),
-      findOne: vi.fn(),
-      lean: vi.fn(),
-      limit: vi.fn(),
-      save: vi.fn(),
-      sort: vi.fn(),
-      updateMany: vi.fn(),
+    prisma = {
+      trend: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValue([]),
+        update: vi.fn().mockResolvedValue({}),
+      },
     };
 
     const mockEmptyService = {};
@@ -84,24 +104,8 @@ describe('TrendsService', () => {
         TrendVideoService,
         TrendPreferencesService,
         {
-          provide: getModelToken(Trend.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
-        {
-          provide: getModelToken(TrendPreferences.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
-        {
-          provide: getModelToken(TrendingVideo.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
-        {
-          provide: getModelToken(TrendingHashtag.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
-        },
-        {
-          provide: getModelToken(TrendingSound.name, DB_CONNECTIONS.CLOUD),
-          useValue: mockModel,
+          provide: PrismaService,
+          useValue: prisma,
         },
         {
           provide: LoggerService,
@@ -188,7 +192,6 @@ describe('TrendsService', () => {
     trendContentIdeasService = module.get<TrendContentIdeasService>(
       TrendContentIdeasService,
     );
-    model = module.get(getModelToken(Trend.name, DB_CONNECTIONS.CLOUD));
     loggerService = module.get<LoggerService>(LoggerService);
 
     vi.clearAllMocks();
@@ -200,30 +203,44 @@ describe('TrendsService', () => {
 
   describe('sanitizeForPrompt', () => {
     it('should remove angle brackets', () => {
-      const result = (trendContentIdeasService as any).sanitizeForPrompt(
-        '<script>alert("xss")</script>',
-      );
+      const result = (
+        trendContentIdeasService as unknown as Record<
+          string,
+          (s: string) => string
+        >
+      ).sanitizeForPrompt('<script>alert("xss")</script>');
       expect(result).not.toContain('<');
       expect(result).not.toContain('>');
     });
 
     it('should limit consecutive newlines', () => {
-      const result = (trendContentIdeasService as any).sanitizeForPrompt(
-        'line1\n\n\n\n\nline2',
-      );
+      const result = (
+        trendContentIdeasService as unknown as Record<
+          string,
+          (s: string) => string
+        >
+      ).sanitizeForPrompt('line1\n\n\n\n\nline2');
       expect(result).toBe('line1\n\nline2');
     });
 
     it('should truncate long strings', () => {
       const longString = 'a'.repeat(3000);
-      const result = (trendContentIdeasService as any).sanitizeForPrompt(
-        longString,
-      );
+      const result = (
+        trendContentIdeasService as unknown as Record<
+          string,
+          (s: string) => string
+        >
+      ).sanitizeForPrompt(longString);
       expect(result.length).toBe(2000);
     });
 
     it('should handle numbers', () => {
-      const result = (trendContentIdeasService as any).sanitizeForPrompt(12345);
+      const result = (
+        trendContentIdeasService as unknown as Record<
+          string,
+          (s: unknown) => string
+        >
+      ).sanitizeForPrompt(12345);
       expect(result).toBe('12345');
     });
   });
@@ -232,11 +249,16 @@ describe('TrendsService', () => {
     it('should succeed on first attempt', async () => {
       const mockOperation = vi.fn().mockResolvedValue({ success: true });
 
-      const result = await (trendContentIdeasService as any).callWithRetry(
-        mockOperation,
-        3,
-        1,
-      );
+      const result = await (
+        trendContentIdeasService as unknown as Record<
+          string,
+          (
+            fn: () => Promise<unknown>,
+            retries: number,
+            delay: number,
+          ) => Promise<unknown>
+        >
+      ).callWithRetry(mockOperation, 3, 1);
 
       expect(result).toEqual({ success: true });
       expect(mockOperation).toHaveBeenCalledTimes(1);
@@ -248,11 +270,16 @@ describe('TrendsService', () => {
         .mockRejectedValueOnce(new Error('Temporary error'))
         .mockResolvedValueOnce({ success: true });
 
-      const result = await (trendContentIdeasService as any).callWithRetry(
-        mockOperation,
-        3,
-        1,
-      );
+      const result = await (
+        trendContentIdeasService as unknown as Record<
+          string,
+          (
+            fn: () => Promise<unknown>,
+            retries: number,
+            delay: number,
+          ) => Promise<unknown>
+        >
+      ).callWithRetry(mockOperation, 3, 1);
 
       expect(result).toEqual({ success: true });
       expect(mockOperation).toHaveBeenCalledTimes(2);
@@ -264,7 +291,16 @@ describe('TrendsService', () => {
         .mockRejectedValue(new Error('Persistent error'));
 
       await expect(
-        (trendContentIdeasService as any).callWithRetry(mockOperation, 2, 1),
+        (
+          trendContentIdeasService as unknown as Record<
+            string,
+            (
+              fn: () => Promise<unknown>,
+              retries: number,
+              delay: number,
+            ) => Promise<unknown>
+          >
+        ).callWithRetry(mockOperation, 2, 1),
       ).rejects.toThrow('Persistent error');
 
       expect(mockOperation).toHaveBeenCalledTimes(2);
@@ -285,23 +321,27 @@ describe('TrendsService', () => {
   }
 ]`;
 
-      const result = (trendContentIdeasService as any).parseAIResponse(
-        validResponse,
-        'tiktok',
-      );
+      const result = (
+        trendContentIdeasService as unknown as Record<
+          string,
+          (s: string, p: string) => unknown[]
+        >
+      ).parseAIResponse(validResponse, 'tiktok');
 
       expect(result).toHaveLength(1);
-      expect(result[0].title).toBe('AI Tutorial');
+      expect((result[0] as Record<string, string>).title).toBe('AI Tutorial');
     });
 
     it('should throw error when no JSON array found', () => {
       const invalidResponse = 'No JSON here!';
 
       expect(() =>
-        (trendContentIdeasService as any).parseAIResponse(
-          invalidResponse,
-          'tiktok',
-        ),
+        (
+          trendContentIdeasService as unknown as Record<
+            string,
+            (s: string, p: string) => unknown
+          >
+        ).parseAIResponse(invalidResponse, 'tiktok'),
       ).toThrow('No JSON array found in response');
 
       expect(loggerService.error).toHaveBeenCalledWith(
@@ -312,12 +352,14 @@ describe('TrendsService', () => {
     });
 
     it('should return empty array on malformed JSON', () => {
-      const malformedResponse = '[{ "title": "test", }]'; // Trailing comma
+      const malformedResponse = '[{ "title": "test", }]';
 
-      const result = (trendContentIdeasService as any).parseAIResponse(
-        malformedResponse,
-        'tiktok',
-      );
+      const result = (
+        trendContentIdeasService as unknown as Record<
+          string,
+          (s: string, p: string) => unknown[]
+        >
+      ).parseAIResponse(malformedResponse, 'tiktok');
 
       expect(result).toEqual([]);
       expect(loggerService.error).toHaveBeenCalledWith(
@@ -333,10 +375,12 @@ describe('TrendsService', () => {
   }
 ]`;
 
-      const result = (trendContentIdeasService as any).parseAIResponse(
-        invalidIdea,
-        'tiktok',
-      );
+      const result = (
+        trendContentIdeasService as unknown as Record<
+          string,
+          (s: string, p: string) => unknown[]
+        >
+      ).parseAIResponse(invalidIdea, 'tiktok');
 
       expect(result).toEqual([]);
       expect(loggerService.error).toHaveBeenCalled();
@@ -345,10 +389,12 @@ describe('TrendsService', () => {
     it('should warn on empty array', () => {
       const emptyResponse = '[]';
 
-      const result = (trendContentIdeasService as any).parseAIResponse(
-        emptyResponse,
-        'tiktok',
-      );
+      const result = (
+        trendContentIdeasService as unknown as Record<
+          string,
+          (s: string, p: string) => unknown[]
+        >
+      ).parseAIResponse(emptyResponse, 'tiktok');
 
       expect(result).toEqual([]);
       expect(loggerService.warn).toHaveBeenCalledWith(
@@ -360,9 +406,9 @@ describe('TrendsService', () => {
 
   describe('getTrendContent', () => {
     it('aggregates, dedupes, and ranks content items from cached previews', async () => {
-      const cachedTrendA = {
+      const cachedTrendA = new TrendEntity({
         ...mockTrend,
-        _id: new Types.ObjectId('507f1f77bcf86cd799439021'),
+        id: '507f1f77bcf86cd799439021',
         metadata: {
           sourcePreviewCache: [
             {
@@ -381,11 +427,11 @@ describe('TrendsService', () => {
         platform: 'twitter',
         topic: '#AIAgents',
         viralityScore: 90,
-      };
+      } as never);
 
-      const cachedTrendB = {
+      const cachedTrendB = new TrendEntity({
         ...mockTrend,
-        _id: new Types.ObjectId('507f1f77bcf86cd799439022'),
+        id: '507f1f77bcf86cd799439022',
         metadata: {
           sourcePreviewCache: [
             {
@@ -411,14 +457,12 @@ describe('TrendsService', () => {
         platform: 'twitter',
         topic: '#AIWorkflow',
         viralityScore: 70,
-      };
+      } as never);
 
       vi.spyOn(service, 'getTrendsWithAccessControl').mockResolvedValue({
         connectedPlatforms: ['twitter'],
         lockedPlatforms: ['instagram'],
-        trends: [cachedTrendA, cachedTrendB].map(
-          (trend) => new TrendEntity(trend as never),
-        ),
+        trends: [cachedTrendA, cachedTrendB],
       });
 
       const result = await service.getTrendContent('org-1', 'brand-1', {
@@ -446,7 +490,7 @@ describe('TrendsService', () => {
         trends: [
           new TrendEntity({
             ...mockTrend,
-            _id: new Types.ObjectId('507f1f77bcf86cd799439023'),
+            id: '507f1f77bcf86cd799439023',
             metadata: {
               source: 'curated',
             },
@@ -492,14 +536,11 @@ describe('TrendsService', () => {
         .spyOn(trendFilteringService, 'filterTrendsByPreferences')
         .mockImplementation((trends) => trends);
 
-      await service.getTrendsWithAccessControl(
-        mockOrganizationId.toString(),
-        mockBrandId.toString(),
-      );
+      await service.getTrendsWithAccessControl(mockOrganizationId, mockBrandId);
 
       expect(getPreferencesSpy).toHaveBeenCalledWith(
-        mockOrganizationId.toString(),
-        mockBrandId.toString(),
+        mockOrganizationId,
+        mockBrandId,
       );
       expect(filterByPreferencesSpy).toHaveBeenCalledWith(
         expect.any(Array),
@@ -541,14 +582,11 @@ describe('TrendsService', () => {
         .spyOn(trendFilteringService, 'filterTrendsByPreferences')
         .mockImplementation((trends) => trends);
 
-      await service.getTrendsWithAccessControl(
-        mockOrganizationId.toString(),
-        mockBrandId.toString(),
-      );
+      await service.getTrendsWithAccessControl(mockOrganizationId, mockBrandId);
 
       expect(getPreferencesSpy).toHaveBeenCalledWith(
-        mockOrganizationId.toString(),
-        mockBrandId.toString(),
+        mockOrganizationId,
+        mockBrandId,
       );
       expect(filterByPreferencesSpy).toHaveBeenCalledWith(
         expect.any(Array),
@@ -570,7 +608,7 @@ describe('TrendsService', () => {
           trendFilteringService: TrendFilteringService;
         }
       ).trendFilteringService;
-      const brandAId = mockBrandId.toString();
+      const brandAId = mockBrandId;
       const brandBId = '507f1f77bcf86cd799439013';
 
       vi.spyOn(service, 'getConnectedPlatforms').mockResolvedValue(['twitter']);
@@ -605,23 +643,17 @@ describe('TrendsService', () => {
         .spyOn(trendFilteringService, 'filterTrendsByPreferences')
         .mockImplementation((trends) => trends);
 
-      await service.getTrendsWithAccessControl(
-        mockOrganizationId.toString(),
-        brandAId,
-      );
-      await service.getTrendsWithAccessControl(
-        mockOrganizationId.toString(),
-        brandBId,
-      );
+      await service.getTrendsWithAccessControl(mockOrganizationId, brandAId);
+      await service.getTrendsWithAccessControl(mockOrganizationId, brandBId);
 
       expect(getPreferencesSpy).toHaveBeenNthCalledWith(
         1,
-        mockOrganizationId.toString(),
+        mockOrganizationId,
         brandAId,
       );
       expect(getPreferencesSpy).toHaveBeenNthCalledWith(
         2,
-        mockOrganizationId.toString(),
+        mockOrganizationId,
         brandBId,
       );
       expect(filterByPreferencesSpy).toHaveBeenNthCalledWith(
@@ -655,9 +687,6 @@ describe('TrendsService', () => {
 
       const score = service.calculateViralityScore(trendData);
 
-      // (5000000 / 10000000 * 100 * 0.5) + (60 * 0.3) + (recency * 0.2)
-      // Recency is ~100 for freshly created trend (createdAt is undefined here = 0 age)
-      // = (50 * 0.5) + 18 + (100 * 0.2) = 25 + 18 + 20 = 63
       expect(score).toBeGreaterThanOrEqual(59);
       expect(score).toBeLessThanOrEqual(65);
     });
@@ -687,82 +716,53 @@ describe('TrendsService', () => {
 
       const score = service.calculateViralityScore(trendData);
 
-      // (0 * 0.5) + (50 * 0.3) + (recency * 0.2) = 0 + 15 + recency
-      // recency ~20 for createdAt=undefined
       expect(score).toBeGreaterThanOrEqual(31);
       expect(score).toBeLessThanOrEqual(37);
     });
   });
 
   describe('getTrends', () => {
-    it('should return cached trends if available', async () => {
-      const mockTrends = [
-        mockTrend,
-        { ...mockTrend, _id: new Types.ObjectId() },
-      ];
+    it('should return cached trends when prisma.trend.findMany returns active docs', async () => {
+      const doc = makePrismaTrendDoc();
+      prisma.trend.findMany.mockResolvedValue([doc]);
 
-      model.find.mockReturnValue({
-        sort: vi.fn().mockReturnValue({
-          limit: vi.fn().mockReturnValue({
-            lean: vi.fn().mockResolvedValue(mockTrends),
+      const result = await service.getTrends(mockOrganizationId, mockBrandId);
+
+      expect(result).toHaveLength(1);
+      expect(prisma.trend.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            brandId: mockBrandId,
+            isDeleted: false,
+            organizationId: mockOrganizationId,
           }),
         }),
-      });
-
-      const result = await service.getTrends(
-        mockOrganizationId.toString(),
-        mockBrandId.toString(),
       );
-
-      expect(result).toHaveLength(2);
-      expect(model.find).toHaveBeenCalledWith({
-        brand: mockBrandId.toString(),
-        expiresAt: { $gt: expect.any(Date) },
-        isCurrent: true,
-        isDeleted: false,
-        organization: mockOrganizationId.toString(),
-      });
     });
 
-    it('should filter by platform when specified', async () => {
-      model.find.mockReturnValue({
-        sort: vi.fn().mockReturnValue({
-          limit: vi.fn().mockReturnValue({
-            lean: vi.fn().mockResolvedValue([mockTrend]),
-          }),
-        }),
-      });
+    it('should filter by platform in-memory when specified', async () => {
+      const tikTokDoc = makePrismaTrendDoc({ platform: 'tiktok' });
+      const instagramDoc = makePrismaTrendDoc({ platform: 'instagram' });
+      prisma.trend.findMany.mockResolvedValue([tikTokDoc, instagramDoc]);
 
-      await service.getTrends(
-        mockOrganizationId.toString(),
-        mockBrandId.toString(),
+      const result = await service.getTrends(
+        mockOrganizationId,
+        mockBrandId,
         'tiktok',
       );
 
-      expect(model.find).toHaveBeenCalledWith({
-        brand: mockBrandId.toString(),
-        expiresAt: { $gt: expect.any(Date) },
-        isCurrent: true,
-        isDeleted: false,
-        organization: mockOrganizationId.toString(),
-        platform: 'tiktok',
-      });
+      expect(result).toHaveLength(1);
+      expect(result[0].platform).toBe('tiktok');
     });
 
     it('should return empty without live fetch when cache is missing and fetching is disabled', async () => {
-      model.find.mockReturnValue({
-        sort: vi.fn().mockReturnValue({
-          limit: vi.fn().mockReturnValue({
-            lean: vi.fn().mockResolvedValue([]),
-          }),
-        }),
-      });
+      prisma.trend.findMany.mockResolvedValue([]);
 
       const fetchAndCacheTrendsSpy = vi.spyOn(service, 'fetchAndCacheTrends');
 
       const result = await service.getTrends(
-        mockOrganizationId.toString(),
-        mockBrandId.toString(),
+        mockOrganizationId,
+        mockBrandId,
         undefined,
         {
           allowFetchIfMissing: false,
@@ -774,25 +774,14 @@ describe('TrendsService', () => {
     });
 
     it('should fall back to global cached trends when tenant-scoped trends are missing', async () => {
-      model.find
-        .mockReturnValueOnce({
-          sort: vi.fn().mockReturnValue({
-            limit: vi.fn().mockReturnValue({
-              lean: vi.fn().mockResolvedValue([]),
-            }),
-          }),
-        })
-        .mockReturnValueOnce({
-          sort: vi.fn().mockReturnValue({
-            limit: vi.fn().mockReturnValue({
-              lean: vi.fn().mockResolvedValue([mockTrend]),
-            }),
-          }),
-        });
+      const globalDoc = makePrismaTrendDoc();
+      prisma.trend.findMany
+        .mockResolvedValueOnce([]) // tenant-scoped = empty
+        .mockResolvedValueOnce([globalDoc]); // global = has data
 
       const result = await service.getTrends(
-        mockOrganizationId.toString(),
-        mockBrandId.toString(),
+        mockOrganizationId,
+        mockBrandId,
         undefined,
         {
           allowFetchIfMissing: false,
@@ -800,38 +789,30 @@ describe('TrendsService', () => {
       );
 
       expect(result).toHaveLength(1);
-      expect(model.find).toHaveBeenNthCalledWith(1, {
-        brand: mockBrandId.toString(),
-        expiresAt: { $gt: expect.any(Date) },
-        isCurrent: true,
-        isDeleted: false,
-        organization: mockOrganizationId.toString(),
-      });
-      expect(model.find).toHaveBeenNthCalledWith(2, {
-        brand: null,
-        expiresAt: { $gt: expect.any(Date) },
-        isCurrent: true,
-        isDeleted: false,
-        organization: null,
-      });
+      // First call: tenant-scoped
+      expect(prisma.trend.findMany).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          where: expect.objectContaining({
+            brandId: mockBrandId,
+            organizationId: mockOrganizationId,
+          }),
+        }),
+      );
+      // Second call: global fallback
+      expect(prisma.trend.findMany).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          where: expect.objectContaining({
+            brandId: null,
+            organizationId: null,
+          }),
+        }),
+      );
     });
 
     it('should invoke the live fetch path when neither tenant nor global cache has trends', async () => {
-      model.find
-        .mockReturnValueOnce({
-          sort: vi.fn().mockReturnValue({
-            limit: vi.fn().mockReturnValue({
-              lean: vi.fn().mockResolvedValue([]),
-            }),
-          }),
-        })
-        .mockReturnValueOnce({
-          sort: vi.fn().mockReturnValue({
-            limit: vi.fn().mockReturnValue({
-              lean: vi.fn().mockResolvedValue([]),
-            }),
-          }),
-        });
+      prisma.trend.findMany.mockResolvedValue([]);
 
       const fetchedTrend = new TrendEntity({
         ...mockTrend,
@@ -843,14 +824,11 @@ describe('TrendsService', () => {
         .spyOn(service, 'fetchAndCacheTrends')
         .mockResolvedValue([fetchedTrend]);
 
-      const result = await service.getTrends(
-        mockOrganizationId.toString(),
-        mockBrandId.toString(),
-      );
+      const result = await service.getTrends(mockOrganizationId, mockBrandId);
 
       expect(fetchAndCacheTrendsSpy).toHaveBeenCalledWith(
-        mockOrganizationId.toString(),
-        mockBrandId.toString(),
+        mockOrganizationId,
+        mockBrandId,
       );
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({

@@ -1,11 +1,6 @@
-import {
-  Workflow,
-  type WorkflowDocument,
-  WorkflowRecurrence,
-} from '@api/collections/workflows/schemas/workflow.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   WorkflowRecurrenceType,
   WorkflowStatus,
@@ -14,13 +9,43 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import type { Workflow } from '@prisma/client';
 import { GenerateArticleTask } from '@workers/crons/workflows/task-types/generate-article.task';
 import { GenerateImageTask } from '@workers/crons/workflows/task-types/generate-image.task';
 import { GenerateMusicTask } from '@workers/crons/workflows/task-types/generate-music.task';
 import { GenerateVideoTask } from '@workers/crons/workflows/task-types/generate-video.task';
-import { Model } from 'mongoose';
+
+type WorkflowStep = {
+  id: string;
+  label: string;
+  category: string;
+  config: Record<string, unknown>;
+  dependsOn?: string[];
+  status?: string;
+  error?: string;
+  completedAt?: string;
+};
+
+type WorkflowRecurrence = {
+  type: string;
+  timezone?: string;
+  endDate?: string;
+  nextRunAt?: string;
+};
+
+type WorkflowConfig = {
+  trigger?: string;
+  scheduledFor?: string;
+  recurrence?: WorkflowRecurrence;
+  executionCount?: number;
+  startedAt?: string;
+  completedAt?: string;
+  lastExecutedAt?: string;
+  progress?: number;
+};
+
+type WorkflowWithConfig = Workflow & { config: WorkflowConfig };
 
 /**
  * Cron service for executing scheduled workflows
@@ -36,8 +61,7 @@ export class CronWorkflowsService {
   private static readonly LOCK_TTL_SECONDS = 600;
 
   constructor(
-    @InjectModel(Workflow.name, DB_CONNECTIONS.CLOUD)
-    private readonly workflowModel: Model<WorkflowDocument>,
+    private readonly prisma: PrismaService,
     private readonly generateImageTask: GenerateImageTask,
     private readonly generateVideoTask: GenerateVideoTask,
     private readonly generateMusicTask: GenerateMusicTask,
@@ -78,19 +102,24 @@ export class CronWorkflowsService {
 
       const now = new Date();
 
-      // Find workflows that are due to run
-      // Exclude systemic workflows (templates without user/org) - they cannot be executed directly
-      const dueWorkflows = await this.workflowModel
-        .find({
+      // Fetch active workflows and filter in-memory for scheduled+due ones
+      // (trigger and scheduledFor are stored in config Json)
+      const candidates = await this.prisma.workflow.findMany({
+        take: 200,
+        where: {
           isDeleted: false,
-          organization: { $exists: true, $ne: null },
-          scheduledFor: { $lte: now },
-          status: WorkflowStatus.ACTIVE,
-          trigger: WorkflowTrigger.SCHEDULED,
-          user: { $exists: true, $ne: null },
-        })
-        .limit(50) // Process max 50 workflows per cycle to avoid overload
-        .exec();
+          organizationId: { not: undefined },
+          status: WorkflowStatus.ACTIVE as never,
+          userId: { not: undefined },
+        },
+      });
+
+      const dueWorkflows = (candidates as WorkflowWithConfig[]).filter((w) => {
+        const cfg = (w.config ?? {}) as WorkflowConfig;
+        if (cfg.trigger !== WorkflowTrigger.SCHEDULED) return false;
+        if (!cfg.scheduledFor) return false;
+        return new Date(cfg.scheduledFor) <= now;
+      });
 
       this.logger.log(
         `Found ${dueWorkflows.length} workflows due for execution`,
@@ -103,7 +132,7 @@ export class CronWorkflowsService {
           await this.executeWorkflow(workflow);
         } catch (error: unknown) {
           this.logger.error(
-            `Failed to execute workflow ${workflow._id}`,
+            `Failed to execute workflow ${workflow.id}`,
             error,
             'CronWorkflowsService',
           );
@@ -129,143 +158,155 @@ export class CronWorkflowsService {
   /**
    * Execute a single workflow
    */
-  private async executeWorkflow(workflow: WorkflowDocument): Promise<void> {
+  private async executeWorkflow(workflow: WorkflowWithConfig): Promise<void> {
     this.logger.log(
-      `Executing workflow: ${workflow._id} - ${workflow.label}`,
+      `Executing workflow: ${workflow.id} - ${workflow.label}`,
       'CronWorkflowsService',
     );
 
     // Skip execution for systemic workflows (templates without user/org)
-    if (!workflow.user || !workflow.organization) {
+    if (!workflow.userId || !workflow.organizationId) {
       this.logger.warn(
-        `Workflow ${workflow._id} is a systemic template and cannot be executed directly`,
+        `Workflow ${workflow.id} is a systemic template and cannot be executed directly`,
         'CronWorkflowsService',
       );
       return;
     }
 
+    const cfg = (workflow.config ?? {}) as WorkflowConfig;
+    const executionCount = (cfg.executionCount ?? 0) + 1;
+
     try {
       // Update workflow status to RUNNING
-      await this.workflowModel.updateOne(
-        { _id: workflow._id },
-        {
-          $inc: { executionCount: 1 },
-          $set: {
-            startedAt: new Date(),
-            status: WorkflowStatus.RUNNING,
-          },
+      await this.prisma.workflow.update({
+        data: {
+          config: {
+            ...cfg,
+            executionCount,
+            startedAt: new Date().toISOString(),
+          } as never,
+          status: WorkflowStatus.RUNNING as never,
         },
-      );
+        where: { id: workflow.id },
+      });
 
       // Execute each step in the workflow
-      for (const step of workflow.steps) {
+      const steps = (workflow.steps as WorkflowStep[]) ?? [];
+      const updatedSteps = [...steps];
+
+      for (let i = 0; i < updatedSteps.length; i++) {
+        const step = updatedSteps[i];
         try {
           await this.executeWorkflowStep(
             step,
-            workflow.user?.toString(),
-            workflow.organization?.toString(),
+            workflow.userId,
+            workflow.organizationId,
           );
 
-          // Update step status
-          await this.workflowModel.updateOne(
-            { _id: workflow._id, 'steps.id': step.id },
-            {
-              $set: {
-                'steps.$.completedAt': new Date(),
-                'steps.$.status': 'completed',
-              },
-            },
-          );
+          updatedSteps[i] = {
+            ...step,
+            completedAt: new Date().toISOString(),
+            status: 'completed',
+          };
         } catch (error: unknown) {
           // Mark step as failed
-          await this.workflowModel.updateOne(
-            { _id: workflow._id, 'steps.id': step.id },
-            {
-              $set: {
-                'steps.$.completedAt': new Date(),
-                'steps.$.error': error.message,
-                'steps.$.status': 'failed',
-              },
-            },
-          );
+          updatedSteps[i] = {
+            ...step,
+            completedAt: new Date().toISOString(),
+            error: (error as Error)?.message,
+            status: 'failed',
+          };
+
+          // Write back steps before re-throwing
+          await this.prisma.workflow.update({
+            data: { steps: updatedSteps as never },
+            where: { id: workflow.id },
+          });
 
           throw error; // Stop workflow execution on step failure
         }
       }
 
       // Mark workflow as completed
-      await this.workflowModel.updateOne(
-        { _id: workflow._id },
-        {
-          $set: {
-            completedAt: new Date(),
-            lastExecutedAt: new Date(),
+      const completedAt = new Date().toISOString();
+      await this.prisma.workflow.update({
+        data: {
+          config: {
+            ...cfg,
+            completedAt,
+            executionCount,
+            lastExecutedAt: completedAt,
             progress: 100,
-            status: WorkflowStatus.COMPLETED,
-          },
+          } as never,
+          status: WorkflowStatus.COMPLETED as never,
+          steps: updatedSteps as never,
         },
-      );
+        where: { id: workflow.id },
+      });
 
       // Send success notification (only if user/org exist)
-      if (workflow.user && workflow.organization) {
+      if (workflow.userId && workflow.organizationId) {
         await this.notificationsService.sendNotification({
           action: 'send_message',
-          organizationId: workflow.organization.toString(),
+          organizationId: workflow.organizationId,
           payload: {
             action: 'send_message',
             payload: {
-              chatId: workflow.user.toString(),
+              chatId: workflow.userId,
               message: `Workflow "${workflow.label}" completed successfully`,
             },
             type: 'telegram',
           },
           type: 'telegram',
-          userId: workflow.user.toString(),
+          userId: workflow.userId,
         });
       }
 
       this.logger.log(
-        `Workflow ${workflow._id} completed successfully`,
+        `Workflow ${workflow.id} completed successfully`,
         'CronWorkflowsService',
       );
 
       // Check if workflow should recur
-      const recurrence = workflow?.recurrence;
-      if (recurrence && recurrence?.type !== WorkflowRecurrenceType.ONCE) {
-        await this.rescheduleWorkflow(workflow._id.toString(), recurrence);
+      const recurrence = cfg.recurrence;
+      if (recurrence && recurrence.type !== WorkflowRecurrenceType.ONCE) {
+        await this.rescheduleWorkflow(workflow.id, recurrence);
       }
     } catch (error: unknown) {
       // Mark workflow as failed
-      await this.workflowModel.updateOne(
-        { _id: workflow._id },
-        {
-          $set: {
-            completedAt: new Date(),
-            status: WorkflowStatus.FAILED,
-          },
+      const completedAt = new Date().toISOString();
+      await this.prisma.workflow.update({
+        data: {
+          config: {
+            ...cfg,
+            completedAt,
+            executionCount,
+          } as never,
+          status: WorkflowStatus.FAILED as never,
         },
-      );
+        where: { id: workflow.id },
+      });
 
       // Send failure notification (only if user/org exist)
-      if (workflow.user && workflow.organization) {
+      if (workflow.userId && workflow.organizationId) {
         await this.notificationsService.sendNotification({
           action: 'send_message',
-          organizationId: workflow.organization.toString(),
+          organizationId: workflow.organizationId,
           payload: {
             action: 'send_message',
             payload: {
-              chatId: workflow.user.toString(),
-              message: `Workflow "${workflow.label}" failed: ${error.message}`,
+              chatId: workflow.userId,
+              message: `Workflow "${workflow.label}" failed: ${(error as Error)?.message}`,
             },
             type: 'telegram',
           },
           type: 'telegram',
-          userId: workflow.user.toString(),
+          userId: workflow.userId,
         });
       }
 
       this.logger.error(
-        `Workflow ${workflow._id} failed`,
+        `Workflow ${workflow.id} failed`,
         error,
         'CronWorkflowsService',
       );
@@ -279,7 +320,7 @@ export class CronWorkflowsService {
    * Execute a single workflow step based on its category
    */
   private async executeWorkflowStep(
-    step: unknown,
+    step: WorkflowStep,
     userId: string,
     organizationId: string,
   ): Promise<void> {
@@ -319,21 +360,21 @@ export class CronWorkflowsService {
    * Execute generate image step
    */
   private async executeGenerateImage(
-    step: unknown,
+    step: WorkflowStep,
     userId: string,
     organizationId: string,
   ): Promise<void> {
     const config = step.config;
 
     // Validate config
-    const validation = this.generateImageTask.validateConfig(config);
+    const validation = this.generateImageTask.validateConfig(config as never);
     if (!validation.valid) {
       throw new Error(`Invalid image generation config: ${validation.error}`);
     }
 
     // Execute task
     const result = await this.generateImageTask.execute(
-      config,
+      config as never,
       userId,
       organizationId,
     );
@@ -352,21 +393,21 @@ export class CronWorkflowsService {
    * Execute generate video step
    */
   private async executeGenerateVideo(
-    step: unknown,
+    step: WorkflowStep,
     userId: string,
     organizationId: string,
   ): Promise<void> {
     const config = step.config;
 
     // Validate config
-    const validation = this.generateVideoTask.validateConfig(config);
+    const validation = this.generateVideoTask.validateConfig(config as never);
     if (!validation.valid) {
       throw new Error(`Invalid video generation config: ${validation.error}`);
     }
 
     // Execute task
     const result = await this.generateVideoTask.execute(
-      config,
+      config as never,
       userId,
       organizationId,
     );
@@ -385,21 +426,21 @@ export class CronWorkflowsService {
    * Execute generate music step
    */
   private async executeGenerateMusic(
-    step: unknown,
+    step: WorkflowStep,
     userId: string,
     organizationId: string,
   ): Promise<void> {
     const config = step.config;
 
     // Validate config
-    const validation = this.generateMusicTask.validateConfig(config);
+    const validation = this.generateMusicTask.validateConfig(config as never);
     if (!validation.valid) {
       throw new Error(`Invalid music generation config: ${validation.error}`);
     }
 
     // Execute task
     const result = await this.generateMusicTask.execute(
-      config,
+      config as never,
       userId,
       organizationId,
     );
@@ -418,21 +459,21 @@ export class CronWorkflowsService {
    * Execute generate article step
    */
   private async executeGenerateArticle(
-    step: unknown,
+    step: WorkflowStep,
     userId: string,
     organizationId: string,
   ): Promise<void> {
     const config = step.config;
 
     // Validate config
-    const validation = this.generateArticleTask.validateConfig(config);
+    const validation = this.generateArticleTask.validateConfig(config as never);
     if (!validation.valid) {
       throw new Error(`Invalid article generation config: ${validation.error}`);
     }
 
     // Execute task
     const result = await this.generateArticleTask.execute(
-      config,
+      config as never,
       userId,
       organizationId,
     );
@@ -451,7 +492,9 @@ export class CronWorkflowsService {
    * Manual trigger for testing (not scheduled)
    */
   async triggerWorkflowExecution(workflowId: string): Promise<void> {
-    const workflow = await this.workflowModel.findById(workflowId);
+    const workflow = await this.prisma.workflow.findFirst({
+      where: { id: workflowId, isDeleted: false },
+    });
 
     if (!workflow) {
       throw new Error('Workflow not found');
@@ -461,7 +504,7 @@ export class CronWorkflowsService {
       throw new Error('Workflow is deleted');
     }
 
-    await this.executeWorkflow(workflow);
+    await this.executeWorkflow(workflow as WorkflowWithConfig);
   }
 
   /**
@@ -476,7 +519,7 @@ export class CronWorkflowsService {
     }
 
     // Check if past end date
-    if (recurrence.endDate && new Date() >= recurrence.endDate) {
+    if (recurrence.endDate && new Date() >= new Date(recurrence.endDate)) {
       return null; // Stop recurring
     }
 
@@ -541,17 +584,27 @@ export class CronWorkflowsService {
   ): Promise<void> {
     const nextRun = this.calculateNextRun(new Date(), recurrence);
 
+    const workflow = await this.prisma.workflow.findFirst({
+      where: { id: workflowId, isDeleted: false },
+    });
+
+    if (!workflow) return;
+
+    const cfg = (workflow.config ?? {}) as WorkflowConfig;
+
     if (!nextRun) {
       // No more runs, mark as completed
-      await this.workflowModel.updateOne(
-        { _id: workflowId },
-        {
-          $set: {
-            'recurrence.nextRunAt': null,
-            status: WorkflowStatus.COMPLETED,
-          },
+      await this.prisma.workflow.update({
+        data: {
+          config: {
+            ...cfg,
+            recurrence: { ...recurrence, nextRunAt: undefined },
+            scheduledFor: undefined,
+          } as never,
+          status: WorkflowStatus.COMPLETED as never,
         },
-      );
+        where: { id: workflowId },
+      });
 
       this.logger.log(
         `Workflow ${workflowId} completed all recurrences`,
@@ -561,16 +614,20 @@ export class CronWorkflowsService {
     }
 
     // Schedule next run
-    await this.workflowModel.updateOne(
-      { _id: workflowId },
-      {
-        $set: {
-          'recurrence.nextRunAt': nextRun,
-          scheduledFor: nextRun,
-          status: WorkflowStatus.ACTIVE,
-        },
+    await this.prisma.workflow.update({
+      data: {
+        config: {
+          ...cfg,
+          recurrence: {
+            ...recurrence,
+            nextRunAt: nextRun.toISOString(),
+          },
+          scheduledFor: nextRun.toISOString(),
+        } as never,
+        status: WorkflowStatus.ACTIVE as never,
       },
-    );
+      where: { id: workflowId },
+    });
 
     this.logger.log(
       `Rescheduled workflow ${workflowId} for ${nextRun.toISOString()}`,

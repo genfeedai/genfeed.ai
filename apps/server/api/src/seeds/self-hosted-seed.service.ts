@@ -4,45 +4,19 @@
  * on first application boot when running in self-hosted mode.
  *
  * Idempotent: skips seeding if a default organization already exists.
- * Uses Model.create() to avoid triggering post-save hooks.
  */
 
-import {
-  Brand,
-  type BrandDocument,
-} from '@api/collections/brands/schemas/brand.schema';
-import {
-  OrganizationSetting,
-  type OrganizationSettingDocument,
-} from '@api/collections/organization-settings/schemas/organization-setting.schema';
-import {
-  Organization,
-  type OrganizationDocument,
-} from '@api/collections/organizations/schemas/organization.schema';
-import {
-  User,
-  type UserDocument,
-} from '@api/collections/users/schemas/user.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IS_SELF_HOSTED } from '@genfeedai/config';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { type Model, Types } from 'mongoose';
 
 @Injectable()
 export class SelfHostedSeedService implements OnApplicationBootstrap {
   private readonly context = 'SelfHostedSeedService';
 
   constructor(
-    @InjectModel(User.name, DB_CONNECTIONS.AUTH)
-    private readonly userModel: Model<UserDocument>,
-    @InjectModel(Organization.name, DB_CONNECTIONS.AUTH)
-    private readonly organizationModel: Model<OrganizationDocument>,
-    @InjectModel(OrganizationSetting.name, DB_CONNECTIONS.AUTH)
-    private readonly organizationSettingModel: Model<OrganizationSettingDocument>,
-    @InjectModel(Brand.name, DB_CONNECTIONS.CLOUD)
-    private readonly brandModel: Model<BrandDocument>,
+    private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -51,10 +25,9 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
       return;
     }
 
-    const existingOrg = await this.organizationModel
-      .findOne({ isDefault: true })
-      .lean()
-      .exec();
+    const existingOrg = await this.prisma.organization.findFirst({
+      where: { isDefault: true },
+    });
 
     if (existingOrg) {
       this.logger.log(
@@ -66,52 +39,51 @@ export class SelfHostedSeedService implements OnApplicationBootstrap {
 
     this.logger.log('Seeding default self-hosted workspace...', this.context);
 
-    const userId = new Types.ObjectId();
-    const orgId = new Types.ObjectId();
-    const brandId = new Types.ObjectId();
-    const settingsId = new Types.ObjectId();
-
-    await this.userModel.create({
-      _id: userId,
-      handle: 'admin',
-      email: 'admin@localhost',
-      firstName: 'Admin',
-      isDefault: true,
-      isOnboardingCompleted: true,
+    const user = await this.prisma.user.create({
+      data: {
+        email: 'admin@localhost',
+        firstName: 'Admin',
+        handle: 'admin',
+        isDefault: true,
+        isOnboardingCompleted: true,
+      },
     });
 
-    await this.organizationModel.create({
-      _id: orgId,
-      user: userId,
-      label: 'Default Workspace',
-      slug: 'default',
-      isDefault: true,
-      isSelected: true,
-      onboardingCompleted: true,
+    const org = await this.prisma.organization.create({
+      data: {
+        isDefault: true,
+        isSelected: true,
+        label: 'Default Workspace',
+        onboardingCompleted: true,
+        slug: 'default',
+        userId: user.id,
+      },
     });
 
-    await this.organizationSettingModel.create({
-      _id: settingsId,
-      organization: orgId,
-      isFirstLogin: false,
+    await this.prisma.organizationSetting.create({
+      data: {
+        isFirstLogin: false,
+        organizationId: org.id,
+      },
     });
 
-    await this.brandModel.create({
-      _id: brandId,
-      user: userId,
-      organization: orgId,
-      slug: 'default',
-      label: 'Default Brand',
-      description: 'Default brand for self-hosted instance',
-      isSelected: true,
-      isDefault: true,
-      primaryColor: '#000000',
-      secondaryColor: '#FFFFFF',
-      backgroundColor: 'transparent',
+    await this.prisma.brand.create({
+      data: {
+        backgroundColor: 'transparent',
+        description: 'Default brand for self-hosted instance',
+        isDefault: true,
+        isSelected: true,
+        label: 'Default Brand',
+        organizationId: org.id,
+        primaryColor: '#000000',
+        secondaryColor: '#FFFFFF',
+        slug: 'default',
+        userId: user.id,
+      },
     });
 
     this.logger.log(
-      `Self-hosted workspace seeded (org=${orgId.toHexString()}, brand=${brandId.toHexString()})`,
+      `Self-hosted workspace seeded (org=${org.id}, user=${user.id})`,
       this.context,
     );
   }

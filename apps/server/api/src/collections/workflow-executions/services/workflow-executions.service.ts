@@ -3,21 +3,17 @@ import {
   CreateWorkflowExecutionDto,
   UpdateWorkflowExecutionDto,
 } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
-import {
-  WorkflowExecution,
-  type WorkflowExecutionDocument,
+import type {
+  WorkflowExecutionDocument,
   WorkflowNodeResult,
 } from '@api/collections/workflow-executions/schemas/workflow-execution.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { WorkflowExecutionStatus } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class WorkflowExecutionsService extends BaseService<
@@ -26,12 +22,11 @@ export class WorkflowExecutionsService extends BaseService<
   UpdateWorkflowExecutionDto
 > {
   constructor(
-    @InjectModel(WorkflowExecution.name, DB_CONNECTIONS.CLOUD)
-    model: AggregatePaginateModel<WorkflowExecutionDocument>,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    readonly logger: LoggerService,
     @Optional() private readonly usersService?: UsersService,
   ) {
-    super(model, logger);
+    super(prisma, 'workflowExecution', logger);
   }
 
   async findOne(
@@ -49,29 +44,33 @@ export class WorkflowExecutionsService extends BaseService<
     organizationId: string,
     dto: CreateWorkflowExecutionDto,
   ): Promise<WorkflowExecutionDocument> {
-    return await this.create({
-      ...dto,
-      // @ts-expect-error nodeResults valid
-      nodeResults: [],
-      organization: new Types.ObjectId(organizationId),
-      progress: 0,
-      status: WorkflowExecutionStatus.PENDING,
-      user: new Types.ObjectId(userId),
+    const result = await this.prisma.workflowExecution.create({
+      data: {
+        ...dto,
+        nodeResults: [],
+        organizationId,
+        progress: 0,
+        status: WorkflowExecutionStatus.PENDING,
+        userId,
+      } as never,
     });
+
+    return result as unknown as WorkflowExecutionDocument;
   }
 
   @HandleErrors('start execution', 'workflow-executions')
   async startExecution(
     executionId: string,
   ): Promise<WorkflowExecutionDocument | null> {
-    return await this.model.findByIdAndUpdate(
-      executionId,
-      {
+    const result = await this.prisma.workflowExecution.update({
+      data: {
         startedAt: new Date(),
         status: WorkflowExecutionStatus.RUNNING,
-      },
-      { returnDocument: 'after' },
-    );
+      } as never,
+      where: { id: executionId },
+    });
+
+    return result as unknown as WorkflowExecutionDocument | null;
   }
 
   @HandleErrors('complete execution', 'workflow-executions')
@@ -80,18 +79,22 @@ export class WorkflowExecutionsService extends BaseService<
     error?: string,
   ): Promise<WorkflowExecutionDocument | null> {
     const completedAt = new Date();
-    const execution = await this.model.findById(executionId);
+    const execution = await this.prisma.workflowExecution.findFirst({
+      where: { id: executionId },
+    });
 
     if (!execution) {
       return null;
     }
 
-    const durationMs = execution.startedAt
-      ? completedAt.getTime() - execution.startedAt.getTime()
+    const execDoc = execution as unknown as Record<string, unknown>;
+    const durationMs = (execDoc.startedAt as Date)
+      ? completedAt.getTime() - (execDoc.startedAt as Date).getTime()
       : 0;
+
     const existingMetadata =
-      execution.metadata && typeof execution.metadata === 'object'
-        ? { ...execution.metadata }
+      execDoc.metadata && typeof execDoc.metadata === 'object'
+        ? { ...(execDoc.metadata as Record<string, unknown>) }
         : {};
     const existingEta =
       existingMetadata.eta &&
@@ -110,7 +113,7 @@ export class WorkflowExecutionsService extends BaseService<
         estimatedDurationMs,
         executionId,
         observedDurationMs: durationMs,
-        workflowId: execution.workflow?.toString(),
+        workflowId: execDoc.workflowId?.toString(),
       });
     }
 
@@ -125,9 +128,8 @@ export class WorkflowExecutionsService extends BaseService<
       },
     };
 
-    return await this.model.findByIdAndUpdate(
-      executionId,
-      {
+    const result = await this.prisma.workflowExecution.update({
+      data: {
         completedAt,
         durationMs,
         error,
@@ -136,23 +138,26 @@ export class WorkflowExecutionsService extends BaseService<
         status: error
           ? WorkflowExecutionStatus.FAILED
           : WorkflowExecutionStatus.COMPLETED,
-      },
-      { returnDocument: 'after' },
-    );
+      } as never,
+      where: { id: executionId },
+    });
+
+    return result as unknown as WorkflowExecutionDocument | null;
   }
 
   @HandleErrors('cancel execution', 'workflow-executions')
   async cancelExecution(
     executionId: string,
   ): Promise<WorkflowExecutionDocument | null> {
-    return await this.model.findByIdAndUpdate(
-      executionId,
-      {
+    const result = await this.prisma.workflowExecution.update({
+      data: {
         completedAt: new Date(),
         status: WorkflowExecutionStatus.CANCELLED,
-      },
-      { returnDocument: 'after' },
-    );
+      } as never,
+      where: { id: executionId },
+    });
+
+    return result as unknown as WorkflowExecutionDocument | null;
   }
 
   @HandleErrors('update node result', 'workflow-executions')
@@ -161,27 +166,34 @@ export class WorkflowExecutionsService extends BaseService<
     nodeResult: WorkflowNodeResult,
     totalNodes?: number,
   ): Promise<WorkflowExecutionDocument | null> {
-    const execution = await this.model.findById(executionId);
+    const execution = await this.prisma.workflowExecution.findFirst({
+      where: { id: executionId },
+    });
+
     if (!execution) {
       return null;
     }
 
+    const execDoc = execution as unknown as {
+      nodeResults: WorkflowNodeResult[];
+      progress: number;
+    };
+
     // Find and update existing node result or add new one
-    const existingIndex = execution.nodeResults.findIndex(
+    const existingIndex = execDoc.nodeResults.findIndex(
       (r) => r.nodeId === nodeResult.nodeId,
     );
 
+    const nodeResults = [...execDoc.nodeResults];
     if (existingIndex >= 0) {
-      execution.nodeResults[existingIndex] = nodeResult;
+      nodeResults[existingIndex] = nodeResult;
     } else {
-      execution.nodeResults.push(nodeResult);
+      nodeResults.push(nodeResult);
     }
 
-    // Calculate overall progress based on node completion
-    // Use provided totalNodes (from workflow definition) to avoid oscillating progress
-    // Fallback to nodeResults.length only if totalNodes not provided
-    const expectedNodes = totalNodes ?? execution.nodeResults.length;
-    const completedNodes = execution.nodeResults.filter(
+    // Calculate overall progress
+    const expectedNodes = totalNodes ?? nodeResults.length;
+    const completedNodes = nodeResults.filter(
       (r) =>
         r.status === WorkflowExecutionStatus.COMPLETED ||
         r.status === WorkflowExecutionStatus.FAILED,
@@ -191,8 +203,15 @@ export class WorkflowExecutionsService extends BaseService<
         ? Math.round((completedNodes / expectedNodes) * 100)
         : 0;
 
-    execution.progress = progress;
-    return await execution.save();
+    const result = await this.prisma.workflowExecution.update({
+      data: {
+        nodeResults: nodeResults as never,
+        progress,
+      } as never,
+      where: { id: executionId },
+    });
+
+    return result as unknown as WorkflowExecutionDocument | null;
   }
 
   @HandleErrors('set failed node', 'workflow-executions')
@@ -200,10 +219,10 @@ export class WorkflowExecutionsService extends BaseService<
     executionId: string,
     failedNodeId: string,
   ): Promise<void> {
-    await this.model.updateOne(
-      { _id: executionId },
-      { $set: { failedNodeId } },
-    );
+    await this.prisma.workflowExecution.update({
+      data: { failedNodeId } as never,
+      where: { id: executionId },
+    });
   }
 
   @HandleErrors('set credits used', 'workflow-executions')
@@ -211,7 +230,10 @@ export class WorkflowExecutionsService extends BaseService<
     executionId: string,
     creditsUsed: number,
   ): Promise<void> {
-    await this.model.updateOne({ _id: executionId }, { $set: { creditsUsed } });
+    await this.prisma.workflowExecution.update({
+      data: { creditsUsed } as never,
+      where: { id: executionId },
+    });
   }
 
   @HandleErrors('update execution metadata', 'workflow-executions')
@@ -219,17 +241,28 @@ export class WorkflowExecutionsService extends BaseService<
     executionId: string,
     metadataUpdates: Record<string, unknown>,
   ): Promise<WorkflowExecutionDocument | null> {
-    const execution = await this.model.findById(executionId);
+    const execution = await this.prisma.workflowExecution.findFirst({
+      where: { id: executionId },
+    });
+
     if (!execution) {
       return null;
     }
 
-    execution.metadata = {
-      ...(execution.metadata ?? {}),
-      ...metadataUpdates,
-    };
+    const existingMetadata =
+      (execution as unknown as Record<string, unknown>).metadata ?? {};
 
-    return await execution.save();
+    const result = await this.prisma.workflowExecution.update({
+      data: {
+        metadata: {
+          ...(existingMetadata as Record<string, unknown>),
+          ...metadataUpdates,
+        },
+      } as never,
+      where: { id: executionId },
+    });
+
+    return result as unknown as WorkflowExecutionDocument | null;
   }
 
   @HandleErrors('get workflow executions', 'workflow-executions')
@@ -239,55 +272,42 @@ export class WorkflowExecutionsService extends BaseService<
     limit = 20,
     offset = 0,
   ): Promise<WorkflowExecutionDocument[]> {
-    const executions = await this.model
-      .find({
+    const executions = await this.prisma.workflowExecution.findMany({
+      orderBy: { createdAt: 'desc' },
+      skip: offset,
+      take: limit,
+      where: {
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-        workflow: new Types.ObjectId(workflowId),
-      })
-      .sort({ createdAt: -1 })
-      .skip(offset)
-      .limit(limit)
-      .lean()
-      .exec();
+        organizationId,
+        workflowId,
+      },
+    });
 
     // Application-level join for user (lives in auth DB)
     if (executions.length > 0 && this.usersService) {
       const userIds = [
-        ...new Set(executions.map((e) => e.user?.toString()).filter(Boolean)),
+        ...new Set(
+          executions
+            .map(
+              (e) => (e as unknown as Record<string, unknown>).userId as string,
+            )
+            .filter(Boolean),
+        ),
       ];
 
       if (userIds.length > 0) {
-        const usersResult = await this.usersService.findAll(
-          [
-            {
-              $match: {
-                _id: {
-                  $in: userIds.map((id) => new Types.ObjectId(id)),
-                },
-              },
-            },
-            {
-              $project: {
-                _id: 1,
-                email: 1,
-                firstName: 1,
-                lastName: 1,
-              },
-            },
-          ],
-          { pagination: false },
-        );
-
-        const usersMap = new Map(
-          usersResult.docs.map((u: { _id: { toString(): string } }) => [
-            u._id.toString(),
-            u,
-          ]),
-        );
+        // Fetch users individually since usersService.findAll uses Mongoose aggregation
+        const usersMap = new Map<string, unknown>();
+        for (const userId of userIds) {
+          const user = await this.usersService.findOne({ _id: userId }, []);
+          if (user) {
+            usersMap.set(userId, user);
+          }
+        }
 
         for (const execution of executions) {
-          const userId = execution.user?.toString();
+          const userId = (execution as unknown as Record<string, unknown>)
+            .userId as string;
           if (userId && usersMap.has(userId)) {
             (execution as unknown as Record<string, unknown>).user =
               usersMap.get(userId);
@@ -309,45 +329,34 @@ export class WorkflowExecutionsService extends BaseService<
     failed: number;
     avgDurationMs: number;
   }> {
-    const stats = await this.model.aggregate([
-      {
-        $match: {
-          isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
-          workflow: new Types.ObjectId(workflowId),
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          avgDurationMs: {
-            $avg: {
-              $cond: [{ $gt: ['$durationMs', 0] }, '$durationMs', null],
-            },
-          },
-          completed: {
-            $sum: {
-              $cond: [
-                { $eq: ['$status', WorkflowExecutionStatus.COMPLETED] },
-                1,
-                0,
-              ],
-            },
-          },
-          failed: {
-            $sum: {
-              $cond: [
-                { $eq: ['$status', WorkflowExecutionStatus.FAILED] },
-                1,
-                0,
-              ],
-            },
-          },
-          total: { $sum: 1 },
-        },
-      },
-    ]);
+    const executions = await this.prisma.workflowExecution.findMany({
+      select: { durationMs: true, status: true },
+      where: { isDeleted: false, organizationId, workflowId },
+    });
 
-    return stats[0] || { avgDurationMs: 0, completed: 0, failed: 0, total: 0 };
+    const typed = executions as unknown as Array<{
+      durationMs?: number;
+      status: string;
+    }>;
+
+    const total = typed.length;
+    const completed = typed.filter(
+      (e) => e.status === WorkflowExecutionStatus.COMPLETED,
+    ).length;
+    const failed = typed.filter(
+      (e) => e.status === WorkflowExecutionStatus.FAILED,
+    ).length;
+
+    const durationsWithValue = typed
+      .map((e) => e.durationMs)
+      .filter((d): d is number => typeof d === 'number' && d > 0);
+
+    const avgDurationMs =
+      durationsWithValue.length > 0
+        ? durationsWithValue.reduce((a, b) => a + b, 0) /
+          durationsWithValue.length
+        : 0;
+
+    return { avgDurationMs, completed, failed, total };
   }
 }

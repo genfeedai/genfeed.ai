@@ -7,22 +7,18 @@ import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { CreateWorkspaceTaskDto } from '@api/collections/workspace-tasks/dto/create-workspace-task.dto';
 import { UpdateWorkspaceTaskDto } from '@api/collections/workspace-tasks/dto/update-workspace-task.dto';
 import {
-  WorkspaceTask,
   type WorkspaceTaskDocument,
   type WorkspaceTaskEvent,
   type WorkspaceTaskProgress,
 } from '@api/collections/workspace-tasks/schemas/workspace-task.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { AgentExecutionStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 type WorkspaceRoutingDecision = Pick<
   WorkspaceTaskDocument,
@@ -89,8 +85,7 @@ export class WorkspaceTasksService extends BaseService<
   UpdateWorkspaceTaskDto
 > {
   constructor(
-    @InjectModel(WorkspaceTask.name, DB_CONNECTIONS.CLOUD)
-    model: AggregatePaginateModel<WorkspaceTaskDocument>,
+    private readonly prisma: PrismaService,
     logger: LoggerService,
     private readonly skillsService: SkillsService,
     private readonly ingredientsService: IngredientsService,
@@ -99,7 +94,7 @@ export class WorkspaceTasksService extends BaseService<
     private readonly agentRunsService: AgentRunsService,
     private readonly notificationsPublisher: NotificationsPublisherService,
   ) {
-    super(model, logger);
+    super(prisma, 'workspaceTask', logger);
   }
 
   override async create(
@@ -131,32 +126,29 @@ export class WorkspaceTasksService extends BaseService<
     id: string,
     organizationId: string,
   ): Promise<WorkspaceTaskDocument | null> {
-    return this.findOne({
-      _id: new Types.ObjectId(id),
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+    const result = await this.prisma.workspaceTask.findFirst({
+      where: { id, isDeleted: false, organizationId },
     });
+    return result as unknown as WorkspaceTaskDocument | null;
   }
 
   async listInbox(
     organizationId: string,
     limit: number = 20,
   ): Promise<WorkspaceTaskDocument[]> {
-    return this.model
-      .find({
-        $or: [
-          { reviewState: { $in: ['pending_approval', 'changes_requested'] } },
-          { status: { $in: ['completed', 'failed'] } },
-        ],
+    const results = await this.prisma.workspaceTask.findMany({
+      orderBy: [{ reviewState: 'asc' }, { updatedAt: 'desc' }],
+      take: limit,
+      where: {
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      })
-      .sort({
-        reviewState: 1,
-        updatedAt: -1,
-      })
-      .limit(limit)
-      .exec();
+        OR: [
+          { reviewState: { in: ['pending_approval', 'changes_requested'] } },
+          { status: { in: ['completed', 'failed'] } },
+        ],
+        organizationId,
+      } as never,
+    });
+    return results as unknown as WorkspaceTaskDocument[];
   }
 
   async approve(
@@ -164,40 +156,32 @@ export class WorkspaceTasksService extends BaseService<
     organizationId: string,
   ): Promise<WorkspaceTaskDocument> {
     const task = await this.requireTask(id, organizationId);
-    const updated = await this.model.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      {
-        $set: {
-          completedAt: new Date(),
-          reviewState: 'approved',
-          status: 'completed',
-        },
-        $unset: {
-          failureReason: '',
-          requestedChangesReason: '',
-        },
-      },
-      { new: true },
-    );
+    const updated = await this.prisma.workspaceTask.update({
+      data: {
+        completedAt: new Date(),
+        failureReason: null,
+        requestedChangesReason: null,
+        reviewState: 'approved',
+        status: 'completed',
+      } as never,
+      where: { id },
+    });
 
     if (!updated) {
       throw new NotFoundException('WorkspaceTask', id);
     }
 
+    const updatedDoc = updated as unknown as WorkspaceTaskDocument;
     await this.appendEventAndBroadcast(
-      updated,
+      updatedDoc,
       organizationId,
-      String(task.user),
+      String((task as unknown as Record<string, unknown>).userId ?? task.user),
       {
         type: 'task_approved',
       },
     );
 
-    return updated;
+    return updatedDoc;
   }
 
   async requestChanges(
@@ -206,37 +190,31 @@ export class WorkspaceTasksService extends BaseService<
     reason: string,
   ): Promise<WorkspaceTaskDocument> {
     const task = await this.requireTask(id, organizationId);
-    const updated = await this.model.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      {
-        $set: {
-          requestedChangesReason: reason,
-          reviewState: 'changes_requested',
-          status: 'needs_review',
-        },
-      },
-      { new: true },
-    );
+    const updated = await this.prisma.workspaceTask.update({
+      data: {
+        requestedChangesReason: reason,
+        reviewState: 'changes_requested',
+        status: 'needs_review',
+      } as never,
+      where: { id },
+    });
 
     if (!updated) {
       throw new NotFoundException('WorkspaceTask', id);
     }
 
+    const updatedDoc = updated as unknown as WorkspaceTaskDocument;
     await this.appendEventAndBroadcast(
-      updated,
+      updatedDoc,
       organizationId,
-      String(task.user),
+      String((task as unknown as Record<string, unknown>).userId ?? task.user),
       {
         payload: { reason },
         type: 'task_changes_requested',
       },
     );
 
-    return updated;
+    return updatedDoc;
   }
 
   async dismiss(
@@ -245,38 +223,32 @@ export class WorkspaceTasksService extends BaseService<
     reason?: string,
   ): Promise<WorkspaceTaskDocument> {
     const task = await this.requireTask(id, organizationId);
-    const updated = await this.model.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      {
-        $set: {
-          dismissedAt: new Date(),
-          failureReason: reason,
-          reviewState: 'dismissed',
-          status: 'dismissed',
-        },
-      },
-      { new: true },
-    );
+    const updated = await this.prisma.workspaceTask.update({
+      data: {
+        dismissedAt: new Date(),
+        failureReason: reason,
+        reviewState: 'dismissed',
+        status: 'dismissed',
+      } as never,
+      where: { id },
+    });
 
     if (!updated) {
       throw new NotFoundException('WorkspaceTask', id);
     }
 
+    const updatedDoc = updated as unknown as WorkspaceTaskDocument;
     await this.appendEventAndBroadcast(
-      updated,
+      updatedDoc,
       organizationId,
-      String(task.user),
+      String((task as unknown as Record<string, unknown>).userId ?? task.user),
       {
         payload: reason ? { reason } : undefined,
         type: 'task_dismissed',
       },
     );
 
-    return updated;
+    return updatedDoc;
   }
 
   async keepOutput(
@@ -289,37 +261,37 @@ export class WorkspaceTasksService extends BaseService<
       organizationId,
       outputId,
     );
-    const outputObjectId = new Types.ObjectId(outputId);
 
-    const updated = await this.model.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      {
-        $addToSet: {
-          approvedOutputIds: outputObjectId,
-        },
-      },
-      { new: true },
-    );
-
-    if (!updated) {
+    const existing = await this.prisma.workspaceTask.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    });
+    if (!existing) {
       throw new NotFoundException('WorkspaceTask', id);
     }
 
+    const existingDoc = existing as unknown as Record<string, unknown>;
+    const approvedOutputIds = (existingDoc.approvedOutputIds as string[]) ?? [];
+    const nextApprovedOutputIds = approvedOutputIds.includes(outputId)
+      ? approvedOutputIds
+      : [...approvedOutputIds, outputId];
+
+    const updated = await this.prisma.workspaceTask.update({
+      data: { approvedOutputIds: nextApprovedOutputIds as never } as never,
+      where: { id },
+    });
+
+    const updatedDoc = updated as unknown as WorkspaceTaskDocument;
     await this.appendEventAndBroadcast(
-      updated,
+      updatedDoc,
       organizationId,
-      String(task.user),
+      String((task as unknown as Record<string, unknown>).userId ?? task.user),
       {
         payload: { outputId },
         type: 'output_kept',
       },
     );
 
-    return updated;
+    return updatedDoc;
   }
 
   async unkeepOutput(
@@ -333,35 +305,36 @@ export class WorkspaceTasksService extends BaseService<
       outputId,
     );
 
-    const updated = await this.model.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      {
-        $pull: {
-          approvedOutputIds: new Types.ObjectId(outputId),
-        },
-      },
-      { new: true },
-    );
-
-    if (!updated) {
+    const existing = await this.prisma.workspaceTask.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    });
+    if (!existing) {
       throw new NotFoundException('WorkspaceTask', id);
     }
 
+    const existingDoc = existing as unknown as Record<string, unknown>;
+    const approvedOutputIds = (existingDoc.approvedOutputIds as string[]) ?? [];
+    const nextApprovedOutputIds = approvedOutputIds.filter(
+      (oid) => oid !== outputId && oid?.toString() !== outputId,
+    );
+
+    const updated = await this.prisma.workspaceTask.update({
+      data: { approvedOutputIds: nextApprovedOutputIds as never } as never,
+      where: { id },
+    });
+
+    const updatedDoc = updated as unknown as WorkspaceTaskDocument;
     await this.appendEventAndBroadcast(
-      updated,
+      updatedDoc,
       organizationId,
-      String(task.user),
+      String((task as unknown as Record<string, unknown>).userId ?? task.user),
       {
         payload: { outputId },
         type: 'output_unkept',
       },
     );
 
-    return updated;
+    return updatedDoc;
   }
 
   async trashOutput(
@@ -375,9 +348,8 @@ export class WorkspaceTasksService extends BaseService<
       outputId,
     );
     const ingredient = await this.ingredientsService.findOne({
-      _id: new Types.ObjectId(outputId),
+      _id: outputId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
     });
 
     if (!ingredient) {
@@ -386,35 +358,36 @@ export class WorkspaceTasksService extends BaseService<
 
     await this.ingredientsService.patch(outputId, { isDeleted: true });
 
-    const updated = await this.model.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      {
-        $pull: {
-          approvedOutputIds: new Types.ObjectId(outputId),
-        },
-      },
-      { new: true },
-    );
-
-    if (!updated) {
+    const existing = await this.prisma.workspaceTask.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    });
+    if (!existing) {
       throw new NotFoundException('WorkspaceTask', id);
     }
 
+    const existingDoc = existing as unknown as Record<string, unknown>;
+    const approvedOutputIds = (existingDoc.approvedOutputIds as string[]) ?? [];
+    const nextApprovedOutputIds = approvedOutputIds.filter(
+      (oid) => oid !== outputId && oid?.toString() !== outputId,
+    );
+
+    const updated = await this.prisma.workspaceTask.update({
+      data: { approvedOutputIds: nextApprovedOutputIds as never } as never,
+      where: { id },
+    });
+
+    const updatedDoc = updated as unknown as WorkspaceTaskDocument;
     await this.appendEventAndBroadcast(
-      updated,
+      updatedDoc,
       organizationId,
-      String(task.user),
+      String((task as unknown as Record<string, unknown>).userId ?? task.user),
       {
         payload: { outputId },
         type: 'output_trashed',
       },
     );
 
-    return updated;
+    return updatedDoc;
   }
 
   async recordTaskEvent(
@@ -473,15 +446,18 @@ export class WorkspaceTasksService extends BaseService<
     }
 
     const thread = await this.agentThreadsService.create({
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
       planModeEnabled: true,
       source: this.buildPlanningThreadSource(id),
       systemPrompt,
       title: this.buildPlanningThreadTitle(task.title),
-      user: new Types.ObjectId(userId),
+      userId,
     } as Record<string, unknown>);
 
-    const threadId = String(thread._id);
+    const threadId = String(
+      (thread as unknown as Record<string, unknown>)._id ??
+        (thread as unknown as { id: string }).id,
+    );
     await this.patch(id, {
       planningThreadId: threadId,
     } as Record<string, unknown>);
@@ -569,12 +545,20 @@ export class WorkspaceTasksService extends BaseService<
     const inferredOutputType = this.inferOutputType(createDto);
     const taskIntent = this.buildTaskIntent(createDto, inferredOutputType);
     const brandId =
-      (createDto.brand as unknown as Types.ObjectId | undefined)?.toString() ||
-      undefined;
+      typeof createDto.brand === 'string'
+        ? createDto.brand || undefined
+        : (
+            createDto.brand as unknown as { toString(): string } | undefined
+          )?.toString() || undefined;
     const organizationId =
-      (
-        createDto as CreateWorkspaceTaskDto & { organization?: Types.ObjectId }
-      ).organization?.toString() || undefined;
+      typeof (createDto as Record<string, unknown>).organization === 'string'
+        ? ((createDto as Record<string, unknown>).organization as string) ||
+          undefined
+        : (
+            (createDto as Record<string, unknown>).organization as
+              | { toString(): string }
+              | undefined
+          )?.toString() || undefined;
 
     if (brandId && organizationId) {
       const resolvedSkills = await this.skillsService.resolveBrandSkills(
@@ -794,15 +778,11 @@ export class WorkspaceTasksService extends BaseService<
       return this.findOneById(id, organizationId);
     }
 
-    return this.model.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      { $set: patch },
-      { new: true },
-    );
+    const result = await this.prisma.workspaceTask.update({
+      data: patch as never,
+      where: { id },
+    });
+    return result as unknown as WorkspaceTaskDocument | null;
   }
 
   private async requireTask(
@@ -839,7 +819,7 @@ export class WorkspaceTasksService extends BaseService<
 
   private createTaskEvent(input: WorkspaceTaskEventInput): WorkspaceTaskEvent {
     return {
-      id: new Types.ObjectId().toString(),
+      id: crypto.randomUUID(),
       payload: input.payload,
       timestamp: input.timestamp ?? new Date(),
       type: input.type,
@@ -915,37 +895,46 @@ export class WorkspaceTasksService extends BaseService<
     eventInput: WorkspaceTaskEventInput,
   ): Promise<void> {
     const event = this.createTaskEvent(eventInput);
-    const updated = await this.model.findOneAndUpdate(
-      {
-        _id: task._id,
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      {
-        $push: {
-          eventStream: event,
-        },
-      },
-      { new: true },
+    const taskId = String(
+      (task as unknown as Record<string, unknown>)._id ??
+        (task as unknown as { id: string }).id,
     );
+
+    // Read current eventStream then append new event
+    const current = await this.prisma.workspaceTask.findFirst({
+      where: { id: taskId, isDeleted: false, organizationId },
+    });
+    if (!current) return;
+
+    const currentDoc = current as unknown as Record<string, unknown>;
+    const eventStream = [
+      ...((currentDoc.eventStream as unknown[]) ?? []),
+      event,
+    ];
+
+    const updated = await this.prisma.workspaceTask.update({
+      data: { eventStream: eventStream as never } as never,
+      where: { id: taskId },
+    });
 
     if (!updated) {
       return;
     }
 
+    const updatedDoc = updated as unknown as WorkspaceTaskDocument;
     const payload: WorkspaceTaskRealtimePayload = {
       event: this.serializeTaskEvent(event),
       organizationId,
-      progress: this.serializeTaskProgress(updated.progress),
+      progress: this.serializeTaskProgress(updatedDoc.progress),
       room: `org-${organizationId}`,
-      task: this.serializeTaskRealtimeSnapshot(updated),
-      taskId: updated._id.toString(),
+      task: this.serializeTaskRealtimeSnapshot(updatedDoc),
+      taskId,
       userId,
     };
 
     await Promise.all([
       this.notificationsPublisher.emit(
-        WebSocketPaths.workspaceTask(updated._id.toString()),
+        WebSocketPaths.workspaceTask(taskId),
         payload,
       ),
       this.notificationsPublisher.emit(
@@ -966,10 +955,15 @@ export class WorkspaceTasksService extends BaseService<
     const thread = await this.agentThreadsService.findOne({
       _id: planningThreadId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     });
 
-    return thread ? String(thread._id) : null;
+    return thread
+      ? String(
+          (thread as unknown as Record<string, unknown>)._id ??
+            (thread as unknown as { id: string }).id,
+        )
+      : null;
   }
 
   private async shouldSeedPlanningThread(

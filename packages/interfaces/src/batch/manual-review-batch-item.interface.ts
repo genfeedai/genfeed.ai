@@ -1,5 +1,4 @@
 import type { BatchItemStatus, ContentFormat } from '@genfeedai/enums';
-import type { Types } from 'mongoose';
 
 export type ReviewBatchItemFormat =
   | ContentFormat
@@ -15,7 +14,7 @@ export interface ManualReviewEvent {
 
 export interface ManualReviewBatchItem {
   caption?: string;
-  contentRunId?: Types.ObjectId;
+  contentRunId?: string;
   creativeVersion?: string;
   format: ReviewBatchItemFormat;
   gateOverallScore?: number;
@@ -25,7 +24,7 @@ export interface ManualReviewBatchItem {
   opportunitySourceType?: 'trend' | 'event' | 'evergreen';
   opportunityTopic?: string;
   platform?: string;
-  postId?: Types.ObjectId;
+  postId?: string;
   publishIntent?: string;
   prompt?: string;
   reviewEvents: ManualReviewEvent[];

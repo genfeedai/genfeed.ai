@@ -5,31 +5,28 @@ import { ApplyProfileDto } from '@api/collections/profiles/dto/apply-profile.dto
 import { CreateProfileDto } from '@api/collections/profiles/dto/create-profile.dto';
 import { GenerateFromExamplesDto } from '@api/collections/profiles/dto/generate-from-examples.dto';
 import { UpdateProfileDto } from '@api/collections/profiles/dto/update-profile.dto';
-import {
-  type IArticleProfile,
-  type IImageProfile,
-  type IVideoProfile,
-  type IVoiceProfile,
-  Profile,
-  type ProfileDocument,
+import type {
+  IArticleProfile,
+  IImageProfile,
+  IVideoProfile,
+  IVoiceProfile,
+  ProfileDocument,
 } from '@api/collections/profiles/schemas/profile.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
-import { QueryBuilder } from '@api/helpers/utils/query-builder.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+
+type Profile = ProfileDocument;
 
 @Injectable()
 export class ProfilesService {
   constructor(
-    @InjectModel(Profile.name, DB_CONNECTIONS.AUTH)
-    private profileModel: Model<ProfileDocument>,
+    private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly modelsService: ModelsService,
     private readonly replicateService: ReplicateService,
@@ -51,23 +48,23 @@ export class ProfilesService {
 
     // If this is set as default, unset other defaults
     if (dto.isDefault) {
-      await this.profileModel.updateMany(
-        { isDefault: true, organization: organizationId },
-        { $set: { isDefault: false } },
-      );
+      await this.prisma.profile.updateMany({
+        data: { isDefault: false } as never,
+        where: { isDefault: true, organizationId },
+      });
     }
 
-    const profile = new this.profileModel({
-      ...dto,
-      createdBy: userId,
-      organization: organizationId,
+    const profile = await this.prisma.profile.create({
+      data: {
+        ...dto,
+        createdById: userId,
+        organizationId,
+      } as never,
     });
 
-    await profile.save();
+    this.logger.debug('Profile created', { profileId: profile.id });
 
-    this.logger.debug('Profile created', { profileId: profile._id });
-
-    return profile.toObject();
+    return profile as unknown as Profile;
   }
 
   /**
@@ -80,46 +77,53 @@ export class ProfilesService {
       isDefault?: boolean;
     },
   ): Promise<Profile[]> {
-    const queryBuilder = new QueryBuilder(organizationId);
+    const where: Record<string, unknown> = {
+      isDeleted: false,
+      organizationId,
+    };
 
-    queryBuilder
-      .addBooleanFilter('isDefault', filters?.isDefault)
-      .addTextSearch(filters?.search);
+    if (filters?.isDefault !== undefined) {
+      where.isDefault = filters.isDefault;
+    }
 
-    const query = queryBuilder.build();
+    if (filters?.search) {
+      where.OR = [
+        { label: { contains: filters.search, mode: 'insensitive' } },
+        { description: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
 
-    return await this.profileModel.find(query).sort({ createdAt: -1 }).lean();
+    const results = await this.prisma.profile.findMany({
+      orderBy: { createdAt: 'desc' },
+      where: where as never,
+    });
+
+    return results as unknown as Profile[];
   }
 
   /**
    * Find one profile
    */
   async findOne(id: string, organizationId: string): Promise<Profile> {
-    const queryBuilder = new QueryBuilder(organizationId);
-    queryBuilder.addFilter('_id', id);
-
-    const profile = await this.profileModel
-      .findOne(queryBuilder.build())
-      .lean();
+    const profile = await this.prisma.profile.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    });
 
     if (!profile) {
       throw new NotFoundException('Profile not found');
     }
 
-    return profile;
+    return profile as unknown as Profile;
   }
 
   /**
    * Get default profile
    */
   async getDefault(organizationId: string): Promise<Profile | null> {
-    return await this.profileModel
-      .findOne({
-        isDefault: true,
-        isDeleted: false,
-        organization: organizationId,
-      })
-      .lean();
+    const result = await this.prisma.profile.findFirst({
+      where: { isDefault: true, isDeleted: false, organizationId },
+    });
+    return result as unknown as Profile | null;
   }
 
   /**
@@ -132,37 +136,44 @@ export class ProfilesService {
   ): Promise<Profile> {
     // If setting as default, unset other defaults
     if (dto.isDefault) {
-      await this.profileModel.updateMany(
-        { _id: { $ne: id }, isDefault: true, organization: organizationId },
-        { $set: { isDefault: false } },
-      );
+      await this.prisma.profile.updateMany({
+        data: { isDefault: false } as never,
+        where: { id: { not: id }, isDefault: true, organizationId },
+      });
     }
 
-    const profile = await this.profileModel.findOneAndUpdate(
-      { _id: id, isDeleted: false, organization: organizationId },
-      { $set: dto },
-      { returnDocument: 'after' },
-    );
+    const existing = await this.prisma.profile.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    });
 
-    if (!profile) {
+    if (!existing) {
       throw new NotFoundException('Profile not found');
     }
 
-    return profile.toObject();
+    const result = await this.prisma.profile.update({
+      data: dto as never,
+      where: { id },
+    });
+
+    return result as unknown as Profile;
   }
 
   /**
    * Delete profile
    */
   async remove(id: string, organizationId: string): Promise<void> {
-    const result = await this.profileModel.updateOne(
-      { _id: id, isDeleted: false, organization: organizationId },
-      { $set: { isDeleted: true } },
-    );
+    const existing = await this.prisma.profile.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    });
 
-    if (result.matchedCount === 0) {
+    if (!existing) {
       throw new NotFoundException('Profile not found');
     }
+
+    await this.prisma.profile.update({
+      data: { isDeleted: true } as never,
+      where: { id },
+    });
   }
 
   /**
@@ -183,7 +194,6 @@ export class ProfilesService {
         organizationId,
       });
 
-      // Get profile
       let profile: Profile | null;
       if (dto.profileId) {
         profile = await this.findOne(dto.profileId, organizationId);
@@ -197,7 +207,6 @@ export class ProfilesService {
         );
       }
 
-      // Enhance prompt with profile
       const enhanced = await this.enhancePromptWithProfile(
         dto.prompt,
         dto.contentType,
@@ -206,10 +215,15 @@ export class ProfilesService {
       );
 
       // Track usage
-      await this.profileModel.updateOne(
-        { _id: (profile as unknown as { _id: unknown })._id },
-        { $inc: { usageCount: 1 } },
-      );
+      await this.prisma.profile.update({
+        data: { usageCount: { increment: 1 } } as never,
+        where: {
+          id: String(
+            (profile as unknown as Record<string, unknown>)._id ??
+              (profile as unknown as { id: string }).id,
+          ),
+        },
+      });
 
       return {
         enhanced,
@@ -248,14 +262,12 @@ export class ProfilesService {
 
       const profile = await this.findOne(dto.profileId, organizationId);
 
-      const result = await this.performToneAnalysis(
+      return await this.performToneAnalysis(
         dto.content,
         dto.contentType,
         profile,
         onBilling,
       );
-
-      return result;
     } catch (error: unknown) {
       this.logger.error('Failed to analyze tone', { error });
       throw error;
@@ -278,11 +290,9 @@ export class ProfilesService {
         organizationId,
       });
 
-      // Analyze examples with AI
       const profileData = await this.analyzeExamples(dto.examples, onBilling);
 
-      // Create profile
-      const profile = await this.create(
+      return await this.create(
         {
           article: profileData.article as IArticleProfile,
           description: dto.description,
@@ -294,8 +304,6 @@ export class ProfilesService {
         organizationId,
         userId,
       );
-
-      return profile;
     } catch (error: unknown) {
       this.logger.error('Failed to generate profile from examples', { error });
       throw error;
@@ -314,7 +322,7 @@ export class ProfilesService {
     const profileSection = profile[contentType];
 
     if (!profileSection) {
-      return prompt; // No profile for this content type
+      return prompt;
     }
 
     const profileDetails = JSON.stringify(profileSection, null, 2);
@@ -497,10 +505,10 @@ Only include content types that are present in examples.`;
     );
 
     return {
-      article: result.article,
-      image: result.image,
-      video: result.video,
-      voice: result.voice,
+      article: result.article as Record<string, unknown> | undefined,
+      image: result.image as Record<string, unknown> | undefined,
+      video: result.video as Record<string, unknown> | undefined,
+      voice: result.voice as Record<string, unknown> | undefined,
     };
   }
 

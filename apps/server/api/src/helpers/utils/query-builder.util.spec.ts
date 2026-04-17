@@ -1,40 +1,93 @@
 import { QueryBuilder } from '@api/helpers/utils/query-builder.util';
-import { Types } from 'mongoose';
 
 describe('QueryBuilderUtil', () => {
-  it('casts organization and user filters to ObjectId values', () => {
-    const organizationId = new Types.ObjectId().toString();
-    const userId = new Types.ObjectId().toString();
+  it('sets organizationId as a plain string', () => {
+    const organizationId = 'org_abc123';
+
+    const query = new QueryBuilder(organizationId).build();
+
+    expect(query.organizationId).toBe(organizationId);
+    expect(query.isDeleted).toBe(false);
+  });
+
+  it('passes filter values through without ObjectId conversion', () => {
+    const organizationId = 'org_abc123';
+    const userId = 'user_xyz789';
 
     const query = new QueryBuilder(organizationId)
-      .addFilter('user', userId)
+      .addFilter('userId', userId)
       .build();
 
-    expect(query.organization).toBeInstanceOf(Types.ObjectId);
-    expect(query.user).toBeInstanceOf(Types.ObjectId);
-    expect(String(query.organization)).toBe(organizationId);
-    expect(String(query.user)).toBe(userId);
+    expect(query.organizationId).toBe(organizationId);
+    expect(query.userId).toBe(userId);
   });
 
-  it('casts ObjectId values inside $in filters', () => {
-    const roomId = new Types.ObjectId().toString();
-    const secondRoomId = new Types.ObjectId().toString();
+  it('builds Prisma-style `in` filters', () => {
+    const id1 = 'id_one';
+    const id2 = 'id_two';
 
     const query = new QueryBuilder()
-      .addInFilter('room', [roomId, secondRoomId])
+      .addInFilter('categoryId', [id1, id2])
       .build();
 
-    const values = (query.room as { $in: unknown[] }).$in;
-    expect(values).toHaveLength(2);
-    expect(values[0]).toBeInstanceOf(Types.ObjectId);
-    expect(values[1]).toBeInstanceOf(Types.ObjectId);
-    expect(String(values[0])).toBe(roomId);
-    expect(String(values[1])).toBe(secondRoomId);
+    const filter = query.categoryId as { in: unknown[] };
+    expect(filter.in).toHaveLength(2);
+    expect(filter.in[0]).toBe(id1);
+    expect(filter.in[1]).toBe(id2);
   });
 
-  it('leaves non ObjectId fields unchanged', () => {
+  it('leaves non-id fields unchanged', () => {
     const query = new QueryBuilder().addFilter('status', 'active').build();
 
     expect(query.status).toBe('active');
+  });
+
+  it('sets isDeleted: false by default', () => {
+    const query = new QueryBuilder().build();
+
+    expect(query.isDeleted).toBe(false);
+  });
+
+  it('builds a text search filter with contains + insensitive mode', () => {
+    const query = new QueryBuilder().addTextSearch('hello', 'title').build();
+
+    expect(query.title).toEqual({ contains: 'hello', mode: 'insensitive' });
+  });
+
+  it('builds a date range filter with Prisma gte/lte syntax', () => {
+    const start = new Date('2025-01-01');
+    const end = new Date('2025-12-31');
+
+    const query = new QueryBuilder()
+      .addDateRange('createdAt', start, end)
+      .build();
+
+    expect(query.createdAt).toEqual({ gte: start, lte: end });
+  });
+
+  it('does not add organizationId filter when not provided', () => {
+    const query = new QueryBuilder().build();
+
+    expect(query).not.toHaveProperty('organizationId');
+  });
+
+  it('clone() produces an independent copy', () => {
+    const original = new QueryBuilder('org_123').addFilter('status', 'active');
+    const cloned = original.clone();
+    cloned.addFilter('type', 'post');
+
+    expect(original.build()).not.toHaveProperty('type');
+    expect(cloned.build()).toHaveProperty('type');
+  });
+
+  it('reset() restores base state while preserving organizationId', () => {
+    const builder = new QueryBuilder('org_abc')
+      .addFilter('status', 'active')
+      .reset();
+
+    const query = builder.build();
+    expect(query.organizationId).toBe('org_abc');
+    expect(query.isDeleted).toBe(false);
+    expect(query).not.toHaveProperty('status');
   });
 });

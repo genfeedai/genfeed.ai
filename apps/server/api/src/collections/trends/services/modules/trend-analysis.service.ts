@@ -3,21 +3,15 @@ import type {
   HistoricalTrendsOptions,
   TrendPatternAnalysis,
 } from '@api/collections/trends/interfaces/trend.interfaces';
-import {
-  Trend,
-  type TrendDocument,
-} from '@api/collections/trends/schemas/trend.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
 
 @Injectable()
 export class TrendAnalysisService {
   constructor(
-    @InjectModel(Trend.name, DB_CONNECTIONS.CLOUD)
-    private trendModel: Model<TrendDocument>,
+    private readonly prisma: PrismaService,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -26,26 +20,21 @@ export class TrendAnalysisService {
    * This preserves data for AI analysis
    */
   async markExpiredTrendsAsHistorical(): Promise<number> {
-    const result = await this.trendModel.updateMany(
-      {
-        expiresAt: { $lte: new Date() },
+    const result = await this.prisma.trend.updateMany({
+      data: { isCurrent: false } as never,
+      where: {
+        expiresAt: { lte: new Date() },
         isCurrent: true,
         isDeleted: false,
-      },
-      {
-        $set: { isCurrent: false },
-      },
-    );
+      } as never,
+    });
 
-    this.loggerService.log(
-      `Marked ${result.modifiedCount} trends as historical`,
-      {
-        operation: 'markExpiredTrendsAsHistorical',
-        service: 'TrendAnalysisService',
-      },
-    );
+    this.loggerService.log(`Marked ${result.count} trends as historical`, {
+      operation: 'markExpiredTrendsAsHistorical',
+      service: 'TrendAnalysisService',
+    });
 
-    return result.modifiedCount;
+    return result.count;
   }
 
   /**
@@ -55,25 +44,17 @@ export class TrendAnalysisService {
     organizationId?: string,
     brandId?: string,
   ): Promise<void> {
-    const query: Record<string, unknown> = {
+    const where: Record<string, unknown> = {
       isCurrent: true,
       isDeleted: false,
+      organizationId: organizationId ?? null,
+      brandId: brandId ?? null,
     };
 
-    if (organizationId) {
-      query.organization = organizationId;
-    } else {
-      query.organization = null;
-    }
-
-    if (brandId) {
-      query.brand = brandId;
-    } else {
-      query.brand = null;
-    }
-
-    // Mark existing current trends as historical (preserve for analysis)
-    await this.trendModel.updateMany(query, { isCurrent: false });
+    await this.prisma.trend.updateMany({
+      data: { isCurrent: false } as never,
+      where: where as never,
+    });
   }
 
   /**
@@ -82,48 +63,45 @@ export class TrendAnalysisService {
   async getHistoricalTrends(
     options: HistoricalTrendsOptions = {},
   ): Promise<TrendEntity[]> {
-    const query: Record<string, unknown> = {
+    const where: Record<string, unknown> = {
       isCurrent: false, // Historical trends only
       isDeleted: false,
     };
 
     if (options.platform) {
-      query.platform = options.platform;
+      where.platform = options.platform;
     }
 
     if (options.topic) {
-      query.topic = { $options: 'i', $regex: options.topic };
+      where.topic = { contains: options.topic, mode: 'insensitive' };
     }
 
-    if (options.organizationId) {
-      query.organization = new Types.ObjectId(options.organizationId);
-    } else {
-      query.organization = null;
-    }
-
-    if (options.brandId) {
-      query.brand = new Types.ObjectId(options.brandId);
-    } else {
-      query.brand = null;
-    }
+    where.organizationId = options.organizationId ?? null;
+    where.brandId = options.brandId ?? null;
 
     if (options.startDate || options.endDate) {
       const createdAtFilter: Record<string, Date> = {};
       if (options.startDate) {
-        createdAtFilter.$gte = options.startDate;
+        createdAtFilter.gte = options.startDate;
       }
       if (options.endDate) {
-        createdAtFilter.$lte = options.endDate;
+        createdAtFilter.lte = options.endDate;
       }
-      query.createdAt = createdAtFilter;
+      where.createdAt = createdAtFilter;
     }
 
-    const docs = await this.trendModel
-      .find(query)
-      .sort({ createdAt: -1 })
-      .limit(options.limit || 1000)
-      .lean();
-    return docs.map((doc) => new TrendEntity(doc));
+    const docs = await this.prisma.trend.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: options.limit ?? 1000,
+      where: where as never,
+    });
+    return docs.map(
+      (doc) =>
+        new TrendEntity({
+          ...doc,
+          ...(doc.data as Record<string, unknown>),
+        } as unknown as TrendDocument),
+    );
   }
 
   /**

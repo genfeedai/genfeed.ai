@@ -3,21 +3,15 @@ import type {
   TrendData,
   TrendPreferencesFilter,
 } from '@api/collections/trends/interfaces/trend.interfaces';
-import {
-  Trend,
-  type TrendDocument,
-} from '@api/collections/trends/schemas/trend.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
 
 @Injectable()
 export class TrendFilteringService {
   constructor(
-    @InjectModel(Trend.name, DB_CONNECTIONS.CLOUD)
-    private trendModel: Model<TrendDocument>,
+    private readonly prisma: PrismaService,
     readonly _loggerService: LoggerService,
   ) {}
 
@@ -276,31 +270,64 @@ export class TrendFilteringService {
       return [];
     }
 
-    // Build regex pattern for partial matching
-    const regexPattern = keywords.map((k) => `(?=.*${k})`).join('');
-
-    const query: Record<string, unknown> = {
+    // Prisma doesn't support regex directly; fetch current trends and filter in-memory
+    const where: Record<string, unknown> = {
       isCurrent: true,
       isDeleted: false,
-      platform: { $ne: excludePlatform },
-      topic: { $options: 'i', $regex: regexPattern },
+      platform: { not: excludePlatform },
     };
 
     if (organizationId) {
-      query.$or = [
-        { organization: new Types.ObjectId(organizationId) },
-        { organization: null },
-      ];
-    } else {
-      query.organization = null;
+      // Fetch both org-scoped and global trends then merge
+      const [orgTrends, globalTrends] = await Promise.all([
+        this.prisma.trend.findMany({
+          orderBy: { viralityScore: 'desc' },
+          take: limit * 5,
+          where: { ...where, organizationId } as never,
+        }),
+        this.prisma.trend.findMany({
+          orderBy: { viralityScore: 'desc' },
+          take: limit * 5,
+          where: { ...where, organizationId: null } as never,
+        }),
+      ]);
+      const allTrends = [...orgTrends, ...globalTrends];
+      return allTrends
+        .filter((doc) =>
+          keywords.some((kw) => doc.topic.toLowerCase().includes(kw)),
+        )
+        .sort(
+          (a, b) =>
+            ((b as unknown as Record<string, number>).viralityScore ?? 0) -
+            ((a as unknown as Record<string, number>).viralityScore ?? 0),
+        )
+        .slice(0, limit)
+        .map(
+          (doc) =>
+            new TrendEntity({
+              ...doc,
+              ...(doc.data as Record<string, unknown>),
+            } as unknown as TrendDocument),
+        );
     }
 
-    const relatedTrends = await this.trendModel
-      .find(query)
-      .sort({ viralityScore: -1 })
-      .limit(limit)
-      .lean();
+    const docs = await this.prisma.trend.findMany({
+      orderBy: { viralityScore: 'desc' } as never,
+      take: limit * 5,
+      where: { ...where, organizationId: null } as never,
+    });
 
-    return relatedTrends.map((doc) => new TrendEntity(doc));
+    return docs
+      .filter((doc) =>
+        keywords.some((kw) => doc.topic.toLowerCase().includes(kw)),
+      )
+      .slice(0, limit)
+      .map(
+        (doc) =>
+          new TrendEntity({
+            ...doc,
+            ...(doc.data as Record<string, unknown>),
+          } as unknown as TrendDocument),
+      );
   }
 }

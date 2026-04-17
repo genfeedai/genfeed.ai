@@ -3,20 +3,15 @@ import type {
   ApifyTrendItem,
   TrendData,
 } from '@api/collections/trends/interfaces/trend.interfaces';
-import {
-  Trend,
-  type TrendDocument,
-} from '@api/collections/trends/schemas/trend.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
 import { GrokTrendData } from '@api/services/integrations/xai/dto/grok-trends.dto';
 import { XaiService } from '@api/services/integrations/xai/services/xai.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 
 @Injectable()
 export class TrendFetchService {
@@ -31,8 +26,7 @@ export class TrendFetchService {
     /\b(today|tonight|this week|now|currently|new|latest|ongoing|live|breaking|just announced|released|launch|current)\b/i;
 
   constructor(
-    @InjectModel(Trend.name, DB_CONNECTIONS.CLOUD)
-    private trendModel: Model<TrendDocument>,
+    private readonly prisma: PrismaService,
     private readonly loggerService: LoggerService,
     private readonly cacheService: CacheService,
     private readonly apifyService: ApifyService,
@@ -289,18 +283,23 @@ export class TrendFetchService {
             : this.GLOBAL_TREND_DOCUMENT_TTL_MINUTES;
           const expiresAt = new Date(Date.now() + ttlMinutes * 60 * 1000);
 
-          const trend = new this.trendModel({
-            ...trendData,
-            brand: brandId || null,
-            expiresAt,
-            isCurrent: true,
-            organization: organizationId || null,
-            requiresAuth,
-            viralityScore,
+          const savedTrend = await this.prisma.trend.create({
+            data: {
+              ...trendData,
+              brandId: brandId || null,
+              expiresAt,
+              isCurrent: true,
+              organizationId: organizationId || null,
+              requiresAuth,
+              viralityScore,
+            } as never,
           });
-
-          const savedTrend = await trend.save();
-          allTrends.push(new TrendEntity(savedTrend.toObject()));
+          allTrends.push(
+            new TrendEntity({
+              ...savedTrend,
+              ...(savedTrend.data as Record<string, unknown>),
+            } as unknown as TrendDocument),
+          );
         }
       } catch (error: unknown) {
         this.loggerService.error(

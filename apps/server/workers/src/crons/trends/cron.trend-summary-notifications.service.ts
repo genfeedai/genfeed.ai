@@ -1,18 +1,13 @@
-import {
-  Setting,
-  type SettingDocument,
-} from '@api/collections/settings/schemas/setting.schema';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ParseMode } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Model } from 'mongoose';
+import type { Setting } from '@prisma/client';
 
 interface TrendSummary {
   platform: string;
@@ -32,8 +27,7 @@ export class CronTrendSummaryNotificationsService {
   private readonly LOCK_TTL_SECONDS = 300; // 5 minute lock
 
   constructor(
-    @InjectModel(Setting.name, DB_CONNECTIONS.AUTH)
-    private readonly settingModel: Model<SettingDocument>,
+    private readonly prisma: PrismaService,
     private readonly trendsService: TrendsService,
     private readonly cacheService: CacheService,
     private readonly notificationsService: NotificationsService,
@@ -80,19 +74,28 @@ export class CronTrendSummaryNotificationsService {
 
         try {
           // Find all users with this notification frequency who have notifications enabled
-          const usersWithSettings = await this.settingModel
-            .find({
-              $or: [
+          const usersWithSettings = await this.prisma.setting.findMany({
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  email: true,
+                  firstName: true,
+                  lastName: true,
+                  clerkId: true,
+                },
+              },
+            },
+            where: {
+              isDeleted: false,
+              OR: [
                 { isTrendNotificationsInApp: true },
                 { isTrendNotificationsTelegram: true },
                 { isTrendNotificationsEmail: true },
               ],
-              isDeleted: false,
-              trendNotificationsFrequency: frequency,
-            })
-            .populate('user', 'email firstName lastName clerkId')
-            .lean()
-            .exec();
+              trendNotificationsFrequency: frequency.toUpperCase() as never,
+            },
+          });
 
           this.loggerService.log(
             `${url} found ${usersWithSettings.length} users with ${frequency} notifications`,
@@ -103,12 +106,12 @@ export class CronTrendSummaryNotificationsService {
 
           for (const setting of usersWithSettings) {
             try {
-              await this.sendTrendSummaryToUser(setting);
+              await this.sendTrendSummaryToUser(setting as Setting);
               successCount++;
             } catch (error) {
               errorCount++;
               this.loggerService.error(
-                `${url} failed to send to user ${setting.user}`,
+                `${url} failed to send to user ${setting.userId}`,
                 error,
               );
             }
@@ -137,7 +140,7 @@ export class CronTrendSummaryNotificationsService {
     }
   }
 
-  private async sendTrendSummaryToUser(setting: SettingDocument) {
+  private async sendTrendSummaryToUser(setting: Setting) {
     const minViralScore = setting.trendNotificationsMinViralScore || 70;
 
     // Fetch trending content above user's threshold
@@ -155,7 +158,7 @@ export class CronTrendSummaryNotificationsService {
 
     if (trends.length === 0) {
       this.loggerService.debug(
-        `No trends above threshold ${minViralScore} for user ${setting.user}`,
+        `No trends above threshold ${minViralScore} for user ${setting.userId}`,
       );
       return;
     }
@@ -196,7 +199,7 @@ export class CronTrendSummaryNotificationsService {
           trends: trends.slice(0, 10), // Top 10 for in-app
         },
         type: 'discord', // Uses general notification channel
-        userId: String(setting.user),
+        userId: setting.userId,
       });
     }
   }

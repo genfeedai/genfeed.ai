@@ -3,32 +3,24 @@ import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { BulkScheduleDto } from '@api/collections/schedules/dto/bulk-schedule.dto';
 import { GetOptimalTimeDto } from '@api/collections/schedules/dto/optimal-time.dto';
 import { RepurposeContentDto } from '@api/collections/schedules/dto/repurpose.dto';
-import {
-  RepurposingJob,
-  type RepurposingJobDocument,
-} from '@api/collections/schedules/schemas/repurposing-job.schema';
-import {
-  Schedule,
-  type ScheduleDocument,
-} from '@api/collections/schedules/schemas/schedule.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { RepurposingJobDocument } from '@api/collections/schedules/schemas/repurposing-job.schema';
+import type { ScheduleDocument } from '@api/collections/schedules/schemas/schedule.schema';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+
+type Schedule = ScheduleDocument;
+type RepurposingJob = RepurposingJobDocument;
 
 @Injectable()
 export class SchedulesService {
   constructor(
-    @InjectModel(Schedule.name, DB_CONNECTIONS.CLOUD)
-    private scheduleModel: Model<ScheduleDocument>,
-    @InjectModel(RepurposingJob.name, DB_CONNECTIONS.CLOUD)
-    private repurposingJobModel: Model<RepurposingJobDocument>,
+    private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly modelsService: ModelsService,
     private readonly replicateService: ReplicateService,
@@ -110,7 +102,9 @@ Return ONLY valid JSON with this exact structure. Do not include any text before
         estimatedEngagement: 0,
         estimatedReach: 0,
       },
-      reasoning: (result as unknown).reasoning || [],
+      reasoning:
+        ((result as unknown as Record<string, unknown>)
+          .reasoning as string[]) || [],
       recommendedTime: result.recommendedTime || new Date().toISOString(),
     };
   }
@@ -138,7 +132,6 @@ Return ONLY valid JSON with this exact structure. Do not include any text before
 
       const staggerMinutes = dto.staggerMinutes || 60;
 
-      // Generate schedule times based on strategy
       const scheduleTimes = this.generateScheduleTimes(
         dto.contentIds.length,
         dto.schedulingStrategy,
@@ -147,28 +140,27 @@ Return ONLY valid JSON with this exact structure. Do not include any text before
         dto.platforms?.[0],
       );
 
-      // Create schedules
       for (let i = 0; i < dto.contentIds.length; i++) {
         const contentId = dto.contentIds[i];
 
         try {
-          // For simplicity, schedule to first platform/brand
           const platform = dto.platforms[0];
           const brandId = dto.brandIds[0];
 
-          const schedule = new this.scheduleModel({
-            brand: brandId,
-            content: contentId,
-            contentType: 'video', // Would need to fetch actual type
-            organization: organizationId,
-            platform,
-            scheduledAt: scheduleTimes[i],
-            schedulingMethod: dto.schedulingStrategy,
-            user: userId,
+          const schedule = await this.prisma.schedule.create({
+            data: {
+              brandId,
+              contentId,
+              contentType: 'video',
+              organizationId,
+              platform,
+              scheduledAt: scheduleTimes[i],
+              schedulingMethod: dto.schedulingStrategy,
+              userId,
+            } as never,
           });
 
-          await schedule.save();
-          scheduled.push(schedule.toObject());
+          scheduled.push(schedule as unknown as Schedule);
         } catch (error: unknown) {
           failed.push({
             contentId,
@@ -197,17 +189,19 @@ Return ONLY valid JSON with this exact structure. Do not include any text before
     startDate: string,
     endDate: string,
   ): Promise<Schedule[]> {
-    return await this.scheduleModel
-      .find({
+    const results = await this.prisma.schedule.findMany({
+      orderBy: { scheduledAt: 'asc' },
+      where: {
         isDeleted: false,
-        organization: organizationId,
+        organizationId,
         scheduledAt: {
-          $gte: new Date(startDate),
-          $lte: new Date(endDate),
+          gte: new Date(startDate),
+          lte: new Date(endDate),
         },
-      })
-      .sort({ scheduledAt: 1 })
-      .lean();
+      } as never,
+    });
+
+    return results as unknown as Schedule[];
   }
 
   /**
@@ -225,29 +219,27 @@ Return ONLY valid JSON with this exact structure. Do not include any text before
         targetFormats: dto.targetFormats,
       });
 
-      // Create repurposing job
-      const job = new this.repurposingJobModel({
-        organization: organizationId,
-        results: dto.targetFormats.map((format) => ({
-          format,
+      const job = await this.prisma.repurposingJob.create({
+        data: {
+          organizationId,
+          results: dto.targetFormats.map((format) => ({
+            format,
+            status: 'pending',
+          })),
+          settings: dto.settings,
+          sourceContentId: dto.contentId,
+          sourceContentType: 'video',
           status: 'pending',
-        })),
-        settings: dto.settings,
-        sourceContent: dto.contentId,
-        sourceContentType: 'video', // Would fetch actual type
-        status: 'pending',
-        targetFormats: dto.targetFormats,
-        user: userId,
+          targetFormats: dto.targetFormats,
+          userId,
+        } as never,
       });
 
-      await job.save();
-
-      // In production, trigger BullMQ job here for async processing
       this.logger.debug('Repurposing job created', {
-        jobId: job._id,
+        jobId: job.id,
       });
 
-      return job.toObject();
+      return job as unknown as RepurposingJob;
     } catch (error: unknown) {
       this.logger.error('Failed to create repurposing job', { error });
       throw error;
@@ -261,24 +253,19 @@ Return ONLY valid JSON with this exact structure. Do not include any text before
     jobId: string,
     organizationId: string,
   ): Promise<RepurposingJob> {
-    const job = await this.repurposingJobModel
-      .findOne({
-        _id: jobId,
-        isDeleted: false,
-        organization: organizationId,
-      })
-      .lean();
+    const job = await this.prisma.repurposingJob.findFirst({
+      where: { id: jobId, isDeleted: false, organizationId },
+    });
 
     if (!job) {
       throw new NotFoundException('Repurposing job not found');
     }
 
-    return job;
+    return job as unknown as RepurposingJob;
   }
 
   /**
    * Platform-specific optimal posting windows (hours in 24h format).
-   * Based on industry research for maximizing engagement.
    */
   private static readonly OPTIMAL_HOURS: Record<string, number[][]> = {
     facebook: [[13, 16]],
@@ -330,7 +317,6 @@ Return ONLY valid JSON with this exact structure. Do not include any text before
       return this.generateOptimalTimes(count, platform);
     }
 
-    // Evenly distributed
     const times: Date[] = [];
     const now = new Date();
     for (let i = 0; i < count; i++) {
@@ -342,7 +328,6 @@ Return ONLY valid JSON with this exact structure. Do not include any text before
 
   /**
    * Generate optimal posting times based on platform-specific windows.
-   * Distributes posts across the best engagement windows starting from tomorrow.
    */
   private generateOptimalTimes(count: number, platform?: string): Date[] {
     const normalizedPlatform = platform?.toLowerCase() ?? 'general';
@@ -350,7 +335,6 @@ Return ONLY valid JSON with this exact structure. Do not include any text before
       SchedulesService.OPTIMAL_HOURS[normalizedPlatform] ??
       SchedulesService.OPTIMAL_HOURS.general;
 
-    // Collect all valid hours from the windows
     const optimalHours: number[] = [];
     for (const [start, end] of windows) {
       for (let h = start; h < end; h++) {
@@ -360,7 +344,6 @@ Return ONLY valid JSON with this exact structure. Do not include any text before
 
     const times: Date[] = [];
     const now = new Date();
-    // Start scheduling from tomorrow to give the user time
     let dayOffset = 1;
     let hourIndex = 0;
 
@@ -373,7 +356,6 @@ Return ONLY valid JSON with this exact structure. Do not include any text before
       times.push(scheduleDate);
 
       hourIndex++;
-      // If we've used all optimal hours for this day, move to next day
       if (hourIndex >= optimalHours.length) {
         hourIndex = 0;
         dayOffset++;

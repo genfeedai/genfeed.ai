@@ -67,8 +67,7 @@ export class SubscriptionsService
     private readonly customersService: CustomersService,
     private readonly clerkService: ClerkService,
   ) {
-    // TODO: remove model arg after BaseService Prisma migration
-    super(undefined as never, logger);
+    super(prisma, 'subscription', logger);
   }
 
   /**

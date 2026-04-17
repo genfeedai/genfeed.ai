@@ -1,18 +1,12 @@
-import {
-  OrganizationSetting,
-  type OrganizationSettingDocument,
-} from '@api/collections/organization-settings/schemas/organization-setting.schema';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { encodeJwtToken } from '@api/helpers/utils/jwt/jwt.util';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { EncryptionUtil } from '@api/shared/utils/encryption/encryption.util';
 import { ByokBillingStatus, ByokProvider } from '@genfeedai/enums';
 import type { IByokKeyEntry, IByokProviderStatus } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 
 const BYOK_PROVIDER_LABELS: Record<
@@ -96,8 +90,7 @@ export class ByokService {
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly httpService: HttpService,
     private readonly logger: LoggerService,
-    @InjectModel(OrganizationSetting.name, DB_CONNECTIONS.AUTH)
-    private readonly organizationSettingsModel: Model<OrganizationSettingDocument>,
+    private readonly prisma: PrismaService,
   ) {}
 
   /**
@@ -117,9 +110,9 @@ export class ByokService {
         return undefined;
       }
 
-      const doc = settings as OrganizationSettingDocument;
+      const byokKeys = this.getByokKeys(settings);
+      const entry = byokKeys[provider];
 
-      const entry = doc.byokKeys?.get(provider);
       if (!entry?.isEnabled || !entry.apiKey) {
         return undefined;
       }
@@ -154,7 +147,7 @@ export class ByokService {
   async isByokBillingInGoodStanding(orgId: string): Promise<boolean> {
     const orgSettings = await this.organizationSettingsService.findOne({
       isDeleted: false,
-      organization: new Types.ObjectId(orgId),
+      organization: orgId,
     });
 
     if (!orgSettings) {
@@ -184,27 +177,11 @@ export class ByokService {
         provider,
       };
 
-      await this.organizationSettingsModel.findOneAndUpdate(
-        { organization: new Types.ObjectId(orgId) },
-        {
-          $set: {
-            [`byokKeys.${provider}`]: encryptedEntry,
-            isByokEnabled: true,
-          },
-        },
-        { returnDocument: 'after' },
-      );
+      await this.updateByokKey(orgId, provider, encryptedEntry, true);
 
-      this.logger.log('BYOK key saved', {
-        orgId,
-        provider,
-      });
+      this.logger.log('BYOK key saved', { orgId, provider });
     } catch (error: unknown) {
-      this.logger.error('Failed to save BYOK key', {
-        error,
-        orgId,
-        provider,
-      });
+      this.logger.error('Failed to save BYOK key', { error, orgId, provider });
       throw error;
     }
   }
@@ -218,16 +195,7 @@ export class ByokService {
     entry: IByokKeyEntry,
   ): Promise<void> {
     try {
-      await this.organizationSettingsModel.findOneAndUpdate(
-        { organization: new Types.ObjectId(orgId) },
-        {
-          $set: {
-            [`byokKeys.${provider}`]: entry,
-            isByokEnabled: true,
-          },
-        },
-        { returnDocument: 'after' },
-      );
+      await this.updateByokKey(orgId, provider, entry, true);
 
       this.logger.log('BYOK OAuth key saved', {
         authMode: entry.authMode,
@@ -255,22 +223,31 @@ export class ByokService {
     expiresAt: number,
   ): Promise<void> {
     try {
-      const update: Record<string, unknown> = {
-        [`byokKeys.${provider}.apiKey`]: EncryptionUtil.encrypt(accessToken),
-        [`byokKeys.${provider}.expiresAt`]: expiresAt,
-        [`byokKeys.${provider}.lastValidatedAt`]: new Date(),
-      };
+      const existing = await this.prisma.organizationSetting.findFirst({
+        where: { organizationId: orgId },
+      });
 
-      if (refreshToken) {
-        update[`byokKeys.${provider}.apiSecret`] =
-          EncryptionUtil.encrypt(refreshToken);
+      if (!existing) {
+        return;
       }
 
-      await this.organizationSettingsModel.findOneAndUpdate(
-        { organization: new Types.ObjectId(orgId) },
-        { $set: update },
-        { returnDocument: 'after' },
-      );
+      const byokKeys = this.getByokKeys(existing);
+      const entry = byokKeys[provider] ?? ({} as IByokKeyEntry);
+
+      byokKeys[provider] = {
+        ...entry,
+        apiKey: EncryptionUtil.encrypt(accessToken),
+        apiSecret: refreshToken
+          ? EncryptionUtil.encrypt(refreshToken)
+          : entry.apiSecret,
+        expiresAt,
+        lastValidatedAt: new Date(),
+      };
+
+      await this.prisma.organizationSetting.updateMany({
+        data: { byokKeys: byokKeys as never },
+        where: { organizationId: orgId },
+      });
     } catch (error: unknown) {
       this.logger.error('Failed to update OAuth tokens', {
         error,
@@ -287,27 +264,28 @@ export class ByokService {
    */
   async removeKey(orgId: string, provider: ByokProvider): Promise<void> {
     try {
-      const result = await this.organizationSettingsModel.findOneAndUpdate(
-        { organization: new Types.ObjectId(orgId) },
-        { $unset: { [`byokKeys.${provider}`]: 1 } },
-        { returnDocument: 'after' },
-      );
+      const existing = await this.prisma.organizationSetting.findFirst({
+        where: { organizationId: orgId },
+      });
 
-      if (result) {
-        const remainingKeys = result.byokKeys?.size ?? 0;
-        if (remainingKeys === 0) {
-          await this.organizationSettingsModel.findOneAndUpdate(
-            { organization: new Types.ObjectId(orgId) },
-            { $set: { isByokEnabled: false } },
-            { returnDocument: 'after' },
-          );
-        }
+      if (!existing) {
+        return;
       }
 
-      this.logger.log('BYOK key removed', {
-        orgId,
-        provider,
+      const byokKeys = this.getByokKeys(existing);
+      delete byokKeys[provider];
+
+      const hasRemainingKeys = Object.keys(byokKeys).length > 0;
+
+      await this.prisma.organizationSetting.updateMany({
+        data: {
+          byokKeys: byokKeys as never,
+          isByokEnabled: hasRemainingKeys,
+        },
+        where: { organizationId: orgId },
       });
+
+      this.logger.log('BYOK key removed', { orgId, provider });
     } catch (error: unknown) {
       this.logger.error('Failed to remove BYOK key', {
         error,
@@ -319,18 +297,33 @@ export class ByokService {
   }
 
   /**
-   * Increment usage counter for a BYOK key using atomic $inc.
-   * Fire-and-forget — errors are logged but not thrown.
+   * Increment usage counter for a BYOK key. Fire-and-forget — errors are logged but not thrown.
    */
   async incrementUsage(organizationId: string, keyId: string): Promise<void> {
     try {
-      await this.organizationSettingsModel.findOneAndUpdate(
-        { organization: new Types.ObjectId(organizationId) },
-        {
-          $inc: { [`byokKeys.${keyId}.totalRequests`]: 1 },
-          $set: { [`byokKeys.${keyId}.lastUsedAt`]: new Date() },
-        },
-      );
+      const existing = await this.prisma.organizationSetting.findFirst({
+        where: { organizationId },
+      });
+
+      if (!existing) {
+        return;
+      }
+
+      const byokKeys = this.getByokKeys(existing);
+      const entry = byokKeys[keyId as ByokProvider];
+
+      if (entry) {
+        byokKeys[keyId as ByokProvider] = {
+          ...entry,
+          lastUsedAt: new Date(),
+          totalRequests: (entry.totalRequests ?? 0) + 1,
+        };
+
+        await this.prisma.organizationSetting.updateMany({
+          data: { byokKeys: byokKeys as never },
+          where: { organizationId },
+        });
+      }
     } catch (error: unknown) {
       this.logger.error('Failed to increment BYOK usage', {
         error,
@@ -349,11 +342,10 @@ export class ByokService {
         organization: orgId,
       });
 
-      const doc = settings as OrganizationSettingDocument | null;
-      const byokKeys = doc?.byokKeys;
+      const byokKeys = settings ? this.getByokKeys(settings) : {};
 
       return Object.values(ByokProvider).map((provider) => {
-        const entry = byokKeys?.get(provider);
+        const entry = byokKeys[provider];
         const config = BYOK_PROVIDER_LABELS[provider];
 
         let maskedKey: string | null = null;
@@ -369,8 +361,12 @@ export class ByokService {
           hasKey: !!maskedKey,
           isEnabled: entry?.isEnabled ?? false,
           label: config.label,
-          lastUsedAt: entry?.lastUsedAt?.toISOString() ?? null,
-          lastValidatedAt: entry?.lastValidatedAt?.toISOString(),
+          lastUsedAt: entry?.lastUsedAt
+            ? new Date(entry.lastUsedAt).toISOString()
+            : null,
+          lastValidatedAt: entry?.lastValidatedAt
+            ? new Date(entry.lastValidatedAt).toISOString()
+            : undefined,
           maskedKey,
           provider,
           requiresSecret: config.requiresSecret,
@@ -379,10 +375,7 @@ export class ByokService {
         };
       });
     } catch (error: unknown) {
-      this.logger.error('Failed to get BYOK status', {
-        error,
-        orgId,
-      });
+      this.logger.error('Failed to get BYOK status', { error, orgId });
       throw error;
     }
   }
@@ -425,15 +418,44 @@ export class ByokService {
           return { error: `Unsupported provider: ${provider}`, isValid: false };
       }
     } catch (error: unknown) {
-      this.logger.error('BYOK key validation failed', {
-        error,
-        provider,
-      });
+      this.logger.error('BYOK key validation failed', { error, provider });
       return {
         error: error instanceof Error ? error.message : 'Validation failed',
         isValid: false,
       };
     }
+  }
+
+  private getByokKeys(settings: {
+    byokKeys?: unknown;
+  }): Record<string, IByokKeyEntry> {
+    return (settings.byokKeys as Record<string, IByokKeyEntry>) ?? {};
+  }
+
+  private async updateByokKey(
+    orgId: string,
+    provider: ByokProvider,
+    entry: IByokKeyEntry,
+    enableByok: boolean,
+  ): Promise<void> {
+    const existing = await this.prisma.organizationSetting.findFirst({
+      where: { organizationId: orgId },
+    });
+
+    if (!existing) {
+      return;
+    }
+
+    const byokKeys = this.getByokKeys(existing);
+    byokKeys[provider] = entry;
+
+    await this.prisma.organizationSetting.updateMany({
+      data: {
+        byokKeys: byokKeys as never,
+        ...(enableByok && { isByokEnabled: true }),
+      },
+      where: { organizationId: orgId },
+    });
   }
 
   private async validateAnthropic(
@@ -450,10 +472,7 @@ export class ByokService {
       );
       return { isValid: true };
     } catch {
-      return {
-        error: 'Invalid Anthropic API key',
-        isValid: false,
-      };
+      return { error: 'Invalid Anthropic API key', isValid: false };
     }
   }
 
@@ -468,10 +487,7 @@ export class ByokService {
       );
       return { isValid: true };
     } catch {
-      return {
-        error: 'Invalid OpenAI API key',
-        isValid: false,
-      };
+      return { error: 'Invalid OpenAI API key', isValid: false };
     }
   }
 
@@ -498,11 +514,8 @@ export class ByokService {
         ),
       );
       return { isValid: true };
-    } catch (_error: unknown) {
-      return {
-        error: 'Invalid OpenRouter API key',
-        isValid: false,
-      };
+    } catch {
+      return { error: 'Invalid OpenRouter API key', isValid: false };
     }
   }
 
@@ -516,11 +529,8 @@ export class ByokService {
         }),
       );
       return { isValid: true };
-    } catch (_error: unknown) {
-      return {
-        error: 'Invalid ElevenLabs API key',
-        isValid: false,
-      };
+    } catch {
+      return { error: 'Invalid ElevenLabs API key', isValid: false };
     }
   }
 
@@ -534,11 +544,8 @@ export class ByokService {
         }),
       );
       return { isValid: true };
-    } catch (_error: unknown) {
-      return {
-        error: 'Invalid Replicate API key',
-        isValid: false,
-      };
+    } catch {
+      return { error: 'Invalid Replicate API key', isValid: false };
     }
   }
 
@@ -552,11 +559,8 @@ export class ByokService {
         }),
       );
       return { isValid: true };
-    } catch (_error: unknown) {
-      return {
-        error: 'Invalid fal.ai API key',
-        isValid: false,
-      };
+    } catch {
+      return { error: 'Invalid fal.ai API key', isValid: false };
     }
   }
 
@@ -570,11 +574,8 @@ export class ByokService {
         }),
       );
       return { isValid: true };
-    } catch (_error: unknown) {
-      return {
-        error: 'Invalid HeyGen API key',
-        isValid: false,
-      };
+    } catch {
+      return { error: 'Invalid HeyGen API key', isValid: false };
     }
   }
 
@@ -588,11 +589,8 @@ export class ByokService {
         }),
       );
       return { isValid: true };
-    } catch (_error: unknown) {
-      return {
-        error: 'Invalid Hedra API key',
-        isValid: false,
-      };
+    } catch {
+      return { error: 'Invalid Hedra API key', isValid: false };
     }
   }
 
@@ -615,11 +613,8 @@ export class ByokService {
         }),
       );
       return { isValid: true };
-    } catch (_error: unknown) {
-      return {
-        error: 'Invalid Kling AI credentials',
-        isValid: false,
-      };
+    } catch {
+      return { error: 'Invalid Kling AI credentials', isValid: false };
     }
   }
 
@@ -633,11 +628,8 @@ export class ByokService {
         }),
       );
       return { isValid: true };
-    } catch (_error: unknown) {
-      return {
-        error: 'Invalid Leonardo.AI API key',
-        isValid: false,
-      };
+    } catch {
+      return { error: 'Invalid Leonardo.AI API key', isValid: false };
     }
   }
 
@@ -659,11 +651,8 @@ export class ByokService {
         }),
       );
       return { isValid: true };
-    } catch (_error: unknown) {
-      return {
-        error: 'Invalid Higgsfield credentials',
-        isValid: false,
-      };
+    } catch {
+      return { error: 'Invalid Higgsfield credentials', isValid: false };
     }
   }
 
@@ -677,11 +666,8 @@ export class ByokService {
         ),
       );
       return { isValid: true };
-    } catch (_error: unknown) {
-      return {
-        error: 'Invalid Apify API token',
-        isValid: false,
-      };
+    } catch {
+      return { error: 'Invalid Apify API token', isValid: false };
     }
   }
 }

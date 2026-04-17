@@ -21,8 +21,7 @@ export class EditorProjectsService extends BaseService<
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
   ) {
-    // TODO: remove model arg after BaseService Prisma migration
-    super(undefined as never, logger);
+    super(prisma, 'editorProject', logger);
   }
 
   /**

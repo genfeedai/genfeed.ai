@@ -1,8 +1,3 @@
-import {
-  Image,
-  type ImageDocument,
-} from '@api/collections/images/schemas/image.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 // import { LeonardoAIService } from '@api/integrations/leonardoai/leonardoai.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { FalService } from '@api/services/integrations/fal/fal.service';
@@ -11,8 +6,6 @@ import { ReplicateService } from '@api/services/integrations/replicate/replicate
 import { ByokProvider, ImageTaskModel } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
 
 export interface GenerateImageConfig {
   model: ImageTaskModel;
@@ -46,9 +39,6 @@ export interface GenerateImageResult {
 @Injectable()
 export class GenerateImageTask {
   constructor(
-    @InjectModel(Image.name, DB_CONNECTIONS.CLOUD)
-    private readonly imageModel: Model<ImageDocument>,
-
     private readonly leonardoService: LeonardoAIService,
     private readonly replicateService: ReplicateService,
     private readonly falService: FalService,
@@ -74,8 +64,6 @@ export class GenerateImageTask {
 
       let generatedUrl: string;
       let externalId: string;
-
-      let fallbackUsed = false;
 
       // Route to appropriate AI service based on model, with provider failover
       switch (config.model) {
@@ -108,7 +96,6 @@ export class GenerateImageTask {
               organizationId,
             );
             externalId = generatedUrl;
-            fallbackUsed = true;
           }
           break;
 
@@ -127,7 +114,6 @@ export class GenerateImageTask {
               organizationId,
             );
             generatedUrl = externalId;
-            fallbackUsed = true;
           }
           break;
 
@@ -135,40 +121,15 @@ export class GenerateImageTask {
           throw new Error(`Unsupported model: ${config.model}`);
       }
 
-      // Save generated image to database
-      const image = new this.imageModel({
-        height: config.height || 1024,
-        isDeleted: false,
-        metadata: {
-          fallbackUsed,
-          generatedBy: 'workflow',
-          guidanceScale: config.guidanceScale,
-          model: config.model,
-          negativePrompt: config.negativePrompt,
-          prompt: config.prompt,
-          seed: config.seed,
-          steps: config.steps,
-          style: config.style,
-        },
-        model: config.model,
-        organization: new Types.ObjectId(organizationId),
-        prompt: config.prompt,
-        url: generatedUrl,
-        user: new Types.ObjectId(userId),
-        width: config.width || 1024,
-      });
-
-      await image.save();
-
       const generationTime = Date.now() - startTime;
 
       this.logger.log(
-        `Image generated successfully: ${image._id} in ${generationTime}ms`,
+        `Image generated successfully in ${generationTime}ms`,
         'GenerateImageTask',
       );
 
       return {
-        imageId: image?._id?.toString() ?? '',
+        imageId: generatedUrl,
         metadata: {
           generationTime,
           model: config.model,

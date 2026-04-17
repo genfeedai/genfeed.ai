@@ -17,13 +17,10 @@ import type {
   TrendTimelineEntry,
   TrendTurnoverStats,
 } from '@api/collections/trends/interfaces/trend-turnover.interface';
-import {
-  Trend,
-  type TrendDocument,
-} from '@api/collections/trends/schemas/trend.schema';
-import { TrendingHashtagDocument } from '@api/collections/trends/schemas/trending-hashtag.schema';
-import { TrendingSoundDocument } from '@api/collections/trends/schemas/trending-sound.schema';
-import { TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
+import type { TrendDocument } from '@api/collections/trends/schemas/trend.schema';
+import type { TrendingHashtagDocument } from '@api/collections/trends/schemas/trending-hashtag.schema';
+import type { TrendingSoundDocument } from '@api/collections/trends/schemas/trending-sound.schema';
+import type { TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
 import { TrendAnalysisService } from '@api/collections/trends/services/modules/trend-analysis.service';
 import { TrendContentIdeasService } from '@api/collections/trends/services/modules/trend-content-ideas.service';
 import { TrendFetchService } from '@api/collections/trends/services/modules/trend-fetch.service';
@@ -31,7 +28,6 @@ import { TrendFilteringService } from '@api/collections/trends/services/modules/
 import { TrendVideoService } from '@api/collections/trends/services/modules/trend-video.service';
 import { TrendPreferencesService } from '@api/collections/trends/services/trend-preferences.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import type {
   ApifyInstagramPost,
@@ -41,11 +37,11 @@ import type {
   ApifyYouTubeVideo,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Types } from 'mongoose';
 
 @Injectable()
 export class TrendsService {
@@ -61,8 +57,7 @@ export class TrendsService {
   ]);
 
   constructor(
-    @InjectModel(Trend.name, DB_CONNECTIONS.CLOUD)
-    private trendModel: Model<TrendDocument>,
+    private readonly prisma: PrismaService,
     private readonly loggerService: LoggerService,
     private readonly cacheService: CacheService,
     private readonly brandsService: BrandsService,
@@ -81,15 +76,21 @@ export class TrendsService {
     activeTrends: number;
     referenceRecords: number;
   }> {
-    const [activeTrends, referenceRecords] = await Promise.all([
-      this.trendModel.countDocuments({
-        expiresAt: { $gt: new Date() },
-        isCurrent: true,
-        isDeleted: false,
-        organization: null,
+    const now = new Date();
+    const [allGlobalTrends, referenceRecords] = await Promise.all([
+      this.prisma.trend.findMany({
+        where: { isDeleted: false, organizationId: null } as never,
       }),
       this.trendReferenceCorpusService.countGlobalReferences(),
     ]);
+    const activeTrends = allGlobalTrends.filter((doc) => {
+      const d = doc.data as unknown as Record<string, unknown>;
+      return (
+        d.isCurrent === true &&
+        d.expiresAt != null &&
+        new Date(d.expiresAt as string) > now
+      );
+    }).length;
 
     return {
       activeTrends,
@@ -177,53 +178,27 @@ export class TrendsService {
       allowFetchIfMissing?: boolean;
     } = {},
   ): Promise<TrendEntity[]> {
-    const query: Record<string, unknown> = {
-      expiresAt: { $gt: new Date() },
-      isCurrent: true,
-      isDeleted: false,
-    };
-
-    if (organizationId) {
-      query.organization = organizationId;
-    } else {
-      query.organization = null;
-    }
-
-    if (brandId) {
-      query.brand = brandId;
-    } else {
-      query.brand = null;
-    }
-
-    if (platform) {
-      query.platform = platform;
-    }
-
-    const cachedTrends = await this.findActiveTrends(query);
+    const cachedTrends = await this.findActiveTrends({
+      brandId: brandId ?? null,
+      organizationId: organizationId ?? null,
+      platform,
+    });
 
     if (cachedTrends.length > 0) {
-      return cachedTrends.map((doc) => new TrendEntity(doc)) as TrendEntity[];
+      return cachedTrends;
     }
 
     if (organizationId || brandId) {
-      const globalFallbackQuery: Record<string, unknown> = {
-        brand: null,
-        expiresAt: { $gt: new Date() },
-        isCurrent: true,
-        isDeleted: false,
-        organization: null,
-      };
-
-      if (platform) {
-        globalFallbackQuery.platform = platform;
-      }
-
-      const globalTrends = await this.findActiveTrends(globalFallbackQuery);
+      const globalTrends = await this.findActiveTrends({
+        brandId: null,
+        organizationId: null,
+        platform,
+      });
       if (globalTrends.length > 0) {
         this.loggerService.log(
           'No tenant-scoped trends found, falling back to precomputed global trends',
         );
-        return globalTrends.map((doc) => new TrendEntity(doc)) as TrendEntity[];
+        return globalTrends;
       }
     }
 
@@ -239,12 +214,43 @@ export class TrendsService {
     return await this.fetchAndCacheTrends(organizationId, brandId);
   }
 
-  private findActiveTrends(query: Record<string, unknown>) {
-    return this.trendModel
-      .find(query)
-      .sort({ createdAt: -1, viralityScore: -1 })
-      .limit(50)
-      .lean();
+  private async findActiveTrends(filter: {
+    organizationId: string | null;
+    brandId: string | null;
+    platform?: string;
+  }): Promise<TrendEntity[]> {
+    const now = new Date();
+    const docs = await this.prisma.trend.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+      where: {
+        brandId: filter.brandId,
+        isDeleted: false,
+        organizationId: filter.organizationId,
+      } as never,
+    });
+
+    return docs
+      .filter((doc) => {
+        const d = doc.data as unknown as Record<string, unknown>;
+        if (d.isCurrent !== true) return false;
+        if (d.expiresAt && new Date(d.expiresAt as string) <= now) return false;
+        if (filter.platform && d.platform !== filter.platform) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        const ad = a.data as unknown as Record<string, number>;
+        const bd = b.data as unknown as Record<string, number>;
+        return (bd.viralityScore ?? 0) - (ad.viralityScore ?? 0);
+      })
+      .slice(0, 50)
+      .map(
+        (doc) =>
+          new TrendEntity({
+            ...doc,
+            ...(doc.data as Record<string, unknown>),
+          } as unknown as TrendDocument),
+      );
   }
 
   /**
@@ -258,7 +264,7 @@ export class TrendsService {
             $match: {
               isConnected: true,
               isDeleted: false,
-              organization: new Types.ObjectId(organizationId),
+              organization: new Types.ObjectId(organizationId) as never,
             },
           },
         ],
@@ -315,9 +321,9 @@ export class TrendsService {
     if (brandId && organizationId) {
       try {
         const brand = await this.brandsService.findOne({
-          _id: new Types.ObjectId(brandId),
+          _id: brandId,
           isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
+          organization: organizationId,
         });
 
         if (brand?.description) {
@@ -539,20 +545,27 @@ export class TrendsService {
     trendId: string,
     organizationId?: string,
   ): Promise<TrendEntity | null> {
-    const query: Record<string, unknown> = {
-      _id: new Types.ObjectId(trendId),
-      isDeleted: false,
-    };
+    const doc = await this.prisma.trend.findFirst({
+      where: { id: trendId, isDeleted: false } as never,
+    });
 
-    if (organizationId) {
-      query.$or = [
-        { organization: new Types.ObjectId(organizationId) },
-        { organization: null },
-      ];
+    if (!doc) {
+      return null;
     }
 
-    const trend = await this.trendModel.findOne(query).lean();
-    return trend ? new TrendEntity(trend) : null;
+    // If organizationId provided, trend must belong to that org or be global
+    if (organizationId) {
+      const docOrgId = (doc as unknown as Record<string, unknown>)
+        .organizationId;
+      if (docOrgId !== organizationId && docOrgId !== null) {
+        return null;
+      }
+    }
+
+    return new TrendEntity({
+      ...doc,
+      ...(doc.data as Record<string, unknown>),
+    } as unknown as TrendDocument);
   }
 
   async getTrendSourceItems(
@@ -1138,11 +1151,17 @@ export class TrendsService {
       sourcePreviewState,
     };
 
-    await this.trendModel.findByIdAndUpdate(trend.id, {
-      $set: {
-        metadata,
-      },
+    const existingDoc = await this.prisma.trend.findFirst({
+      where: { id: trend.id, isDeleted: false } as never,
     });
+    if (existingDoc) {
+      const existingData =
+        (existingDoc.data as unknown as Record<string, unknown>) ?? {};
+      await this.prisma.trend.update({
+        data: { data: { ...existingData, metadata } as never },
+        where: { id: trend.id },
+      });
+    }
 
     return new TrendEntity({
       ...trend,

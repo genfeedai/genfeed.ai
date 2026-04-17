@@ -1,16 +1,4 @@
-import {
-  Brand,
-  type BrandDocument,
-} from '@api/collections/brands/schemas/brand.schema';
-import {
-  Organization,
-  type OrganizationDocument,
-} from '@api/collections/organizations/schemas/organization.schema';
-import {
-  type UserDocument,
-  User as UserSchema,
-} from '@api/collections/users/schemas/user.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { User } from '@clerk/backend';
 import { IS_HYBRID_MODE, IS_LOCAL_MODE } from '@genfeedai/config';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -20,15 +8,14 @@ import {
   Injectable,
   type NestInterceptor,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
+import type { Brand, Organization, User as PrismaUser } from '@prisma/client';
 import type { Request } from 'express';
-import type { Model } from 'mongoose';
 import type { Observable } from 'rxjs';
 
 interface CachedIdentity {
-  defaultBrand: BrandDocument;
-  defaultOrg: OrganizationDocument;
-  defaultUser: UserDocument;
+  defaultBrand: Brand;
+  defaultOrg: Organization;
+  defaultUser: PrismaUser;
 }
 
 @Injectable()
@@ -38,12 +25,7 @@ export class LocalIdentityInterceptor implements NestInterceptor {
 
   constructor(
     private readonly logger: LoggerService,
-    @InjectModel(Organization.name, DB_CONNECTIONS.AUTH)
-    private readonly organizationModel: Model<OrganizationDocument>,
-    @InjectModel(UserSchema.name, DB_CONNECTIONS.AUTH)
-    private readonly userModel: Model<UserDocument>,
-    @InjectModel(Brand.name, DB_CONNECTIONS.CLOUD)
-    private readonly brandModel: Model<BrandDocument>,
+    private readonly prisma: PrismaService,
   ) {}
 
   async intercept(
@@ -75,12 +57,12 @@ export class LocalIdentityInterceptor implements NestInterceptor {
         id: 'local-admin',
         lastName: 'Admin',
         publicMetadata: {
-          brand: String(defaultBrand._id),
+          brand: defaultBrand.id,
           isSuperAdmin: true,
-          organization: String(defaultOrg._id),
+          organization: defaultOrg.id,
           stripeSubscriptionStatus: 'active',
           subscriptionTier: 'free',
-          user: String(defaultUser._id),
+          user: defaultUser.id,
         },
       } as unknown as User;
     } catch (error: unknown) {
@@ -96,9 +78,9 @@ export class LocalIdentityInterceptor implements NestInterceptor {
     }
 
     const [defaultOrg, defaultUser, defaultBrand] = await Promise.all([
-      this.organizationModel.findOne({ isDefault: true }).lean(),
-      this.userModel.findOne({ isDefault: true }).lean(),
-      this.brandModel.findOne({ isDefault: true }).lean(),
+      this.prisma.organization.findFirst({ where: { isDefault: true } }),
+      this.prisma.user.findFirst({ where: { isDefault: true } }),
+      this.prisma.brand.findFirst({ where: { isDefault: true } }),
     ]);
 
     if (!defaultOrg || !defaultUser || !defaultBrand) {

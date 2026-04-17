@@ -1,22 +1,8 @@
-import {
-  CreditTransactions,
-  type CreditTransactionsDocument,
-} from '@api/collections/credits/schemas/credit-transactions.schema';
-import {
-  Ingredient,
-  type IngredientDocument,
-} from '@api/collections/ingredients/schemas/ingredient.schema';
-import {
-  Organization,
-  type OrganizationDocument,
-} from '@api/collections/organizations/schemas/organization.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CreditTransactionCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, type PipelineStage } from 'mongoose';
 
 interface DailyAmountEntry {
   date: string;
@@ -91,12 +77,7 @@ interface BusinessAnalyticsResponse {
 @Injectable()
 export class BusinessAnalyticsService {
   constructor(
-    @InjectModel(CreditTransactions.name, DB_CONNECTIONS.AUTH)
-    private readonly creditTransactionModel: Model<CreditTransactionsDocument>,
-    @InjectModel(Ingredient.name, DB_CONNECTIONS.CLOUD)
-    private readonly ingredientModel: Model<IngredientDocument>,
-    @InjectModel(Organization.name, DB_CONNECTIONS.AUTH)
-    private readonly organizationModel: Model<OrganizationDocument>,
+    private readonly prisma: PrismaService,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -147,10 +128,7 @@ export class BusinessAnalyticsService {
     const thisWeekStart = daysAgo(now, 7);
     const lastWeekStart = daysAgo(now, 14);
 
-    const addMatch: PipelineStage.Match['$match'] = {
-      category: CreditTransactionCategory.ADD,
-      isDeleted: false,
-    };
+    const addSource = CreditTransactionCategory.ADD;
 
     const [
       todayResult,
@@ -161,31 +139,13 @@ export class BusinessAnalyticsService {
       thisWeekTotal,
       lastWeekTotal,
     ] = await Promise.all([
-      this.sumCreditTransactions({
-        ...addMatch,
-        createdAt: { $gte: todayStart },
-      }),
-      this.sumCreditTransactions({
-        ...addMatch,
-        createdAt: { $gte: last7dStart },
-      }),
-      this.sumCreditTransactions({
-        ...addMatch,
-        createdAt: { $gte: last30dStart },
-      }),
-      this.sumCreditTransactions({
-        ...addMatch,
-        createdAt: { $gte: mtdStart },
-      }),
-      this.getDailyCreditSeries(addMatch, last30dStart, now),
-      this.sumCreditTransactions({
-        ...addMatch,
-        createdAt: { $gte: thisWeekStart },
-      }),
-      this.sumCreditTransactions({
-        ...addMatch,
-        createdAt: { $gte: lastWeekStart, $lt: thisWeekStart },
-      }),
+      this.sumCreditTransactions(addSource, todayStart),
+      this.sumCreditTransactions(addSource, last7dStart),
+      this.sumCreditTransactions(addSource, last30dStart),
+      this.sumCreditTransactions(addSource, mtdStart),
+      this.getDailyCreditSeries(addSource, last30dStart, now),
+      this.sumCreditTransactions(addSource, thisWeekStart),
+      this.sumCreditTransactions(addSource, lastWeekStart, thisWeekStart),
     ]);
 
     const wowGrowth = computeWowGrowth(thisWeekTotal, lastWeekTotal);
@@ -205,17 +165,8 @@ export class BusinessAnalyticsService {
     const thisWeekStart = daysAgo(now, 7);
     const lastWeekStart = daysAgo(now, 14);
 
-    const addMatch: PipelineStage.Match['$match'] = {
-      category: CreditTransactionCategory.ADD,
-      createdAt: { $gte: last30dStart },
-      isDeleted: false,
-    };
-
-    const deductMatch: PipelineStage.Match['$match'] = {
-      category: CreditTransactionCategory.DEDUCT,
-      createdAt: { $gte: last30dStart },
-      isDeleted: false,
-    };
+    const addSource = CreditTransactionCategory.ADD;
+    const deductSource = CreditTransactionCategory.DEDUCT;
 
     const [
       sold,
@@ -225,28 +176,12 @@ export class BusinessAnalyticsService {
       thisWeekConsumed,
       lastWeekConsumed,
     ] = await Promise.all([
-      this.sumCreditTransactions(addMatch),
-      this.sumCreditTransactions(deductMatch),
-      this.getDailyCreditSeries(
-        { category: CreditTransactionCategory.ADD, isDeleted: false },
-        last30dStart,
-        now,
-      ),
-      this.getDailyCreditSeries(
-        { category: CreditTransactionCategory.DEDUCT, isDeleted: false },
-        last30dStart,
-        now,
-      ),
-      this.sumCreditTransactions({
-        category: CreditTransactionCategory.DEDUCT,
-        createdAt: { $gte: thisWeekStart },
-        isDeleted: false,
-      }),
-      this.sumCreditTransactions({
-        category: CreditTransactionCategory.DEDUCT,
-        createdAt: { $gte: lastWeekStart, $lt: thisWeekStart },
-        isDeleted: false,
-      }),
+      this.sumCreditTransactions(addSource, last30dStart),
+      this.sumCreditTransactions(deductSource, last30dStart),
+      this.getDailyCreditSeries(addSource, last30dStart, now),
+      this.getDailyCreditSeries(deductSource, last30dStart, now),
+      this.sumCreditTransactions(deductSource, thisWeekStart),
+      this.sumCreditTransactions(deductSource, lastWeekStart, thisWeekStart),
     ]);
 
     const wowGrowth = computeWowGrowth(thisWeekConsumed, lastWeekConsumed);
@@ -267,10 +202,6 @@ export class BusinessAnalyticsService {
     const thisWeekStart = daysAgo(now, 7);
     const lastWeekStart = daysAgo(now, 14);
 
-    const baseMatch: PipelineStage.Match['$match'] = {
-      isDeleted: false,
-    };
-
     const [
       todayResult,
       last7dResult,
@@ -280,28 +211,13 @@ export class BusinessAnalyticsService {
       thisWeekTotal,
       lastWeekTotal,
     ] = await Promise.all([
-      this.countIngredients({
-        ...baseMatch,
-        createdAt: { $gte: todayStart },
-      }),
-      this.countIngredients({
-        ...baseMatch,
-        createdAt: { $gte: last7dStart },
-      }),
-      this.countIngredients({
-        ...baseMatch,
-        createdAt: { $gte: last30dStart },
-      }),
-      this.getDailyIngredientSeries(baseMatch, last30dStart, now),
-      this.getIngredientCategoryBreakdown(baseMatch, last30dStart, now),
-      this.countIngredients({
-        ...baseMatch,
-        createdAt: { $gte: thisWeekStart },
-      }),
-      this.countIngredients({
-        ...baseMatch,
-        createdAt: { $gte: lastWeekStart, $lt: thisWeekStart },
-      }),
+      this.countIngredients(todayStart),
+      this.countIngredients(last7dStart),
+      this.countIngredients(last30dStart),
+      this.getDailyIngredientSeries(last30dStart, now),
+      this.getIngredientCategoryBreakdown(last30dStart, now),
+      this.countIngredients(thisWeekStart),
+      this.countIngredients(lastWeekStart, thisWeekStart),
     ]);
 
     const wowGrowth = computeWowGrowth(thisWeekTotal, lastWeekTotal);
@@ -337,212 +253,200 @@ export class BusinessAnalyticsService {
   }
 
   private async sumCreditTransactions(
-    match: PipelineStage.Match['$match'],
+    source: string,
+    createdAtGte?: Date,
+    createdAtLt?: Date,
   ): Promise<number> {
-    const pipeline: PipelineStage[] = [
-      { $match: match },
-      { $group: { _id: null, total: { $sum: '$amount' } } },
-    ];
-
-    const result = await this.creditTransactionModel.aggregate(pipeline).exec();
-    return result[0]?.total ?? 0;
+    const transactions = await this.prisma.creditTransaction.findMany({
+      select: { amount: true },
+      where: {
+        isDeleted: false,
+        source,
+        ...(createdAtGte || createdAtLt
+          ? {
+              createdAt: {
+                ...(createdAtGte ? { gte: createdAtGte } : {}),
+                ...(createdAtLt ? { lt: createdAtLt } : {}),
+              },
+            }
+          : {}),
+      },
+    });
+    return transactions.reduce((sum, t) => sum + (t.amount ?? 0), 0);
   }
 
   private async getDailyCreditSeries(
-    baseMatch: PipelineStage.Match['$match'],
+    source: string,
     from: Date,
     to: Date,
   ): Promise<DailyAmountEntry[]> {
-    const pipeline: PipelineStage[] = [
-      {
-        $match: {
-          ...baseMatch,
-          createdAt: { $gte: from, $lte: to },
-        },
+    const transactions = await this.prisma.creditTransaction.findMany({
+      select: { amount: true, createdAt: true },
+      where: {
+        createdAt: { gte: from, lte: to },
+        isDeleted: false,
+        source,
       },
-      {
-        $group: {
-          _id: {
-            $dateToString: { date: '$createdAt', format: '%Y-%m-%d' },
-          },
-          amount: { $sum: '$amount' },
-        },
-      },
-      { $sort: { _id: 1 } },
-      {
-        $project: {
-          _id: 0,
-          amount: 1,
-          date: '$_id',
-        },
-      },
-    ];
+    });
 
-    return this.creditTransactionModel.aggregate(pipeline).exec();
+    const byDay = new Map<string, number>();
+    for (const t of transactions) {
+      const day = t.createdAt.toISOString().slice(0, 10);
+      byDay.set(day, (byDay.get(day) ?? 0) + (t.amount ?? 0));
+    }
+
+    return Array.from(byDay.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, amount]) => ({ amount, date }));
   }
 
   private async countIngredients(
-    match: PipelineStage.Match['$match'],
+    createdAtGte?: Date,
+    createdAtLt?: Date,
   ): Promise<number> {
-    const pipeline: PipelineStage[] = [{ $match: match }, { $count: 'total' }];
-
-    const result = await this.ingredientModel.aggregate(pipeline).exec();
-    return result[0]?.total ?? 0;
+    return this.prisma.ingredient.count({
+      where: {
+        isDeleted: false,
+        ...(createdAtGte || createdAtLt
+          ? {
+              createdAt: {
+                ...(createdAtGte ? { gte: createdAtGte } : {}),
+                ...(createdAtLt ? { lt: createdAtLt } : {}),
+              },
+            }
+          : {}),
+      },
+    });
   }
 
   private async getDailyIngredientSeries(
-    baseMatch: PipelineStage.Match['$match'],
     from: Date,
     to: Date,
   ): Promise<DailyCountEntry[]> {
-    const pipeline: PipelineStage[] = [
-      {
-        $match: {
-          ...baseMatch,
-          createdAt: { $gte: from, $lte: to },
-        },
+    const ingredients = await this.prisma.ingredient.findMany({
+      select: { createdAt: true },
+      where: {
+        createdAt: { gte: from, lte: to },
+        isDeleted: false,
       },
-      {
-        $group: {
-          _id: {
-            $dateToString: { date: '$createdAt', format: '%Y-%m-%d' },
-          },
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { _id: 1 } },
-      {
-        $project: {
-          _id: 0,
-          count: 1,
-          date: '$_id',
-        },
-      },
-    ];
+    });
 
-    return this.ingredientModel.aggregate(pipeline).exec();
+    const byDay = new Map<string, number>();
+    for (const i of ingredients) {
+      const day = i.createdAt.toISOString().slice(0, 10);
+      byDay.set(day, (byDay.get(day) ?? 0) + 1);
+    }
+
+    return Array.from(byDay.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, count]) => ({ count, date }));
   }
 
   private async getIngredientCategoryBreakdown(
-    baseMatch: PipelineStage.Match['$match'],
     from: Date,
     to: Date,
   ): Promise<CategoryBreakdownEntry[]> {
-    const pipeline: PipelineStage[] = [
-      {
-        $match: {
-          ...baseMatch,
-          createdAt: { $gte: from, $lte: to },
-        },
+    const ingredients = await this.prisma.ingredient.findMany({
+      select: { category: true },
+      where: {
+        createdAt: { gte: from, lte: to },
+        isDeleted: false,
       },
-      {
-        $group: {
-          _id: '$category',
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { count: -1 } },
-      {
-        $project: {
-          _id: 0,
-          category: '$_id',
-          count: 1,
-        },
-      },
-    ];
+    });
 
-    return this.ingredientModel.aggregate(pipeline).exec();
+    const byCat = new Map<string, number>();
+    for (const i of ingredients) {
+      const cat = String(i.category ?? 'UNKNOWN');
+      byCat.set(cat, (byCat.get(cat) ?? 0) + 1);
+    }
+
+    return Array.from(byCat.entries())
+      .sort(([, a], [, b]) => b - a)
+      .map(([category, count]) => ({ category, count }));
   }
 
   private async getLeadersByCredits(
-    category: CreditTransactionCategory,
+    source: string,
     from: Date,
     to: Date,
   ): Promise<LeaderEntry[]> {
-    const pipeline: PipelineStage[] = [
-      {
-        $match: {
-          category,
-          createdAt: { $gte: from, $lte: to },
-          isDeleted: false,
-        },
+    const transactions = await this.prisma.creditTransaction.findMany({
+      select: { amount: true, organizationId: true },
+      where: {
+        createdAt: { gte: from, lte: to },
+        isDeleted: false,
+        source,
       },
-      {
-        $group: {
-          _id: '$organization',
-          amount: { $sum: '$amount' },
-        },
-      },
-      { $sort: { amount: -1 } },
-      { $limit: 10 },
-      {
-        $lookup: {
-          as: 'org',
-          foreignField: '_id',
-          from: 'organizations',
-          localField: '_id',
-        },
-      },
-      { $unwind: { path: '$org', preserveNullAndEmptyArrays: true } },
-      {
-        $project: {
-          _id: 0,
-          amount: 1,
-          organizationId: { $toString: '$_id' },
-          organizationName: { $ifNull: ['$org.label', 'Unknown'] },
-        },
-      },
-    ];
+    });
 
-    return this.creditTransactionModel.aggregate(pipeline).exec();
+    // Aggregate in-memory by organizationId
+    const byOrg = new Map<string, number>();
+    for (const t of transactions) {
+      byOrg.set(
+        t.organizationId,
+        (byOrg.get(t.organizationId) ?? 0) + (t.amount ?? 0),
+      );
+    }
+
+    const top10 = Array.from(byOrg.entries())
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 10);
+
+    if (top10.length === 0) return [];
+
+    // Resolve org names
+    const orgIds = top10.map(([id]) => id);
+    const orgs = await this.prisma.organization.findMany({
+      select: { id: true, label: true },
+      where: { id: { in: orgIds }, isDeleted: false },
+    });
+    const orgNameMap = new Map(orgs.map((o) => [o.id, o.label ?? 'Unknown']));
+
+    return top10.map(([organizationId, amount]) => ({
+      amount,
+      organizationId,
+      organizationName: orgNameMap.get(organizationId) ?? 'Unknown',
+    }));
   }
 
   private async getLeadersByIngredients(
     from: Date,
     to: Date,
   ): Promise<LeaderCountEntry[]> {
-    // Ingredients are on CLOUD db, organizations on AUTH db.
-    // $lookup cannot cross databases, so we aggregate first then resolve org names.
-    const pipeline: PipelineStage[] = [
-      {
-        $match: {
-          createdAt: { $gte: from, $lte: to },
-          isDeleted: false,
-        },
+    const ingredients = await this.prisma.ingredient.findMany({
+      select: { organizationId: true },
+      where: {
+        createdAt: { gte: from, lte: to },
+        isDeleted: false,
+        organizationId: { not: null },
       },
-      {
-        $group: {
-          _id: '$organization',
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { count: -1 } },
-      { $limit: 10 },
-    ];
+    });
 
-    const results: Array<{ _id: string; count: number }> =
-      await this.ingredientModel.aggregate(pipeline).exec();
-
-    if (results.length === 0) {
-      return [];
+    // Aggregate in-memory by organizationId
+    const byOrg = new Map<string, number>();
+    for (const i of ingredients) {
+      if (!i.organizationId) continue;
+      byOrg.set(i.organizationId, (byOrg.get(i.organizationId) ?? 0) + 1);
     }
 
-    // Resolve organization names from AUTH connection
-    const orgIds = results.map((r) => r._id);
-    const orgs = await this.organizationModel
-      .find({ _id: { $in: orgIds }, isDeleted: false })
-      .select('_id label')
-      .lean()
-      .exec();
+    const top10 = Array.from(byOrg.entries())
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 10);
 
-    const orgNameMap = new Map(
-      orgs.map((o) => [o._id.toString(), o.label ?? 'Unknown']),
-    );
+    if (top10.length === 0) return [];
 
-    return results.map((r) => ({
-      count: r.count,
-      organizationId: r._id.toString(),
-      organizationName: orgNameMap.get(r._id.toString()) ?? 'Unknown',
+    // Resolve organization names
+    const orgIds = top10.map(([id]) => id);
+    const orgs = await this.prisma.organization.findMany({
+      select: { id: true, label: true },
+      where: { id: { in: orgIds }, isDeleted: false },
+    });
+    const orgNameMap = new Map(orgs.map((o) => [o.id, o.label ?? 'Unknown']));
+
+    return top10.map(([organizationId, count]) => ({
+      count,
+      organizationId,
+      organizationName: orgNameMap.get(organizationId) ?? 'Unknown',
     }));
   }
 

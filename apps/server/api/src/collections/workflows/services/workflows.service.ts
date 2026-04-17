@@ -9,7 +9,6 @@ import {
   WorkflowStepEntity,
 } from '@api/collections/workflows/entities/workflow.entity';
 import {
-  Workflow,
   type WorkflowDocument,
   type WorkflowStep,
   type WorkflowVisualNode,
@@ -17,7 +16,6 @@ import {
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import {
@@ -25,8 +23,8 @@ import {
   TaskQueueClientService,
 } from '@api/services/task-queue-client/task-queue-client.service';
 import { EntityFactory } from '@api/shared/factories/entity/entity.factory';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import {
   CredentialPlatform,
   PostStatus,
@@ -51,7 +49,6 @@ import {
   NotFoundException,
   Optional,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 
 @Injectable()
@@ -61,9 +58,8 @@ export class WorkflowsService extends BaseService<
   UpdateWorkflowDto
 > {
   constructor(
-    @InjectModel(Workflow.name, DB_CONNECTIONS.CLOUD)
-    model: AggregatePaginateModel<WorkflowDocument>,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    readonly logger: LoggerService,
     @Optional()
     private readonly creditsUtilsService?: CreditsUtilsService,
     @Optional()
@@ -77,7 +73,7 @@ export class WorkflowsService extends BaseService<
     @Optional()
     private readonly workflowExecutorService?: WorkflowExecutorService,
   ) {
-    super(model, logger);
+    super(prisma, 'workflow', logger);
   }
 
   @HandleErrors('create workflow', 'workflows')

@@ -1,19 +1,15 @@
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
-import {
-  Workflow,
-  type WorkflowDocument,
-} from '@api/collections/workflows/schemas/workflow.schema';
+import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowExecutorService } from '@api/collections/workflows/services/workflow-executor.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { Cron, CronExpression, SchedulerRegistry } from '@nestjs/schedule';
 import { CronJob } from 'cron';
-import { Model, Types } from 'mongoose';
+import { Types } from 'mongoose';
 
 interface ScheduledWorkflow {
   workflowId: string;
@@ -28,8 +24,7 @@ export class WorkflowSchedulerService implements OnModuleInit {
   private scheduledWorkflows: Map<string, CronJob> = new Map();
 
   constructor(
-    @InjectModel(Workflow.name, DB_CONNECTIONS.CLOUD)
-    private readonly workflowModel: Model<WorkflowDocument>,
+    private readonly prisma: PrismaService,
     @Inject(LoggerService)
     private readonly logger: LoggerService,
     private readonly schedulerRegistry: SchedulerRegistry,
@@ -58,11 +53,13 @@ export class WorkflowSchedulerService implements OnModuleInit {
    */
   async loadScheduledWorkflows(): Promise<void> {
     try {
-      const workflows = await this.workflowModel.find({
-        isDeleted: false,
-        isScheduleEnabled: true,
-        schedule: { $exists: true, $ne: null },
-        status: WorkflowStatus.ACTIVE,
+      const workflows = await this.prisma.workflow.findMany({
+        where: {
+          isDeleted: false,
+          isScheduleEnabled: true,
+          schedule: { not: null },
+          status: WorkflowStatus.ACTIVE,
+        },
       });
 
       this.logger.log(
@@ -86,7 +83,10 @@ export class WorkflowSchedulerService implements OnModuleInit {
    * Schedule a workflow to run on a cron schedule
    */
   scheduleWorkflow(workflow: WorkflowDocument): void {
-    const workflowId = workflow._id.toString();
+    const workflowId = String(
+      (workflow as unknown as Record<string, unknown>)._id ??
+        (workflow as unknown as { id: string }).id,
+    );
 
     // Remove existing schedule if any
     this.unscheduleWorkflow(workflowId);
@@ -157,10 +157,12 @@ export class WorkflowSchedulerService implements OnModuleInit {
    */
   private async executeScheduledWorkflow(workflowId: string): Promise<void> {
     try {
-      const workflow = await this.workflowModel.findOne({
-        _id: workflowId,
-        isDeleted: false,
-        status: WorkflowStatus.ACTIVE,
+      const workflow = await this.prisma.workflow.findFirst({
+        where: {
+          id: workflowId,
+          isDeleted: false,
+          status: WorkflowStatus.ACTIVE,
+        },
       });
 
       if (!workflow) {
@@ -172,8 +174,12 @@ export class WorkflowSchedulerService implements OnModuleInit {
         return;
       }
 
+      const wDoc = workflow as unknown as Record<string, unknown>;
+      const wUserId = String(wDoc.userId ?? wDoc.user ?? '');
+      const wOrgId = String(wDoc.organizationId ?? wDoc.organization ?? '');
+
       // Skip execution for systemic workflows (templates without user/org)
-      if (!workflow.user || !workflow.organization) {
+      if (!wUserId || !wOrgId) {
         this.logger.warn(
           `Scheduled workflow ${workflowId} is a systemic template and cannot be executed directly`,
           'WorkflowSchedulerService',
@@ -182,26 +188,28 @@ export class WorkflowSchedulerService implements OnModuleInit {
         return;
       }
 
-      const usesNodeExecutor = Boolean(workflow.nodes && workflow.nodes.length);
+      const nodes = wDoc.nodes as unknown[] | undefined;
+      const usesNodeExecutor = Boolean(nodes && nodes.length);
 
       // Legacy step-based workflows still need an explicit execution record here.
       // Node-based workflows create their own execution record via WorkflowExecutorService.
       if (!usesNodeExecutor) {
-        await this.workflowExecutionsService.createExecution(
-          workflow.user.toString(),
-          workflow.organization.toString(),
-          {
-            inputValues: this.getDefaultInputValues(workflow),
-            trigger: WorkflowExecutionTrigger.SCHEDULED,
-            workflow: workflow._id as Types.ObjectId,
-          },
-        );
+        await this.workflowExecutionsService.createExecution(wUserId, wOrgId, {
+          inputValues: this.getDefaultInputValues(
+            workflow as unknown as WorkflowDocument,
+          ),
+          trigger: WorkflowExecutionTrigger.SCHEDULED,
+          workflow: workflowId as unknown as Types.ObjectId,
+        });
       }
 
       // Update workflow last executed timestamp
-      await this.workflowModel.findByIdAndUpdate(workflowId, {
-        $inc: { executionCount: 1 },
-        lastExecutedAt: new Date(),
+      await this.prisma.workflow.update({
+        data: {
+          executionCount: { increment: 1 },
+          lastExecutedAt: new Date(),
+        } as never,
+        where: { id: workflowId },
       });
 
       // Start execution (fire and forget).
@@ -210,9 +218,9 @@ export class WorkflowSchedulerService implements OnModuleInit {
       const executePromise = usesNodeExecutor
         ? this.workflowExecutorService.executeManualWorkflow(
             workflowId,
-            workflow.user.toString(),
-            workflow.organization.toString(),
-            this.getDefaultInputValues(workflow),
+            wUserId,
+            wOrgId,
+            this.getDefaultInputValues(workflow as unknown as WorkflowDocument),
             { triggeredBy: 'schedule' },
             WorkflowExecutionTrigger.SCHEDULED,
           )
@@ -267,18 +275,20 @@ export class WorkflowSchedulerService implements OnModuleInit {
     timezone: string = 'UTC',
     isEnabled: boolean = true,
   ): Promise<WorkflowDocument | null> {
-    const workflow = await this.workflowModel.findOneAndUpdate(
-      {
-        _id: workflowId,
-        isDeleted: false,
-      },
-      {
-        isScheduleEnabled: isEnabled && !!schedule,
-        schedule,
-        timezone,
-      },
-      { returnDocument: 'after' },
-    );
+    const existing = await this.prisma.workflow.findFirst({
+      where: { id: workflowId, isDeleted: false },
+    });
+
+    const workflow = existing
+      ? await this.prisma.workflow.update({
+          data: {
+            isScheduleEnabled: isEnabled && !!schedule,
+            schedule,
+            timezone,
+          } as never,
+          where: { id: workflowId },
+        })
+      : null;
 
     if (workflow) {
       if (schedule && isEnabled) {

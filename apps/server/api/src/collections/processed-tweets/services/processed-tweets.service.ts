@@ -18,8 +18,7 @@ export class ProcessedTweetsService extends BaseService<
     public readonly prisma: PrismaService,
     readonly logger: LoggerService,
   ) {
-    // TODO: remove model arg after BaseService Prisma migration
-    super(undefined as never, logger);
+    super(prisma, 'processedTweet', logger);
   }
 
   /**

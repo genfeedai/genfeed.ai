@@ -1,78 +1,67 @@
-import { TrendRemixLineage } from '@api/collections/trends/schemas/trend-remix-lineage.schema';
-import { TrendSourceReference } from '@api/collections/trends/schemas/trend-source-reference.schema';
-import { TrendSourceReferenceLink } from '@api/collections/trends/schemas/trend-source-reference-link.schema';
-import { TrendSourceReferenceSnapshot } from '@api/collections/trends/schemas/trend-source-reference-snapshot.schema';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getModelToken } from '@nestjs/mongoose';
 import { Test, TestingModule } from '@nestjs/testing';
-import { Types } from 'mongoose';
 
 describe('TrendReferenceCorpusService', () => {
   let service: TrendReferenceCorpusService;
-  let referenceModel: {
-    aggregate: ReturnType<typeof vi.fn>;
-    find: ReturnType<typeof vi.fn>;
-    findOneAndUpdate: ReturnType<typeof vi.fn>;
-  };
-  let snapshotModel: {
-    updateOne: ReturnType<typeof vi.fn>;
-  };
-  let linkModel: {
-    find: ReturnType<typeof vi.fn>;
-    updateOne: ReturnType<typeof vi.fn>;
-  };
-  let lineageModel: {
-    aggregate: ReturnType<typeof vi.fn>;
-    updateOne: ReturnType<typeof vi.fn>;
+  let prisma: {
+    trendRemixLineage: {
+      create: ReturnType<typeof vi.fn>;
+      findFirst: ReturnType<typeof vi.fn>;
+      findMany: ReturnType<typeof vi.fn>;
+      update: ReturnType<typeof vi.fn>;
+    };
+    trendSourceReference: {
+      count: ReturnType<typeof vi.fn>;
+      create: ReturnType<typeof vi.fn>;
+      findMany: ReturnType<typeof vi.fn>;
+      update: ReturnType<typeof vi.fn>;
+    };
+    trendSourceReferenceLink: {
+      create: ReturnType<typeof vi.fn>;
+      findFirst: ReturnType<typeof vi.fn>;
+      findMany: ReturnType<typeof vi.fn>;
+    };
+    trendSourceReferenceSnapshot: {
+      create: ReturnType<typeof vi.fn>;
+      findMany: ReturnType<typeof vi.fn>;
+      update: ReturnType<typeof vi.fn>;
+    };
   };
 
   beforeEach(async () => {
-    referenceModel = {
-      aggregate: vi.fn(),
-      find: vi.fn(),
-      findOneAndUpdate: vi.fn(),
-    };
-    snapshotModel = {
-      updateOne: vi.fn().mockResolvedValue({ upsertedCount: 1 }),
-    };
-    linkModel = {
-      find: vi.fn(),
-      updateOne: vi.fn().mockResolvedValue({ upsertedCount: 1 }),
-    };
-    lineageModel = {
-      aggregate: vi.fn(),
-      updateOne: vi.fn().mockResolvedValue({ acknowledged: true }),
+    prisma = {
+      trendRemixLineage: {
+        create: vi.fn().mockResolvedValue({ id: 'lineage-1' }),
+        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValue([]),
+        update: vi.fn().mockResolvedValue({}),
+      },
+      trendSourceReference: {
+        count: vi.fn().mockResolvedValue(0),
+        create: vi.fn().mockResolvedValue({ data: {}, id: 'ref-1' }),
+        findMany: vi.fn().mockResolvedValue([]),
+        update: vi.fn().mockResolvedValue({ data: {}, id: 'ref-1' }),
+      },
+      trendSourceReferenceLink: {
+        create: vi.fn().mockResolvedValue({ id: 'link-1' }),
+        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValue([]),
+      },
+      trendSourceReferenceSnapshot: {
+        create: vi.fn().mockResolvedValue({ id: 'snap-1' }),
+        findMany: vi.fn().mockResolvedValue([]),
+        update: vi.fn().mockResolvedValue({}),
+      },
     };
 
-    const module: TestingModule = await Test.createTestingModule({
+    const module = await Test.createTestingModule({
       providers: [
         TrendReferenceCorpusService,
         {
-          provide: getModelToken(
-            TrendSourceReference.name,
-            DB_CONNECTIONS.CLOUD,
-          ),
-          useValue: referenceModel,
-        },
-        {
-          provide: getModelToken(
-            TrendSourceReferenceSnapshot.name,
-            DB_CONNECTIONS.CLOUD,
-          ),
-          useValue: snapshotModel,
-        },
-        {
-          provide: getModelToken(
-            TrendSourceReferenceLink.name,
-            DB_CONNECTIONS.CLOUD,
-          ),
-          useValue: linkModel,
-        },
-        {
-          provide: getModelToken(TrendRemixLineage.name, DB_CONNECTIONS.CLOUD),
-          useValue: lineageModel,
+          provide: PrismaService,
+          useValue: prisma,
         },
         {
           provide: LoggerService,
@@ -87,17 +76,30 @@ describe('TrendReferenceCorpusService', () => {
     }).compile();
 
     service = module.get(TrendReferenceCorpusService);
+
+    vi.clearAllMocks();
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
   });
 
   it('syncs references, snapshots, and trend links from saved source previews', async () => {
-    const referenceId = new Types.ObjectId();
-    referenceModel.findOneAndUpdate.mockResolvedValue({
-      _id: referenceId,
+    // findMany returns empty list (no existing ref), so create path is taken
+    prisma.trendSourceReference.findMany.mockResolvedValue([]);
+    prisma.trendSourceReference.create.mockResolvedValue({
+      data: {
+        canonicalUrl: 'https://x.com/builder/status/1',
+        platform: 'twitter',
+      },
+      id: 'ref-new',
     });
+    prisma.trendSourceReferenceSnapshot.findMany.mockResolvedValue([]);
+    prisma.trendSourceReferenceLink.findFirst.mockResolvedValue(null);
 
     const result = await service.syncTrendReferences([
       {
-        id: new Types.ObjectId().toString(),
+        id: 'trend-id-1',
         mentions: 2200,
         platform: 'twitter',
         sourcePreview: [
@@ -120,18 +122,19 @@ describe('TrendReferenceCorpusService', () => {
       },
     ]);
 
-    expect(referenceModel.findOneAndUpdate).toHaveBeenCalledWith(
+    // URL should be normalized (query stripped)
+    expect(prisma.trendSourceReference.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        canonicalUrl: 'https://x.com/builder/status/1',
-        platform: 'twitter',
-      }),
-      expect.any(Object),
-      expect.objectContaining({
-        upsert: true,
+        data: expect.objectContaining({
+          data: expect.objectContaining({
+            canonicalUrl: 'https://x.com/builder/status/1',
+            platform: 'twitter',
+          }),
+        }),
       }),
     );
-    expect(snapshotModel.updateOne).toHaveBeenCalled();
-    expect(linkModel.updateOne).toHaveBeenCalled();
+    expect(prisma.trendSourceReferenceSnapshot.create).toHaveBeenCalled();
+    expect(prisma.trendSourceReferenceLink.create).toHaveBeenCalled();
     expect(result).toEqual({
       links: 1,
       references: 1,
@@ -140,49 +143,77 @@ describe('TrendReferenceCorpusService', () => {
   });
 
   it('returns ranked reference accounts with brand remix counts', async () => {
-    referenceModel.aggregate.mockResolvedValue([
-      {
-        _id: {
-          authorHandle: 'builder',
-          platform: 'twitter',
-        },
-        avgTrendViralityScore: 72,
-        lastSeenAt: new Date('2026-03-25T00:00:00.000Z'),
-        referenceCount: 4,
-        totalEngagement: 5000,
-      },
-    ]);
-    lineageModel.aggregate.mockResolvedValue([
-      {
-        _id: {
-          authorHandle: 'builder',
-          platform: 'twitter',
-        },
-        brandRemixCount: 3,
-      },
-    ]);
+    const orgId = '507f1f77bcf86cd799439012';
+    const bId = '507f1f77bcf86cd799439013';
 
-    const result = await service.getTopReferenceAccounts(
-      '507f1f77bcf86cd799439012',
-      '507f1f77bcf86cd799439013',
+    // References with authorHandle
+    prisma.trendSourceReference.findMany.mockResolvedValue([
       {
-        platform: 'twitter',
-      },
-    );
-
-    expect(result).toEqual({
-      accounts: [
-        {
+        data: {
           authorHandle: 'builder',
-          avgTrendViralityScore: 72,
-          brandRemixCount: 3,
+          currentEngagementTotal: 5000,
           lastSeenAt: '2026-03-25T00:00:00.000Z',
+          latestTrendViralityScore: 72,
           platform: 'twitter',
-          referenceCount: 4,
-          totalEngagement: 5000,
         },
-      ],
-      totalAccounts: 1,
+        id: 'ref-1',
+      },
+    ]);
+
+    // Lineages with source references
+    prisma.trendRemixLineage.findMany.mockResolvedValue([
+      {
+        id: 'lineage-1',
+        sourceReferences: [
+          {
+            data: {
+              authorHandle: 'builder',
+              platform: 'twitter',
+            },
+            id: 'ref-1',
+          },
+          {
+            data: {
+              authorHandle: 'builder',
+              platform: 'twitter',
+            },
+            id: 'ref-1',
+          },
+          {
+            data: {
+              authorHandle: 'builder',
+              platform: 'twitter',
+            },
+            id: 'ref-1',
+          },
+        ],
+      },
+    ]);
+
+    const result = await service.getTopReferenceAccounts(orgId, bId, {
+      platform: 'twitter',
+    });
+
+    expect(result.accounts).toHaveLength(1);
+    expect(result.accounts[0]).toMatchObject({
+      authorHandle: 'builder',
+      avgTrendViralityScore: 72,
+      brandRemixCount: 3,
+      platform: 'twitter',
+      referenceCount: 1,
+      totalEngagement: 5000,
+    });
+    expect(result.totalAccounts).toBe(1);
+  });
+
+  it('countGlobalReferences returns prisma count', async () => {
+    prisma.trendSourceReference.count.mockResolvedValue(42);
+
+    const result = await service.countGlobalReferences();
+
+    expect(result).toBe(42);
+    expect(prisma.trendSourceReference.count).toHaveBeenCalledWith({
+      where: { isDeleted: false },
     });
   });
 });

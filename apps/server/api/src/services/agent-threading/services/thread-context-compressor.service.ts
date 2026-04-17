@@ -3,21 +3,16 @@ import { AgentMessageDocument } from '@api/collections/agent-messages/schemas/ag
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
-import {
-  ThreadContextState,
-  type ThreadContextStateDocument,
-} from '@api/services/agent-threading/schemas/thread-context-state.schema';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { CacheService } from '@api/services/cache/services/cache.service';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { type Model, Types } from 'mongoose';
+import type { ThreadContextState } from '@prisma/client';
 
 const LOCK_TTL_SECONDS = 30;
 const CACHE_TTL_SECONDS = 300; // 5 minutes
@@ -40,13 +35,26 @@ One-line summary of what changed in each round of iteration, as bullet points.
 
 If a section has no content, write "None" for that section.`;
 
+type ThreadContextStateData = {
+  currentArtifact?: string;
+  accumulatedRequirements?: string;
+  keyDecisions?: string;
+  iterationHistory?: string;
+  lastIncorporatedMessageId?: string;
+  messageCount?: number;
+  version?: number;
+};
+
+type ThreadContextStateWithData = ThreadContextState & {
+  data: ThreadContextStateData;
+};
+
 @Injectable()
 export class ThreadContextCompressorService {
   private readonly constructorName = String(this.constructor.name);
 
   constructor(
-    @InjectModel(ThreadContextState.name, DB_CONNECTIONS.AGENT)
-    private readonly model: Model<ThreadContextStateDocument>,
+    private readonly prisma: PrismaService,
     private readonly agentMessagesService: AgentMessagesService,
     private readonly llmDispatcherService: LlmDispatcherService,
     private readonly cacheService: CacheService,
@@ -86,7 +94,7 @@ export class ThreadContextCompressorService {
   async getStateOrCompact(
     threadId: string,
     organizationId: string,
-  ): Promise<ThreadContextStateDocument | null> {
+  ): Promise<ThreadContextStateWithData | null> {
     if (!this.isEnabled) {
       return null;
     }
@@ -106,7 +114,7 @@ export class ThreadContextCompressorService {
     // Check if there are uncompacted messages beyond the window
     const uncompactedCount = await this.agentMessagesService.countMessagesAfter(
       threadId,
-      state.lastIncorporatedMessageId,
+      state.data.lastIncorporatedMessageId,
     );
     if (uncompactedCount > this.windowSize) {
       await this.compress(threadId, organizationId);
@@ -139,7 +147,7 @@ export class ThreadContextCompressorService {
     if (state) {
       const uncompacted = await this.agentMessagesService.countMessagesAfter(
         threadId,
-        state.lastIncorporatedMessageId,
+        state.data.lastIncorporatedMessageId,
       );
       if (uncompacted <= this.windowSize) {
         return;
@@ -154,13 +162,14 @@ export class ThreadContextCompressorService {
    * Deduplicates currentArtifact if it appears in the window messages.
    */
   renderStateAsUserMessage(
-    state: ThreadContextStateDocument,
+    state: ThreadContextStateWithData,
     windowMessages: AgentMessageDocument[],
   ): string {
     const sections: string[] = ['[Thread Context Summary]'];
+    const stateData = state.data;
 
     // Deduplicate artifact against the last assistant message specifically
-    let artifactSection = state.currentArtifact;
+    let artifactSection = stateData.currentArtifact;
     if (artifactSection && windowMessages.length > 0) {
       const lastAssistantMsg = [...windowMessages]
         .reverse()
@@ -178,18 +187,18 @@ export class ThreadContextCompressorService {
       sections.push(`## Current Artifact\n${artifactSection}`);
     }
 
-    if (state.accumulatedRequirements) {
+    if (stateData.accumulatedRequirements) {
       sections.push(
-        `## Accumulated Requirements\n${state.accumulatedRequirements}`,
+        `## Accumulated Requirements\n${stateData.accumulatedRequirements}`,
       );
     }
 
-    if (state.keyDecisions) {
-      sections.push(`## Key Decisions\n${state.keyDecisions}`);
+    if (stateData.keyDecisions) {
+      sections.push(`## Key Decisions\n${stateData.keyDecisions}`);
     }
 
-    if (state.iterationHistory) {
-      sections.push(`## Iteration History\n${state.iterationHistory}`);
+    if (stateData.iterationHistory) {
+      sections.push(`## Iteration History\n${stateData.iterationHistory}`);
     }
 
     return sections.join('\n\n');
@@ -200,7 +209,7 @@ export class ThreadContextCompressorService {
    */
   async getWindowMessages(
     threadId: string,
-    afterMessageId: Types.ObjectId,
+    afterMessageId: string,
   ): Promise<AgentMessageDocument[]> {
     return this.agentMessagesService.getMessagesAfter(
       threadId,
@@ -213,28 +222,30 @@ export class ThreadContextCompressorService {
 
   private async getState(
     threadId: string,
-  ): Promise<ThreadContextStateDocument | null> {
-    const cached = await this.cacheService.get<ThreadContextStateDocument>(
+  ): Promise<ThreadContextStateWithData | null> {
+    const cached = await this.cacheService.get<ThreadContextStateWithData>(
       this.cacheKey(threadId),
     );
     if (cached) {
       return cached;
     }
 
-    const state = await this.model
-      .findOne({
+    const state = await this.prisma.threadContextState.findFirst({
+      where: {
         isDeleted: false,
-        thread: new Types.ObjectId(threadId),
-      })
-      .lean();
+        threadId,
+      },
+    });
 
     if (state) {
-      await this.cacheService.set(this.cacheKey(threadId), state, {
+      const stateWithData = state as ThreadContextStateWithData;
+      await this.cacheService.set(this.cacheKey(threadId), stateWithData, {
         ttl: CACHE_TTL_SECONDS,
       });
+      return stateWithData;
     }
 
-    return state as ThreadContextStateDocument | null;
+    return null;
   }
 
   private async compress(
@@ -256,16 +267,17 @@ export class ThreadContextCompressorService {
     organizationId: string,
   ): Promise<void> {
     try {
-      const existingState = await this.model
-        .findOne({
+      const existingRecord = await this.prisma.threadContextState.findFirst({
+        where: {
           isDeleted: false,
-          thread: new Types.ObjectId(threadId),
-        })
-        .lean();
+          threadId,
+        },
+      });
+      const existingState = existingRecord
+        ? ((existingRecord.data ?? {}) as ThreadContextStateData)
+        : null;
 
       // Fetch all messages that need compression.
-      // When state exists, only fetch messages after the last compaction boundary;
-      // otherwise fetch all messages in the thread.
       const allMessages = existingState?.lastIncorporatedMessageId
         ? await this.agentMessagesService.getAllMessagesAfter(
             threadId,
@@ -353,41 +365,42 @@ export class ThreadContextCompressorService {
       const currentVersion = existingState?.version ?? 0;
       const previousCount = existingState?.messageCount ?? 0;
 
-      const updatedState = await this.model.findOneAndUpdate(
-        {
-          thread: new Types.ObjectId(threadId),
-          ...(existingState ? { version: currentVersion } : {}),
-        },
-        {
-          $set: {
-            accumulatedRequirements: parsed.accumulatedRequirements,
-            currentArtifact: parsed.currentArtifact,
+      const newData: ThreadContextStateData = {
+        accumulatedRequirements: parsed.accumulatedRequirements,
+        currentArtifact: parsed.currentArtifact,
+        iterationHistory: parsed.iterationHistory,
+        keyDecisions: parsed.keyDecisions,
+        lastIncorporatedMessageId: String(lastCompressedMessage._id),
+        messageCount: previousCount + compressBoundary,
+        version: currentVersion + 1,
+      };
+
+      // Upsert pattern: try update first, then create if not found
+      let updatedRecord: ThreadContextStateWithData;
+
+      if (existingRecord) {
+        updatedRecord = (await this.prisma.threadContextState.update({
+          data: {
+            data: newData as never,
             isDeleted: false,
-            iterationHistory: parsed.iterationHistory,
-            keyDecisions: parsed.keyDecisions,
-            lastIncorporatedMessageId: new Types.ObjectId(
-              String(lastCompressedMessage._id),
-            ),
-            messageCount: previousCount + compressBoundary,
-            version: currentVersion + 1,
           },
-          $setOnInsert: {
-            organization: new Types.ObjectId(organizationId),
-            thread: new Types.ObjectId(threadId),
+          where: { id: existingRecord.id },
+        })) as ThreadContextStateWithData;
+      } else {
+        updatedRecord = (await this.prisma.threadContextState.create({
+          data: {
+            data: newData as never,
+            isDeleted: false,
+            organizationId,
+            threadId,
           },
-        },
-        { new: true, upsert: true },
-      );
+        })) as ThreadContextStateWithData;
+      }
 
       // Write-through cache: set the new state immediately
-      if (updatedState) {
-        const leanState = updatedState.toObject
-          ? updatedState.toObject()
-          : updatedState;
-        await this.cacheService.set(this.cacheKey(threadId), leanState, {
-          ttl: CACHE_TTL_SECONDS,
-        });
-      }
+      await this.cacheService.set(this.cacheKey(threadId), updatedRecord, {
+        ttl: CACHE_TTL_SECONDS,
+      });
 
       this.logger.debug(
         `${this.constructorName}: Compressed ${compressBoundary} messages for thread ${threadId}`,

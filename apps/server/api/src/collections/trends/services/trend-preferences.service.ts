@@ -1,18 +1,12 @@
-import {
-  TrendPreferences,
-  type TrendPreferencesDocument,
-} from '@api/collections/trends/schemas/trend-preferences.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { TrendPreferencesDocument } from '@api/collections/trends/schemas/trend-preferences.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { FilterQuery, Model, Types } from 'mongoose';
 
 @Injectable()
 export class TrendPreferencesService {
   constructor(
-    @InjectModel(TrendPreferences.name, DB_CONNECTIONS.CLOUD)
-    private trendPreferencesModel: Model<TrendPreferencesDocument>,
+    private readonly prisma: PrismaService,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -21,18 +15,21 @@ export class TrendPreferencesService {
     brandId?: string,
   ): Promise<TrendPreferencesDocument | null> {
     try {
-      const preferences = await this.trendPreferencesModel.findOne(
-        this.buildQuery(organizationId, brandId),
-      );
-
-      // If no brand-specific preferences, try organization-level
-      if (!preferences && brandId) {
-        return await this.trendPreferencesModel.findOne(
-          this.buildQuery(organizationId),
-        );
+      // Try brand-specific preferences first
+      if (brandId) {
+        const brandPrefs = await this.prisma.trendPreferences.findFirst({
+          where: { brandId, isDeleted: false, organizationId },
+        });
+        if (brandPrefs) {
+          return brandPrefs as unknown as TrendPreferencesDocument;
+        }
       }
 
-      return preferences;
+      // Fall back to org-level preferences
+      const orgPrefs = await this.prisma.trendPreferences.findFirst({
+        where: { brandId: null, isDeleted: false, organizationId },
+      });
+      return orgPrefs as unknown as TrendPreferencesDocument | null;
     } catch (error: unknown) {
       this.loggerService.error('Failed to get trend preferences', error);
       return null;
@@ -50,53 +47,39 @@ export class TrendPreferencesService {
     },
   ): Promise<TrendPreferencesDocument> {
     try {
-      const existing = await this.trendPreferencesModel.findOne(
-        this.buildQuery(organizationId, preferences.brandId),
-      );
-
+      const brandId = preferences.brandId ?? null;
       const updateData = {
-        categories: preferences.categories || [],
-        hashtags: preferences.hashtags || [],
-        keywords: preferences.keywords || [],
-        platforms: preferences.platforms || [],
+        categories: preferences.categories ?? [],
+        hashtags: preferences.hashtags ?? [],
+        keywords: preferences.keywords ?? [],
+        platforms: preferences.platforms ?? [],
         updatedAt: new Date(),
       };
 
+      const existing = await this.prisma.trendPreferences.findFirst({
+        where: { brandId, isDeleted: false, organizationId },
+      });
+
       if (existing) {
-        // Update existing preferences
-        existing.categories = updateData.categories;
-        existing.keywords = updateData.keywords;
-        existing.platforms = updateData.platforms;
-        existing.hashtags = updateData.hashtags;
-        (existing as unknown).updatedAt = updateData.updatedAt;
-        return await existing.save();
-      } else {
-        // Create new preferences
-        const newPreferences = new this.trendPreferencesModel({
-          brand: this.toBrandObjectId(preferences.brandId),
-          organization: new Types.ObjectId(organizationId),
-          ...updateData,
+        const updated = await this.prisma.trendPreferences.update({
+          data: updateData as never,
+          where: { id: existing.id },
         });
-        return await newPreferences.save();
+        return updated as unknown as TrendPreferencesDocument;
       }
+
+      const created = await this.prisma.trendPreferences.create({
+        data: {
+          ...updateData,
+          brandId,
+          isDeleted: false,
+          organizationId,
+        } as never,
+      });
+      return created as unknown as TrendPreferencesDocument;
     } catch (error: unknown) {
       this.loggerService.error('Failed to save trend preferences', error);
       throw error;
     }
-  }
-
-  private buildQuery(
-    organizationId: string,
-    brandId?: string,
-  ): FilterQuery<TrendPreferencesDocument> {
-    return {
-      brand: this.toBrandObjectId(brandId),
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-    };
-  }
-
-  private toBrandObjectId(brandId?: string): Types.ObjectId | null {
-    return brandId ? new Types.ObjectId(brandId) : null;
   }
 }

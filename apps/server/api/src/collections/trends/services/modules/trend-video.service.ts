@@ -2,26 +2,15 @@ import type {
   TrendTimelineEntry,
   TrendTurnoverStats,
 } from '@api/collections/trends/interfaces/trend-turnover.interface';
-import {
-  TrendingHashtag,
-  type TrendingHashtagDocument,
-} from '@api/collections/trends/schemas/trending-hashtag.schema';
-import {
-  TrendingSound,
-  type TrendingSoundDocument,
-} from '@api/collections/trends/schemas/trending-sound.schema';
-import {
-  TrendingVideo,
-  type TrendingVideoDocument,
-} from '@api/collections/trends/schemas/trending-video.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { TrendingHashtagDocument } from '@api/collections/trends/schemas/trending-hashtag.schema';
+import type { TrendingSoundDocument } from '@api/collections/trends/schemas/trending-sound.schema';
+import type { TrendingVideoDocument } from '@api/collections/trends/schemas/trending-video.schema';
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 
 @Injectable()
 export class TrendVideoService {
@@ -30,12 +19,7 @@ export class TrendVideoService {
   private readonly TREND_SIGNAL_DOCUMENT_TTL_SECONDS = 48 * 60 * 60;
 
   constructor(
-    @InjectModel(TrendingVideo.name, DB_CONNECTIONS.CLOUD)
-    private trendingVideoModel: Model<TrendingVideoDocument>,
-    @InjectModel(TrendingHashtag.name, DB_CONNECTIONS.CLOUD)
-    private trendingHashtagModel: Model<TrendingHashtagDocument>,
-    @InjectModel(TrendingSound.name, DB_CONNECTIONS.CLOUD)
-    private trendingSoundModel: Model<TrendingSoundDocument>,
+    private readonly prisma: PrismaService,
     private readonly loggerService: LoggerService,
     private readonly cacheService: CacheService,
     private readonly apifyService: ApifyService,
@@ -63,26 +47,30 @@ export class TrendVideoService {
       return cached;
     }
 
-    // Query from database
-    const query: Record<string, unknown> = {
-      expiresAt: { $gt: new Date() },
-      isCurrent: true,
-      isDeleted: false,
-    };
+    // Fetch all non-deleted records and filter in-memory
+    const now = new Date();
+    const docs = await this.prisma.trendingVideo.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit * 5,
+      where: { isDeleted: false },
+    });
 
-    if (platform) {
-      query.platform = platform;
-    }
-
-    if (minViralScore != null) {
-      query.viralScore = { $gte: minViralScore };
-    }
-
-    const videos = await this.trendingVideoModel
-      .find(query)
-      .sort({ viewCount: -1, viralScore: -1 })
-      .limit(limit)
-      .lean();
+    const videos = docs
+      .map((doc) => doc.data as unknown as TrendingVideoDocument)
+      .filter((v) => {
+        if (!v.isCurrent) return false;
+        if (v.expiresAt && new Date(v.expiresAt) <= now) return false;
+        if (platform && v.platform !== platform) return false;
+        if (minViralScore != null && (v.viralScore ?? 0) < minViralScore)
+          return false;
+        return true;
+      })
+      .sort(
+        (a, b) =>
+          (b.viewCount ?? 0) - (a.viewCount ?? 0) ||
+          (b.viralScore ?? 0) - (a.viralScore ?? 0),
+      )
+      .slice(0, limit);
 
     // Cache results
     if (videos.length > 0) {
@@ -94,7 +82,7 @@ export class TrendVideoService {
         ],
         ttl: this.READ_CACHE_TTL_SECONDS,
       });
-      return videos as TrendingVideoDocument[];
+      return videos;
     }
 
     this.loggerService.debug(
@@ -136,20 +124,53 @@ export class TrendVideoService {
       );
 
       for (const video of videos) {
-        await this.trendingVideoModel.findOneAndUpdate(
-          // @ts-expect-error TS2769
-          { externalId: video.externalId, platform },
-          {
-            $set: {
-              ...video,
-              expiresAt,
-              isCurrent: true,
+        const externalId = video.externalId as string | undefined;
+
+        // Find existing record by externalId + platform in data (in-memory match)
+        if (externalId) {
+          // Find the actual match via in-memory check
+          const allDocs = await this.prisma.trendingVideo.findMany({
+            orderBy: { createdAt: 'desc' },
+            take: 1000,
+            where: { isDeleted: false },
+          });
+          const match = allDocs.find((doc) => {
+            const d = doc.data as unknown as Record<string, unknown>;
+            return d.externalId === externalId && d.platform === platform;
+          });
+
+          const dataPayload = {
+            ...video,
+            expiresAt,
+            isCurrent: true,
+            isDeleted: false,
+            lastSeenAt: new Date(),
+          };
+
+          if (match) {
+            await this.prisma.trendingVideo.update({
+              data: { data: dataPayload as never },
+              where: { id: match.id },
+            });
+          } else {
+            await this.prisma.trendingVideo.create({
+              data: { data: dataPayload as never, isDeleted: false },
+            });
+          }
+        } else {
+          await this.prisma.trendingVideo.create({
+            data: {
+              data: {
+                ...video,
+                expiresAt,
+                isCurrent: true,
+                isDeleted: false,
+                lastSeenAt: new Date(),
+              } as never,
               isDeleted: false,
-              lastSeenAt: new Date(),
             },
-          },
-          { returnDocument: 'after', upsert: true },
-        );
+          });
+        }
       }
 
       this.loggerService.log(
@@ -183,21 +204,27 @@ export class TrendVideoService {
       return cached;
     }
 
-    const query: Record<string, unknown> = {
-      expiresAt: { $gt: new Date() },
-      isCurrent: true,
-      isDeleted: false,
-    };
+    const now = new Date();
+    const docs = await this.prisma.trendingHashtag.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit * 5,
+      where: { isDeleted: false },
+    });
 
-    if (platform) {
-      query.platform = platform;
-    }
-
-    const hashtags = await this.trendingHashtagModel
-      .find(query)
-      .sort({ postCount: -1, viralityScore: -1 })
-      .limit(limit)
-      .lean();
+    const hashtags = docs
+      .map((doc) => doc.data as unknown as TrendingHashtagDocument)
+      .filter((h) => {
+        if (!h.isCurrent) return false;
+        if (h.expiresAt && new Date(h.expiresAt) <= now) return false;
+        if (platform && h.platform !== platform) return false;
+        return true;
+      })
+      .sort(
+        (a, b) =>
+          (b.postCount ?? 0) - (a.postCount ?? 0) ||
+          (b.viralityScore ?? 0) - (a.viralityScore ?? 0),
+      )
+      .slice(0, limit);
 
     // Cache results
     if (hashtags.length > 0) {
@@ -209,7 +236,7 @@ export class TrendVideoService {
         ],
         ttl: this.READ_CACHE_TTL_SECONDS,
       });
-      return hashtags as TrendingHashtagDocument[];
+      return hashtags;
     }
 
     this.loggerService.debug(
@@ -240,19 +267,39 @@ export class TrendVideoService {
       );
 
       for (const hashtag of hashtags) {
-        await this.trendingHashtagModel.findOneAndUpdate(
-          { hashtag: hashtag.hashtag, platform },
-          {
-            $set: {
-              ...hashtag,
-              expiresAt,
-              isCurrent: true,
-              isDeleted: false,
-              lastSeenAt: new Date(),
-            },
-          },
-          { returnDocument: 'after', upsert: true },
-        );
+        const hashtagKey = (hashtag as unknown as Record<string, unknown>)
+          .hashtag as string | undefined;
+
+        const allDocs = await this.prisma.trendingHashtag.findMany({
+          orderBy: { createdAt: 'desc' },
+          take: 1000,
+          where: { isDeleted: false },
+        });
+        const match = hashtagKey
+          ? allDocs.find((doc) => {
+              const d = doc.data as unknown as Record<string, unknown>;
+              return d.hashtag === hashtagKey && d.platform === platform;
+            })
+          : undefined;
+
+        const dataPayload = {
+          ...hashtag,
+          expiresAt,
+          isCurrent: true,
+          isDeleted: false,
+          lastSeenAt: new Date(),
+        };
+
+        if (match) {
+          await this.prisma.trendingHashtag.update({
+            data: { data: dataPayload as never },
+            where: { id: match.id },
+          });
+        } else {
+          await this.prisma.trendingHashtag.create({
+            data: { data: dataPayload as never, isDeleted: false },
+          });
+        }
       }
 
       this.loggerService.log(
@@ -284,15 +331,26 @@ export class TrendVideoService {
       return cached;
     }
 
-    const sounds = await this.trendingSoundModel
-      .find({
-        expiresAt: { $gt: new Date() },
-        isCurrent: true,
-        isDeleted: false,
+    const now = new Date();
+    const docs = await this.prisma.trendingSound.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit * 5,
+      where: { isDeleted: false },
+    });
+
+    const sounds = docs
+      .map((doc) => doc.data as unknown as TrendingSoundDocument)
+      .filter((s) => {
+        if (!s.isCurrent) return false;
+        if (s.expiresAt && new Date(s.expiresAt) <= now) return false;
+        return true;
       })
-      .sort({ usageCount: -1, viralityScore: -1 })
-      .limit(limit)
-      .lean();
+      .sort(
+        (a, b) =>
+          (b.usageCount ?? 0) - (a.usageCount ?? 0) ||
+          (b.viralityScore ?? 0) - (a.viralityScore ?? 0),
+      )
+      .slice(0, limit);
 
     // Cache results
     if (sounds.length > 0) {
@@ -300,7 +358,7 @@ export class TrendVideoService {
         tags: ['trends', 'sounds'],
         ttl: this.READ_CACHE_TTL_SECONDS,
       });
-      return sounds as TrendingSoundDocument[];
+      return sounds;
     }
 
     this.loggerService.debug(
@@ -325,19 +383,40 @@ export class TrendVideoService {
       );
 
       for (const sound of sounds) {
-        await this.trendingSoundModel.findOneAndUpdate(
-          { soundId: sound.soundId },
-          {
-            $set: {
-              ...sound,
-              expiresAt,
-              isCurrent: true,
-              isDeleted: false,
-              lastSeenAt: new Date(),
-            },
-          },
-          { returnDocument: 'after', upsert: true },
-        );
+        const soundId = (sound as unknown as Record<string, unknown>).soundId as
+          | string
+          | undefined;
+
+        const allDocs = await this.prisma.trendingSound.findMany({
+          orderBy: { createdAt: 'desc' },
+          take: 1000,
+          where: { isDeleted: false },
+        });
+        const match = soundId
+          ? allDocs.find((doc) => {
+              const d = doc.data as unknown as Record<string, unknown>;
+              return d.soundId === soundId;
+            })
+          : undefined;
+
+        const dataPayload = {
+          ...sound,
+          expiresAt,
+          isCurrent: true,
+          isDeleted: false,
+          lastSeenAt: new Date(),
+        };
+
+        if (match) {
+          await this.prisma.trendingSound.update({
+            data: { data: dataPayload as never },
+            where: { id: match.id },
+          });
+        } else {
+          await this.prisma.trendingSound.create({
+            data: { data: dataPayload as never, isDeleted: false },
+          });
+        }
       }
 
       this.loggerService.log(`Cached ${sounds.length} trending sounds`);
@@ -376,15 +455,24 @@ export class TrendVideoService {
       Date.now() - hoursAgo[timeframe] * 60 * 60 * 1000,
     );
 
-    const videos = await this.trendingVideoModel
-      .find({
-        createdAt: { $gte: sinceDate },
-        isCurrent: true,
+    const docs = await this.prisma.trendingVideo.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit * 5,
+      where: {
+        createdAt: { gte: sinceDate },
         isDeleted: false,
-      })
-      .sort({ velocity: -1, viralScore: -1 })
-      .limit(limit)
-      .lean();
+      },
+    });
+
+    const videos = docs
+      .map((doc) => doc.data as unknown as TrendingVideoDocument)
+      .filter((v) => v.isCurrent)
+      .sort(
+        (a, b) =>
+          (b.velocity ?? 0) - (a.velocity ?? 0) ||
+          (b.viralScore ?? 0) - (a.viralScore ?? 0),
+      )
+      .slice(0, limit);
 
     // Cache results with shorter TTL (15 min for leaderboard)
     if (videos.length > 0) {
@@ -394,47 +482,84 @@ export class TrendVideoService {
       });
     }
 
-    return videos as TrendingVideoDocument[];
+    return videos;
   }
 
   // ==================== Mark Expired Items ====================
 
   /**
-   * Generic method to mark expired items as historical in any model
-   */
-  private async markExpiredAsHistorical(
-    model: Model<unknown>,
-  ): Promise<number> {
-    const result = await model.updateMany(
-      {
-        expiresAt: { $lte: new Date() },
-        isCurrent: true,
-        isDeleted: false,
-      },
-      { $set: { isCurrent: false } },
-    );
-    return result.modifiedCount;
-  }
-
-  /**
    * Mark expired videos as historical
    */
-  markExpiredVideosAsHistorical(): Promise<number> {
-    return this.markExpiredAsHistorical(this.trendingVideoModel);
+  async markExpiredVideosAsHistorical(): Promise<number> {
+    return this.markExpiredAsHistoricalForModel('video');
   }
 
   /**
    * Mark expired hashtags as historical
    */
-  markExpiredHashtagsAsHistorical(): Promise<number> {
-    return this.markExpiredAsHistorical(this.trendingHashtagModel);
+  async markExpiredHashtagsAsHistorical(): Promise<number> {
+    return this.markExpiredAsHistoricalForModel('hashtag');
   }
 
   /**
    * Mark expired sounds as historical
    */
-  markExpiredSoundsAsHistorical(): Promise<number> {
-    return this.markExpiredAsHistorical(this.trendingSoundModel);
+  async markExpiredSoundsAsHistorical(): Promise<number> {
+    return this.markExpiredAsHistoricalForModel('sound');
+  }
+
+  /**
+   * Mark expired items as historical for a given model type.
+   * Since isCurrent/expiresAt live in the JSON `data` blob, we fetch current records,
+   * filter expired ones in memory, and update them individually.
+   */
+  private async markExpiredAsHistoricalForModel(
+    modelType: 'video' | 'hashtag' | 'sound',
+  ): Promise<number> {
+    const now = new Date();
+
+    const fetchFn = {
+      hashtag: () =>
+        this.prisma.trendingHashtag.findMany({ where: { isDeleted: false } }),
+      sound: () =>
+        this.prisma.trendingSound.findMany({ where: { isDeleted: false } }),
+      video: () =>
+        this.prisma.trendingVideo.findMany({ where: { isDeleted: false } }),
+    }[modelType];
+
+    const docs = await fetchFn();
+    const expired = docs.filter((doc) => {
+      const d = doc.data as unknown as Record<string, unknown>;
+      return (
+        d.isCurrent === true &&
+        d.expiresAt != null &&
+        new Date(d.expiresAt as string) <= now
+      );
+    });
+
+    for (const doc of expired) {
+      const d = doc.data as unknown as Record<string, unknown>;
+      const updatedData = { ...d, isCurrent: false };
+
+      if (modelType === 'video') {
+        await this.prisma.trendingVideo.update({
+          data: { data: updatedData as never },
+          where: { id: doc.id },
+        });
+      } else if (modelType === 'hashtag') {
+        await this.prisma.trendingHashtag.update({
+          data: { data: updatedData as never },
+          where: { id: doc.id },
+        });
+      } else {
+        await this.prisma.trendingSound.update({
+          data: { data: updatedData as never },
+          where: { id: doc.id },
+        });
+      }
+    }
+
+    return expired.length;
   }
 
   // ==================== Trend Turnover Analytics ====================
@@ -446,73 +571,52 @@ export class TrendVideoService {
   async getTurnoverStats(days: 7 | 30 | 90): Promise<TrendTurnoverStats[]> {
     const periodStart = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-    const pipeline = [
-      { $match: { createdAt: { $gte: periodStart }, isDeleted: false } },
-      {
-        $group: {
-          _id: '$platform',
-          alive: { $sum: { $cond: [{ $eq: ['$isCurrent', true] }, 1, 0] } },
-          appeared: { $sum: 1 },
-          died: { $sum: { $cond: [{ $eq: ['$isCurrent', false] }, 1, 0] } },
-          totalLifespanMs: {
-            $sum: {
-              $cond: {
-                else: 0,
-                if: { $eq: ['$isCurrent', false] },
-                then: {
-                  $subtract: [
-                    { $ifNull: ['$lastSeenAt', '$updatedAt'] },
-                    '$createdAt',
-                  ],
-                },
-              },
-            },
-          },
-        },
-      },
-    ];
-
-    const [hashtagResults, videoResults, soundResults] = await Promise.all([
-      this.trendingHashtagModel.aggregate<{
-        _id: string;
-        appeared: number;
-        died: number;
-        alive: number;
-        totalLifespanMs: number;
-      }>(pipeline),
-      this.trendingVideoModel.aggregate<{
-        _id: string;
-        appeared: number;
-        died: number;
-        alive: number;
-        totalLifespanMs: number;
-      }>(pipeline),
-      this.trendingSoundModel.aggregate<{
-        _id: string;
-        appeared: number;
-        died: number;
-        alive: number;
-        totalLifespanMs: number;
-      }>(pipeline),
+    const [hashtagDocs, videoDocs, soundDocs] = await Promise.all([
+      this.prisma.trendingHashtag.findMany({
+        where: { createdAt: { gte: periodStart }, isDeleted: false },
+      }),
+      this.prisma.trendingVideo.findMany({
+        where: { createdAt: { gte: periodStart }, isDeleted: false },
+      }),
+      this.prisma.trendingSound.findMany({
+        where: { createdAt: { gte: periodStart }, isDeleted: false },
+      }),
     ]);
+
+    type DocRow = { data: unknown; createdAt: Date };
+    const allDocs: DocRow[] = [
+      ...hashtagDocs.map((d) => ({ createdAt: d.createdAt, data: d.data })),
+      ...videoDocs.map((d) => ({ createdAt: d.createdAt, data: d.data })),
+      ...soundDocs.map((d) => ({ createdAt: d.createdAt, data: d.data })),
+    ];
 
     const platformMap = new Map<
       string,
       { appeared: number; died: number; alive: number; totalLifespanMs: number }
     >();
 
-    for (const row of [...hashtagResults, ...videoResults, ...soundResults]) {
-      const existing = platformMap.get(row._id) ?? {
+    for (const row of allDocs) {
+      const d = row.data as Record<string, unknown>;
+      const platform = (d.platform as string) || 'unknown';
+      const isCurrent = d.isCurrent === true;
+      const lastSeenAt = d.lastSeenAt
+        ? new Date(d.lastSeenAt as string)
+        : row.createdAt;
+      const lifespanMs = isCurrent
+        ? 0
+        : lastSeenAt.getTime() - row.createdAt.getTime();
+
+      const existing = platformMap.get(platform) ?? {
         alive: 0,
         appeared: 0,
         died: 0,
         totalLifespanMs: 0,
       };
-      platformMap.set(row._id, {
-        alive: existing.alive + row.alive,
-        appeared: existing.appeared + row.appeared,
-        died: existing.died + row.died,
-        totalLifespanMs: existing.totalLifespanMs + row.totalLifespanMs,
+      platformMap.set(platform, {
+        alive: existing.alive + (isCurrent ? 1 : 0),
+        appeared: existing.appeared + 1,
+        died: existing.died + (isCurrent ? 0 : 1),
+        totalLifespanMs: existing.totalLifespanMs + lifespanMs,
       });
     }
 
@@ -541,56 +645,46 @@ export class TrendVideoService {
   async getTrendTimeline(days: 7 | 30 | 90): Promise<TrendTimelineEntry[]> {
     const periodStart = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-    const birthsPipeline = [
-      { $match: { createdAt: { $gte: periodStart }, isDeleted: false } },
-      {
-        $group: {
-          _id: {
-            $dateToString: { date: '$createdAt', format: '%Y-%m-%d' },
-          },
-          count: { $sum: 1 },
-        },
-      },
+    const [hashtagDocs, videoDocs, soundDocs] = await Promise.all([
+      this.prisma.trendingHashtag.findMany({
+        where: { isDeleted: false },
+      }),
+      this.prisma.trendingVideo.findMany({
+        where: { isDeleted: false },
+      }),
+      this.prisma.trendingSound.findMany({
+        where: { isDeleted: false },
+      }),
+    ]);
+
+    type DocRow = { data: unknown; createdAt: Date };
+    const allDocs: DocRow[] = [
+      ...hashtagDocs.map((d) => ({ createdAt: d.createdAt, data: d.data })),
+      ...videoDocs.map((d) => ({ createdAt: d.createdAt, data: d.data })),
+      ...soundDocs.map((d) => ({ createdAt: d.createdAt, data: d.data })),
     ];
-
-    const deathsPipeline = [
-      { $match: { isCurrent: false, isDeleted: false } },
-      {
-        $addFields: {
-          deathDate: { $ifNull: ['$lastSeenAt', '$updatedAt'] },
-        },
-      },
-      { $match: { deathDate: { $gte: periodStart } } },
-      {
-        $group: {
-          _id: {
-            $dateToString: { date: '$deathDate', format: '%Y-%m-%d' },
-          },
-          count: { $sum: 1 },
-        },
-      },
-    ];
-
-    type DayRow = { _id: string; count: number };
-
-    const [hashBirths, vidBirths, sndBirths, hashDeaths, vidDeaths, sndDeaths] =
-      await Promise.all([
-        this.trendingHashtagModel.aggregate<DayRow>(birthsPipeline),
-        this.trendingVideoModel.aggregate<DayRow>(birthsPipeline),
-        this.trendingSoundModel.aggregate<DayRow>(birthsPipeline),
-        this.trendingHashtagModel.aggregate<DayRow>(deathsPipeline),
-        this.trendingVideoModel.aggregate<DayRow>(deathsPipeline),
-        this.trendingSoundModel.aggregate<DayRow>(deathsPipeline),
-      ]);
 
     const birthMap = new Map<string, number>();
-    for (const row of [...hashBirths, ...vidBirths, ...sndBirths]) {
-      birthMap.set(row._id, (birthMap.get(row._id) ?? 0) + row.count);
-    }
-
     const deathMap = new Map<string, number>();
-    for (const row of [...hashDeaths, ...vidDeaths, ...sndDeaths]) {
-      deathMap.set(row._id, (deathMap.get(row._id) ?? 0) + row.count);
+
+    for (const row of allDocs) {
+      const d = row.data as Record<string, unknown>;
+      const isCurrent = d.isCurrent === true;
+
+      // births: created within the period
+      if (row.createdAt >= periodStart) {
+        const dateStr = row.createdAt.toISOString().slice(0, 10);
+        birthMap.set(dateStr, (birthMap.get(dateStr) ?? 0) + 1);
+      }
+
+      // deaths: not current, with lastSeenAt/updatedAt within period
+      if (!isCurrent && d.lastSeenAt) {
+        const deathDate = new Date(d.lastSeenAt as string);
+        if (deathDate >= periodStart) {
+          const dateStr = deathDate.toISOString().slice(0, 10);
+          deathMap.set(dateStr, (deathMap.get(dateStr) ?? 0) + 1);
+        }
+      }
     }
 
     const allDates = new Set([...birthMap.keys(), ...deathMap.keys()]);

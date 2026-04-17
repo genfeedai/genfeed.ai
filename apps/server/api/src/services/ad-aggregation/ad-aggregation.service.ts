@@ -1,12 +1,22 @@
-import {
-  AdPerformance,
-  type AdPerformanceDocument,
-} from '@api/collections/ad-performance/schemas/ad-performance.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+
+type AdPerformanceData = {
+  headlineText?: string;
+  ctaText?: string;
+  ctr?: number;
+  roas?: number;
+  cpc?: number;
+  cpa?: number;
+  spend?: number;
+  performanceScore?: number;
+  adPlatform?: string;
+  industry?: string;
+  scope?: string;
+  conversionRate?: number;
+  dataConfidence?: number;
+};
 
 @Injectable()
 export class AdAggregationService {
@@ -14,8 +24,7 @@ export class AdAggregationService {
   private readonly constructorName = String(this.constructor.name);
 
   constructor(
-    @InjectModel(AdPerformance.name, DB_CONNECTIONS.CLOUD)
-    private readonly adPerformanceModel: Model<AdPerformanceDocument>,
+    private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -42,15 +51,19 @@ export class AdAggregationService {
         /\b(limited|now|today|hurry|last chance|don't miss|ends|expires)\b/i,
     };
 
-    const matchFilter: Record<string, unknown> = {
-      headlineText: { $exists: true, $ne: null },
-      isDeleted: false,
-      scope: 'public',
-    };
+    const records = await this.prisma.adPerformance.findMany({
+      select: { data: true, organizationId: true },
+      where: { isDeleted: false },
+    });
 
-    if (industry) {
-      matchFilter.industry = industry;
-    }
+    // Filter to public scope + optional industry
+    const eligible = records.filter((r) => {
+      const d = (r.data ?? {}) as AdPerformanceData;
+      if (d.scope !== 'public') return false;
+      if (!d.headlineText) return false;
+      if (industry && d.industry !== industry) return false;
+      return true;
+    });
 
     const patterns: Array<{
       category: string;
@@ -58,70 +71,38 @@ export class AdAggregationService {
       avgRoas: number;
       sampleSize: number;
     }> = [];
-
     let totalSampleSize = 0;
 
     for (const [category, regex] of Object.entries(patternCategories)) {
-      const pipeline = [
-        {
-          $match: {
-            ...matchFilter,
-            headlineText: { $regex: regex },
-          },
-        },
-        {
-          $group: {
-            _id: null,
-            avgCtr: {
-              $avg: {
-                $multiply: ['$ctr', '$dataConfidence'],
-              },
-            },
-            avgRoas: {
-              $avg: {
-                $cond: [
-                  { $gt: ['$roas', 0] },
-                  { $multiply: ['$roas', '$dataConfidence'] },
-                  0,
-                ],
-              },
-            },
-            distinctOrgs: { $addToSet: '$organization' },
-            sampleSize: { $sum: 1 },
-          },
-        },
-        {
-          $match: {
-            $expr: { $gte: [{ $size: '$distinctOrgs' }, this.MIN_ORGS] },
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            avgCtr: { $round: ['$avgCtr', 4] },
-            avgRoas: { $round: ['$avgRoas', 4] },
-            sampleSize: 1,
-          },
-        },
-      ];
+      const matched = eligible.filter((r) => {
+        const d = (r.data ?? {}) as AdPerformanceData;
+        return regex.test(d.headlineText ?? '');
+      });
 
-      try {
-        const result = await this.adPerformanceModel.aggregate(pipeline);
-        const row = result[0];
-        patterns.push({
-          avgCtr: row?.avgCtr || 0,
-          avgRoas: row?.avgRoas || 0,
-          category,
-          sampleSize: row?.sampleSize || 0,
-        });
-        totalSampleSize += row?.sampleSize || 0;
-      } catch (error: unknown) {
-        this.logger.error(
-          `${this.constructorName}: Failed to compute pattern ${category}`,
-          error,
-        );
+      const distinctOrgs = new Set(matched.map((r) => r.organizationId));
+      if (distinctOrgs.size < this.MIN_ORGS) {
         patterns.push({ avgCtr: 0, avgRoas: 0, category, sampleSize: 0 });
+        continue;
       }
+
+      const sumCtr = matched.reduce((sum, r) => {
+        const d = (r.data ?? {}) as AdPerformanceData;
+        return sum + (d.ctr ?? 0) * (d.dataConfidence ?? 1);
+      }, 0);
+      const sumRoas = matched.reduce((sum, r) => {
+        const d = (r.data ?? {}) as AdPerformanceData;
+        const roas = d.roas ?? 0;
+        return sum + (roas > 0 ? roas * (d.dataConfidence ?? 1) : 0);
+      }, 0);
+
+      const count = matched.length;
+      patterns.push({
+        avgCtr: Math.round((sumCtr / count) * 10000) / 10000,
+        avgRoas: Math.round((sumRoas / count) * 10000) / 10000,
+        category,
+        sampleSize: count,
+      });
+      totalSampleSize += count;
     }
 
     return { patterns, sampleSize: totalSampleSize };
@@ -149,15 +130,18 @@ export class AdAggregationService {
       'try-free': /\b(free trial|try free|start free|no cost)\b/i,
     };
 
-    const matchFilter: Record<string, unknown> = {
-      ctaText: { $exists: true, $ne: null },
-      isDeleted: false,
-      scope: 'public',
-    };
+    const records = await this.prisma.adPerformance.findMany({
+      select: { data: true, organizationId: true },
+      where: { isDeleted: false },
+    });
 
-    if (industry) {
-      matchFilter.industry = industry;
-    }
+    const eligible = records.filter((r) => {
+      const d = (r.data ?? {}) as AdPerformanceData;
+      if (d.scope !== 'public') return false;
+      if (!d.ctaText) return false;
+      if (industry && d.industry !== industry) return false;
+      return true;
+    });
 
     const patterns: Array<{
       category: string;
@@ -165,67 +149,43 @@ export class AdAggregationService {
       avgConversionRate: number;
       sampleSize: number;
     }> = [];
-
     let totalSampleSize = 0;
 
     for (const [category, regex] of Object.entries(ctaMapping)) {
-      const pipeline = [
-        {
-          $match: {
-            ...matchFilter,
-            ctaText: { $regex: regex },
-          },
-        },
-        {
-          $group: {
-            _id: null,
-            avgConversionRate: {
-              $avg: {
-                $cond: [{ $gt: ['$conversionRate', 0] }, '$conversionRate', 0],
-              },
-            },
-            avgCtr: { $avg: '$ctr' },
-            distinctOrgs: { $addToSet: '$organization' },
-            sampleSize: { $sum: 1 },
-          },
-        },
-        {
-          $match: {
-            $expr: { $gte: [{ $size: '$distinctOrgs' }, this.MIN_ORGS] },
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            avgConversionRate: { $round: ['$avgConversionRate', 4] },
-            avgCtr: { $round: ['$avgCtr', 4] },
-            sampleSize: 1,
-          },
-        },
-      ];
+      const matched = eligible.filter((r) => {
+        const d = (r.data ?? {}) as AdPerformanceData;
+        return regex.test(d.ctaText ?? '');
+      });
 
-      try {
-        const result = await this.adPerformanceModel.aggregate(pipeline);
-        const row = result[0];
-        patterns.push({
-          avgConversionRate: row?.avgConversionRate || 0,
-          avgCtr: row?.avgCtr || 0,
-          category,
-          sampleSize: row?.sampleSize || 0,
-        });
-        totalSampleSize += row?.sampleSize || 0;
-      } catch (error: unknown) {
-        this.logger.error(
-          `${this.constructorName}: Failed to compute CTA ${category}`,
-          error,
-        );
+      const distinctOrgs = new Set(matched.map((r) => r.organizationId));
+      if (distinctOrgs.size < this.MIN_ORGS) {
         patterns.push({
           avgConversionRate: 0,
           avgCtr: 0,
           category,
           sampleSize: 0,
         });
+        continue;
       }
+
+      const sumCtr = matched.reduce((sum, r) => {
+        const d = (r.data ?? {}) as AdPerformanceData;
+        return sum + (d.ctr ?? 0);
+      }, 0);
+      const sumConvRate = matched.reduce((sum, r) => {
+        const d = (r.data ?? {}) as AdPerformanceData;
+        const cr = d.conversionRate ?? 0;
+        return sum + (cr > 0 ? cr : 0);
+      }, 0);
+
+      const count = matched.length;
+      patterns.push({
+        avgConversionRate: Math.round((sumConvRate / count) * 10000) / 10000,
+        avgCtr: Math.round((sumCtr / count) * 10000) / 10000,
+        category,
+        sampleSize: count,
+      });
+      totalSampleSize += count;
     }
 
     return { patterns, sampleSize: totalSampleSize };
@@ -245,84 +205,68 @@ export class AdAggregationService {
   }> {
     this.logger.log(`${this.constructorName}: Computing optimal spend`);
 
-    const matchFilter: Record<string, unknown> = {
-      isDeleted: false,
-      scope: 'public',
-      spend: { $gt: 0 },
-    };
+    const records = await this.prisma.adPerformance.findMany({
+      select: { data: true, organizationId: true },
+      where: { isDeleted: false },
+    });
 
-    if (platform) {
-      matchFilter.adPlatform = platform;
-    }
-    if (industry) {
-      matchFilter.industry = industry;
-    }
+    const eligible = records.filter((r) => {
+      const d = (r.data ?? {}) as AdPerformanceData;
+      if (d.scope !== 'public') return false;
+      if ((d.spend ?? 0) <= 0) return false;
+      if (platform && d.adPlatform !== platform) return false;
+      if (industry && d.industry !== industry) return false;
+      return true;
+    });
 
-    const pipeline = [
-      { $match: matchFilter },
-      {
-        $bucket: {
-          boundaries: [0, 50, 200, 500, 1000, Infinity],
-          default: 'overflow',
-          groupBy: '$spend',
-          output: {
-            avgPerformanceScore: { $avg: '$performanceScore' },
-            avgRoas: {
-              $avg: {
-                $cond: [{ $gt: ['$roas', 0] }, '$roas', 0],
-              },
-            },
-            distinctOrgs: { $addToSet: '$organization' },
-            sampleSize: { $sum: 1 },
-          },
-        },
-      },
-      {
-        $match: {
-          $expr: { $gte: [{ $size: '$distinctOrgs' }, this.MIN_ORGS] },
-        },
-      },
+    const spendBoundaries = [
+      { label: '$0-50/day', min: 0, max: 50 },
+      { label: '$50-200/day', min: 50, max: 200 },
+      { label: '$200-500/day', min: 200, max: 500 },
+      { label: '$500-1000/day', min: 500, max: 1000 },
+      { label: '$1000+/day', min: 1000, max: Infinity },
     ];
 
-    try {
-      const results = await this.adPerformanceModel.aggregate(pipeline);
+    const buckets: Array<{
+      range: string;
+      avgPerformanceScore: number;
+      avgRoas: number;
+      sampleSize: number;
+    }> = [];
 
-      const rangeLabels: Record<string, string> = {
-        '0': '$0-50/day',
-        '50': '$50-200/day',
-        '200': '$200-500/day',
-        '500': '$500-1000/day',
-        '1000': '$1000+/day',
-        overflow: '$1000+/day',
-      };
+    let totalSampleSize = 0;
 
-      const buckets = results.map(
-        (r: {
-          _id: number | string;
-          avgPerformanceScore: number;
-          avgRoas: number;
-          sampleSize: number;
-        }) => ({
-          avgPerformanceScore: Math.round(r.avgPerformanceScore * 100) / 100,
-          avgRoas: Math.round(r.avgRoas * 100) / 100,
-          range: rangeLabels[String(r._id)] || `$${r._id}+/day`,
-          sampleSize: r.sampleSize,
-        }),
-      );
+    for (const { label, min, max } of spendBoundaries) {
+      const matched = eligible.filter((r) => {
+        const d = (r.data ?? {}) as AdPerformanceData;
+        const s = d.spend ?? 0;
+        return s >= min && s < max;
+      });
 
-      const totalSampleSize = buckets.reduce(
-        (sum: number, b: { sampleSize: number }) => sum + b.sampleSize,
-        0,
-      );
+      const distinctOrgs = new Set(matched.map((r) => r.organizationId));
+      if (distinctOrgs.size < this.MIN_ORGS) continue;
 
-      return { buckets, sampleSize: totalSampleSize };
-    } catch (error: unknown) {
-      this.logger.error(
-        `${this.constructorName}: Failed to compute optimal spend`,
-        error,
-      );
-      return { buckets: [], sampleSize: 0 };
+      const sumPerf = matched.reduce((sum, r) => {
+        const d = (r.data ?? {}) as AdPerformanceData;
+        return sum + (d.performanceScore ?? 0);
+      }, 0);
+      const sumRoas = matched.reduce((sum, r) => {
+        const d = (r.data ?? {}) as AdPerformanceData;
+        const roas = d.roas ?? 0;
+        return sum + (roas > 0 ? roas : 0);
+      }, 0);
+
+      const count = matched.length;
+      buckets.push({
+        avgPerformanceScore: Math.round((sumPerf / count) * 100) / 100,
+        avgRoas: Math.round((sumRoas / count) * 100) / 100,
+        range: label,
+        sampleSize: count,
+      });
+      totalSampleSize += count;
     }
+
+    return { buckets, sampleSize: totalSampleSize };
   }
 
   async computePlatformBenchmarks(industry?: string): Promise<{
@@ -351,52 +295,17 @@ export class AdAggregationService {
   }> {
     this.logger.log(`${this.constructorName}: Computing platform benchmarks`);
 
-    const matchFilter: Record<string, unknown> = {
-      isDeleted: false,
-      scope: 'public',
-    };
+    const records = await this.prisma.adPerformance.findMany({
+      select: { data: true, organizationId: true },
+      where: { isDeleted: false },
+    });
 
-    if (industry) {
-      matchFilter.industry = industry;
-    }
-
-    const pipeline = [
-      { $match: matchFilter },
-      {
-        $group: {
-          _id: '$adPlatform',
-          avgCpa: {
-            $avg: {
-              $cond: [{ $gt: ['$cpa', 0] }, '$cpa', 0],
-            },
-          },
-          avgCpc: { $avg: '$cpc' },
-          avgCtr: { $avg: '$ctr' },
-          avgRoas: {
-            $avg: {
-              $cond: [{ $gt: ['$roas', 0] }, '$roas', 0],
-            },
-          },
-          distinctOrgs: { $addToSet: '$organization' },
-          sampleSize: { $sum: 1 },
-        },
-      },
-      {
-        $match: {
-          $expr: { $gte: [{ $size: '$distinctOrgs' }, this.MIN_ORGS] },
-        },
-      },
-      {
-        $project: {
-          _id: 1,
-          avgCpa: { $round: ['$avgCpa', 4] },
-          avgCpc: { $round: ['$avgCpc', 4] },
-          avgCtr: { $round: ['$avgCtr', 4] },
-          avgRoas: { $round: ['$avgRoas', 4] },
-          sampleSize: 1,
-        },
-      },
-    ];
+    const eligible = records.filter((r) => {
+      const d = (r.data ?? {}) as AdPerformanceData;
+      if (d.scope !== 'public') return false;
+      if (industry && d.industry !== industry) return false;
+      return true;
+    });
 
     const emptyBenchmark = {
       avgCpa: 0,
@@ -406,53 +315,61 @@ export class AdAggregationService {
       sampleSize: 0,
     };
 
-    try {
-      const results = await this.adPerformanceModel.aggregate(pipeline);
+    const platformGroups: Record<
+      string,
+      { data: AdPerformanceData; orgId: string }[]
+    > = {};
+    for (const r of eligible) {
+      const d = (r.data ?? {}) as AdPerformanceData;
+      const p = d.adPlatform ?? 'unknown';
+      if (!platformGroups[p]) platformGroups[p] = [];
+      platformGroups[p].push({ data: d, orgId: r.organizationId });
+    }
 
-      const benchmarkMap: Record<
-        string,
-        {
-          avgCtr: number;
-          avgCpc: number;
-          avgCpa: number;
-          avgRoas: number;
-          sampleSize: number;
-        }
-      > = {};
-
-      for (const row of results) {
-        benchmarkMap[row._id] = {
-          avgCpa: row.avgCpa,
-          avgCpc: row.avgCpc,
-          avgCtr: row.avgCtr,
-          avgRoas: row.avgRoas,
-          sampleSize: row.sampleSize,
-        };
+    const benchmarkMap: Record<
+      string,
+      {
+        avgCtr: number;
+        avgCpc: number;
+        avgCpa: number;
+        avgRoas: number;
+        sampleSize: number;
       }
+    > = {};
+    let totalSampleSize = 0;
 
-      const totalSampleSize = results.reduce(
-        (sum: number, r: { sampleSize: number }) => sum + r.sampleSize,
+    for (const [platform, rows] of Object.entries(platformGroups)) {
+      const distinctOrgs = new Set(rows.map((r) => r.orgId));
+      if (distinctOrgs.size < this.MIN_ORGS) continue;
+
+      const count = rows.length;
+      const sumCtr = rows.reduce((s, r) => s + (r.data.ctr ?? 0), 0);
+      const sumCpc = rows.reduce((s, r) => s + (r.data.cpc ?? 0), 0);
+      const sumCpa = rows.reduce(
+        (s, r) => s + ((r.data.cpa ?? 0) > 0 ? (r.data.cpa ?? 0) : 0),
+        0,
+      );
+      const sumRoas = rows.reduce(
+        (s, r) => s + ((r.data.roas ?? 0) > 0 ? (r.data.roas ?? 0) : 0),
         0,
       );
 
-      return {
-        google: benchmarkMap.google || { ...emptyBenchmark },
-        meta: benchmarkMap.meta || { ...emptyBenchmark },
-        sampleSize: totalSampleSize,
-        tiktok: benchmarkMap.tiktok || { ...emptyBenchmark },
+      benchmarkMap[platform] = {
+        avgCpa: Math.round((sumCpa / count) * 10000) / 10000,
+        avgCpc: Math.round((sumCpc / count) * 10000) / 10000,
+        avgCtr: Math.round((sumCtr / count) * 10000) / 10000,
+        avgRoas: Math.round((sumRoas / count) * 10000) / 10000,
+        sampleSize: count,
       };
-    } catch (error: unknown) {
-      this.logger.error(
-        `${this.constructorName}: Failed to compute platform benchmarks`,
-        error,
-      );
-      return {
-        google: { ...emptyBenchmark },
-        meta: { ...emptyBenchmark },
-        sampleSize: 0,
-        tiktok: { ...emptyBenchmark },
-      };
+      totalSampleSize += count;
     }
+
+    return {
+      google: benchmarkMap.google ?? { ...emptyBenchmark },
+      meta: benchmarkMap.meta ?? { ...emptyBenchmark },
+      sampleSize: totalSampleSize,
+      tiktok: benchmarkMap.tiktok ?? { ...emptyBenchmark },
+    };
   }
 
   async computeIndustryBenchmarks(): Promise<{
@@ -468,84 +385,66 @@ export class AdAggregationService {
   }> {
     this.logger.log(`${this.constructorName}: Computing industry benchmarks`);
 
-    const pipeline = [
-      {
-        $match: {
-          industry: { $exists: true, $ne: null },
-          isDeleted: false,
-          scope: 'public',
-        },
-      },
-      {
-        $group: {
-          _id: '$industry',
-          avgCpa: {
-            $avg: {
-              $cond: [{ $gt: ['$cpa', 0] }, '$cpa', 0],
-            },
-          },
-          avgCpc: { $avg: '$cpc' },
-          avgCtr: { $avg: '$ctr' },
-          avgRoas: {
-            $avg: {
-              $cond: [{ $gt: ['$roas', 0] }, '$roas', 0],
-            },
-          },
-          distinctOrgs: { $addToSet: '$organization' },
-          sampleSize: { $sum: 1 },
-        },
-      },
-      {
-        $match: {
-          $expr: { $gte: [{ $size: '$distinctOrgs' }, this.MIN_ORGS] },
-        },
-      },
-      {
-        $project: {
-          _id: 1,
-          avgCpa: { $round: ['$avgCpa', 4] },
-          avgCpc: { $round: ['$avgCpc', 4] },
-          avgCtr: { $round: ['$avgCtr', 4] },
-          avgRoas: { $round: ['$avgRoas', 4] },
-          sampleSize: 1,
-        },
-      },
-      { $sort: { sampleSize: -1 as const } },
-    ];
+    const records = await this.prisma.adPerformance.findMany({
+      select: { data: true, organizationId: true },
+      where: { isDeleted: false },
+    });
 
-    try {
-      const results = await this.adPerformanceModel.aggregate(pipeline);
+    const eligible = records.filter((r) => {
+      const d = (r.data ?? {}) as AdPerformanceData;
+      return d.scope === 'public' && Boolean(d.industry);
+    });
 
-      const industries = results.map(
-        (r: {
-          _id: string;
-          avgCtr: number;
-          avgCpc: number;
-          avgCpa: number;
-          avgRoas: number;
-          sampleSize: number;
-        }) => ({
-          avgCpa: r.avgCpa,
-          avgCpc: r.avgCpc,
-          avgCtr: r.avgCtr,
-          avgRoas: r.avgRoas,
-          industry: r._id,
-          sampleSize: r.sampleSize,
-        }),
+    const industryGroups: Record<
+      string,
+      { data: AdPerformanceData; orgId: string }[]
+    > = {};
+    for (const r of eligible) {
+      const d = (r.data ?? {}) as AdPerformanceData;
+      const ind = d.industry!;
+      if (!industryGroups[ind]) industryGroups[ind] = [];
+      industryGroups[ind].push({ data: d, orgId: r.organizationId });
+    }
+
+    const industries: Array<{
+      industry: string;
+      avgCtr: number;
+      avgCpc: number;
+      avgCpa: number;
+      avgRoas: number;
+      sampleSize: number;
+    }> = [];
+    let totalSampleSize = 0;
+
+    for (const [industry, rows] of Object.entries(industryGroups)) {
+      const distinctOrgs = new Set(rows.map((r) => r.orgId));
+      if (distinctOrgs.size < this.MIN_ORGS) continue;
+
+      const count = rows.length;
+      const sumCtr = rows.reduce((s, r) => s + (r.data.ctr ?? 0), 0);
+      const sumCpc = rows.reduce((s, r) => s + (r.data.cpc ?? 0), 0);
+      const sumCpa = rows.reduce(
+        (s, r) => s + ((r.data.cpa ?? 0) > 0 ? (r.data.cpa ?? 0) : 0),
+        0,
       );
-
-      const totalSampleSize = industries.reduce(
-        (sum: number, i: { sampleSize: number }) => sum + i.sampleSize,
+      const sumRoas = rows.reduce(
+        (s, r) => s + ((r.data.roas ?? 0) > 0 ? (r.data.roas ?? 0) : 0),
         0,
       );
 
-      return { industries, sampleSize: totalSampleSize };
-    } catch (error: unknown) {
-      this.logger.error(
-        `${this.constructorName}: Failed to compute industry benchmarks`,
-        error,
-      );
-      return { industries: [], sampleSize: 0 };
+      industries.push({
+        avgCpa: Math.round((sumCpa / count) * 10000) / 10000,
+        avgCpc: Math.round((sumCpc / count) * 10000) / 10000,
+        avgCtr: Math.round((sumCtr / count) * 10000) / 10000,
+        avgRoas: Math.round((sumRoas / count) * 10000) / 10000,
+        industry,
+        sampleSize: count,
+      });
+      totalSampleSize += count;
     }
+
+    industries.sort((a, b) => b.sampleSize - a.sampleSize);
+
+    return { industries, sampleSize: totalSampleSize };
   }
 }

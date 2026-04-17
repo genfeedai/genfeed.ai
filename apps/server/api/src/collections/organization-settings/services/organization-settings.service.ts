@@ -30,8 +30,7 @@ export class OrganizationSettingsService extends BaseService<
     public readonly logger: LoggerService,
     private readonly moduleRef: ModuleRef,
   ) {
-    // TODO: remove model arg after BaseService Prisma migration
-    super(undefined as never, logger);
+    super(prisma, 'organizationSetting', logger);
   }
 
   private getModelsService(): ModelsService {

@@ -1,26 +1,17 @@
-import {
-  Brand,
-  type BrandDocument,
-} from '@api/collections/brands/schemas/brand.schema';
 import type {
   CreateSkillDto,
   CustomizeSkillDto,
   ImportSkillDto,
   UpdateSkillDto,
 } from '@api/collections/skills/dto/skill.dto';
-import {
-  Skill,
-  type SkillDocument,
-} from '@api/collections/skills/schemas/skill.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { ValidationException } from '@api/helpers/exceptions/http/validation.exception';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ByokProvider } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { type FilterQuery, Model, Types } from 'mongoose';
 
 export interface ResolveBrandSkillsOptions {
   channel?: string;
@@ -39,30 +30,37 @@ export interface ResolvedBrandSkill {
 @Injectable()
 export class SkillsService {
   constructor(
-    @InjectModel(Skill.name, DB_CONNECTIONS.CLOUD)
-    private readonly skillModel: Model<SkillDocument>,
-    @InjectModel(Brand.name, DB_CONNECTIONS.CLOUD)
-    private readonly brandModel: Model<BrandDocument>,
+    private readonly prisma: PrismaService,
     private readonly byokProviderFactoryService: ByokProviderFactoryService,
     private readonly loggerService: LoggerService,
   ) {}
 
-  createSkill(
+  async createSkill(
     organizationId: string,
     payload: CreateSkillDto,
   ): Promise<SkillDocument> {
     const isBuiltIn = payload.isBuiltIn ?? payload.source === 'built_in';
-    const organizationObjectId =
-      this.requireOrganizationObjectId(organizationId);
 
-    return this.skillModel.create({
-      ...payload,
-      isBuiltIn,
-      isDeleted: false,
-      organization: isBuiltIn ? null : organizationObjectId,
-      source: payload.source ?? (isBuiltIn ? 'built_in' : 'custom'),
-      status: payload.status ?? 'published',
+    if (organizationId && !isBuiltIn) {
+      this.requireOrganizationId(organizationId);
+    }
+
+    const result = await this.prisma.skill.create({
+      data: {
+        ...payload,
+        configSchema: payload.configSchema as never,
+        inputSchema: payload.inputSchema as never,
+        isBuiltIn,
+        isDeleted: false,
+        organizationId: isBuiltIn ? null : organizationId,
+        outputSchema: payload.outputSchema as never,
+        reviewDefaults: payload.reviewDefaults as never,
+        source: payload.source ?? (isBuiltIn ? 'built_in' : 'custom'),
+        status: payload.status ?? 'published',
+      } as never,
     });
+
+    return result as unknown as SkillDocument;
   }
 
   importSkill(
@@ -82,8 +80,7 @@ export class SkillsService {
     idOrSlug: string,
     payload: CustomizeSkillDto,
   ): Promise<SkillDocument> {
-    const organizationObjectId =
-      this.requireOrganizationObjectId(organizationId);
+    this.requireOrganizationId(organizationId);
     const baseSkill = await this.getSkillById(organizationId, idOrSlug);
 
     if (!baseSkill) {
@@ -93,28 +90,32 @@ export class SkillsService {
     const customizedSlug =
       payload.slug?.trim() || this.buildCustomizedSlug(baseSkill.slug);
 
-    return this.skillModel.create({
-      baseSkill: baseSkill._id,
-      category: baseSkill.category,
-      channels: baseSkill.channels,
-      configSchema: baseSkill.configSchema,
-      defaultInstructions: baseSkill.defaultInstructions,
-      description: payload.description?.trim() || baseSkill.description,
-      inputSchema: baseSkill.inputSchema,
-      isBuiltIn: false,
-      isDeleted: false,
-      isEnabled: true,
-      modalities: baseSkill.modalities,
-      name: payload.name?.trim() || `${baseSkill.name} Custom`,
-      organization: organizationObjectId,
-      outputSchema: baseSkill.outputSchema,
-      requiredProviders: baseSkill.requiredProviders,
-      reviewDefaults: baseSkill.reviewDefaults,
-      slug: customizedSlug,
-      source: 'custom',
-      status: 'draft',
-      workflowStage: baseSkill.workflowStage,
+    const result = await this.prisma.skill.create({
+      data: {
+        baseSkillId: String(baseSkill._id),
+        category: baseSkill.category,
+        channels: baseSkill.channels,
+        configSchema: baseSkill.configSchema as never,
+        defaultInstructions: baseSkill.defaultInstructions,
+        description: payload.description?.trim() || baseSkill.description,
+        inputSchema: baseSkill.inputSchema as never,
+        isBuiltIn: false,
+        isDeleted: false,
+        isEnabled: true,
+        modalities: baseSkill.modalities,
+        name: payload.name?.trim() || `${baseSkill.name} Custom`,
+        organizationId,
+        outputSchema: baseSkill.outputSchema as never,
+        requiredProviders: baseSkill.requiredProviders,
+        reviewDefaults: baseSkill.reviewDefaults as never,
+        slug: customizedSlug,
+        source: 'custom',
+        status: 'draft',
+        workflowStage: baseSkill.workflowStage,
+      } as never,
     });
+
+    return result as unknown as SkillDocument;
   }
 
   async updateSkill(
@@ -122,46 +123,44 @@ export class SkillsService {
     idOrSlug: string,
     payload: UpdateSkillDto,
   ): Promise<SkillDocument> {
-    const organizationObjectId =
-      this.requireOrganizationObjectId(organizationId);
-    const filter = this.buildAccessibleSkillFilter(organizationId, idOrSlug);
-    filter.organization = organizationObjectId;
+    this.requireOrganizationId(organizationId);
+    const skill = await this.getSkillById(organizationId, idOrSlug);
 
-    const updated = await this.skillModel.findOneAndUpdate(
-      filter,
-      { $set: payload },
-      { new: true },
-    );
-
-    if (!updated) {
+    if (!skill) {
       throw new NotFoundException('Skill', idOrSlug);
     }
 
-    return updated;
+    const updated = await this.prisma.skill.update({
+      data: { ...payload, organizationId } as never,
+      where: { id: String(skill._id) },
+    });
+
+    return updated as unknown as SkillDocument;
   }
 
-  listAllForOrg(organizationId: string): Promise<SkillDocument[]> {
-    return this.skillModel
-      .find(this.buildAccessibleSkillFilter(organizationId))
-      .sort({ createdAt: -1, name: 1, source: 1 })
-      .exec();
+  async listAllForOrg(organizationId: string): Promise<SkillDocument[]> {
+    const results = await this.prisma.skill.findMany({
+      orderBy: [{ createdAt: 'desc' }, { name: 'asc' }, { source: 'asc' }],
+      where: this.buildAccessibleSkillWhere(organizationId) as never,
+    });
+    return results as unknown as SkillDocument[];
   }
 
   async getAvailableForOrg(organizationId: string): Promise<SkillDocument[]> {
-    const allSkills = await this.skillModel
-      .find({
-        ...this.buildAccessibleSkillFilter(organizationId),
+    const allSkills = await this.prisma.skill.findMany({
+      where: {
+        ...this.buildAccessibleSkillWhere(organizationId),
         isEnabled: true,
-        status: { $ne: 'disabled' },
-      })
-      .lean();
+        status: { not: 'disabled' },
+      } as never,
+    });
 
     const availableSkills: SkillDocument[] = [];
 
     for (const skill of allSkills) {
       const hasAllProviders = await this.hasRequiredProviders(
         organizationId,
-        skill.requiredProviders,
+        (skill as unknown as SkillDocument).requiredProviders,
       );
 
       if (hasAllProviders) {
@@ -172,13 +171,17 @@ export class SkillsService {
     return availableSkills;
   }
 
-  getSkillById(
+  async getSkillById(
     organizationId: string,
     idOrSlug: string,
   ): Promise<SkillDocument | null> {
-    return this.skillModel.findOne(
-      this.buildAccessibleSkillFilter(organizationId, idOrSlug),
-    );
+    const result = await this.prisma.skill.findFirst({
+      where: {
+        ...this.buildAccessibleSkillWhere(organizationId),
+        OR: [{ id: idOrSlug }, { slug: idOrSlug }],
+      } as never,
+    });
+    return result as unknown as SkillDocument | null;
   }
 
   async assertBrandSkillEnabled(
@@ -203,19 +206,17 @@ export class SkillsService {
     brandId: string,
     requestedSlugs?: string[],
   ): Promise<string[]> {
-    const brand = await this.brandModel
-      .findOne({
-        _id: new Types.ObjectId(brandId),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      } as never)
-      .lean();
+    const brand = await this.prisma.brand.findFirst({
+      where: { id: brandId, isDeleted: false, organizationId },
+    });
 
     if (!brand) {
       throw new NotFoundException('Brand', brandId);
     }
 
-    const enabledSkills: string[] = brand.agentConfig?.enabledSkills || [];
+    const agentConfig = brand.agentConfig as Record<string, unknown> | null;
+    const enabledSkills: string[] =
+      (agentConfig?.enabledSkills as string[]) || [];
 
     if (!requestedSlugs || requestedSlugs.length === 0) {
       return enabledSkills;
@@ -238,23 +239,25 @@ export class SkillsService {
       return [];
     }
 
-    const skills = await this.skillModel
-      .find({
-        ...this.buildAccessibleSkillFilter(organizationId),
-        slug: { $in: enabledSlugs },
-      })
-      .exec();
+    const skills = await this.prisma.skill.findMany({
+      where: {
+        ...this.buildAccessibleSkillWhere(organizationId),
+        slug: { in: enabledSlugs },
+      } as never,
+    });
 
     const resolvedSkills: ResolvedBrandSkill[] = [];
 
     for (const skill of skills) {
-      if (!this.matchesResolutionContext(skill, options)) {
+      const skillDoc = skill as unknown as SkillDocument;
+
+      if (!this.matchesResolutionContext(skillDoc, options)) {
         continue;
       }
 
       const hasAllProviders = await this.hasRequiredProviders(
         organizationId,
-        skill.requiredProviders,
+        skillDoc.requiredProviders,
       );
 
       if (!hasAllProviders) {
@@ -262,9 +265,9 @@ export class SkillsService {
       }
 
       resolvedSkills.push({
-        priority: enabledSlugs.indexOf(skill.slug),
-        skill,
-        targetSkill: skill,
+        priority: enabledSlugs.indexOf(skillDoc.slug),
+        skill: skillDoc,
+        targetSkill: skillDoc,
         variant: null,
       });
     }
@@ -272,51 +275,23 @@ export class SkillsService {
     return resolvedSkills.sort((left, right) => left.priority - right.priority);
   }
 
-  private buildAccessibleSkillFilter(
+  private buildAccessibleSkillWhere(
     organizationId: string,
-    idOrSlug?: string,
-  ): FilterQuery<SkillDocument> {
-    const organizationScope = this.toOrganizationScope(organizationId);
-    const filter: FilterQuery<SkillDocument> = {
-      ...(organizationScope
-        ? { $or: [organizationScope, { organization: null }] }
-        : { organization: null }),
-      isDeleted: false,
-    };
-
-    if (!idOrSlug) {
-      return filter;
-    }
-
-    if (Types.ObjectId.isValid(idOrSlug)) {
-      filter.$and = [
+  ): Record<string, unknown> {
+    return {
+      AND: [
+        { isDeleted: false },
         {
-          $or: [{ _id: new Types.ObjectId(idOrSlug) }, { slug: idOrSlug }],
+          OR: [{ organizationId }, { organizationId: null }],
         },
-      ];
-      return filter;
-    }
-
-    filter.slug = idOrSlug;
-    return filter;
+      ],
+    };
   }
 
-  private requireOrganizationObjectId(organizationId: string): Types.ObjectId {
-    if (!Types.ObjectId.isValid(organizationId)) {
+  private requireOrganizationId(organizationId: string): void {
+    if (!organizationId) {
       throw new ValidationException('Organization context is required');
     }
-
-    return new Types.ObjectId(organizationId);
-  }
-
-  private toOrganizationScope(
-    organizationId: string,
-  ): FilterQuery<SkillDocument> | null {
-    if (!Types.ObjectId.isValid(organizationId)) {
-      return null;
-    }
-
-    return { organization: new Types.ObjectId(organizationId) };
   }
 
   private buildCustomizedSlug(baseSlug: string): string {

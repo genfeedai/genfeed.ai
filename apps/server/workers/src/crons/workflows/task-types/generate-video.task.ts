@@ -1,8 +1,3 @@
-import {
-  Video,
-  type VideoDocument,
-} from '@api/collections/videos/schemas/video.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { ByokService } from '@api/services/byok/byok.service';
 import { FalService } from '@api/services/integrations/fal/fal.service';
 import { FleetService } from '@api/services/integrations/fleet/fleet.service';
@@ -16,8 +11,6 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
 
 export interface GenerateVideoConfig {
   model: VideoTaskModel;
@@ -54,8 +47,6 @@ export interface GenerateVideoResult {
 @Injectable()
 export class GenerateVideoTask {
   constructor(
-    @InjectModel(Video.name, DB_CONNECTIONS.CLOUD)
-    private readonly videoModel: Model<VideoDocument>,
     private readonly klingaiService: KlingAIService,
     private readonly replicateService: ReplicateService,
     private readonly falService: FalService,
@@ -125,34 +116,10 @@ export class GenerateVideoTask {
           throw new Error(`Unsupported model: ${config.model}`);
       }
 
-      // Save generated video to database
-      const video = new this.videoModel({
-        duration: config.duration || 5,
-        fps: config.fps || 30,
-        isDeleted: false,
-        metadata: {
-          aspectRatio: config.aspectRatio,
-          generatedBy: 'workflow',
-          model: config.model,
-          negativePrompt: config.negativePrompt,
-          prompt: config.prompt,
-          seed: config.seed,
-          style: config.style,
-        },
-        model: config.model,
-        organization: new Types.ObjectId(organizationId),
-        prompt: config.prompt,
-        resolution: config.resolution || '1080p',
-        url: generatedUrl,
-        user: new Types.ObjectId(userId),
-      });
-
-      await video.save();
-
       const generationTime = Date.now() - startTime;
 
       this.logger.log(
-        `Video generated successfully: ${video._id} in ${generationTime}ms`,
+        `Video generated successfully in ${generationTime}ms`,
         'GenerateVideoTask',
       );
 
@@ -164,7 +131,7 @@ export class GenerateVideoTask {
           prompt: config.prompt,
         },
         success: true,
-        videoId: (video._id as Types.ObjectId).toString(),
+        videoId: generatedUrl,
       };
     } catch (error: unknown) {
       this.logger.error('Failed to generate video', error, 'GenerateVideoTask');

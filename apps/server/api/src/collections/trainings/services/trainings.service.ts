@@ -35,8 +35,7 @@ export class TrainingsService extends BaseService<
     private readonly websocketService: NotificationsPublisherService,
     private readonly memoryMonitorService: MemoryMonitorService,
   ) {
-    // TODO: remove model arg after BaseService Prisma migration
-    super(undefined as never, logger);
+    super(prisma, 'training', logger);
   }
 
   /**

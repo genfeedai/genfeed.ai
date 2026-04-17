@@ -1,16 +1,10 @@
-import {
-  Article,
-  type ArticleDocument,
-} from '@api/collections/articles/schemas/article.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ArticleStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
 
 export interface GenerateArticleConfig {
   model: 'gpt-4-turbo-preview' | 'gpt-4' | 'gpt-3.5-turbo' | 'claude-3-opus';
@@ -45,8 +39,7 @@ export interface GenerateArticleResult {
 @Injectable()
 export class GenerateArticleTask {
   constructor(
-    @InjectModel(Article.name, DB_CONNECTIONS.CLOUD)
-    private readonly articleModel: Model<ArticleDocument>,
+    private readonly prisma: PrismaService,
     private readonly replicateService: ReplicateService,
     private readonly logger: LoggerService,
   ) {}
@@ -88,40 +81,26 @@ export class GenerateArticleTask {
       }
 
       // Save generated article to database
-      const article = new this.articleModel({
-        content: articleContent,
-        isDeleted: false,
-        metadata: {
-          generatedBy: 'workflow',
-          keywords: config.keywords,
-          length: config.length,
-          model: config.model,
-          seo: seoMetadata,
-          targetAudience: config.targetAudience,
-          tone: config.tone,
-          topic: config.topic,
+      const article = await this.prisma.article.create({
+        data: {
+          content: articleContent,
+          isDeleted: false,
+          organizationId,
+          status: ArticleStatus.DRAFT as never,
+          title,
+          userId,
         },
-        model: config.model,
-        organization: new Types.ObjectId(organizationId),
-        status: ArticleStatus.DRAFT, // Articles start as draft
-        title,
-        tone: config.tone || 'professional',
-        topic: config.topic,
-        user: new Types.ObjectId(userId),
-        wordCount,
       });
-
-      await article.save();
 
       const generationTime = Date.now() - startTime;
 
       this.logger.log(
-        `Article generated successfully: ${article._id} (${wordCount} words) in ${generationTime}ms`,
+        `Article generated successfully: ${article.id} (${wordCount} words) in ${generationTime}ms`,
         'GenerateArticleTask',
       );
 
       return {
-        articleId: article._id.toString(),
+        articleId: article.id,
         metadata: {
           generationTime,
           model: config.model,

@@ -1,14 +1,10 @@
 import { AgentGoalsService } from '@api/collections/agent-goals/services/agent-goals.service';
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
-import {
-  AgentStrategy,
-  type AgentStrategyDocument,
-} from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.service';
 import { CacheService } from '@api/services/cache/services/cache.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentAutonomyMode,
   AgentExecutionTrigger,
@@ -16,14 +12,49 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Model, Types } from 'mongoose';
+import type { AgentStrategy } from '@prisma/client';
 
 const MAX_CONSECUTIVE_FAILURES = 5;
 const MAX_STRATEGIES_PER_CYCLE = 20;
 const FAILURES_BEFORE_PAUSE = 3;
 const FAILURE_RETRY_MINUTES = 30;
+
+type ContentMixConfig = {
+  imagePercent: number;
+  videoPercent: number;
+  carouselPercent: number;
+};
+
+type AgentStrategyConfig = {
+  agentType?: string;
+  autonomyMode?: AgentAutonomyMode;
+  topics?: string[];
+  voice?: string;
+  platforms?: string[];
+  postsPerWeek?: number;
+  contentMix?: ContentMixConfig;
+  runFrequency?: AgentRunFrequency;
+  dailyCreditBudget?: number;
+  weeklyCreditBudget?: number;
+  minCreditThreshold?: number;
+  creditsUsedToday?: number;
+  dailyCreditsUsed?: number;
+  creditsUsedThisWeek?: number;
+  dailyResetAt?: string;
+  weeklyResetAt?: string;
+  dailyCreditResetAt?: string;
+  nextRunAt?: string;
+  consecutiveFailures?: number;
+  requiresManualReactivation?: boolean;
+  engagementEnabled?: boolean;
+  engagementKeywords?: string[];
+  engagementTone?: string;
+  maxEngagementsPerDay?: number;
+  model?: string;
+};
+
+type AgentStrategyWithConfig = AgentStrategy & { config: AgentStrategyConfig };
 
 @Injectable()
 export class CronProactiveAgentService {
@@ -31,8 +62,7 @@ export class CronProactiveAgentService {
   private static readonly LOCK_TTL_SECONDS = 900; // 15 minutes
 
   constructor(
-    @InjectModel(AgentStrategy.name, DB_CONNECTIONS.AGENT)
-    private readonly agentStrategyModel: Model<AgentStrategyDocument>,
+    private readonly prisma: PrismaService,
     private readonly agentRunsService: AgentRunsService,
     private readonly agentRunQueueService: AgentRunQueueService,
     private readonly creditsUtilsService: CreditsUtilsService,
@@ -74,17 +104,29 @@ export class CronProactiveAgentService {
 
       const now = new Date();
 
-      // Find strategies that are due to run
-      const dueStrategies = await this.agentStrategyModel
-        .find({
-          consecutiveFailures: { $lt: MAX_CONSECUTIVE_FAILURES },
+      // Fetch active, non-deleted strategies; filter in-memory for nextRunAt and budget/failure constraints
+      const allActive = (await this.prisma.agentStrategy.findMany({
+        take: MAX_STRATEGIES_PER_CYCLE * 5, // over-fetch to compensate for in-memory filter
+        where: {
           isActive: true,
           isDeleted: false,
-          nextRunAt: { $lte: now },
-          requiresManualReactivation: { $ne: true },
+        },
+      })) as AgentStrategyWithConfig[];
+
+      const dueStrategies = allActive
+        .filter((s) => {
+          const cfg = (s.config ?? {}) as AgentStrategyConfig;
+          const consecutiveFailures = cfg.consecutiveFailures ?? 0;
+          const requiresManualReactivation =
+            cfg.requiresManualReactivation ?? false;
+          const nextRunAt = cfg.nextRunAt ? new Date(cfg.nextRunAt) : null;
+          return (
+            consecutiveFailures < MAX_CONSECUTIVE_FAILURES &&
+            !requiresManualReactivation &&
+            (!nextRunAt || nextRunAt <= now)
+          );
         })
-        .limit(MAX_STRATEGIES_PER_CYCLE)
-        .exec();
+        .slice(0, MAX_STRATEGIES_PER_CYCLE);
 
       this.logger.log(
         `Found ${dueStrategies.length} strategies due for execution`,
@@ -98,7 +140,7 @@ export class CronProactiveAgentService {
           const message =
             error instanceof Error ? error.message : 'Unknown error';
           this.logger.error(
-            `Strategy ${strategy._id} failed: ${message}`,
+            `Strategy ${strategy.id} failed: ${message}`,
             'CronProactiveAgentService',
           );
         }
@@ -124,15 +166,17 @@ export class CronProactiveAgentService {
    * Execute a single strategy — build prompt, call orchestrator, record results
    */
   private async executeStrategy(
-    strategy: AgentStrategyDocument,
+    strategy: AgentStrategyWithConfig,
   ): Promise<void> {
-    const orgId = strategy.organization.toString();
-    const userId = strategy.user.toString();
-    const strategyId = String(strategy._id);
+    const orgId = strategy.organizationId;
+    const userId = strategy.userId;
+    const strategyId = strategy.id;
+    const cfg = (strategy.config ?? {}) as AgentStrategyConfig;
+
     const organizationSettings = await this.organizationSettingsService.findOne(
       {
         isDeleted: false,
-        organization: new Types.ObjectId(orgId),
+        organization: orgId,
       },
     );
     const orgAgentDailyCap =
@@ -141,14 +185,17 @@ export class CronProactiveAgentService {
     const brandDailyCap =
       organizationSettings?.agentPolicy?.creditGovernance
         ?.brandDailyCreditCap ?? null;
+
+    const dailyCreditBudget = cfg.dailyCreditBudget ?? 0;
+    const weeklyCreditBudget = cfg.weeklyCreditBudget ?? 0;
     const effectiveDailyBudget = orgAgentDailyCap
-      ? Math.min(strategy.dailyCreditBudget, orgAgentDailyCap)
-      : strategy.dailyCreditBudget;
+      ? Math.min(dailyCreditBudget, orgAgentDailyCap)
+      : dailyCreditBudget;
 
     // Budget check
     const dailyCreditsUsed = Math.max(
-      strategy.creditsUsedToday || 0,
-      strategy.dailyCreditsUsed || 0,
+      cfg.creditsUsedToday ?? 0,
+      cfg.dailyCreditsUsed ?? 0,
     );
 
     if (dailyCreditsUsed >= effectiveDailyBudget) {
@@ -156,31 +203,32 @@ export class CronProactiveAgentService {
         `Strategy ${strategyId} daily budget exhausted (${dailyCreditsUsed}/${effectiveDailyBudget})`,
         'CronProactiveAgentService',
       );
-      await this.scheduleNextRun(strategyId, strategy.runFrequency);
+      await this.scheduleNextRun(strategyId, cfg.runFrequency);
       return;
     }
 
-    if (strategy.creditsUsedThisWeek >= strategy.weeklyCreditBudget) {
+    const creditsUsedThisWeek = cfg.creditsUsedThisWeek ?? 0;
+    if (creditsUsedThisWeek >= weeklyCreditBudget) {
       this.logger.log(
-        `Strategy ${strategyId} weekly budget exhausted (${strategy.creditsUsedThisWeek}/${strategy.weeklyCreditBudget})`,
+        `Strategy ${strategyId} weekly budget exhausted (${creditsUsedThisWeek}/${weeklyCreditBudget})`,
         'CronProactiveAgentService',
       );
-      await this.scheduleNextRun(strategyId, strategy.runFrequency);
+      await this.scheduleNextRun(strategyId, cfg.runFrequency);
       return;
     }
 
-    if (brandDailyCap && strategy.brand) {
+    if (brandDailyCap && strategy.brandId) {
       const brandCreditsUsedToday = await this.getBrandCreditsUsedToday(
         orgId,
-        strategy.brand.toString(),
+        strategy.brandId,
       );
 
       if (brandCreditsUsedToday >= brandDailyCap) {
         this.logger.log(
-          `Brand ${strategy.brand.toString()} daily cap exhausted (${brandCreditsUsedToday}/${brandDailyCap}) for strategy ${strategyId}`,
+          `Brand ${strategy.brandId} daily cap exhausted (${brandCreditsUsedToday}/${brandDailyCap}) for strategy ${strategyId}`,
           'CronProactiveAgentService',
         );
-        await this.scheduleNextRun(strategyId, strategy.runFrequency);
+        await this.scheduleNextRun(strategyId, cfg.runFrequency);
         return;
       }
     }
@@ -189,23 +237,24 @@ export class CronProactiveAgentService {
     const orgBalance =
       await this.creditsUtilsService.getOrganizationCreditsBalance(orgId);
 
-    const minCreditThreshold = strategy.minCreditThreshold || 50;
+    const minCreditThreshold = cfg.minCreditThreshold ?? 50;
     if (orgBalance < minCreditThreshold) {
       this.logger.warn(
         `Organization ${orgId} credits below threshold (${orgBalance} < ${minCreditThreshold}) — pausing strategy ${strategyId}`,
         'CronProactiveAgentService',
       );
       // Auto-pause the strategy
-      await this.agentStrategyModel.updateOne(
-        { _id: strategy._id },
-        { $set: { isActive: false } },
-      );
+      const updatedCfg: AgentStrategyConfig = { ...cfg };
+      await this.prisma.agentStrategy.update({
+        data: { isActive: false },
+        where: { id: strategyId },
+      });
       return;
     }
 
     const remainingBudget = Math.min(
       effectiveDailyBudget - dailyCreditsUsed,
-      strategy.weeklyCreditBudget - strategy.creditsUsedThisWeek,
+      weeklyCreditBudget - creditsUsedThisWeek,
     );
 
     // Build the synthetic user message for the objective
@@ -217,21 +266,21 @@ export class CronProactiveAgentService {
         creditBudget: remainingBudget,
         label: `Proactive: ${strategy.label}`,
         objective: userMessage,
-        organization: strategy.organization,
-        strategy: strategy._id as unknown as import('mongoose').Types.ObjectId,
+        organization: orgId,
+        strategy: strategyId,
         trigger: AgentExecutionTrigger.CRON,
-        user: strategy.user,
+        user: userId,
       });
 
       // Enqueue for async processing instead of direct execution
       await this.agentRunQueueService.queueRun({
-        agentType: strategy.agentType,
-        autonomyMode: strategy.autonomyMode,
+        agentType: cfg.agentType,
+        autonomyMode: cfg.autonomyMode,
         creditBudget: remainingBudget,
-        model: strategy.model,
+        model: cfg.model,
         objective: userMessage,
         organizationId: orgId,
-        runId: String(run._id),
+        runId: run.id,
         strategyId,
         userId,
       });
@@ -240,26 +289,32 @@ export class CronProactiveAgentService {
       // in the processor after actual execution — not here at queue time.
       // See: agent-run.processor.ts (fix for #420)
 
-      await this.scheduleNextRun(strategyId, strategy.runFrequency);
+      await this.scheduleNextRun(strategyId, cfg.runFrequency);
 
       this.logger.log(
-        `Strategy ${strategyId} queued as agent run ${String(run._id)}`,
+        `Strategy ${strategyId} queued as agent run ${run.id}`,
         'CronProactiveAgentService',
       );
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
 
       // Increment failure counter
-      const newFailureCount = strategy.consecutiveFailures + 1;
+      const consecutiveFailures = cfg.consecutiveFailures ?? 0;
+      const newFailureCount = consecutiveFailures + 1;
       const shouldPause = newFailureCount >= FAILURES_BEFORE_PAUSE;
 
-      await this.agentStrategyModel.updateOne(
-        { _id: strategy._id },
-        {
-          $inc: { consecutiveFailures: 1 },
-          ...(shouldPause ? { $set: { isActive: false } } : {}),
+      const updatedCfg: AgentStrategyConfig = {
+        ...cfg,
+        consecutiveFailures: newFailureCount,
+      };
+
+      await this.prisma.agentStrategy.update({
+        data: {
+          config: updatedCfg as never,
+          ...(shouldPause ? { isActive: false } : {}),
         },
-      );
+        where: { id: strategyId },
+      });
 
       if (shouldPause) {
         this.logger.warn(
@@ -268,16 +323,20 @@ export class CronProactiveAgentService {
         );
 
         if (newFailureCount >= MAX_CONSECUTIVE_FAILURES) {
-          await this.agentStrategyModel.updateOne(
-            { _id: strategy._id },
-            { $set: { requiresManualReactivation: true } },
-          );
+          const cfgWithReactivation: AgentStrategyConfig = {
+            ...updatedCfg,
+            requiresManualReactivation: true,
+          };
+          await this.prisma.agentStrategy.update({
+            data: { config: cfgWithReactivation as never },
+            where: { id: strategyId },
+          });
         }
       }
 
       await this.scheduleNextRun(
         strategyId,
-        strategy.runFrequency,
+        cfg.runFrequency,
         FAILURE_RETRY_MINUTES,
       );
 
@@ -291,32 +350,34 @@ export class CronProactiveAgentService {
   /**
    * Build the strategy-aware system prompt for the proactive agent
    */
-  private buildProactiveSystemPrompt(strategy: AgentStrategyDocument): string {
-    const remainingDaily = Math.max(
-      0,
-      strategy.dailyCreditBudget - strategy.creditsUsedToday,
-    );
+  private buildProactiveSystemPrompt(
+    strategy: AgentStrategyWithConfig,
+  ): string {
+    const cfg = (strategy.config ?? {}) as AgentStrategyConfig;
+    const dailyCreditBudget = cfg.dailyCreditBudget ?? 0;
+    const creditsUsedToday = cfg.creditsUsedToday ?? 0;
+    const remainingDaily = Math.max(0, dailyCreditBudget - creditsUsedToday);
 
-    const contentMix = strategy.contentMix;
+    const contentMix = cfg.contentMix;
     const mixDescription = contentMix
       ? `${contentMix.imagePercent}% images, ${contentMix.videoPercent}% videos, ${contentMix.carouselPercent}% carousels`
       : 'default mix';
 
-    const engagementSection = strategy.engagementEnabled
+    const engagementSection = cfg.engagementEnabled
       ? `
 ENGAGEMENT CONFIG:
-- Keywords: ${strategy.engagementKeywords.join(', ')}
-- Tone: ${strategy.engagementTone || 'professional'}
-- Max per day: ${strategy.maxEngagementsPerDay}`
+- Keywords: ${(cfg.engagementKeywords ?? []).join(', ')}
+- Tone: ${cfg.engagementTone ?? 'professional'}
+- Max per day: ${cfg.maxEngagementsPerDay ?? 0}`
       : '';
 
     return `You are the GenFeed Proactive Agent running autonomously for an organization.
 
-STRATEGY: ${strategy.label}
-TOPICS: ${strategy.topics.join(', ')}
-VOICE: ${strategy.voice || 'Professional and engaging'}
-PLATFORMS: ${strategy.platforms.join(', ')}
-TARGET: ${strategy.postsPerWeek} posts/week
+STRATEGY: ${strategy.label ?? ''}
+TOPICS: ${(cfg.topics ?? []).join(', ')}
+VOICE: ${cfg.voice ?? 'Professional and engaging'}
+PLATFORMS: ${(cfg.platforms ?? []).join(', ')}
+TARGET: ${cfg.postsPerWeek ?? 0} posts/week
 CONTENT MIX: ${mixDescription}
 CREDIT BUDGET REMAINING TODAY: ${remainingDaily}
 ${engagementSection}
@@ -326,16 +387,16 @@ TASKS (priority order):
 2. Use analyze_performance to understand what content works best
 3. Use get_top_ingredients to identify the most-voted ingredients in the organization
 4. When top-voted ingredients exist, use replicate_top_ingredient and create variations before net-new generation
-5. Use generate_content_batch to fill weekly content gaps (target: ${strategy.postsPerWeek} posts/week)
-${strategy.engagementEnabled ? '6. Use discover_engagements to find relevant posts to engage with\n7. Use draft_engagement_reply to create replies for the best opportunities' : ''}
+5. Use generate_content_batch to fill weekly content gaps (target: ${cfg.postsPerWeek ?? 0} posts/week)
+${cfg.engagementEnabled ? '6. Use discover_engagements to find relevant posts to engage with\n7. Use draft_engagement_reply to create replies for the best opportunities' : ''}
 8. Use get_approval_summary to check pending items
 9. Use update_strategy_state to record what you accomplished
 
-AUTONOMY MODE: ${strategy.autonomyMode === AgentAutonomyMode.AUTO_PUBLISH ? 'AUTO-PUBLISH — content above confidence threshold is published directly' : 'SUPERVISED — ALL content goes to the review queue, never publish directly'}
+AUTONOMY MODE: ${cfg.autonomyMode === AgentAutonomyMode.AUTO_PUBLISH ? 'AUTO-PUBLISH — content above confidence threshold is published directly' : 'SUPERVISED — ALL content goes to the review queue, never publish directly'}
 
 RULES:
 - Stay within the credit budget (${remainingDaily} credits remaining today)
-- Use the brand voice consistently: ${strategy.voice || 'professional'}
+- Use the brand voice consistently: ${cfg.voice ?? 'professional'}
 - Be efficient — accomplish as much as possible within budget
 - If budget is nearly exhausted, prioritize content generation over engagement
 
@@ -346,31 +407,32 @@ Today's date: {{date}}`;
    * Build the synthetic user message that triggers the proactive session
    */
   private async buildSyntheticUserMessage(
-    strategy: AgentStrategyDocument,
+    strategy: AgentStrategyWithConfig,
   ): Promise<string> {
+    const cfg = (strategy.config ?? {}) as AgentStrategyConfig;
     const tasks: string[] = [
       'Check the content calendar for gaps this week',
-      `Generate content to maintain ${strategy.postsPerWeek} posts/week cadence`,
+      `Generate content to maintain ${cfg.postsPerWeek ?? 0} posts/week cadence`,
     ];
 
     if (strategy.goalId) {
       const goalSummary = await this.agentGoalsService.getGoalSummary(
-        String(strategy.goalId),
-        String(strategy.organization),
+        strategy.goalId,
+        strategy.organizationId,
       );
       tasks.push(`Advance the linked goal: ${goalSummary}`);
     }
 
-    if (strategy.engagementEnabled) {
+    if (cfg.engagementEnabled) {
       tasks.push(
-        `Find engagement opportunities for keywords: ${strategy.engagementKeywords.join(', ')}`,
+        `Find engagement opportunities for keywords: ${(cfg.engagementKeywords ?? []).join(', ')}`,
         'Draft replies for the most relevant opportunities',
       );
     }
 
     tasks.push('Summarize what you accomplished');
 
-    return `Run proactive session for strategy "${strategy.label}". Tasks:\n${tasks.map((t, i) => `${i + 1}. ${t}`).join('\n')}`;
+    return `Run proactive session for strategy "${strategy.label ?? ''}". Tasks:\n${tasks.map((t, i) => `${i + 1}. ${t}`).join('\n')}`;
   }
 
   /**
@@ -378,7 +440,7 @@ Today's date: {{date}}`;
    */
   private async scheduleNextRun(
     strategyId: string,
-    frequency: AgentRunFrequency,
+    frequency: AgentRunFrequency | undefined,
     retryInMinutes?: number,
   ): Promise<void> {
     const now = new Date();
@@ -386,29 +448,34 @@ Today's date: {{date}}`;
 
     if (retryInMinutes && retryInMinutes > 0) {
       nextRun = new Date(now.getTime() + retryInMinutes * 60 * 1000);
-      await this.agentStrategyModel.updateOne(
-        { _id: strategyId },
-        { $set: { nextRunAt: nextRun } },
-      );
-      return;
+    } else {
+      switch (frequency) {
+        case AgentRunFrequency.EVERY_6_HOURS:
+          nextRun = new Date(now.getTime() + 6 * 60 * 60 * 1000);
+          break;
+        case AgentRunFrequency.TWICE_DAILY:
+          nextRun = new Date(now.getTime() + 12 * 60 * 60 * 1000);
+          break;
+        default:
+          nextRun = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+          break;
+      }
     }
 
-    switch (frequency) {
-      case AgentRunFrequency.EVERY_6_HOURS:
-        nextRun = new Date(now.getTime() + 6 * 60 * 60 * 1000);
-        break;
-      case AgentRunFrequency.TWICE_DAILY:
-        nextRun = new Date(now.getTime() + 12 * 60 * 60 * 1000);
-        break;
-      default:
-        nextRun = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-        break;
-    }
-
-    await this.agentStrategyModel.updateOne(
-      { _id: strategyId },
-      { $set: { nextRunAt: nextRun } },
-    );
+    // Read current config, update nextRunAt, write back
+    const record = await this.prisma.agentStrategy.findFirst({
+      where: { id: strategyId },
+    });
+    if (!record) return;
+    const existingCfg = (record.config ?? {}) as AgentStrategyConfig;
+    const updatedCfg: AgentStrategyConfig = {
+      ...existingCfg,
+      nextRunAt: nextRun.toISOString(),
+    };
+    await this.prisma.agentStrategy.update({
+      data: { config: updatedCfg as never },
+      where: { id: strategyId },
+    });
   }
 
   /**
@@ -417,45 +484,43 @@ Today's date: {{date}}`;
   private async resetCreditCounters(): Promise<void> {
     const now = new Date();
 
-    // Reset daily counters (includes strategies with unset dailyResetAt)
-    await this.agentStrategyModel.updateMany(
-      {
-        $or: [
-          { dailyResetAt: { $lte: now } },
-          { dailyResetAt: { $exists: false } },
-          { dailyResetAt: null },
-        ],
-        isActive: true,
-        isDeleted: false,
-      },
-      {
-        $set: {
-          creditsUsedToday: 0,
-          dailyCreditResetAt: this.getNextDailyReset(),
-          dailyCreditsUsed: 0,
-          dailyResetAt: this.getNextDailyReset(),
-        },
-      },
-    );
+    // Fetch all active, non-deleted strategies to reset in-memory (no JSON filter in Prisma)
+    const strategies = (await this.prisma.agentStrategy.findMany({
+      where: { isActive: true, isDeleted: false },
+    })) as AgentStrategyWithConfig[];
 
-    // Reset weekly counters (includes strategies with unset weeklyResetAt)
-    await this.agentStrategyModel.updateMany(
-      {
-        $or: [
-          { weeklyResetAt: { $lte: now } },
-          { weeklyResetAt: { $exists: false } },
-          { weeklyResetAt: null },
-        ],
-        isActive: true,
-        isDeleted: false,
-      },
-      {
-        $set: {
-          creditsUsedThisWeek: 0,
-          weeklyResetAt: this.getNextWeeklyReset(),
-        },
-      },
-    );
+    for (const strategy of strategies) {
+      const cfg = (strategy.config ?? {}) as AgentStrategyConfig;
+      let updated = false;
+      const updatedCfg: AgentStrategyConfig = { ...cfg };
+
+      // Reset daily counters
+      const dailyResetAt = cfg.dailyResetAt ? new Date(cfg.dailyResetAt) : null;
+      if (!dailyResetAt || dailyResetAt <= now) {
+        updatedCfg.creditsUsedToday = 0;
+        updatedCfg.dailyCreditsUsed = 0;
+        updatedCfg.dailyResetAt = this.getNextDailyReset().toISOString();
+        updatedCfg.dailyCreditResetAt = this.getNextDailyReset().toISOString();
+        updated = true;
+      }
+
+      // Reset weekly counters
+      const weeklyResetAt = cfg.weeklyResetAt
+        ? new Date(cfg.weeklyResetAt)
+        : null;
+      if (!weeklyResetAt || weeklyResetAt <= now) {
+        updatedCfg.creditsUsedThisWeek = 0;
+        updatedCfg.weeklyResetAt = this.getNextWeeklyReset().toISOString();
+        updated = true;
+      }
+
+      if (updated) {
+        await this.prisma.agentStrategy.update({
+          data: { config: updatedCfg as never },
+          where: { id: strategy.id },
+        });
+      }
+    }
   }
 
   private getNextDailyReset(): Date {
@@ -478,31 +543,19 @@ Today's date: {{date}}`;
     organizationId: string,
     brandId: string,
   ): Promise<number> {
-    const results = await this.agentStrategyModel.aggregate<{
-      totalCreditsUsedToday?: number;
-    }>([
-      {
-        $match: {
-          brand: new Types.ObjectId(brandId),
-          isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
-        },
+    const strategies = (await this.prisma.agentStrategy.findMany({
+      where: {
+        brandId,
+        isDeleted: false,
+        organizationId,
       },
-      {
-        $group: {
-          _id: null,
-          totalCreditsUsedToday: {
-            $sum: {
-              $max: [
-                { $ifNull: ['$creditsUsedToday', 0] },
-                { $ifNull: ['$dailyCreditsUsed', 0] },
-              ],
-            },
-          },
-        },
-      },
-    ]);
+    })) as AgentStrategyWithConfig[];
 
-    return results[0]?.totalCreditsUsedToday ?? 0;
+    return strategies.reduce((sum, s) => {
+      const cfg = (s.config ?? {}) as AgentStrategyConfig;
+      return (
+        sum + Math.max(cfg.creditsUsedToday ?? 0, cfg.dailyCreditsUsed ?? 0)
+      );
+    }, 0);
   }
 }
