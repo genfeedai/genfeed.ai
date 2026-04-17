@@ -1,4 +1,10 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GenerateWorkflowModal } from './GenerateWorkflowModal';
 
@@ -267,7 +273,9 @@ describe('GenerateWorkflowModal', () => {
       const generateButton = screen
         .getByText('Generate Workflow')
         .closest('button');
-      if (generateButton) fireEvent.click(generateButton);
+      await act(async () => {
+        if (generateButton) fireEvent.click(generateButton);
+      });
 
       await waitFor(() => {
         expect(
