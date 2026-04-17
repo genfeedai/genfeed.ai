@@ -1,31 +1,24 @@
-import {
-  ContentRun,
-  type ContentRunDocument,
-} from '@api/collections/content-runs/schemas/content-run.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentRunStatus } from '@genfeedai/enums';
 import type {
   CreateContentRunInput,
   UpdateContentRunInput,
 } from '@genfeedai/interfaces';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
 
 @Injectable()
 export class ContentRunsService {
-  constructor(
-    @InjectModel(ContentRun.name, DB_CONNECTIONS.CLOUD)
-    private readonly contentRunModel: Model<ContentRunDocument>,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  createRun(payload: CreateContentRunInput): Promise<ContentRunDocument> {
-    return this.contentRunModel.create({
-      ...payload,
-      brand: new Types.ObjectId(payload.brand),
-      isDeleted: false,
-      organization: new Types.ObjectId(payload.organization),
+  createRun(payload: CreateContentRunInput): Promise<Record<string, unknown>> {
+    return this.prisma.contentRun.create({
+      data: {
+        ...payload,
+        brandId: payload.brand,
+        isDeleted: false,
+        organizationId: payload.organization,
+      },
     });
   }
 
@@ -33,23 +26,19 @@ export class ContentRunsService {
     organizationId: string,
     runId: string,
     patch: UpdateContentRunInput,
-  ): Promise<ContentRunDocument> {
-    const filter = {
-      _id: new Types.ObjectId(runId),
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-    };
-    const result = (await this.contentRunModel.findOneAndUpdate(
-      filter as never,
-      { $set: patch } as never,
-      { new: true },
-    )) as ContentRunDocument | null;
+  ): Promise<Record<string, unknown>> {
+    const existing = await this.prisma.contentRun.findFirst({
+      where: { id: runId, isDeleted: false, organizationId },
+    });
 
-    if (!result) {
+    if (!existing) {
       throw new NotFoundException('ContentRun', runId);
     }
 
-    return result;
+    return this.prisma.contentRun.update({
+      data: patch,
+      where: { id: runId },
+    });
   }
 
   listByBrand(
@@ -57,35 +46,29 @@ export class ContentRunsService {
     brandId: string,
     skillSlug?: string,
     status?: ContentRunStatus,
-  ): Promise<ContentRunDocument[]> {
-    const query: Record<string, unknown> = {
-      brand: new Types.ObjectId(brandId),
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-    };
-
-    if (skillSlug) {
-      query.skillSlug = skillSlug;
-    }
-
-    if (status) {
-      query.status = status;
-    }
-
-    return this.contentRunModel
-      .find(query as never)
-      .sort({ createdAt: -1 })
-      .lean();
+  ): Promise<Record<string, unknown>[]> {
+    return this.prisma.contentRun.findMany({
+      orderBy: { createdAt: 'desc' },
+      where: {
+        brandId,
+        isDeleted: false,
+        organizationId,
+        ...(skillSlug ? { skillSlug } : {}),
+        ...(status ? { status } : {}),
+      },
+    });
   }
 
   getRunById(
     organizationId: string,
     runId: string,
-  ): Promise<ContentRunDocument | null> {
-    return this.contentRunModel.findOne({
-      _id: new Types.ObjectId(runId),
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-    } as never);
+  ): Promise<Record<string, unknown> | null> {
+    return this.prisma.contentRun.findFirst({
+      where: {
+        id: runId,
+        isDeleted: false,
+        organizationId,
+      },
+    });
   }
 }

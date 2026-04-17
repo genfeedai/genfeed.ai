@@ -1,17 +1,22 @@
 import { CreateMonitoredAccountDto } from '@api/collections/monitored-accounts/dto/create-monitored-account.dto';
 import { UpdateMonitoredAccountDto } from '@api/collections/monitored-accounts/dto/update-monitored-account.dto';
-import {
-  MonitoredAccount,
-  type MonitoredAccountDocument,
-} from '@api/collections/monitored-accounts/schemas/monitored-account.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { MonitoredAccountDocument } from '@api/collections/monitored-accounts/schemas/monitored-account.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
+
+type AccountConfig = {
+  isActive?: boolean;
+  twitterUserId?: string;
+  lastCheckedAt?: string;
+  lastCheckedTweetId?: string;
+  lastProcessedAt?: string;
+  lastProcessedTweetId?: string;
+  tweetsProcessedCount?: number;
+  repliesSentCount?: number;
+};
 
 @Injectable()
 export class MonitoredAccountsService extends BaseService<
@@ -20,11 +25,11 @@ export class MonitoredAccountsService extends BaseService<
   UpdateMonitoredAccountDto
 > {
   constructor(
-    @InjectModel(MonitoredAccount.name, DB_CONNECTIONS.CLOUD)
-    model: AggregatePaginateModel<MonitoredAccountDocument>,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 
   create(
@@ -58,118 +63,176 @@ export class MonitoredAccountsService extends BaseService<
     organizationId: string,
     brandId?: string,
   ): Promise<MonitoredAccountDocument> {
-    const account = await this.findOne({
-      ...(brandId ? { brand: new Types.ObjectId(brandId) } : {}),
-      _id: new Types.ObjectId(id),
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+    const account = await this.prisma.monitoredAccount.findFirst({
+      where: {
+        id,
+        isDeleted: false,
+        organizationId,
+        ...(brandId ? { brandId } : {}),
+      },
     });
 
     if (!account) {
       throw new NotFoundException(`Monitored account ${id} not found`);
     }
 
-    return this.patch(id, {
-      isActive: !account.isActive,
-    } as UpdateMonitoredAccountDto);
+    const config = (account.config as AccountConfig) ?? {};
+    const updated = await this.prisma.monitoredAccount.update({
+      where: { id },
+      data: { config: { ...config, isActive: !config.isActive } },
+    });
+
+    return updated as unknown as MonitoredAccountDocument;
   }
 
   /**
    * Find all active monitored accounts for an organization
    */
-  findActiveByOrganization(
+  async findActiveByOrganization(
     organizationId: string,
   ): Promise<MonitoredAccountDocument[]> {
-    return this.find({
-      isActive: true,
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+    const accounts = await this.prisma.monitoredAccount.findMany({
+      where: { isDeleted: false, organizationId },
     });
+
+    // isActive is stored in config JSON
+    const active = accounts.filter(
+      (a) => ((a.config as AccountConfig)?.isActive ?? true) !== false,
+    );
+
+    return active as unknown as MonitoredAccountDocument[];
   }
 
   /**
    * Update the last checked tweet info after polling
    */
-  updateLastChecked(
+  async updateLastChecked(
     id: string,
     lastCheckedTweetId: string,
   ): Promise<MonitoredAccountDocument> {
-    return this.patch(id, {
-      lastCheckedAt: new Date(),
-      lastCheckedTweetId,
-    } as UpdateMonitoredAccountDto);
+    const existing = await this.prisma.monitoredAccount.findUnique({
+      where: { id },
+    });
+    const config = (existing?.config as AccountConfig) ?? {};
+
+    const updated = await this.prisma.monitoredAccount.update({
+      where: { id },
+      data: {
+        config: {
+          ...config,
+          lastCheckedAt: new Date().toISOString(),
+          lastCheckedTweetId,
+        },
+      },
+    });
+
+    return updated as unknown as MonitoredAccountDocument;
   }
 
   /**
    * Increment the tweets processed count
    */
   async incrementProcessedCount(id: string): Promise<void> {
-    await this.model.updateOne(
-      { _id: new Types.ObjectId(id) },
-      { $inc: { tweetsProcessedCount: 1 } },
-    );
+    const existing = await this.prisma.monitoredAccount.findUnique({
+      where: { id },
+    });
+    const config = (existing?.config as AccountConfig) ?? {};
+
+    await this.prisma.monitoredAccount.update({
+      where: { id },
+      data: {
+        config: {
+          ...config,
+          tweetsProcessedCount: (config.tweetsProcessedCount ?? 0) + 1,
+        },
+      },
+    });
   }
 
   /**
    * Increment the replies sent count
    */
   async incrementRepliesCount(id: string): Promise<void> {
-    await this.model.updateOne(
-      { _id: new Types.ObjectId(id) },
-      { $inc: { repliesSentCount: 1 } },
-    );
+    const existing = await this.prisma.monitoredAccount.findUnique({
+      where: { id },
+    });
+    const config = (existing?.config as AccountConfig) ?? {};
+
+    await this.prisma.monitoredAccount.update({
+      where: { id },
+      data: {
+        config: {
+          ...config,
+          repliesSentCount: (config.repliesSentCount ?? 0) + 1,
+        },
+      },
+    });
   }
 
   /**
-   * Find by Twitter user ID
+   * Find by Twitter user ID (stored in config JSON)
    */
-  findByTwitterUserId(
+  async findByTwitterUserId(
     twitterUserId: string,
     organizationId: string,
   ): Promise<MonitoredAccountDocument | null> {
-    return this.findOne({
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-      twitterUserId,
+    const accounts = await this.prisma.monitoredAccount.findMany({
+      where: { isDeleted: false, organizationId },
     });
+
+    const match = accounts.find(
+      (a) => (a.config as AccountConfig)?.twitterUserId === twitterUserId,
+    );
+
+    return (match ?? null) as unknown as MonitoredAccountDocument | null;
   }
 
   /**
    * Find all active monitored accounts linked to a specific bot config
    */
-  findByBotConfig(
+  async findByBotConfig(
     botConfigId: string,
     organizationId: string,
   ): Promise<MonitoredAccountDocument[]> {
-    return this.find({
-      botConfig: new Types.ObjectId(botConfigId),
-      isActive: true,
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+    const accounts = await this.prisma.monitoredAccount.findMany({
+      where: { botConfigId, isDeleted: false, organizationId },
     });
+
+    // filter by isActive from config
+    const active = accounts.filter(
+      (a) => ((a.config as AccountConfig)?.isActive ?? true) !== false,
+    );
+
+    return active as unknown as MonitoredAccountDocument[];
   }
 
   /**
    * Update the last processed tweet ID after processing tweets
    */
-  updateLastProcessed(
+  async updateLastProcessed(
     id: string,
     organizationId: string,
     lastProcessedTweetId: string,
   ): Promise<MonitoredAccountDocument | null> {
-    return this.model.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(id),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      {
-        $set: {
-          lastProcessedAt: new Date(),
+    const existing = await this.prisma.monitoredAccount.findFirst({
+      where: { id, isDeleted: false, organizationId },
+    });
+
+    if (!existing) return null;
+
+    const config = (existing.config as AccountConfig) ?? {};
+
+    const updated = await this.prisma.monitoredAccount.update({
+      where: { id },
+      data: {
+        config: {
+          ...config,
+          lastProcessedAt: new Date().toISOString(),
           lastProcessedTweetId,
         },
       },
-      { returnDocument: 'after' },
-    );
+    });
+
+    return updated as unknown as MonitoredAccountDocument;
   }
 }

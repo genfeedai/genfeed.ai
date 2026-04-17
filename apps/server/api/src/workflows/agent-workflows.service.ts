@@ -1,4 +1,4 @@
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   computeAgentWorkflowGateStatus,
   getNextAgentWorkflowPhase,
@@ -9,23 +9,31 @@ import type {
   AgentWorkflowActor,
   AgentWorkflowDocumentShape,
   AgentWorkflowPhase,
+  AgentWorkflowPhaseHistoryEntry,
   AgentWorkflowTrigger,
 } from '@api/workflows/agent-workflows.types';
 import { CreateAgentWorkflowDto } from '@api/workflows/dto/create-agent-workflow.dto';
 import { UpdateAgentWorkflowStateDto } from '@api/workflows/dto/update-agent-workflow-state.dto';
-import {
-  AgentWorkflow,
-  type AgentWorkflowDocument,
-} from '@api/workflows/schemas/agent-workflow.schema';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import type { Model } from 'mongoose';
-import { Types } from 'mongoose';
+import type { AgentWorkflow } from '@prisma/client';
+
+type WorkflowConfig = AgentWorkflowDocumentShape & {
+  agentId: string;
+  gateStatus: Record<AgentWorkflowPhase, boolean>;
+  phaseHistory: Array<{
+    from: AgentWorkflowPhase;
+    to: AgentWorkflowPhase;
+    trigger: AgentWorkflowTrigger;
+    actor: AgentWorkflowActor;
+    timestamp: string;
+  }>;
+  linkedConversationId: string | null;
+};
 
 type WorkflowApiState = {
   id: string;
@@ -40,19 +48,18 @@ type WorkflowApiState = {
     timestamp: string;
   }>;
   linkedConversationId: string | null;
-  questions: AgentWorkflowDocument['questions'];
-  approaches: AgentWorkflowDocument['approaches'];
+  questions: AgentWorkflowDocumentShape['questions'];
+  approaches: AgentWorkflowDocumentShape['approaches'];
   selectedApproachId: string | null;
-  verificationEvidence: AgentWorkflowDocument['verificationEvidence'];
-  messages: AgentWorkflowDocument['messages'];
+  verificationEvidence: AgentWorkflowDocumentShape['verificationEvidence'];
+  messages: AgentWorkflowDocumentShape['messages'];
   isLocked: boolean;
 };
 
 @Injectable()
 export class AgentWorkflowsService {
   constructor(
-    @InjectModel(AgentWorkflow.name, DB_CONNECTIONS.AGENT)
-    private readonly model: Model<AgentWorkflowDocument>,
+    private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -71,14 +78,20 @@ export class AgentWorkflowsService {
       verificationEvidence: [],
     };
 
-    const workflow = await this.model.create({
+    const config: WorkflowConfig = {
       ...initialState,
       agentId: dto.agentId,
       gateStatus: computeAgentWorkflowGateStatus(initialState),
       linkedConversationId: dto.linkedConversationId ?? null,
-      organization: new Types.ObjectId(organizationId),
       phaseHistory: [],
-      user: new Types.ObjectId(userId),
+    };
+
+    const workflow = await this.prisma.agentWorkflow.create({
+      data: {
+        config: config as never,
+        organizationId,
+        userId,
+      },
     });
 
     return this.toApiState(workflow);
@@ -99,25 +112,26 @@ export class AgentWorkflowsService {
     state?: UpdateAgentWorkflowStateDto,
   ): Promise<WorkflowApiState> {
     const workflow = await this.findWorkflow(workflowId, organizationId);
-    this.applyStateUpdate(workflow, state);
+    const config = this.getConfig(workflow);
+    this.applyStateUpdate(config, state);
 
     if (
-      !isAgentWorkflowGateMetForPhase(workflow.currentPhase, {
-        approaches: workflow.approaches,
-        currentPhase: workflow.currentPhase,
-        isLocked: workflow.isLocked,
-        messages: workflow.messages,
-        questions: workflow.questions,
-        selectedApproachId: workflow.selectedApproachId,
-        verificationEvidence: workflow.verificationEvidence,
+      !isAgentWorkflowGateMetForPhase(config.currentPhase, {
+        approaches: config.approaches,
+        currentPhase: config.currentPhase,
+        isLocked: config.isLocked,
+        messages: config.messages,
+        questions: config.questions,
+        selectedApproachId: config.selectedApproachId,
+        verificationEvidence: config.verificationEvidence,
       })
     ) {
       throw new BadRequestException(
-        `Gate conditions not met for phase "${workflow.currentPhase}"`,
+        `Gate conditions not met for phase "${config.currentPhase}"`,
       );
     }
 
-    const nextPhase = getNextAgentWorkflowPhase(workflow.currentPhase);
+    const nextPhase = getNextAgentWorkflowPhase(config.currentPhase);
 
     if (!nextPhase) {
       throw new BadRequestException(
@@ -125,10 +139,14 @@ export class AgentWorkflowsService {
       );
     }
 
-    this.recordTransition(workflow, nextPhase, 'gate_met', actor);
-    await workflow.save();
+    this.recordTransition(config, nextPhase, 'gate_met', actor, workflow.id);
 
-    return this.toApiState(workflow);
+    const updated = await this.prisma.agentWorkflow.update({
+      data: { config: config as never },
+      where: { id: workflow.id },
+    });
+
+    return this.toApiState(updated);
   }
 
   async approve(
@@ -137,9 +155,10 @@ export class AgentWorkflowsService {
     state?: UpdateAgentWorkflowStateDto,
   ): Promise<WorkflowApiState> {
     const workflow = await this.findWorkflow(workflowId, organizationId);
-    this.applyStateUpdate(workflow, state);
+    const config = this.getConfig(workflow);
+    this.applyStateUpdate(config, state);
 
-    if (workflow.currentPhase !== 'awaiting_approval') {
+    if (config.currentPhase !== 'awaiting_approval') {
       throw new BadRequestException(
         'Approval is only valid in the awaiting_approval phase',
       );
@@ -147,22 +166,32 @@ export class AgentWorkflowsService {
 
     if (
       !isAgentWorkflowGateMetForPhase('awaiting_approval', {
-        approaches: workflow.approaches,
-        currentPhase: workflow.currentPhase,
-        isLocked: workflow.isLocked,
-        messages: workflow.messages,
-        questions: workflow.questions,
-        selectedApproachId: workflow.selectedApproachId,
-        verificationEvidence: workflow.verificationEvidence,
+        approaches: config.approaches,
+        currentPhase: config.currentPhase,
+        isLocked: config.isLocked,
+        messages: config.messages,
+        questions: config.questions,
+        selectedApproachId: config.selectedApproachId,
+        verificationEvidence: config.verificationEvidence,
       })
     ) {
       throw new BadRequestException('No approved approach selected');
     }
 
-    this.recordTransition(workflow, 'implementing', 'gate_met', 'user');
-    await workflow.save();
+    this.recordTransition(
+      config,
+      'implementing',
+      'gate_met',
+      'user',
+      workflow.id,
+    );
 
-    return this.toApiState(workflow);
+    const updated = await this.prisma.agentWorkflow.update({
+      data: { config: config as never },
+      where: { id: workflow.id },
+    });
+
+    return this.toApiState(updated);
   }
 
   async rollback(
@@ -171,21 +200,26 @@ export class AgentWorkflowsService {
     targetPhase: AgentWorkflowPhase,
   ): Promise<WorkflowApiState> {
     const workflow = await this.findWorkflow(workflowId, organizationId);
+    const config = this.getConfig(workflow);
 
-    if (workflow.isLocked) {
+    if (config.isLocked) {
       throw new BadRequestException('Workflow is locked');
     }
 
-    if (!isValidAgentWorkflowRollback(workflow.currentPhase, targetPhase)) {
+    if (!isValidAgentWorkflowRollback(config.currentPhase, targetPhase)) {
       throw new BadRequestException(
-        `Invalid rollback from "${workflow.currentPhase}" to "${targetPhase}"`,
+        `Invalid rollback from "${config.currentPhase}" to "${targetPhase}"`,
       );
     }
 
-    this.recordTransition(workflow, targetPhase, 'rollback', 'user');
-    await workflow.save();
+    this.recordTransition(config, targetPhase, 'rollback', 'user', workflow.id);
 
-    return this.toApiState(workflow);
+    const updated = await this.prisma.agentWorkflow.update({
+      data: { config: config as never },
+      where: { id: workflow.id },
+    });
+
+    return this.toApiState(updated);
   }
 
   async forceAdvance(
@@ -193,12 +227,13 @@ export class AgentWorkflowsService {
     organizationId: string,
   ): Promise<WorkflowApiState> {
     const workflow = await this.findWorkflow(workflowId, organizationId);
+    const config = this.getConfig(workflow);
 
-    if (workflow.isLocked) {
+    if (config.isLocked) {
       throw new BadRequestException('Workflow is locked');
     }
 
-    const nextPhase = getNextAgentWorkflowPhase(workflow.currentPhase);
+    const nextPhase = getNextAgentWorkflowPhase(config.currentPhase);
 
     if (!nextPhase) {
       throw new BadRequestException(
@@ -206,60 +241,72 @@ export class AgentWorkflowsService {
       );
     }
 
-    this.recordTransition(workflow, nextPhase, 'force_advance', 'user');
-    await workflow.save();
+    this.recordTransition(
+      config,
+      nextPhase,
+      'force_advance',
+      'user',
+      workflow.id,
+    );
 
-    return this.toApiState(workflow);
+    const updated = await this.prisma.agentWorkflow.update({
+      data: { config: config as never },
+      where: { id: workflow.id },
+    });
+
+    return this.toApiState(updated);
+  }
+
+  private getConfig(workflow: AgentWorkflow): WorkflowConfig {
+    return (workflow.config ?? {}) as WorkflowConfig;
   }
 
   private applyStateUpdate(
-    workflow: AgentWorkflowDocument,
+    config: WorkflowConfig,
     state?: UpdateAgentWorkflowStateDto,
   ): void {
     if (state) {
       if (state.questions !== undefined) {
-        workflow.questions = state.questions;
+        config.questions = state.questions;
       }
       if (state.approaches !== undefined) {
-        workflow.approaches = state.approaches;
+        config.approaches = state.approaches;
       }
       if (state.selectedApproachId !== undefined) {
-        workflow.selectedApproachId = state.selectedApproachId;
+        config.selectedApproachId = state.selectedApproachId;
       }
       if (state.verificationEvidence !== undefined) {
-        workflow.verificationEvidence = state.verificationEvidence;
+        config.verificationEvidence = state.verificationEvidence;
       }
       if (state.messages !== undefined) {
-        workflow.messages = state.messages;
+        config.messages = state.messages;
       }
       if (state.isLocked !== undefined) {
-        workflow.isLocked = state.isLocked;
+        config.isLocked = state.isLocked;
       }
     }
 
-    workflow.gateStatus = computeAgentWorkflowGateStatus({
-      approaches: workflow.approaches,
-      currentPhase: workflow.currentPhase,
-      isLocked: workflow.isLocked,
-      messages: workflow.messages,
-      questions: workflow.questions,
-      selectedApproachId: workflow.selectedApproachId,
-      verificationEvidence: workflow.verificationEvidence,
+    config.gateStatus = computeAgentWorkflowGateStatus({
+      approaches: config.approaches,
+      currentPhase: config.currentPhase,
+      isLocked: config.isLocked,
+      messages: config.messages,
+      questions: config.questions,
+      selectedApproachId: config.selectedApproachId,
+      verificationEvidence: config.verificationEvidence,
     });
   }
 
   private async findWorkflow(
     workflowId: string,
     organizationId: string,
-  ): Promise<AgentWorkflowDocument> {
-    if (!Types.ObjectId.isValid(workflowId)) {
-      throw new BadRequestException('Invalid workflow id');
-    }
-
-    const workflow = await this.model.findOne({
-      _id: new Types.ObjectId(workflowId),
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+  ): Promise<AgentWorkflow> {
+    const workflow = await this.prisma.agentWorkflow.findFirst({
+      where: {
+        id: workflowId,
+        isDeleted: false,
+        organizationId,
+      },
     });
 
     if (!workflow) {
@@ -270,32 +317,33 @@ export class AgentWorkflowsService {
   }
 
   private recordTransition(
-    workflow: AgentWorkflowDocument,
+    config: WorkflowConfig,
     to: AgentWorkflowPhase,
     trigger: AgentWorkflowTrigger,
     actor: AgentWorkflowActor,
+    workflowId: string,
   ): void {
-    const from = workflow.currentPhase;
+    const from = config.currentPhase;
 
-    workflow.phaseHistory = [
-      ...workflow.phaseHistory,
+    config.phaseHistory = [
+      ...(config.phaseHistory ?? []),
       {
         actor,
         from,
-        timestamp: new Date(),
+        timestamp: new Date().toISOString(),
         to,
         trigger,
       },
     ];
-    workflow.currentPhase = to;
-    workflow.gateStatus = computeAgentWorkflowGateStatus({
-      approaches: workflow.approaches,
-      currentPhase: workflow.currentPhase,
-      isLocked: workflow.isLocked,
-      messages: workflow.messages,
-      questions: workflow.questions,
-      selectedApproachId: workflow.selectedApproachId,
-      verificationEvidence: workflow.verificationEvidence,
+    config.currentPhase = to;
+    config.gateStatus = computeAgentWorkflowGateStatus({
+      approaches: config.approaches,
+      currentPhase: config.currentPhase,
+      isLocked: config.isLocked,
+      messages: config.messages,
+      questions: config.questions,
+      selectedApproachId: config.selectedApproachId,
+      verificationEvidence: config.verificationEvidence,
     });
 
     this.logger.debug('Agent workflow transition recorded', {
@@ -303,30 +351,31 @@ export class AgentWorkflowsService {
       from,
       to,
       trigger,
-      workflowId: String(workflow._id),
+      workflowId,
     });
   }
 
-  private toApiState(workflow: AgentWorkflowDocument): WorkflowApiState {
+  private toApiState(workflow: AgentWorkflow): WorkflowApiState {
+    const config = this.getConfig(workflow);
     return {
-      agentId: workflow.agentId,
-      approaches: workflow.approaches,
-      currentPhase: workflow.currentPhase,
-      gateStatus: workflow.gateStatus,
-      id: String(workflow._id),
-      isLocked: workflow.isLocked,
-      linkedConversationId: workflow.linkedConversationId ?? null,
-      messages: workflow.messages,
-      phaseHistory: workflow.phaseHistory.map((entry) => ({
+      agentId: config.agentId,
+      approaches: config.approaches ?? [],
+      currentPhase: config.currentPhase,
+      gateStatus: config.gateStatus,
+      id: workflow.id,
+      isLocked: config.isLocked ?? false,
+      linkedConversationId: config.linkedConversationId ?? null,
+      messages: config.messages ?? [],
+      phaseHistory: (config.phaseHistory ?? []).map((entry) => ({
         actor: entry.actor,
         from: entry.from,
-        timestamp: entry.timestamp.toISOString(),
+        timestamp: entry.timestamp,
         to: entry.to,
         trigger: entry.trigger,
       })),
-      questions: workflow.questions,
-      selectedApproachId: workflow.selectedApproachId ?? null,
-      verificationEvidence: workflow.verificationEvidence,
+      questions: config.questions ?? [],
+      selectedApproachId: config.selectedApproachId ?? null,
+      verificationEvidence: config.verificationEvidence ?? [],
     };
   }
 }

@@ -21,7 +21,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Controller, Get, Param, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { type PipelineStage, Types } from 'mongoose';
+import { type PipelineStage } from 'mongoose';
 
 @AutoSwagger()
 @Public()
@@ -83,12 +83,12 @@ export class PublicArticlesController {
 
     // Add tag filter
     if (tag) {
-      matchQuery.tags = new Types.ObjectId(tag);
+      matchQuery.tags = tag;
     }
 
     // Filter by brand if provided
     if (brand) {
-      matchQuery.brand = new Types.ObjectId(brand);
+      matchQuery.brand = brand;
     }
 
     const aggregate: PipelineStage[] = [
@@ -203,7 +203,7 @@ export class PublicArticlesController {
     this.logger.log(url, { params: { articleId } });
 
     const article = await this.articlesService.findOne({
-      _id: new Types.ObjectId(articleId),
+      _id: articleId,
       isDeleted: false,
       publishedAt: { $exists: true },
       status: ArticleStatus.PUBLIC,

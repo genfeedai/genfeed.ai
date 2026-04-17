@@ -2,24 +2,19 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { CreateTrainingDto } from '@api/collections/trainings/dto/create-training.dto';
 import { UpdateTrainingDto } from '@api/collections/trainings/dto/update-training.dto';
-import {
-  Training,
-  type TrainingDocument,
-} from '@api/collections/trainings/schemas/training.schema';
+import type { TrainingDocument } from '@api/collections/trainings/schemas/training.schema';
 import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { MemoryMonitorService } from '@api/helpers/memory/monitor/memory-monitor.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { FileInputType, IngredientStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import archiver from 'archiver';
 
 @Injectable()
@@ -31,8 +26,7 @@ export class TrainingsService extends BaseService<
   private readonly constructorName = this.constructor.name;
 
   constructor(
-    @InjectModel(Training.name, DB_CONNECTIONS.CLOUD)
-    protected readonly model: AggregatePaginateModel<TrainingDocument>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     private readonly configService: ConfigService,
     private readonly filesClientService: FilesClientService,
@@ -41,7 +35,8 @@ export class TrainingsService extends BaseService<
     private readonly websocketService: NotificationsPublisherService,
     private readonly memoryMonitorService: MemoryMonitorService,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 
   /**

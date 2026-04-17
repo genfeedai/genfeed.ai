@@ -1,18 +1,13 @@
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
-import {
-  AgentRun,
-  type AgentRunDocument,
-} from '@api/collections/agent-runs/schemas/agent-run.schema';
+import type { AgentRunDocument } from '@api/collections/agent-runs/schemas/agent-run.schema';
 import {
   AgentRoom,
   type AgentRoomDocument,
 } from '@api/collections/agent-threads/schemas/agent-thread.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { ObjectIdUtil } from '@api/helpers/utils/objectid/objectid.util';
-import {
-  AgentThreadSnapshot,
-  type AgentThreadSnapshotDocument,
-} from '@api/services/agent-threading/schemas/agent-thread-snapshot.schema';
+import type { AgentThreadSnapshotDocument } from '@api/services/agent-threading/schemas/agent-thread-snapshot.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { AgentExecutionStatus, AgentThreadStatus } from '@genfeedai/enums';
@@ -23,7 +18,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { type Model, Types } from 'mongoose';
+import { Types } from 'mongoose';
 
 type ThreadRunStatus =
   | 'queued'
@@ -51,10 +46,7 @@ export class AgentThreadsService extends BaseService<AgentRoomDocument> {
   constructor(
     @InjectModel(AgentRoom.name, DB_CONNECTIONS.AGENT)
     protected readonly model: AggregatePaginateModel<AgentRoomDocument>,
-    @InjectModel(AgentThreadSnapshot.name, DB_CONNECTIONS.AGENT)
-    private readonly snapshotModel: Model<AgentThreadSnapshotDocument>,
-    @InjectModel(AgentRun.name, DB_CONNECTIONS.AGENT)
-    private readonly agentRunModel: Model<AgentRunDocument>,
+    private readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     private readonly agentMessagesService: AgentMessagesService,
   ) {
@@ -323,16 +315,19 @@ export class AgentThreadsService extends BaseService<AgentRoomDocument> {
       return threads as AgentThreadWithSummary[];
     }
 
-    const snapshots = await this.snapshotModel
-      .find({
+    const snapshots = await this.prisma.agentThreadSnapshot.findMany({
+      where: {
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-        thread: { $in: threadIds },
-      })
-      .lean();
+        organizationId,
+        threadId: { in: threadIds.map((id) => id.toString()) },
+      },
+    });
 
     const snapshotsByThreadId = new Map(
-      snapshots.map((snapshot) => [String(snapshot.thread), snapshot]),
+      snapshots.map((snapshot) => [
+        String((snapshot as Record<string, unknown>).threadId),
+        snapshot,
+      ]),
     );
     const latestRunsByThreadId = await this.findLatestRunsByThreadIds(
       organizationId,
@@ -400,26 +395,27 @@ export class AgentThreadsService extends BaseService<AgentRoomDocument> {
     organizationId: string,
     threadIds: Types.ObjectId[],
   ): Promise<Map<string, AgentRunDocument>> {
-    const runs = await this.agentRunModel
-      .find({
+    const runs = await this.prisma.agentRun.findMany({
+      orderBy: { createdAt: 'desc' },
+      where: {
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-        thread: { $in: threadIds },
-      })
-      .sort({ createdAt: -1 })
-      .lean();
+        organizationId,
+        threadId: { in: threadIds.map((id) => id.toString()) },
+      },
+    });
 
     const latestRunsByThreadId = new Map<string, AgentRunDocument>();
 
     for (const run of runs) {
-      const threadId =
-        run.thread instanceof Types.ObjectId ? run.thread.toString() : null;
+      const threadId = (run as Record<string, unknown>).threadId as
+        | string
+        | null;
 
       if (!threadId || latestRunsByThreadId.has(threadId)) {
         continue;
       }
 
-      latestRunsByThreadId.set(threadId, run);
+      latestRunsByThreadId.set(threadId, run as unknown as AgentRunDocument);
     }
 
     return latestRunsByThreadId;

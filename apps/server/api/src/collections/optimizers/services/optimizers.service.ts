@@ -8,27 +8,19 @@ import {
 import { SuggestHashtagsDto } from '@api/collections/optimizers/dto/hashtags.dto';
 import { OptimizeContentDto } from '@api/collections/optimizers/dto/optimize.dto';
 import { GenerateVariantsDto } from '@api/collections/optimizers/dto/variants.dto';
-import {
-  ContentScore,
-  type ContentScoreDocument,
-  type IOptimizationSuggestion,
-  type IScoreBreakdown,
+import type {
+  IOptimizationSuggestion,
+  IScoreBreakdown,
 } from '@api/collections/optimizers/schemas/content-score.schema';
-import {
-  type IContentChange,
-  Optimization,
-  type OptimizationDocument,
-} from '@api/collections/optimizers/schemas/optimization.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { IContentChange } from '@api/collections/optimizers/schemas/optimization.schema';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 
 type HashtagSuggestionResult = {
   optimal?: string[];
@@ -77,10 +69,7 @@ type AIOptimizationResult = {
 @Injectable()
 export class OptimizersService {
   constructor(
-    @InjectModel(ContentScore.name, DB_CONNECTIONS.CLOUD)
-    private contentScoreModel: Model<ContentScoreDocument>,
-    @InjectModel(Optimization.name, DB_CONNECTIONS.CLOUD)
-    private optimizationModel: Model<OptimizationDocument>,
+    private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly modelsService: ModelsService,
     private readonly replicateService: ReplicateService,
@@ -95,7 +84,7 @@ export class OptimizersService {
     organizationId: string,
     userId?: string,
     onBilling?: (amount: number) => void,
-  ): Promise<ContentScore> {
+  ): Promise<Record<string, unknown>> {
     this.logger.debug('Analyzing content', {
       contentType: dto.contentType,
       organizationId,
@@ -115,27 +104,27 @@ export class OptimizersService {
     const metadata = this.extractMetadata(dto.content);
 
     // Create and save score
-    const score = new this.contentScoreModel({
-      breakdown: analysis.breakdown,
-      content: dto.content,
-      contentType: dto.contentType,
-      goals: dto.goals || [],
-      metadata,
-      organization: organizationId,
-      overallScore: analysis.overallScore,
-      platform: dto.platform,
-      suggestions: analysis.suggestions,
-      user: userId,
+    const score = await this.prisma.contentScore.create({
+      data: {
+        breakdown: analysis.breakdown as never,
+        content: dto.content,
+        contentType: dto.contentType,
+        goals: dto.goals || [],
+        metadata: metadata as never,
+        organizationId,
+        overallScore: analysis.overallScore,
+        platform: dto.platform,
+        suggestions: analysis.suggestions as never,
+        userId,
+      },
     });
-
-    await score.save();
 
     this.logger.debug('Content analyzed successfully', {
       overallScore: analysis.overallScore,
-      scoreId: score._id,
+      scoreId: score.id,
     });
 
-    return score.toObject();
+    return score as never;
   }
 
   /**
@@ -169,24 +158,24 @@ export class OptimizersService {
       );
 
       // Save optimization record
-      const optimization = new this.optimizationModel({
-        changes: result.changes,
-        contentType: dto.contentType,
-        goals: dto.goals || [],
-        improvementScore: result.improvementScore,
-        optimizedContent: result.optimized,
-        organization: organizationId,
-        originalContent: dto.content,
-        platform: dto.platform,
-        score: dto.scoreId,
-        user: userId,
+      const optimization = await this.prisma.optimization.create({
+        data: {
+          changes: result.changes as never,
+          contentType: dto.contentType,
+          goals: dto.goals || [],
+          improvementScore: result.improvementScore,
+          optimizedContent: result.optimized,
+          organizationId,
+          originalContent: dto.content,
+          platform: dto.platform,
+          scoreId: dto.scoreId,
+          userId,
+        },
       });
-
-      await optimization.save();
 
       this.logger.debug('Content optimized successfully', {
         improvementScore: result.improvementScore,
-        optimizationId: optimization._id,
+        optimizationId: optimization.id,
       });
 
       return {
@@ -453,21 +442,16 @@ Return ONLY valid JSON with this structure. Do not include any text before or af
     organizationId: string,
     userId?: string,
     limit: number = 20,
-  ): Promise<Optimization[]> {
-    const query: Record<string, unknown> = {
-      isDeleted: false,
-      organization: organizationId,
-    };
-
-    if (userId) {
-      query.user = userId;
-    }
-
-    return await this.optimizationModel
-      .find(query)
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .lean();
+  ): Promise<Record<string, unknown>[]> {
+    return (await this.prisma.optimization.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      where: {
+        isDeleted: false,
+        organizationId,
+        ...(userId ? { userId } : {}),
+      },
+    })) as never[];
   }
 
   /**

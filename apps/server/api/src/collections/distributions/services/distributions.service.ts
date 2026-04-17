@@ -1,18 +1,12 @@
 import { CreateDistributionDto } from '@api/collections/distributions/dto/create-distribution.dto';
 import { DistributionEntity } from '@api/collections/distributions/entities/distribution.entity';
-import {
-  Distribution,
-  type DistributionDocument,
-} from '@api/collections/distributions/schemas/distribution.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { DistributionDocument } from '@api/collections/distributions/schemas/distribution.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { DistributionPlatform, PublishStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class DistributionsService extends BaseService<
@@ -23,11 +17,11 @@ export class DistributionsService extends BaseService<
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
-    @InjectModel(Distribution.name, DB_CONNECTIONS.CLOUD)
-    model: AggregatePaginateModel<DistributionDocument>,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 
   async createDistribution(
@@ -40,28 +34,30 @@ export class DistributionsService extends BaseService<
   ): Promise<DistributionDocument> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    const entity = new DistributionEntity({
-      brand: dto.brandId ? new Types.ObjectId(dto.brandId) : undefined,
-      caption: dto.caption,
-      chatId: dto.chatId,
-      contentType: dto.contentType,
-      mediaUrl: dto.mediaUrl,
-      organization: new Types.ObjectId(organizationId),
-      platform,
-      scheduledAt,
-      status,
-      text: dto.text,
-      user: new Types.ObjectId(userId),
+    const distribution = await this.prisma.distribution.create({
+      data: {
+        organizationId,
+        userId,
+        brandId: dto.brandId ?? null,
+        status,
+        config: {
+          caption: dto.caption,
+          chatId: dto.chatId,
+          contentType: dto.contentType,
+          mediaUrl: dto.mediaUrl,
+          platform,
+          scheduledAt: scheduledAt?.toISOString(),
+          text: dto.text,
+        },
+      },
     });
-
-    const distribution = await this.create(entity);
 
     this.logger?.log(`${url} created distribution`, {
-      distributionId: distribution._id,
+      distributionId: distribution.id,
       platform,
     });
 
-    return distribution;
+    return distribution as unknown as DistributionDocument;
   }
 
   async findByOrganization(
@@ -73,63 +69,95 @@ export class DistributionsService extends BaseService<
     page = 1,
     limit = 20,
   ): Promise<{ docs: DistributionDocument[]; total: number }> {
-    const query: Record<string, unknown> = {
+    const where: Record<string, unknown> = {
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     };
 
-    if (filters.platform) {
-      query.platform = filters.platform;
-    }
-
     if (filters.status) {
-      query.status = filters.status;
+      where.status = filters.status;
     }
 
-    const result = await this.findAll(
-      [{ $match: query }, { $sort: { createdAt: -1 } }],
-      { limit, page },
-    );
+    // platform is in config JSON — fetch and filter in-memory for now
+    // TODO: add a dedicated platform column for efficient querying
+    const allDocs = await this.prisma.distribution.findMany({
+      where: where as never,
+      orderBy: { createdAt: 'desc' },
+    });
 
-    return { docs: result.docs, total: result.totalDocs };
+    const filtered = filters.platform
+      ? allDocs.filter((d) => {
+          const config = d.config as Record<string, unknown>;
+          return config?.platform === filters.platform;
+        })
+      : allDocs;
+
+    const total = filtered.length;
+    const docs = filtered.slice((page - 1) * limit, page * limit);
+
+    return {
+      docs: docs as unknown as DistributionDocument[],
+      total,
+    };
   }
 
   async findOneByOrganization(
     id: string,
     organizationId: string,
   ): Promise<DistributionDocument> {
-    const distribution = await this.findOne({
-      _id: new Types.ObjectId(id),
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+    const distribution = await this.prisma.distribution.findFirst({
+      where: { id, isDeleted: false, organizationId },
     });
 
     if (!distribution) {
       throw new NotFoundException('Distribution not found');
     }
 
-    return distribution;
+    return distribution as unknown as DistributionDocument;
   }
 
-  markAsPublished(
+  async markAsPublished(
     id: string,
     telegramMessageId?: string,
   ): Promise<DistributionDocument> {
-    return this.patch(id, {
-      publishedAt: new Date(),
-      status: PublishStatus.PUBLISHED,
-      ...(telegramMessageId && { telegramMessageId }),
+    const existing = await this.prisma.distribution.findUnique({
+      where: { id },
     });
+    const existingConfig = (existing?.config as Record<string, unknown>) ?? {};
+
+    const updated = await this.prisma.distribution.update({
+      where: { id },
+      data: {
+        status: PublishStatus.PUBLISHED,
+        config: {
+          ...existingConfig,
+          publishedAt: new Date().toISOString(),
+          ...(telegramMessageId ? { telegramMessageId } : {}),
+        },
+      },
+    });
+
+    return updated as unknown as DistributionDocument;
   }
 
-  markAsFailed(
+  async markAsFailed(
     id: string,
     errorMessage: string,
   ): Promise<DistributionDocument> {
-    return this.patch(id, {
-      errorMessage,
-      status: PublishStatus.FAILED,
+    const existing = await this.prisma.distribution.findUnique({
+      where: { id },
     });
+    const existingConfig = (existing?.config as Record<string, unknown>) ?? {};
+
+    const updated = await this.prisma.distribution.update({
+      where: { id },
+      data: {
+        status: PublishStatus.FAILED,
+        config: { ...existingConfig, errorMessage },
+      },
+    });
+
+    return updated as unknown as DistributionDocument;
   }
 
   async cancelScheduled(
@@ -144,8 +172,11 @@ export class DistributionsService extends BaseService<
       );
     }
 
-    return this.patch(id, {
-      status: PublishStatus.CANCELLED,
+    const updated = await this.prisma.distribution.update({
+      where: { id },
+      data: { status: PublishStatus.CANCELLED },
     });
+
+    return updated as unknown as DistributionDocument;
   }
 }

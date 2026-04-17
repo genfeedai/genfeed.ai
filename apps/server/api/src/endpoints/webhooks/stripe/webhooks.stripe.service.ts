@@ -13,7 +13,6 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { RequestContextCacheService } from '@api/common/services/request-context-cache.service';
 import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { customLabels } from '@api/helpers/utils/pagination/pagination.util';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import {
@@ -25,11 +24,8 @@ import {
   MANAGED_API_KEY_LABEL,
   MANAGED_API_KEY_SCOPES,
 } from '@api/services/integrations/stripe/stripe.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
-import {
-  SkillReceipt,
-  type SkillReceiptDocument,
-} from '@api/skills-pro/schemas/skill-receipt.schema';
 import {
   ActivityKey,
   ActivitySource,
@@ -42,8 +38,7 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { type Model, type PipelineStage, Types } from 'mongoose';
+import { type PipelineStage, Types } from 'mongoose';
 import { nanoid } from 'nanoid';
 import Stripe from 'stripe';
 
@@ -68,8 +63,7 @@ export class StripeWebhookService {
     private readonly subscriptionAttributionsService: SubscriptionAttributionsService,
     private readonly userSubscriptionsService: UserSubscriptionsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
-    @InjectModel(SkillReceipt.name, DB_CONNECTIONS.CLOUD)
-    private readonly skillReceiptModel: Model<SkillReceiptDocument>,
+    private readonly prisma: PrismaService,
     private readonly requestContextCacheService: RequestContextCacheService,
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
   ) {}
@@ -994,21 +988,22 @@ export class StripeWebhookService {
       const receiptId = `sk_rcpt_${nanoid(16)}`;
       const email = session.customer_details?.email || '';
 
-      const receipt = new this.skillReceiptModel({
-        amountPaid: session.amount_total || 0,
-        currency: session.currency || 'usd',
-        email,
-        isDeleted: false,
-        productType: 'bundle',
-        receiptId,
-        status: 'completed',
-        stripePaymentIntentId: session.payment_intent
-          ? String(session.payment_intent)
-          : undefined,
-        stripeSessionId: session.id,
+      await this.prisma.skillReceipt.create({
+        data: {
+          data: {
+            amountPaid: session.amount_total || 0,
+            currency: session.currency || 'usd',
+            email,
+            productType: 'bundle',
+            receiptId,
+            status: 'completed',
+            stripePaymentIntentId: session.payment_intent
+              ? String(session.payment_intent)
+              : undefined,
+            stripeSessionId: session.id,
+          },
+        },
       });
-
-      await receipt.save();
 
       this.loggerService.log(`${url} skills-pro receipt created`, {
         email,

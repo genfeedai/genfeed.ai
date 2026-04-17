@@ -7,15 +7,13 @@ import {
   UpdateRunDto,
 } from '@api/collections/runs/dto/create-run.dto';
 import {
-  Run,
   type RunDocument,
   type RunEvent,
 } from '@api/collections/runs/schemas/run.schema';
 import { RunsMeteringService } from '@api/collections/runs/services/runs-metering.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import {
   RunActionType,
   RunAuthType,
@@ -25,8 +23,6 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class RunsService extends BaseService<
@@ -35,21 +31,13 @@ export class RunsService extends BaseService<
   UpdateRunDto
 > {
   constructor(
-    @InjectModel(Run.name, DB_CONNECTIONS.CLOUD)
-    model: AggregatePaginateModel<RunDocument>,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    readonly logger: LoggerService,
     private readonly notificationsPublisher: NotificationsPublisherService,
     private readonly runsMeteringService: RunsMeteringService,
   ) {
-    super(model, logger);
-  }
-
-  private toObjectId(value: string): Types.ObjectId | null {
-    if (!Types.ObjectId.isValid(value)) {
-      return null;
-    }
-
-    return new Types.ObjectId(value);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 
   private runId(run: Pick<RunDocument, '_id'>): string {
@@ -214,13 +202,11 @@ export class RunsService extends BaseService<
     authType: RunAuthType,
     dto: CreateRunDto,
   ): Promise<{ reused: boolean; run: RunDocument }> {
-    const organizationObjectId = new Types.ObjectId(organizationId);
-
     if (dto.idempotencyKey) {
       const existingRun = await this.findOne({
         idempotencyKey: dto.idempotencyKey,
         isDeleted: false,
-        organization: organizationObjectId,
+        organizationId,
       });
 
       if (existingRun) {
@@ -245,11 +231,11 @@ export class RunsService extends BaseService<
       authType,
       correlationId: dto.correlationId || traceId,
       events: [runCreatedEvent],
-      organization: organizationObjectId,
+      organizationId,
       progress: 0,
       status: RunStatus.PENDING,
       traceId,
-      user: new Types.ObjectId(userId),
+      userId,
     } as unknown as CreateRunDto)) as RunDocument;
 
     await this.publishEventEnvelope(run, runCreatedEvent, 0);
@@ -272,7 +258,7 @@ export class RunsService extends BaseService<
 
     const filters: Record<string, unknown> = {
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     };
 
     if (query.status) {
@@ -288,13 +274,13 @@ export class RunsService extends BaseService<
     }
 
     const [items, total] = await Promise.all([
-      this.model
-        .find(filters)
-        .sort({ createdAt: -1 })
-        .skip(offset)
-        .limit(limit)
-        .exec(),
-      this.model.countDocuments(filters),
+      this.prisma.run.findMany({
+        orderBy: { createdAt: 'desc' },
+        skip: offset,
+        take: limit,
+        where: filters as never,
+      }),
+      this.prisma.run.count({ where: filters as never }),
     ]);
 
     return {
@@ -305,18 +291,21 @@ export class RunsService extends BaseService<
     };
   }
 
-  getRun(runId: string, organizationId: string): Promise<RunDocument | null> {
-    const runObjectId = this.toObjectId(runId);
-
-    if (!runObjectId) {
-      return Promise.resolve(null);
-    }
-
-    return this.findOne({
-      _id: runObjectId,
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+  async getRun(
+    runId: string,
+    organizationId: string,
+  ): Promise<RunDocument | null> {
+    const result = await this.prisma.run.findFirst({
+      where: { id: runId, isDeleted: false, organizationId },
     });
+    return result as unknown as RunDocument | null;
+  }
+
+  async getById(
+    runId: string,
+    organizationId: string,
+  ): Promise<RunDocument | null> {
+    return this.getRun(runId, organizationId);
   }
 
   async executeRun(
@@ -335,15 +324,14 @@ export class RunsService extends BaseService<
 
     const now = new Date();
 
-    const updated = await this.model.findByIdAndUpdate(
-      runId,
-      {
+    const updated = await this.prisma.run.update({
+      data: {
         progress: run.progress > 0 ? run.progress : 1,
         startedAt: run.startedAt ?? now,
         status: RunStatus.RUNNING,
       },
-      { returnDocument: 'after' },
-    );
+      where: { id: runId },
+    });
 
     if (!updated) {
       return null;
@@ -354,7 +342,7 @@ export class RunsService extends BaseService<
         message: 'Run execution started',
         source: 'runs.service',
         type: RunEventType.STARTED,
-      })) ?? updated;
+      })) ?? (updated as unknown as RunDocument);
 
     await this.fireMeteringHook(withEvent, RunMeteringStage.EXECUTED);
 
@@ -377,17 +365,16 @@ export class RunsService extends BaseService<
 
     const completedAt = new Date();
 
-    const updated = await this.model.findByIdAndUpdate(
-      runId,
-      {
+    const updated = await this.prisma.run.update({
+      data: {
         completedAt,
         durationMs: run.startedAt
-          ? completedAt.getTime() - run.startedAt.getTime()
+          ? completedAt.getTime() - (run.startedAt as Date).getTime()
           : undefined,
         status: RunStatus.CANCELLED,
       },
-      { returnDocument: 'after' },
-    );
+      where: { id: runId },
+    });
 
     if (!updated) {
       return null;
@@ -398,7 +385,7 @@ export class RunsService extends BaseService<
         message: 'Run cancelled',
         source: 'runs.service',
         type: RunEventType.CANCELLED,
-      })) ?? updated;
+      })) ?? (updated as unknown as RunDocument);
 
     await this.fireMeteringHook(withEvent, RunMeteringStage.CANCELLED);
 
@@ -445,7 +432,8 @@ export class RunsService extends BaseService<
       updatePayload.completedAt = now;
 
       if (run.startedAt) {
-        updatePayload.durationMs = now.getTime() - run.startedAt.getTime();
+        updatePayload.durationMs =
+          now.getTime() - (run.startedAt as Date).getTime();
       }
 
       if (dto.progress === undefined) {
@@ -453,8 +441,9 @@ export class RunsService extends BaseService<
       }
     }
 
-    const updated = await this.model.findByIdAndUpdate(runId, updatePayload, {
-      returnDocument: 'after',
+    const updated = await this.prisma.run.update({
+      data: updatePayload as never,
+      where: { id: runId },
     });
 
     if (!updated) {
@@ -463,7 +452,7 @@ export class RunsService extends BaseService<
 
     const events = this.buildLifecycleEvents(run, dto);
 
-    let currentRun = updated;
+    let currentRun = updated as unknown as RunDocument;
 
     for (const event of events) {
       const withEvent = await this.appendEventForRun(
@@ -472,7 +461,6 @@ export class RunsService extends BaseService<
         event,
       );
       if (withEvent) {
-        // @ts-expect-error TS2322
         currentRun = withEvent;
       }
     }
@@ -501,22 +489,24 @@ export class RunsService extends BaseService<
       traceId: event.traceId || run.traceId,
     };
 
-    const updated = await this.model.findByIdAndUpdate(
-      runId,
-      {
-        $push: {
-          events: eventToPersist,
-        },
-      },
-      { returnDocument: 'after' },
-    );
+    const existingEvents = (run.events ?? []) as RunEvent[];
+    const updatedEvents = [...existingEvents, eventToPersist];
+
+    const updated = await this.prisma.run.update({
+      data: { events: updatedEvents as never },
+      where: { id: runId },
+    });
 
     if (updated) {
-      const sequence = Math.max((updated.events?.length || 1) - 1, 0);
-      await this.publishEventEnvelope(updated, eventToPersist, sequence);
+      const sequence = Math.max(updatedEvents.length - 1, 0);
+      await this.publishEventEnvelope(
+        updated as unknown as RunDocument,
+        eventToPersist,
+        sequence,
+      );
     }
 
-    return updated;
+    return updated as unknown as RunDocument;
   }
 
   async getRunEvents(

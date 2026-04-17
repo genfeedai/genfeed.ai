@@ -1,14 +1,7 @@
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
-import {
-  ContentPerformance,
-  type ContentPerformanceDocument,
-} from '@api/collections/content-performance/schemas/content-performance.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 export interface PerformanceThresholdAlert {
   type: 'spike' | 'drop';
@@ -18,11 +11,22 @@ export interface PerformanceThresholdAlert {
   ratio: number;
 }
 
+type ContentPerformanceData = {
+  likes?: number;
+  comments?: number;
+  shares?: number;
+  saves?: number;
+  clicks?: number;
+  engagementRate?: number;
+  measuredAt?: string | Date;
+  platform?: string;
+  contentType?: string;
+};
+
 @Injectable()
 export class BrandMemorySyncService {
   constructor(
-    @InjectModel(ContentPerformance.name, DB_CONNECTIONS.CLOUD)
-    private readonly contentPerformanceModel: AggregatePaginateModel<ContentPerformanceDocument>,
+    private readonly prisma: PrismaService,
     private readonly brandMemoryService: BrandMemoryService,
     private readonly logger: LoggerService,
   ) {}
@@ -32,16 +36,15 @@ export class BrandMemorySyncService {
     brandId: string,
     postId: string,
   ): Promise<void> {
-    const performance = await this.contentPerformanceModel
-      .findOne({
-        brand: new Types.ObjectId(brandId),
+    const performance = await this.prisma.contentPerformance.findFirst({
+      orderBy: { createdAt: 'desc' },
+      where: {
+        brandId,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-        post: new Types.ObjectId(postId),
-      })
-      .sort({ measuredAt: -1 })
-      .lean()
-      .exec();
+        organizationId,
+        postId,
+      },
+    });
 
     if (!performance) {
       this.logger.warn('BrandMemorySyncService.syncPostPerformance no data', {
@@ -52,31 +55,35 @@ export class BrandMemorySyncService {
       return;
     }
 
+    const data = (performance.data as ContentPerformanceData) ?? {};
+
     const totalEngagement =
-      (performance.likes ?? 0) +
-      (performance.comments ?? 0) +
-      (performance.shares ?? 0) +
-      (performance.saves ?? 0) +
-      (performance.clicks ?? 0);
+      (data.likes ?? 0) +
+      (data.comments ?? 0) +
+      (data.shares ?? 0) +
+      (data.saves ?? 0) +
+      (data.clicks ?? 0);
+
+    const measuredAt = data.measuredAt ? new Date(data.measuredAt) : new Date();
 
     await this.brandMemoryService.logEntry(organizationId, brandId, {
-      content: `Post ${postId} on ${performance.platform} reached ${totalEngagement} engagements with ${performance.engagementRate.toFixed(2)}% engagement rate.`,
+      content: `Post ${postId} on ${data.platform} reached ${totalEngagement} engagements with ${(data.engagementRate ?? 0).toFixed(2)}% engagement rate.`,
       metadata: {
-        contentType: performance.contentType,
-        engagementRate: performance.engagementRate,
-        measuredAt: performance.measuredAt,
-        platform: performance.platform,
+        contentType: data.contentType,
+        engagementRate: data.engagementRate,
+        measuredAt,
+        platform: data.platform,
         postId,
       },
-      timestamp: performance.measuredAt,
+      timestamp: measuredAt,
       type: 'post_performance',
     });
 
     await this.brandMemoryService.updateMetrics(organizationId, brandId, {
-      avgEngagementRate: performance.engagementRate,
+      avgEngagementRate: data.engagementRate ?? 0,
       postsPublished: 1,
-      topPerformingFormat: performance.contentType,
-      topPerformingTime: this.toHourLabel(performance.measuredAt),
+      topPerformingFormat: data.contentType,
+      topPerformingTime: this.toHourLabel(measuredAt),
       totalEngagement,
     });
   }
@@ -91,32 +98,31 @@ export class BrandMemorySyncService {
     const baselineEnd = recentStart;
 
     const [recent, baseline] = await Promise.all([
-      this.contentPerformanceModel
-        .find({
-          brand: new Types.ObjectId(brandId),
+      this.prisma.contentPerformance.findMany({
+        where: {
+          brandId,
+          createdAt: { gte: recentStart, lte: now },
           isDeleted: false,
-          measuredAt: { $gte: recentStart, $lte: now },
-          organization: new Types.ObjectId(organizationId),
-        })
-        .lean()
-        .exec(),
-      this.contentPerformanceModel
-        .find({
-          brand: new Types.ObjectId(brandId),
+          organizationId,
+        },
+      }),
+      this.prisma.contentPerformance.findMany({
+        where: {
+          brandId,
+          createdAt: { gte: baselineStart, lt: baselineEnd },
           isDeleted: false,
-          measuredAt: { $gte: baselineStart, $lt: baselineEnd },
-          organization: new Types.ObjectId(organizationId),
-        })
-        .lean()
-        .exec(),
+          organizationId,
+        },
+      }),
     ]);
 
-    const recentAverage = this.average(
-      recent.map((item) => item.engagementRate),
-    );
-    const baselineAverage = this.average(
-      baseline.map((item) => item.engagementRate),
-    );
+    const getEngagementRate = (item: { data: unknown }): number => {
+      const d = item.data as ContentPerformanceData;
+      return d?.engagementRate ?? 0;
+    };
+
+    const recentAverage = this.average(recent.map(getEngagementRate));
+    const baselineAverage = this.average(baseline.map(getEngagementRate));
 
     if (baselineAverage <= 0 || recentAverage <= 0) {
       return [];

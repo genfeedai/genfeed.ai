@@ -1,16 +1,10 @@
 import { CreateTaskCommentDto } from '@api/collections/task-comments/dto/create-task-comment.dto';
 import { UpdateTaskCommentDto } from '@api/collections/task-comments/dto/update-task-comment.dto';
-import {
-  TaskComment,
-  type TaskCommentDocument,
-} from '@api/collections/task-comments/schemas/task-comment.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { TaskCommentDocument } from '@api/collections/task-comments/schemas/task-comment.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class TaskCommentsService extends BaseService<
@@ -19,11 +13,11 @@ export class TaskCommentsService extends BaseService<
   UpdateTaskCommentDto
 > {
   constructor(
-    @InjectModel(TaskComment.name, DB_CONNECTIONS.CLOUD)
-    protected readonly model: AggregatePaginateModel<TaskCommentDocument>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 
   override async create(
@@ -37,21 +31,22 @@ export class TaskCommentsService extends BaseService<
    * Returns comments sorted by createdAt ascending (oldest first).
    */
   async findByTask(
-    taskId: string | Types.ObjectId,
-    organizationId: string | Types.ObjectId,
+    taskId: string,
+    organizationId: string,
   ): Promise<TaskCommentDocument[]> {
-    return this.model
-      .find({
+    const results = await this.prisma.taskComment.findMany({
+      orderBy: { createdAt: 'asc' },
+      where: {
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-        task: new Types.ObjectId(taskId),
-      })
-      .sort({ createdAt: 1 })
-      .exec();
+        organizationId,
+        taskId,
+      },
+    });
+    return results as unknown as TaskCommentDocument[];
   }
 
   override async patch(
-    id: string | Types.ObjectId,
+    id: string,
     updateDto: Partial<UpdateTaskCommentDto> | Record<string, unknown>,
   ): Promise<TaskCommentDocument> {
     return super.patch(String(id), updateDto);

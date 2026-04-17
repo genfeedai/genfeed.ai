@@ -32,6 +32,8 @@
       "@genfeedai/workflow-saas": [
         "../../../packages/workflow-saas/src/index.ts"
       ],
+      "@genfeedai/prisma": ["../../../packages/prisma/src/index.ts"],
+      "@genfeedai/prisma/*": ["../../../packages/prisma/src/*"],
       "@config/*": ["../../../packages/config/src/*"],
       "@files/*": ["../files/src/*"],
       "@genfeedai/constants": ["../../../packages/constants/dist/index"],

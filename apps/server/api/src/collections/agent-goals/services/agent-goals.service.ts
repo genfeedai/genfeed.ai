@@ -1,20 +1,14 @@
 import { CreateAgentGoalDto } from '@api/collections/agent-goals/dto/create-agent-goal.dto';
 import { UpdateAgentGoalDto } from '@api/collections/agent-goals/dto/update-agent-goal.dto';
-import {
-  AgentGoal,
-  type AgentGoalDocument,
-  type AgentGoalMetric,
-} from '@api/collections/agent-goals/schemas/agent-goal.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { AgentGoalMetric } from '@api/collections/agent-goals/schemas/agent-goal.schema';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
 
 interface AnalyticsOverview {
   avgEngagementRate: number;
@@ -25,8 +19,7 @@ interface AnalyticsOverview {
 @Injectable()
 export class AgentGoalsService {
   constructor(
-    @InjectModel(AgentGoal.name, DB_CONNECTIONS.AGENT)
-    private readonly agentGoalModel: Model<AgentGoalDocument>,
+    private readonly prisma: PrismaService,
     private readonly analyticsService: AnalyticsService,
     private readonly loggerService: LoggerService,
   ) {}
@@ -35,41 +28,41 @@ export class AgentGoalsService {
     dto: CreateAgentGoalDto,
     organizationId: string,
     userId: string,
-  ): Promise<AgentGoalDocument> {
+  ): Promise<Record<string, unknown>> {
     this.validateMetricTarget(dto.metric, dto.targetValue);
 
-    const goal = await this.agentGoalModel.create({
-      ...dto,
-      organization: new Types.ObjectId(organizationId),
-      user: new Types.ObjectId(userId),
+    const goal = await this.prisma.agentGoal.create({
+      data: {
+        ...dto,
+        organizationId,
+        userId,
+      } as never,
     });
 
-    return this.refreshProgress(String(goal._id), organizationId);
+    return this.refreshProgress(goal.id, organizationId);
   }
 
   async list(
     organizationId: string,
     brandId?: string,
-  ): Promise<AgentGoalDocument[]> {
-    return this.agentGoalModel
-      .find({
-        ...(brandId ? { brand: new Types.ObjectId(brandId) } : {}),
+  ): Promise<Record<string, unknown>[]> {
+    return this.prisma.agentGoal.findMany({
+      orderBy: { createdAt: 'desc' },
+      where: {
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      })
-      .sort({ createdAt: -1 })
-      .exec();
+        organizationId,
+        ...(brandId ? { brandId } : {}),
+      },
+    });
   }
 
   async update(
     goalId: string,
     dto: UpdateAgentGoalDto,
     organizationId: string,
-  ): Promise<AgentGoalDocument> {
-    const goal = await this.agentGoalModel.findOne({
-      _id: new Types.ObjectId(goalId),
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+  ): Promise<Record<string, unknown>> {
+    const goal = await this.prisma.agentGoal.findFirst({
+      where: { id: goalId, isDeleted: false, organizationId },
     });
 
     if (!goal) {
@@ -77,60 +70,62 @@ export class AgentGoalsService {
     }
 
     this.validateMetricTarget(
-      dto.metric ?? goal.metric,
-      dto.targetValue ?? goal.targetValue,
+      (dto.metric ??
+        (goal as Record<string, unknown>).metric) as AgentGoalMetric,
+      (dto.targetValue ??
+        (goal as Record<string, unknown>).targetValue) as number,
     );
 
-    await this.agentGoalModel
-      .updateOne({ _id: goal._id }, { $set: dto })
-      .exec();
+    await this.prisma.agentGoal.update({
+      data: dto as never,
+      where: { id: goalId },
+    });
     return this.refreshProgress(goalId, organizationId);
   }
 
   async refreshProgress(
     goalId: string,
     organizationId: string,
-  ): Promise<AgentGoalDocument> {
-    const goal = await this.agentGoalModel.findOne({
-      _id: new Types.ObjectId(goalId),
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+  ): Promise<Record<string, unknown>> {
+    const goal = await this.prisma.agentGoal.findFirst({
+      where: { id: goalId, isDeleted: false, organizationId },
     });
 
     if (!goal) {
       throw new NotFoundException(`Agent goal ${goalId} not found`);
     }
 
+    const g = goal as Record<string, unknown>;
+
     const overview = (await this.analyticsService.getOverview(
-      goal.startDate?.toISOString(),
-      goal.endDate?.toISOString(),
-      goal.brand ? String(goal.brand) : undefined,
+      (g.startDate as Date | undefined)?.toISOString(),
+      (g.endDate as Date | undefined)?.toISOString(),
+      g.brandId as string | undefined,
       organizationId,
     )) as AnalyticsOverview;
 
-    const currentValue = this.resolveMetricValue(goal.metric, overview);
+    const currentValue = this.resolveMetricValue(
+      g.metric as AgentGoalMetric,
+      overview,
+    );
+    const targetValue = g.targetValue as number;
     const progressPercent =
-      goal.targetValue > 0
-        ? Math.min(
-            100,
-            Number(((currentValue / goal.targetValue) * 100).toFixed(2)),
-          )
+      targetValue > 0
+        ? Math.min(100, Number(((currentValue / targetValue) * 100).toFixed(2)))
         : 0;
 
-    await this.agentGoalModel
-      .updateOne(
-        { _id: goal._id },
-        {
-          $set: {
-            currentValue,
-            lastEvaluatedAt: new Date(),
-            progressPercent,
-          },
-        },
-      )
-      .exec();
+    await this.prisma.agentGoal.update({
+      data: {
+        currentValue,
+        lastEvaluatedAt: new Date(),
+        progressPercent,
+      },
+      where: { id: goalId },
+    });
 
-    const updatedGoal = await this.agentGoalModel.findById(goal._id).exec();
+    const updatedGoal = await this.prisma.agentGoal.findUnique({
+      where: { id: goalId },
+    });
     if (!updatedGoal) {
       throw new NotFoundException(
         `Agent goal ${goalId} not found after update`,
@@ -145,7 +140,8 @@ export class AgentGoalsService {
     organizationId: string,
   ): Promise<string> {
     const goal = await this.refreshProgress(goalId, organizationId);
-    return `Goal "${goal.label}": ${goal.currentValue}/${goal.targetValue} ${goal.metric} (${goal.progressPercent}% complete).`;
+    const g = goal as Record<string, unknown>;
+    return `Goal "${g.label as string}": ${g.currentValue as number}/${g.targetValue as number} ${g.metric as string} (${g.progressPercent as number}% complete).`;
   }
 
   private resolveMetricValue(

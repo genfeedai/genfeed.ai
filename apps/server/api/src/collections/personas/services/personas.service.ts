@@ -1,18 +1,12 @@
 import { CreatePersonaDto } from '@api/collections/personas/dto/create-persona.dto';
 import { UpdatePersonaDto } from '@api/collections/personas/dto/update-persona.dto';
-import {
-  Persona,
-  type PersonaDocument,
-} from '@api/collections/personas/schemas/persona.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class PersonasService extends BaseService<
@@ -21,18 +15,18 @@ export class PersonasService extends BaseService<
   UpdatePersonaDto
 > {
   constructor(
-    @InjectModel(Persona.name, DB_CONNECTIONS.CLOUD)
-    model: AggregatePaginateModel<PersonaDocument>,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 
   create(
     dto: CreatePersonaDto & {
-      user: Types.ObjectId;
-      organization: Types.ObjectId;
-      brand: Types.ObjectId;
+      user: string;
+      organization: string;
+      brand: string;
     },
     populate: PopulateOption[] = [
       PopulatePatterns.userMinimal,
@@ -53,26 +47,21 @@ export class PersonasService extends BaseService<
   }
 
   async assignMembers(
-    personaId: Types.ObjectId,
-    memberIds: Types.ObjectId[],
-    organization: Types.ObjectId,
+    personaId: string,
+    memberIds: string[],
+    organizationId: string,
   ): Promise<PersonaDocument | null> {
-    const persona = await this.model
-      .findOneAndUpdate(
-        {
-          _id: personaId,
-          isDeleted: false,
-          organization,
-        },
-        { $set: { assignedMembers: memberIds } },
-        { new: true },
-      )
-      .exec();
+    const persona = await this.prisma.persona.update({
+      data: {
+        assignedMembers: { set: memberIds.map((id) => ({ id })) },
+      } as never,
+      where: { id: personaId, organizationId, isDeleted: false } as never,
+    });
 
     if (!persona) {
       throw new NotFoundException('Persona not found');
     }
 
-    return persona;
+    return persona as never;
   }
 }

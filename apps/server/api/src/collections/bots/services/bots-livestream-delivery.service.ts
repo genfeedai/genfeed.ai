@@ -2,24 +2,18 @@ import type {
   BotDocument,
   BotTarget,
 } from '@api/collections/bots/schemas/bot.schema';
-import {
-  Credential,
-  type CredentialDocument,
-} from '@api/collections/credentials/schemas/credential.schema';
+import type { CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import axios from 'axios';
 import { google } from 'googleapis';
-import { type AggregatePaginateModel } from 'mongoose';
 
 @Injectable()
 export class BotsLivestreamDeliveryService {
   constructor(
     private readonly configService: ConfigService,
-    @InjectModel(Credential.name, DB_CONNECTIONS.CLOUD)
-    private readonly credentialModel: AggregatePaginateModel<CredentialDocument>,
+    private readonly prisma: PrismaService,
   ) {}
 
   async deliverMessage(
@@ -68,14 +62,19 @@ export class BotsLivestreamDeliveryService {
       throw new Error(`No credential configured for ${target.platform} target`);
     }
 
-    const credential = await this.credentialModel
-      .findOne({
-        _id: credentialId,
+    const organizationId =
+      typeof bot.organization === 'string'
+        ? bot.organization
+        : String(bot.organization);
+
+    const credential = await this.prisma.credential.findFirst({
+      where: {
+        id: credentialId,
         isConnected: true,
         isDeleted: false,
-        organization: bot.organization,
-      })
-      .exec();
+        organizationId,
+      },
+    });
 
     if (!credential) {
       throw new Error(
@@ -83,7 +82,7 @@ export class BotsLivestreamDeliveryService {
       );
     }
 
-    return credential;
+    return credential as unknown as CredentialDocument;
   }
 
   private async resolveYoutubeLiveChatId(

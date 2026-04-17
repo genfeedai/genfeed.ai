@@ -2,24 +2,16 @@ import { ArticlesService } from '@api/collections/articles/services/articles.ser
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { EvaluateExternalDto } from '@api/collections/evaluations/dto/evaluate-external.dto';
 import { EvaluationFiltersDto } from '@api/collections/evaluations/dto/evaluation-filters.dto';
-import {
-  Evaluation,
-  type EvaluationDocument,
-} from '@api/collections/evaluations/schemas/evaluation.schema';
+import type { EvaluationDocument } from '@api/collections/evaluations/schemas/evaluation.schema';
 import { EvaluationsOperationsService } from '@api/collections/evaluations/services/evaluations-operations.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { InsufficientCreditsException } from '@api/helpers/exceptions/business/business-logic.exception';
-import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { MatchConditions } from '@api/shared/utils/pipeline-builder/pipeline-builder.types';
-import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
-import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import {
   ActivitySource,
   EvaluationType,
@@ -34,8 +26,6 @@ import {
   NotFoundException,
   Optional,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { type PipelineStage, Types } from 'mongoose';
 
 type EvaluationAiResult = {
   analysis: unknown;
@@ -55,7 +45,8 @@ type PostBrandContext = {
 };
 
 type PostEvaluationContent = {
-  _id: Types.ObjectId | string;
+  id?: string;
+  _id?: unknown;
   brand?: PostBrandContext;
   description?: string;
   label?: string;
@@ -68,6 +59,18 @@ type PublicationMetrics = {
   views?: number;
 };
 
+type EvaluationData = {
+  analysis?: unknown;
+  flags?: unknown;
+  overallScore?: number;
+  scores?: unknown;
+  status?: string;
+  evaluationType?: string;
+  brandId?: string;
+  userId?: string;
+  actualPerformance?: unknown;
+};
+
 @Injectable()
 export class EvaluationsService extends BaseService<EvaluationDocument> {
   private readonly constructorName = this.constructor.name;
@@ -77,8 +80,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
   private static readonly EVALUATION_MAX_OVERDRAFT_CREDITS = 5;
 
   constructor(
-    @InjectModel(Evaluation.name, DB_CONNECTIONS.CLOUD)
-    protected readonly model: AggregatePaginateModel<EvaluationDocument>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     private readonly evaluationsOperationsService: EvaluationsOperationsService,
     private readonly creditsUtilsService: CreditsUtilsService,
@@ -88,80 +90,53 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     @Optional() private readonly articlesService?: ArticlesService,
     @Optional() private readonly postsService?: PostsService,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 
-  /**
-   * Validate content exists and has required data for evaluation
-   * Throws NotFoundException if content is missing or incomplete
-   */
   private async validateContentForEvaluation(
     contentType: IngredientCategory | 'article' | 'post',
     contentId: string,
   ): Promise<void> {
     switch (contentType) {
       case IngredientCategory.VIDEO: {
-        if (!this.videosService) {
-          throw new Error('VideosService not available');
-        }
-        const video = await this.videosService.findOne(
-          { _id: new Types.ObjectId(contentId) },
-          [PopulatePatterns.metadataFull],
-        );
-        if (!video) {
-          throw new NotFoundException(`Video ${contentId} not found`);
-        }
-        const metadata = video.metadata as unknown as { result?: string };
-        if (!metadata?.result) {
+        if (!this.videosService) throw new Error('VideosService not available');
+        const video = await this.videosService.findOne({ _id: contentId }, [
+          { path: 'metadata' },
+        ]);
+        if (!video) throw new NotFoundException(`Video ${contentId} not found`);
+        if (!(video.metadata as { result?: string })?.result) {
           throw new NotFoundException(`Video ${contentId} has no result URL`);
         }
         break;
       }
       case IngredientCategory.IMAGE: {
-        if (!this.imagesService) {
-          throw new Error('ImagesService not available');
-        }
-        const image = await this.imagesService.findOne(
-          { _id: new Types.ObjectId(contentId) },
-          [PopulatePatterns.metadataFull],
-        );
-        if (!image) {
-          throw new NotFoundException(`Image ${contentId} not found`);
-        }
-        const metadata = image.metadata as unknown as { result?: string };
-        if (!metadata?.result) {
+        if (!this.imagesService) throw new Error('ImagesService not available');
+        const image = await this.imagesService.findOne({ _id: contentId }, [
+          { path: 'metadata' },
+        ]);
+        if (!image) throw new NotFoundException(`Image ${contentId} not found`);
+        if (!(image.metadata as { result?: string })?.result) {
           throw new NotFoundException(`Image ${contentId} has no result URL`);
         }
         break;
       }
       case 'article': {
-        if (!this.articlesService) {
+        if (!this.articlesService)
           throw new Error('ArticlesService not available');
-        }
-        const article = await this.articlesService.findOne({
-          _id: new Types.ObjectId(contentId),
-        });
-        if (!article) {
+        const article = await this.articlesService.findOne({ _id: contentId });
+        if (!article)
           throw new NotFoundException(`Article ${contentId} not found`);
-        }
-        if (!article.content) {
+        if (!article.content)
           throw new NotFoundException(`Article ${contentId} has no content`);
-        }
         break;
       }
       case 'post': {
-        if (!this.postsService) {
-          throw new Error('PostsService not available');
-        }
-        const post = await this.postsService.findOne({
-          _id: new Types.ObjectId(contentId),
-        });
-        if (!post) {
-          throw new NotFoundException(`Post ${contentId} not found`);
-        }
-        if (!post.description) {
+        if (!this.postsService) throw new Error('PostsService not available');
+        const post = await this.postsService.findOne({ _id: contentId });
+        if (!post) throw new NotFoundException(`Post ${contentId} not found`);
+        if (!post.description)
           throw new NotFoundException(`Post ${contentId} has no content`);
-        }
         break;
       }
       default:
@@ -169,10 +144,6 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     }
   }
 
-  /**
-   * Evaluate content automatically (orchestrator)
-   * Premium text evaluations use a 1-credit minimum precheck and settle actual cost after output.
-   */
   async evaluateContent(
     contentType: IngredientCategory | 'article' | 'post',
     contentId: string,
@@ -186,16 +157,12 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       this.constructorName,
     );
 
-    // Validate content exists BEFORE deducting credits
-    // Prevents billing flows from starting for missing content
     await this.validateContentForEvaluation(contentType, contentId);
-
     await this.assertOrganizationCreditsAvailable(
       organizationId,
       EvaluationsService.EVALUATION_MINIMUM_CREDITS,
     );
 
-    // Route to specific evaluation method based on content type
     switch (contentType) {
       case IngredientCategory.VIDEO:
         return this.evaluateVideo(
@@ -234,9 +201,6 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     }
   }
 
-  /**
-   * Evaluate video content
-   */
   async evaluateVideo(
     videoId: string,
     evaluationType: EvaluationType,
@@ -246,40 +210,23 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
   ): Promise<EvaluationDocument> {
     this.logger.log(`Evaluating video: ${videoId}`, this.constructorName);
 
-    if (!this.videosService) {
-      throw new Error('VideosService not available');
-    }
+    if (!this.videosService) throw new Error('VideosService not available');
 
-    // Fetch the video with metadata and prompt populated
-    const video = await this.videosService.findOne(
-      { _id: new Types.ObjectId(videoId) },
-      [
-        PopulatePatterns.metadataFull,
-        PopulatePatterns.promptFull,
-        PopulatePatterns.brandMinimal,
-      ],
-    );
+    const video = await this.videosService.findOne({ _id: videoId }, [
+      { path: 'metadata' },
+      { path: 'prompt' },
+      { path: 'brand' },
+    ]);
 
-    if (!video) {
-      throw new NotFoundException(`Video ${videoId} not found`);
-    }
+    if (!video) throw new NotFoundException(`Video ${videoId} not found`);
 
-    const metadata = video.metadata as unknown as { result?: string };
+    const metadata = video.metadata as { result?: string };
     const videoUrl = metadata?.result;
-
-    if (!videoUrl) {
+    if (!videoUrl)
       throw new NotFoundException(`Video ${videoId} has no result URL`);
-    }
 
-    // Build context for AI evaluator
-    const prompt = video.prompt as unknown as {
-      enhanced?: string;
-      original?: string;
-    };
-    const brand = video.brand as unknown as {
-      name?: string;
-      guidelines?: string;
-    };
+    const prompt = video.prompt as { enhanced?: string; original?: string };
+    const brand = video.brand as { name?: string; guidelines?: string };
 
     const context = {
       brand: brand
@@ -289,8 +236,6 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     };
 
     let billedCredits = 0;
-
-    // Call AI evaluator
     const aiResult = (await this.evaluationsOperationsService.evaluateVideo(
       videoUrl,
       context,
@@ -300,19 +245,22 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       },
     )) as EvaluationAiResult;
 
-    // Create evaluation record
-    const evaluation = await this.model.create({
-      analysis: aiResult.analysis,
-      brand: new Types.ObjectId(brandId),
-      content: new Types.ObjectId(videoId),
-      contentType: IngredientCategory.VIDEO,
-      evaluationType,
-      flags: aiResult.flags,
-      organization: new Types.ObjectId(organizationId),
-      overallScore: aiResult.overallScore,
-      scores: aiResult.scores,
-      status: Status.COMPLETED,
-      user: new Types.ObjectId(userId),
+    const evaluation = await this.prisma.evaluation.create({
+      data: {
+        organizationId,
+        userId,
+        contentType: IngredientCategory.VIDEO,
+        contentId: videoId,
+        data: {
+          analysis: aiResult.analysis,
+          brandId,
+          evaluationType,
+          flags: aiResult.flags,
+          overallScore: aiResult.overallScore,
+          scores: aiResult.scores,
+          status: Status.COMPLETED,
+        } satisfies EvaluationData,
+      },
     });
 
     await this.settleEvaluationCredits(
@@ -322,12 +270,9 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       `Content evaluation: ${IngredientCategory.VIDEO}`,
     );
 
-    return evaluation;
+    return evaluation as unknown as EvaluationDocument;
   }
 
-  /**
-   * Evaluate image content
-   */
   async evaluateImage(
     imageId: string,
     evaluationType: EvaluationType,
@@ -337,40 +282,23 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
   ): Promise<EvaluationDocument> {
     this.logger.log(`Evaluating image: ${imageId}`, this.constructorName);
 
-    if (!this.imagesService) {
-      throw new Error('ImagesService not available');
-    }
+    if (!this.imagesService) throw new Error('ImagesService not available');
 
-    // Fetch the image with metadata and prompt populated
-    const image = await this.imagesService.findOne(
-      { _id: new Types.ObjectId(imageId) },
-      [
-        PopulatePatterns.metadataFull,
-        PopulatePatterns.promptFull,
-        PopulatePatterns.brandMinimal,
-      ],
-    );
+    const image = await this.imagesService.findOne({ _id: imageId }, [
+      { path: 'metadata' },
+      { path: 'prompt' },
+      { path: 'brand' },
+    ]);
 
-    if (!image) {
-      throw new NotFoundException(`Image ${imageId} not found`);
-    }
+    if (!image) throw new NotFoundException(`Image ${imageId} not found`);
 
-    const metadata = image.metadata as unknown as { result?: string };
+    const metadata = image.metadata as { result?: string };
     const imageUrl = metadata?.result;
-
-    if (!imageUrl) {
+    if (!imageUrl)
       throw new NotFoundException(`Image ${imageId} has no result URL`);
-    }
 
-    // Build context for AI evaluator
-    const prompt = image.prompt as unknown as {
-      enhanced?: string;
-      original?: string;
-    };
-    const brand = image.brand as unknown as {
-      name?: string;
-      guidelines?: string;
-    };
+    const prompt = image.prompt as { enhanced?: string; original?: string };
+    const brand = image.brand as { name?: string; guidelines?: string };
 
     const context = {
       brand: brand
@@ -380,8 +308,6 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     };
 
     let billedCredits = 0;
-
-    // Call AI evaluator with vision
     const aiResult = (await this.evaluationsOperationsService.evaluateImage(
       imageUrl,
       context,
@@ -391,19 +317,22 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       },
     )) as EvaluationAiResult;
 
-    // Create evaluation record
-    const evaluation = await this.model.create({
-      analysis: aiResult.analysis,
-      brand: new Types.ObjectId(brandId),
-      content: new Types.ObjectId(imageId),
-      contentType: IngredientCategory.IMAGE,
-      evaluationType,
-      flags: aiResult.flags,
-      organization: new Types.ObjectId(organizationId),
-      overallScore: aiResult.overallScore,
-      scores: aiResult.scores,
-      status: Status.COMPLETED,
-      user: new Types.ObjectId(userId),
+    const evaluation = await this.prisma.evaluation.create({
+      data: {
+        organizationId,
+        userId,
+        contentType: IngredientCategory.IMAGE,
+        contentId: imageId,
+        data: {
+          analysis: aiResult.analysis,
+          brandId,
+          evaluationType,
+          flags: aiResult.flags,
+          overallScore: aiResult.overallScore,
+          scores: aiResult.scores,
+          status: Status.COMPLETED,
+        } satisfies EvaluationData,
+      },
     });
 
     await this.settleEvaluationCredits(
@@ -413,12 +342,9 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       `Content evaluation: ${IngredientCategory.IMAGE}`,
     );
 
-    return evaluation;
+    return evaluation as unknown as EvaluationDocument;
   }
 
-  /**
-   * Evaluate article content
-   */
   async evaluateArticle(
     articleId: string,
     evaluationType: EvaluationType,
@@ -428,30 +354,17 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
   ): Promise<EvaluationDocument> {
     this.logger.log(`Evaluating article: ${articleId}`, this.constructorName);
 
-    if (!this.articlesService) {
-      throw new Error('ArticlesService not available');
-    }
+    if (!this.articlesService) throw new Error('ArticlesService not available');
 
-    // Fetch the article
-    const article = await this.articlesService.findOne(
-      { _id: new Types.ObjectId(articleId) },
-      [PopulatePatterns.brandMinimal],
-    );
+    const article = await this.articlesService.findOne({ _id: articleId }, [
+      { path: 'brand' },
+    ]);
 
-    if (!article) {
-      throw new NotFoundException(`Article ${articleId} not found`);
-    }
-
-    if (!article.content) {
+    if (!article) throw new NotFoundException(`Article ${articleId} not found`);
+    if (!article.content)
       throw new NotFoundException(`Article ${articleId} has no content`);
-    }
 
-    // Build context for AI evaluator
-    const brand = article.brand as unknown as {
-      name?: string;
-      guidelines?: string;
-    };
-
+    const brand = article.brand as { name?: string; guidelines?: string };
     const context = {
       brand: brand
         ? { guidelines: brand.guidelines, name: brand.name }
@@ -464,8 +377,6 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     };
 
     let billedCredits = 0;
-
-    // Call AI evaluator
     const aiResult = (await this.evaluationsOperationsService.evaluateArticle(
       article.content,
       context,
@@ -475,19 +386,22 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       },
     )) as EvaluationAiResult;
 
-    // Create evaluation record
-    const evaluation = await this.model.create({
-      analysis: aiResult.analysis,
-      brand: new Types.ObjectId(brandId),
-      content: new Types.ObjectId(articleId),
-      contentType: 'article',
-      evaluationType,
-      flags: aiResult.flags,
-      organization: new Types.ObjectId(organizationId),
-      overallScore: aiResult.overallScore,
-      scores: aiResult.scores,
-      status: Status.COMPLETED,
-      user: new Types.ObjectId(userId),
+    const evaluation = await this.prisma.evaluation.create({
+      data: {
+        organizationId,
+        userId,
+        contentType: 'article',
+        contentId: articleId,
+        data: {
+          analysis: aiResult.analysis,
+          brandId,
+          evaluationType,
+          flags: aiResult.flags,
+          overallScore: aiResult.overallScore,
+          scores: aiResult.scores,
+          status: Status.COMPLETED,
+        } satisfies EvaluationData,
+      },
     });
 
     await this.settleEvaluationCredits(
@@ -497,13 +411,9 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       'Content evaluation: article',
     );
 
-    return evaluation;
+    return evaluation as unknown as EvaluationDocument;
   }
 
-  /**
-   * Evaluate social media post/thread content (async with WebSocket)
-   * Returns immediately with PROCESSING status, emits result via WebSocket
-   */
   async evaluatePost(
     postId: string,
     evaluationType: EvaluationType,
@@ -513,114 +423,94 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
   ): Promise<EvaluationDocument> {
     this.logger.log(`Evaluating post: ${postId}`, this.constructorName);
 
-    if (!this.postsService) {
-      throw new Error('PostsService not available');
-    }
+    if (!this.postsService) throw new Error('PostsService not available');
 
-    // Fetch the post with brand populated
-    const post = await this.postsService.findOne(
-      { _id: new Types.ObjectId(postId) },
-      [PopulatePatterns.brandMinimal],
-    );
-
-    if (!post) {
-      throw new NotFoundException(`Post ${postId} not found`);
-    }
-
-    if (!post.description) {
+    const post = await this.postsService.findOne({ _id: postId }, [
+      { path: 'brand' },
+    ]);
+    if (!post) throw new NotFoundException(`Post ${postId} not found`);
+    if (!post.description)
       throw new NotFoundException(`Post ${postId} has no content`);
-    }
 
-    // Create evaluation record with PROCESSING status immediately
-    const evaluation = await this.model.create({
-      brand: new Types.ObjectId(brandId),
-      content: new Types.ObjectId(postId),
-      contentType: 'post',
-      evaluationType,
-      organization: new Types.ObjectId(organizationId),
-      status: Status.PROCESSING,
-      user: new Types.ObjectId(userId),
+    const evaluation = await this.prisma.evaluation.create({
+      data: {
+        organizationId,
+        userId,
+        contentType: 'post',
+        contentId: postId,
+        data: {
+          brandId,
+          evaluationType,
+          status: Status.PROCESSING,
+        } satisfies EvaluationData,
+      },
     });
 
-    // Run AI evaluation async
     this.evaluatePostAsync(
-      evaluation._id.toString(),
+      evaluation.id,
       post as unknown as PostEvaluationContent,
       organizationId,
       userId,
     ).catch((error) => {
-      this.logger.error(`Async post evaluation failed: ${error.message}`, {
-        error,
-        evaluationId: evaluation._id,
-        postId,
-      });
+      this.logger.error(
+        `Async post evaluation failed: ${(error as Error).message}`,
+        {
+          error,
+          evaluationId: evaluation.id,
+          postId,
+        },
+      );
     });
 
-    return evaluation;
+    return evaluation as unknown as EvaluationDocument;
   }
 
-  /**
-   * Async worker for post evaluation
-   * Runs in background after immediate response
-   */
   private async evaluatePostAsync(
     evaluationId: string,
     post: PostEvaluationContent,
     organizationId: string,
     userId: string,
   ): Promise<void> {
-    const postId = String(post._id);
+    const postId = String(post.id ?? post._id);
 
     try {
-      // Fetch children if this is a thread (parent post)
       const children = (await this.postsService?.getChildren(postId)) as
         | PostThreadChild[]
         | undefined;
       const threadChildren = children ?? [];
       const isThread = threadChildren.length > 0;
 
-      // Build thread content (parent + children in order)
       let threadContent = post.description || '';
       if (isThread) {
         const sortedChildren = [...threadChildren].sort(
           (a, b) => (a.order || 0) - (b.order || 0),
         );
-
         for (const child of sortedChildren) {
           threadContent += `\n---\n${child.description || ''}`;
         }
       }
 
-      // Build context for AI evaluator
       const brand = post.brand;
 
-      // Fetch previous evaluation for consistency anchoring (exclude current PROCESSING one)
-      const previousEvaluation = await this.model
-        .findOne({
-          content: new Types.ObjectId(postId),
+      const prevRaw = await this.prisma.evaluation.findFirst({
+        where: {
+          contentId: postId,
           contentType: 'post',
           isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
-          status: Status.COMPLETED,
-        })
-        .sort({ updatedAt: -1 })
-        .exec();
+          organizationId,
+        },
+        orderBy: { updatedAt: 'desc' },
+      });
 
-      const previousEval:
-        | {
-            overallScore: number;
-            scores: Record<string, unknown>;
-            updatedAt: Date;
-          }
-        | undefined =
-        previousEvaluation &&
-        previousEvaluation.overallScore !== undefined &&
-        previousEvaluation.scores
+      const prevData = prevRaw?.data as EvaluationData | null;
+      const previousEval =
+        prevData?.status === Status.COMPLETED &&
+        prevData?.overallScore !== undefined &&
+        prevData?.scores
           ? {
-              overallScore: previousEvaluation.overallScore as number,
-              scores: previousEvaluation.scores as Record<string, unknown>,
-              updatedAt: (previousEvaluation as unknown as { updatedAt: Date })
-                .updatedAt,
+              overallScore: prevData.overallScore as number,
+              scores: prevData.scores as Record<string, unknown>,
+              updatedAt: prevRaw!.updatedAt,
             }
           : undefined;
 
@@ -628,27 +518,22 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
         brand: brand
           ? {
               guidelines: (brand as { guidelines?: unknown }).guidelines,
-              name: (brand as { name?: string }).name,
+              name: brand.name,
             }
           : undefined,
         isThread,
-        label: post.label as string | undefined,
-        platform: post.platform as string | undefined,
+        label: post.label,
+        platform: post.platform,
         previousEvaluation: previousEval,
         threadLength: isThread ? threadChildren.length + 1 : 1,
       };
 
       let billedCredits = 0;
-
-      // Call AI evaluator
       const aiResult = (await this.evaluationsOperationsService.evaluatePost(
         threadContent,
         context as {
           label?: string;
-          brand?: {
-            name?: string;
-            guidelines?: unknown;
-          };
+          brand?: { name?: string; guidelines?: unknown };
           platform?: string;
           isThread?: boolean;
           threadLength?: number;
@@ -671,26 +556,28 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
         'Content evaluation: post',
       );
 
-      // Update evaluation with results
-      const updatedEvaluation = await this.model.findByIdAndUpdate(
-        evaluationId,
-        {
-          analysis: aiResult.analysis,
-          flags: aiResult.flags,
-          overallScore: aiResult.overallScore,
-          scores: aiResult.scores,
-          status: Status.COMPLETED,
-        },
-        { returnDocument: 'after' },
-      );
+      const existing = await this.prisma.evaluation.findUnique({
+        where: { id: evaluationId },
+      });
+      const existingData = (existing?.data as EvaluationData) ?? {};
 
-      // Emit WebSocket event for completion
+      const updatedEvaluation = await this.prisma.evaluation.update({
+        where: { id: evaluationId },
+        data: {
+          data: {
+            ...existingData,
+            analysis: aiResult.analysis,
+            flags: aiResult.flags,
+            overallScore: aiResult.overallScore,
+            scores: aiResult.scores,
+            status: Status.COMPLETED,
+          } satisfies EvaluationData,
+        },
+      });
+
       await this.websocketService.emit(
         WebSocketPaths.evaluation(evaluationId),
-        {
-          result: updatedEvaluation,
-          status: Status.COMPLETED,
-        },
+        { result: updatedEvaluation, status: Status.COMPLETED },
       );
 
       this.logger.log(
@@ -700,12 +587,21 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     } catch (error: unknown) {
       this.logger.error(`Post evaluation failed: ${evaluationId}`, error);
 
-      // Update evaluation to FAILED status
-      await this.model.findByIdAndUpdate(evaluationId, {
-        status: Status.FAILED,
+      const existing = await this.prisma.evaluation.findUnique({
+        where: { id: evaluationId },
+      });
+      const existingData = (existing?.data as EvaluationData) ?? {};
+
+      await this.prisma.evaluation.update({
+        where: { id: evaluationId },
+        data: {
+          data: {
+            ...existingData,
+            status: Status.FAILED,
+          } satisfies EvaluationData,
+        },
       });
 
-      // Emit WebSocket event for failure
       await this.websocketService.emit(
         WebSocketPaths.evaluation(evaluationId),
         {
@@ -716,9 +612,6 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     }
   }
 
-  /**
-   * Evaluate external content from URL
-   */
   evaluateExternalUrl(
     dto: EvaluateExternalDto,
     _organizationId: string,
@@ -729,7 +622,6 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       `Evaluating external content: ${dto.url}`,
       this.constructorName,
     );
-    // Not implemented — return proper HTTP 501
     throw new HttpException(
       {
         message: 'External content analysis not yet implemented',
@@ -739,9 +631,6 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     );
   }
 
-  /**
-   * Sync actual performance metrics to evaluation
-   */
   async syncPostPublicationPerformance(
     evaluationId: string,
     publicationData: Record<string, unknown>,
@@ -751,59 +640,63 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       this.constructorName,
     );
 
-    const evaluation = await this.model.findById(evaluationId);
+    const evaluation = await this.prisma.evaluation.findUnique({
+      where: { id: evaluationId },
+    });
+
     if (!evaluation) {
       throw new NotFoundException(`Evaluation ${evaluationId} not found`);
     }
 
-    // Verify evaluation is completed - only completed evaluations have scores
-    if (evaluation.status !== Status.COMPLETED) {
+    const data = evaluation.data as EvaluationData | null;
+
+    if (data?.status !== Status.COMPLETED) {
       throw new NotFoundException(
-        `Evaluation ${evaluationId} is not completed (status: ${evaluation.status}). Cannot sync performance metrics for incomplete evaluations.`,
+        `Evaluation ${evaluationId} is not completed (status: ${data?.status}). Cannot sync performance metrics for incomplete evaluations.`,
       );
     }
 
-    // Verify scores exist and have required engagement data
-    const scores = evaluation.scores;
+    const scores = data.scores as Record<string, Record<string, number>> | null;
+
     if (!scores) {
-      throw new NotFoundException(
-        `Evaluation ${evaluationId} has no scores. Evaluation may not be fully processed yet.`,
-      );
+      throw new NotFoundException(`Evaluation ${evaluationId} has no scores.`);
     }
-
     if (!scores.engagement) {
       throw new NotFoundException(
-        `Evaluation ${evaluationId} has no engagement scores. Evaluation may not be fully processed yet.`,
+        `Evaluation ${evaluationId} has no engagement scores.`,
       );
     }
-
     if (typeof scores.engagement.overall !== 'number') {
       throw new NotFoundException(
-        `Evaluation ${evaluationId} has invalid engagement score. Evaluation may not be fully processed yet.`,
+        `Evaluation ${evaluationId} has invalid engagement score.`,
       );
     }
 
-    // Extract engagement score after validation - TypeScript now knows it's safe
     const metrics = publicationData as PublicationMetrics;
     const predictedEngagement = scores.engagement.overall;
     const actualEngagement = metrics.engagement || 0;
     const accuracyScore =
       100 - Math.abs(predictedEngagement - actualEngagement);
 
-    evaluation.actualPerformance = {
-      accuracyScore,
-      engagement: actualEngagement,
-      engagementRate: metrics.engagementRate || 0,
-      syncedAt: new Date(),
-      views: metrics.views || 0,
-    };
+    const updated = await this.prisma.evaluation.update({
+      where: { id: evaluationId },
+      data: {
+        data: {
+          ...data,
+          actualPerformance: {
+            accuracyScore,
+            engagement: actualEngagement,
+            engagementRate: metrics.engagementRate || 0,
+            syncedAt: new Date().toISOString(),
+            views: metrics.views || 0,
+          },
+        } satisfies EvaluationData,
+      },
+    });
 
-    return await evaluation.save();
+    return updated as unknown as EvaluationDocument;
   }
 
-  /**
-   * Get all evaluations for specific content
-   */
   async getContentEvaluations(
     contentType: IngredientCategory | 'article' | 'post',
     contentId: string,
@@ -814,19 +707,14 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
       this.constructorName,
     );
 
-    return await this.model
-      .find({
-        content: new Types.ObjectId(contentId),
-        contentType,
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      })
-      .sort({ updatedAt: -1 });
+    const evaluations = await this.prisma.evaluation.findMany({
+      where: { contentId, contentType, isDeleted: false, organizationId },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    return evaluations as unknown as EvaluationDocument[];
   }
 
-  /**
-   * Get evaluation trends and analytics
-   */
   async getEvaluationTrends(
     organizationId: string,
     filters: EvaluationFiltersDto,
@@ -842,75 +730,102 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
   > {
     this.logger.log('Getting evaluation trends', this.constructorName);
 
-    // Use CollectionFilterUtil for common filtering patterns
-    const brandFilter = filters.brand
-      ? CollectionFilterUtil.buildBrandFilter(filters.brand, {}, 'none')
-      : {};
-    const dateRangeFilter = CollectionFilterUtil.buildDateRangeFilter(
-      filters.startDate,
-      filters.endDate,
-      'updatedAt',
-    );
-    const categoryFilter = filters.contentType
-      ? CollectionFilterUtil.buildCategoryFilter(filters.contentType)
-      : {};
-
-    // Build match conditions
-    const matchConditions: MatchConditions = {
+    const where: Record<string, unknown> = {
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-      ...(filters.evaluationType && {
-        evaluationType: filters.evaluationType,
-      }),
-      ...categoryFilter,
-      ...brandFilter,
-      ...dateRangeFilter,
+      organizationId,
     };
 
-    // Add score filters if provided
-    if (filters.minScore || filters.maxScore) {
-      const scoreMatch: Record<string, number> = {};
-      if (filters.minScore) {
-        scoreMatch.$gte = parseFloat(filters.minScore);
-      }
-      if (filters.maxScore) {
-        scoreMatch.$lte = parseFloat(filters.maxScore);
-      }
-      matchConditions.overallScore = scoreMatch;
+    if (filters.contentType) {
+      where.contentType = filters.contentType;
     }
 
-    const aggregate: PipelineStage[] = [
-      PipelineBuilder.buildMatch(matchConditions),
-    ];
+    if (filters.startDate || filters.endDate) {
+      const dateFilter: Record<string, unknown> = {};
+      if (filters.startDate) dateFilter.gte = new Date(filters.startDate);
+      if (filters.endDate) dateFilter.lte = new Date(filters.endDate);
+      where.updatedAt = dateFilter;
+    }
 
-    // Add aggregation stages for analytics
-    aggregate.push({
-      $group: {
-        _id: {
-          $dateToString: { date: '$updatedAt', format: '%Y-%m-%d' },
-        },
-        avgBrandScore: { $avg: '$scores.brand.overall' },
-        avgEngagementScore: { $avg: '$scores.engagement.overall' },
-        avgScore: { $avg: '$overallScore' },
-        avgTechnicalScore: { $avg: '$scores.technical.overall' },
-        count: { $sum: 1 },
-      },
+    const evaluations = await this.prisma.evaluation.findMany({
+      where: where as never,
+      select: { updatedAt: true, data: true },
+      orderBy: { updatedAt: 'asc' },
     });
 
-    aggregate.push({
-      $sort: { _id: 1 },
-    });
+    // Group by date in application code; filter by evaluationType/brand/scores from data JSON
+    const grouped = new Map<
+      string,
+      {
+        count: number;
+        scores: number[];
+        brandScores: number[];
+        engagementScores: number[];
+        technicalScores: number[];
+      }
+    >();
 
-    return await this.model.aggregate(aggregate);
+    for (const ev of evaluations) {
+      const data = ev.data as EvaluationData | null;
+
+      if (
+        filters.evaluationType &&
+        data?.evaluationType !== filters.evaluationType
+      )
+        continue;
+      if (
+        filters.minScore &&
+        (data?.overallScore ?? 0) < parseFloat(filters.minScore)
+      )
+        continue;
+      if (
+        filters.maxScore &&
+        (data?.overallScore ?? 0) > parseFloat(filters.maxScore)
+      )
+        continue;
+
+      const dateKey = ev.updatedAt.toISOString().slice(0, 10);
+      if (!grouped.has(dateKey)) {
+        grouped.set(dateKey, {
+          count: 0,
+          scores: [],
+          brandScores: [],
+          engagementScores: [],
+          technicalScores: [],
+        });
+      }
+      const group = grouped.get(dateKey)!;
+      group.count++;
+
+      if (typeof data?.overallScore === 'number')
+        group.scores.push(data.overallScore);
+      const s = data?.scores as Record<string, Record<string, number>> | null;
+      if (s?.brand?.overall) group.brandScores.push(s.brand.overall);
+      if (s?.engagement?.overall)
+        group.engagementScores.push(s.engagement.overall);
+      if (s?.technical?.overall)
+        group.technicalScores.push(s.technical.overall);
+    }
+
+    const avg = (arr: number[]) =>
+      arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+
+    return Array.from(grouped.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([dateKey, group]) => ({
+        _id: dateKey,
+        avgBrandScore: avg(group.brandScores),
+        avgEngagementScore: avg(group.engagementScores),
+        avgScore: avg(group.scores),
+        avgTechnicalScore: avg(group.technicalScores),
+        count: group.count,
+      }));
   }
 
   private async assertOrganizationCreditsAvailable(
     organizationId: string,
     requiredCredits: number,
   ): Promise<void> {
-    if (requiredCredits <= 0) {
-      return;
-    }
+    if (requiredCredits <= 0) return;
 
     const hasCredits =
       await this.creditsUtilsService.checkOrganizationCreditsAvailable(
@@ -918,9 +833,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
         requiredCredits,
       );
 
-    if (hasCredits) {
-      return;
-    }
+    if (hasCredits) return;
 
     const currentBalance =
       await this.creditsUtilsService.getOrganizationCreditsBalance(
@@ -939,9 +852,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     amount: number,
     description: string,
   ): Promise<void> {
-    if (amount <= 0) {
-      return;
-    }
+    if (amount <= 0) return;
 
     await this.creditsUtilsService.deductCreditsFromOrganization(
       organizationId,

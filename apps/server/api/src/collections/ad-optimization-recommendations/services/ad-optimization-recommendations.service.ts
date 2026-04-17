@@ -1,39 +1,33 @@
-import {
-  AdOptimizationRecommendation,
-  type AdOptimizationRecommendationDocument,
-  type RecommendationStatus,
-  type RecommendationType,
+import type {
+  RecommendationStatus,
+  RecommendationType,
 } from '@api/collections/ad-optimization-recommendations/schemas/ad-optimization-recommendation.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { ConflictException, Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import type { Model } from 'mongoose';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class AdOptimizationRecommendationsService {
   private readonly constructorName = this.constructor.name;
 
   constructor(
-    @InjectModel(AdOptimizationRecommendation.name, DB_CONNECTIONS.CLOUD)
-    private readonly recommendationModel: Model<AdOptimizationRecommendationDocument>,
+    private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
   ) {}
 
   async createBatch(
-    recommendations: Partial<AdOptimizationRecommendation>[],
+    recommendations: Record<string, unknown>[],
   ): Promise<number> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const result = await this.recommendationModel.insertMany(
-        recommendations,
-        { ordered: false },
-      );
-      this.logger.log(`${caller} created ${result.length} recommendations`);
-      return result.length;
+      const result = await this.prisma.adOptimizationRecommendation.createMany({
+        data: recommendations as never,
+        skipDuplicates: true,
+      });
+      this.logger.log(`${caller} created ${result.count} recommendations`);
+      return result.count;
     } catch (error: unknown) {
       this.logger.error(`${caller} failed`, error);
       throw error;
@@ -48,57 +42,53 @@ export class AdOptimizationRecommendationsService {
       limit?: number;
       offset?: number;
     },
-  ): Promise<AdOptimizationRecommendationDocument[]> {
-    const query: Record<string, unknown> = {
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-    };
-
-    if (params?.status) query.status = params.status;
-    if (params?.recommendationType)
-      query.recommendationType = params.recommendationType;
-
-    return this.recommendationModel
-      .find(query)
-      .sort({ createdAt: -1 })
-      .skip(params?.offset || 0)
-      .limit(params?.limit || 50)
-      .lean()
-      .exec();
+  ): Promise<Record<string, unknown>[]> {
+    return this.prisma.adOptimizationRecommendation.findMany({
+      orderBy: { createdAt: 'desc' },
+      skip: params?.offset ?? 0,
+      take: params?.limit ?? 50,
+      where: {
+        isDeleted: false,
+        organizationId,
+        ...(params?.status ? { status: params.status } : {}),
+        ...(params?.recommendationType
+          ? { recommendationType: params.recommendationType }
+          : {}),
+      },
+    });
   }
 
   async findById(
     id: string,
     organizationId: string,
-  ): Promise<AdOptimizationRecommendationDocument | null> {
-    return this.recommendationModel
-      .findOne({
-        _id: new Types.ObjectId(id),
+  ): Promise<Record<string, unknown> | null> {
+    return this.prisma.adOptimizationRecommendation.findFirst({
+      where: {
+        id,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      })
-      .lean()
-      .exec();
+        organizationId,
+      },
+    });
   }
 
   async approve(
     id: string,
     organizationId: string,
-  ): Promise<AdOptimizationRecommendationDocument | null> {
+  ): Promise<Record<string, unknown> | null> {
     return this.updateStatus(id, organizationId, 'approved', 'pending');
   }
 
   async reject(
     id: string,
     organizationId: string,
-  ): Promise<AdOptimizationRecommendationDocument | null> {
+  ): Promise<Record<string, unknown> | null> {
     return this.updateStatus(id, organizationId, 'rejected', 'pending');
   }
 
   async markExecuted(
     id: string,
     organizationId: string,
-  ): Promise<AdOptimizationRecommendationDocument | null> {
+  ): Promise<Record<string, unknown> | null> {
     return this.updateStatus(id, organizationId, 'executed', 'approved');
   }
 
@@ -106,22 +96,22 @@ export class AdOptimizationRecommendationsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const result = await this.recommendationModel.updateMany(
-        {
-          expiresAt: { $lte: new Date() },
+      const result = await this.prisma.adOptimizationRecommendation.updateMany({
+        data: { status: 'expired' },
+        where: {
+          expiresAt: { lte: new Date() },
           isDeleted: false,
           status: 'pending',
         },
-        { $set: { status: 'expired' } },
-      );
+      });
 
-      if (result.modifiedCount > 0) {
+      if (result.count > 0) {
         this.logger.log(
-          `${caller} expired ${result.modifiedCount} stale recommendations`,
+          `${caller} expired ${result.count} stale recommendations`,
         );
       }
 
-      return result.modifiedCount;
+      return result.count;
     } catch (error: unknown) {
       this.logger.error(`${caller} failed`, error);
       throw error;
@@ -132,17 +122,16 @@ export class AdOptimizationRecommendationsService {
     organizationId: string,
     entityId: string,
     recommendationType: RecommendationType,
-  ): Promise<AdOptimizationRecommendationDocument | null> {
-    return this.recommendationModel
-      .findOne({
+  ): Promise<Record<string, unknown> | null> {
+    return this.prisma.adOptimizationRecommendation.findFirst({
+      where: {
         entityId,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+        organizationId,
         recommendationType,
         status: 'pending',
-      })
-      .lean()
-      .exec();
+      },
+    });
   }
 
   private async updateStatus(
@@ -150,42 +139,32 @@ export class AdOptimizationRecommendationsService {
     organizationId: string,
     status: RecommendationStatus,
     expectedCurrentStatus: RecommendationStatus,
-  ): Promise<AdOptimizationRecommendationDocument | null> {
+  ): Promise<Record<string, unknown> | null> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const doc = await this.recommendationModel
-        .findOneAndUpdate(
-          {
-            _id: new Types.ObjectId(id),
-            isDeleted: false,
-            organization: new Types.ObjectId(organizationId),
-            status: expectedCurrentStatus,
-          },
-          { $set: { status } },
-          { new: true },
-        )
-        .lean()
-        .exec();
+      const existing = await this.prisma.adOptimizationRecommendation.findFirst(
+        {
+          where: { id, isDeleted: false, organizationId },
+        },
+      );
 
-      if (!doc) {
-        const existing = await this.recommendationModel
-          .findOne({
-            _id: new Types.ObjectId(id),
-            isDeleted: false,
-            organization: new Types.ObjectId(organizationId),
-          })
-          .lean()
-          .exec();
-
-        if (existing) {
-          throw new ConflictException(
-            `Cannot transition recommendation ${id} to '${status}': expected status '${expectedCurrentStatus}' but found '${existing.status}'`,
-          );
-        }
-
+      if (!existing) {
         return null;
       }
+
+      if (
+        (existing as Record<string, unknown>).status !== expectedCurrentStatus
+      ) {
+        throw new ConflictException(
+          `Cannot transition recommendation ${id} to '${status}': expected status '${expectedCurrentStatus}' but found '${(existing as Record<string, unknown>).status as string}'`,
+        );
+      }
+
+      const doc = await this.prisma.adOptimizationRecommendation.update({
+        data: { status },
+        where: { id },
+      });
 
       this.logger.log(`${caller} updated recommendation ${id} to ${status}`);
       return doc;

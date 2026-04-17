@@ -1,17 +1,11 @@
 import { CreatePromptDto } from '@api/collections/prompts/dto/create-prompt.dto';
 import { UpdatePromptDto } from '@api/collections/prompts/dto/update-prompt.dto';
-import {
-  Prompt,
-  type PromptDocument,
-} from '@api/collections/prompts/schemas/prompt.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { PromptDocument } from '@api/collections/prompts/schemas/prompt.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import type { QueryFilter } from 'mongoose';
 
 @Injectable()
 export class PromptsService extends BaseService<
@@ -20,11 +14,11 @@ export class PromptsService extends BaseService<
   UpdatePromptDto
 > {
   constructor(
-    @InjectModel(Prompt.name, DB_CONNECTIONS.CLOUD)
-    model: AggregatePaginateModel<PromptDocument>,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 
   create(

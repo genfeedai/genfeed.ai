@@ -1,15 +1,10 @@
 import { CreateProjectDto } from '@api/collections/projects/dto/create-project.dto';
 import { UpdateProjectDto } from '@api/collections/projects/dto/update-project.dto';
-import {
-  Project,
-  type ProjectDocument,
-} from '@api/collections/projects/schemas/project.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { ProjectDocument } from '@api/collections/projects/schemas/project.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class ProjectsService extends BaseService<
@@ -18,11 +13,11 @@ export class ProjectsService extends BaseService<
   UpdateProjectDto
 > {
   constructor(
-    @InjectModel(Project.name, DB_CONNECTIONS.CLOUD)
-    model: AggregatePaginateModel<ProjectDocument>,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 
   override async create(createDto: CreateProjectDto): Promise<ProjectDocument> {

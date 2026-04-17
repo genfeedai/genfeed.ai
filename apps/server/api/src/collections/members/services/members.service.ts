@@ -1,16 +1,10 @@
 import { CreateMemberDto } from '@api/collections/members/dto/create-member.dto';
 import { UpdateMemberDto } from '@api/collections/members/dto/update-member.dto';
-import {
-  Member,
-  type MemberDocument,
-} from '@api/collections/members/schemas/member.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { type QueryFilter, Types } from 'mongoose';
 
 @Injectable()
 export class MembersService extends BaseService<
@@ -21,21 +15,28 @@ export class MembersService extends BaseService<
   public readonly constructorName: string = String(this.constructor.name);
 
   constructor(
-    @InjectModel(Member.name, DB_CONNECTIONS.AUTH)
-    protected readonly model: AggregatePaginateModel<MemberDocument>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 
-  async find(filter: QueryFilter<MemberDocument>): Promise<MemberDocument[]> {
-    return await this.model.find(filter).exec();
+  async find(filter: Record<string, unknown>): Promise<MemberDocument[]> {
+    const members = await this.prisma.member.findMany({
+      where: filter as never,
+    });
+
+    return members as unknown as MemberDocument[];
   }
 
   async setLastUsedBrand(
-    filter: QueryFilter<MemberDocument>,
-    brandId: Types.ObjectId,
+    filter: Record<string, unknown>,
+    brandId: string,
   ): Promise<void> {
-    await this.model.updateOne(filter, { $set: { lastUsedBrand: brandId } });
+    await this.prisma.member.updateMany({
+      where: filter as never,
+      data: { lastUsedBrandId: brandId },
+    });
   }
 }

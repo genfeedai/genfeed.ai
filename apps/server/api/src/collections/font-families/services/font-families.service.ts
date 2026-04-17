@@ -1,15 +1,10 @@
 import { CreateFontFamilyDto } from '@api/collections/font-families/dto/create-font-family.dto';
 import { UpdateFontFamilyDto } from '@api/collections/font-families/dto/update-font-family.dto';
-import {
-  FontFamily,
-  type FontFamilyDocument,
-} from '@api/collections/font-families/schemas/font-family.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { FontFamilyDocument } from '@api/collections/font-families/schemas/font-family.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class FontFamiliesService extends BaseService<
@@ -18,10 +13,10 @@ export class FontFamiliesService extends BaseService<
   UpdateFontFamilyDto
 > {
   constructor(
-    @InjectModel(FontFamily.name, DB_CONNECTIONS.CLOUD)
-    protected readonly model: AggregatePaginateModel<FontFamilyDocument>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 }

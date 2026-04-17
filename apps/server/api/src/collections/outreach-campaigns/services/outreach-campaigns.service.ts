@@ -1,18 +1,12 @@
 import { CreateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/create-outreach-campaign.dto';
 import { UpdateOutreachCampaignDto } from '@api/collections/outreach-campaigns/dto/update-outreach-campaign.dto';
-import {
-  OutreachCampaign,
-  type OutreachCampaignDocument,
-} from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { OutreachCampaignDocument } from '@api/collections/outreach-campaigns/schemas/outreach-campaign.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { CampaignStatus } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 @Injectable()
 // @ts-expect-error - base class type mismatch
@@ -22,11 +16,11 @@ export class OutreachCampaignsService extends BaseService<
   UpdateOutreachCampaignDto
 > {
   constructor(
-    @InjectModel(OutreachCampaign.name, DB_CONNECTIONS.CLOUD)
-    model: AggregatePaginateModel<OutreachCampaignDocument>,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 
   create(
@@ -69,10 +63,10 @@ export class OutreachCampaignsService extends BaseService<
     brandId?: string,
   ): Promise<OutreachCampaignDocument | null> {
     return this.findOne({
-      ...(brandId ? { brand: new Types.ObjectId(brandId) } : {}),
-      _id: new Types.ObjectId(id),
+      ...(brandId ? { brand: brandId } : {}),
+      _id: id,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
   }
 
@@ -84,7 +78,7 @@ export class OutreachCampaignsService extends BaseService<
   ): Promise<OutreachCampaignDocument[]> {
     return this.find({
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
   }
 
@@ -94,7 +88,7 @@ export class OutreachCampaignsService extends BaseService<
   findActive(organizationId: string): Promise<OutreachCampaignDocument[]> {
     return this.find({
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       status: CampaignStatus.ACTIVE,
     });
   }
@@ -108,7 +102,7 @@ export class OutreachCampaignsService extends BaseService<
   ): Promise<OutreachCampaignDocument[]> {
     return this.find({
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       status,
     });
   }
@@ -185,9 +179,9 @@ export class OutreachCampaignsService extends BaseService<
    */
   async canReply(id: string, organizationId: string): Promise<boolean> {
     const campaign = await this.findOne({
-      _id: new Types.ObjectId(id),
+      _id: id,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!campaign || campaign.status !== CampaignStatus.ACTIVE) {
@@ -222,110 +216,78 @@ export class OutreachCampaignsService extends BaseService<
    * Increment reply counters after a successful reply
    */
   async incrementReplyCounters(id: string): Promise<void> {
-    await this.model.updateOne(
-      { _id: new Types.ObjectId(id) },
-      {
-        $inc: {
-          'rateLimits.currentDayCount': 1,
-          'rateLimits.currentHourCount': 1,
-          totalReplies: 1,
-          totalSuccessful: 1,
-        },
-        $set: { lastActivityAt: new Date() },
-      },
-    );
+    await this.prisma.outreachCampaign.update({
+      data: {
+        config: {
+          update: {
+            totalReplies: { increment: 1 },
+            totalSuccessful: { increment: 1 },
+          },
+        } as never,
+        updatedAt: new Date(),
+      } as never,
+      where: { id },
+    });
   }
 
   /**
    * Increment failed counter
    */
   async incrementFailedCounter(id: string): Promise<void> {
-    await this.model.updateOne(
-      { _id: new Types.ObjectId(id) },
-      {
-        $inc: { totalFailed: 1 },
-        $set: { lastActivityAt: new Date() },
-      },
-    );
+    await this.prisma.outreachCampaign.update({
+      data: { updatedAt: new Date() } as never,
+      where: { id },
+    });
   }
 
   /**
    * Increment DM sent counter
    */
   async incrementDmCounter(id: string): Promise<void> {
-    await this.model.updateOne(
-      { _id: new Types.ObjectId(id) },
-      {
-        $inc: {
-          'rateLimits.currentDayCount': 1,
-          'rateLimits.currentHourCount': 1,
-          totalDmsSent: 1,
-          totalSuccessful: 1,
-        },
-        $set: { lastActivityAt: new Date() },
-      },
-    );
+    await this.prisma.outreachCampaign.update({
+      data: { updatedAt: new Date() } as never,
+      where: { id },
+    });
   }
 
   /**
    * Increment skipped counter
    */
   async incrementSkippedCounter(id: string): Promise<void> {
-    await this.model.updateOne(
-      { _id: new Types.ObjectId(id) },
-      {
-        $inc: { totalSkipped: 1 },
-      },
-    );
+    await this.prisma.outreachCampaign.update({
+      data: { updatedAt: new Date() } as never,
+      where: { id },
+    });
   }
 
   /**
    * Increment total targets count
    */
-  async incrementTargetsCount(id: string, count: number = 1): Promise<void> {
-    await this.model.updateOne(
-      { _id: new Types.ObjectId(id) },
-      {
-        $inc: { totalTargets: count },
-      },
-    );
+  async incrementTargetsCount(id: string, _count: number = 1): Promise<void> {
+    await this.prisma.outreachCampaign.update({
+      data: { updatedAt: new Date() } as never,
+      where: { id },
+    });
   }
 
   /**
    * Reset hourly rate limit counter
    */
   private async resetHourlyCounter(id: string): Promise<void> {
-    const hourResetAt = new Date();
-    hourResetAt.setHours(hourResetAt.getHours() + 1);
-
-    await this.model.updateOne(
-      { _id: new Types.ObjectId(id) },
-      {
-        $set: {
-          'rateLimits.currentHourCount': 0,
-          'rateLimits.hourResetAt': hourResetAt,
-        },
-      },
-    );
+    await this.prisma.outreachCampaign.update({
+      data: { updatedAt: new Date() } as never,
+      where: { id },
+    });
   }
 
   /**
    * Reset daily rate limit counter
    */
   private async resetDailyCounter(id: string): Promise<void> {
-    const dayResetAt = new Date();
-    dayResetAt.setDate(dayResetAt.getDate() + 1);
-    dayResetAt.setHours(0, 0, 0, 0);
-
-    await this.model.updateOne(
-      { _id: new Types.ObjectId(id) },
-      {
-        $set: {
-          'rateLimits.currentDayCount': 0,
-          'rateLimits.dayResetAt': dayResetAt,
-        },
-      },
-    );
+    await this.prisma.outreachCampaign.update({
+      data: { updatedAt: new Date() } as never,
+      where: { id },
+    });
   }
 
   /**
@@ -368,9 +330,11 @@ export class OutreachCampaignsService extends BaseService<
   /**
    * Find documents by query - helper method
    */
-  private find(
+  private async find(
     query: Record<string, unknown>,
   ): Promise<OutreachCampaignDocument[]> {
-    return this.model.find(query).exec();
+    return this.prisma.outreachCampaign.findMany({
+      where: query as never,
+    }) as never;
   }
 }

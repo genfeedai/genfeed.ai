@@ -1,26 +1,9 @@
-import {
-  Brand,
-  type BrandDocument,
-} from '@api/collections/brands/schemas/brand.schema';
-import {
-  Credential,
-  type CredentialDocument,
-} from '@api/collections/credentials/schemas/credential.schema';
-import {
-  WorkflowExecution,
-  type WorkflowExecutionDocument,
-} from '@api/collections/workflow-executions/schemas/workflow-execution.schema';
-import {
-  Workflow,
-  type WorkflowDocument,
-} from '@api/collections/workflows/schemas/workflow.schema';
+import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowTrigger } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
 
 type DefaultRecurringContentType = 'image' | 'newsletter' | 'post';
 
@@ -55,14 +38,7 @@ export class DefaultRecurringContentService {
   private readonly logContext = 'DefaultRecurringContentService';
 
   constructor(
-    @InjectModel(Brand.name, DB_CONNECTIONS.CLOUD)
-    private readonly brandModel: Model<BrandDocument>,
-    @InjectModel(Workflow.name, DB_CONNECTIONS.CLOUD)
-    private readonly workflowModel: Model<WorkflowDocument>,
-    @InjectModel(WorkflowExecution.name, DB_CONNECTIONS.CLOUD)
-    private readonly workflowExecutionModel: Model<WorkflowExecutionDocument>,
-    @InjectModel(Credential.name, DB_CONNECTIONS.CLOUD)
-    private readonly credentialModel: Model<CredentialDocument>,
+    private readonly prisma: PrismaService,
     private readonly workflowsService: WorkflowsService,
     private readonly logger: LoggerService,
   ) {}
@@ -71,55 +47,67 @@ export class DefaultRecurringContentService {
     organizationId: string,
     brandId: string,
   ): Promise<DefaultRecurringContentStatus> {
-    const brandObjectId = new Types.ObjectId(brandId);
-    const organizationObjectId = new Types.ObjectId(organizationId);
-    const workflows = await this.workflowModel
-      .find({
-        brands: brandObjectId,
+    const workflows = await this.prisma.workflow.findMany({
+      orderBy: { createdAt: 'desc' },
+      where: {
+        brandIds: { has: brandId },
         isDeleted: false,
         isScheduleEnabled: true,
-        'metadata.defaultRecurringContent.contentType': {
-          $in: DEFAULT_RECURRING_TYPES,
-        },
-        organization: organizationObjectId,
-      })
-      .sort({ createdAt: -1 })
-      .lean();
+        organizationId,
+      },
+    });
+
+    const filteredWorkflows = workflows.filter((w) => {
+      const contentType = this.readWorkflowContentType(
+        (w as Record<string, unknown>).metadata as
+          | Record<string, unknown>
+          | undefined,
+      );
+      return contentType !== null;
+    });
 
     const latestByType = new Map<
       DefaultRecurringContentType,
-      WorkflowDocument
+      Record<string, unknown>
     >();
-    for (const workflow of workflows) {
-      const contentType = this.readWorkflowContentType(workflow.metadata);
+    for (const workflow of filteredWorkflows) {
+      const contentType = this.readWorkflowContentType(
+        (workflow as Record<string, unknown>).metadata as
+          | Record<string, unknown>
+          | undefined,
+      );
       if (!contentType || latestByType.has(contentType)) {
         continue;
       }
-      latestByType.set(contentType, workflow);
+      latestByType.set(contentType, workflow as Record<string, unknown>);
     }
 
     const workflowIds = Array.from(latestByType.values()).map(
-      (workflow) => new Types.ObjectId(workflow._id),
+      (w) => w.id as string,
     );
     const latestExecutions =
       workflowIds.length > 0
-        ? await this.workflowExecutionModel
-            .find({
+        ? await this.prisma.workflowExecution.findMany({
+            orderBy: [{ createdAt: 'desc' }, { startedAt: 'desc' }],
+            where: {
               isDeleted: false,
-              organization: organizationObjectId,
-              workflow: { $in: workflowIds },
-            })
-            .sort({ createdAt: -1, startedAt: -1 })
-            .lean()
+              organizationId,
+              workflowId: { in: workflowIds },
+            },
+          })
         : [];
 
-    const executionByWorkflowId = new Map<string, WorkflowExecutionDocument>();
+    const executionByWorkflowId = new Map<string, Record<string, unknown>>();
     for (const execution of latestExecutions) {
-      const workflowId = execution.workflow?.toString();
+      const workflowId = (execution as Record<string, unknown>)
+        .workflowId as string;
       if (!workflowId || executionByWorkflowId.has(workflowId)) {
         continue;
       }
-      executionByWorkflowId.set(workflowId, execution);
+      executionByWorkflowId.set(
+        workflowId,
+        execution as Record<string, unknown>,
+      );
     }
 
     const items = DEFAULT_RECURRING_TYPES.flatMap((contentType) => {
@@ -128,14 +116,15 @@ export class DefaultRecurringContentService {
         return [];
       }
 
-      const workflowId = workflow._id.toString();
+      const workflowId = workflow.id as string;
       const execution = executionByWorkflowId.get(workflowId);
+      const recurrence = workflow.recurrence as Record<string, unknown> | null;
 
       return [
         {
           contentType,
-          nextRunAt: workflow.recurrence?.nextRunAt ?? null,
-          status: execution?.status ?? workflow.status,
+          nextRunAt: (recurrence?.nextRunAt as Date) ?? null,
+          status: (execution?.status ?? workflow.status) as string,
           workflowId,
         } satisfies DefaultRecurringContentItem,
       ];
@@ -150,10 +139,12 @@ export class DefaultRecurringContentService {
   async ensureDefaultBundle(
     params: EnsureDefaultRecurringContentParams,
   ): Promise<DefaultRecurringContentStatus> {
-    const brand = await this.brandModel.findOne({
-      _id: new Types.ObjectId(params.brandId),
-      isDeleted: false,
-      organization: new Types.ObjectId(params.organizationId),
+    const brand = await this.prisma.brand.findFirst({
+      where: {
+        id: params.brandId,
+        isDeleted: false,
+        organizationId: params.organizationId,
+      },
     });
 
     if (!brand) {
@@ -174,7 +165,7 @@ export class DefaultRecurringContentService {
       }
 
       await this.createDefaultRecurringWorkflow({
-        brand,
+        brand: brand as unknown as BrandDocument,
         contentType,
         organizationId: params.organizationId,
         origin: params.origin,
@@ -192,34 +183,47 @@ export class DefaultRecurringContentService {
     origin: EnsureDefaultRecurringContentParams['origin'];
     userId: string;
   }): Promise<void> {
-    const brandId = params.brand._id.toString();
+    const brandId = String(
+      params.brand._id ?? (params.brand as Record<string, unknown>).id,
+    );
+    const brandRecord = params.brand as unknown as Record<string, unknown>;
+    const agentConfig = brandRecord.agentConfig as
+      | Record<string, unknown>
+      | undefined;
+    const schedule = agentConfig?.schedule as
+      | Record<string, unknown>
+      | undefined;
     const timezone =
-      params.brand.agentConfig?.schedule?.timezone?.trim() || 'UTC';
-    const schedule = DEFAULT_RECURRING_SCHEDULE;
+      (typeof schedule?.timezone === 'string'
+        ? schedule.timezone.trim()
+        : '') || 'UTC';
+    const cronSchedule = DEFAULT_RECURRING_SCHEDULE;
     const credential =
       params.contentType === 'post'
-        ? await this.credentialModel.findOne({
-            brand: new Types.ObjectId(brandId),
-            isConnected: true,
-            isDeleted: false,
-            organization: new Types.ObjectId(params.organizationId),
+        ? await this.prisma.credential.findFirst({
+            where: {
+              brandId,
+              isConnected: true,
+              isDeleted: false,
+              organizationId: params.organizationId,
+            },
           })
         : null;
 
     const workflowLabel = this.buildWorkflowLabel(
-      params.brand.label,
+      params.brand.label as unknown as string,
       params.contentType,
     );
     const workflowDescription = this.buildWorkflowDescription(
       params.contentType,
-      schedule,
+      cronSchedule,
       timezone,
     );
     const workflow = await this.workflowsService.createWorkflow(
       params.userId,
       params.organizationId,
       {
-        brands: [new Types.ObjectId(brandId)],
+        brands: [brandId],
         description: workflowDescription,
         edges: [],
         inputVariables: [],
@@ -240,9 +244,9 @@ export class DefaultRecurringContentService {
             data: {
               config: this.buildNodeConfig({
                 brandId,
-                brandLabel: params.brand.label,
+                brandLabel: params.brand.label as unknown as string,
                 contentType: params.contentType,
-                credentialId: credential?._id?.toString(),
+                credentialId: credential?.id,
                 timezone,
               }),
               label: this.buildNodeLabel(params.contentType),
@@ -252,13 +256,16 @@ export class DefaultRecurringContentService {
             type: this.buildNodeType(params.contentType),
           },
         ],
-        schedule,
+        schedule: cronSchedule,
         timezone,
         trigger: WorkflowTrigger.MANUAL,
       } as never,
     );
 
-    const workflowId = String(workflow._id ?? workflow.id);
+    const workflowId = String(
+      (workflow as Record<string, unknown>)._id ??
+        (workflow as Record<string, unknown>).id,
+    );
 
     this.logger.log(`${this.logContext} created default recurring workflow`, {
       brandId,

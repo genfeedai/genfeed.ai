@@ -1,10 +1,6 @@
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { CreateIntegrationDto } from '@api/endpoints/integrations/dto/create-integration.dto';
 import { UpdateIntegrationDto } from '@api/endpoints/integrations/dto/update-integration.dto';
-import {
-  OrgIntegration,
-  type OrgIntegrationDocument,
-} from '@api/endpoints/integrations/schemas/org-integration.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { IntegrationPlatform } from '@genfeedai/enums';
 import { REDIS_EVENTS } from '@genfeedai/integrations';
 import { CryptoService } from '@libs/crypto/crypto.service';
@@ -18,16 +14,13 @@ import {
   Optional,
 } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
 
 @Injectable()
 export class IntegrationsService {
   private readonly logger = new Logger(IntegrationsService.name);
 
   constructor(
-    @InjectModel(OrgIntegration.name, DB_CONNECTIONS.CLOUD)
-    private integrationModel: Model<OrgIntegrationDocument>,
+    private readonly prisma: PrismaService,
     private eventEmitter: EventEmitter2,
     @Inject('CryptoService')
     private cryptoService: CryptoService,
@@ -37,12 +30,14 @@ export class IntegrationsService {
   async create(
     orgId: string,
     dto: CreateIntegrationDto,
-  ): Promise<OrgIntegration> {
+  ): Promise<Record<string, unknown>> {
     // Check if integration for this platform already exists
-    const existing = await this.integrationModel.findOne({
-      isDeleted: false,
-      organization: new Types.ObjectId(orgId),
-      platform: dto.platform,
+    const existing = await this.prisma.orgIntegration.findFirst({
+      where: {
+        isDeleted: false,
+        organizationId: orgId,
+        platform: dto.platform as never,
+      },
     });
 
     if (existing) {
@@ -54,91 +49,90 @@ export class IntegrationsService {
     // Encrypt the bot token
     const encryptedToken = await this.cryptoService.encrypt(dto.botToken);
 
-    const integration = new this.integrationModel({
-      config: dto.config || {},
-      encryptedToken,
-      organization: new Types.ObjectId(orgId),
-      platform: dto.platform,
+    const integration = await this.prisma.orgIntegration.create({
+      data: {
+        config: (dto.config || {}) as never,
+        encryptedToken,
+        organizationId: orgId,
+        platform: dto.platform as never,
+      },
     });
-
-    const saved = await integration.save();
 
     // Emit Redis event for hot-reload
     await this.emitIntegrationEvent(REDIS_EVENTS.INTEGRATION_CREATED, {
-      integrationId: saved._id.toString(),
+      integrationId: integration.id,
       orgId,
       platform: dto.platform,
     });
 
-    return saved.toObject();
+    return integration;
   }
 
-  async findAll(orgId: string): Promise<OrgIntegration[]> {
-    const integrations = await this.integrationModel
-      .find({
+  async findAll(orgId: string): Promise<Record<string, unknown>[]> {
+    const integrations = await this.prisma.orgIntegration.findMany({
+      where: {
         isDeleted: false,
-        organization: new Types.ObjectId(orgId),
-      })
-      .exec();
+        organizationId: orgId,
+      },
+    });
 
     return integrations.map((integration) => ({
-      ...integration.toObject(),
+      ...integration,
       encryptedToken: '***MASKED***', // Never expose tokens
     }));
   }
 
-  async findOne(orgId: string, integrationId: string): Promise<OrgIntegration> {
-    const integration = await this.integrationModel
-      .findOne({
-        // @ts-expect-error TS2769
-        _id: new Types.ObjectId(integrationId),
+  async findOne(
+    orgId: string,
+    integrationId: string,
+  ): Promise<Record<string, unknown>> {
+    const integration = await this.prisma.orgIntegration.findFirst({
+      where: {
+        id: integrationId,
         isDeleted: false,
-        organization: new Types.ObjectId(orgId),
-      })
-      .exec();
+        organizationId: orgId,
+      },
+    });
 
     if (!integration) {
       throw new NotFoundException('Integration not found');
     }
 
     return {
-      ...integration.toObject(),
+      ...integration,
       encryptedToken: '***MASKED***',
     };
   }
 
   async findByPlatform(
     platform: IntegrationPlatform,
-  ): Promise<OrgIntegration[]> {
-    const integrations = await this.integrationModel
-      .find({
+  ): Promise<Record<string, unknown>[]> {
+    const integrations = await this.prisma.orgIntegration.findMany({
+      where: {
         isDeleted: false,
-        platform,
-        status: 'active',
-      })
-      .exec();
-
-    return integrations.map((integration) => {
-      const obj = integration.toObject();
-      // Decrypt token for internal use
-      // @ts-expect-error TS2339
-      obj.botToken = this.cryptoService.decrypt(obj.encryptedToken);
-      return obj;
+        platform: platform as never,
+        status: 'ACTIVE',
+      },
     });
+
+    return integrations.map((integration) => ({
+      ...integration,
+      // Decrypt token for internal use
+      botToken: this.cryptoService.decrypt(integration.encryptedToken),
+    }));
   }
 
   async findOneByPlatform(
     platform: IntegrationPlatform,
     integrationId: string,
-  ): Promise<OrgIntegration> {
-    const integration = await this.integrationModel
-      .findOne({
-        // @ts-expect-error TS2769
-        _id: new Types.ObjectId(integrationId),
+  ): Promise<Record<string, unknown>> {
+    const integration = await this.prisma.orgIntegration.findFirst({
+      where: {
+        id: integrationId,
         isDeleted: false,
-        platform,
-      })
-      .exec();
+        platform: platform as never,
+      },
+    });
 
     if (!integration) {
       throw new NotFoundException(
@@ -146,77 +140,90 @@ export class IntegrationsService {
       );
     }
 
-    const obj = integration.toObject();
-    obj.botToken = this.cryptoService.decrypt(obj.encryptedToken);
-    return obj;
+    return {
+      ...integration,
+      botToken: this.cryptoService.decrypt(integration.encryptedToken),
+    };
   }
 
   async update(
     orgId: string,
     integrationId: string,
     dto: UpdateIntegrationDto,
-  ): Promise<OrgIntegration> {
-    const integration = await this.integrationModel.findOne({
-      // @ts-expect-error TS2769
-      _id: new Types.ObjectId(integrationId),
-      isDeleted: false,
-      organization: new Types.ObjectId(orgId),
+  ): Promise<Record<string, unknown>> {
+    const existing = await this.prisma.orgIntegration.findFirst({
+      where: {
+        id: integrationId,
+        isDeleted: false,
+        organizationId: orgId,
+      },
     });
 
-    if (!integration) {
+    if (!existing) {
       throw new NotFoundException('Integration not found');
     }
 
+    const updateData: Record<string, unknown> = {};
+
     // Encrypt new token if provided
     if (dto.botToken) {
-      integration.encryptedToken = await this.cryptoService.encrypt(
+      updateData['encryptedToken'] = await this.cryptoService.encrypt(
         dto.botToken,
       );
     }
 
     if (dto.config) {
-      integration.config = { ...integration.config, ...dto.config };
+      updateData['config'] = {
+        ...(existing.config as Record<string, unknown>),
+        ...dto.config,
+      };
     }
 
     if (dto.status) {
-      integration.status = dto.status;
+      updateData['status'] = dto.status;
     }
 
-    const updated = await integration.save();
+    const updated = await this.prisma.orgIntegration.update({
+      data: updateData as never,
+      where: { id: integrationId },
+    });
 
     // Emit Redis event
     await this.emitIntegrationEvent(REDIS_EVENTS.INTEGRATION_UPDATED, {
-      integrationId: integration._id.toString(),
+      integrationId: updated.id,
       orgId,
-      platform: integration.platform,
+      platform: updated.platform as unknown as IntegrationPlatform,
     });
 
     return {
-      ...updated.toObject(),
+      ...updated,
       encryptedToken: '***MASKED***',
     };
   }
 
   async remove(orgId: string, integrationId: string): Promise<void> {
-    const integration = await this.integrationModel.findOne({
-      // @ts-expect-error TS2769
-      _id: new Types.ObjectId(integrationId),
-      isDeleted: false,
-      organization: new Types.ObjectId(orgId),
+    const existing = await this.prisma.orgIntegration.findFirst({
+      where: {
+        id: integrationId,
+        isDeleted: false,
+        organizationId: orgId,
+      },
     });
 
-    if (!integration) {
+    if (!existing) {
       throw new NotFoundException('Integration not found');
     }
 
-    integration.isDeleted = true;
-    await integration.save();
+    await this.prisma.orgIntegration.update({
+      data: { isDeleted: true },
+      where: { id: integrationId },
+    });
 
     // Emit Redis event
     await this.emitIntegrationEvent(REDIS_EVENTS.INTEGRATION_DELETED, {
-      integrationId: integration._id.toString(),
+      integrationId: existing.id,
       orgId,
-      platform: integration.platform,
+      platform: existing.platform as unknown as IntegrationPlatform,
     });
   }
 

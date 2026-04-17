@@ -1,7 +1,7 @@
 import { CreatePresetDto } from '@api/collections/presets/dto/create-preset.dto';
 import { UpdatePresetDto } from '@api/collections/presets/dto/update-preset.dto';
 import { PresetDocument } from '@api/collections/presets/schemas/preset.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -10,7 +10,6 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class PresetsService extends BaseService<
@@ -19,11 +18,11 @@ export class PresetsService extends BaseService<
   UpdatePresetDto
 > {
   constructor(
-    @InjectModel('Preset', DB_CONNECTIONS.CLOUD)
-    public readonly presetModel: unknown,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
   ) {
-    super(presetModel, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 
   /**
@@ -34,8 +33,8 @@ export class PresetsService extends BaseService<
     populate: PopulateOption[] = [],
   ): Promise<PresetDocument> {
     // Check for existing key
-    const existing = await this.presetModel.findOne({
-      key: createDto.key,
+    const existing = await this.prisma.preset.findFirst({
+      where: { key: createDto.key },
     });
 
     if (existing) {
@@ -52,16 +51,15 @@ export class PresetsService extends BaseService<
    * Find preset by key - specific to presets
    */
   async findByKey(key: string): Promise<PresetDocument> {
-    const preset = await this.presetModel.findOne({
-      isActive: true,
-      key,
+    const preset = await this.prisma.preset.findFirst({
+      where: { isActive: true, key },
     });
 
     if (!preset) {
       throw new NotFoundException(`Preset with key '${key}' not found`);
     }
 
-    return preset;
+    return preset as unknown as PresetDocument;
   }
 
   /**
@@ -73,46 +71,27 @@ export class PresetsService extends BaseService<
     organizationId?: string,
     brandId?: string,
   ): Promise<PresetDocument | null> {
-    // Build potential preset queries in priority order
-    const queries = [];
-
     // 1. Most specific: brand-specific preset
     if (organizationId && brandId) {
-      queries.push({
-        brand: brandId,
-        isActive: true,
-        key,
-        organization: organizationId,
+      const preset = await this.prisma.preset.findFirst({
+        where: { brandId, isActive: true, key, organizationId },
       });
+      if (preset) return preset as unknown as PresetDocument;
     }
 
     // 2. Organization-wide preset (no brand specified)
     if (organizationId) {
-      queries.push({
-        brand: null,
-        isActive: true,
-        key,
-        organization: organizationId,
+      const preset = await this.prisma.preset.findFirst({
+        where: { brandId: null, isActive: true, key, organizationId },
       });
+      if (preset) return preset as unknown as PresetDocument;
     }
 
     // 3. App-wide preset (no org or brand)
-    queries.push({
-      brand: null,
-      isActive: true,
-      key,
-      organization: null,
+    const preset = await this.prisma.preset.findFirst({
+      where: { brandId: null, isActive: true, key, organizationId: null },
     });
-
-    // Try each query in order until we find a matching preset
-    for (const query of queries) {
-      const preset = await this.presetModel.findOne(query);
-      if (preset) {
-        return preset;
-      }
-    }
-
-    return null;
+    return (preset as unknown as PresetDocument) ?? null;
   }
 
   /**
@@ -125,9 +104,8 @@ export class PresetsService extends BaseService<
   ): Promise<PresetDocument> {
     // If updating key, check for duplicates
     if (updateDto.key) {
-      const existing = await this.presetModel.findOne({
-        _id: { $ne: id },
-        key: updateDto.key,
+      const existing = await this.prisma.preset.findFirst({
+        where: { id: { not: id }, key: updateDto.key },
       });
 
       if (existing) {

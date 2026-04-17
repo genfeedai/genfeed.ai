@@ -13,7 +13,6 @@ import {
   HttpStatus,
   Post,
 } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 @AutoSwagger()
 @Controller('dev')
@@ -65,7 +64,7 @@ export class DevController {
 
       // Fetch real ingredient from DB
       const ingredient = await this.ingredientsService.findOne({
-        _id: new Types.ObjectId(ingredientId),
+        _id: ingredientId,
       });
 
       if (!ingredient) {

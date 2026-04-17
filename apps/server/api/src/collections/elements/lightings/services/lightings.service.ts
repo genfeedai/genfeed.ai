@@ -1,15 +1,10 @@
 import { CreateElementLightingDto } from '@api/collections/elements/lightings/dto/create-lighting.dto';
 import { UpdateElementLightingDto } from '@api/collections/elements/lightings/dto/update-lighting.dto';
-import {
-  ElementLighting,
-  type ElementLightingDocument,
-} from '@api/collections/elements/lightings/schemas/lighting.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { ElementLightingDocument } from '@api/collections/elements/lightings/schemas/lighting.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class ElementsLightingsService extends BaseService<
@@ -18,10 +13,10 @@ export class ElementsLightingsService extends BaseService<
   UpdateElementLightingDto
 > {
   constructor(
-    @InjectModel(ElementLighting.name, DB_CONNECTIONS.CLOUD)
-    protected readonly model: AggregatePaginateModel<ElementLightingDocument>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 }

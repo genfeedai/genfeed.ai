@@ -9,20 +9,17 @@ import { TaskCountersService } from '@api/collections/task-counters/services/tas
 import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import { UpdateTaskDto } from '@api/collections/tasks/dto/update-task.dto';
 import {
-  Task,
   type TaskDocument,
   type TaskProgress,
   type TaskStatus,
 } from '@api/collections/tasks/schemas/task.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { Types } from 'mongoose';
 
 /**
@@ -113,9 +110,8 @@ export class TasksService extends BaseService<
   UpdateTaskDto
 > {
   constructor(
-    @InjectModel(Task.name, DB_CONNECTIONS.CLOUD)
-    model: AggregatePaginateModel<TaskDocument>,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    readonly logger: LoggerService,
     private readonly skillsService: SkillsService,
     private readonly ingredientsService: IngredientsService,
     private readonly agentThreadsService: AgentThreadsService,
@@ -125,7 +121,8 @@ export class TasksService extends BaseService<
     private readonly taskCountersService: TaskCountersService,
     private readonly organizationsService: OrganizationsService,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 
   private get rawModel() {

@@ -1,14 +1,10 @@
-import { ModelDocument } from '@api/collections/models/schemas/model.schema';
+import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { CreateOrganizationSettingDto } from '@api/collections/organization-settings/dto/create-organization-setting.dto';
 import { UpdateOrganizationSettingDto } from '@api/collections/organization-settings/dto/update-organization-setting.dto';
-import {
-  OrganizationSetting,
-  type OrganizationSettingDocument,
-} from '@api/collections/organization-settings/schemas/organization-setting.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import {
   type IOnboardingJourneyMissionState,
   ONBOARDING_JOURNEY_MISSION_ORDER,
@@ -20,8 +16,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { ModuleRef } from '@nestjs/core';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class OrganizationSettingsService extends BaseService<
@@ -32,12 +26,12 @@ export class OrganizationSettingsService extends BaseService<
   private modelsService!: ModelsService;
 
   constructor(
-    @InjectModel(OrganizationSetting.name, DB_CONNECTIONS.AUTH)
-    model: AggregatePaginateModel<OrganizationSettingDocument>,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    public readonly logger: LoggerService,
     private readonly moduleRef: ModuleRef,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 
   private getModelsService(): ModelsService {
@@ -54,13 +48,10 @@ export class OrganizationSettingsService extends BaseService<
     id: string,
     newLimit: number,
   ): Promise<OrganizationSettingDocument | null> {
-    return await this.model
-      .findByIdAndUpdate(
-        id,
-        { brandsLimit: newLimit },
-        { returnDocument: 'after' },
-      )
-      .exec();
+    return (await this.prisma.organizationSetting.update({
+      data: { brandsLimit: newLimit },
+      where: { id },
+    })) as never;
   }
 
   /**
@@ -70,13 +61,10 @@ export class OrganizationSettingsService extends BaseService<
     id: string,
     newLimit: number,
   ): Promise<OrganizationSettingDocument | null> {
-    return await this.model
-      .findByIdAndUpdate(
-        id,
-        { seatsLimit: newLimit },
-        { returnDocument: 'after' },
-      )
-      .exec();
+    return (await this.prisma.organizationSetting.update({
+      data: { seatsLimit: newLimit },
+      where: { id },
+    })) as never;
   }
 
   /**
@@ -84,7 +72,7 @@ export class OrganizationSettingsService extends BaseService<
    * Filters out older major versions (e.g., veo-2 when veo-3 exists)
    * Returns array of model ObjectIds
    */
-  async getLatestMajorVersionModelIds(): Promise<Types.ObjectId[]> {
+  async getLatestMajorVersionModelIds(): Promise<string[]> {
     // Fetch all active models — scope to system models only (organization: null)
     const activeModels = await this.getModelsService().findAllActive({
       organization: null,
@@ -122,7 +110,7 @@ export class OrganizationSettingsService extends BaseService<
     });
 
     // For each group, find highest major version and keep all models from that version
-    const filteredModelIds: Types.ObjectId[] = [];
+    const filteredModelIds: string[] = [];
 
     grouped.forEach((group) => {
       // Find the highest major version
@@ -131,7 +119,7 @@ export class OrganizationSettingsService extends BaseService<
       // Keep all models from the highest major version (including all minor versions)
       group.forEach((item) => {
         if (item.major === maxMajor) {
-          filteredModelIds.push(new Types.ObjectId(item.model._id));
+          filteredModelIds.push(String(item.model._id));
         }
       });
     });
@@ -181,13 +169,24 @@ export class OrganizationSettingsService extends BaseService<
    * Atomically add a model to an org's enabledModels set (idempotent via $addToSet)
    */
   async addEnabledModel(
-    organizationId: Types.ObjectId,
-    modelId: Types.ObjectId,
+    organizationId: string,
+    modelId: string,
   ): Promise<void> {
-    await this.model.updateOne(
-      { organization: organizationId },
-      { $addToSet: { enabledModels: modelId } },
-    );
+    const setting = await this.prisma.organizationSetting.findFirst({
+      where: { organizationId },
+    });
+    if (!setting) return;
+    const existing = Array.isArray(
+      (setting as Record<string, unknown>).enabledModels,
+    )
+      ? ((setting as Record<string, unknown>).enabledModels as string[])
+      : [];
+    if (!existing.includes(modelId)) {
+      await this.prisma.organizationSetting.update({
+        data: { enabledModels: { push: modelId } } as never,
+        where: { id: setting.id },
+      });
+    }
   }
 
   async ensureJourneyState(
@@ -195,7 +194,7 @@ export class OrganizationSettingsService extends BaseService<
   ): Promise<IOnboardingJourneyMissionState[]> {
     const settings = await this.findOne({
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!settings) {

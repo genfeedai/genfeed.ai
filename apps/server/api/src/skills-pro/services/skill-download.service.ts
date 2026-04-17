@@ -1,11 +1,7 @@
 import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
-import {
-  SkillReceipt,
-  type SkillReceiptDocument,
-} from '@api/skills-pro/schemas/skill-receipt.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SkillRegistryService } from '@api/skills-pro/services/skill-registry.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -13,8 +9,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+
+type SkillReceiptData = {
+  receiptId?: string;
+  email?: string;
+  status?: string;
+  downloadCount?: number;
+  lastDownloadedAt?: string;
+};
 
 @Injectable()
 export class SkillDownloadService {
@@ -25,8 +27,7 @@ export class SkillDownloadService {
     private readonly loggerService: LoggerService,
     private readonly skillRegistryService: SkillRegistryService,
     private readonly filesClientService: FilesClientService,
-    @InjectModel(SkillReceipt.name, DB_CONNECTIONS.CLOUD)
-    private readonly skillReceiptModel: Model<SkillReceiptDocument>,
+    private readonly prisma: PrismaService,
   ) {}
 
   @HandleErrors('verify receipt', 'skills-pro')
@@ -40,21 +41,25 @@ export class SkillDownloadService {
       receiptId,
     });
 
-    const receipt = await this.skillReceiptModel.findOne({
-      isDeleted: false,
-      receiptId,
-      status: 'completed',
+    const receipts = await this.prisma.skillReceipt.findMany({
+      where: { isDeleted: false },
+    });
+
+    const receipt = receipts.find((r) => {
+      const data = r.data as SkillReceiptData;
+      return data?.receiptId === receiptId && data?.status === 'completed';
     });
 
     if (!receipt) {
       return { email: '', productType: '', skills: [], valid: false };
     }
 
+    const data = receipt.data as SkillReceiptData;
     const registry = await this.skillRegistryService.getRegistry();
     const allSlugs = registry.skills.map((s) => s.slug);
 
     return {
-      email: receipt.email,
+      email: data.email ?? '',
       productType: 'bundle',
       skills: allSlugs,
       valid: true,
@@ -75,10 +80,13 @@ export class SkillDownloadService {
       skillSlug,
     });
 
-    const receipt = await this.skillReceiptModel.findOne({
-      isDeleted: false,
-      receiptId,
-      status: 'completed',
+    const receipts = await this.prisma.skillReceipt.findMany({
+      where: { isDeleted: false },
+    });
+
+    const receipt = receipts.find((r) => {
+      const data = r.data as SkillReceiptData;
+      return data?.receiptId === receiptId && data?.status === 'completed';
     });
 
     if (!receipt) {
@@ -108,13 +116,17 @@ export class SkillDownloadService {
     );
 
     // Increment download count
-    await this.skillReceiptModel.updateOne(
-      { _id: receipt._id },
-      {
-        $inc: { downloadCount: 1 },
-        $set: { lastDownloadedAt: new Date() },
+    const data = receipt.data as SkillReceiptData;
+    await this.prisma.skillReceipt.update({
+      data: {
+        data: {
+          ...data,
+          downloadCount: (data.downloadCount ?? 0) + 1,
+          lastDownloadedAt: new Date().toISOString(),
+        },
       },
-    );
+      where: { id: receipt.id },
+    });
 
     this.loggerService.log(`${this.constructorName} download URL generated`, {
       receiptId,

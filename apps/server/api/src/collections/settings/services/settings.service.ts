@@ -1,15 +1,10 @@
 import { CreateSettingDto } from '@api/collections/settings/dto/create-setting.dto';
 import { UpdateSettingDto } from '@api/collections/settings/dto/update-setting.dto';
-import {
-  Setting,
-  type SettingDocument,
-} from '@api/collections/settings/schemas/setting.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { SettingDocument } from '@api/collections/settings/schemas/setting.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class SettingsService extends BaseService<
@@ -18,10 +13,10 @@ export class SettingsService extends BaseService<
   UpdateSettingDto
 > {
   constructor(
-    @InjectModel(Setting.name, DB_CONNECTIONS.AUTH)
-    model: AggregatePaginateModel<SettingDocument>,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 }

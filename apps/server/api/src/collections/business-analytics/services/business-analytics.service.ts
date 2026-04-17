@@ -1,14 +1,5 @@
-import {
-  CreditTransactions,
-  type CreditTransactionsDocument,
-} from '@api/collections/credits/schemas/credit-transactions.schema';
-import {
-  Ingredient,
-  type IngredientDocument,
-} from '@api/collections/ingredients/schemas/ingredient.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CreditTransactionCategory,
   IngredientCategory,
@@ -16,7 +7,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import type Stripe from 'stripe';
 
 interface DailyRevenueSeries {
@@ -97,10 +87,7 @@ export class BusinessAnalyticsService {
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
-    @InjectModel(CreditTransactions.name, DB_CONNECTIONS.AUTH)
-    private readonly creditTransactionsModel: AggregatePaginateModel<CreditTransactionsDocument>,
-    @InjectModel(Ingredient.name, DB_CONNECTIONS.CLOUD)
-    private readonly ingredientModel: AggregatePaginateModel<IngredientDocument>,
+    private readonly prisma: PrismaService,
     private readonly stripeService: StripeService,
     private readonly loggerService: LoggerService,
   ) {}

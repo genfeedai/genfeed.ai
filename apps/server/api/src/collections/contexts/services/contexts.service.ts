@@ -14,15 +14,12 @@ import {
 } from '@api/collections/contexts/schemas/context-entry.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
-import {
-  Post,
-  type PostDocument,
-} from '@api/collections/posts/schemas/post.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { CredentialPlatform, PublishStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
@@ -45,8 +42,7 @@ export class ContextsService {
     private contextBaseModel: Model<ContextBaseDocument>,
     @InjectModel(ContextEntry.name, DB_CONNECTIONS.CLOUD)
     private contextEntryModel: Model<ContextEntryDocument>,
-    @InjectModel(Post.name, DB_CONNECTIONS.CLOUD)
-    private postModel: Model<PostDocument>,
+    private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly modelsService: ModelsService,
     private readonly replicateService: ReplicateService,
@@ -433,27 +429,25 @@ export class ContextsService {
         return contextBase;
       }
 
-      const postQuery: Record<string, unknown> = {
-        brand: new Types.ObjectId(dto.brandId.toString()),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-        platform: credentialPlatform,
-        publishStatus: PublishStatus.PUBLISHED,
-      };
-
-      if (dto.dateRange) {
-        postQuery.publicationDate = {
-          $gte: new Date(dto.dateRange.start),
-          $lte: new Date(dto.dateRange.end),
-        };
-      }
-
-      const posts = await this.postModel
-        .find(postQuery)
-        .sort({ publicationDate: -1 })
-        .limit(100)
-        .lean()
-        .exec();
+      const posts = await this.prisma.post.findMany({
+        orderBy: { publicationDate: 'desc' },
+        take: 100,
+        where: {
+          brandId: dto.brandId.toString(),
+          isDeleted: false,
+          organizationId,
+          platform: credentialPlatform,
+          publishStatus: PublishStatus.PUBLISHED,
+          ...(dto.dateRange
+            ? {
+                publicationDate: {
+                  gte: new Date(dto.dateRange.start),
+                  lte: new Date(dto.dateRange.end),
+                },
+              }
+            : {}),
+        },
+      });
 
       this.logger.debug('Found posts for context auto-create', {
         brandId: dto.brandId,
@@ -477,10 +471,10 @@ export class ContextsService {
           isDeleted: false,
           metadata: {
             platform: dto.platform,
-            postId: post._id.toString(),
+            postId: post.id,
             publishedAt: post.publicationDate || post.scheduledDate,
             source: 'social-post',
-            sourceId: post._id.toString(),
+            sourceId: post.id,
           },
           organization: organizationId,
           relevanceWeight: 1,

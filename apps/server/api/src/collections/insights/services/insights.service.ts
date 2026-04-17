@@ -1,42 +1,51 @@
 import { GetForecastDto } from '@api/collections/insights/dto/forecast.dto';
 import { PredictViralDto } from '@api/collections/insights/dto/predict-viral.dto';
-import {
-  Forecast,
-  type ForecastDocument,
-} from '@api/collections/insights/schemas/forecast.schema';
-import {
-  Insight,
-  type InsightDocument,
-} from '@api/collections/insights/schemas/insight.schema';
+import type { ForecastDocument } from '@api/collections/insights/schemas/forecast.schema';
+import type { InsightDocument } from '@api/collections/insights/schemas/insight.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+
+type Forecast = ForecastDocument;
+type Insight = InsightDocument;
+
+type InsightData = {
+  actionableSteps?: string[];
+  category?: string;
+  confidence?: number;
+  description?: string;
+  expiresAt?: string | null;
+  impact?: string;
+  isDismissed?: boolean;
+  isRead?: boolean;
+  relatedMetrics?: string[];
+  title?: string;
+};
+
+type ForecastData = {
+  metric?: string;
+  period?: string;
+  validUntil?: string;
+  data?: unknown;
+};
 
 @Injectable()
 export class InsightsService {
   constructor(
-    @InjectModel(Forecast.name, DB_CONNECTIONS.ANALYTICS)
-    private forecastModel: Model<ForecastDocument>,
-    @InjectModel(Insight.name, DB_CONNECTIONS.ANALYTICS)
-    private insightModel: Model<InsightDocument>,
+    private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly modelsService: ModelsService,
     private readonly replicateService: ReplicateService,
   ) {}
 
-  /**
-   * Get trend forecasts for metrics
-   */
   @HandleErrors('get forecast', 'insights')
   async getForecast(
     dto: GetForecastDto,
@@ -51,38 +60,37 @@ export class InsightsService {
     const forecasts: Forecast[] = [];
 
     for (const metric of dto.metrics) {
-      // Check if we have a recent forecast (within 24 hours)
-      const existingForecast = await this.forecastModel
-        .findOne({
-          isDeleted: false,
-          metric,
-          organization: organizationId,
-          period: dto.period,
-          validUntil: { $gt: new Date() },
-        })
-        .lean();
+      // Check for recent forecast in data JSON
+      const allForecasts = await this.prisma.forecast.findMany({
+        where: { isDeleted: false, organizationId },
+      });
+
+      const existingForecast = allForecasts.find((f) => {
+        const data = f.data as ForecastData;
+        return (
+          data?.metric === metric &&
+          data?.period === dto.period &&
+          data?.validUntil &&
+          new Date(data.validUntil) > new Date()
+        );
+      });
 
       if (existingForecast) {
-        forecasts.push(existingForecast);
+        forecasts.push(existingForecast as unknown as Forecast);
         continue;
       }
 
-      // Generate new forecast with AI
       const forecast = await this.generateForecast(
         metric,
         dto.period,
         organizationId,
       );
-
       forecasts.push(forecast);
     }
 
     return forecasts;
   }
 
-  /**
-   * Get AI-generated insights
-   */
   async getInsights(
     organizationId: string,
     limit: number = 5,
@@ -91,31 +99,32 @@ export class InsightsService {
     try {
       this.logger.debug('Getting insights', { limit, organizationId });
 
-      // Get recent unread insights
-      const existingInsights = await this.insightModel
-        .find({
-          $or: [{ expiresAt: { $gt: new Date() } }, { expiresAt: null }],
-          isDeleted: false,
-          isDismissed: false,
-          isRead: false,
-          organization: organizationId,
+      const allInsights = await this.prisma.insight.findMany({
+        where: { isDeleted: false, organizationId },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      const now = new Date();
+      const existingInsights = allInsights
+        .filter((i) => {
+          const data = i.data as InsightData;
+          if (data?.isRead || data?.isDismissed) return false;
+          if (data?.expiresAt && new Date(data.expiresAt) <= now) return false;
+          return true;
         })
-        .sort({ createdAt: -1, impact: -1 })
-        .limit(limit)
-        .lean();
+        .slice(0, limit);
 
       if (existingInsights.length >= limit) {
-        return existingInsights;
+        return existingInsights as unknown as Insight[];
       }
 
-      // Generate new insights if needed
       const newInsights = await this.generateInsights(
         organizationId,
         limit - existingInsights.length,
         onBilling,
       );
 
-      return [...existingInsights, ...newInsights];
+      return [...(existingInsights as unknown as Insight[]), ...newInsights];
     } catch (error: unknown) {
       this.logger.error('Failed to get insights', { error });
       throw error;
@@ -126,23 +135,21 @@ export class InsightsService {
     organizationId: string,
     limit: number = 5,
   ): Promise<boolean> {
-    const existingInsights = await this.insightModel
-      .find({
-        $or: [{ expiresAt: { $gt: new Date() } }, { expiresAt: null }],
-        isDeleted: false,
-        isDismissed: false,
-        isRead: false,
-        organization: organizationId,
-      })
-      .limit(limit)
-      .lean();
+    const allInsights = await this.prisma.insight.findMany({
+      where: { isDeleted: false, organizationId },
+    });
 
-    return existingInsights.length < limit;
+    const now = new Date();
+    const active = allInsights.filter((i) => {
+      const data = i.data as InsightData;
+      if (data?.isRead || data?.isDismissed) return false;
+      if (data?.expiresAt && new Date(data.expiresAt) <= now) return false;
+      return true;
+    });
+
+    return active.length < limit;
   }
 
-  /**
-   * Mark insight as read
-   */
   @HandleErrors('mark insight as read', 'insights')
   async markAsRead(
     insightId: string,
@@ -154,34 +161,25 @@ export class InsightsService {
         organizationId,
       });
 
-      const insight = await this.insightModel.findOneAndUpdate(
-        {
-          _id: insightId,
-          isDeleted: false,
-          organization: organizationId,
-        },
-        {
-          isRead: true,
-        },
-        {
-          returnDocument: 'after',
-        },
-      );
+      const existing = await this.prisma.insight.findFirst({
+        where: { id: insightId, isDeleted: false, organizationId },
+      });
 
-      if (!insight) {
-        throw new Error('Insight not found');
-      }
+      if (!existing) throw new Error('Insight not found');
 
-      return insight.toObject();
+      const data = (existing.data as InsightData) ?? {};
+      const insight = await this.prisma.insight.update({
+        where: { id: insightId },
+        data: { data: { ...data, isRead: true } },
+      });
+
+      return insight as unknown as Insight;
     } catch (error: unknown) {
       this.logger.error('Failed to mark insight as read', { error, insightId });
       throw error;
     }
   }
 
-  /**
-   * Mark insight as dismissed
-   */
   @HandleErrors('mark insight as dismissed', 'insights')
   async markAsDismissed(
     insightId: string,
@@ -193,25 +191,19 @@ export class InsightsService {
         organizationId,
       });
 
-      const insight = await this.insightModel.findOneAndUpdate(
-        {
-          _id: insightId,
-          isDeleted: false,
-          organization: organizationId,
-        },
-        {
-          isDismissed: true,
-        },
-        {
-          returnDocument: 'after',
-        },
-      );
+      const existing = await this.prisma.insight.findFirst({
+        where: { id: insightId, isDeleted: false, organizationId },
+      });
 
-      if (!insight) {
-        throw new Error('Insight not found');
-      }
+      if (!existing) throw new Error('Insight not found');
 
-      return insight.toObject();
+      const data = (existing.data as InsightData) ?? {};
+      const insight = await this.prisma.insight.update({
+        where: { id: insightId },
+        data: { data: { ...data, isDismissed: true } },
+      });
+
+      return insight as unknown as Insight;
     } catch (error: unknown) {
       this.logger.error('Failed to mark insight as dismissed', {
         error,
@@ -221,9 +213,6 @@ export class InsightsService {
     }
   }
 
-  /**
-   * Predict viral potential
-   */
   async predictViral(
     dto: PredictViralDto,
     organizationId: string,
@@ -232,11 +221,7 @@ export class InsightsService {
     score: number;
     probability: number;
     estimatedReach: { min: number; max: number };
-    factors: Array<{
-      factor: string;
-      impact: number;
-      description: string;
-    }>;
+    factors: Array<{ factor: string; impact: number; description: string }>;
     recommendations: string[];
   }> {
     try {
@@ -275,10 +260,7 @@ Probability is % chance of going viral (>100k views).
 
 Return ONLY valid JSON. Do not include any text before or after the JSON.`;
 
-      const input = {
-        max_completion_tokens: 1024,
-        prompt,
-      };
+      const input = { max_completion_tokens: 1024, prompt };
       const response = await this.replicateService.generateTextCompletionSync(
         DEFAULT_TEXT_MODEL,
         input,
@@ -303,9 +285,6 @@ Return ONLY valid JSON. Do not include any text before or after the JSON.`;
     }
   }
 
-  /**
-   * Get content gap analysis
-   */
   async getContentGaps(
     organizationId: string,
     onBilling?: (amount: number) => void,
@@ -321,9 +300,6 @@ Return ONLY valid JSON. Do not include any text before or after the JSON.`;
   }> {
     try {
       this.logger.debug('Analyzing content gaps', { organizationId });
-
-      // In production, this would analyze user's content library
-      // For now, use AI to generate generic gaps
 
       const prompt = `Analyze content gaps for a content creator.
 
@@ -341,10 +317,7 @@ Return ONLY valid JSON with this structure. Do not include any text before or af
   "underservedAudiences": ["Beginners in your niche", "Advanced users"]
 }`;
 
-      const input = {
-        max_completion_tokens: 1024,
-        prompt,
-      };
+      const input = { max_completion_tokens: 1024, prompt };
       const response = await this.replicateService.generateTextCompletionSync(
         DEFAULT_TEXT_MODEL,
         input,
@@ -367,9 +340,6 @@ Return ONLY valid JSON with this structure. Do not include any text before or af
     }
   }
 
-  /**
-   * Get best posting times
-   */
   async getBestTimes(
     platform: string,
     timezone: string = 'UTC',
@@ -407,10 +377,7 @@ Return ONLY valid JSON with this structure. Do not include any text before or af
 
 Provide 5-7 optimal time slots.`;
 
-      const input = {
-        max_completion_tokens: 1024,
-        prompt,
-      };
+      const input = { max_completion_tokens: 1024, prompt };
       const response = await this.replicateService.generateTextCompletionSync(
         DEFAULT_TEXT_MODEL,
         input,
@@ -422,19 +389,13 @@ Provide 5-7 optimal time slots.`;
         {},
       );
 
-      return {
-        recommendedTimes: result.recommendedTimes || [],
-        timezone,
-      };
+      return { recommendedTimes: result.recommendedTimes || [], timezone };
     } catch (error: unknown) {
       this.logger.error('Failed to get best posting times', { error });
       throw error;
     }
   }
 
-  /**
-   * Get audience growth predictions
-   */
   async getGrowthPrediction(
     platform: string,
     organizationId: string,
@@ -452,7 +413,6 @@ Provide 5-7 optimal time slots.`;
     try {
       this.logger.debug('Predicting growth', { organizationId, platform });
 
-      // No fake data — real follower counts are required for meaningful predictions
       throw new Error(
         `Insufficient data: real follower count for platform "${platform}" in organization "${organizationId}" is not available. ` +
           'Integrate AnalyticsSyncService or ContentPerformanceService to fetch actual follower data before using growth predictions.',
@@ -463,24 +423,17 @@ Provide 5-7 optimal time slots.`;
     }
   }
 
-  /**
-   * Private: Generate forecast for metric
-   */
   private async generateForecast(
     metric: string,
-    period: string,
+    _period: string,
     organizationId: string,
   ): Promise<Forecast> {
-    // No fake data — real metric values are required for meaningful forecasts
     throw new Error(
       `Insufficient data: real value for metric "${metric}" in organization "${organizationId}" is not available. ` +
         'Integrate AnalyticsSyncService or ContentPerformanceService to fetch actual metric data before using forecasts.',
     );
   }
 
-  /**
-   * Private: Generate AI insights
-   */
   private async generateInsights(
     organizationId: string,
     count: number,
@@ -510,10 +463,7 @@ Types: trend, opportunity, warning, tip
 Impact: high, medium, low
 Confidence: 0-100`;
 
-    const input = {
-      max_completion_tokens: 2048,
-      prompt,
-    };
+    const input = { max_completion_tokens: 2048, prompt };
     const response = await this.replicateService.generateTextCompletionSync(
       DEFAULT_TEXT_MODEL,
       input,
@@ -524,29 +474,33 @@ Confidence: 0-100`;
       response,
       { insights: [] },
     );
-
-    const insights = result.insights || [];
+    const insights = (result.insights as Record<string, unknown>[]) || [];
 
     const savedInsights: Insight[] = [];
 
     for (const insightData of insights) {
       const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7); // Insights valid for 7 days
+      expiresAt.setDate(expiresAt.getDate() + 7);
 
-      const insight = new this.insightModel({
-        actionableSteps: insightData.actionableSteps || [],
-        category: insightData.type,
-        confidence: insightData.confidence,
-        description: insightData.description,
-        expiresAt,
-        impact: insightData.impact,
-        organization: organizationId,
-        relatedMetrics: insightData.relatedMetrics || [],
-        title: insightData.title,
+      const insight = await this.prisma.insight.create({
+        data: {
+          organizationId,
+          data: {
+            actionableSteps: (insightData.actionableSteps as string[]) || [],
+            category: insightData.type as string,
+            confidence: insightData.confidence as number,
+            description: insightData.description as string,
+            expiresAt: expiresAt.toISOString(),
+            impact: insightData.impact as string,
+            isDismissed: false,
+            isRead: false,
+            relatedMetrics: (insightData.relatedMetrics as string[]) || [],
+            title: insightData.title as string,
+          } satisfies InsightData,
+        },
       });
 
-      await insight.save();
-      savedInsights.push(insight.toObject());
+      savedInsights.push(insight as unknown as Insight);
     }
 
     return savedInsights;

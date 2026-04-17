@@ -26,7 +26,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class ActivityUpdateService {
@@ -48,8 +47,8 @@ export class ActivityUpdateService {
     transformations?: string[];
     userId?: string;
     userRoom?: string;
-    brandId?: string | Types.ObjectId;
-    organizationId?: string | Types.ObjectId;
+    brandId?: string;
+    organizationId?: string;
   }): Promise<void> {
     const {
       dbUserId,
@@ -104,15 +103,13 @@ export class ActivityUpdateService {
     } else {
       activity = await this.activitiesService.create(
         new ActivityEntity({
-          brand: brandId ? new Types.ObjectId(String(brandId)) : undefined,
-          entityId: new Types.ObjectId(ingredientId),
+          brand: brandId ? String(brandId) : undefined,
+          entityId: ingredientId,
           entityModel: ActivityEntityModel.INGREDIENT,
           key: activityKey,
-          organization: organizationId
-            ? new Types.ObjectId(String(organizationId))
-            : undefined,
+          organization: organizationId ? String(organizationId) : undefined,
           source: activitySource,
-          user: new Types.ObjectId(dbUserId),
+          user: dbUserId,
           value: buildCompletionValue({ activityKey, ingredientId }),
         }),
       );
@@ -148,8 +145,8 @@ export class ActivityUpdateService {
     errorMessage?: string;
     userId?: string;
     userRoom?: string;
-    brandId?: string | Types.ObjectId;
-    organizationId?: string | Types.ObjectId;
+    brandId?: string;
+    organizationId?: string;
   }): Promise<void> {
     const {
       dbUserId,
@@ -194,15 +191,13 @@ export class ActivityUpdateService {
     } else {
       activity = await this.activitiesService.create(
         new ActivityEntity({
-          brand: brandId ? new Types.ObjectId(String(brandId)) : undefined,
-          entityId: new Types.ObjectId(ingredientId),
+          brand: brandId ? String(brandId) : undefined,
+          entityId: ingredientId,
           entityModel: ActivityEntityModel.INGREDIENT,
           key: activityKey,
-          organization: organizationId
-            ? new Types.ObjectId(String(organizationId))
-            : undefined,
+          organization: organizationId ? String(organizationId) : undefined,
           source: activitySource,
-          user: new Types.ObjectId(dbUserId),
+          user: dbUserId,
           value: buildFailureValue({ activityKey, errorMessage, ingredientId }),
         }),
       );
@@ -235,7 +230,7 @@ export class ActivityUpdateService {
       $or: [{ value: { $regex: ingredientId } }, { value: ingredientId }],
       isDeleted: false,
       key: processingKey,
-      user: new Types.ObjectId(dbUserId),
+      user: dbUserId,
     });
   }
 }

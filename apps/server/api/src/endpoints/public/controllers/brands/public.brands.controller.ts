@@ -29,7 +29,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Controller, Get, Param, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
+import { isValidObjectId, type PipelineStage } from 'mongoose';
 
 type BrandCollectionFailure = {
   data: unknown[];
@@ -223,7 +223,7 @@ export class PublicBrandsController {
     const aggregate: PipelineStage[] = [
       {
         $match: {
-          brand: new Types.ObjectId(brandId),
+          brand: brandId,
           isDeleted: false,
           scope: AssetScope.PUBLIC,
         },
@@ -280,7 +280,7 @@ export class PublicBrandsController {
     const aggregate: PipelineStage[] = [
       {
         $match: {
-          brand: new Types.ObjectId(brandId),
+          brand: brandId,
           isDeleted: false,
           scope: AssetScope.PUBLIC,
           status: IngredientStatus.GENERATED,
@@ -339,7 +339,7 @@ export class PublicBrandsController {
     const aggregate: PipelineStage[] = [
       {
         $match: {
-          brand: new Types.ObjectId(brandId),
+          brand: brandId,
           isDeleted: false,
           scope: AssetScope.PUBLIC,
           status: IngredientStatus.GENERATED,
@@ -398,7 +398,7 @@ export class PublicBrandsController {
     const aggregate: PipelineStage[] = [
       {
         $match: {
-          brand: new Types.ObjectId(brandId),
+          brand: brandId,
           isDeleted: false,
           scope: AssetScope.PUBLIC,
           status: ArticleStatus.PUBLIC,
@@ -441,7 +441,7 @@ export class PublicBrandsController {
   //
   //   // Get public video count
   //   const data = await this.analyticsService.findOne({
-  //     brand: new Types.ObjectId(brandId),
+  //     brand: brandId,
   //   });
   //
   //   return AnalyticsSerializer.serialize(data);

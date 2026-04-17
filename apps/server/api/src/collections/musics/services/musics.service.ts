@@ -1,13 +1,10 @@
-import { Ingredient } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
 import { UpdateMusicDto } from '@api/collections/musics/dto/update-music.dto';
-import { MusicDocument } from '@api/collections/musics/schemas/music.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { MusicDocument } from '@api/collections/musics/schemas/music.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class MusicsService extends BaseService<
@@ -16,10 +13,10 @@ export class MusicsService extends BaseService<
   UpdateMusicDto
 > {
   constructor(
-    @InjectModel(Ingredient.name, DB_CONNECTIONS.CLOUD)
-    protected readonly model: AggregatePaginateModel<MusicDocument>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 }

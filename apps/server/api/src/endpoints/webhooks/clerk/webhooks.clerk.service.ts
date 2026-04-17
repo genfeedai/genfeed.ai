@@ -20,7 +20,6 @@ import {
   Injectable,
   Optional,
 } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 // Name of the shared organization for getshareable.app consumers
 const GETSHAREABLE_ORG_NAME = 'GetShareable';
@@ -257,7 +256,7 @@ export class ClerkWebhookService {
         // Fetch organization created by post-save hook
         const organization = await this.organizationsService.findOne({
           isDeleted: false,
-          user: new Types.ObjectId(user._id),
+          user: user._id,
         });
 
         if (organization) {
@@ -266,7 +265,7 @@ export class ClerkWebhookService {
           // Fetch brand created by post-save hook
           const brand = await this.brandsService.findOne({
             isDeleted: false,
-            organization: new Types.ObjectId(organizationId),
+            organization: organizationId,
           });
 
           if (brand) {
@@ -304,36 +303,36 @@ export class ClerkWebhookService {
         await this.organizationsService.patch(orgId, {
           isProactiveOnboarding: false,
           isSelected: true,
-          user: new Types.ObjectId(user._id),
+          user: user._id,
         });
 
         // 2. Activate pre-created member
         const member = await this.membersService.findOne({
-          organization: new Types.ObjectId(orgId),
+          organization: orgId,
         });
 
         if (member) {
           await this.membersService.patch(member._id, {
             isActive: true,
-            user: new Types.ObjectId(user._id),
+            user: user._id,
           });
         } else {
           await this.membersService.create({
             isActive: true,
-            organization: new Types.ObjectId(orgId),
-            user: new Types.ObjectId(user._id),
+            organization: orgId,
+            user: user._id,
           });
         }
 
         // 3. Transfer brand ownership
         const brand = await this.brandsService.findOne({
           isDeleted: false,
-          organization: new Types.ObjectId(orgId),
+          organization: orgId,
         });
 
         if (brand) {
           await this.brandsService.patch(brand._id, {
-            user: new Types.ObjectId(user._id),
+            user: user._id,
           });
           brandId = brand._id;
         }
@@ -356,8 +355,8 @@ export class ClerkWebhookService {
 
       // Check if member already exists (should exist if pre-created)
       let member = await this.membersService.findOne({
-        organization: new Types.ObjectId(orgId),
-        user: new Types.ObjectId(user._id),
+        organization: orgId,
+        user: user._id,
       });
 
       if (member) {
@@ -373,9 +372,9 @@ export class ClerkWebhookService {
         // Create the member record if it doesn't exist
         member = await this.membersService.create({
           isActive: true,
-          organization: new Types.ObjectId(orgId),
-          role: new Types.ObjectId(roleId),
-          user: new Types.ObjectId(user._id),
+          organization: orgId,
+          role: roleId,
+          user: user._id,
         });
 
         this.loggerService.log(
@@ -388,7 +387,7 @@ export class ClerkWebhookService {
       // Check for existing organizations (user is the owner)
       const organization = await this.organizationsService.findOne({
         isSelected: true,
-        user: new Types.ObjectId(user._id),
+        user: user._id,
       });
 
       organizationId = organization?._id;
@@ -400,7 +399,7 @@ export class ClerkWebhookService {
     if (organizationId) {
       const brand = await this.brandsService.findOne({
         isSelected: true,
-        organization: new Types.ObjectId(organizationId),
+        organization: organizationId,
       });
 
       if (brand) {
@@ -426,7 +425,7 @@ export class ClerkWebhookService {
     // Prepare metadata update - only set isSuperAdmin: false for new users
     const orgForMetadata = organizationId
       ? await this.organizationsService.findOne({
-          _id: new Types.ObjectId(organizationId),
+          _id: organizationId,
         })
       : null;
 
@@ -553,7 +552,7 @@ export class ClerkWebhookService {
       isFirstLogin: true,
       isVerified: false,
       theme: 'dark',
-      user: new Types.ObjectId(userId),
+      user: userId,
     } as unknown);
 
     // 2. Get or create the GetShareable organization
@@ -576,11 +575,9 @@ export class ClerkWebhookService {
       // 4. Create member linking user to GetShareable org
       await this.membersService.create({
         isActive: true,
-        organization: new Types.ObjectId(getShareableOrg._id),
-        role: viewerRole
-          ? new Types.ObjectId(viewerRole._id)
-          : (undefined as unknown),
-        user: new Types.ObjectId(userId),
+        organization: getShareableOrg._id,
+        role: viewerRole ? viewerRole._id : (undefined as unknown),
+        user: userId,
       });
     };
 

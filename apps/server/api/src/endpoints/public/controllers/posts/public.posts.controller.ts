@@ -27,7 +27,7 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Controller, Get, Param, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
-import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
+import { isValidObjectId, type PipelineStage } from 'mongoose';
 
 @AutoSwagger()
 @Public()
@@ -70,12 +70,12 @@ export class PublicPostsController {
 
     // Filter by ingredient if provided
     if (ingredient && isValidObjectId(ingredient)) {
-      matchQuery.ingredient = new Types.ObjectId(ingredient);
+      matchQuery.ingredient = ingredient;
     }
 
     // Filter by brand if provided
     if (brand && isValidObjectId(brand)) {
-      matchQuery.brand = new Types.ObjectId(brand);
+      matchQuery.brand = brand;
     }
 
     // Filter by tag if provided (assuming tags are stored in metadata)
@@ -160,7 +160,7 @@ export class PublicPostsController {
 
     // Filter by brand if provided
     if (brand && isValidObjectId(brand)) {
-      matchQuery.brand = new Types.ObjectId(brand);
+      matchQuery.brand = brand;
     }
 
     // Filter by tag if provided

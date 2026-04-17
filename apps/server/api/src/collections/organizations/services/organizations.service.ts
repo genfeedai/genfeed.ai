@@ -1,15 +1,10 @@
 import { CreateOrganizationDto } from '@api/collections/organizations/dto/create-organization.dto';
 import { UpdateOrganizationDto } from '@api/collections/organizations/dto/update-organization.dto';
-import {
-  Organization,
-  type OrganizationDocument,
-} from '@api/collections/organizations/schemas/organization.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class OrganizationsService extends BaseService<
@@ -55,11 +50,11 @@ export class OrganizationsService extends BaseService<
   ];
 
   constructor(
-    @InjectModel(Organization.name, DB_CONNECTIONS.AUTH)
-    model: AggregatePaginateModel<OrganizationDocument>,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 
   create(createDto: CreateOrganizationDto): Promise<OrganizationDocument> {
@@ -83,7 +78,7 @@ export class OrganizationsService extends BaseService<
    * Count organizations matching filter
    */
   count(filter: Record<string, unknown>): Promise<number> {
-    return this.model.countDocuments(filter as never);
+    return this.prisma.organization.count({ where: filter as never });
   }
 
   /**
@@ -122,10 +117,7 @@ export class OrganizationsService extends BaseService<
    * Find an organization by its slug
    */
   async findBySlug(slug: string): Promise<OrganizationDocument | null> {
-    return this.model
-      .findOne({ isDeleted: false, slug })
-      .populate(this.populate)
-      .exec();
+    return this.findOne({ isDeleted: false, slug });
   }
 
   /**
@@ -151,7 +143,9 @@ export class OrganizationsService extends BaseService<
       if (excludeOrgId) {
         filter._id = { $ne: excludeOrgId };
       }
-      if (!(await this.model.exists(filter))) {
+      if (
+        !(await this.prisma.organization.findFirst({ where: filter as never }))
+      ) {
         break;
       }
       candidate = `${base}-${counter}`;

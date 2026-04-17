@@ -2,10 +2,6 @@ import { CreateArticleAnalyticsDto } from '@api/collections/articles/dto/create-
 import { UpdateArticleAnalyticsDto } from '@api/collections/articles/dto/update-article-analytics.dto';
 import { ArticleAnalyticsEntity } from '@api/collections/articles/entities/article-analytics.entity';
 import {
-  Article,
-  type ArticleDocument,
-} from '@api/collections/articles/schemas/article.schema';
-import {
   ArticleAnalytics,
   type ArticleAnalyticsDocument,
 } from '@api/collections/articles/schemas/article-analytics.schema';
@@ -14,12 +10,13 @@ import {
   type PerformanceMetricsInput,
 } from '@api/collections/articles/utils/virality-analysis.mapper';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { type Model, type PipelineStage, Types } from 'mongoose';
+import { type PipelineStage, Types } from 'mongoose';
 
 @Injectable()
 export class ArticleAnalyticsService extends BaseService<
@@ -31,9 +28,7 @@ export class ArticleAnalyticsService extends BaseService<
     @InjectModel(ArticleAnalytics.name, DB_CONNECTIONS.ANALYTICS)
     protected readonly model: AggregatePaginateModel<ArticleAnalyticsDocument>,
     public readonly logger: LoggerService,
-    @Optional()
-    @InjectModel(Article.name, DB_CONNECTIONS.CLOUD)
-    private readonly articleModel?: Model<ArticleDocument>,
+    @Optional() private readonly prisma?: PrismaService,
   ) {
     super(model, logger);
   }
@@ -154,14 +149,12 @@ export class ArticleAnalyticsService extends BaseService<
         : 0;
 
     // Fetch article to get required fields for upsert
-    if (!this.articleModel) {
-      throw new Error('Article model not available');
+    if (!this.prisma) {
+      throw new Error('PrismaService not available');
     }
 
-    const article = await this.articleModel.findOne({
-      // @ts-expect-error TS2769
-      _id: new Types.ObjectId(articleId),
-      isDeleted: false,
+    const article = await this.prisma.article.findFirst({
+      where: { id: articleId, isDeleted: false },
     });
     if (!article) {
       this.logger.error(`Article ${articleId} not found for analytics update`);
@@ -184,9 +177,9 @@ export class ArticleAnalyticsService extends BaseService<
         engagementRate,
       },
       $setOnInsert: {
-        brand: article.brand,
-        organization: article.organization,
-        user: article.user,
+        brand: (article as Record<string, unknown>).brandId,
+        organization: (article as Record<string, unknown>).organizationId,
+        user: (article as Record<string, unknown>).userId,
       },
     };
 

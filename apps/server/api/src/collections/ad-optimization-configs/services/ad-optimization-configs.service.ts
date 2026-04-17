@@ -1,60 +1,50 @@
-import {
-  AdOptimizationConfig,
-  type AdOptimizationConfigDocument,
-} from '@api/collections/ad-optimization-configs/schemas/ad-optimization-config.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import type { Model } from 'mongoose';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class AdOptimizationConfigsService {
   private readonly constructorName = this.constructor.name;
 
   constructor(
-    @InjectModel(AdOptimizationConfig.name, DB_CONNECTIONS.CLOUD)
-    private readonly adOptimizationConfigModel: Model<AdOptimizationConfigDocument>,
+    private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
   ) {}
 
   async findByOrganization(
     organizationId: string,
-  ): Promise<AdOptimizationConfigDocument | null> {
-    return this.adOptimizationConfigModel
-      .findOne({
+  ): Promise<Record<string, unknown> | null> {
+    return this.prisma.adOptimizationConfig.findFirst({
+      where: {
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      })
-      .lean()
-      .exec();
+        organizationId,
+      },
+    });
   }
 
   async upsert(
     organizationId: string,
-    data: Partial<AdOptimizationConfig>,
-  ): Promise<AdOptimizationConfigDocument> {
+    data: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const result = await this.adOptimizationConfigModel
-        .findOneAndUpdate(
-          {
-            isDeleted: false,
-            organization: new Types.ObjectId(organizationId),
-          },
-          {
-            $set: {
-              ...data,
-              organization: new Types.ObjectId(organizationId),
-            },
-          },
-          { new: true, upsert: true },
-        )
-        .lean()
-        .exec();
+      const existing = await this.prisma.adOptimizationConfig.findFirst({
+        where: { isDeleted: false, organizationId },
+      });
+
+      let result: Record<string, unknown>;
+      if (existing) {
+        result = await this.prisma.adOptimizationConfig.update({
+          data: { ...data, organizationId } as never,
+          where: { id: existing.id },
+        });
+      } else {
+        result = await this.prisma.adOptimizationConfig.create({
+          data: { ...data, organizationId } as never,
+        });
+      }
 
       this.logger.log(
         `${caller} upserted optimization config for org ${organizationId}`,
@@ -66,13 +56,12 @@ export class AdOptimizationConfigsService {
     }
   }
 
-  async findAllEnabled(): Promise<AdOptimizationConfigDocument[]> {
-    return this.adOptimizationConfigModel
-      .find({
+  async findAllEnabled(): Promise<Record<string, unknown>[]> {
+    return this.prisma.adOptimizationConfig.findMany({
+      where: {
         isDeleted: false,
         isEnabled: true,
-      })
-      .lean()
-      .exec();
+      },
+    });
   }
 }

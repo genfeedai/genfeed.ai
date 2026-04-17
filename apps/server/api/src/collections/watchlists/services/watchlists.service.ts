@@ -1,15 +1,12 @@
 import { CreateWatchlistDto } from '@api/collections/watchlists/dto/create-watchlist.dto';
 import { UpdateWatchlistDto } from '@api/collections/watchlists/dto/update-watchlist.dto';
 import { Watchlist } from '@api/collections/watchlists/schemas/watchlist.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { WatchlistPlatform } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class WatchlistsService extends BaseService<
@@ -18,11 +15,11 @@ export class WatchlistsService extends BaseService<
   UpdateWatchlistDto
 > {
   constructor(
-    @InjectModel(Watchlist.name, DB_CONNECTIONS.CLOUD)
-    protected readonly model: AggregatePaginateModel<Watchlist>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 
   /**
@@ -30,7 +27,7 @@ export class WatchlistsService extends BaseService<
    */
   @HandleErrors('find by handle', 'watchlists')
   async findByHandle(
-    brandId: string | Types.ObjectId,
+    brandId: string,
     platform: WatchlistPlatform,
     handle: string,
   ): Promise<Watchlist | null> {
@@ -40,11 +37,13 @@ export class WatchlistsService extends BaseService<
       platform,
     });
 
-    const result = await this.model.findOne({
-      brand: brandId,
-      handle: handle.replace('@', ''),
-      isDeleted: false,
-      platform,
+    const result = await this.prisma.watchlist.findFirst({
+      where: {
+        brandId: String(brandId),
+        handle: handle.replace('@', ''),
+        isDeleted: false,
+        platform,
+      },
     });
 
     this.logOperation('findByHandle', 'completed', {
@@ -54,7 +53,7 @@ export class WatchlistsService extends BaseService<
       platform,
     });
 
-    return result;
+    return result as unknown as Watchlist | null;
   }
 
   /**
@@ -62,7 +61,7 @@ export class WatchlistsService extends BaseService<
    */
   @HandleErrors('update metrics', 'watchlists')
   async updateMetrics(
-    id: string | Types.ObjectId,
+    id: string,
     metrics: {
       followers?: number;
       avgViews?: number;
@@ -71,39 +70,33 @@ export class WatchlistsService extends BaseService<
   ): Promise<Watchlist | null> {
     this.logOperation('updateMetrics', 'started', { id, metrics });
 
-    const result = await this.model.findByIdAndUpdate(
-      id,
-      { $set: { metrics } },
-      { returnDocument: 'after' },
-    );
+    const result = await this.prisma.watchlist.update({
+      data: { metrics: metrics as never },
+      where: { id: String(id) },
+    });
 
     this.logOperation('updateMetrics', 'completed', { id, updated: !!result });
 
-    return result;
+    return result as unknown as Watchlist | null;
   }
 
   /**
-   * Find all watchlist items for an brand
+   * Find all watchlist items for a brand
    */
   @HandleErrors('find all by brand', 'watchlists')
-  async findAllByAccount(
-    brandId: string | Types.ObjectId,
-  ): Promise<Watchlist[]> {
+  async findAllByAccount(brandId: string): Promise<Watchlist[]> {
     this.logOperation('findAllByAccount', 'started', { brandId });
 
-    const result = await this.model
-      .find({
-        brand: brandId,
-        isDeleted: false,
-      })
-      .sort({ createdAt: -1 })
-      .exec();
+    const result = await this.prisma.watchlist.findMany({
+      orderBy: { createdAt: 'desc' },
+      where: { brandId: String(brandId), isDeleted: false },
+    });
 
     this.logOperation('findAllByAccount', 'completed', {
       brandId,
       count: result.length,
     });
 
-    return result;
+    return result as unknown as Watchlist[];
   }
 }

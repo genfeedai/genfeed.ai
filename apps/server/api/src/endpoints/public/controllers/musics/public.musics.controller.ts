@@ -25,7 +25,7 @@ import type {
   Request as ExpressRequest,
   Response as ExpressResponse,
 } from 'express';
-import { isValidObjectId, type PipelineStage, Types } from 'mongoose';
+import { isValidObjectId, type PipelineStage } from 'mongoose';
 
 @AutoSwagger()
 @Public()
@@ -67,7 +67,7 @@ export class PublicMusicsController {
 
     // Filter by brand if provided
     if (brand && isValidObjectId(brand)) {
-      matchQuery.brand = new Types.ObjectId(brand);
+      matchQuery.brand = brand;
     }
 
     // Filter by tag if provided (assuming tags are stored in metadata)

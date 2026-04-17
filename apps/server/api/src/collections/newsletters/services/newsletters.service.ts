@@ -4,23 +4,18 @@ import { CreateNewsletterDto } from '@api/collections/newsletters/dto/create-new
 import { GenerateNewsletterDraftDto } from '@api/collections/newsletters/dto/generate-newsletter-draft.dto';
 import { GenerateNewsletterTopicsDto } from '@api/collections/newsletters/dto/generate-newsletter-topics.dto';
 import { UpdateNewsletterDto } from '@api/collections/newsletters/dto/update-newsletter.dto';
-import {
-  Newsletter,
-  type NewsletterDocument,
-} from '@api/collections/newsletters/schemas/newsletter.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { NewsletterDocument } from '@api/collections/newsletters/schemas/newsletter.schema';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { type PipelineStage, Types } from 'mongoose';
+import type { PipelineStage } from 'mongoose';
 
 type TenantContext = {
   organizationId: string;
@@ -41,13 +36,13 @@ export class NewslettersService extends BaseService<
   UpdateNewsletterDto
 > {
   constructor(
-    @InjectModel(Newsletter.name, DB_CONNECTIONS.CLOUD)
-    model: AggregatePaginateModel<NewsletterDocument>,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    public readonly logger: LoggerService,
     private readonly openRouterService: OpenRouterService,
     private readonly brandsService: BrandsService,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 
   buildListPipeline(
@@ -60,9 +55,9 @@ export class NewslettersService extends BaseService<
     },
   ): PipelineStage[] {
     const match: Record<string, unknown> = {
-      brand: new Types.ObjectId(ctx.brandId),
+      brand: ctx.brandId,
       isDeleted: query.isDeleted ?? false,
-      organization: new Types.ObjectId(ctx.organizationId),
+      organization: ctx.organizationId,
     };
 
     if (query.status?.length) {
@@ -108,9 +103,9 @@ export class NewslettersService extends BaseService<
     return await this.create(
       {
         ...dto,
-        brand: new Types.ObjectId(ctx.brandId),
-        organization: new Types.ObjectId(ctx.organizationId),
-        user: new Types.ObjectId(ctx.userId),
+        brand: ctx.brandId,
+        organization: ctx.organizationId,
+        user: ctx.userId,
       } as CreateNewsletterDto,
       ['organization', 'brand', 'user'],
     );
@@ -136,7 +131,7 @@ export class NewslettersService extends BaseService<
       id,
       {
         approvedAt: new Date(),
-        approvedByUser: new Types.ObjectId(ctx.userId),
+        approvedByUser: ctx.userId,
         status: 'approved',
       } as UpdateNewsletterDto,
       ['organization', 'brand', 'user'],
@@ -159,10 +154,9 @@ export class NewslettersService extends BaseService<
       id,
       {
         approvedAt: newsletter.approvedAt ?? new Date(),
-        approvedByUser:
-          newsletter.approvedByUser ?? new Types.ObjectId(ctx.userId),
+        approvedByUser: newsletter.approvedByUser ?? ctx.userId,
         publishedAt: new Date(),
-        publishedByUser: new Types.ObjectId(ctx.userId),
+        publishedByUser: ctx.userId,
         status: 'published',
       } as UpdateNewsletterDto,
       ['organization', 'brand', 'user'],
@@ -193,10 +187,7 @@ export class NewslettersService extends BaseService<
       (item) => item.toString(),
     );
     const selectedContext = selectedContextIds.length
-      ? await this.findContextNewsletters(
-          selectedContextIds.map((item) => new Types.ObjectId(item)),
-          ctx,
-        )
+      ? await this.findContextNewsletters(selectedContextIds, ctx)
       : [];
 
     return {
@@ -290,7 +281,10 @@ export class NewslettersService extends BaseService<
     this.assertContext(ctx);
     const brand = await this.getBrandContext(ctx);
     const contextNewsletters = dto.contextNewsletterIds?.length
-      ? await this.findContextNewsletters(dto.contextNewsletterIds, ctx)
+      ? await this.findContextNewsletters(
+          dto.contextNewsletterIds as string[],
+          ctx,
+        )
       : await this.getRecentPublishedNewsletters(ctx, 5);
 
     const sourceRefs = dto.sourceRefs ?? [];
@@ -383,9 +377,9 @@ export class NewslettersService extends BaseService<
       [
         {
           $match: {
-            brand: new Types.ObjectId(ctx.brandId),
+            brand: ctx.brandId,
             isDeleted: false,
-            organization: new Types.ObjectId(ctx.organizationId),
+            organization: ctx.organizationId,
             status: 'published',
           },
         },
@@ -399,11 +393,11 @@ export class NewslettersService extends BaseService<
   }
 
   private async findContextNewsletters(
-    ids: Types.ObjectId[],
+    ids: string[],
     ctx: TenantContext,
   ): Promise<NewsletterDocument[]> {
     const documents = await this.find({
-      _id: { $in: ids.map((item) => new Types.ObjectId(item)) },
+      _id: { $in: ids },
       brand: ctx.brandId,
       isDeleted: false,
       organization: ctx.organizationId,
@@ -411,8 +405,8 @@ export class NewslettersService extends BaseService<
 
     return documents.sort(
       (left, right) =>
-        ids.findIndex((item) => item.toString() === left._id.toString()) -
-        ids.findIndex((item) => item.toString() === right._id.toString()),
+        ids.findIndex((item) => item === left._id.toString()) -
+        ids.findIndex((item) => item === right._id.toString()),
     );
   }
 

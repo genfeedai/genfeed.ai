@@ -2,7 +2,6 @@ import { ArticlesService } from '@api/collections/articles/services/articles.ser
 import { ConfigService } from '@api/config/config.service';
 import { ArticleScope, ArticleStatus } from '@genfeedai/enums';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 import RSS from 'rss';
 
 interface ArticleFeed {
@@ -95,7 +94,7 @@ export class RssService {
             isDeleted: false,
             scope: ArticleScope.PUBLIC,
             status: ArticleStatus.PUBLIC,
-            user: new Types.ObjectId(userId),
+            user: userId,
           },
         },
         { $sort: { createdAt: -1, publishedAt: -1 } },
@@ -139,7 +138,7 @@ export class RssService {
       [
         {
           $match: {
-            brand: new Types.ObjectId(brandId),
+            brand: brandId,
             isDeleted: false,
             scope: ArticleScope.PUBLIC,
             status: ArticleStatus.PUBLIC,
@@ -187,7 +186,7 @@ export class RssService {
         {
           $match: {
             isDeleted: false,
-            organization: new Types.ObjectId(organizationId),
+            organization: organizationId,
             scope: ArticleScope.PUBLIC,
             status: ArticleStatus.PUBLIC,
           },

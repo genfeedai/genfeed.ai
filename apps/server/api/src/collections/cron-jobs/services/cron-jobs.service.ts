@@ -1,8 +1,4 @@
 import { AgentRunsService } from '@api/collections/agent-runs/services/agent-runs.service';
-import {
-  AgentStrategy,
-  type AgentStrategyDocument,
-} from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
 import { CreateCronJobDto } from '@api/collections/cron-jobs/dto/create-cron-job.dto';
 import { UpdateCronJobDto } from '@api/collections/cron-jobs/dto/update-cron-job.dto';
 import {
@@ -21,6 +17,7 @@ import { AgentRunQueueService } from '@api/queues/agent-run/agent-run-queue.serv
 import { CacheService } from '@api/services/cache/services/cache.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { SubstackService } from '@api/services/integrations/substack/services/substack.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentAutonomyMode,
   AgentExecutionTrigger,
@@ -74,8 +71,7 @@ export class CronJobsService {
     private readonly cronJobModel: Model<CronJobDocument>,
     @InjectModel(CronRun.name, DB_CONNECTIONS.CLOUD)
     private readonly cronRunModel: Model<CronRunDocument>,
-    @InjectModel(AgentStrategy.name, DB_CONNECTIONS.AGENT)
-    private readonly agentStrategyModel: Model<AgentStrategyDocument>,
+    private readonly prisma: PrismaService,
     private readonly workflowsService: WorkflowsService,
     private readonly agentRunsService: AgentRunsService,
     private readonly agentRunQueueService: AgentRunQueueService,
@@ -437,11 +433,13 @@ export class CronJobsService {
     const strategyId = String(typedPayload.strategyId ?? '');
 
     const strategy = strategyId
-      ? await this.agentStrategyModel.findOne({
-          _id: strategyId,
-          isDeleted: false,
-          organization: job.organization,
-          user: job.user,
+      ? await this.prisma.agentStrategy.findFirst({
+          where: {
+            id: strategyId,
+            isDeleted: false,
+            organizationId: job.organization.toString(),
+            userId: job.user.toString(),
+          },
         })
       : null;
 
@@ -458,7 +456,7 @@ export class CronJobsService {
         : `Cron Agent Job: ${job.name}`,
       objective,
       organization: job.organization,
-      strategy: strategy?._id,
+      strategy: strategy?.id,
       trigger: AgentExecutionTrigger.CRON,
       user: job.user,
     });
@@ -476,13 +474,13 @@ export class CronJobsService {
       objective,
       organizationId: job.organization.toString(),
       runId: String(run._id),
-      strategyId: strategy ? String(strategy._id) : undefined,
+      strategyId: strategy ? String(strategy.id) : undefined,
       userId: job.user.toString(),
     });
 
     return {
       agentRunId: String(run._id),
-      strategyId: strategy ? String(strategy._id) : null,
+      strategyId: strategy ? String(strategy.id) : null,
     };
   }
 

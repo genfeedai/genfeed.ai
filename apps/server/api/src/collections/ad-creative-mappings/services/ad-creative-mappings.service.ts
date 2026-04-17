@@ -1,15 +1,8 @@
-import {
-  AdCreativeMapping,
-  type AdCreativeMappingDocument,
-  type AdCreativeMappingStatus,
-} from '@api/collections/ad-creative-mappings/schemas/ad-creative-mapping.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { AdCreativeMappingStatus } from '@api/collections/ad-creative-mappings/schemas/ad-creative-mapping.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import type { Model } from 'mongoose';
-import { Types } from 'mongoose';
 
 export interface CreateAdCreativeMappingInput {
   organization: string;
@@ -35,26 +28,31 @@ export class AdCreativeMappingsService {
   private readonly constructorName = this.constructor.name;
 
   constructor(
-    @InjectModel(AdCreativeMapping.name, DB_CONNECTIONS.CLOUD)
-    private readonly adCreativeMappingModel: Model<AdCreativeMappingDocument>,
+    private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
   ) {}
 
   async create(
     input: CreateAdCreativeMappingInput,
-  ): Promise<AdCreativeMappingDocument> {
+  ): Promise<Record<string, unknown>> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const doc = await this.adCreativeMappingModel.create({
-        ...input,
-        brand: input.brand ? new Types.ObjectId(input.brand) : undefined,
-        organization: new Types.ObjectId(input.organization),
-        platform: input.platform || 'meta',
-        status: input.status || 'draft',
+      const doc = await this.prisma.adCreativeMapping.create({
+        data: {
+          adAccountId: input.adAccountId,
+          brandId: input.brand,
+          externalAdId: input.externalAdId,
+          externalCreativeId: input.externalCreativeId,
+          genfeedContentId: input.genfeedContentId,
+          metadata: (input.metadata ?? {}) as never,
+          organizationId: input.organization,
+          platform: input.platform ?? 'meta',
+          status: input.status ?? 'draft',
+        },
       });
 
-      this.logger.log(`${caller} created mapping ${String(doc._id)}`);
+      this.logger.log(`${caller} created mapping ${doc.id}`);
       return doc;
     } catch (error: unknown) {
       this.logger.error(`${caller} failed`, error);
@@ -65,83 +63,77 @@ export class AdCreativeMappingsService {
   async findById(
     id: string,
     organizationId: string,
-  ): Promise<AdCreativeMappingDocument | null> {
-    return this.adCreativeMappingModel
-      .findOne({
-        _id: new Types.ObjectId(id),
+  ): Promise<Record<string, unknown> | null> {
+    return this.prisma.adCreativeMapping.findFirst({
+      where: {
+        id,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      })
-      .lean()
-      .exec();
+        organizationId,
+      },
+    });
   }
 
   async findByContentId(
     genfeedContentId: string,
     organizationId: string,
-  ): Promise<AdCreativeMappingDocument[]> {
-    return this.adCreativeMappingModel
-      .find({
+  ): Promise<Record<string, unknown>[]> {
+    return this.prisma.adCreativeMapping.findMany({
+      where: {
         genfeedContentId,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      })
-      .lean()
-      .exec();
+        organizationId,
+      },
+    });
   }
 
   async findByExternalAdId(
     externalAdId: string,
     organizationId: string,
-  ): Promise<AdCreativeMappingDocument | null> {
-    return this.adCreativeMappingModel
-      .findOne({
+  ): Promise<Record<string, unknown> | null> {
+    return this.prisma.adCreativeMapping.findFirst({
+      where: {
         externalAdId,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      })
-      .lean()
-      .exec();
+        organizationId,
+      },
+    });
   }
 
   async findByAdAccount(
     adAccountId: string,
     organizationId: string,
-  ): Promise<AdCreativeMappingDocument[]> {
-    return this.adCreativeMappingModel
-      .find({
+  ): Promise<Record<string, unknown>[]> {
+    return this.prisma.adCreativeMapping.findMany({
+      where: {
         adAccountId,
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      })
-      .lean()
-      .exec();
+        organizationId,
+      },
+    });
   }
 
   async update(
     id: string,
     organizationId: string,
     input: UpdateAdCreativeMappingInput,
-  ): Promise<AdCreativeMappingDocument | null> {
+  ): Promise<Record<string, unknown> | null> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const doc = await this.adCreativeMappingModel
-        .findOneAndUpdate(
-          {
-            _id: new Types.ObjectId(id),
-            isDeleted: false,
-            organization: new Types.ObjectId(organizationId),
-          },
-          { $set: input },
-          { new: true },
-        )
-        .lean()
-        .exec();
+      const existing = await this.prisma.adCreativeMapping.findFirst({
+        where: { id, isDeleted: false, organizationId },
+      });
 
-      if (doc) {
-        this.logger.log(`${caller} updated mapping ${id}`);
+      if (!existing) {
+        return null;
       }
+
+      const doc = await this.prisma.adCreativeMapping.update({
+        data: input as never,
+        where: { id },
+      });
+
+      this.logger.log(`${caller} updated mapping ${id}`);
       return doc;
     } catch (error: unknown) {
       this.logger.error(`${caller} failed`, error);
@@ -153,22 +145,21 @@ export class AdCreativeMappingsService {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      const result = await this.adCreativeMappingModel
-        .findOneAndUpdate(
-          {
-            _id: new Types.ObjectId(id),
-            isDeleted: false,
-            organization: new Types.ObjectId(organizationId),
-          },
-          { $set: { isDeleted: true } },
-        )
-        .exec();
+      const existing = await this.prisma.adCreativeMapping.findFirst({
+        where: { id, isDeleted: false, organizationId },
+      });
 
-      if (result) {
-        this.logger.log(`${caller} soft-deleted mapping ${id}`);
-        return true;
+      if (!existing) {
+        return false;
       }
-      return false;
+
+      await this.prisma.adCreativeMapping.update({
+        data: { isDeleted: true },
+        where: { id },
+      });
+
+      this.logger.log(`${caller} soft-deleted mapping ${id}`);
+      return true;
     } catch (error: unknown) {
       this.logger.error(`${caller} failed`, error);
       throw error;

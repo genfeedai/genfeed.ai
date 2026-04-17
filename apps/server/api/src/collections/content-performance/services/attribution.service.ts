@@ -1,13 +1,6 @@
-import {
-  ContentPerformance,
-  type ContentPerformanceDocument,
-} from '@api/collections/content-performance/schemas/content-performance.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 export interface AttributionResult {
   generationId: string;
@@ -24,8 +17,7 @@ export interface AttributionResult {
 @Injectable()
 export class AttributionService {
   constructor(
-    @InjectModel(ContentPerformance.name, DB_CONNECTIONS.CLOUD)
-    private readonly model: AggregatePaginateModel<ContentPerformanceDocument>,
+    private readonly prisma: PrismaService,
     readonly _logger: LoggerService,
   ) {}
 
@@ -37,50 +29,43 @@ export class AttributionService {
     organizationId: string,
     generationId: string,
   ): Promise<AttributionResult | null> {
-    const results = await this.model
-      .aggregate([
-        {
-          $match: {
-            generationId,
-            isDeleted: false,
-            organization: new Types.ObjectId(organizationId),
-          },
-        },
-        {
-          $group: {
-            _id: '$generationId',
-            avgEngagementRate: { $avg: '$engagementRate' },
-            avgPerformanceScore: { $avg: '$performanceScore' },
-            hookUsed: { $first: '$hookUsed' },
-            promptUsed: { $first: '$promptUsed' },
-            totalEngagements: {
-              $sum: {
-                $add: ['$likes', '$comments', '$shares', '$saves'],
-              },
-            },
-            totalRecords: { $sum: 1 },
-            totalViews: { $sum: '$views' },
-            workflowExecutionId: { $first: '$workflowExecutionId' },
-          },
-        },
-      ])
-      .exec();
+    const rows = await this.prisma.contentPerformance.groupBy({
+      _avg: { engagementRate: true, performanceScore: true },
+      _count: { id: true },
+      _sum: {
+        likes: true,
+        comments: true,
+        shares: true,
+        saves: true,
+        views: true,
+      },
+      by: ['generationId', 'promptUsed', 'hookUsed', 'workflowExecutionId'],
+      where: {
+        generationId,
+        isDeleted: false,
+        organizationId,
+      },
+    });
 
-    if (!results.length) {
+    if (!rows.length) {
       return null;
     }
 
-    const r = results[0];
+    const r = rows[0];
     return {
-      avgEngagementRate: r.avgEngagementRate,
-      avgPerformanceScore: r.avgPerformanceScore,
-      generationId: r._id,
-      hookUsed: r.hookUsed,
-      promptUsed: r.promptUsed,
-      totalEngagements: r.totalEngagements,
-      totalRecords: r.totalRecords,
-      totalViews: r.totalViews,
-      workflowExecutionId: r.workflowExecutionId?.toString(),
+      avgEngagementRate: r._avg.engagementRate ?? 0,
+      avgPerformanceScore: r._avg.performanceScore ?? 0,
+      generationId: r.generationId ?? generationId,
+      hookUsed: r.hookUsed ?? undefined,
+      promptUsed: r.promptUsed ?? undefined,
+      totalEngagements:
+        (r._sum.likes ?? 0) +
+        (r._sum.comments ?? 0) +
+        (r._sum.shares ?? 0) +
+        (r._sum.saves ?? 0),
+      totalRecords: r._count.id,
+      totalViews: r._sum.views ?? 0,
+      workflowExecutionId: r.workflowExecutionId ?? undefined,
     };
   }
 
@@ -92,49 +77,41 @@ export class AttributionService {
     brandId?: string,
     limit = 20,
   ): Promise<AttributionResult[]> {
-    const matchStage: Record<string, unknown> = {
-      generationId: { $exists: true, $ne: null },
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
-    };
+    const rows = await this.prisma.contentPerformance.groupBy({
+      _avg: { engagementRate: true, performanceScore: true },
+      _count: { id: true },
+      _sum: {
+        likes: true,
+        comments: true,
+        shares: true,
+        saves: true,
+        views: true,
+      },
+      by: ['generationId', 'promptUsed', 'hookUsed', 'workflowExecutionId'],
+      orderBy: { _avg: { performanceScore: 'desc' } },
+      take: limit,
+      where: {
+        generationId: { not: null },
+        isDeleted: false,
+        organizationId,
+        ...(brandId ? { brandId } : {}),
+      },
+    });
 
-    if (brandId) {
-      matchStage.brand = new Types.ObjectId(brandId);
-    }
-
-    const results = await this.model
-      .aggregate([
-        { $match: matchStage },
-        {
-          $group: {
-            _id: '$generationId',
-            avgEngagementRate: { $avg: '$engagementRate' },
-            avgPerformanceScore: { $avg: '$performanceScore' },
-            hookUsed: { $first: '$hookUsed' },
-            promptUsed: { $first: '$promptUsed' },
-            totalEngagements: {
-              $sum: { $add: ['$likes', '$comments', '$shares', '$saves'] },
-            },
-            totalRecords: { $sum: 1 },
-            totalViews: { $sum: '$views' },
-            workflowExecutionId: { $first: '$workflowExecutionId' },
-          },
-        },
-        { $sort: { avgPerformanceScore: -1 } },
-        { $limit: limit },
-      ])
-      .exec();
-
-    return results.map((r) => ({
-      avgEngagementRate: r.avgEngagementRate,
-      avgPerformanceScore: r.avgPerformanceScore,
-      generationId: r._id,
-      hookUsed: r.hookUsed,
-      promptUsed: r.promptUsed,
-      totalEngagements: r.totalEngagements,
-      totalRecords: r.totalRecords,
-      totalViews: r.totalViews,
-      workflowExecutionId: r.workflowExecutionId?.toString(),
+    return rows.map((r) => ({
+      avgEngagementRate: r._avg.engagementRate ?? 0,
+      avgPerformanceScore: r._avg.performanceScore ?? 0,
+      generationId: r.generationId ?? '',
+      hookUsed: r.hookUsed ?? undefined,
+      promptUsed: r.promptUsed ?? undefined,
+      totalEngagements:
+        (r._sum.likes ?? 0) +
+        (r._sum.comments ?? 0) +
+        (r._sum.shares ?? 0) +
+        (r._sum.saves ?? 0),
+      totalRecords: r._count.id,
+      totalViews: r._sum.views ?? 0,
+      workflowExecutionId: r.workflowExecutionId ?? undefined,
     }));
   }
 }

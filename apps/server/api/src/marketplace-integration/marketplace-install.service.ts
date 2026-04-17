@@ -10,7 +10,6 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 interface InstallResult {
   resourceId: string;
@@ -140,7 +139,7 @@ export class MarketplaceInstallService {
     const prompt = await this.promptsService.create({
       category,
       isFavorite: true,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       original: template,
     });
 

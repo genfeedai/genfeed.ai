@@ -27,7 +27,6 @@ import {
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class AutoMergeService {
@@ -194,7 +193,7 @@ export class AutoMergeService {
     if (!clerkUserId && dbUserId) {
       try {
         const fullUser = await this.usersService.findOne({
-          _id: new Types.ObjectId(dbUserId),
+          _id: dbUserId,
         });
         if (fullUser?.clerkId) {
           clerkUserId = fullUser.clerkId;
@@ -222,40 +221,38 @@ export class AutoMergeService {
   ): Promise<void> {
     const { dbUserId, clerkUserId, userId, userRoom } = userInfo;
 
-    const parentIds = videoIds.map((id: string) => new Types.ObjectId(id));
+    const parentIds = videoIds;
 
     const metadataData = await this.metadataService.create(
       new MetadataEntity({ extension: MetadataExtension.MP4 }),
     );
 
     const ingredientData = await this.ingredientsService.create({
-      brand: new Types.ObjectId(ingredient.brand),
+      brand: ingredient.brand,
       category: IngredientCategory.VIDEO,
       groupId,
-      metadata: new Types.ObjectId(metadataData._id),
+      metadata: metadataData._id,
       order: 1,
-      organization: new Types.ObjectId(ingredient.organization),
+      organization: ingredient.organization,
       sources: parentIds,
       status: IngredientStatus.PROCESSING,
       transformations: [TransformationCategory.MERGED],
-      user: new Types.ObjectId(dbUserId),
+      user: dbUserId,
     } as unknown as Parameters<typeof this.ingredientsService.create>[0]);
 
-    const mergedIngredientId = (
-      ingredientData._id as Types.ObjectId
-    ).toHexString();
+    const mergedIngredientId = String(ingredientData._id);
     const websocketURL = WebSocketPaths.video(mergedIngredientId);
     const room = resolveRoom(userRoom, userId) || getUserRoomName(userId);
 
     const activity = await this.activitiesService.create(
       new ActivityEntity({
-        brand: new Types.ObjectId(ingredient.brand),
+        brand: ingredient.brand,
         entityId: ingredientData._id,
         entityModel: ActivityEntityModel.INGREDIENT,
         key: ActivityKey.VIDEO_PROCESSING,
-        organization: new Types.ObjectId(ingredient.organization),
+        organization: ingredient.organization,
         source: ActivitySource.WEB,
-        user: new Types.ObjectId(dbUserId),
+        user: dbUserId,
         value: JSON.stringify({
           frameCount: videoIds.length,
           groupId,
@@ -301,9 +298,7 @@ export class AutoMergeService {
         );
 
         const output = result.outputPath;
-        const ingredientId = (
-          ingredientData._id as Types.ObjectId
-        ).toHexString();
+        const ingredientId = String(ingredientData._id);
 
         const meta = await this.filesClientService.uploadToS3(
           ingredientId,

@@ -4,16 +4,11 @@ import {
   AgentRun,
   type AgentRunDocument,
 } from '@api/collections/agent-runs/schemas/agent-run.schema';
-import {
-  Ingredient,
-  type IngredientDocument,
-} from '@api/collections/ingredients/schemas/ingredient.schema';
-import {
-  Post,
-  type PostDocument,
-} from '@api/collections/posts/schemas/post.schema';
+import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
+import type { PostDocument } from '@api/collections/posts/schemas/post.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { AgentExecutionStatus } from '@genfeedai/enums';
@@ -30,7 +25,7 @@ import { DEFAULT_AGENT_RUN_TIME_RANGE } from '@genfeedai/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { Types } from 'mongoose';
 
 type AgentRunQueryModel = {
   find: (filter: Record<string, unknown>) => {
@@ -201,10 +196,7 @@ export class AgentRunsService extends BaseService<
   constructor(
     @InjectModel(AgentRun.name, DB_CONNECTIONS.AGENT)
     model: AggregatePaginateModel<AgentRunDocument>,
-    @InjectModel(Post.name, DB_CONNECTIONS.CLOUD)
-    private readonly postModel: Model<PostDocument>,
-    @InjectModel(Ingredient.name, DB_CONNECTIONS.CLOUD)
-    private readonly ingredientModel: Model<IngredientDocument>,
+    private readonly prisma: PrismaService,
     logger: LoggerService,
   ) {
     super(model, logger);
@@ -761,22 +753,20 @@ export class AgentRunsService extends BaseService<
     organizationId: string,
   ): Promise<{ posts: PostDocument[]; ingredients: IngredientDocument[] }> {
     const [posts, ingredients] = await Promise.all([
-      this.postModel
-        .find({
-          agentRunId: new Types.ObjectId(runId),
+      this.prisma.post.findMany({
+        where: {
+          agentRunId: runId,
           isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
-        })
-        .lean()
-        .exec(),
-      this.ingredientModel
-        .find({
-          agentRunId: new Types.ObjectId(runId),
+          organizationId,
+        },
+      }),
+      this.prisma.ingredient.findMany({
+        where: {
+          agentRunId: runId,
           isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
-        })
-        .lean()
-        .exec(),
+          organizationId,
+        },
+      }),
     ]);
 
     return {

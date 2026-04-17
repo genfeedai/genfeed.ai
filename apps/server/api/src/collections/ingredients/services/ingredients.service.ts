@@ -1,23 +1,16 @@
 import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
-import {
-  Ingredient,
-  type IngredientDocument,
-} from '@api/collections/ingredients/schemas/ingredient.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { PipelineBuilder } from '@api/shared/utils/pipeline-builder/pipeline-builder.util';
 import {
   createModelLookupPipeline,
   createUserLookupPipeline,
   PopulatePatterns,
 } from '@api/shared/utils/populate/populate.util';
-import type {
-  AggregatePaginateModel,
-  AggregatePaginateResult,
-} from '@api/types/mongoose-aggregate-paginate-v2';
+import type { AggregatePaginateResult } from '@api/types/mongoose-aggregate-paginate-v2';
 import {
   DarkroomReviewStatus,
   IngredientCategory,
@@ -28,8 +21,7 @@ import type { PopulateOption } from '@genfeedai/interfaces';
 import { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { type PipelineStage, Types } from 'mongoose';
+import type { PipelineStage } from 'mongoose';
 
 @Injectable()
 export class IngredientsService extends BaseService<
@@ -40,11 +32,11 @@ export class IngredientsService extends BaseService<
   private readonly constructorName = this.constructor.name;
 
   constructor(
-    @InjectModel(Ingredient.name, DB_CONNECTIONS.CLOUD)
-    protected readonly model: AggregatePaginateModel<IngredientDocument>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 
   /**
@@ -108,21 +100,19 @@ export class IngredientsService extends BaseService<
     try {
       this.logger.debug(`${this.constructorName} findLatest`, { params });
 
-      const result = await this.model
-        .findOne(params)
-        .sort({ version: -1 })
-        .populate(this.getPopulationForContext('detail'))
-        .exec();
+      const where = this.buildWhereFromParams(params);
+
+      const result = await this.prisma.ingredient.findFirst({
+        where,
+        orderBy: { version: 'desc' },
+      });
 
       this.logger.debug(
         `${this.constructorName} findLatest ${result ? 'success' : 'not found'}`,
-        {
-          found: !!result,
-          params,
-        },
+        { found: !!result, params },
       );
 
-      return result;
+      return result as unknown as IngredientDocument | null;
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} findLatest failed`, {
         error,
@@ -148,21 +138,19 @@ export class IngredientsService extends BaseService<
         parentId: id,
       });
 
-      // Enforce maximum limit to prevent DOS
       const safeLimit = Math.min(limit, 500);
 
-      const result = await this.model
-        .find({ isDeleted: false, parent: id })
-        .populate(this.getPopulationForContext('detail'))
-        .limit(safeLimit)
-        .exec();
+      const result = await this.prisma.ingredient.findMany({
+        where: { isDeleted: false, parentId: id },
+        take: safeLimit,
+      });
 
       this.logger.debug(`${this.constructorName} findChildren success`, {
         count: result.length,
         parentId: id,
       });
 
-      return result;
+      return result as unknown as IngredientDocument[];
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} findChildren failed`, {
         error,
@@ -174,49 +162,35 @@ export class IngredientsService extends BaseService<
 
   /**
    * Batch find ingredients by IDs with organization isolation.
-   * More efficient than individual findOne calls in a loop (N+1 problem).
-   *
-   * @param ids - Array of ingredient IDs to find
-   * @param organizationId - Organization ID for tenant isolation
-   * @returns Array of found ingredients (may be fewer than requested if some don't exist)
    */
   async findByIds(
-    ids: (string | Types.ObjectId)[],
-    organizationId: string | Types.ObjectId,
+    ids: string[],
+    organizationId: string,
   ): Promise<IngredientDocument[]> {
     try {
       if (!ids || ids.length === 0) {
         return [];
       }
 
-      const objectIds = ids.map((id) =>
-        id instanceof Types.ObjectId ? id : new Types.ObjectId(id),
-      );
-      const orgObjectId =
-        organizationId instanceof Types.ObjectId
-          ? organizationId
-          : new Types.ObjectId(organizationId);
-
       this.logger.debug(`${this.constructorName} findByIds`, {
         count: ids.length,
-        organizationId: orgObjectId.toString(),
+        organizationId,
       });
 
-      const result = await this.model
-        .find({
-          _id: { $in: objectIds },
+      const result = await this.prisma.ingredient.findMany({
+        where: {
+          id: { in: ids },
           isDeleted: false,
-          organization: orgObjectId,
-        })
-        .populate(this.getPopulationForContext('minimal'))
-        .exec();
+          organizationId,
+        },
+      });
 
       this.logger.debug(`${this.constructorName} findByIds success`, {
         found: result.length,
         requested: ids.length,
       });
 
-      return result;
+      return result as unknown as IngredientDocument[];
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} findByIds failed`, {
         count: ids.length,
@@ -227,34 +201,26 @@ export class IngredientsService extends BaseService<
   }
 
   async findAvatarImageById(
-    ingredientId: string | Types.ObjectId,
-    organizationId: string | Types.ObjectId,
+    ingredientId: string,
+    organizationId: string,
   ): Promise<IngredientDocument | null> {
-    const ingredientObjectId =
-      ingredientId instanceof Types.ObjectId
-        ? ingredientId
-        : new Types.ObjectId(ingredientId);
-    const organizationObjectId =
-      organizationId instanceof Types.ObjectId
-        ? organizationId
-        : new Types.ObjectId(organizationId);
-
-    const ingredient = await this.findOne(
-      {
-        _id: ingredientObjectId,
+    const ingredient = await this.prisma.ingredient.findFirst({
+      where: {
+        id: ingredientId,
         category: IngredientCategory.AVATAR,
         isDeleted: false,
-        organization: organizationObjectId,
+        organizationId,
       },
-      [PopulatePatterns.metadataFull],
-    );
+      include: { metadata: true },
+    });
 
     if (!ingredient) {
       return null;
     }
 
-    const metadataExtension = (ingredient.metadata as { extension?: string })
-      ?.extension;
+    const metadataExtension = (
+      ingredient.metadata as { extension?: string } | null
+    )?.extension;
 
     if (
       metadataExtension !== MetadataExtension.JPG &&
@@ -263,168 +229,73 @@ export class IngredientsService extends BaseService<
       return null;
     }
 
-    return ingredient;
+    return ingredient as unknown as IngredientDocument;
   }
 
   /**
    * Find approved image ingredients for a campaign within a brand and organization.
-   * Used to resolve darkroom campaign carousel publishing without trusting client-side IDs.
    */
   async findApprovedImagesByCampaign(
     campaign: string,
-    organizationId: string | Types.ObjectId,
-    brandId: string | Types.ObjectId,
+    organizationId: string,
+    brandId: string,
   ): Promise<IngredientDocument[]> {
     try {
-      const orgObjectId =
-        organizationId instanceof Types.ObjectId
-          ? organizationId
-          : new Types.ObjectId(organizationId);
-      const brandObjectId =
-        brandId instanceof Types.ObjectId
-          ? brandId
-          : new Types.ObjectId(brandId);
-
       this.logger.debug(
         `${this.constructorName} findApprovedImagesByCampaign`,
-        {
-          brandId: brandObjectId.toString(),
-          campaign,
-          organizationId: orgObjectId.toString(),
-        },
+        { brandId, campaign, organizationId },
       );
 
-      const result = await this.model
-        .find({
-          brand: brandObjectId,
+      const result = await this.prisma.ingredient.findMany({
+        where: {
+          brandId,
           campaign,
           category: IngredientCategory.IMAGE,
           isDeleted: false,
-          organization: orgObjectId,
+          organizationId,
           reviewStatus: DarkroomReviewStatus.APPROVED,
           status: {
-            $in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
+            in: [IngredientStatus.GENERATED, IngredientStatus.VALIDATED],
           },
-        })
-        .sort({ _id: 1, createdAt: 1 })
-        .populate(this.getPopulationForContext('minimal'))
-        .exec();
+        },
+        orderBy: [{ id: 'asc' }, { createdAt: 'asc' }],
+      });
 
       this.logger.debug(
         `${this.constructorName} findApprovedImagesByCampaign success`,
-        {
-          brandId: brandObjectId.toString(),
-          campaign,
-          count: result.length,
-          organizationId: orgObjectId.toString(),
-        },
+        { brandId, campaign, count: result.length, organizationId },
       );
 
-      return result;
+      return result as unknown as IngredientDocument[];
     } catch (error: unknown) {
       this.logger.error(
         `${this.constructorName} findApprovedImagesByCampaign failed`,
-        {
-          brandId:
-            brandId instanceof Types.ObjectId ? brandId.toString() : brandId,
-          campaign,
-          error,
-          organizationId:
-            organizationId instanceof Types.ObjectId
-              ? organizationId.toString()
-              : organizationId,
-        },
+        { brandId, campaign, error, organizationId },
       );
       throw error;
     }
   }
 
   /**
-   * Override findOne to use aggregation with model lookup
-   * This adds a root-level modelLabel field computed from models/trainings collections
+   * Override findOne to use Prisma query
    */
   async findOne(
     params: Record<string, unknown>,
-    populate: PopulateOption[] = [],
+    _populate: PopulateOption[] = [],
   ): Promise<IngredientDocument | null> {
     try {
-      this.logger.debug(`${this.constructorName} findOne with model lookup`, {
-        params,
-      });
+      this.logger.debug(`${this.constructorName} findOne`, { params });
 
-      // Convert string IDs to ObjectId for MongoDB queries
-      const processedParams = Object.entries(params).reduce(
-        (acc, [key, value]) => {
-          if (
-            key === '_id' ||
-            key === 'id' ||
-            key.endsWith('Id') ||
-            key.endsWith('_id')
-          ) {
-            if (typeof value === 'string' && Types.ObjectId.isValid(value)) {
-              acc[key === 'id' ? '_id' : key] = new Types.ObjectId(value);
-            } else {
-              acc[key] = value;
-            }
-          } else {
-            acc[key] = value;
-          }
-          return acc;
-        },
-        {} as Record<string, unknown>,
-      );
+      const where = this.buildWhereFromParams(params);
 
-      // Build aggregation pipeline with model + user lookup
-      const pipeline: PipelineStage[] = [
-        { $match: processedParams },
-        ...createModelLookupPipeline(),
-        ...createUserLookupPipeline('minimal'),
-        { $limit: 1 },
-      ];
+      const result = await this.prisma.ingredient.findFirst({ where });
 
       this.logger.debug(
-        `${this.constructorName} findOne - executing aggregation`,
-        {
-          pipelineStages: pipeline.length,
-        },
+        `${this.constructorName} findOne ${result ? 'success' : 'not found'}`,
+        { params },
       );
 
-      const results = await this.model.aggregate(pipeline).exec();
-
-      if (!results || results.length === 0) {
-        this.logger.debug(`${this.constructorName} findOne - not found`, {
-          params,
-        });
-        return null;
-      }
-
-      const doc = results[0];
-
-      // If population is requested, populate the document
-      // Filter out 'user' populates — user data is already resolved via $lookup above
-      const populateOptions = populate.filter((p) => p.path !== 'user');
-      if (populateOptions.length > 0) {
-        // Model.populate() returns the document directly when populating a single document
-        const populated = await this.model.populate(doc, populateOptions);
-
-        // Handle both single document and array return types from Mongoose
-        const result = Array.isArray(populated) ? populated[0] : populated;
-
-        this.logger.debug(
-          `${this.constructorName} findOne success (populated)`,
-          {
-            id: result._id,
-          },
-        );
-
-        return result as IngredientDocument;
-      }
-
-      this.logger.debug(`${this.constructorName} findOne success`, {
-        id: doc._id,
-      });
-
-      return doc as IngredientDocument;
+      return result as unknown as IngredientDocument | null;
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} findOne failed`, {
         error,
@@ -437,21 +308,21 @@ export class IngredientsService extends BaseService<
   async patch(
     id: string,
     updateDto: Partial<UpdateIngredientDto>,
-    populate: PopulateOption[] = [],
+    _populate: PopulateOption[] = [],
   ): Promise<IngredientDocument> {
     try {
       this.logger.debug(`${this.constructorName} patch`, { id, updateDto });
 
-      // Perform the update
-      const updated = await super.patch(id, updateDto, []);
+      const updated = await this.prisma.ingredient.update({
+        where: { id },
+        data: updateDto as never,
+      });
 
       if (!updated) {
-        this.logger.debug(`${this.constructorName} patch - not found`, { id });
         throw new NotFoundException('Ingredient', id);
       }
 
-      // Re-fetch with model lookup to get modelLabel
-      const result = await this.findOne({ _id: id }, populate);
+      const result = await this.findOne({ id });
 
       if (!result) {
         this.logger.error(
@@ -461,9 +332,7 @@ export class IngredientsService extends BaseService<
         throw new NotFoundException('Ingredient', id);
       }
 
-      this.logger.debug(`${this.constructorName} patch success`, {
-        id,
-      });
+      this.logger.debug(`${this.constructorName} patch success`, { id });
 
       return result;
     } catch (error: unknown) {
@@ -483,14 +352,17 @@ export class IngredientsService extends BaseService<
     try {
       this.logger.debug(`${this.constructorName} patchAll`, { filter, update });
 
-      const result = await super.patchAll(filter, update);
+      const result = await this.prisma.ingredient.updateMany({
+        where: filter as never,
+        data: update as never,
+      });
 
       this.logger.debug(`${this.constructorName} patchAll success`, {
         filter,
-        modifiedCount: result.modifiedCount,
+        modifiedCount: result.count,
       });
 
-      return result;
+      return { modifiedCount: result.count };
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} patchAll failed`, {
         error,
@@ -502,8 +374,7 @@ export class IngredientsService extends BaseService<
   }
 
   /**
-   * Override findAll to inject model lookup pipeline
-   * This adds a root-level modelLabel field by looking up model names from models/trainings collections
+   * Override findAll — delegates to super (BaseService Prisma migration pending)
    */
   async findAll(
     aggregate: PipelineStage[],
@@ -511,28 +382,17 @@ export class IngredientsService extends BaseService<
     enableCache: boolean = true,
   ): Promise<AggregatePaginateResult<IngredientDocument>> {
     try {
-      this.logger.debug(`${this.constructorName} findAll with model lookup`, {
+      this.logger.debug(`${this.constructorName} findAll`, {
         aggregateStages: aggregate.length,
         options,
       });
 
-      // Inject model lookup pipeline stages after the initial aggregation stages
-      // but before sorting/pagination
       const enhancedAggregate = [
         ...aggregate,
         ...createModelLookupPipeline(),
         ...createUserLookupPipeline('minimal'),
       ];
 
-      this.logger.debug(
-        `${this.constructorName} findAll - pipeline enhanced with model lookup`,
-        {
-          enhancedStages: enhancedAggregate.length,
-          originalStages: aggregate.length,
-        },
-      );
-
-      // Call parent findAll with enhanced pipeline
       const result = await super.findAll(
         enhancedAggregate,
         options,
@@ -565,20 +425,21 @@ export class IngredientsService extends BaseService<
     limit?: number;
     organizationId: string;
   }): Promise<AggregatePaginateResult<IngredientDocument>> {
-    const matchStage: Record<string, unknown> = {
+    const where: Record<string, unknown> = {
       isDeleted: false,
-      organization: new Types.ObjectId(params.organizationId),
+      organizationId: params.organizationId,
     };
 
     if (params.brandId) {
-      matchStage.brand = new Types.ObjectId(params.brandId);
+      where.brandId = params.brandId;
     }
     if (params.category) {
-      matchStage.category = params.category;
+      where.category = params.category;
     }
 
+    // Delegate to super.findAll for pagination support (BaseService Prisma migration pending)
     return this.findAll(
-      [{ $match: matchStage }],
+      [{ $match: where }],
       {
         limit: params.limit || 10,
         page: 1,
@@ -590,7 +451,6 @@ export class IngredientsService extends BaseService<
 
   /**
    * Get KPI metrics for ingredients
-   * Returns counts by status (generated, rejected, validated) with optional category filtering
    */
   async getKPIMetrics(
     organizationId: string,
@@ -611,85 +471,80 @@ export class IngredientsService extends BaseService<
         organizationId,
       });
 
-      const pipeline: PipelineStage[] = [
-        PipelineBuilder.buildMatch({
-          isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
-          ...(category && { category }),
-        }),
-        {
-          $group: {
-            _id: category ? null : '$category',
-            generated: {
-              $sum: {
-                $cond: [{ $eq: ['$status', IngredientStatus.GENERATED] }, 1, 0],
-              },
-            },
-            rejected: {
-              $sum: {
-                $cond: [{ $eq: ['$status', IngredientStatus.REJECTED] }, 1, 0],
-              },
-            },
-            total: { $sum: 1 },
-            validated: {
-              $sum: {
-                $cond: [{ $eq: ['$status', IngredientStatus.VALIDATED] }, 1, 0],
-              },
-            },
-          },
-        },
-      ];
-
-      const results = await this.model.aggregate(pipeline).exec();
+      const baseWhere: Record<string, unknown> = {
+        isDeleted: false,
+        organizationId,
+        ...(category ? { category } : {}),
+      };
 
       if (category) {
-        // Single category result
-        const result = results[0] || {
-          generated: 0,
-          rejected: 0,
-          total: 0,
-          validated: 0,
-        };
-        return {
-          generated: result.generated,
-          rejected: result.rejected,
-          total: result.total,
-          validated: result.validated,
-        };
-      } else {
-        // All categories - aggregate totals and provide breakdown
-        let total = 0;
-        let generated = 0;
-        let rejected = 0;
-        let validated = 0;
-        const byCategory: Record<
-          string,
-          { generated: number; rejected: number; validated: number }
-        > = {};
+        const [total, generated, rejected, validated] = await Promise.all([
+          this.prisma.ingredient.count({ where: baseWhere as never }),
+          this.prisma.ingredient.count({
+            where: {
+              ...baseWhere,
+              status: IngredientStatus.GENERATED,
+            } as never,
+          }),
+          this.prisma.ingredient.count({
+            where: { ...baseWhere, status: IngredientStatus.REJECTED } as never,
+          }),
+          this.prisma.ingredient.count({
+            where: {
+              ...baseWhere,
+              status: IngredientStatus.VALIDATED,
+            } as never,
+          }),
+        ]);
 
-        results.forEach((result) => {
-          total += result.total;
-          generated += result.generated;
-          rejected += result.rejected;
-          validated += result.validated;
-
-          if (result._id) {
-            byCategory[result._id] = {
-              generated: result.generated,
-              rejected: result.rejected,
-              validated: result.validated,
-            };
-          }
-        });
-
-        return {
-          byCategory,
-          generated,
-          rejected,
-          total,
-          validated,
-        };
+        return { generated, rejected, total, validated };
       }
+
+      // All categories
+      const [total, generated, rejected, validated] = await Promise.all([
+        this.prisma.ingredient.count({ where: baseWhere as never }),
+        this.prisma.ingredient.count({
+          where: { ...baseWhere, status: IngredientStatus.GENERATED } as never,
+        }),
+        this.prisma.ingredient.count({
+          where: { ...baseWhere, status: IngredientStatus.REJECTED } as never,
+        }),
+        this.prisma.ingredient.count({
+          where: { ...baseWhere, status: IngredientStatus.VALIDATED } as never,
+        }),
+      ]);
+
+      // Build per-category breakdown
+      const categoryGroups = await this.prisma.ingredient.groupBy({
+        by: ['category', 'status'],
+        where: baseWhere as never,
+        _count: { id: true },
+      });
+
+      const byCategory: Record<
+        string,
+        { generated: number; rejected: number; validated: number }
+      > = {};
+
+      for (const group of categoryGroups) {
+        if (!group.category) continue;
+        if (!byCategory[group.category]) {
+          byCategory[group.category] = {
+            generated: 0,
+            rejected: 0,
+            validated: 0,
+          };
+        }
+        if (group.status === IngredientStatus.GENERATED) {
+          byCategory[group.category].generated = group._count.id;
+        } else if (group.status === IngredientStatus.REJECTED) {
+          byCategory[group.category].rejected = group._count.id;
+        } else if (group.status === IngredientStatus.VALIDATED) {
+          byCategory[group.category].validated = group._count.id;
+        }
+      }
+
+      return { byCategory, generated, rejected, total, validated };
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} getKPIMetrics failed`, {
         category,
@@ -698,5 +553,32 @@ export class IngredientsService extends BaseService<
       });
       throw error;
     }
+  }
+
+  /**
+   * Build a Prisma where clause from generic params, normalising id fields.
+   */
+  private buildWhereFromParams(
+    params: Record<string, unknown>,
+  ): Record<string, unknown> {
+    const where: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(params)) {
+      if (key === '_id') {
+        where.id = value;
+      } else if (key === 'organization') {
+        where.organizationId = value;
+      } else if (key === 'brand') {
+        where.brandId = value;
+      } else if (key === 'parent') {
+        where.parentId = value;
+      } else if (key === 'metadata') {
+        where.metadataId = value;
+      } else {
+        where[key] = value;
+      }
+    }
+
+    return where;
   }
 }

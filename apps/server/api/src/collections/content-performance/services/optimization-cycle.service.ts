@@ -1,13 +1,6 @@
-import {
-  ContentPerformance,
-  type ContentPerformanceDocument,
-} from '@api/collections/content-performance/schemas/content-performance.schema';
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { type PipelineStage, Types } from 'mongoose';
 
 // ─── Interfaces ──────────────────────────────────────────────────────
 
@@ -78,7 +71,7 @@ export interface CycleHistoryEntry {
 }
 
 export interface RankedContentResult {
-  _id: Types.ObjectId;
+  id: string;
   engagementRate: number;
   performanceScore: number;
   combinedScore: number;
@@ -94,8 +87,7 @@ export interface RankedContentResult {
 @Injectable()
 export class OptimizationCycleService {
   constructor(
-    @InjectModel(ContentPerformance.name, DB_CONNECTIONS.CLOUD)
-    private readonly contentPerformanceModel: AggregatePaginateModel<ContentPerformanceDocument>,
+    private readonly prisma: PrismaService,
     private readonly performanceSummaryService: PerformanceSummaryService,
   ) {}
 
@@ -110,11 +102,11 @@ export class OptimizationCycleService {
   ): Promise<OptimizationCycleResult> {
     const { topN = 10 } = options;
 
-    const matchFilter = this.buildMatchFilter(organizationId, brandId, options);
+    const where = this.buildWhereFilter(organizationId, brandId, options);
 
     const [rankedContent, cycleStats] = await Promise.all([
-      this.getRankedContent(matchFilter, topN),
-      this.computeCycleStats(matchFilter, options),
+      this.getRankedContent(where, topN),
+      this.computeCycleStats(where, options),
     ]);
 
     const topPatterns = this.extractPatterns(rankedContent);
@@ -193,132 +185,106 @@ export class OptimizationCycleService {
     organizationId: string,
     brandId: string,
   ): Promise<CycleHistoryEntry[]> {
-    const pipeline: PipelineStage[] = [
-      {
-        $match: {
-          brand: new Types.ObjectId(brandId),
-          isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
-        },
-      },
-      {
-        $group: {
-          _id: '$cycleNumber',
-          avgEngagementRate: { $avg: '$engagementRate' },
-          avgPerformanceScore: { $avg: '$performanceScore' },
-          endDate: { $max: '$measuredAt' },
-          startDate: { $min: '$measuredAt' },
-          totalContent: { $sum: 1 },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ];
+    const rows = await this.prisma.contentPerformance.groupBy({
+      _avg: { engagementRate: true, performanceScore: true },
+      _count: { id: true },
+      _max: { measuredAt: true },
+      _min: { measuredAt: true },
+      by: ['cycleNumber'],
+      orderBy: { cycleNumber: 'asc' },
+      where: { brandId, isDeleted: false, organizationId },
+    });
 
-    const results = await this.contentPerformanceModel.aggregate(pipeline);
-
-    return results.map((r: Record<string, unknown>) => ({
-      avgEngagementRate: Number(r.avgEngagementRate || 0),
-      avgPerformanceScore: Number(r.avgPerformanceScore || 0),
-      cycleNumber: Number(r._id),
+    return rows.map((r) => ({
+      avgEngagementRate: r._avg.engagementRate ?? 0,
+      avgPerformanceScore: r._avg.performanceScore ?? 0,
+      cycleNumber: r.cycleNumber ?? 0,
       dateRange: {
-        end: r.endDate as Date,
-        start: r.startDate as Date,
+        end: r._max.measuredAt ?? new Date(),
+        start: r._min.measuredAt ?? new Date(),
       },
-      totalContent: Number(r.totalContent || 0),
+      totalContent: r._count.id,
     }));
   }
 
   // ─── Private ─────────────────────────────────────────────────────
 
-  private buildMatchFilter(
+  private buildWhereFilter(
     organizationId: string,
     brandId: string,
     options: OptimizationCycleOptions = {},
   ): Record<string, unknown> {
-    const filter: Record<string, unknown> = {
-      brand: new Types.ObjectId(brandId),
+    return {
+      brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
+      ...(options.cycleNumber !== undefined
+        ? { cycleNumber: options.cycleNumber }
+        : {}),
+      ...(options.startDate || options.endDate
+        ? {
+            measuredAt: {
+              ...(options.startDate
+                ? { gte: new Date(options.startDate) }
+                : {}),
+              ...(options.endDate ? { lte: new Date(options.endDate) } : {}),
+            },
+          }
+        : {}),
     };
-
-    if (options.cycleNumber !== undefined) {
-      filter.cycleNumber = options.cycleNumber;
-    }
-
-    if (options.startDate || options.endDate) {
-      const dateFilter: Record<string, Date> = {};
-      if (options.startDate) {
-        dateFilter.$gte = new Date(options.startDate);
-      }
-      if (options.endDate) {
-        dateFilter.$lte = new Date(options.endDate);
-      }
-      filter.measuredAt = dateFilter;
-    }
-
-    return filter;
   }
 
   private async getRankedContent(
-    matchFilter: Record<string, unknown>,
+    where: Record<string, unknown>,
     limit: number,
   ): Promise<RankedContentResult[]> {
-    const pipeline: PipelineStage[] = [
-      { $match: matchFilter },
-      {
-        $addFields: {
-          combinedScore: {
-            $add: [
-              { $multiply: ['$engagementRate', 0.6] },
-              { $multiply: ['$performanceScore', 0.4] },
-            ],
-          },
-        },
-      },
-      { $sort: { combinedScore: -1 } },
-      { $limit: limit },
-    ];
+    const rows = await this.prisma.contentPerformance.findMany({
+      take: limit * 3, // Fetch more to sort by combinedScore in memory
+      where: where as never,
+    });
 
-    return this.contentPerformanceModel.aggregate<RankedContentResult>(
-      pipeline,
-    );
+    return rows
+      .map((r) => ({
+        combinedScore:
+          (r.engagementRate ?? 0) * 0.6 + (r.performanceScore ?? 0) * 0.4,
+        contentType: r.contentType ?? undefined,
+        engagementRate: r.engagementRate ?? 0,
+        hookUsed: (r as Record<string, unknown>).hookUsed as string | undefined,
+        id: r.id,
+        measuredAt: r.measuredAt ?? undefined,
+        performanceScore: r.performanceScore ?? 0,
+        platform: r.platform ?? undefined,
+        promptUsed: (r as Record<string, unknown>).promptUsed as
+          | string
+          | undefined,
+      }))
+      .sort((a, b) => b.combinedScore - a.combinedScore)
+      .slice(0, limit);
   }
 
   private async computeCycleStats(
-    matchFilter: Record<string, unknown>,
+    where: Record<string, unknown>,
     options: OptimizationCycleOptions,
   ): Promise<CycleStats> {
-    const pipeline: PipelineStage[] = [
-      { $match: matchFilter },
-      {
-        $group: {
-          _id: null,
-          avgEngagementRate: { $avg: '$engagementRate' },
-          avgPerformanceScore: { $avg: '$performanceScore' },
-          bottomEngagementRate: { $min: '$engagementRate' },
-          endDate: { $max: '$measuredAt' },
-          maxCycle: { $max: '$cycleNumber' },
-          startDate: { $min: '$measuredAt' },
-          topEngagementRate: { $max: '$engagementRate' },
-          totalContent: { $sum: 1 },
-        },
-      },
-    ];
-
-    const results = await this.contentPerformanceModel.aggregate(pipeline);
-    const r = results[0] || {};
+    const agg = await this.prisma.contentPerformance.aggregate({
+      _avg: { engagementRate: true, performanceScore: true },
+      _count: { id: true },
+      _max: { cycleNumber: true, engagementRate: true, measuredAt: true },
+      _min: { engagementRate: true, measuredAt: true },
+      where: where as never,
+    });
 
     return {
-      avgEngagementRate: Number(r.avgEngagementRate || 0),
-      avgPerformanceScore: Number(r.avgPerformanceScore || 0),
-      bottomEngagementRate: Number(r.bottomEngagementRate || 0),
-      cycleNumber: options.cycleNumber ?? Number(r.maxCycle || 1),
+      avgEngagementRate: agg._avg.engagementRate ?? 0,
+      avgPerformanceScore: agg._avg.performanceScore ?? 0,
+      bottomEngagementRate: agg._min.engagementRate ?? 0,
+      cycleNumber: options.cycleNumber ?? agg._max.cycleNumber ?? 1,
       dateRange: {
-        end: (r.endDate as Date) || new Date(),
-        start: (r.startDate as Date) || new Date(),
+        end: agg._max.measuredAt ?? new Date(),
+        start: agg._min.measuredAt ?? new Date(),
       },
-      topEngagementRate: Number(r.topEngagementRate || 0),
-      totalContent: Number(r.totalContent || 0),
+      topEngagementRate: agg._max.engagementRate ?? 0,
+      totalContent: agg._count.id,
     };
   }
 

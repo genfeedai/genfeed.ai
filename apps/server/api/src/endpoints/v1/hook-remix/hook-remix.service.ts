@@ -12,7 +12,6 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Types } from 'mongoose';
 import { firstValueFrom } from 'rxjs';
 
 @Injectable()
@@ -42,10 +41,10 @@ export class HookRemixService {
     });
 
     const ctaIngredient = await this.ingredientsService.findOne({
-      _id: new Types.ObjectId(dto.ctaIngredientId),
-      brand: new Types.ObjectId(dto.brandId),
+      _id: dto.ctaIngredientId,
+      brand: dto.brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!ctaIngredient) {
@@ -104,10 +103,10 @@ export class HookRemixService {
     });
 
     const ctaIngredient = await this.ingredientsService.findOne({
-      _id: new Types.ObjectId(dto.ctaIngredientId),
-      brand: new Types.ObjectId(dto.brandId),
+      _id: dto.ctaIngredientId,
+      brand: dto.brandId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     });
 
     if (!ctaIngredient) {

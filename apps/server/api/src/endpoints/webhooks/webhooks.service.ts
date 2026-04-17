@@ -31,7 +31,6 @@ import type { IIngredientNotificationData } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class WebhooksService {
@@ -96,7 +95,7 @@ export class WebhooksService {
   ): Promise<void> {
     const categoryValue = normalizeCategory(category);
     const ingredient = await this.ingredientsService.findOne(
-      { _id: new Types.ObjectId(ingredientId), isDeleted: false },
+      { _id: ingredientId, isDeleted: false },
       [PopulatePatterns.userMinimal],
     );
 
@@ -156,11 +155,11 @@ export class WebhooksService {
 
     // Re-populate user after patch to ensure we have clerkId
     const ingredient = await this.ingredientsService.findOne(
-      { _id: new Types.ObjectId(input.ingredientId) },
+      { _id: input.ingredientId },
       [PopulatePatterns.userMinimal],
     );
     const metadata = await this.metadataService.findOne({
-      _id: new Types.ObjectId(input.metadataId),
+      _id: input.metadataId,
       isDeleted: false,
     });
 
@@ -203,7 +202,7 @@ export class WebhooksService {
     if (!clerkUserId && dbUserId) {
       try {
         const fullUser = await this.usersService.findOne({
-          _id: new Types.ObjectId(dbUserId),
+          _id: dbUserId,
         });
         if (fullUser?.clerkId) {
           clerkUserId = fullUser.clerkId;

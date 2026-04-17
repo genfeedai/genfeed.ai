@@ -1,16 +1,11 @@
 import { CreateMetadataDto } from '@api/collections/metadata/dto/create-metadata.dto';
 import { UpdateMetadataDto } from '@api/collections/metadata/dto/update-metadata.dto';
-import {
-  Metadata,
-  type MetadataDocument,
-} from '@api/collections/metadata/schemas/metadata.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { MetadataDocument } from '@api/collections/metadata/schemas/metadata.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class MetadataService extends BaseService<
@@ -21,26 +16,29 @@ export class MetadataService extends BaseService<
   private readonly constructorName: string = String(this.constructor.name);
 
   constructor(
-    @InjectModel(Metadata.name, DB_CONNECTIONS.CLOUD)
-    model: AggregatePaginateModel<MetadataDocument>,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 
   async remove(ingredientId: string): Promise<MetadataDocument | null> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     try {
       if (this.logger) {
-        this.logger.debug(`${url} started`, {
-          ingredientId,
-        });
+        this.logger.debug(`${url} started`, { ingredientId });
       }
 
-      const metadata = await this.findOne({ ingredient: ingredientId });
+      const metadata = await this.prisma.metadata.findFirst({
+        where: { ingredientId, isDeleted: false },
+      });
 
       if (metadata) {
-        await this.remove(metadata._id.toString());
+        await this.prisma.metadata.update({
+          where: { id: metadata.id },
+          data: { isDeleted: true },
+        });
       }
 
       if (this.logger) {

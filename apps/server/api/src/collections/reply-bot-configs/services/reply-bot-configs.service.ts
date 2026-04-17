@@ -1,18 +1,12 @@
 import { CreateReplyBotConfigDto } from '@api/collections/reply-bot-configs/dto/create-reply-bot-config.dto';
 import { UpdateReplyBotConfigDto } from '@api/collections/reply-bot-configs/dto/update-reply-bot-config.dto';
-import {
-  ReplyBotConfig,
-  type ReplyBotConfigDocument,
-} from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { ReplyBotConfigDocument } from '@api/collections/reply-bot-configs/schemas/reply-bot-config.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { ReplyBotType } from '@genfeedai/enums';
 import type { PopulateOption } from '@genfeedai/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 @Injectable()
 export class ReplyBotConfigsService extends BaseService<
@@ -21,11 +15,11 @@ export class ReplyBotConfigsService extends BaseService<
   UpdateReplyBotConfigDto
 > {
   constructor(
-    @InjectModel(ReplyBotConfig.name, DB_CONNECTIONS.CLOUD)
-    model: AggregatePaginateModel<ReplyBotConfigDocument>,
-    logger: LoggerService,
+    public readonly prisma: PrismaService,
+    readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 
   create(
@@ -71,10 +65,10 @@ export class ReplyBotConfigsService extends BaseService<
     brandId?: string,
   ): Promise<ReplyBotConfigDocument> {
     const config = await this.findOne({
-      ...(brandId ? { brand: new Types.ObjectId(brandId) } : {}),
-      _id: new Types.ObjectId(id),
+      ...(brandId ? { brandId } : {}),
+      id,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     });
 
     if (!config) {
@@ -93,7 +87,7 @@ export class ReplyBotConfigsService extends BaseService<
     return this.find({
       isActive: true,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     });
   }
 
@@ -115,10 +109,10 @@ export class ReplyBotConfigsService extends BaseService<
     brandId?: string,
   ): Promise<ReplyBotConfigDocument | null> {
     return this.findOne({
-      ...(brandId ? { brand: new Types.ObjectId(brandId) } : {}),
-      _id: new Types.ObjectId(id),
+      ...(brandId ? { brandId } : {}),
+      id,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     });
   }
 
@@ -138,9 +132,9 @@ export class ReplyBotConfigsService extends BaseService<
    */
   async canReply(id: string, organizationId: string): Promise<boolean> {
     const config = await this.findOne({
-      _id: new Types.ObjectId(id),
+      id,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     });
 
     if (!config || !config.isActive) {
@@ -178,50 +172,56 @@ export class ReplyBotConfigsService extends BaseService<
    * Increment reply counters after a successful reply
    */
   async incrementReplyCounters(id: string): Promise<void> {
-    await this.model.updateOne(
-      { _id: new Types.ObjectId(id) },
-      {
-        $inc: {
-          'rateLimits.currentDayCount': 1,
-          'rateLimits.currentHourCount': 1,
-          totalRepliesSent: 1,
-        },
-        $set: { lastActivityAt: new Date() },
-      },
-    );
+    const config = await this.prisma.replyBotConfig.findFirst({
+      where: { id },
+    });
+    if (!config) return;
+    const rateLimits = config.rateLimits as Record<string, unknown>;
+    await this.prisma.replyBotConfig.update({
+      data: {
+        lastActivityAt: new Date(),
+        rateLimits: {
+          ...rateLimits,
+          currentDayCount: ((rateLimits.currentDayCount as number) ?? 0) + 1,
+          currentHourCount: ((rateLimits.currentHourCount as number) ?? 0) + 1,
+        } as never,
+        totalRepliesSent: { increment: 1 },
+      } as never,
+      where: { id },
+    });
   }
 
   /**
    * Increment DM counter
    */
   async incrementDmCounter(id: string): Promise<void> {
-    await this.model.updateOne(
-      { _id: new Types.ObjectId(id) },
-      {
-        $inc: { totalDmsSent: 1 },
-        $set: { lastActivityAt: new Date() },
-      },
-    );
+    await this.prisma.replyBotConfig.update({
+      data: {
+        lastActivityAt: new Date(),
+        totalDmsSent: { increment: 1 },
+      } as never,
+      where: { id },
+    });
   }
 
   /**
    * Increment skipped counter
    */
   async incrementSkippedCounter(id: string): Promise<void> {
-    await this.model.updateOne(
-      { _id: new Types.ObjectId(id) },
-      { $inc: { totalSkipped: 1 } },
-    );
+    await this.prisma.replyBotConfig.update({
+      data: { totalSkipped: { increment: 1 } } as never,
+      where: { id },
+    });
   }
 
   /**
    * Increment failed counter
    */
   async incrementFailedCounter(id: string): Promise<void> {
-    await this.model.updateOne(
-      { _id: new Types.ObjectId(id) },
-      { $inc: { totalFailed: 1 } },
-    );
+    await this.prisma.replyBotConfig.update({
+      data: { totalFailed: { increment: 1 } } as never,
+      where: { id },
+    });
   }
 
   /**
@@ -231,15 +231,22 @@ export class ReplyBotConfigsService extends BaseService<
     const hourResetAt = new Date();
     hourResetAt.setHours(hourResetAt.getHours() + 1);
 
-    await this.model.updateOne(
-      { _id: new Types.ObjectId(id) },
-      {
-        $set: {
-          'rateLimits.currentHourCount': 0,
-          'rateLimits.hourResetAt': hourResetAt,
-        },
-      },
-    );
+    const config = await this.prisma.replyBotConfig.findFirst({
+      where: { id },
+    });
+    if (!config) return;
+    const rateLimits = config.rateLimits as Record<string, unknown>;
+
+    await this.prisma.replyBotConfig.update({
+      data: {
+        rateLimits: {
+          ...rateLimits,
+          currentHourCount: 0,
+          hourResetAt,
+        } as never,
+      } as never,
+      where: { id },
+    });
   }
 
   /**
@@ -250,15 +257,22 @@ export class ReplyBotConfigsService extends BaseService<
     dayResetAt.setDate(dayResetAt.getDate() + 1);
     dayResetAt.setHours(0, 0, 0, 0);
 
-    await this.model.updateOne(
-      { _id: new Types.ObjectId(id) },
-      {
-        $set: {
-          'rateLimits.currentDayCount': 0,
-          'rateLimits.dayResetAt': dayResetAt,
-        },
-      },
-    );
+    const config = await this.prisma.replyBotConfig.findFirst({
+      where: { id },
+    });
+    if (!config) return;
+    const rateLimits = config.rateLimits as Record<string, unknown>;
+
+    await this.prisma.replyBotConfig.update({
+      data: {
+        rateLimits: {
+          ...rateLimits,
+          currentDayCount: 0,
+          dayResetAt,
+        } as never,
+      } as never,
+      where: { id },
+    });
   }
 
   /**
@@ -270,20 +284,19 @@ export class ReplyBotConfigsService extends BaseService<
     organizationId: string,
   ): Promise<ReplyBotConfigDocument> {
     const config = await this.findOne({
-      _id: new Types.ObjectId(configId),
+      id: configId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     });
 
     if (!config) {
       throw new NotFoundException(`Reply bot config ${configId} not found`);
     }
 
-    const monitoredAccounts = config.monitoredAccounts || [];
-    const accountObjectId = new Types.ObjectId(accountId);
+    const monitoredAccounts: string[] = config.monitoredAccounts ?? [];
 
-    if (!monitoredAccounts.some((id) => id.equals(accountObjectId))) {
-      monitoredAccounts.push(accountObjectId);
+    if (!monitoredAccounts.includes(accountId)) {
+      monitoredAccounts.push(accountId);
     }
 
     return this.patch(configId, {
@@ -300,18 +313,17 @@ export class ReplyBotConfigsService extends BaseService<
     organizationId: string,
   ): Promise<ReplyBotConfigDocument> {
     const config = await this.findOne({
-      _id: new Types.ObjectId(configId),
+      id: configId,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
     });
 
     if (!config) {
       throw new NotFoundException(`Reply bot config ${configId} not found`);
     }
 
-    const accountObjectId = new Types.ObjectId(accountId);
-    const monitoredAccounts = (config.monitoredAccounts || []).filter(
-      (id) => !id.equals(accountObjectId),
+    const monitoredAccounts = (config.monitoredAccounts ?? []).filter(
+      (id: string) => id !== accountId,
     );
 
     return this.patch(configId, {

@@ -1,19 +1,11 @@
 import { TemplateUsageEntity } from '@api/collections/template-usage/entities/template-usage.entity';
-import {
-  TemplateUsage,
-  type TemplateUsageDocument,
-} from '@api/collections/template-usage/schemas/template-usage.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { TemplateUsageDocument } from '@api/collections/template-usage/schemas/template-usage.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
 
 @Injectable()
 export class TemplateUsageService {
-  constructor(
-    @InjectModel(TemplateUsage.name, DB_CONNECTIONS.CLOUD)
-    private templateUsageModel: Model<TemplateUsageDocument>,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * Create a usage record
@@ -25,32 +17,26 @@ export class TemplateUsageService {
     generatedContent: string;
     variables?: Record<string, string>;
   }): Promise<TemplateUsageEntity> {
-    const usage = new this.templateUsageModel({
-      generatedContent: data.generatedContent,
-      organization: new Types.ObjectId(data.organization),
-      template: new Types.ObjectId(data.template),
-      user: data.user ? new Types.ObjectId(data.user) : undefined,
-      variables: data.variables,
-      wasModified: false,
+    const usage = await this.prisma.templateUsage.create({
+      data: {
+        generatedContent: data.generatedContent,
+        organizationId: data.organization,
+        templateId: data.template,
+        userId: data.user,
+        variables: data.variables as never,
+        wasModified: false,
+      },
     });
 
-    await usage.save();
-    const usageObj = usage.toObject();
-    return {
-      ...usageObj,
-      _id: usageObj._id.toString(),
-      organization: usageObj.organization?.toString(),
-      template: usageObj.template?.toString(),
-      user: usageObj.user?.toString(),
-    } as unknown as TemplateUsageEntity;
+    return usage as unknown as TemplateUsageEntity;
   }
 
   /**
    * Count usage for a template
    */
   countByTemplate(templateId: string): Promise<number> {
-    return this.templateUsageModel.countDocuments({
-      template: new Types.ObjectId(templateId),
+    return this.prisma.templateUsage.count({
+      where: { templateId },
     });
   }
 
@@ -61,19 +47,13 @@ export class TemplateUsageService {
     organizationId: string,
     limit: number = 50,
   ): Promise<TemplateUsageEntity[]> {
-    const usages = await this.templateUsageModel
-      .find({ organization: new Types.ObjectId(organizationId) })
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .lean();
+    const usages = await this.prisma.templateUsage.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      where: { organizationId },
+    });
 
-    return usages.map((usage) => ({
-      ...usage,
-      _id: usage._id.toString(),
-      organization: usage.organization?.toString(),
-      template: usage.template?.toString(),
-      user: usage.user?.toString(),
-    })) as unknown as TemplateUsageEntity[];
+    return usages as unknown as TemplateUsageEntity[];
   }
 
   /**
@@ -87,46 +67,30 @@ export class TemplateUsageService {
       wasModified?: boolean;
     },
   ): Promise<TemplateUsageEntity | null> {
-    const usage = await this.templateUsageModel
-      .findByIdAndUpdate(
-        usageId,
-        { $set: updates },
-        { returnDocument: 'after' },
-      )
-      .lean();
+    const usage = await this.prisma.templateUsage.update({
+      data: updates as never,
+      where: { id: usageId },
+    });
 
     if (!usage) {
       return null;
     }
 
-    return {
-      ...usage,
-      _id: usage._id.toString(),
-      organization: usage.organization?.toString(),
-      template: usage.template?.toString(),
-      user: usage.user?.toString(),
-    } as unknown as TemplateUsageEntity;
+    return usage as unknown as TemplateUsageEntity;
   }
 
   /**
    * Get average rating for a template
    */
   async getAverageRating(templateId: string): Promise<number | null> {
-    const result = await this.templateUsageModel.aggregate([
-      {
-        $match: {
-          rating: { $exists: true, $ne: null },
-          template: new Types.ObjectId(templateId),
-        },
+    const result = await this.prisma.templateUsage.aggregate({
+      _avg: { rating: true },
+      where: {
+        rating: { not: null },
+        templateId,
       },
-      {
-        $group: {
-          _id: null,
-          averageRating: { $avg: '$rating' },
-        },
-      },
-    ]);
+    });
 
-    return result.length > 0 ? result[0].averageRating : null;
+    return result._avg.rating ?? null;
   }
 }

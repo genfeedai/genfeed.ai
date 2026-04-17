@@ -8,26 +8,22 @@ import {
   type ContentPerformanceDocument,
   PerformanceSource,
 } from '@api/collections/content-performance/schemas/content-performance.schema';
-import {
-  Post,
-  type PostDocument,
-} from '@api/collections/posts/schemas/post.schema';
 import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { ContentType, PostCategory } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { type Model, type PipelineStage, Types } from 'mongoose';
+import type { PipelineStage } from 'mongoose';
 
 @Injectable()
 export class ContentPerformanceService extends BaseService<ContentPerformanceDocument> {
   constructor(
     @InjectModel(ContentPerformance.name, DB_CONNECTIONS.CLOUD)
     protected readonly model: AggregatePaginateModel<ContentPerformanceDocument>,
-    @InjectModel(Post.name, DB_CONNECTIONS.CLOUD)
-    private readonly postModel: Model<PostDocument>,
+    private readonly prisma: PrismaService,
     public readonly logger: LoggerService,
   ) {
     super(model, logger);
@@ -61,17 +57,15 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
   ): Promise<ContentPerformanceDocument> {
     const data = {
       ...dto,
-      brand: new Types.ObjectId(dto.brand),
+      brandId: dto.brand,
       engagementRate: dto.engagementRate ?? this.computeEngagementRate(dto),
       measuredAt: new Date(dto.measuredAt),
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
       performanceScore:
         dto.performanceScore ?? this.computePerformanceScore(dto),
-      post: dto.post ? new Types.ObjectId(dto.post) : undefined,
-      user: new Types.ObjectId(userId),
-      workflowExecutionId: dto.workflowExecutionId
-        ? new Types.ObjectId(dto.workflowExecutionId)
-        : undefined,
+      postId: dto.post ?? undefined,
+      userId,
+      workflowExecutionId: dto.workflowExecutionId ?? undefined,
     };
 
     return this.create(data);
@@ -87,10 +81,8 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
   ): Promise<ContentPerformanceDocument[]> {
     // M6: Validate brand belongs to org
     if (dto.brand) {
-      const brand = await this.postModel.db.collection('brands').findOne({
-        _id: new Types.ObjectId(dto.brand),
-        isDeleted: { $ne: true },
-        organization: new Types.ObjectId(organizationId),
+      const brand = await this.prisma.brand.findFirst({
+        where: { id: dto.brand, isDeleted: false, organizationId },
       });
       if (!brand) {
         throw new BadRequestException(
@@ -101,14 +93,14 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
 
     const records = dto.entries.map((entry) => ({
       ...entry,
-      brand: new Types.ObjectId(dto.brand),
+      brandId: dto.brand,
       engagementRate: this.computeEngagementRate(entry),
       measuredAt: new Date(entry.measuredAt),
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
       performanceScore: this.computePerformanceScore(entry),
-      post: entry.post ? new Types.ObjectId(entry.post) : undefined,
+      postId: entry.post ?? undefined,
       source: PerformanceSource.MANUAL,
-      user: new Types.ObjectId(userId),
+      userId,
     }));
 
     return this.model.insertMany(
@@ -133,19 +125,17 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
     let matched = 0;
 
     // Validate brand belongs to org if provided
-    let validatedBrandId: Types.ObjectId | undefined;
+    let validatedBrandId: string | undefined;
     if (dto.brandId) {
-      const brand = await this.postModel.db.collection('brands').findOne({
-        _id: new Types.ObjectId(dto.brandId),
-        isDeleted: { $ne: true },
-        organization: new Types.ObjectId(organizationId),
+      const brand = await this.prisma.brand.findFirst({
+        where: { id: dto.brandId, isDeleted: false, organizationId },
       });
       if (!brand) {
         throw new BadRequestException(
           'Brand not found or does not belong to this organization',
         );
       }
-      validatedBrandId = new Types.ObjectId(dto.brandId);
+      validatedBrandId = dto.brandId;
     }
 
     // M2: Batch-fetch all matching posts instead of N+1 queries
@@ -155,13 +145,16 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
 
     const matchedPosts =
       postMatchConditions.length > 0
-        ? await this.postModel
-            .find({
-              $or: postMatchConditions,
+        ? await this.prisma.post.findMany({
+            where: {
               isDeleted: false,
-              organization: new Types.ObjectId(organizationId),
-            })
-            .lean()
+              organizationId,
+              OR: postMatchConditions.map((c) => ({
+                externalId: c.externalId,
+                platform: c.platform,
+              })),
+            },
+          })
         : [];
 
     const postLookup = new Map(
@@ -180,7 +173,7 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
         }
 
         records.push({
-          brand: post?.brand ?? validatedBrandId ?? undefined,
+          brandId: post?.brandId ?? validatedBrandId ?? undefined,
           comments: entry.comments ?? 0,
           contentType: this.mapCategoryToContentType(post?.category),
           engagementRate: this.computeEngagementRate(entry),
@@ -188,15 +181,15 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
           generationId: post?.generationId ?? undefined,
           likes: entry.likes ?? 0,
           measuredAt: new Date(entry.measuredAt),
-          organization: new Types.ObjectId(organizationId),
+          organizationId,
           performanceScore: this.computePerformanceScore(entry),
           platform: entry.platform,
-          post: post?._id ?? undefined,
+          postId: post?.id ?? undefined,
           revenue: entry.revenue ?? 0,
           saves: entry.saves ?? 0,
           shares: entry.shares ?? 0,
           source: PerformanceSource.CSV,
-          user: new Types.ObjectId(userId),
+          userId,
           views: entry.views ?? 0,
         });
       } catch (err) {
@@ -222,41 +215,43 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
     organizationId: string,
     userId: string,
   ): Promise<ContentPerformanceDocument> {
-    let post: PostDocument | null = null;
+    let post: Record<string, unknown> | null = null;
 
     if (dto.postId) {
-      post = await this.postModel.findOne({
-        _id: new Types.ObjectId(dto.postId),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
+      post = await this.prisma.post.findFirst({
+        where: { id: dto.postId, isDeleted: false, organizationId },
       });
     } else if (dto.externalPostId) {
-      post = await this.postModel.findOne({
-        externalId: dto.externalPostId,
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-        platform: dto.platform,
+      post = await this.prisma.post.findFirst({
+        where: {
+          externalId: dto.externalPostId,
+          isDeleted: false,
+          organizationId,
+          platform: dto.platform,
+        },
       });
     }
 
     const data = {
-      brand: post?.brand ?? undefined,
+      brandId: (post?.brandId as string) ?? undefined,
       comments: dto.comments ?? 0,
-      contentType: this.mapCategoryToContentType(post?.category),
+      contentType: this.mapCategoryToContentType(
+        post?.category as string | undefined,
+      ),
       engagementRate: this.computeEngagementRate(dto),
       externalPostId: dto.externalPostId,
-      generationId: post?.generationId ?? undefined,
+      generationId: (post?.generationId as string) ?? undefined,
       likes: dto.likes ?? 0,
       measuredAt: new Date(),
-      organization: new Types.ObjectId(organizationId),
+      organizationId,
       performanceScore: this.computePerformanceScore(dto),
       platform: dto.platform,
-      post: post?._id ?? undefined,
+      postId: (post?.id as string) ?? undefined,
       revenue: dto.revenue ?? 0,
       saves: dto.saves ?? 0,
       shares: dto.shares ?? 0,
       source: PerformanceSource.MANUAL,
-      user: new Types.ObjectId(userId),
+      userId,
       views: dto.views ?? 0,
     };
 
@@ -272,11 +267,11 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
   ): Promise<ContentPerformanceDocument[]> {
     const query: Record<string, unknown> = {
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     };
 
     if (filters.brand) {
-      query.brand = new Types.ObjectId(filters.brand);
+      query.brand = filters.brand;
     }
     if (filters.platform) {
       query.platform = filters.platform;
@@ -315,11 +310,11 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
   ): Promise<ContentPerformanceDocument[]> {
     const query: Record<string, unknown> = {
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
     };
 
     if (brandId) {
-      query.brand = new Types.ObjectId(brandId);
+      query.brand = brandId;
     }
 
     return this.model
@@ -341,7 +336,7 @@ export class ContentPerformanceService extends BaseService<ContentPerformanceDoc
         $match: {
           generationId,
           isDeleted: false,
-          organization: new Types.ObjectId(organizationId),
+          organization: organizationId,
         },
       },
       {

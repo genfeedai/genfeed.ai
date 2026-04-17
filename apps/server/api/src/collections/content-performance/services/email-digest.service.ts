@@ -2,20 +2,10 @@ import {
   PerformanceSummaryService,
   type WeeklySummary,
 } from '@api/collections/content-performance/services/performance-summary.service';
-import {
-  Organization,
-  type OrganizationDocument,
-} from '@api/collections/organizations/schemas/organization.schema';
-import {
-  User,
-  type UserDocument,
-} from '@api/collections/users/schemas/user.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
 
 export interface EmailDigestResult {
   sent: number;
@@ -38,10 +28,7 @@ export class EmailDigestService {
   constructor(
     private readonly performanceSummaryService: PerformanceSummaryService,
     private readonly notificationsService: NotificationsService,
-    @InjectModel(Organization.name, DB_CONNECTIONS.AUTH)
-    private readonly organizationModel: Model<OrganizationDocument>,
-    @InjectModel(User.name, DB_CONNECTIONS.AUTH)
-    private readonly userModel: Model<UserDocument>,
+    private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -76,10 +63,9 @@ export class EmailDigestService {
       }
 
       // Get org name for email subject
-      const org = await this.organizationModel
-        .findById(organizationId)
-        .lean()
-        .exec();
+      const org = await this.prisma.organization.findUnique({
+        where: { id: organizationId },
+      });
       const orgName = org?.label ?? 'Your Organization';
 
       // Build email HTML
@@ -118,14 +104,15 @@ export class EmailDigestService {
       return overrideEmails;
     }
 
-    const org = await this.organizationModel
-      .findById(organizationId)
-      .lean()
-      .exec();
+    const org = await this.prisma.organization.findUnique({
+      where: { id: organizationId },
+    });
 
-    if (!org?.user) return [];
+    if (!org?.userId) return [];
 
-    const user = await this.userModel.findById(org.user).lean().exec();
+    const user = await this.prisma.user.findUnique({
+      where: { id: org.userId },
+    });
 
     if (!user?.email) return [];
 

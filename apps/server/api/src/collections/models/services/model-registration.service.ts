@@ -5,44 +5,40 @@ import {
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import type { Model as MongooseModel } from 'mongoose';
-import { Types } from 'mongoose';
-import { DB_CONNECTIONS } from '../../../constants/database.constants';
+import { PrismaService } from '../../../shared/modules/prisma/prisma.service';
 // biome-ignore lint/style/useImportType: NestJS DI requires runtime imports
 import { OrganizationSettingsService } from '../../organization-settings/services/organization-settings.service';
-import {
-  Training,
-  type TrainingDocument,
-} from '../../trainings/schemas/training.schema';
-import { Model, type ModelDocument } from '../schemas/model.schema';
+import type { TrainingDocument } from '../../trainings/schemas/training.schema';
+import type { ModelDocument } from '../schemas/model.schema';
 
 @Injectable()
 export class ModelRegistrationService {
   constructor(
-    @InjectModel(Model.name, DB_CONNECTIONS.CLOUD)
-    private readonly modelModel: MongooseModel<ModelDocument>,
-    @InjectModel(Training.name, DB_CONNECTIONS.CLOUD)
-    private readonly trainingModel: MongooseModel<TrainingDocument>,
+    private readonly prisma: PrismaService,
     private readonly orgSettingsService: OrganizationSettingsService,
     private readonly logger: LoggerService,
   ) {}
 
   async validateModelForOrg(
     modelKey: string,
-    organizationId: Types.ObjectId,
+    organizationId: string,
   ): Promise<ModelDocument> {
-    const model = await this.modelModel
-      .findOne({ key: modelKey, isDeleted: false })
-      .lean()
-      .exec();
+    // key is stored in config JSON — fetch all and filter
+    const models = await this.prisma.model.findMany({
+      where: { isDeleted: false },
+    });
+
+    const model = models.find((m) => {
+      const config = m.config as Record<string, unknown>;
+      return config?.key === modelKey;
+    });
 
     if (!model) {
       throw new BadRequestException(`Unknown model: ${modelKey}`);
     }
 
     // Org ownership check
-    if (model.organization && !model.organization.equals(organizationId)) {
+    if (model.organizationId && model.organizationId !== organizationId) {
       throw new ForbiddenException('Model not available for this organization');
     }
 
@@ -51,98 +47,120 @@ export class ModelRegistrationService {
       organization: organizationId,
     });
     const isEnabled = (orgSettings?.enabledModels ?? []).some(
-      (id: Types.ObjectId) => id.equals(model._id),
+      (id: string) => id === model.id,
     );
 
     if (!isEnabled) {
       throw new ForbiddenException('Model not enabled for this organization');
     }
 
-    return model as ModelDocument;
+    return model as unknown as ModelDocument;
   }
 
   async createFromTraining(training: TrainingDocument): Promise<ModelDocument> {
-    // Idempotent check
-    const existing = await this.modelModel
-      .findOne({ training: training._id })
-      .lean()
-      .exec();
-    if (existing) return existing as ModelDocument;
+    const trainingId = String(training._id ?? training.id ?? '');
 
-    // Resolve parent model by key
-    const parentModel = await this.modelModel
-      .findOne({ key: training.baseModel || training.model, isDeleted: false })
-      .lean()
-      .exec();
+    // Idempotent check
+    const existing = await this.prisma.model.findFirst({
+      where: { trainingId },
+    });
+    if (existing) return existing as unknown as ModelDocument;
+
+    // Resolve parent model by key stored in config
+    const parentModelKey = (training.baseModel || training.model) as
+      | string
+      | undefined;
+    let parentModel:
+      | Awaited<ReturnType<typeof this.prisma.model.findFirst>>
+      | undefined;
+
+    if (parentModelKey) {
+      const candidates = await this.prisma.model.findMany({
+        where: { isDeleted: false },
+      });
+      parentModel =
+        candidates.find((m) => {
+          const config = m.config as Record<string, unknown>;
+          return config?.key === parentModelKey;
+        }) ?? undefined;
+    }
 
     if (!parentModel) {
       this.logger.warn(
-        `Base model not found for training ${training._id}: ${training.baseModel || training.model}`,
+        `Base model not found for training ${trainingId}: ${parentModelKey}`,
       );
     }
 
-    const key = `genfeed-ai/${training.organization}/${training._id}`;
+    const parentConfig = parentModel?.config as Record<string, unknown> | null;
+    const key = `genfeed-ai/${training.organization}/${trainingId}`;
+    const organizationId = String(training.organization);
 
     try {
-      const newModel = await this.modelModel.create({
-        key,
-        label: training.label,
-        category: parentModel?.category ?? 'IMAGE',
-        provider: 'genfeed-ai',
-        cost: parentModel?.cost ?? 1,
-        isActive: true,
-        isDefault: false,
-        organization: training.organization,
-        training: training._id,
-        parentModel: parentModel?._id ?? null,
-        triggerWord: training.trigger,
-        capabilities: parentModel?.capabilities ?? [],
-        supportsFeatures: [
-          ...(parentModel?.supportsFeatures ?? []),
-          'lora-weights',
-        ],
+      const newModel = await this.prisma.model.create({
+        data: {
+          organizationId,
+          trainingId,
+          parentModelId: parentModel?.id ?? null,
+          label: training.label as string,
+          isActive: true,
+          config: {
+            key,
+            category: parentConfig?.category ?? 'IMAGE',
+            provider: 'genfeed-ai',
+            cost: parentConfig?.cost ?? 1,
+            isDefault: false,
+            triggerWord: training.trigger as string | undefined,
+            capabilities: parentConfig?.capabilities ?? [],
+            supportsFeatures: [
+              ...((parentConfig?.supportsFeatures as string[]) ?? []),
+              'lora-weights',
+            ],
+          },
+        },
       });
 
       await this.orgSettingsService.addEnabledModel(
-        training.organization,
-        newModel._id,
+        training.organization as string,
+        newModel.id,
       );
 
-      this.logger.log(`Created model ${key} from training ${training._id}`);
-      return newModel;
-    } catch (err: any) {
-      if (err.code === 11000) {
-        // Race condition: another call created it between our findOne and create
-        const raceWinner = await this.modelModel
-          .findOne({ training: training._id })
-          .lean()
-          .exec();
-        return raceWinner as ModelDocument;
+      this.logger.log(`Created model ${key} from training ${trainingId}`);
+      return newModel as unknown as ModelDocument;
+    } catch (err: unknown) {
+      const error = err as { code?: number };
+      if (error.code === 11000) {
+        const raceWinner = await this.prisma.model.findFirst({
+          where: { trainingId },
+        });
+        return raceWinner as unknown as ModelDocument;
       }
       throw err;
     }
   }
 
   async reconcileTrainingModels(): Promise<void> {
-    const orphanedTrainings = await this.trainingModel.aggregate([
-      { $match: { status: 'COMPLETED', isDeleted: false } },
-      {
-        $lookup: {
-          from: 'models',
-          localField: '_id',
-          foreignField: 'training',
-          as: 'model',
-        },
-      },
-      { $match: { model: { $size: 0 } } },
-    ]);
+    const allTrainings = await this.prisma.training.findMany({
+      where: { status: 'COMPLETED', isDeleted: false },
+    });
+
+    const orphanedTrainings: typeof allTrainings = [];
+
+    for (const training of allTrainings) {
+      const model = await this.prisma.model.findFirst({
+        where: { trainingId: training.id },
+      });
+      if (!model) {
+        orphanedTrainings.push(training);
+      }
+    }
 
     for (const training of orphanedTrainings) {
       try {
-        await this.createFromTraining(training);
-      } catch (err: any) {
+        await this.createFromTraining(training as unknown as TrainingDocument);
+      } catch (err: unknown) {
+        const error = err as { message?: string };
         this.logger.error(
-          `Reconciliation failed for training ${training._id}: ${err.message}`,
+          `Reconciliation failed for training ${training.id}: ${error.message}`,
         );
       }
     }
@@ -153,36 +171,33 @@ export class ModelRegistrationService {
   }
 
   async reconcileEnabledModels(): Promise<void> {
-    const orgModels = await this.modelModel
-      .find({ organization: { $ne: null }, isActive: true, isDeleted: false })
-      .select('_id organization')
-      .lean()
-      .exec();
+    const orgModels = await this.prisma.model.findMany({
+      where: {
+        organizationId: { not: null },
+        isActive: true,
+        isDeleted: false,
+      },
+      select: { id: true, organizationId: true },
+    });
 
-    const modelsByOrg = new Map<string, Types.ObjectId[]>();
+    const modelsByOrg = new Map<string, string[]>();
     for (const model of orgModels) {
-      const orgKey = model.organization.toString();
+      if (!model.organizationId) continue;
+      const orgKey = model.organizationId;
       if (!modelsByOrg.has(orgKey)) modelsByOrg.set(orgKey, []);
-      modelsByOrg.get(orgKey)!.push(model._id);
+      modelsByOrg.get(orgKey)!.push(model.id);
     }
 
     let repaired = 0;
     for (const [orgId, modelIds] of modelsByOrg) {
       const orgSettings = await this.orgSettingsService.findOne({
-        organization: new Types.ObjectId(orgId),
+        organization: orgId,
       });
-      const enabledSet = new Set(
-        (orgSettings?.enabledModels ?? []).map((id: Types.ObjectId) =>
-          id.toString(),
-        ),
-      );
+      const enabledSet = new Set<string>(orgSettings?.enabledModels ?? []);
 
       for (const modelId of modelIds) {
-        if (!enabledSet.has(modelId.toString())) {
-          await this.orgSettingsService.addEnabledModel(
-            new Types.ObjectId(orgId),
-            modelId,
-          );
+        if (!enabledSet.has(modelId)) {
+          await this.orgSettingsService.addEnabledModel(orgId, modelId);
           repaired++;
         }
       }

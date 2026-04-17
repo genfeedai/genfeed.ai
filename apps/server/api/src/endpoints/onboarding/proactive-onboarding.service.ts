@@ -5,20 +5,16 @@ import { OrganizationsService } from '@api/collections/organizations/services/or
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import type {
   CrmGenerateContentDto,
   PrepareBrandDto,
   SendInvitationDto,
 } from '@api/endpoints/onboarding/dto/proactive-onboarding.dto';
-import {
-  Lead,
-  type LeadDocument,
-} from '@api/endpoints/onboarding/schemas/lead.schema';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { MasterPromptGeneratorService } from '@api/services/knowledge-base/master-prompt-generator.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ProactiveOnboardingStatus } from '@genfeedai/enums';
 import type {
   IExtractedBrandData,
@@ -33,8 +29,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import type { Lead } from '@prisma/client';
 
 /** Credits seeded for proactive onboarding shadow orgs (same as normal signup) */
 const PROACTIVE_ONBOARDING_CREDITS = 100;
@@ -42,11 +37,29 @@ const PROACTIVE_ONBOARDING_CREDITS = 100;
 /** Credits expiry: 1 year */
 const PROACTIVE_CREDITS_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000;
 
+type LeadData = {
+  name?: string;
+  email?: string;
+  phone?: string;
+  company?: string;
+  proactiveStatus?: ProactiveOnboardingStatus;
+  proactiveBatchId?: string;
+  invitedAt?: string;
+  claimedAt?: string;
+  paymentMadeAt?: string;
+  convertedAt?: string;
+  brandUrl?: string;
+  [key: string]: unknown;
+};
+
+type LeadWithData = Lead & {
+  data: LeadData;
+};
+
 @Injectable()
 export class ProactiveOnboardingService {
   constructor(
-    @InjectModel(Lead.name, DB_CONNECTIONS.CRM)
-    private readonly leadModel: Model<LeadDocument>,
+    private readonly prisma: PrismaService,
     private readonly loggerService: LoggerService,
     private readonly brandScraperService: BrandScraperService,
     private readonly masterPromptGeneratorService: MasterPromptGeneratorService,
@@ -71,18 +84,18 @@ export class ProactiveOnboardingService {
   ): Promise<{ success: boolean; brandId: string; organizationId: string }> {
     const lead = await this.getLead(leadId, organizationId);
 
-    if (!lead.email) {
+    if (!lead.data.email) {
       throw new BadRequestException(
         'Lead must have an email address for proactive onboarding',
       );
     }
 
     if (
-      lead.proactiveStatus !== ProactiveOnboardingStatus.NONE &&
-      lead.proactiveStatus !== ProactiveOnboardingStatus.BRAND_READY
+      lead.data.proactiveStatus !== ProactiveOnboardingStatus.NONE &&
+      lead.data.proactiveStatus !== ProactiveOnboardingStatus.BRAND_READY
     ) {
       throw new BadRequestException(
-        `Cannot prepare brand in status "${lead.proactiveStatus}"`,
+        `Cannot prepare brand in status "${lead.data.proactiveStatus}"`,
       );
     }
 
@@ -103,40 +116,41 @@ export class ProactiveOnboardingService {
 
       // 2. Create shadow organization
       let shadowOrg;
-      if (lead.proactiveOrganization) {
+      if (lead.proactiveOrganizationId) {
         // Reuse existing shadow org
         shadowOrg = await this.organizationsService.findOne({
-          _id: new Types.ObjectId(lead.proactiveOrganization),
+          _id: lead.proactiveOrganizationId,
         });
       }
 
       if (!shadowOrg) {
+        const name = lead.data.name ?? '';
         // Create a placeholder user for the shadow org (will be transferred on signup)
         const placeholderUser = await this.usersService.create({
-          email: lead.email,
-          firstName: lead.name.split(' ')[0],
+          email: lead.data.email,
+          firstName: name.split(' ')[0],
           handle: `proactive-${Date.now()}`,
           isInvited: true,
-          lastName: lead.name.split(' ').slice(1).join(' ') || undefined,
+          lastName: name.split(' ').slice(1).join(' ') || undefined,
         });
 
         shadowOrg = await this.organizationsService.create({
           isProactiveOnboarding: true,
           isSelected: false,
-          label: dto.brandName || lead.company || lead.name,
+          label: dto.brandName || lead.data.company || name,
           onboardingCompleted: true,
-          user: new Types.ObjectId(placeholderUser._id),
+          user: placeholderUser._id,
         });
 
         // Create member record (inactive until signup)
         await this.membersService.create({
           isActive: false,
-          organization: new Types.ObjectId(shadowOrg._id),
-          user: new Types.ObjectId(placeholderUser._id),
+          organization: shadowOrg._id,
+          user: placeholderUser._id,
         });
       }
 
-      const shadowOrgId = new Types.ObjectId(shadowOrg._id);
+      const shadowOrgId = shadowOrg._id.toString();
 
       // 3. Scrape brand
       this.loggerService.log('Proactive onboarding: scraping brand', {
@@ -207,7 +221,7 @@ export class ProactiveOnboardingService {
       });
       const brandVoice =
         await this.masterPromptGeneratorService.analyzeBrandVoice(scrapedData, {
-          organizationId: shadowOrgId.toString(),
+          organizationId: shadowOrgId,
           userId: shadowOrg.user.toString(),
         });
 
@@ -217,15 +231,16 @@ export class ProactiveOnboardingService {
       };
 
       // 5. Create brand in shadow org
+      const name = lead.data.name ?? '';
       const brandLabel =
-        dto.brandName || scrapedData.companyName || lead.company || lead.name;
+        dto.brandName || scrapedData.companyName || lead.data.company || name;
 
       const brand = await this.brandsService.create({
         description: scrapedData.description,
         fontFamily: scrapedData.fontFamily,
         isSelected: true,
         label: brandLabel,
-        organization: shadowOrgId,
+        organization: shadowOrg._id,
         primaryColor: scrapedData.primaryColor,
         secondaryColor: scrapedData.secondaryColor,
         text: this.buildBrandSystemPrompt(scrapedData, dto),
@@ -255,10 +270,10 @@ export class ProactiveOnboardingService {
 
       // 6. Seed credits
       await this.creditsUtilsService.addOrganizationCreditsWithExpiration(
-        shadowOrg._id.toString(),
+        shadowOrgId,
         PROACTIVE_ONBOARDING_CREDITS,
         'proactive-onboarding',
-        `Proactive onboarding credits for lead ${lead.name}`,
+        `Proactive onboarding credits for lead ${name}`,
         new Date(Date.now() + PROACTIVE_CREDITS_EXPIRY_MS),
       );
 
@@ -268,20 +283,20 @@ export class ProactiveOnboardingService {
         organizationId,
         ProactiveOnboardingStatus.BRAND_READY,
         {
-          proactiveBrand: new Types.ObjectId(brand._id),
-          proactiveOrganization: shadowOrgId,
+          proactiveBrandId: brand._id.toString(),
+          proactiveOrganizationId: shadowOrgId,
         },
       );
 
       this.loggerService.log('Proactive onboarding: brand prepared', {
         brandId: brand._id,
         leadId,
-        shadowOrgId: shadowOrg._id,
+        shadowOrgId,
       });
 
       return {
         brandId: brand._id.toString(),
-        organizationId: shadowOrg._id.toString(),
+        organizationId: shadowOrgId,
         success: true,
       };
     } catch (error: unknown) {
@@ -321,13 +336,13 @@ export class ProactiveOnboardingService {
   ): Promise<{ success: boolean; batchId: string }> {
     const lead = await this.getLead(leadId, organizationId);
 
-    if (lead.proactiveStatus !== ProactiveOnboardingStatus.BRAND_READY) {
+    if (lead.data.proactiveStatus !== ProactiveOnboardingStatus.BRAND_READY) {
       throw new BadRequestException(
         'Brand must be prepared before generating content',
       );
     }
 
-    if (!lead.proactiveOrganization || !lead.proactiveBrand) {
+    if (!lead.proactiveOrganizationId || !lead.proactiveBrandId) {
       throw new BadRequestException(
         'Shadow organization and brand must exist before generating content',
       );
@@ -340,13 +355,13 @@ export class ProactiveOnboardingService {
     );
 
     try {
-      const shadowOrgId = lead.proactiveOrganization.toString();
-      const brandId = lead.proactiveBrand.toString();
+      const shadowOrgId = lead.proactiveOrganizationId;
+      const brandId = lead.proactiveBrandId;
       const count = dto.count || 10;
 
       // Find the shadow org to get user ID
       const shadowOrg = await this.organizationsService.findOne({
-        _id: new Types.ObjectId(shadowOrgId),
+        _id: shadowOrgId,
       });
 
       if (!shadowOrg) {
@@ -424,30 +439,30 @@ export class ProactiveOnboardingService {
   ): Promise<{ success: boolean; invitedAt: Date }> {
     const lead = await this.getLead(leadId, organizationId);
 
-    if (!lead.email) {
+    if (!lead.data.email) {
       throw new BadRequestException(
         'Lead must have an email address to send invitation',
       );
     }
 
     if (
-      lead.proactiveStatus !== ProactiveOnboardingStatus.CONTENT_READY &&
-      lead.proactiveStatus !== ProactiveOnboardingStatus.READY &&
-      lead.proactiveStatus !== ProactiveOnboardingStatus.INVITED
+      lead.data.proactiveStatus !== ProactiveOnboardingStatus.CONTENT_READY &&
+      lead.data.proactiveStatus !== ProactiveOnboardingStatus.READY &&
+      lead.data.proactiveStatus !== ProactiveOnboardingStatus.INVITED
     ) {
       throw new BadRequestException(
         'Content must be generated before sending invitation',
       );
     }
 
-    if (!lead.proactiveOrganization) {
+    if (!lead.proactiveOrganizationId) {
       throw new BadRequestException('Shadow organization must exist');
     }
 
     try {
       // Find the placeholder user in the shadow org
       const shadowOrg = await this.organizationsService.findOne({
-        _id: new Types.ObjectId(lead.proactiveOrganization),
+        _id: lead.proactiveOrganizationId,
       });
 
       if (!shadowOrg) {
@@ -457,10 +472,10 @@ export class ProactiveOnboardingService {
       // Send Clerk invitation with proactive onboarding metadata
       const redirectUrl = this.getProactiveRedirectUrl();
 
-      await this.clerkService.createInvitation(lead.email, redirectUrl, {
+      await this.clerkService.createInvitation(lead.data.email, redirectUrl, {
         isProactiveOnboarding: true,
         leadId,
-        organizationId: lead.proactiveOrganization.toString(),
+        organizationId: lead.proactiveOrganizationId,
         userId: shadowOrg.user.toString(),
       });
 
@@ -470,11 +485,11 @@ export class ProactiveOnboardingService {
         leadId,
         organizationId,
         ProactiveOnboardingStatus.INVITED,
-        { invitedAt },
+        { invitedAt: invitedAt.toISOString() },
       );
 
       this.loggerService.log('Proactive onboarding: invitation sent', {
-        email: lead.email,
+        email: lead.data.email,
         leadId,
       });
 
@@ -511,15 +526,16 @@ export class ProactiveOnboardingService {
     const result: IProactivePreparationStatus = {
       generatedAssetCount: 0,
       inviteEligible: false,
-      prepPercent: this.getPrepPercent(lead.proactiveStatus),
-      prepStage: this.getPrepStage(lead.proactiveStatus),
-      proactiveStatus: lead.proactiveStatus,
+      prepPercent: this.getPrepPercent(lead.data.proactiveStatus),
+      prepStage: this.getPrepStage(lead.data.proactiveStatus),
+      proactiveStatus:
+        lead.data.proactiveStatus ?? ProactiveOnboardingStatus.NONE,
     };
 
     // Fetch brand details if available
-    if (lead.proactiveBrand) {
+    if (lead.proactiveBrandId) {
       const brand = await this.brandsService.findOne(
-        { _id: new Types.ObjectId(lead.proactiveBrand), isDeleted: false },
+        { _id: lead.proactiveBrandId, isDeleted: false },
         'none',
       );
 
@@ -536,11 +552,11 @@ export class ProactiveOnboardingService {
     }
 
     // Fetch batch details if available
-    if (lead.proactiveBatchId && lead.proactiveOrganization) {
+    if (lead.data.proactiveBatchId && lead.proactiveOrganizationId) {
       try {
         const batch = await this.batchGenerationService.getBatch(
-          lead.proactiveBatchId,
-          lead.proactiveOrganization.toString(),
+          lead.data.proactiveBatchId,
+          lead.proactiveOrganizationId,
         );
 
         if (batch) {
@@ -558,25 +574,25 @@ export class ProactiveOnboardingService {
     }
 
     // Fetch invitation details
-    if (lead.invitedAt && lead.email) {
+    if (lead.data.invitedAt && lead.data.email) {
       result.invitation = {
-        email: lead.email,
-        invitedAt: lead.invitedAt.toISOString(),
+        email: lead.data.email,
+        invitedAt: lead.data.invitedAt,
       };
     }
 
-    if (lead.claimedAt) {
-      result.claimedAt = lead.claimedAt.toISOString();
+    if (lead.data.claimedAt) {
+      result.claimedAt = lead.data.claimedAt;
     }
 
-    if (lead.paymentMadeAt) {
-      result.paymentMadeAt = lead.paymentMadeAt.toISOString();
+    if (lead.data.paymentMadeAt) {
+      result.paymentMadeAt = lead.data.paymentMadeAt;
     }
 
     // Fetch organization details
-    if (lead.proactiveOrganization) {
+    if (lead.proactiveOrganizationId) {
       const org = await this.organizationsService.findOne({
-        _id: new Types.ObjectId(lead.proactiveOrganization),
+        _id: lead.proactiveOrganizationId,
       });
 
       if (org) {
@@ -587,7 +603,7 @@ export class ProactiveOnboardingService {
       }
     }
 
-    result.inviteEligible = this.isInviteEligible(lead.proactiveStatus);
+    result.inviteEligible = this.isInviteEligible(lead.data.proactiveStatus);
 
     if (
       result.proactiveStatus === ProactiveOnboardingStatus.READY &&
@@ -623,7 +639,8 @@ export class ProactiveOnboardingService {
       outputs,
       prepPercent: status.prepPercent ?? 0,
       prepStage: status.prepStage ?? 'not_started',
-      proactiveStatus: lead.proactiveStatus,
+      proactiveStatus:
+        lead.data.proactiveStatus ?? ProactiveOnboardingStatus.NONE,
       success: true,
       summary: this.buildWorkspaceSummary(status, outputs.length),
     };
@@ -657,38 +674,37 @@ export class ProactiveOnboardingService {
 
     const { lead, organizationId } = claimContext;
 
-    if (!lead.proactiveOrganization) {
+    if (!lead.proactiveOrganizationId) {
       throw new BadRequestException('Shadow organization must exist');
     }
 
     if (
-      lead.proactiveStatus !== ProactiveOnboardingStatus.INVITED &&
-      lead.proactiveStatus !== ProactiveOnboardingStatus.STARTED &&
-      lead.proactiveStatus !== ProactiveOnboardingStatus.PAYMENT_MADE &&
-      lead.proactiveStatus !== ProactiveOnboardingStatus.CONVERTED
+      lead.data.proactiveStatus !== ProactiveOnboardingStatus.INVITED &&
+      lead.data.proactiveStatus !== ProactiveOnboardingStatus.STARTED &&
+      lead.data.proactiveStatus !== ProactiveOnboardingStatus.PAYMENT_MADE &&
+      lead.data.proactiveStatus !== ProactiveOnboardingStatus.CONVERTED
     ) {
       throw new BadRequestException('Lead must be invited before claiming');
     }
 
     let claimedAt: Date | undefined;
-    if (lead.proactiveStatus === ProactiveOnboardingStatus.INVITED) {
+    if (lead.data.proactiveStatus === ProactiveOnboardingStatus.INVITED) {
       claimedAt = new Date();
       await this.updateLeadStatus(
-        lead._id.toString(),
+        lead.id,
         organizationId,
         ProactiveOnboardingStatus.STARTED,
-        { claimedAt },
+        { claimedAt: claimedAt.toISOString() },
       );
-      lead.proactiveStatus = ProactiveOnboardingStatus.STARTED;
-      lead.claimedAt = claimedAt;
+      lead.data.proactiveStatus = ProactiveOnboardingStatus.STARTED;
+      lead.data.claimedAt = claimedAt.toISOString();
     }
 
     const workspace = userIdArg
-      ? await this.getWorkspaceSummary(lead._id.toString(), organizationId)
+      ? await this.getWorkspaceSummary(lead.id, organizationId)
       : undefined;
     const fallbackStatus =
-      workspace ??
-      (await this.getPreparationStatus(lead._id.toString(), organizationId));
+      workspace ?? (await this.getPreparationStatus(lead.id, organizationId));
     const outputs = workspace?.outputs ?? (await this.getLeadOutputs(lead));
     const summary =
       workspace?.summary ??
@@ -716,9 +732,9 @@ export class ProactiveOnboardingService {
       : await this.getLeadByShadowOrganization(leadIdOrShadowOrgId);
 
     if (
-      lead.proactiveStatus !== ProactiveOnboardingStatus.STARTED &&
-      lead.proactiveStatus !== ProactiveOnboardingStatus.PAYMENT_MADE &&
-      lead.proactiveStatus !== ProactiveOnboardingStatus.CONVERTED
+      lead.data.proactiveStatus !== ProactiveOnboardingStatus.STARTED &&
+      lead.data.proactiveStatus !== ProactiveOnboardingStatus.PAYMENT_MADE &&
+      lead.data.proactiveStatus !== ProactiveOnboardingStatus.CONVERTED
     ) {
       throw new BadRequestException(
         'Lead must be started before payment can be recorded',
@@ -726,13 +742,13 @@ export class ProactiveOnboardingService {
     }
 
     const paymentMadeAt = new Date();
-    const leadOrganizationId = organizationId ?? lead.organization.toString();
+    const leadOrganizationId = organizationId ?? lead.organizationId ?? '';
 
     await this.updateLeadStatus(
-      lead._id.toString(),
+      lead.id,
       leadOrganizationId,
       ProactiveOnboardingStatus.PAYMENT_MADE,
-      { paymentMadeAt },
+      { paymentMadeAt: paymentMadeAt.toISOString() },
     );
 
     return { paymentMadeAt, success: true };
@@ -747,13 +763,13 @@ export class ProactiveOnboardingService {
   ): Promise<{ posts: unknown[] }> {
     const lead = await this.getLead(leadId, organizationId);
 
-    if (!lead.proactiveOrganization) {
+    if (!lead.proactiveOrganizationId) {
       return { posts: [] };
     }
 
     const posts = await this.postsService.find({
       isDeleted: false,
-      organization: new Types.ObjectId(lead.proactiveOrganization),
+      organization: lead.proactiveOrganizationId,
     });
 
     return { posts };
@@ -764,31 +780,31 @@ export class ProactiveOnboardingService {
   private async getLead(
     leadId: string,
     organizationId: string,
-  ): Promise<LeadDocument> {
-    const lead = await this.leadModel
-      .findOne({
-        _id: leadId,
+  ): Promise<LeadWithData> {
+    const lead = await this.prisma.lead.findFirst({
+      where: {
+        id: leadId,
         isDeleted: false,
-        organization: organizationId,
-      })
-      .exec();
+        organizationId,
+      },
+    });
 
     if (!lead) {
       throw new NotFoundException(`Lead "${leadId}" not found`);
     }
 
-    return lead;
+    return { ...lead, data: (lead.data as LeadData) ?? {} };
   }
 
   private async getLeadByShadowOrganization(
     shadowOrganizationId: string,
-  ): Promise<LeadDocument> {
-    const lead = await this.leadModel
-      .findOne({
+  ): Promise<LeadWithData> {
+    const lead = await this.prisma.lead.findFirst({
+      where: {
         isDeleted: false,
-        proactiveOrganization: shadowOrganizationId,
-      })
-      .exec();
+        proactiveOrganizationId: shadowOrganizationId,
+      },
+    });
 
     if (!lead) {
       throw new NotFoundException(
@@ -796,14 +812,14 @@ export class ProactiveOnboardingService {
       );
     }
 
-    return lead;
+    return { ...lead, data: (lead.data as LeadData) ?? {} };
   }
 
   private async getLeadClaimContext(
     leadId: string,
     organizationId: string,
     _userId: string,
-  ): Promise<{ lead: LeadDocument; organizationId: string }> {
+  ): Promise<{ lead: LeadWithData; organizationId: string }> {
     return {
       lead: await this.getLead(leadId, organizationId),
       organizationId,
@@ -813,12 +829,12 @@ export class ProactiveOnboardingService {
   private async getShadowOrgClaimContext(
     shadowOrganizationId: string,
     _userId: string,
-  ): Promise<{ lead: LeadDocument; organizationId: string }> {
+  ): Promise<{ lead: LeadWithData; organizationId: string }> {
     const lead = await this.getLeadByShadowOrganization(shadowOrganizationId);
 
     return {
       lead,
-      organizationId: lead.organization.toString(),
+      organizationId: lead.organizationId ?? '',
     };
   }
 
@@ -828,12 +844,32 @@ export class ProactiveOnboardingService {
     status: ProactiveOnboardingStatus,
     extraFields?: Record<string, unknown>,
   ): Promise<void> {
-    await this.leadModel
-      .findOneAndUpdate(
-        { _id: leadId, isDeleted: false, organization: organizationId },
-        { $set: { proactiveStatus: status, ...extraFields } },
-      )
-      .exec();
+    const existing = await this.prisma.lead.findFirst({
+      where: { id: leadId, isDeleted: false, organizationId },
+    });
+
+    if (!existing) {
+      return;
+    }
+
+    const currentData = (existing.data as LeadData) ?? {};
+    const updatePayload: Record<string, unknown> = {
+      data: { ...currentData, proactiveStatus: status, ...extraFields },
+    };
+
+    // Sync relational fields to top-level Prisma columns if provided
+    if (extraFields?.proactiveOrganizationId) {
+      updatePayload.proactiveOrganizationId =
+        extraFields.proactiveOrganizationId;
+    }
+    if (extraFields?.proactiveBrandId) {
+      updatePayload.proactiveBrandId = extraFields.proactiveBrandId;
+    }
+
+    await this.prisma.lead.update({
+      data: updatePayload as never,
+      where: { id: leadId },
+    });
   }
 
   private getProactiveRedirectUrl(): string | undefined {
@@ -846,7 +882,7 @@ export class ProactiveOnboardingService {
     return `${appUrl.replace(/\/$/, '')}/onboarding/proactive`;
   }
 
-  private getPrepStage(status: ProactiveOnboardingStatus): string {
+  private getPrepStage(status?: ProactiveOnboardingStatus): string {
     switch (status) {
       case ProactiveOnboardingStatus.BRAND_PREPARING:
         return 'researching_brand';
@@ -865,7 +901,7 @@ export class ProactiveOnboardingService {
     }
   }
 
-  private getPrepPercent(status: ProactiveOnboardingStatus): number {
+  private getPrepPercent(status?: ProactiveOnboardingStatus): number {
     switch (status) {
       case ProactiveOnboardingStatus.BRAND_PREPARING:
         return 25;
@@ -884,24 +920,24 @@ export class ProactiveOnboardingService {
     }
   }
 
-  private isInviteEligible(status: ProactiveOnboardingStatus): boolean {
+  private isInviteEligible(status?: ProactiveOnboardingStatus): boolean {
     return [
       ProactiveOnboardingStatus.READY,
       ProactiveOnboardingStatus.INVITED,
       ProactiveOnboardingStatus.STARTED,
       ProactiveOnboardingStatus.PAYMENT_MADE,
       ProactiveOnboardingStatus.CONVERTED,
-    ].includes(status);
+    ].includes(status as ProactiveOnboardingStatus);
   }
 
-  private async getLeadOutputs(lead: LeadDocument): Promise<unknown[]> {
-    if (!lead.proactiveOrganization) {
+  private async getLeadOutputs(lead: LeadWithData): Promise<unknown[]> {
+    if (!lead.proactiveOrganizationId) {
       return [];
     }
 
     const posts = await this.postsService.find({
       isDeleted: false,
-      organization: new Types.ObjectId(lead.proactiveOrganization),
+      organization: lead.proactiveOrganizationId,
     });
 
     return posts.slice(0, 3);

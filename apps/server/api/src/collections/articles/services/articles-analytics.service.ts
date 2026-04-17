@@ -10,10 +10,7 @@
  * to help understand article performance and potential.
  */
 import { ViralityAnalysisResponse } from '@api/collections/articles/dto/analyze-virality.dto';
-import {
-  Article,
-  type ArticleDocument,
-} from '@api/collections/articles/schemas/article.schema';
+import type { ArticleDocument } from '@api/collections/articles/schemas/article.schema';
 import { ArticleAnalyticsService } from '@api/collections/articles/services/article-analytics.service';
 import {
   buildViralityAnalysisResponse,
@@ -25,7 +22,6 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import {
   calculateEstimatedTextCredits,
@@ -33,6 +29,7 @@ import {
 } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { ReplicateService } from '@api/services/integrations/replicate/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivitySource,
   ModelCategory,
@@ -41,8 +38,6 @@ import {
 } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, NotFoundException, Optional } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import type { Model } from 'mongoose';
 
 @Injectable()
 export class ArticlesAnalyticsService {
@@ -57,9 +52,7 @@ export class ArticlesAnalyticsService {
     @Optional() private readonly templatesService?: TemplatesService,
     @Optional() private readonly creditsUtilsService?: CreditsUtilsService,
     @Optional() private readonly modelsService?: ModelsService,
-    @Optional()
-    @InjectModel(Article.name, DB_CONNECTIONS.CLOUD)
-    private readonly articleModel?: Model<ArticleDocument>,
+    @Optional() private readonly prisma?: PrismaService,
     @Optional()
     private readonly articleAnalyticsService?: ArticleAnalyticsService,
   ) {}
@@ -140,10 +133,10 @@ export class ArticlesAnalyticsService {
       );
 
       // Update article with analysis
-      await this.articleModel?.updateOne(
-        { _id: article._id },
-        { $set: { viralityAnalysis: result.analysis } },
-      );
+      await this.prisma?.article.update({
+        data: { viralityAnalysis: result.analysis as never },
+        where: { id: article._id.toString() },
+      });
 
       this.logger.log(`${this.constructorName} completed virality analysis`, {
         articleId: article._id,
@@ -279,7 +272,9 @@ export class ArticlesAnalyticsService {
         timeframe,
       });
 
-      const article = await this.articleModel?.findById(articleId).exec();
+      const article = await this.prisma?.article.findUnique({
+        where: { id: articleId },
+      });
       if (!article) {
         throw new NotFoundException('Article not found');
       }

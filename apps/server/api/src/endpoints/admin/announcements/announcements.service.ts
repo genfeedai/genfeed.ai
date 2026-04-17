@@ -10,7 +10,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { Types } from 'mongoose';
 import { TwitterApi } from 'twitter-api-v2';
 
 @Injectable()
@@ -137,7 +136,7 @@ export class AdminAnnouncementsService {
     const credential = await this.credentialsService.findOne({
       isConnected: true,
       isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+      organization: organizationId,
       platform: CredentialPlatform.TWITTER,
     });
 

@@ -21,7 +21,6 @@ import { TrainingsModule } from '@api/collections/trainings/trainings.module';
 import { UserSubscriptionsModule } from '@api/collections/user-subscriptions/user-subscriptions.module';
 import { UsersModule } from '@api/collections/users/users.module';
 import { CommonModule } from '@api/common/common.module';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { ChromaticWebhookController } from '@api/endpoints/webhooks/chromatic/webhooks.chromatic.controller';
 import { ChromaticWebhookService } from '@api/endpoints/webhooks/chromatic/webhooks.chromatic.service';
 import { ClerkWebhookController } from '@api/endpoints/webhooks/clerk/webhooks.clerk.controller';
@@ -57,12 +56,7 @@ import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
 import { MicroservicesModule } from '@api/services/microservices/microservices.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
-import {
-  SkillReceipt,
-  SkillReceiptSchema,
-} from '@api/skills-pro/schemas/skill-receipt.schema';
 import { forwardRef, Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
 
 @Module({
   controllers: [
@@ -110,10 +104,6 @@ import { MongooseModule } from '@nestjs/mongoose';
     TransactionModule,
     UserSubscriptionsModule,
     UsersModule,
-    MongooseModule.forFeature(
-      [{ name: SkillReceipt.name, schema: SkillReceiptSchema }],
-      DB_CONNECTIONS.CLOUD,
-    ),
   ],
   providers: [
     ActivityUpdateService,

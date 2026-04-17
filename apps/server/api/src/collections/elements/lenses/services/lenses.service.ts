@@ -1,15 +1,10 @@
 import { CreateElementLensDto } from '@api/collections/elements/lenses/dto/create-lens.dto';
 import { UpdateElementLensDto } from '@api/collections/elements/lenses/dto/update-lens.dto';
-import {
-  ElementLens,
-  type ElementLensDocument,
-} from '@api/collections/elements/lenses/schemas/lens.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
+import type { ElementLensDocument } from '@api/collections/elements/lenses/schemas/lens.schema';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class ElementsLensesService extends BaseService<
@@ -18,10 +13,10 @@ export class ElementsLensesService extends BaseService<
   UpdateElementLensDto
 > {
   constructor(
-    @InjectModel(ElementLens.name, DB_CONNECTIONS.CLOUD)
-    protected readonly model: AggregatePaginateModel<ElementLensDocument>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 }

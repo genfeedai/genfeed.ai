@@ -1,15 +1,8 @@
-import {
-  ContentPlanItem,
-  type ContentPlanItemDocument,
-} from '@api/collections/content-plan-items/schemas/content-plan-item.schema';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { NotFoundException } from '@api/helpers/exceptions/http/not-found.exception';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ContentPlanItemStatus } from '@genfeedai/enums';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 export interface CreateContentPlanItemInput {
   organization: string;
@@ -37,70 +30,77 @@ export interface CreateContentPlanItemInput {
 @Injectable()
 export class ContentPlanItemsService {
   constructor(
-    @InjectModel(ContentPlanItem.name, DB_CONNECTIONS.CLOUD)
-    private readonly model: AggregatePaginateModel<ContentPlanItemDocument>,
+    private readonly prisma: PrismaService,
     public readonly logger: LoggerService,
   ) {}
 
-  createMany(
+  async createMany(
     items: CreateContentPlanItemInput[],
-  ): Promise<ContentPlanItemDocument[]> {
-    const docs = items.map((item) => ({
-      brand: new Types.ObjectId(item.brand),
-      confidence: item.confidence,
-      isDeleted: false,
-      organization: new Types.ObjectId(item.organization),
-      pipelineSteps: item.pipelineSteps ?? [],
-      plan: new Types.ObjectId(item.plan),
-      platforms: item.platforms,
-      prompt: item.prompt,
-      scheduledAt: item.scheduledAt,
-      skillSlug: item.skillSlug,
-      status: ContentPlanItemStatus.PENDING,
-      topic: item.topic,
-      type: item.type,
-    }));
+  ): Promise<Record<string, unknown>[]> {
+    const created = await Promise.all(
+      items.map((item) =>
+        this.prisma.contentPlanItem.create({
+          data: {
+            brandId: item.brand,
+            confidence: item.confidence,
+            isDeleted: false,
+            organizationId: item.organization,
+            pipelineSteps: item.pipelineSteps ?? [],
+            planId: item.plan,
+            platforms: item.platforms,
+            prompt: item.prompt,
+            scheduledAt: item.scheduledAt,
+            skillSlug: item.skillSlug,
+            status: ContentPlanItemStatus.PENDING,
+            topic: item.topic,
+            type: item.type,
+          },
+        }),
+      ),
+    );
 
-    return this.model.create(docs);
+    return created;
   }
 
   listByPlan(
     organizationId: string,
     planId: string,
-  ): Promise<ContentPlanItemDocument[]> {
-    return this.model
-      .find({
+  ): Promise<Record<string, unknown>[]> {
+    return this.prisma.contentPlanItem.findMany({
+      orderBy: { scheduledAt: 'asc' },
+      where: {
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-        plan: new Types.ObjectId(planId),
-      })
-      .sort({ scheduledAt: 1 })
-      .exec();
+        organizationId,
+        planId,
+      },
+    });
   }
 
   listPendingByPlan(
     organizationId: string,
     planId: string,
-  ): Promise<ContentPlanItemDocument[]> {
-    return this.model
-      .find({
+  ): Promise<Record<string, unknown>[]> {
+    return this.prisma.contentPlanItem.findMany({
+      orderBy: { scheduledAt: 'asc' },
+      where: {
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-        plan: new Types.ObjectId(planId),
+        organizationId,
+        planId,
         status: ContentPlanItemStatus.PENDING,
-      })
-      .sort({ scheduledAt: 1 })
-      .exec();
+      },
+    });
   }
 
   async getByIdOrFail(
     organizationId: string,
     itemId: string,
-  ): Promise<ContentPlanItemDocument> {
-    const item = await this.model.findOne({
-      _id: new Types.ObjectId(itemId),
-      isDeleted: false,
-      organization: new Types.ObjectId(organizationId),
+  ): Promise<Record<string, unknown>> {
+    const item = await this.prisma.contentPlanItem.findFirst({
+      where: {
+        id: itemId,
+        isDeleted: false,
+        organizationId,
+      },
     });
 
     if (!item) {
@@ -115,47 +115,41 @@ export class ContentPlanItemsService {
     itemId: string,
     status: ContentPlanItemStatus,
     updates?: { contentDraftId?: string; error?: string; confidence?: number },
-  ): Promise<ContentPlanItemDocument> {
-    const setFields: Record<string, unknown> = { status };
+  ): Promise<Record<string, unknown>> {
+    const existing = await this.prisma.contentPlanItem.findFirst({
+      where: { id: itemId, isDeleted: false, organizationId },
+    });
 
-    if (updates?.contentDraftId) {
-      setFields.contentDraftId = updates.contentDraftId;
-    }
-    if (updates?.error) {
-      setFields.error = updates.error;
-    }
-    if (updates?.confidence !== undefined) {
-      setFields.confidence = updates.confidence;
-    }
-
-    const updated = await this.model.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(itemId),
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      },
-      { $set: setFields },
-      { new: true },
-    );
-
-    if (!updated) {
+    if (!existing) {
       throw new NotFoundException('ContentPlanItem', itemId);
     }
 
-    return updated;
+    return this.prisma.contentPlanItem.update({
+      data: {
+        ...(updates?.confidence !== undefined
+          ? { confidence: updates.confidence }
+          : {}),
+        ...(updates?.contentDraftId
+          ? { contentDraftId: updates.contentDraftId }
+          : {}),
+        ...(updates?.error ? { error: updates.error } : {}),
+        status,
+      },
+      where: { id: itemId },
+    });
   }
 
   async softDeleteByPlan(
     organizationId: string,
     planId: string,
   ): Promise<void> {
-    await this.model.updateMany(
-      {
+    await this.prisma.contentPlanItem.updateMany({
+      data: { isDeleted: true },
+      where: {
         isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-        plan: new Types.ObjectId(planId),
+        organizationId,
+        planId,
       },
-      { $set: { isDeleted: true } },
-    );
+    });
   }
 }

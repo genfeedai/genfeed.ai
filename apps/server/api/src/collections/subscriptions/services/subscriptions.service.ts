@@ -9,12 +9,11 @@ import {
 } from '@api/collections/subscriptions/schemas/subscription.schema';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { ConfigService } from '@api/config/config.service';
-import { DB_CONNECTIONS } from '@api/constants/database.constants';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { ClerkService } from '@api/services/integrations/clerk/clerk.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { AggregatePaginateModel } from '@api/types/mongoose-aggregate-paginate-v2';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/enums';
 import type { ISubscriptionsService } from '@genfeedai/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -24,12 +23,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Types } from 'mongoose';
 
 type ClerkSyncSubscription = {
-  _id?: string | Types.ObjectId;
-  user: string | Types.ObjectId;
+  _id?: string;
+  user: string;
   stripePriceId?: string;
   stripeSubscriptionId?: string;
   status?: string;
@@ -62,8 +59,7 @@ export class SubscriptionsService
   public readonly constructorName: string = String(this.constructor.name);
 
   constructor(
-    @InjectModel(Subscription.name, DB_CONNECTIONS.AUTH)
-    protected readonly model: AggregatePaginateModel<SubscriptionDocument>,
+    public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
     private readonly configService: ConfigService,
     private readonly usersService: UsersService,
@@ -71,7 +67,8 @@ export class SubscriptionsService
     private readonly customersService: CustomersService,
     private readonly clerkService: ClerkService,
   ) {
-    super(model, logger);
+    // TODO: remove model arg after BaseService Prisma migration
+    super(undefined as never, logger);
   }
 
   /**
@@ -167,23 +164,22 @@ export class SubscriptionsService
       );
 
       customer = await this.customersService.create({
-        organization: new Types.ObjectId(organization._id),
+        organization: organization._id.toString(),
         stripeCustomerId: stripeCustomer.id,
       });
     }
 
     const subscriptionData = new SubscriptionEntity({
-      customer: new Types.ObjectId(customer._id),
+      customerId: customer._id.toString(),
       isDeleted: false,
-      organization: new Types.ObjectId(organization._id),
+      organizationId: organization._id.toString(),
       status: SubscriptionStatus.INCOMPLETE,
       stripeCustomerId: stripeCustomer.id,
       type: SubscriptionPlan.MONTHLY,
-      user: new Types.ObjectId(userId),
+      userId,
     });
 
-    const subscription = new this.model(subscriptionData);
-    const savedSubscription = await subscription.save();
+    const savedSubscription = await this.create(subscriptionData as never);
 
     this.logger.log(`${url} success`, {
       customerId: customer._id,
@@ -196,24 +192,22 @@ export class SubscriptionsService
     return savedSubscription;
   }
 
-  findByOrganizationId(organizationId: string): Promise<Subscription | null> {
-    return this.model
-      .findOne({
-        isDeleted: false,
-        organization: new Types.ObjectId(organizationId),
-      })
-      .exec();
+  async findByOrganizationId(
+    organizationId: string,
+  ): Promise<Subscription | null> {
+    const result = await this.prisma.subscription.findFirst({
+      where: { isDeleted: false, organizationId },
+    });
+    return result as unknown as Subscription | null;
   }
 
-  findByStripeCustomerId(
+  async findByStripeCustomerId(
     stripeCustomerId: string,
   ): Promise<Subscription | null> {
-    return this.model
-      .findOne({
-        isDeleted: false,
-        stripeCustomerId,
-      })
-      .exec();
+    const result = await this.prisma.subscription.findFirst({
+      where: { isDeleted: false, stripeCustomerId },
+    });
+    return result as unknown as Subscription | null;
   }
 
   async syncWithStripe(subscription: Subscription): Promise<Subscription> {
