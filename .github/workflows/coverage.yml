@@ -47,7 +47,6 @@ jobs:
 
       - name: Build workspace
         run: bunx turbo build --filter=./packages/**
-        continue-on-error: true
 
       - name: Run coverage
         run: cd ${{ matrix.package }} && npx vitest run --coverage
@@ -85,7 +84,6 @@ jobs:
 
       - name: Build workspace
         run: bunx turbo build --filter=./packages/**
-        continue-on-error: true
 
       - name: Run coverage
         run: cd packages/hooks && npx vitest run --coverage --config vitest.config.mts
@@ -123,7 +121,6 @@ jobs:
 
       - name: Build workspace
         run: bunx turbo build --filter=./packages/**
-        continue-on-error: true
 
       - name: Run coverage
         run: cd apps/server/api && npx vitest run --coverage
