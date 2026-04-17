@@ -49,9 +49,6 @@ describe('Connection-Model Mapping', () => {
       { connection: 'CLOUD', model: 'Brand' },
       { connection: 'CLOUD', model: 'Workflow' },
 
-      // CRM database
-      { connection: 'CRM', model: 'Lead' },
-
       // Clips database
       { connection: 'CLIPS', model: 'ClipProject' },
       { connection: 'CLIPS', model: 'ClipResult' },

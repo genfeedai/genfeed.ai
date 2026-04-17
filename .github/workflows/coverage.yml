@@ -122,6 +122,9 @@ jobs:
       - name: Build workspace
         run: bunx turbo build --filter=./packages/**
 
+      - name: Generate Prisma client
+        run: cd packages/prisma && npx prisma generate
+
       - name: Run coverage
         run: cd apps/server/api && npx vitest run --coverage
         env:
