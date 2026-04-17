@@ -7,6 +7,22 @@
 import 'reflect-metadata';
 import { vi } from 'vitest';
 
+// Mock @genfeedai/prisma so unit tests never need the generated Prisma client
+vi.mock('@genfeedai/prisma', () => {
+  class PrismaClient {
+    $connect = vi.fn().mockResolvedValue(undefined);
+    $disconnect = vi.fn().mockResolvedValue(undefined);
+    $queryRaw = vi.fn().mockResolvedValue([]);
+    $executeRaw = vi.fn().mockResolvedValue(0);
+    $transaction = vi
+      .fn()
+      .mockImplementation((arg) =>
+        Array.isArray(arg) ? Promise.all(arg) : arg(new PrismaClient()),
+      );
+  }
+  return { PrismaClient };
+});
+
 // Set test environment
 process.env.NODE_ENV = 'test';
 

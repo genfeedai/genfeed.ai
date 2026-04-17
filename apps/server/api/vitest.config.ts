@@ -240,10 +240,6 @@ export default defineConfig({
         replacement: path.resolve(__dirname, '../../../packages/libs'),
       },
       {
-        find: '@genfeedai/prisma',
-        replacement: path.resolve(__dirname, '../../../packages/prisma/src'),
-      },
-      {
         find: '@test',
         replacement: path.resolve(__dirname, './test'),
       },
